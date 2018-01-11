@@ -35,7 +35,7 @@ const baseSchema = Joi.object().keys({
   constants: Joi.object().pattern(/\w\d/i, JoiLiteral()).default(() => {}, "{}"),
 }).required()
 
-export async function loadProjectConfig(projectRoot: string): Promise<ProjectConfig> {
+export function loadProjectConfig(projectRoot: string): ProjectConfig {
   const path = join(projectRoot, PROJECT_CONFIG_FILENAME)
   let fileData
   let config

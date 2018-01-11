@@ -1,35 +1,51 @@
-import { loadModuleConfig, ModuleConfig } from "./types/module-config"
-import { loadProjectConfig, ProjectConfig } from "./types/project-config"
-import { LoggerInstance } from "winston"
-import { getIgnorer, getLogger, scanDirectory } from "./util"
 import { parse, relative } from "path"
+import { LoggerInstance } from "winston"
+import { loadModuleConfig } from "./types/module-config"
+import { loadProjectConfig, ProjectConfig } from "./types/project-config"
+import { getIgnorer, getLogger, scanDirectory } from "./util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
-import { ConfigurationError } from "./exceptions"
+import { ConfigurationError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
+import { ModuleConstructor, ModuleHandler } from "./moduleHandlers/base"
+import { ContainerModule } from "./moduleHandlers/container"
+import { FunctionModule } from "./moduleHandlers/function"
+import { NpmPackageModule } from "./moduleHandlers/npm-package"
 
-interface ModuleMap { [ key: string]: ModuleConfig }
+interface ModuleMap { [ key: string]: ModuleHandler }
 
 export class GardenContext {
   public log: LoggerInstance
 
   private config: ProjectConfig
+  private moduleTypes: { [ key: string]: ModuleConstructor }
   private modules: ModuleMap
 
   vcs: VcsHandler
 
   constructor(public projectRoot: string, logger?: LoggerInstance) {
     this.log = logger || getLogger()
+    this.config = loadProjectConfig(this.projectRoot)
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this)
 
+    this.moduleTypes = {}
+
+    // Load built-in module handlers
+    this.addModuleHandler("container", ContainerModule)
+    this.addModuleHandler("function", FunctionModule)
+    this.addModuleHandler("npm-package", NpmPackageModule)
   }
 
-  async getConfig(): Promise<ProjectConfig> {
-    if (!this.config) {
-      this.config = await loadProjectConfig(this.projectRoot)
+  addModuleHandler(typeName: string, moduleType: ModuleConstructor) {
+    if (this.moduleTypes[typeName]) {
+      throw new PluginError(`Module type ${typeName} declared more than once`, {
+        previous: this.moduleTypes[typeName],
+        adding: moduleType,
+      })
     }
-    return this.config
+
+    this.moduleTypes[typeName] = moduleType
   }
 
   async getModules(): Promise<ModuleMap> {
@@ -46,7 +62,8 @@ export class GardenContext {
       for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
         const parsedPath = parse(item.path)
         if (parsedPath.base === MODULE_CONFIG_FILENAME) {
-          const config = await loadModuleConfig(parsedPath.dir)
+          const modulePath = parsedPath.dir
+          const config = await loadModuleConfig(modulePath)
 
           if (modules[config.name]) {
             const pathA = modules[config.name].path
@@ -61,7 +78,15 @@ export class GardenContext {
             )
           }
 
-          modules[config.name] = config
+          const handlerType = this.moduleTypes[config.type]
+
+          if (!handlerType) {
+            throw new ConfigurationError(`Unrecognized module type: ${config.type}`, {
+              type: config.type,
+            })
+          }
+
+          modules[config.name] = new handlerType(this, modulePath, config)
         }
       }
 

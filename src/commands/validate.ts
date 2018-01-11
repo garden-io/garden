@@ -6,7 +6,6 @@ export class ValidateCommand extends Command {
   help = "Checks your garden configuration for errors"
 
   async action(ctx: GardenContext) {
-    await ctx.getConfig()
     await ctx.getModules()
   }
 }
