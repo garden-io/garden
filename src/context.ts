@@ -5,6 +5,8 @@ import { getIgnorer, getLogger, scanDirectory } from "./util"
 import { parse, relative } from "path"
 import { MODULE_CONFIG_FILENAME } from "./constants"
 import { ConfigurationError } from "./exceptions"
+import { VcsHandler } from "./vcs/base"
+import { GitHandler } from "./vcs/git"
 
 interface ModuleMap { [ key: string]: ModuleConfig }
 
@@ -14,8 +16,13 @@ export class GardenContext {
   private config: ProjectConfig
   private modules: ModuleMap
 
+  vcs: VcsHandler
+
   constructor(public projectRoot: string, logger?: LoggerInstance) {
     this.log = logger || getLogger()
+    // TODO: Support other VCS options.
+    this.vcs = new GitHandler(this)
+
   }
 
   async getConfig(): Promise<ProjectConfig> {
