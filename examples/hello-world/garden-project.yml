@@ -1,0 +1,9 @@
+environments:
+  local: {}
+  dev:
+    providers:
+      - name: fargate
+        type: aws-fargate
+      - type: serverless
+constants:
+  message: Hello garden!

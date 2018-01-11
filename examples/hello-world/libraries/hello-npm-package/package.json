@@ -1,0 +1,10 @@
+{
+  "name": "hello-npm-package",
+  "version": "1.0.0",
+  "description": "Test package for garden hello world project",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "UNLICENSED"
+}

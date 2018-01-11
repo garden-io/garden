@@ -1,0 +1,10 @@
+description: Hello world container service
+type: container
+services:
+  hello-container:
+    command: [npm, start]
+    ports:
+      - container: 80
+build:
+  dependencies:
+    - hello-npm-package

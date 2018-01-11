@@ -1,0 +1,21 @@
+# Logs
+*.log
+npm-debug.log*
+
+# Node dependencies directory
+node_modules
+
+# IDEs
+.idea
+*.iml
+/.vscode
+
+# Runtime files
+tmp/
+
+# TS cache on the CI
+ts-node-*
+
+# Compiled files
+src/**/*.js
+src/**/*.map

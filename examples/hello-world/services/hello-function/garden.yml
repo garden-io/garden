@@ -1,0 +1,10 @@
+description: Hello world serverless function
+type: function
+services:
+  hello-function:
+    handler: handler.endpoint
+    endpoints:
+      hostname: hello-world
+      path: /
+    dependencies:
+      - hello-container

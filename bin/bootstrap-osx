@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+BREW_DEPS="git nodejs"
+
+brew update
+brew install ${BREW_DEPS}
+brew upgrade ${BREW_DEPS}
