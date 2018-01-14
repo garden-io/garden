@@ -2,9 +2,10 @@ import { readFileSync } from "fs"
 import * as path from "path"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { JoiIdentifier, JoiLiteral, SimpleLiteral } from "./common"
+import { JoiIdentifier, JoiLiteral, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { MODULE_CONFIG_FILENAME } from "../constants"
+import { ProjectConfig } from "./project-config"
 
 export interface ModuleConfig {
   version: string
@@ -12,20 +13,23 @@ export interface ModuleConfig {
   path: string
   name: string
   type: string
-  constants: { [key: string]: SimpleLiteral }
-  build?: {
-    dependencies?: string[],
+  constants: { [key: string]: Primitive }
+  build: {
+    command?: string,
+    dependencies: string[],
   }
 }
 
-const baseSchema = Joi.object().keys({
+export const baseModuleSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   type: JoiIdentifier().required(),
   name: JoiIdentifier().required(),
-  constants: Joi.object().pattern(/\w\d/i, JoiLiteral()).default(() => {}, "{}"),
+  description: Joi.string(),
+  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => {}, "{}"),
   build: Joi.object().keys({
-    dependencies: Joi.array().items(JoiIdentifier()),
-  }),
+    command: Joi.string(),
+    dependencies: Joi.array().items(JoiIdentifier()).default(() => [], "[]"),
+  }).default(() => ({ dependencies: [] }), "{}"),
 }).required()
 
 export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig> {
@@ -50,7 +54,13 @@ export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig
     config.name = path.parse(absPath).dir.split(path.sep).slice(-1)[0]
   }
 
+  const result = baseModuleSchema.validate(config, { allowUnknown: true })
+
+  if (result.error) {
+    throw result.error
+  }
+
   config.path = modulePath
 
-  return <ModuleConfig>baseSchema.validate(config).value
+  return <ModuleConfig>result.value
 }

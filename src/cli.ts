@@ -12,7 +12,7 @@ const commonOptions = {
   root: new StringParameter({
     alias: "r",
     help: "override project root directory (defaults to working directory)",
-    defaultValue: "banana",
+    defaultValue: process.cwd(),
   }),
 }
 

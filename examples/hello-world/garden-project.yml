@@ -1,9 +1,11 @@
+name: hello-world
 environments:
   local: {}
   dev:
     providers:
-      - name: fargate
+      fargate:
         type: aws-fargate
-      - type: serverless
+      serverless:
+        type: serverless
 constants:
   message: Hello garden!

@@ -1,6 +1,6 @@
 import * as Joi from "joi"
 
-export type SimpleLiteral = string | number | boolean
+export type Primitive = string | number | boolean
 
 export const JoiLiteral = () => Joi.alternatives().try(Joi.number(), Joi.string(), Joi.boolean())
 

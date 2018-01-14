@@ -2,7 +2,7 @@ import { readFileSync } from "fs"
 import { join } from "path"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { identifierRegex, JoiIdentifier, JoiLiteral, SimpleLiteral } from "./common"
+import { identifierRegex, JoiIdentifier, JoiLiteral, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { GardenContext } from "../context"
 
@@ -21,18 +21,18 @@ export interface ProjectConfig {
   version: string
   name: string
   environments: { [key: string]: EnvironmentConfig }
-  constants: { [key: string]: SimpleLiteral }
+  constants: { [key: string]: Primitive }
 }
 
 const baseSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   name: JoiIdentifier().required(),
-  environments: Joi.object().keys({
+  environments: Joi.object().pattern(identifierRegex, Joi.object().keys({
     providers: Joi.object().pattern(identifierRegex, Joi.object().keys({
       type: JoiIdentifier().required(),
     })),
-  }),
-  constants: Joi.object().pattern(/\w\d/i, JoiLiteral()).default(() => {}, "{}"),
+  })),
+  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => {}, "{}"),
 }).required()
 
 export function loadProjectConfig(projectRoot: string): ProjectConfig {
@@ -52,5 +52,11 @@ export function loadProjectConfig(projectRoot: string): ProjectConfig {
     throw new ConfigurationError(`Could not parse ${PROJECT_CONFIG_FILENAME} as valid YAML`, err)
   }
 
-  return <ProjectConfig>baseSchema.validate(config).value
+  const result = baseSchema.validate(config || {})
+
+  if (result.error) {
+    throw result.error
+  }
+
+  return <ProjectConfig>result.value
 }
