@@ -48,9 +48,11 @@ export abstract class ModuleHandler<T extends ModuleConfig = ModuleConfig> {
     return !this.config.build.command
   }
 
-  async build(): Promise<BuildResult> {
+  async build({ force = false }): Promise<BuildResult> {
     // By default we run the specified build command in the module root, if any.
     // TODO: Keep track of which version has been built (needs local data store/cache).
+    force
+
     if (this.config.build.command) {
       const result = await exec(this.config.build.command, { cwd: this.context.projectRoot })
 
