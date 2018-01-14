@@ -2,9 +2,27 @@
 
 # garden
 
-Just getting started now...
+Just getting started now... More docs to follow.
 
-## Testing
+## Setup
+
+You need to set up the following on your local machine to use garden:
+* Node.js >= 8.x
+* Git
+* [Docker](https://docs.docker.com/engine/installation/)
+
+We recommend using Homebrew on Mac for everything except Docker - 
+[Docker for Mac](https://docs.docker.com/docker-for-mac/install/) is 
+usually a better choice and is well maintained.
+
+## Developing the framework
+
+### Setting up your environment
+
+    ./bin/bootstrap-osx
+    npm install
+
+### Testing
 
     npm test
   
