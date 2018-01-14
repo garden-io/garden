@@ -11,6 +11,7 @@ import { ContainerModule } from "./moduleHandlers/container"
 import { FunctionModule } from "./moduleHandlers/function"
 import { NpmPackageModule } from "./moduleHandlers/npm-package"
 import { getLogger, Logger } from "./log"
+import { GenericModule } from "./moduleHandlers/generic"
 
 interface ModuleMap { [ key: string]: ModuleHandler }
 
@@ -32,6 +33,7 @@ export class GardenContext {
     this.moduleTypes = {}
 
     // Load built-in module handlers
+    this.addModuleHandler("generic", GenericModule)
     this.addModuleHandler("container", ContainerModule)
     this.addModuleHandler("function", FunctionModule)
     this.addModuleHandler("npm-package", NpmPackageModule)
