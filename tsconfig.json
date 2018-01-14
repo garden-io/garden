@@ -12,6 +12,7 @@
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
+    "strictFunctionTypes": true,
     "strictNullChecks": true,
     "sourceMap": true,
     "target": "es6"
