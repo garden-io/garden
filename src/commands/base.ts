@@ -3,69 +3,66 @@ import { LoggerInstance } from "winston"
 
 export class ValidationError extends Error { }
 
-interface ArgumentConstructor {
+interface ParameterConstructor<T> {
   help: string,
   required?: boolean,
   alias?: string,
-  defaultValue?: any,
+  defaultValue?: T,
   valueName?: string,
 }
 
-export abstract class Argument {
+export abstract class Parameter<T> {
   abstract type: string
-  abstract value: any
 
+  _valueType: T
+
+  defaultValue: T | undefined
   help: string
   required: boolean
   alias?: string
   valueName: string
 
-  constructor({ help, required, alias, defaultValue, valueName }: ArgumentConstructor) {
+  constructor({ help, required, alias, defaultValue, valueName }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
     this.alias = alias
-    this.value = defaultValue
-    this.valueName = valueName || "value"
+    this.defaultValue = defaultValue
+    this.valueName = valueName || "_valueType"
   }
 
-  abstract setValue(input: string): void
+  abstract validate(input: string): T
 
   async autoComplete(): Promise<string[]> {
     return []
   }
 }
 
-export type Arguments = { [key: string]: Argument }
+export class StringParameter extends Parameter<string> {
+  type = "string"
 
-export class StringParameter extends Argument {
-  type: "string"
-  value: string
-
-  setValue(input: string) {
-    this.value = input
+  validate(input: string) {
+    return input
   }
 }
 
-export class NumberParameter extends Argument {
-  type: "number"
-  value: number
+export class NumberParameter extends Parameter<number> {
+  type = "number"
 
-  setValue(input: string) {
+  validate(input: string) {
     try {
-      this.value = parseInt(input, 10)
+      return parseInt(input, 10)
     } catch {
       throw new ValidationError(`Could not parse "${input}" as number`)
     }
   }
 }
 
-interface ChoicesConstructor extends ArgumentConstructor {
+interface ChoicesConstructor extends ParameterConstructor<string> {
   choices: string[],
 }
 
-export class ChoicesParameter extends Argument {
-  type: "choice"
-  value: string
+export class ChoicesParameter extends Parameter<string> {
+  type = "choice"
   choices: string[]
 
   constructor(args: ChoicesConstructor) {
@@ -74,9 +71,9 @@ export class ChoicesParameter extends Argument {
     this.choices = args.choices
   }
 
-  setValue(input: string) {
+  validate(input: string) {
     if (this.choices.includes(input)) {
-      this.value = input
+      return input
     } else {
       throw new ValidationError(`"${input}" is not a valid argument`)
     }
@@ -87,16 +84,18 @@ export class ChoicesParameter extends Argument {
   }
 }
 
-export class BooleanParameter extends Argument {
-  type: "boolean"
-  value: boolean
+export class BooleanParameter extends Parameter<boolean> {
+  type = "boolean"
 
-  setValue(input: any) {
-    this.value = true
+  validate(input: any) {
+    return true
   }
 }
 
-export abstract class Command<T extends Arguments = {}, U extends Arguments = {}> {
+export type Parameters = { [key: string]: Parameter<any> }
+export type ParameterValues<T extends Parameters> = { [P in keyof T]: T["_valueType"] }
+
+export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
   abstract help: string
 
@@ -107,5 +106,9 @@ export abstract class Command<T extends Arguments = {}, U extends Arguments = {}
 
   constructor() { }
 
-  abstract async action(context: GardenContext, args: T, opts: U): Promise<void>
+  // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
+  // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
+  // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
+  // the types explicitly on the subclassed methods.
+  abstract async action(context: GardenContext, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<any>
 }
