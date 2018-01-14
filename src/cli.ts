@@ -5,6 +5,7 @@ import { PluginError } from "./exceptions"
 import { GardenContext } from "./context"
 import { getLogger, Logger } from "./log"
 import { resolve } from "path"
+import { BuildCommand } from "./commands/build"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
@@ -39,6 +40,7 @@ export class GardenCli {
     // }
 
     // configure built-in commands
+    this.addCommand(new BuildCommand())
     this.addCommand(new ValidateCommand())
   }
 

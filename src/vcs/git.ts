@@ -56,6 +56,8 @@ export class GitHandler extends VcsHandler {
       if (dirtyTimestamp) {
         // any dirty versions will be sorted by latest timestamp
         return -parseInt(dirtyTimestamp, 10)
+      } else if (commitHash === NEW_MODULE_VERSION) {
+        return 0
       } else {
         // clean versions are sorted by their commit distance from HEAD
         return await this.getOffsetFromHead(commitHash)

@@ -10,6 +10,7 @@ import { ModuleConstructor, ModuleHandler } from "./moduleHandlers/base"
 import { ContainerModule } from "./moduleHandlers/container"
 import { FunctionModule } from "./moduleHandlers/function"
 import { NpmPackageModule } from "./moduleHandlers/npm-package"
+import { Task, TaskGraph } from "./task-graph"
 import { getLogger, Logger } from "./log"
 import { GenericModule } from "./moduleHandlers/generic"
 
@@ -21,6 +22,7 @@ export class GardenContext {
   private config: ProjectConfig
   private moduleTypes: { [ key: string]: ModuleConstructor }
   private modules: ModuleMap
+  private taskGraph: TaskGraph
 
   vcs: VcsHandler
 
@@ -29,6 +31,7 @@ export class GardenContext {
     this.config = loadProjectConfig(this.projectRoot)
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this)
+    this.taskGraph = new TaskGraph(this)
 
     this.moduleTypes = {}
 
@@ -37,6 +40,14 @@ export class GardenContext {
     this.addModuleHandler("container", ContainerModule)
     this.addModuleHandler("function", FunctionModule)
     this.addModuleHandler("npm-package", NpmPackageModule)
+  }
+
+  addTask(task: Task) {
+    this.taskGraph.addTask(task)
+  }
+
+  async processTasks() {
+    return this.taskGraph.processTasks()
   }
 
   addModuleHandler(typeName: string, moduleType: ModuleConstructor) {
@@ -92,8 +103,28 @@ export class GardenContext {
         }
       }
 
+      // Populate the build dependencies for all modules
+      // TODO: Detect circular dependencies
+      for (const name in modules) {
+        const module = modules[name]
+
+        for (let dependencyName of module.config.build.dependencies) {
+          const dependency = modules[dependencyName]
+
+          if (!dependency) {
+            throw new ConfigurationError(`Module ${name} dependency ${dependencyName} not found`, {
+              module,
+              dependencyName,
+            })
+          }
+
+          module.buildDependencies.push(dependency)
+        }
+      }
+
       this.modules = modules
     }
+
     return this.modules
   }
 }
