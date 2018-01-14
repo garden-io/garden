@@ -1,8 +1,7 @@
 import { parse, relative } from "path"
-import { LoggerInstance } from "winston"
 import { loadModuleConfig } from "./types/module-config"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
-import { getIgnorer, getLogger, scanDirectory } from "./util"
+import { getIgnorer, scanDirectory } from "./util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
 import { ConfigurationError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
@@ -11,11 +10,12 @@ import { ModuleConstructor, ModuleHandler } from "./moduleHandlers/base"
 import { ContainerModule } from "./moduleHandlers/container"
 import { FunctionModule } from "./moduleHandlers/function"
 import { NpmPackageModule } from "./moduleHandlers/npm-package"
+import { getLogger, Logger } from "./log"
 
 interface ModuleMap { [ key: string]: ModuleHandler }
 
 export class GardenContext {
-  public log: LoggerInstance
+  public log: Logger
 
   private config: ProjectConfig
   private moduleTypes: { [ key: string]: ModuleConstructor }
@@ -23,7 +23,7 @@ export class GardenContext {
 
   vcs: VcsHandler
 
-  constructor(public projectRoot: string, logger?: LoggerInstance) {
+  constructor(public projectRoot: string, logger?: Logger) {
     this.log = logger || getLogger()
     this.config = loadProjectConfig(this.projectRoot)
     // TODO: Support other VCS options.

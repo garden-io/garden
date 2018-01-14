@@ -3,9 +3,8 @@ import { Argument, Command, StringParameter } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { PluginError } from "./exceptions"
 import { GardenContext } from "./context"
-import { LoggerInstance } from "winston"
-import { getLogger } from "./util"
 import { join } from "path"
+import { getLogger, Logger } from "./log"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
@@ -21,7 +20,7 @@ export class GardenCli {
   // TODO: I don't particularly like Caporal.js, we might want to replace it at some point -JE
   program: any
   commands: { [key: string]: Command } = {}
-  logger: LoggerInstance
+  logger: Logger
 
   constructor() {
     this.logger = getLogger()
