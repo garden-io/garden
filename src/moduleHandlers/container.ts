@@ -27,15 +27,14 @@ const containerSchema = baseModuleSchema.keys({
     .pattern(identifierRegex, Joi.object()
       .keys({
         command: Joi.array().items(Joi.string()),
-        ports: Joi.array()
-          .items(
-            Joi.object()
-              .keys({
-                container: Joi.number().required(),
-                name: Joi.string(),
-              })
-              .required(),
-          )
+        ports: Joi.array().items(
+          Joi.object()
+            .keys({
+              container: Joi.number().required(),
+              name: Joi.string(),
+            })
+            .required(),
+        )
           .default(() => [], "[]"),
       }))
     .default(() => [], "[]"),
@@ -53,7 +52,7 @@ export class ContainerModule extends ModuleHandler<ContainerModuleConfig> {
       throw new ConfigurationError(
         `Module ${config.name} neither specified base image nor provides Dockerfile`,
         {},
-        )
+      )
     }
   }
 

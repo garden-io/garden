@@ -73,9 +73,9 @@ export class GitHandler extends VcsHandler {
     return <string[]><any>sortBy(versions, v => positions[v])
   }
 
-  private async getCurrentBranch() {
-    return (await this.git("rev-parse --abbrev-ref HEAD")).stdout.trim()
-  }
+  // private async getCurrentBranch() {
+  //   return (await this.git("rev-parse --abbrev-ref HEAD")).stdout.trim()
+  // }
 
   private async getOffsetFromHead(commitHash: string) {
     let res = await this.git(`rev-list --left-right --count ${commitHash}...HEAD`)

@@ -14,13 +14,13 @@ import { Task, TaskGraph } from "./task-graph"
 import { getLogger, Logger } from "./log"
 import { GenericModule } from "./moduleHandlers/generic"
 
-interface ModuleMap { [ key: string]: ModuleHandler }
+interface ModuleMap { [key: string]: ModuleHandler }
 
 export class GardenContext {
   public log: Logger
 
-  private config: ProjectConfig
-  private moduleTypes: { [ key: string]: ModuleConstructor }
+  private _config: ProjectConfig
+  private moduleTypes: { [key: string]: ModuleConstructor }
   private modules: ModuleMap
   private taskGraph: TaskGraph
 
@@ -28,7 +28,7 @@ export class GardenContext {
 
   constructor(public projectRoot: string, logger?: Logger) {
     this.log = logger || getLogger()
-    this.config = loadProjectConfig(this.projectRoot)
+    this._config = loadProjectConfig(this.projectRoot)
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this)
     this.taskGraph = new TaskGraph(this)

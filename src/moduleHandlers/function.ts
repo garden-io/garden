@@ -16,15 +16,13 @@ interface FunctionModuleConfig extends ModuleConfig {
 }
 
 const functionsSchema = Joi.object()
-  .pattern(identifierRegex, Joi.object()
-  .keys({
+  .pattern(identifierRegex, Joi.object().keys({
     handler: Joi.string().required(),
     endpoints: Joi.array()
       .items(Joi.object().keys({
         hostname: Joi.string().hostname().required(),
         path: Joi.string().uri(<any>{ relativeOnly: true }).required(),
-      })
-      .required())
+      }).required())
       .default(() => [], "[]"),
   }))
   .default(() => [], "[]")
