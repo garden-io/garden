@@ -48,6 +48,9 @@
   "scripts": {
     "build": "node_modules/.bin/tsc -p .",
     "clean": "find . -name *.js -delete",
+    "fix-format": "tslint -p . --fix && tsfmt -r",
+    "lint": "tslint -p . && tsfmt --verify",
+    "posttest": "npm run lint",
     "test": "node_modules/.bin/mocha test/**/*.ts test/**/**/*.ts"
   }
 }
