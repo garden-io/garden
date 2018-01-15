@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
+# install/update homebrew dependencies
 BREW_DEPS="git nodejs"
 
 brew update
 brew install ${BREW_DEPS}
 brew upgrade ${BREW_DEPS}
+
+# install CircleCI CLI
+curl -o /usr/local/bin/circleci https://circle-downloads.s3.amazonaws.com/releases/build_agent_wrapper/circleci
+chmod +x /usr/local/bin/circleci
