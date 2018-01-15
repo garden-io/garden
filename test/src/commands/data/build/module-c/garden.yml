@@ -1,0 +1,5 @@
+name: module-c
+type: container
+build:
+  dependencies:
+    - module-b

@@ -19,3 +19,5 @@ ts-node-*
 # Compiled files
 src/**/*.js
 src/**/*.map
+test/**/*.js
+test/**/*.map

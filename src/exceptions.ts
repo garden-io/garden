@@ -15,3 +15,7 @@ export class ConfigurationError extends GardenError {
 export class PluginError extends GardenError {
   type = "plugin"
 }
+
+export class ParameterError extends GardenError {
+  type = "parameter"
+}

@@ -4,6 +4,138 @@ import { GardenContext } from "./context"
 class TaskDefinitionError extends Error { }
 class TaskGraphError extends Error { }
 
+interface TaskResults {
+  [key: string]: any
+}
+
+const DEFAULT_CONCURRENCY = 4
+
+export abstract class Task {
+  abstract type: string
+
+  key?: string
+  dependencies: Task[]
+
+  constructor() {
+    this.dependencies = []
+  }
+
+  getKey() {
+    return this.key
+  }
+
+  abstract async process(taskGraph: TaskGraph): Promise<any>
+}
+
+export class TaskGraph {
+  private roots: TaskNodeMap
+  private index: TaskNodeMap
+
+  private inProgress: TaskNodeMap
+
+  constructor(private context: GardenContext, private concurrency: number = DEFAULT_CONCURRENCY) {
+    this.roots = new TaskNodeMap()
+    this.index = new TaskNodeMap()
+    this.inProgress = new TaskNodeMap()
+  }
+
+  addTask(task: Task) {
+    const node = this.getNode(task)
+
+    for (let d of task.dependencies || []) {
+      node.addDependency(this.getNode(d))
+    }
+
+    const nodeDependencies = node.getDependencies()
+
+    if (nodeDependencies.length === 0) {
+      this.roots.addNode(node)
+    } else {
+      for (let d of nodeDependencies) {
+        this.addTask(d.task)
+        d.addDependant(node)
+      }
+    }
+  }
+
+  private getNode(task: Task): TaskNode {
+    const existing = this.index.getNode(task)
+
+    if (existing) {
+      return existing
+    } else {
+      const node = new TaskNode(task)
+      this.index.addNode(node)
+      return node
+    }
+  }
+
+  log(msg: string) {
+    this.context.log.debug("tasks", msg)
+  }
+
+  /*
+    Process the graph until it's complete
+   */
+  async processTasks(): Promise<TaskResults> {
+    const results = {}
+    const _this = this
+
+    const loop = async () => {
+      if (_this.index.length === 0) {
+        // done!
+        return
+      }
+
+      const batch = _this.roots.getNodes()
+        .filter(n => !this.inProgress.contains(n))
+        .slice(0, _this.concurrency - this.inProgress.length)
+
+      batch.forEach(n => this.inProgress.addNode(n))
+
+      return Bluebird.map(batch, async (node: TaskNode) => {
+        const key = node.getKey()
+
+        try {
+          this.log(`Processing task ${node.getKey()}`)
+          this.log(`In progress: ${this.inProgress.getNodes().map(n => n.getKey()).join(", ")}`)
+
+          results[key] = await node.process(_this)
+        } finally {
+          this.completeTask(node)
+        }
+
+        return loop()
+      })
+    }
+
+    await loop()
+
+    return results
+  }
+
+  private completeTask(node: TaskNode) {
+    if (node.getDependencies().length > 0) {
+      throw new TaskGraphError(`Task ${node.getKey()} still has unprocessed dependencies`)
+    }
+
+    for (let d of node.getDependants()) {
+      d.removeDependency(node)
+
+      if (d.getDependencies().length === 0) {
+        this.roots.addNode(d)
+      }
+    }
+
+    this.roots.removeNode(node)
+    this.index.removeNode(node)
+    this.inProgress.removeNode(node)
+
+    this.log(`Completed task ${node.getKey()}`)
+    this.log(`Remaining tasks: ${this.index.length}`)
+  }
+}
+
 function getIndexKey(task: Task) {
   const key = task.getKey()
 
@@ -12,19 +144,6 @@ function getIndexKey(task: Task) {
   }
 
   return `${task.type}.${key}`
-}
-
-export abstract class Task {
-  abstract type: string
-
-  key?: string
-  dependencies?: Task[]
-
-  getKey() {
-    return this.key
-  }
-
-  abstract async process(taskGraph: TaskGraph): Promise<any>
 }
 
 class TaskNodeMap {
@@ -105,111 +224,6 @@ class TaskNode {
   }
 
   async process(taskGraph: TaskGraph) {
-    await this.task.process(taskGraph)
-  }
-}
-
-export class TaskGraph {
-  private roots: TaskNodeMap
-  private index: TaskNodeMap
-
-  private inProgress: TaskNodeMap
-
-  constructor(private context: GardenContext) {
-    this.roots = new TaskNodeMap()
-    this.index = new TaskNodeMap()
-    this.inProgress = new TaskNodeMap()
-  }
-
-  addTask(task: Task) {
-    const node = this.getNode(task)
-
-    for (let d of task.dependencies || []) {
-      node.addDependency(this.getNode(d))
-    }
-
-    const nodeDependencies = node.getDependencies()
-
-    if (nodeDependencies.length === 0) {
-      this.roots.addNode(node)
-    } else {
-      for (let d of nodeDependencies) {
-        this.addTask(d.task)
-        d.addDependant(node)
-      }
-    }
-  }
-
-  private getNode(task: Task): TaskNode {
-    const existing = this.index.getNode(task)
-
-    if (existing) {
-      return existing
-    } else {
-      const node = new TaskNode(task)
-      this.index.addNode(node)
-      return node
-    }
-  }
-
-  /*
-    Process the graph until it's complete
-   */
-  async processTasks(concurrency = 1) {
-    const results = {}
-    const graph = this
-
-    const loop = async () => {
-      if (this.index.length === 0) {
-        // done!
-        return
-      }
-
-      const batch = this.roots.getNodes()
-        .filter(n => !this.inProgress.contains(n))
-        .slice(0, concurrency - this.inProgress.length)
-
-      batch.forEach(n => this.inProgress.addNode(n))
-
-      return Bluebird.map(batch, async (node: TaskNode) => {
-        const key = node.getKey()
-
-        try {
-          this.context.log.debug(`Processing task ${node.getKey()}`, 2, 2)
-          this.context.log.debug(`In progress: ${this.inProgress.getNodes().map(n => n.getKey()).join(", ")}`, 2, 2)
-
-          results[key] = await node.process(graph)
-        } finally {
-          this.completeTask(node)
-        }
-
-        return loop()
-      })
-    }
-
-    await loop()
-
-    return results
-  }
-
-  private completeTask(node: TaskNode) {
-    if (node.getDependencies().length > 0) {
-      throw new TaskGraphError(`Task ${node.getKey()} still has unprocessed dependencies`)
-    }
-
-    for (let d of node.getDependants()) {
-      d.removeDependency(node)
-
-      if (d.getDependencies().length === 0) {
-        this.roots.addNode(d)
-      }
-    }
-
-    this.roots.removeNode(node)
-    this.index.removeNode(node)
-    this.inProgress.removeNode(node)
-
-    this.context.log.debug(`Completed task ${node.getKey()}`, 2, 2)
-    this.context.log.debug(`Remaining tasks: ${this.index.length}`, 2, 2)
+    return await this.task.process(taskGraph)
   }
 }

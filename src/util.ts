@@ -1,10 +1,9 @@
 import * as exitHook from "async-exit-hook"
 import * as ignore from "ignore/ignore"
 import * as klaw from "klaw"
-import { log } from "./log"
 import { existsSync, readFileSync } from "fs"
 import { join } from "path"
-import { LoggerInstance, Logger, transports } from "winston"
+import { getLogger } from "./log"
 
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
@@ -12,7 +11,6 @@ import { LoggerInstance, Logger, transports } from "winston"
 type HookCallback = (callback?: () => void) => void
 
 const exitHooks: HookCallback[] = []
-let logger: LoggerInstance
 
 export function shutdown(code) {
   if (exitHooks.length > 1) {
@@ -23,34 +21,17 @@ export function shutdown(code) {
   }
 }
 
-// TODO: make log level configurable
-export function getLogger(level = "info") {
-  if (!logger) {
-    logger = new Logger({
-      level,
-      exitOnError: false,
-      transports: [
-        new transports.Console({
-          showLevel: false,
-          handleExceptions: true,
-          humanReadableUnhandledException: true,
-        }),
-      ],
-    })
-  }
-
-  return logger
-}
-
 export function registerCleanupFunction(name: string, func: HookCallback) {
   // NOTE: this currently does not work on SIGINT in ts-node due to a bug
   // (see https://github.com/TypeStrong/ts-node/pull/458)
+
+  const log = getLogger()
 
   if (exitHooks.length === 0) {
     exitHook.hookEvent("exitWithError", 1)
 
     const firstHook = () => {
-      log("cleanup", "Starting cleanup...")
+      log.debug("cleanup", "Starting cleanup...")
     }
 
     exitHook(firstHook)
@@ -59,12 +40,12 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
 
   const hook = (callback) => {
     if (func.length === 0) {
-      log("cleanup", name)
+      log.debug("cleanup", name)
       func()
     } else {
-      log("cleanup", `Starting ${name}`)
+      log.debug("cleanup", `Starting ${name}`)
       func(() => {
-        log("cleanup", `Completed ${name}`)
+        log.debug("cleanup", `Completed ${name}`)
         callback()
       })
     }

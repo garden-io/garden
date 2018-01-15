@@ -1,18 +1,18 @@
 import * as caporal from "caporal"
-import { Argument, Command, StringParameter } from "./commands/base"
+import { Parameter, Command, StringParameter } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { PluginError } from "./exceptions"
 import { GardenContext } from "./context"
-import { LoggerInstance } from "winston"
-import { getLogger } from "./util"
-import { join } from "path"
+import { getLogger, Logger } from "./log"
+import { resolve } from "path"
+import { BuildCommand } from "./commands/build"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
   root: new StringParameter({
     alias: "r",
     help: "override project root directory (defaults to working directory)",
-    defaultValue: "banana",
+    defaultValue: process.cwd(),
   }),
 }
 
@@ -21,7 +21,7 @@ export class GardenCli {
   // TODO: I don't particularly like Caporal.js, we might want to replace it at some point -JE
   program: any
   commands: { [key: string]: Command } = {}
-  logger: LoggerInstance
+  logger: Logger
 
   constructor() {
     this.logger = getLogger()
@@ -40,6 +40,7 @@ export class GardenCli {
     // }
 
     // configure built-in commands
+    this.addCommand(new BuildCommand())
     this.addCommand(new ValidateCommand())
   }
 
@@ -53,27 +54,26 @@ export class GardenCli {
 
     // Translate the Command class and its arguments to the Caporal program
     let cliCommand = this.program
-      .command(command.name)
+      .command(command.name, command.help)
       .help(command.help)
 
     if (command.alias) {
       cliCommand = cliCommand.alias(command.alias)
     }
 
-    const addArgument = (name: string, arg: Argument) => {
+    const addArgument = (name: string, arg: Parameter<any>) => {
       const synopsis = arg.required ? `<${name}>` : `[${name}]`
 
       cliCommand = cliCommand
         .argument(synopsis, arg.help, (input: string) => {
-          arg.setValue(input)
-          return arg.value
-        }, arg.value)
+          return arg.validate(input)
+        }, arg.defaultValue)
         .complete(() => {
           return arg.autoComplete()
         })
     }
 
-    const addOption = (name: string, arg: Argument) => {
+    const addOption = (name: string, arg: Parameter<any>) => {
       const valueName = arg.required ? `<${arg.valueName}>` : `[${arg.valueName}]`
       let synopsis = arg.type === "boolean" ? `--${name}` : `--${name} ${valueName}`
 
@@ -83,9 +83,8 @@ export class GardenCli {
 
       cliCommand = cliCommand
         .option(synopsis, arg.help, (input: string) => {
-          arg.setValue(input)
-          return arg.value
-        }, arg.value)
+          return arg.validate(input)
+        }, arg.defaultValue)
         .complete(() => {
           return arg.autoComplete()
         })
@@ -110,9 +109,7 @@ export class GardenCli {
     const logger = this.logger
 
     cliCommand = cliCommand.action((args, opts) => {
-      // For some baffling reason, the value becomes an array with two values when set on the command line. FML.
-      const root = join(process.cwd(), opts.root[1] || opts.root)
-
+      const root = resolve(process.cwd(), opts.root)
       const context = new GardenContext(root, logger)
 
       return command.action(context, args, opts)

@@ -25,9 +25,9 @@ const functionsSchema = Joi.object()
         path: Joi.string().uri(<any>{ relativeOnly: true }).required(),
       })
       .required())
-      .default(() => []),
+      .default(() => [], "[]"),
   }))
-  .default(() => [])
+  .default(() => [], "[]")
 
 export class FunctionModule extends ModuleHandler<FunctionModuleConfig> {
   type = "function"

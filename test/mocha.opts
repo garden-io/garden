@@ -1,4 +1,4 @@
 --require ts-node/register
 --watch-extensions ts,json
 --reporter spec
---timeout 1000
+--timeout 5000
