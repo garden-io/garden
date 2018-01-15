@@ -77,19 +77,19 @@ export class TaskGraph {
   /*
     Process the graph until it's complete
    */
-  async processTasks(concurrency = 1): Promise<TaskResults> {
+  async processTasks(): Promise<TaskResults> {
     const results = {}
-    const graph = this
+    const _this = this
 
     const loop = async () => {
-      if (this.index.length === 0) {
+      if (_this.index.length === 0) {
         // done!
         return
       }
 
-      const batch = this.roots.getNodes()
+      const batch = _this.roots.getNodes()
         .filter(n => !this.inProgress.contains(n))
-        .slice(0, concurrency - this.inProgress.length)
+        .slice(0, _this.concurrency - this.inProgress.length)
 
       batch.forEach(n => this.inProgress.addNode(n))
 
@@ -100,7 +100,7 @@ export class TaskGraph {
           this.log(`Processing task ${node.getKey()}`)
           this.log(`In progress: ${this.inProgress.getNodes().map(n => n.getKey()).join(", ")}`)
 
-          results[key] = await node.process(graph)
+          results[key] = await node.process(_this)
         } finally {
           this.completeTask(node)
         }
