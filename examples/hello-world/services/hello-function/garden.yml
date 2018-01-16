@@ -4,7 +4,7 @@ services:
   hello-function:
     handler: handler.endpoint
     endpoints:
-      hostname: hello-world
-      path: /
+      - hostname: hello-world
+        path: /
     dependencies:
       - hello-container
