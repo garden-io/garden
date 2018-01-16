@@ -4,7 +4,6 @@ import * as yaml from "js-yaml"
 import * as Joi from "joi"
 import { identifierRegex, JoiIdentifier, JoiLiteral, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
-import { GardenContext } from "../context"
 
 const PROJECT_CONFIG_FILENAME = "garden-project.yml"
 
@@ -32,7 +31,7 @@ const baseSchema = Joi.object().keys({
       type: JoiIdentifier().required(),
     })),
   })),
-  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => {}, "{}"),
+  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
 }).required()
 
 export function loadProjectConfig(projectRoot: string): ProjectConfig {

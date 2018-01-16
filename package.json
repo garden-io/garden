@@ -43,11 +43,15 @@
     "ts-node": "^4.1.0",
     "tslint": "^5.8.0",
     "tslint-microsoft-contrib": "^5.0.1",
-    "typescript": "^2.6.2"
+    "typescript": "^2.6.2",
+    "typescript-formatter": "^7.0.1"
   },
   "scripts": {
     "build": "node_modules/.bin/tsc -p .",
     "clean": "find . -name *.js -delete",
+    "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
+    "lint": "node_modules/.bin/tslint -p . && node_modules/.bin/tsfmt --verify",
+    "posttest": "npm run lint",
     "test": "node_modules/.bin/mocha test/**/*.ts test/**/**/*.ts"
   }
 }

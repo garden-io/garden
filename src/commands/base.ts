@@ -1,5 +1,4 @@
 import { GardenContext } from "../context"
-import { LoggerInstance } from "winston"
 
 export class ValidationError extends Error { }
 
@@ -87,13 +86,13 @@ export class ChoicesParameter extends Parameter<string> {
 export class BooleanParameter extends Parameter<boolean> {
   type = "boolean"
 
-  validate(input: any) {
+  validate(_input: any) {
     return true
   }
 }
 
 export type Parameters = { [key: string]: Parameter<any> }
-export type ParameterValues<T extends Parameters> = { [P in keyof T]: T["_valueType"] }
+export type ParameterValues<T extends Parameters> = {[P in keyof T]: T["_valueType"]}
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string

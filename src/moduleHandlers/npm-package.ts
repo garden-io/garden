@@ -6,7 +6,7 @@ interface NpmPackageModuleConfig extends ModuleConfig { }
 export class NpmPackageModule extends ModuleHandler<NpmPackageModuleConfig> {
   type = "npm-package"
 
-  validate(config: NpmPackageModuleConfig) {
+  validate() {
     // TODO: check package.json
   }
 }

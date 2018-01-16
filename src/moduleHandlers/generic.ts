@@ -6,5 +6,5 @@ interface GenericModuleConfig extends ModuleConfig { }
 export class GenericModule extends ModuleHandler<GenericModuleConfig> {
   type = "generic"
 
-  validate(config: GenericModuleConfig) { }
+  validate() { }
 }
