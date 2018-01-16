@@ -16,7 +16,7 @@
     "indent": [true, "spaces", 2],
     "interface-name": [true, "never-prefix"],
     "jsdoc-format": true,
-    "max-line-length": 100,
+    "max-line-length": [true, 120],
     "no-consecutive-blank-lines": true,
     "no-console": false,
     "no-debugger": true,
