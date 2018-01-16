@@ -1,10 +1,10 @@
 import { Task } from "../task-graph"
-import { ModuleHandler } from "../moduleHandlers/base"
+import { Module } from "../types/module"
 
 export class BuildTask extends Task {
   type = "build"
 
-  constructor(private module: ModuleHandler, private force: boolean) {
+  constructor(private module: Module, private force: boolean) {
     super()
   }
 
@@ -19,7 +19,7 @@ export class BuildTask extends Task {
   }
 
   async process() {
-    if (this.force || !(await this.module.isBuilt())) {
+    if (this.force || !(await this.module.getBuildStatus()).ready) {
       return await this.module.build({ force: this.force })
     } else {
       return { fresh: false }

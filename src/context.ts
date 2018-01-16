@@ -1,26 +1,38 @@
 import { parse, relative } from "path"
-import { loadModuleConfig } from "./types/module-config"
+import * as Joi from "joi"
+import { loadModuleConfig, Module, ModuleConfig } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
 import { getIgnorer, scanDirectory } from "./util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
 import { ConfigurationError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
-import { ModuleConstructor, ModuleHandler } from "./moduleHandlers/base"
-import { ContainerModule } from "./moduleHandlers/container"
-import { FunctionModule } from "./moduleHandlers/function"
-import { NpmPackageModule } from "./moduleHandlers/npm-package"
+import { NpmPackageModuleHandler } from "./moduleHandlers/npm-package"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, Logger } from "./log"
-import { GenericModule } from "./moduleHandlers/generic"
+import {
+  moduleActionNames, PluginActions, PluginFactory, PluginInterface,
+} from "./types/plugin"
+import { JoiIdentifier } from "./types/common"
+import { GenericModuleHandler } from "./moduleHandlers/generic"
+import { GenericFunctionModuleHandler } from "./moduleHandlers/function"
+import { ContainerModuleHandler } from "./moduleHandlers/container"
 
-interface ModuleMap { [key: string]: ModuleHandler }
+interface ModuleMap { [key: string]: Module }
+
+// TODO: We can maybe avoid the any types here with a little bit of TS gymnastics.
+type PluginActionMap = {
+  [A in keyof PluginActions<any>]: {
+    [key: string]: PluginActions<any>[A],
+  }
+}
 
 export class GardenContext {
   public log: Logger
+  public actionHandlers: PluginActionMap
 
   private _config: ProjectConfig
-  private moduleTypes: { [key: string]: ModuleConstructor }
+  private plugins: { [key: string]: PluginInterface<any> }
   private modules: ModuleMap
   private taskGraph: TaskGraph
 
@@ -33,32 +45,62 @@ export class GardenContext {
     this.vcs = new GitHandler(this)
     this.taskGraph = new TaskGraph(this)
 
-    this.moduleTypes = {}
+    this.plugins = {}
+    this.actionHandlers = {
+      parseModule: {},
+      getModuleBuildStatus: {},
+      buildModule: {},
+    }
 
     // Load built-in module handlers
-    this.addModuleHandler("generic", GenericModule)
-    this.addModuleHandler("container", ContainerModule)
-    this.addModuleHandler("function", FunctionModule)
-    this.addModuleHandler("npm-package", NpmPackageModule)
+    this.registerPlugin((ctx) => new GenericModuleHandler(ctx))
+    this.registerPlugin((ctx) => new ContainerModuleHandler(ctx))
+    this.registerPlugin((ctx) => new GenericFunctionModuleHandler(ctx))
+    this.registerPlugin((ctx) => new NpmPackageModuleHandler(ctx))
   }
 
-  addTask(task: Task) {
-    this.taskGraph.addTask(task)
+  async addTask(task: Task) {
+    await this.taskGraph.addTask(task)
   }
 
   async processTasks() {
     return this.taskGraph.processTasks()
   }
 
-  addModuleHandler(typeName: string, moduleType: ModuleConstructor) {
-    if (this.moduleTypes[typeName]) {
-      throw new PluginError(`Module type ${typeName} declared more than once`, {
-        previous: this.moduleTypes[typeName],
-        adding: moduleType,
+  registerPlugin<T extends ModuleConfig>(pluginFactory: PluginFactory<T>) {
+    const plugin = pluginFactory(this)
+    const pluginName = Joi.attempt(plugin.name, JoiIdentifier())
+
+    if (this.plugins[pluginName]) {
+      throw new PluginError(`Plugin ${pluginName} declared more than once`, {
+        previous: this.plugins[pluginName],
+        adding: plugin,
       })
     }
 
-    this.moduleTypes[typeName] = moduleType
+    this.plugins[pluginName] = plugin
+
+    // TODO: Figure out how to make this more type-safe
+    for (const action of moduleActionNames) {
+      if (plugin[action]) {
+        const moduleTypes = plugin.supportedModuleTypes
+
+        if (!moduleTypes || !moduleTypes.length) {
+          throw new PluginError(
+            `Plugin ${pluginName} specifies module action ${action} but no supported module types`,
+            { action, moduleTypes },
+          )
+        }
+
+        for (const moduleType of moduleTypes) {
+          this.actionHandlers[action][moduleType] = (...args) => {
+            return plugin[action].apply(plugin, args)
+          }
+        }
+      }
+    }
+
+    // TODO: further validate plugin schema at runtime
   }
 
   async getModules(): Promise<ModuleMap> {
@@ -91,34 +133,16 @@ export class GardenContext {
             )
           }
 
-          const handlerType = this.moduleTypes[config.type]
+          const parseHandler = this.actionHandlers.parseModule[config.type]
 
-          if (!handlerType) {
-            throw new ConfigurationError(`Unrecognized module type: ${config.type}`, {
+          if (!parseHandler) {
+            throw new ConfigurationError(`Unrecognized module type ${config.type}`, {
               type: config.type,
+              availableTypes: Object.keys(this.actionHandlers.parseModule),
             })
           }
 
-          modules[config.name] = new handlerType(this, modulePath, config)
-        }
-      }
-
-      // Populate the build dependencies for all modules
-      // TODO: Detect circular dependencies
-      for (const name in modules) {
-        const module = modules[name]
-
-        for (let dependencyName of module.config.build.dependencies) {
-          const dependency = modules[dependencyName]
-
-          if (!dependency) {
-            throw new ConfigurationError(`Module ${name} dependency ${dependencyName} not found`, {
-              module,
-              dependencyName,
-            })
-          }
-
-          module.buildDependencies.push(dependency)
+          modules[config.name] = parseHandler(this, config)
         }
       }
 

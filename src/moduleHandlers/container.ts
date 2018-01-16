@@ -1,19 +1,20 @@
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
-import { ModuleHandler } from "./base"
-import { baseModuleSchema, ModuleConfig } from "../types/module-config"
+import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
 import { identifierRegex } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
 import { round } from "lodash"
+import { Plugin } from "../types/plugin"
+import { GardenContext } from "../context"
 
 interface ServicePortSpec {
   container: number
   name?: string
 }
 
-interface ContainerModuleConfig extends ModuleConfig {
+export interface ContainerModuleConfig extends ModuleConfig {
   image?: string
   services?: {
     command?: string,
@@ -22,9 +23,10 @@ interface ContainerModuleConfig extends ModuleConfig {
 }
 
 const containerSchema = baseModuleSchema.keys({
+  path: Joi.string().required(),
   image: Joi.string(),
   services: Joi.object()
-    .pattern(identifierRegex, Joi.object()
+    .pattern(identifierRegex, baseServiceSchema
       .keys({
         command: Joi.array().items(Joi.string()),
         ports: Joi.array().items(
@@ -40,42 +42,66 @@ const containerSchema = baseModuleSchema.keys({
     .default(() => [], "[]"),
 })
 
-// TODO: support remote registries and pushing
-export class ContainerModule extends ModuleHandler<ContainerModuleConfig> {
-  type = "container"
+class ContainerModule extends Module<ContainerModuleConfig> {
+  image?: string
+  services?: {
+    command?: string,
+    ports?: ServicePortSpec[],
+  }
+}
 
-  validate(config: ContainerModuleConfig) {
-    this.config = <ContainerModuleConfig>containerSchema.validate(config.services).value
+// TODO: support remote registries and pushing
+export class ContainerModuleHandler extends Plugin<ContainerModuleConfig> {
+  name = "container-module"
+  supportedModuleTypes = ["container"]
+
+  parseModule(context: GardenContext, config: ContainerModuleConfig) {
+    config = <ContainerModuleConfig>Joi.attempt(config, containerSchema)
+
+    const module = new ContainerModule(context, config)
+
+    module.image = config.image
+    module.services = config.services
 
     // make sure we can build the thing
-    if (!config.image && !existsSync(join(this.path, "Dockerfile"))) {
+    if (!module.image && !existsSync(join(module.path, "Dockerfile"))) {
       throw new ConfigurationError(
         `Module ${config.name} neither specified base image nor provides Dockerfile`,
         {},
       )
     }
+
+    return module
   }
 
-  async build({ force = false } = {}) {
-    if (!!this.config.image) {
-      await this.pullImage()
+  async getModuleBuildStatus(module: ContainerModule) {
+    const ready = !!module.image ? true : await this.imageExistsLocally(module)
+
+    return { ready }
+  }
+
+  async buildModule(module: ContainerModule, { force = false } = {}) {
+    const self = this
+
+    if (!!module.image) {
+      await this.pullImage(this.context, module)
       return { fetched: true }
     }
 
-    const identifier = await this.getIdentifier()
-    const name = this.name
+    const identifier = await this.getIdentifier(module)
+    const name = module.name
 
     let build = async (doForce = false) => {
-      if (doForce || !await this.isBuilt()) {
+      if (doForce || !await self.getModuleBuildStatus(module)) {
         const startTime = new Date().getTime()
 
-        this.context.log.info(name, `building ${identifier}...`)
+        self.context.log.info(name, `building ${identifier}...`)
 
         // TODO: log error if it occurs
-        await this.dockerCli(`build -t ${identifier} ${this.path}`)
+        await this.dockerCli(module, `build -t ${identifier} ${module.path}`)
 
         const buildTime = (new Date().getTime()) - startTime
-        this.context.log.info(name, `built ${identifier} (took ${round(buildTime / 1000, 1)} sec)`)
+        self.context.log.info(name, `built ${identifier} (took ${round(buildTime / 1000, 1)} sec)`)
 
         return { fresh: true }
       } else {
@@ -83,7 +109,7 @@ export class ContainerModule extends ModuleHandler<ContainerModuleConfig> {
       }
     }
 
-    if (force || !await this.imageExistsLocally(identifier)) {
+    if (force || !await this.imageExistsLocally(module)) {
       // build doesn't exist, so we create it
       return build(force)
     } else {
@@ -91,34 +117,26 @@ export class ContainerModule extends ModuleHandler<ContainerModuleConfig> {
     }
   }
 
-  async isBuilt() {
-    if (this.config.image) {
-      return true
-    }
-
-    const identifier = await this.getIdentifier()
-
-    return await this.imageExistsLocally(identifier)
+  private async getIdentifier(module: ContainerModule) {
+    return module.image || module.name
   }
 
-  async imageExistsLocally(identifier: string) {
-    return (await this.dockerCli(`images ${identifier} -q`)).stdout.trim().length > 0
-  }
+  async pullImage(ctx: GardenContext, module: ContainerModule) {
+    const identifier = await this.getIdentifier(module)
 
-  async getIdentifier() {
-    return this.config.image || this.name
-  }
-
-  private async pullImage() {
-    const identifier = await this.getIdentifier()
-
-    if (!await this.imageExistsLocally(identifier)) {
-      this.context.log.info(this.name, `pulling image ${identifier}...`)
-      await this.dockerCli(`pull ${identifier}`)
+    if (!await this.imageExistsLocally(module)) {
+      ctx.log.info(this.name, `pulling image ${identifier}...`)
+      await this.dockerCli(module, `pull ${identifier}`)
     }
   }
 
-  async dockerCli(args) {
-    return childProcess.exec("docker " + args, { cwd: this.path, maxBuffer: 1024 * 1024 })
+  async imageExistsLocally(module: ContainerModule) {
+    const identifier = await this.getIdentifier(module)
+    return (await this.dockerCli(module, `images ${identifier} -q`)).stdout.trim().length > 0
+  }
+
+  async dockerCli(module: ContainerModule, args) {
+    // TODO: use dockerode instead of CLI
+    return childProcess.exec("docker " + args, { cwd: module.path, maxBuffer: 1024 * 1024 })
   }
 }

@@ -1,10 +1,32 @@
-import { ModuleHandler } from "./base"
-import { ModuleConfig } from "../types/module-config"
+import { exec } from "child-process-promise"
+import { BuildResult, BuildStatus, Plugin } from "../types/plugin"
+import { Module, ModuleConfig } from "../types/module"
+import { GardenContext } from "../context"
 
-interface GenericModuleConfig extends ModuleConfig { }
+export class GenericModuleHandler extends Plugin<ModuleConfig> {
+  name = "generic-module"
+  supportedModuleTypes = ["generic"]
 
-export class GenericModule extends ModuleHandler<GenericModuleConfig> {
-  type = "generic"
+  parseModule(context: GardenContext, config: ModuleConfig) {
+    return new Module(context, config)
+  }
 
-  validate() { }
+  async getModuleBuildStatus(module: Module): Promise<BuildStatus> {
+    // Each module handler should keep track of this for now. Defaults to return false if a build command is specified.
+    return { ready: !module.config.build.command }
+  }
+
+  async buildModule(module: Module, { force = false }): Promise<BuildResult> {
+    // By default we run the specified build command in the module root, if any.
+    // TODO: Keep track of which version has been built (needs local data store/cache).
+    force
+
+    if (module.config.build.command) {
+      const result = await exec(module.config.build.command, { cwd: this.context.projectRoot })
+
+      return { fresh: true, buildLog: result.stdout }
+    } else {
+      return {}
+    }
+  }
 }

@@ -51,11 +51,5 @@ export function loadProjectConfig(projectRoot: string): ProjectConfig {
     throw new ConfigurationError(`Could not parse ${PROJECT_CONFIG_FILENAME} as valid YAML`, err)
   }
 
-  const result = baseSchema.validate(config || {})
-
-  if (result.error) {
-    throw result.error
-  }
-
-  return <ProjectConfig>result.value
+  return Joi.attempt(config || {}, baseSchema)
 }
