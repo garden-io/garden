@@ -6,10 +6,11 @@ export class BuildTask extends Task {
 
   constructor(private module: ModuleHandler, private force: boolean) {
     super()
+  }
 
-    for (const dep of module.buildDependencies) {
-      this.dependencies.push(new BuildTask(dep, force))
-    }
+  async getDependencies() {
+    const deps = await this.module.getBuildDependencies()
+    return deps.map((m: Module) => new BuildTask(m, this.force))
   }
 
   getKey() {

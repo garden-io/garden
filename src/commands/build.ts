@@ -1,7 +1,8 @@
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import { ParameterError } from "../exceptions"
-import { ModuleHandler } from "../moduleHandlers/base"
+import { BuildTask } from "../tasks/build"
+import { Module } from "../types/module"
 
 const buildArguments = {
   module: new StringParameter({ help: "Specify module to build" }),
@@ -24,9 +25,9 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   async action(ctx: GardenContext, args: BuildArguments, opts: BuildOptions) {
     const modules = await ctx.getModules()
 
-    const addTask = (module: ModuleHandler) => {
-      const task = module.getBuildTask(opts.force)
-      ctx.addTask(task)
+    const addTask = async (module: Module) => {
+      const task = new BuildTask(module, opts.force)
+      await ctx.addTask(task)
     }
 
     if (args.module) {
@@ -35,7 +36,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
       for (const key of Object.keys(modules)) {
         if (key === args.module) {
           found = true
-          addTask(modules[key])
+          await addTask(modules[key])
           break
         }
       }
@@ -45,7 +46,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
       }
     } else {
       for (const key of Object.keys(modules)) {
-        addTask(modules[key])
+        await addTask(modules[key])
       }
     }
 
