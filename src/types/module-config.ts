@@ -5,7 +5,6 @@ import * as Joi from "joi"
 import { JoiIdentifier, JoiLiteral, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { MODULE_CONFIG_FILENAME } from "../constants"
-import { ProjectConfig } from "./project-config"
 
 export interface ModuleConfig {
   version: string
@@ -25,7 +24,7 @@ export const baseModuleSchema = Joi.object().keys({
   type: JoiIdentifier().required(),
   name: JoiIdentifier().required(),
   description: Joi.string(),
-  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => {}, "{}"),
+  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
   build: Joi.object().keys({
     command: Joi.string(),
     dependencies: Joi.array().items(JoiIdentifier()).default(() => [], "[]"),
