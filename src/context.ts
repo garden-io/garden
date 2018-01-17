@@ -1,7 +1,7 @@
 import { parse, relative } from "path"
 import { pick, values } from "lodash"
 import * as Joi from "joi"
-import { loadModuleConfig, Module, ModuleConfig } from "./types/module"
+import { loadModuleConfig, Module } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
 import { getIgnorer, scanDirectory } from "./util"
 import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
@@ -115,7 +115,7 @@ export class GardenContext {
     return this.taskGraph.processTasks()
   }
 
-  registerPlugin<T extends ModuleConfig>(pluginFactory: PluginFactory<T>) {
+  registerPlugin(pluginFactory: PluginFactory) {
     const plugin = pluginFactory(this)
     const pluginName = Joi.attempt(plugin.name, JoiIdentifier())
 

@@ -54,7 +54,7 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
 }
 
 // TODO: support remote registries and pushing
-export class ContainerModuleHandler extends Plugin<ContainerModuleConfig> {
+export class ContainerModuleHandler extends Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
