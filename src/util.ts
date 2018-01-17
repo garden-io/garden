@@ -12,6 +12,8 @@ type HookCallback = (callback?: () => void) => void
 
 const exitHooks: HookCallback[] = []
 
+export type Nullable<T> = {[P in keyof T]: T[P] | null }
+
 export function shutdown(code) {
   if (exitHooks.length > 1) {
     const signal = code === 0 ? "beforeExit" : "exitWithError"

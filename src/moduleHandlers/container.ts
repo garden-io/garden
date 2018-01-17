@@ -14,11 +14,15 @@ interface ServicePortSpec {
   name?: string
 }
 
+interface ContainerService {
+  command?: string,
+  ports?: ServicePortSpec[],
+}
+
 export interface ContainerModuleConfig extends ModuleConfig {
   image?: string
-  services?: {
-    command?: string,
-    ports?: ServicePortSpec[],
+  services: {
+    [name: string]: ContainerService,
   }
 }
 
@@ -42,11 +46,10 @@ const containerSchema = baseModuleSchema.keys({
     .default(() => [], "[]"),
 })
 
-class ContainerModule extends Module<ContainerModuleConfig> {
+export class ContainerModule extends Module<ContainerModuleConfig> {
   image?: string
   services?: {
-    command?: string,
-    ports?: ServicePortSpec[],
+    [name: string]: ContainerService,
   }
 }
 
@@ -61,7 +64,7 @@ export class ContainerModuleHandler extends Plugin<ContainerModuleConfig> {
     const module = new ContainerModule(context, config)
 
     module.image = config.image
-    module.services = config.services
+    module.services = config.services || {}
 
     // make sure we can build the thing
     if (!module.image && !existsSync(join(module.path, "Dockerfile"))) {

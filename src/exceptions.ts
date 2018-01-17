@@ -23,3 +23,7 @@ export class ParameterError extends GardenError {
 export class NotImplementedError extends GardenError {
   type = "not-implemented"
 }
+
+export class InternalError extends GardenError {
+  type = "internal"
+}

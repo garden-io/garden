@@ -2,7 +2,7 @@ import { readFileSync } from "fs"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
 import { identifierRegex, JoiIdentifier, JoiLiteral, Primitive } from "./common"
-import { ConfigurationError, PluginError } from "../exceptions"
+import { ConfigurationError } from "../exceptions"
 import { MODULE_CONFIG_FILENAME } from "../constants"
 import { join, parse, sep } from "path"
 import Bluebird = require("bluebird")
@@ -21,6 +21,8 @@ class ModuleConfigBase {
   type: string
   constants: { [key: string]: Primitive }
   build: BuildConfig
+  // further defined by subclasses
+  services: { [key: string]: any }
 }
 
 export interface ModuleConfig extends ModuleConfigBase { }
@@ -54,28 +56,12 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   async getBuildStatus() {
-    const handler = this.context.actionHandlers.getModuleBuildStatus[this.type]
-
-    if (!handler) {
-      throw new PluginError(
-        `Missing module build status handler for module type ${this.type}`,
-        { type: this.type },
-      )
-    }
-
+    const handler = this.context.getActionHandler("getModuleBuildStatus", this.type)
     return handler(this)
   }
 
   async build({ force = false }) {
-    const handler = this.context.actionHandlers.buildModule[this.type]
-
-    if (!handler) {
-      throw new PluginError(
-        `Missing module build handler for module type ${this.type}`,
-        { type: this.type },
-      )
-    }
-
+    const handler = this.context.getActionHandler("buildModule", this.type)
     return handler(this, { force })
   }
 
