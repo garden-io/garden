@@ -1,11 +1,12 @@
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
-import { ParameterError } from "../exceptions"
 import { BuildTask } from "../tasks/build"
-import { Module } from "../types/module"
+import { values } from "lodash"
 
 const buildArguments = {
-  module: new StringParameter({ help: "Specify module to build" }),
+  module: new StringParameter({
+    help: "Specify module(s) to build. Use comma separator to specify multiple modules.",
+  }),
 }
 
 const buildOptions = {
@@ -23,31 +24,12 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   options = buildOptions
 
   async action(ctx: GardenContext, args: BuildArguments, opts: BuildOptions) {
-    const modules = await ctx.getModules()
+    const names = args.module ? args.module.split(",") : undefined
+    const modules = await ctx.getModules(names)
 
-    const addTask = async (module: Module) => {
+    for (const module of values(modules)) {
       const task = new BuildTask(module, opts.force)
       await ctx.addTask(task)
-    }
-
-    if (args.module) {
-      let found = false
-
-      for (const key of Object.keys(modules)) {
-        if (key === args.module) {
-          found = true
-          await addTask(modules[key])
-          break
-        }
-      }
-
-      if (!found) {
-        throw new ParameterError(`Could not find module ${args.module}`, {})
-      }
-    } else {
-      for (const key of Object.keys(modules)) {
-        await addTask(modules[key])
-      }
     }
 
     return await ctx.processTasks()

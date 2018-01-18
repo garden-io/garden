@@ -18,14 +18,11 @@ import { Environment, JoiIdentifier } from "./types/common"
 import { GenericModuleHandler } from "./moduleHandlers/generic"
 import { GenericFunctionModuleHandler } from "./moduleHandlers/function"
 import { ContainerModuleHandler } from "./moduleHandlers/container"
-
-interface Service {
-  module: Module,
-  config: any,
-}
+import { LocalDockerSwarmProvider } from "./providers/local/local-docker-swarm"
+import { Service } from "./types/service"
 
 interface ModuleMap { [key: string]: Module }
-interface ServiceMap { [key: string]: Service }
+interface ServiceMap { [key: string]: Service<any> }
 
 type PluginActionMap = {
   [A in keyof PluginActions<any>]: {
@@ -38,6 +35,7 @@ const builtinPlugins = [
   ContainerModuleHandler,
   GenericFunctionModuleHandler,
   NpmPackageModuleHandler,
+  LocalDockerSwarmProvider,
 ]
 
 export class GardenContext {
@@ -67,6 +65,10 @@ export class GardenContext {
       parseModule: {},
       getModuleBuildStatus: {},
       buildModule: {},
+      getEnvironmentStatus: {},
+      configureEnvironment: {},
+      getServiceStatus: {},
+      deployService: {},
     }
 
     // Load built-in plugins
@@ -188,7 +190,11 @@ export class GardenContext {
               )
             }
 
-            services[serviceName] = { module, config: config.services[serviceName] }
+            services[serviceName] = {
+              name: serviceName,
+              module,
+              config: config.services[serviceName],
+            }
           }
         }
       }
@@ -205,6 +211,30 @@ export class GardenContext {
     await this.getModules()
     // TODO: Throw error on missing service
     return names === undefined ? this.services : pick(this.services, names)
+  }
+
+  //===========================================================================
+  //region Plugin actions
+  //===========================================================================
+
+  async getEnvironmentStatus() {
+    const handler = this.getEnvActionHandler("getEnvironmentStatus")
+    return handler(this.getEnvironment())
+  }
+
+  async configureEnvironment() {
+    const handler = this.getEnvActionHandler("configureEnvironment")
+    return handler(this.getEnvironment())
+  }
+
+  async getServiceStatus<T extends Module>(service: Service<T>) {
+    const handler = this.getEnvActionHandler("getServiceStatus", service.module.type)
+    return handler(service, this.getEnvironment())
+  }
+
+  async deployService<T extends Module>(service: Service<T>) {
+    const handler = this.getEnvActionHandler("deployService", service.module.type)
+    return handler(service, this.getEnvironment())
   }
 
   //===========================================================================
@@ -256,6 +286,7 @@ export class GardenContext {
       return this.actionHandlers[type][plugin.name]
     }
 
+    // TODO: Make these error messages nicer
     let msg = `No handler for ${type} configured`
 
     if (moduleType) {

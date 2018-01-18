@@ -1,6 +1,9 @@
 name: hello-world
 environments:
-  local: {}
+  local:
+    providers:
+      docker:
+        type: local-docker-swarm
   dev:
     providers:
       fargate:

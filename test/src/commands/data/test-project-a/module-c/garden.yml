@@ -1,5 +1,7 @@
 name: module-c
 type: container
+services:
+  service-c: {}
 build:
   dependencies:
     - module-b

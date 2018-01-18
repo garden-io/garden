@@ -4,9 +4,10 @@ import { BuildCommand } from "../../../src/commands/build"
 import { expect } from "chai"
 
 describe("commands.build", () => {
+  const projectRootA = join(__dirname, "data", "test-project-a")
+
   it("should build all modules in a project", async () => {
-    const root = join(__dirname, "data", "build")
-    const ctx = new GardenContext(root)
+    const ctx = new GardenContext(projectRootA)
     const command = new BuildCommand()
 
     const result = await command.action(ctx, { module: undefined }, { force: true })
@@ -19,8 +20,7 @@ describe("commands.build", () => {
   })
 
   it("should optionally build single module and its dependencies", async () => {
-    const root = join(__dirname, "data", "build")
-    const ctx = new GardenContext(root)
+    const ctx = new GardenContext(projectRootA)
     const command = new BuildCommand()
 
     const result = await command.action(ctx, { module: "module-b" }, { force: true })

@@ -1,0 +1,6 @@
+name: build-test-project
+environments:
+  test:
+    providers:
+      test:
+        type: test

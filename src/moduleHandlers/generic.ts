@@ -16,11 +16,9 @@ export class GenericModuleHandler extends Plugin {
     return { ready: !module.config.build.command }
   }
 
-  async buildModule(module: Module, { force = false }): Promise<BuildResult> {
+  async buildModule(module: Module): Promise<BuildResult> {
     // By default we run the specified build command in the module root, if any.
     // TODO: Keep track of which version has been built (needs local data store/cache).
-    force
-
     if (module.config.build.command) {
       const result = await exec(module.config.build.command, { cwd: this.context.projectRoot })
 

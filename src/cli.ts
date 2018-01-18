@@ -6,6 +6,9 @@ import { GardenContext } from "./context"
 import { getLogger, Logger } from "./log"
 import { resolve } from "path"
 import { BuildCommand } from "./commands/build"
+import { EnvironmentStatusCommand } from "./commands/environment/status"
+import { EnvironmentConfigureCommand } from "./commands/environment/configure"
+import { DeployCommand } from "./commands/deploy"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
@@ -42,6 +45,9 @@ export class GardenCli {
     // configure built-in commands
     this.addCommand(new BuildCommand())
     this.addCommand(new ValidateCommand())
+    this.addCommand(new DeployCommand())
+    this.addCommand(new EnvironmentStatusCommand())
+    this.addCommand(new EnvironmentConfigureCommand())
   }
 
   addCommand(command: Command) {

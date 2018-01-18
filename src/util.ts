@@ -100,3 +100,7 @@ export function getIgnorer(rootPath: string) {
 
   return ig
 }
+
+export async function sleep(msec) {
+  return new Promise(resolve => setTimeout(resolve, msec))
+}

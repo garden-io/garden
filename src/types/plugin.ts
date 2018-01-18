@@ -1,6 +1,8 @@
 import { Module } from "./module"
 import { GardenContext } from "../context"
+import { Environment } from "./common"
 import { Nullable } from "../util"
+import { Service, ServiceStatus } from "./service"
 
 export type PluginFactory = (context: GardenContext) => PluginInterface<any>
 
@@ -15,10 +17,23 @@ export interface BuildStatus {
   ready: boolean
 }
 
+interface EnvironmentStatus {
+  configured: boolean
+  detail?: any
+}
+
 export interface PluginActions<T extends Module> {
   parseModule: (context: GardenContext, config: T["config"]) => T
   getModuleBuildStatus: (module: T) => Promise<BuildStatus>
-  buildModule: (module: T, { force: boolean }) => Promise<BuildResult>
+  buildModule: (module: T) => Promise<BuildResult>
+
+  getEnvironmentStatus: (env: Environment) => Promise<EnvironmentStatus>
+  configureEnvironment: (env: Environment) => Promise<EnvironmentStatus>
+
+  getServiceStatus:
+  (service: Service<T>, env: Environment) => Promise<ServiceStatus>
+  deployService:
+  (service: Service<T>, env: Environment) => Promise<ServiceStatus>
 }
 
 type PluginActionName = keyof PluginActions<any>
@@ -29,6 +44,10 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   parseModule = null
   getModuleBuildStatus = null
   buildModule = null
+  getEnvironmentStatus = null
+  configureEnvironment = null
+  getServiceStatus = null
+  deployService = null
 }
 
 export const pluginActionNames: PluginActionName[] =

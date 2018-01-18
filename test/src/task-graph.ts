@@ -72,7 +72,7 @@ describe("task-graph", () => {
 
       const results = await graph.processTasks()
 
-      const resultA = {result: "result-a", dependencyResults: {}}
+      const resultA = { result: "result-a", dependencyResults: {} }
       const resultB = {
         result: "result-b",
         dependencyResults: { "test.a": resultA },
