@@ -1,12 +1,10 @@
-import { ModuleHandler } from "./base"
-import { ModuleConfig } from "../types/module-config"
+import { GenericModuleHandler } from "./generic"
 
-interface NpmPackageModuleConfig extends ModuleConfig { }
+export class NpmPackageModuleHandler extends GenericModuleHandler {
+  name = "npm-package-module"
+  supportedModuleTypes = ["npm-package"]
 
-export class NpmPackageModule extends ModuleHandler<NpmPackageModuleConfig> {
-  type = "npm-package"
-
-  validate() {
-    // TODO: check package.json
-  }
+  // TODO: check package.json
+  // parseModule(module: Module) {
+  // }
 }

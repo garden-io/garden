@@ -19,3 +19,11 @@ export class PluginError extends GardenError {
 export class ParameterError extends GardenError {
   type = "parameter"
 }
+
+export class NotImplementedError extends GardenError {
+  type = "not-implemented"
+}
+
+export class InternalError extends GardenError {
+  type = "internal"
+}

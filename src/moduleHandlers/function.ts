@@ -1,7 +1,8 @@
-import { ModuleHandler } from "./base"
-import { ModuleConfig } from "../types/module-config"
+import { baseServiceSchema, Module, ModuleConfig } from "../types/module"
 import { identifierRegex } from "../types/common"
 import * as Joi from "joi"
+import { GardenContext } from "../context"
+import { GenericModuleHandler } from "./generic"
 
 interface FunctionEndpointSpec {
   hostname: string
@@ -9,14 +10,14 @@ interface FunctionEndpointSpec {
 }
 
 interface FunctionModuleConfig extends ModuleConfig {
-  functions?: {
+  services: {
     handler: string,
     endpoints?: FunctionEndpointSpec[],
   }
 }
 
-const functionsSchema = Joi.object()
-  .pattern(identifierRegex, Joi.object().keys({
+const functionsServicesSchema = Joi.object()
+  .pattern(identifierRegex, baseServiceSchema.keys({
     handler: Joi.string().required(),
     endpoints: Joi.array()
       .items(Joi.object().keys({
@@ -25,14 +26,24 @@ const functionsSchema = Joi.object()
       }).required())
       .default(() => [], "[]"),
   }))
-  .default(() => [], "[]")
+  .default(() => { }, "{}")
 
-export class FunctionModule extends ModuleHandler<FunctionModuleConfig> {
-  type = "function"
+class FunctionModule extends Module<FunctionModuleConfig> {
+  services: {
+    handler: string,
+    endpoints?: FunctionEndpointSpec[],
+  }
+}
 
-  validate(config: FunctionModuleConfig) {
-    config.functions = functionsSchema.validate(config.functions).value
+export class GenericFunctionModuleHandler extends GenericModuleHandler {
+  name = "generic-function-module"
+  supportedModuleTypes = ["function"]
 
-    // TODO: more function-specific validation
+  parseModule(context: GardenContext, config: FunctionModuleConfig) {
+    const module = new FunctionModule(context, config)
+
+    module.services = Joi.attempt(config.services, functionsServicesSchema)
+
+    return module
   }
 }

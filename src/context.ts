@@ -1,69 +1,149 @@
 import { parse, relative } from "path"
-import { loadModuleConfig } from "./types/module-config"
+import { pick, values } from "lodash"
+import * as Joi from "joi"
+import { loadModuleConfig, Module, ModuleConfig } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
 import { getIgnorer, scanDirectory } from "./util"
-import { MODULE_CONFIG_FILENAME } from "./constants"
-import { ConfigurationError, PluginError } from "./exceptions"
+import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
+import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
-import { ModuleConstructor, ModuleHandler } from "./moduleHandlers/base"
-import { ContainerModule } from "./moduleHandlers/container"
-import { FunctionModule } from "./moduleHandlers/function"
-import { NpmPackageModule } from "./moduleHandlers/npm-package"
+import { NpmPackageModuleHandler } from "./moduleHandlers/npm-package"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, Logger } from "./log"
-import { GenericModule } from "./moduleHandlers/generic"
+import {
+  pluginActionNames, PluginActions, PluginFactory, PluginInterface,
+} from "./types/plugin"
+import { Environment, JoiIdentifier } from "./types/common"
+import { GenericModuleHandler } from "./moduleHandlers/generic"
+import { GenericFunctionModuleHandler } from "./moduleHandlers/function"
+import { ContainerModuleHandler } from "./moduleHandlers/container"
 
-interface ModuleMap { [key: string]: ModuleHandler }
+interface Service {
+  module: Module,
+  config: any,
+}
+
+interface ModuleMap { [key: string]: Module }
+interface ServiceMap { [key: string]: Service }
+
+type PluginActionMap = {
+  [A in keyof PluginActions<any>]: {
+    [pluginName: string]: PluginActions<any>[A],
+  }
+}
+
+const builtinPlugins = [
+  GenericModuleHandler,
+  ContainerModuleHandler,
+  GenericFunctionModuleHandler,
+  NpmPackageModuleHandler,
+]
 
 export class GardenContext {
   public log: Logger
+  public actionHandlers: PluginActionMap
+  public config: ProjectConfig
 
-  private _config: ProjectConfig
-  private moduleTypes: { [key: string]: ModuleConstructor }
+  // TODO: We may want to use the _ prefix for private properties even if it's not idiomatic TS,
+  // because we're supporting plain-JS plugins as well.
+  private environment: string
+  private namespace: string
+  private plugins: { [key: string]: PluginInterface<any> }
   private modules: ModuleMap
+  private services: ServiceMap
   private taskGraph: TaskGraph
 
   vcs: VcsHandler
 
   constructor(public projectRoot: string, logger?: Logger) {
     this.log = logger || getLogger()
-    this._config = loadProjectConfig(this.projectRoot)
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this)
     this.taskGraph = new TaskGraph(this)
 
-    this.moduleTypes = {}
+    this.plugins = {}
+    this.actionHandlers = {
+      parseModule: {},
+      getModuleBuildStatus: {},
+      buildModule: {},
+    }
 
-    // Load built-in module handlers
-    this.addModuleHandler("generic", GenericModule)
-    this.addModuleHandler("container", ContainerModule)
-    this.addModuleHandler("function", FunctionModule)
-    this.addModuleHandler("npm-package", NpmPackageModule)
+    // Load built-in plugins
+    for (const pluginCls of builtinPlugins) {
+      this.registerPlugin((ctx) => new pluginCls(ctx))
+    }
+
+    this.config = loadProjectConfig(this.projectRoot)
   }
 
-  addTask(task: Task) {
-    this.taskGraph.addTask(task)
+  setEnvironment(environment: string) {
+    const parts = environment.split(".")
+    const name = parts[0]
+    const namespace = parts.slice(1).join(".") || DEFAULT_NAMESPACE
+
+    if (!this.config.environments[name]) {
+      throw new ParameterError(`Could not find environment ${environment}`, {
+        name,
+        namespace,
+      })
+    }
+
+    this.environment = name
+    this.namespace = namespace
+
+    return { name, namespace }
+  }
+
+  getEnvironment(): Environment {
+    if (!this.environment) {
+      throw new PluginError(`Environment has not been set`, {})
+    }
+
+    return {
+      name: this.environment,
+      namespace: this.namespace,
+      config: this.config.environments[this.environment],
+    }
+  }
+
+  async addTask(task: Task) {
+    await this.taskGraph.addTask(task)
   }
 
   async processTasks() {
     return this.taskGraph.processTasks()
   }
 
-  addModuleHandler(typeName: string, moduleType: ModuleConstructor) {
-    if (this.moduleTypes[typeName]) {
-      throw new PluginError(`Module type ${typeName} declared more than once`, {
-        previous: this.moduleTypes[typeName],
-        adding: moduleType,
+  registerPlugin<T extends ModuleConfig>(pluginFactory: PluginFactory<T>) {
+    const plugin = pluginFactory(this)
+    const pluginName = Joi.attempt(plugin.name, JoiIdentifier())
+
+    if (this.plugins[pluginName]) {
+      throw new PluginError(`Plugin ${pluginName} declared more than once`, {
+        previous: this.plugins[pluginName],
+        adding: plugin,
       })
     }
 
-    this.moduleTypes[typeName] = moduleType
+    this.plugins[pluginName] = plugin
+
+    for (const action of pluginActionNames) {
+      const actionHandler = plugin[action]
+
+      if (actionHandler) {
+        this.actionHandlers[action][pluginName] = (...args) => {
+          return actionHandler.apply(plugin, args)
+        }
+      }
+    }
   }
 
-  async getModules(): Promise<ModuleMap> {
+  async getModules(names?: string[]) {
+    // TODO: Break this method up and test
     if (!this.modules) {
       const modules: ModuleMap = {}
+      const services: ServiceMap = {}
       const ignorer = getIgnorer(this.projectRoot)
       const scanOpts = {
         filter: (path) => {
@@ -91,40 +171,133 @@ export class GardenContext {
             )
           }
 
-          const handlerType = this.moduleTypes[config.type]
+          const parseHandler = this.getActionHandler("parseModule", config.type)
+          const module = modules[config.name] = parseHandler(this, config)
 
-          if (!handlerType) {
-            throw new ConfigurationError(`Unrecognized module type: ${config.type}`, {
-              type: config.type,
-            })
+          // Add to service-module map
+          for (const serviceName in config.services || {}) {
+            if (services[serviceName]) {
+              throw new ConfigurationError(
+                `Service names must be unique - ${serviceName} is declared multiple times ` +
+                `(in '${services[serviceName].module.name}' and '${config.name}')`,
+                {
+                  serviceName,
+                  moduleA: services[serviceName].module.name,
+                  moduleB: config.name,
+                },
+              )
+            }
+
+            services[serviceName] = { module, config: config.services[serviceName] }
           }
-
-          modules[config.name] = new handlerType(this, modulePath, config)
-        }
-      }
-
-      // Populate the build dependencies for all modules
-      // TODO: Detect circular dependencies
-      for (const name in modules) {
-        const module = modules[name]
-
-        for (let dependencyName of module.config.build.dependencies) {
-          const dependency = modules[dependencyName]
-
-          if (!dependency) {
-            throw new ConfigurationError(`Module ${name} dependency ${dependencyName} not found`, {
-              module,
-              dependencyName,
-            })
-          }
-
-          module.buildDependencies.push(dependency)
         }
       }
 
       this.modules = modules
+      this.services = services
     }
 
-    return this.modules
+    // TODO: Throw error on missing module
+    return names === undefined ? this.modules : pick(this.modules, names)
   }
+
+  async getServices(names?: string[]): Promise<ServiceMap> {
+    await this.getModules()
+    // TODO: Throw error on missing service
+    return names === undefined ? this.services : pick(this.services, names)
+  }
+
+  //===========================================================================
+  //region Internal helpers
+  //===========================================================================
+
+  /**
+   * Get a list of all available plugins (not specific to an environment).
+   *
+   * Optionally filter to only include plugins that support a specific module type.
+   */
+  private getAllPlugins(moduleType?: string): PluginInterface<any>[] {
+    const allPlugins = values(this.plugins)
+
+    if (moduleType) {
+      return allPlugins.filter(p => p.supportedModuleTypes.includes(moduleType))
+    } else {
+      return allPlugins
+    }
+  }
+
+  /**
+   * Get a list of all configured plugins for the currently set environment.
+   * Includes built-in module handlers (used for builds and such).
+   *
+   * Optionally filter to only include plugins that support a specific module type.
+   */
+  private getEnvPlugins(moduleType?: string) {
+    const env = this.getEnvironment()
+    const allPlugins = this.getAllPlugins(moduleType)
+    const envProviderTypes = values(env.config.providers).map(p => p.type)
+
+    return allPlugins.filter(p => envProviderTypes.includes(p.name))
+  }
+
+  /**
+   * Get a handler for the specified action (and optionally module type).
+   */
+  public getActionHandler
+    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
+
+    const plugins = this.getAllPlugins(moduleType)
+
+    for (const plugin of plugins) {
+      if (!plugin[type]) {
+        continue
+      }
+
+      return this.actionHandlers[type][plugin.name]
+    }
+
+    let msg = `No handler for ${type} configured`
+
+    if (moduleType) {
+      msg += ` for module type ${moduleType}`
+    }
+
+    throw new ParameterError(msg, {
+      requestedHandlerType: type,
+      requestedModuleType: moduleType,
+    })
+  }
+
+  /**
+   * Get a handler for the specified action for the currently set environment
+   * (and optionally module type).
+   */
+  public getEnvActionHandler
+    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
+
+    const plugins = this.getEnvPlugins(moduleType)
+
+    for (const plugin of plugins) {
+      if (!plugin[type]) {
+        continue
+      }
+
+      return this.actionHandlers[type][plugin.name]
+    }
+
+    const env = this.getEnvironment()
+    let msg = `No handler for ${type} configured for environment ${env.name}`
+
+    if (moduleType) {
+      msg += ` and module type ${moduleType}`
+    }
+
+    throw new ParameterError(msg, {
+      requestedHandlerType: type,
+      requestedModuleType: moduleType,
+      environment: env.name,
+    })
+  }
+
+  //endregion
 }

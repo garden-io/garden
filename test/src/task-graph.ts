@@ -35,7 +35,7 @@ describe("task-graph", () => {
       const graph = new TaskGraph(ctx)
       const task = new TestTask("a")
 
-      graph.addTask(task)
+      await graph.addTask(task)
       const results = await graph.processTasks()
 
       expect(results).to.eql({
@@ -60,15 +60,15 @@ describe("task-graph", () => {
       const taskD = new TestTask("d", [taskB, taskC], callback)
 
       // we should be able to add tasks multiple times and in any order
-      graph.addTask(taskC)
-      graph.addTask(taskD)
-      graph.addTask(taskA)
-      graph.addTask(taskD)
-      graph.addTask(taskB)
-      graph.addTask(taskB)
-      graph.addTask(taskD)
-      graph.addTask(taskA)
-      graph.addTask(taskB)
+      await graph.addTask(taskC)
+      await graph.addTask(taskD)
+      await graph.addTask(taskA)
+      await graph.addTask(taskD)
+      await graph.addTask(taskB)
+      await graph.addTask(taskB)
+      await graph.addTask(taskD)
+      await graph.addTask(taskA)
+      await graph.addTask(taskB)
 
       const results = await graph.processTasks()
 

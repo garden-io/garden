@@ -1,15 +1,16 @@
 import { Task } from "../task-graph"
-import { ModuleHandler } from "../moduleHandlers/base"
+import { Module } from "../types/module"
 
 export class BuildTask extends Task {
   type = "build"
 
-  constructor(private module: ModuleHandler, private force: boolean) {
+  constructor(private module: Module, private force: boolean) {
     super()
+  }
 
-    for (const dep of module.buildDependencies) {
-      this.dependencies.push(new BuildTask(dep, force))
-    }
+  async getDependencies() {
+    const deps = await this.module.getBuildDependencies()
+    return deps.map((m: Module) => new BuildTask(m, this.force))
   }
 
   getKey() {
@@ -18,7 +19,7 @@ export class BuildTask extends Task {
   }
 
   async process() {
-    if (this.force || !(await this.module.isBuilt())) {
+    if (this.force || !(await this.module.getBuildStatus()).ready) {
       return await this.module.build({ force: this.force })
     } else {
       return { fresh: false }

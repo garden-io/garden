@@ -20,6 +20,10 @@ export abstract class Task {
     this.dependencies = []
   }
 
+  async getDependencies(): Promise<Task[]> {
+    return this.dependencies
+  }
+
   getKey() {
     return this.key
   }
@@ -39,10 +43,11 @@ export class TaskGraph {
     this.inProgress = new TaskNodeMap()
   }
 
-  addTask(task: Task) {
+  async addTask(task: Task) {
+    // TODO: Detect circular dependencies.
     const node = this.getNode(task)
 
-    for (let d of task.dependencies || []) {
+    for (const d of await task.getDependencies()) {
       node.addDependency(this.getNode(d))
     }
 
@@ -51,8 +56,8 @@ export class TaskGraph {
     if (nodeDependencies.length === 0) {
       this.roots.addNode(node)
     } else {
-      for (let d of nodeDependencies) {
-        this.addTask(d.task)
+      for (const d of nodeDependencies) {
+        await this.addTask(d.task)
         d.addDependant(node)
       }
     }
