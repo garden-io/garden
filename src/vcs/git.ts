@@ -37,7 +37,7 @@ export class GitHandler extends VcsHandler {
             return existsSync(filePath) ? statSync(filePath) : null
           })
           .filter((stat) => !!stat)
-        let mtimes = stats.map((stat) => stat.mtime.getTime() / 1000)
+        let mtimes = stats.map((stat) => Math.round(stat.mtime.getTime() / 1000))
         let latest = mtimes.sort().slice(-1)[0]
 
         if (latest > latestDirty) {
