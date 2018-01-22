@@ -98,6 +98,22 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       TargetPort: p.container,
     }))
 
+    const volumeMounts = service.config.volumes.map(v => {
+      // TODO-LOW: Support named volumes
+      if (v.hostPath) {
+        return {
+          Type: "bind",
+          Source: v.hostPath,
+          Target: v.containerPath,
+        }
+      } else {
+        return {
+          Type: "tmpfs",
+          Target: v.containerPath,
+        }
+      }
+    })
+
     const opts: any = {
       Name: this.getSwarmServiceName(service.name),
       Labels: {
@@ -108,6 +124,8 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       TaskTemplate: {
         ContainerSpec: {
           Image: identifier,
+          Command: service.config.command,
+          Mounts: volumeMounts,
         },
         Resources: {
           Limits: {},
