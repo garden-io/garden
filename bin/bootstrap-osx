@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="git nodejs"
+BREW_DEPS="git"
 
 brew update
 brew install ${BREW_DEPS}
 brew upgrade ${BREW_DEPS}
+
+# install nvm and node
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+nvm install 9.4
+nvm alias default node
 
 # install/update global npm packages
 npm install -g tslint typescript-formatter
