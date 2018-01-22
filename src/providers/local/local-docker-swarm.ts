@@ -88,7 +88,6 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
   }
 
   async deployService(service: Service<ContainerModule>, env: Environment) {
-    await this.configureEnvironment()
     const version = await service.module.getVersion()
 
     this.context.log.info(service.name, `Deploying version ${version}`)
