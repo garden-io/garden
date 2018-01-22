@@ -22,18 +22,25 @@ interface EnvironmentStatus {
   detail?: any
 }
 
+interface ExecInServiceResult {
+  stdout: string
+  stderr: string
+}
+
 export interface PluginActions<T extends Module> {
   parseModule: (context: GardenContext, config: T["config"]) => T
   getModuleBuildStatus: (module: T) => Promise<BuildStatus>
   buildModule: (module: T) => Promise<BuildResult>
 
   getEnvironmentStatus: (env: Environment) => Promise<EnvironmentStatus>
-  configureEnvironment: (env: Environment) => Promise<EnvironmentStatus>
+  configureEnvironment: (env: Environment) => Promise<void>
 
   getServiceStatus:
   (service: Service<T>, env: Environment) => Promise<ServiceStatus>
   deployService:
   (service: Service<T>, env: Environment) => Promise<ServiceStatus>
+  execInService:
+  (service: Service<T>, command: string[], env: Environment) => Promise<ExecInServiceResult>
 }
 
 type PluginActionName = keyof PluginActions<any>
@@ -48,6 +55,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   configureEnvironment = null
   getServiceStatus = null
   deployService = null
+  execInService = null
 }
 
 export const pluginActionNames: PluginActionName[] =

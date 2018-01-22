@@ -72,6 +72,7 @@ export class GardenContext {
       configureEnvironment: {},
       getServiceStatus: {},
       deployService: {},
+      execInService: {},
     }
 
     // Load built-in plugins
@@ -262,6 +263,13 @@ export class GardenContext {
     const handler = this.getEnvActionHandler("deployService", service.module.type)
     return handler(service, this.getEnvironment())
   }
+
+  async execInService<T extends Module>(service: Service<T>, command: string[]) {
+    const handler = this.getEnvActionHandler("execInService", service.module.type)
+    return handler(service, command, this.getEnvironment())
+  }
+
+  //endregion
 
   //===========================================================================
   //region Internal helpers

@@ -1,4 +1,5 @@
 import * as Docker from "dockerode"
+import { exec } from "child-process-promise"
 import { Memoize } from "typescript-memoize"
 import { DeploymentError } from "../../exceptions"
 import { Plugin } from "../../types/plugin"
@@ -199,6 +200,33 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     this.context.log.info(service.name, `Ready`)
 
     return this.getServiceStatus(service)
+  }
+
+  async execInService(service: Service<ContainerModule>, command: string[]) {
+    const status = await this.getServiceStatus(service)
+
+    if (!status.state || status.state !== "ready") {
+      throw new DeploymentError(`Service ${service.name} is not running`, {
+        name: service.name,
+        state: status.state,
+      })
+    }
+
+    // This is ugly, but dockerode doesn't have this, or at least it's too cumbersome to implement.
+    const swarmServiceName = this.getSwarmServiceName(service.name)
+    const servicePsCommand = [
+      "docker", "service", "ps",
+      "-f", `'name=${swarmServiceName}.1'`,
+      swarmServiceName,
+      "-q",
+    ]
+    let res = await exec(servicePsCommand.join(" "))
+    const serviceContainerId = `${swarmServiceName}.1.${res.stdout.trim()}`
+
+    const execCommand = ["docker", "exec", serviceContainerId, ...command]
+    res = await exec(execCommand.join(" "))
+
+    return { stdout: res.stdout, stderr: res.stderr }
   }
 
   private getSwarmServiceName(serviceName: string) {
