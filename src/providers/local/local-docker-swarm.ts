@@ -46,8 +46,8 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
 
   async getServiceStatus(service: Service<ContainerModule>): Promise<ServiceStatus> {
     const docker = this.getDocker()
-    const swarmService = docker.getService(service.name)
-    const swarmServiceStatus = await swarmService.inspect()
+    const swarmServiceName = this.getSwarmServiceName(service.name)
+    const swarmService = docker.getService(swarmServiceName)
 
     let swarmServiceStatus
 
@@ -99,7 +99,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }))
 
     const opts: any = {
-      Name: service.name,
+      Name: this.getSwarmServiceName(service.name),
       Labels: {
         environment: env.name,
         namespace: env.namespace,
@@ -181,6 +181,10 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     this.context.log.info(service.name, `Ready`)
 
     return this.getServiceStatus(service)
+  }
+
+  private getSwarmServiceName(serviceName: string) {
+    return `${this.context.projectName}--${serviceName}`
   }
 
   private async getServiceTask(serviceId: string) {

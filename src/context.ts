@@ -41,6 +41,7 @@ const builtinPlugins = [
 export class GardenContext {
   public log: Logger
   public actionHandlers: PluginActionMap
+  public projectName: string
   public config: ProjectConfig
 
   // TODO: We may want to use the _ prefix for private properties even if it's not idiomatic TS,
@@ -77,6 +78,7 @@ export class GardenContext {
     }
 
     this.config = loadProjectConfig(this.projectRoot)
+    this.projectName = this.config.name
   }
 
   setEnvironment(environment: string) {
