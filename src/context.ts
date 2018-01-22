@@ -158,45 +158,44 @@ export class GardenContext {
 
       for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
         const parsedPath = parse(item.path)
-        if (parsedPath.base === MODULE_CONFIG_FILENAME) {
-          const modulePath = parsedPath.dir
-          const config = await loadModuleConfig(modulePath)
 
-          if (modules[config.name]) {
-            const pathA = modules[config.name].path
-            const pathB = relative(this.projectRoot, item.path)
+        if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
+          continue
+        }
 
+        const module = await this.resolveModule(parsedPath.dir)
+        const config = module.config
+
+        if (modules[config.name]) {
+          const pathA = modules[config.name].path
+          const pathB = relative(this.projectRoot, item.path)
+
+          throw new ConfigurationError(
+            `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
+            { pathA, pathB },
+          )
+        }
+
+        modules[config.name] = module
+
+        // Add to service-module map
+        for (const serviceName in config.services || {}) {
+          if (services[serviceName]) {
             throw new ConfigurationError(
-              `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
+              `Service names must be unique - ${serviceName} is declared multiple times ` +
+              `(in '${services[serviceName].module.name}' and '${config.name}')`,
               {
-                pathA,
-                pathB,
+                serviceName,
+                moduleA: services[serviceName].module.name,
+                moduleB: config.name,
               },
             )
           }
 
-          const parseHandler = this.getActionHandler("parseModule", config.type)
-          const module = modules[config.name] = parseHandler(this, config)
-
-          // Add to service-module map
-          for (const serviceName in config.services || {}) {
-            if (services[serviceName]) {
-              throw new ConfigurationError(
-                `Service names must be unique - ${serviceName} is declared multiple times ` +
-                `(in '${services[serviceName].module.name}' and '${config.name}')`,
-                {
-                  serviceName,
-                  moduleA: services[serviceName].module.name,
-                  moduleB: config.name,
-                },
-              )
-            }
-
-            services[serviceName] = {
-              name: serviceName,
-              module,
-              config: config.services[serviceName],
-            }
+          services[serviceName] = {
+            name: serviceName,
+            module,
+            config: config.services[serviceName],
           }
         }
       }
@@ -207,6 +206,26 @@ export class GardenContext {
 
     // TODO: Throw error on missing module
     return names === undefined ? this.modules : pick(this.modules, names)
+  }
+
+  /*
+    Maps the provided name or locator to a Module. We first look for a module in the
+    project with the provided name. If it does not exist, we check if it is a path
+    and exists there, and then attempt to load the module.
+
+    // TODO: support git URLs
+   */
+  async resolveModule(nameOrLocation: string): Promise<Module> {
+    const parsedPath = parse(nameOrLocation)
+
+    if (parsedPath.dir === "" && this.modules && this.modules[nameOrLocation]) {
+      return this.modules[nameOrLocation]
+    }
+
+    const config = await loadModuleConfig(nameOrLocation)
+
+    const parseHandler = this.getActionHandler("parseModule", config.type)
+    return parseHandler(this, config)
   }
 
   async getServices(names?: string[]): Promise<ServiceMap> {
