@@ -1,5 +1,5 @@
 import { parse, relative } from "path"
-import { pick, values } from "lodash"
+import { pick, values, mapValues } from "lodash"
 import * as Joi from "joi"
 import { loadModuleConfig, Module } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
@@ -20,9 +20,11 @@ import { GenericFunctionModuleHandler } from "./moduleHandlers/function"
 import { ContainerModuleHandler } from "./moduleHandlers/container"
 import { LocalDockerSwarmProvider } from "./providers/local/local-docker-swarm"
 import { Service } from "./types/service"
+import Bluebird = require("bluebird")
 
 interface ModuleMap { [key: string]: Module }
 interface ServiceMap { [key: string]: Service<any> }
+interface ActionHandlerMap<T extends keyof PluginActions<any>> { [key: string]: PluginActions<any>[T] }
 
 type PluginActionMap = {
   [A in keyof PluginActions<any>]: {
@@ -239,13 +241,16 @@ export class GardenContext {
   //===========================================================================
 
   async getEnvironmentStatus() {
-    const handler = this.getEnvActionHandler("getEnvironmentStatus")
-    return handler(this.getEnvironment())
+    const handlers = this.getEnvActionHandlers("getEnvironmentStatus")
+    const env = this.getEnvironment()
+    return Bluebird.props(mapValues(handlers, h => h(env)))
   }
 
   async configureEnvironment() {
-    const handler = this.getEnvActionHandler("configureEnvironment")
-    return handler(this.getEnvironment())
+    const handlers = this.getEnvActionHandlers("configureEnvironment")
+    const env = this.getEnvironment()
+    await Bluebird.props(mapValues(handlers, h => h(env)))
+    return this.getEnvironmentStatus()
   }
 
   async getServiceStatus<T extends Module>(service: Service<T>) {
@@ -294,17 +299,30 @@ export class GardenContext {
   /**
    * Get a handler for the specified action (and optionally module type).
    */
+  public getActionHandlers
+    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): ActionHandlerMap<T> {
+
+    const handlers: ActionHandlerMap<T> = {}
+
+    this.getAllPlugins(moduleType)
+      .filter(p => !!p[type])
+      .map(p => {
+        handlers[p.name] = this.actionHandlers[type][p.name]
+      })
+
+    return handlers
+  }
+
+  /**
+   * Get the last configured handler for the specified action (and optionally module type).
+   */
   public getActionHandler
     <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
 
-    const plugins = this.getAllPlugins(moduleType)
+    const handlers = values(this.getActionHandlers(type, moduleType))
 
-    for (const plugin of plugins) {
-      if (!plugin[type]) {
-        continue
-      }
-
-      return this.actionHandlers[type][plugin.name]
+    if (handlers.length) {
+      return handlers[handlers.length - 1]
     }
 
     // TODO: Make these error messages nicer
@@ -321,20 +339,34 @@ export class GardenContext {
   }
 
   /**
-   * Get a handler for the specified action for the currently set environment
+   * Get all handlers for the specified action for the currently set environment
+   * (and optionally module type).
+   */
+  public getEnvActionHandlers
+    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): ActionHandlerMap<T> {
+
+    const handlers: ActionHandlerMap<T> = {}
+
+    this.getEnvPlugins(moduleType)
+      .filter(p => !!p[type])
+      .map(p => {
+        handlers[p.name] = this.actionHandlers[type][p.name]
+      })
+
+    return handlers
+  }
+
+  /**
+   * Get last configured handler for the specified action for the currently set environment
    * (and optionally module type).
    */
   public getEnvActionHandler
     <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
 
-    const plugins = this.getEnvPlugins(moduleType)
+    const handlers = values(this.getEnvActionHandlers(type, moduleType))
 
-    for (const plugin of plugins) {
-      if (!plugin[type]) {
-        continue
-      }
-
-      return this.actionHandlers[type][plugin.name]
+    if (handlers.length) {
+      return handlers[handlers.length - 1]
     }
 
     const env = this.getEnvironment()
