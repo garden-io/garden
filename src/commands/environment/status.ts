@@ -21,5 +21,6 @@ export class EnvironmentStatusCommand extends Command<typeof environmentStatusAr
     ctx.setEnvironment(args.environment)
     const result = await ctx.getEnvironmentStatus()
     console.log(args.environment, JSON.stringify(result, null, 4))
+    return result
   }
 }

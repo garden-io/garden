@@ -1,6 +1,6 @@
 import { Module } from "./module"
 
-export type ServiceState = "ready" | "deploying" | "unhealthy"
+export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
 
 export interface ServiceStatus {
   providerId?: string
