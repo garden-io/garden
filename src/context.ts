@@ -16,10 +16,10 @@ import {
 } from "./types/plugin"
 import { Environment, JoiIdentifier } from "./types/common"
 import { GenericModuleHandler } from "./moduleHandlers/generic"
-import { GenericFunctionModuleHandler } from "./moduleHandlers/function"
 import { ContainerModuleHandler } from "./moduleHandlers/container"
 import { LocalDockerSwarmProvider } from "./providers/local/local-docker-swarm"
 import { Service } from "./types/service"
+import { LocalGcfProvider } from "./providers/local/local-google-cloud-functions"
 import Bluebird = require("bluebird")
 
 interface ModuleMap { [key: string]: Module }
@@ -32,12 +32,13 @@ type PluginActionMap = {
   }
 }
 
+// TODO: these should be configured, either explicitly or as dependencies of other plugins
 const builtinPlugins = [
   GenericModuleHandler,
   ContainerModuleHandler,
-  GenericFunctionModuleHandler,
   NpmPackageModuleHandler,
   LocalDockerSwarmProvider,
+  LocalGcfProvider,
 ]
 
 export class GardenContext {
@@ -240,6 +241,16 @@ export class GardenContext {
   //===========================================================================
   //region Plugin actions
   //===========================================================================
+
+  async getModuleBuildStatus<T extends Module>(module: T) {
+    const handler = this.getActionHandler("getModuleBuildStatus", module.type)
+    return handler(module)
+  }
+
+  async buildModule<T extends Module>(module: T) {
+    const handler = this.getActionHandler("buildModule", module.type)
+    return handler(module)
+  }
 
   async getEnvironmentStatus() {
     const handlers = this.getEnvActionHandlers("getEnvironmentStatus")

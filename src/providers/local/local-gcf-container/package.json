@@ -1,0 +1,11 @@
+{
+  "name": "local-gcf-container",
+  "version": "1.0.0",
+  "description": "Runs the GCF functions emulator in a container to serve them locally",
+  "main": "\"\"",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Garden.io <dev@garden.io>",
+  "license": "LGPL-3.0"
+}

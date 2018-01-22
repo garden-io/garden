@@ -1,0 +1,20 @@
+{
+  "debug": false,
+  "debugPort": 5858,
+  "grpcHost": "0.0.0.0",
+  "grpcPort": "8009",
+  "inspect": false,
+  "inspectPort": 9229,
+  "logFile": "logs/cloud-functions-emulator.log",
+  "region": "local",
+  "restHost": "0.0.0.0",
+  "restPort": 8008,
+  "service": "rest",
+  "storage": "configstore",
+  "supervisorHost": "0.0.0.0",
+  "supervisorPort": 8010,
+  "timeout": 60000,
+  "useMocks": false,
+  "verbose": false,
+  "projectId": "local"
+}
