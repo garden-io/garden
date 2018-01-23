@@ -15,9 +15,16 @@ interface ServicePortSpec {
   name?: string
 }
 
+interface ServiceVolumeSpec {
+  containerPath: string
+  hostPath?: string
+  name?: string
+}
+
 interface ContainerService {
   command?: string,
   ports: ServicePortSpec[],
+  volumes: ServiceVolumeSpec[],
   dependencies: string[],
 }
 
@@ -41,6 +48,16 @@ const containerSchema = baseModuleSchema.keys({
             .keys({
               container: Joi.number().required(),
               protocol: Joi.string().allow("TCP", "UDP"),
+              name: Joi.string(),
+            })
+            .required(),
+        )
+          .default(() => [], "[]"),
+        volumes: Joi.array().items(
+          Joi.object()
+            .keys({
+              containerPath: Joi.string().required(),
+              hostPath: Joi.string(),
               name: Joi.string(),
             })
             .required(),
@@ -135,6 +152,7 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     self.context.log.info(name, `building ${identifier}...`)
 
     // TODO: log error if it occurs
+    // TODO: stream output to log if at debug log level
     await module.dockerCli(`build -t ${identifier} ${module.path}`)
 
     const buildTime = (new Date().getTime()) - startTime

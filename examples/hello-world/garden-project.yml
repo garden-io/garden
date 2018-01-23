@@ -4,11 +4,13 @@ environments:
     providers:
       docker:
         type: local-docker-swarm
+      gcf:
+        type: local-google-cloud-functions
   dev:
     providers:
-      fargate:
-        type: aws-fargate
-      serverless:
-        type: serverless
+      docker:
+        type: google-app-engine
+      gcf:
+        type: google-cloud-functions
 constants:
   message: Hello garden!

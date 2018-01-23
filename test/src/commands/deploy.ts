@@ -7,7 +7,7 @@ import { Module } from "../../../src/types/module"
 import { Service, ServiceState, ServiceStatus } from "../../../src/types/service"
 
 class TestProvider extends Plugin<Module> {
-  name = "test"
+  name = "test-plugin"
   supportedModuleTypes = ["generic", "container"]
 
   testStatuses: { [key: string]: ServiceStatus } = {}
@@ -29,7 +29,7 @@ class TestProvider extends Plugin<Module> {
 }
 
 describe("commands.deploy", () => {
-  const projectRootA = join(__dirname, "data", "test-project-a")
+  const projectRootA = join(__dirname, "..", "..", "data", "test-project-a")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 

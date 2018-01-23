@@ -1,0 +1,7 @@
+description: Container for running Google Cloud Functions emulator
+type: container
+services:
+  google-cloud-functions:
+    ports:
+      - protocol: TCP
+        container: 8010
