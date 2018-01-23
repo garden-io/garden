@@ -1,4 +1,4 @@
-import { parse, relative } from "path"
+import { parse, relative, resolve } from "path"
 import { pick, values, mapValues } from "lodash"
 import * as Joi from "joi"
 import { loadModuleConfig, Module } from "./types/module"
@@ -42,28 +42,32 @@ const builtinPlugins = [
 ]
 
 export class GardenContext {
-  public log: Logger
-  public actionHandlers: PluginActionMap
-  public projectName: string
-  public config: ProjectConfig
+  public readonly log: Logger
+  public readonly actionHandlers: PluginActionMap
+  public readonly projectName: string
+  public readonly config: ProjectConfig
+  public readonly plugins: { [key: string]: PluginInterface<any> }
 
   // TODO: We may want to use the _ prefix for private properties even if it's not idiomatic TS,
   // because we're supporting plain-JS plugins as well.
   private environment: string
   private namespace: string
-  private plugins: { [key: string]: PluginInterface<any> }
   private modules: ModuleMap
+  private modulesScanned: boolean
   private services: ServiceMap
   private taskGraph: TaskGraph
 
   vcs: VcsHandler
 
   constructor(public projectRoot: string, logger?: Logger) {
+    this.modulesScanned = false
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this)
     this.taskGraph = new TaskGraph(this)
 
+    this.modules = {}
+    this.services = {}
     this.plugins = {}
     this.actionHandlers = {
       parseModule: {},
@@ -140,72 +144,23 @@ export class GardenContext {
       const actionHandler = plugin[action]
 
       if (actionHandler) {
-        this.actionHandlers[action][pluginName] = (...args) => {
+        const wrapped = (...args) => {
           return actionHandler.apply(plugin, args)
         }
+        wrapped["actionType"] = action
+        wrapped["pluginName"] = pluginName
+        this.actionHandlers[action][pluginName] = wrapped
       }
     }
   }
 
-  async getModules(names?: string[]) {
-    // TODO: Break this method up and test
-    if (!this.modules) {
-      const modules: ModuleMap = {}
-      const services: ServiceMap = {}
-      const ignorer = getIgnorer(this.projectRoot)
-      const scanOpts = {
-        filter: (path) => {
-          const relPath = relative(this.projectRoot, path)
-          return !ignorer.ignores(relPath)
-        },
-      }
-
-      for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
-        const parsedPath = parse(item.path)
-
-        if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
-          continue
-        }
-
-        const module = await this.resolveModule(parsedPath.dir)
-        const config = module.config
-
-        if (modules[config.name]) {
-          const pathA = modules[config.name].path
-          const pathB = relative(this.projectRoot, item.path)
-
-          throw new ConfigurationError(
-            `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
-            { pathA, pathB },
-          )
-        }
-
-        modules[config.name] = module
-
-        // Add to service-module map
-        for (const serviceName in config.services || {}) {
-          if (services[serviceName]) {
-            throw new ConfigurationError(
-              `Service names must be unique - ${serviceName} is declared multiple times ` +
-              `(in '${services[serviceName].module.name}' and '${config.name}')`,
-              {
-                serviceName,
-                moduleA: services[serviceName].module.name,
-                moduleB: config.name,
-              },
-            )
-          }
-
-          services[serviceName] = {
-            name: serviceName,
-            module,
-            config: config.services[serviceName],
-          }
-        }
-      }
-
-      this.modules = modules
-      this.services = services
+  /*
+    Returns all modules that are registered in this context.
+    Scans for modules in the project root if it hasn't already been done.
+   */
+  async getModules(names?: string[], noScan?: boolean) {
+    if (!this.modulesScanned && !noScan) {
+      await this.scanModules()
     }
 
     // TODO: Throw error on missing module
@@ -213,29 +168,116 @@ export class GardenContext {
   }
 
   /*
+    Returns all services that are registered in this context.
+    Scans for modules and services in the project root if it hasn't already been done.
+   */
+  async getServices(names?: string[], noScan?: boolean): Promise<ServiceMap> {
+    if (!this.modulesScanned && !noScan) {
+      await this.scanModules()
+    }
+
+    // TODO: Throw error on missing service
+    return names === undefined ? this.services : pick(this.services, names)
+  }
+
+  /*
+    Scans the project root for modules and adds them to the context
+   */
+  async scanModules() {
+    const ignorer = getIgnorer(this.projectRoot)
+    const scanOpts = {
+      filter: (path) => {
+        const relPath = relative(this.projectRoot, path)
+        return !ignorer.ignores(relPath)
+      },
+    }
+
+    for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
+      const parsedPath = parse(item.path)
+
+      if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
+        continue
+      }
+
+      const module = await this.resolveModule(parsedPath.dir)
+      this.addModule(module)
+    }
+
+    this.modulesScanned = true
+  }
+
+  /*
+    Adds the specified module to the context
+
+    @param force - add the module again, even if it's already registered
+   */
+  addModule(module: Module, force = false) {
+    const config = module.config
+
+    if (!force && this.modules[config.name]) {
+      const pathA = this.modules[config.name].path
+      const pathB = relative(this.projectRoot, module.path)
+
+      throw new ConfigurationError(
+        `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
+        { pathA, pathB },
+      )
+    }
+
+    this.modules[config.name] = module
+
+    // Add to service-module map
+    for (const serviceName in config.services || {}) {
+      if (!force && this.services[serviceName]) {
+        throw new ConfigurationError(
+          `Service names must be unique - ${serviceName} is declared multiple times ` +
+          `(in '${this.services[serviceName].module.name}' and '${config.name}')`,
+          {
+            serviceName,
+            moduleA: this.services[serviceName].module.name,
+            moduleB: config.name,
+          },
+        )
+      }
+
+      this.services[serviceName] = {
+        name: serviceName,
+        module,
+        config: config.services[serviceName],
+      }
+    }
+  }
+
+  /*
     Maps the provided name or locator to a Module. We first look for a module in the
-    project with the provided name. If it does not exist, we check if it is a path
-    and exists there, and then attempt to load the module.
+    project with the provided name. If it does not exist, we treat it as a path
+    (resolved with the project path as a base path) and attempt to load the module
+    from there.
 
     // TODO: support git URLs
    */
   async resolveModule(nameOrLocation: string): Promise<Module> {
     const parsedPath = parse(nameOrLocation)
 
-    if (parsedPath.dir === "" && this.modules && this.modules[nameOrLocation]) {
-      return this.modules[nameOrLocation]
+    if (parsedPath.dir === "") {
+      // Looks like a name
+      const module = this.modules[nameOrLocation]
+
+      if (!module) {
+        throw new ConfigurationError(`Module ${nameOrLocation} could not be found`, {
+          name: nameOrLocation,
+        })
+      }
+
+      return module
     }
 
-    const config = await loadModuleConfig(nameOrLocation)
+    // Looks like a path
+    const path = resolve(this.projectRoot, nameOrLocation)
+    const config = await loadModuleConfig(path)
 
     const parseHandler = this.getActionHandler("parseModule", config.type)
     return parseHandler(this, config)
-  }
-
-  async getServices(names?: string[]): Promise<ServiceMap> {
-    await this.getModules()
-    // TODO: Throw error on missing service
-    return names === undefined ? this.services : pick(this.services, names)
   }
 
   //===========================================================================

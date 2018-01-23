@@ -4,7 +4,7 @@ import { BuildCommand } from "../../../src/commands/build"
 import { expect } from "chai"
 
 describe("commands.build", () => {
-  const projectRootA = join(__dirname, "data", "test-project-a")
+  const projectRootA = join(__dirname, "..", "..", "data", "test-project-a")
 
   it("should build all modules in a project", async () => {
     const ctx = new GardenContext(projectRootA)
