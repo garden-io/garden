@@ -1,6 +1,6 @@
 import { join } from "path"
 import { expect } from "chai"
-import { Task, TaskGraph } from "../../src/task-graph"
+import { Task, TaskGraph, TaskResults } from "../../src/task-graph"
 import { GardenContext } from "../../src/context"
 
 describe("task-graph", () => {
@@ -17,8 +17,8 @@ describe("task-graph", () => {
       }
     }
 
-    async process() {
-      const result = "result-" + this.key
+    async process(dependencyResults: TaskResults) {
+      const result = { result: "result-" + this.key, dependencyResults }
 
       if (this.callback) {
         this.callback(this.key, result)
@@ -39,7 +39,7 @@ describe("task-graph", () => {
       const results = await graph.processTasks()
 
       expect(results).to.eql({
-        "test.a": "result-a",
+        "test.a": { result: "result-a", dependencyResults: {} },
       })
     })
 
@@ -72,12 +72,34 @@ describe("task-graph", () => {
 
       const results = await graph.processTasks()
 
+      const resultA = { result: "result-a", dependencyResults: {} }
+      const resultB = {
+        result: "result-b",
+        dependencyResults: { "test.a": resultA },
+      }
+      const resultC = {
+        result: "result-c",
+        dependencyResults: { "test.b": resultB },
+      }
+
       expect(results).to.eql(callbackResults)
       expect(results).to.eql({
-        "test.a": "result-a",
-        "test.b": "result-b",
-        "test.c": "result-c",
-        "test.d": "result-d",
+        "test.a": resultA,
+        "test.b": {
+          result: "result-b",
+          dependencyResults: { "test.a": resultA },
+        },
+        "test.c": {
+          result: "result-c",
+          dependencyResults: { "test.b": resultB },
+        },
+        "test.d": {
+          result: "result-d",
+          dependencyResults: {
+            "test.b": resultB,
+            "test.c": resultC,
+          },
+        },
       })
       expect(resultOrder).to.eql(["a", "b", "c", "d"])
     })

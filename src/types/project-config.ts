@@ -30,7 +30,7 @@ const baseSchema = Joi.object().keys({
     providers: Joi.object().pattern(identifierRegex, Joi.object().keys({
       type: JoiIdentifier().required(),
     })),
-  })),
+  })).default(() => { }, "{}"),
   constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
 }).required()
 

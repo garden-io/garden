@@ -1,10 +1,11 @@
 import * as Bluebird from "bluebird"
 import { GardenContext } from "./context"
+import { pick } from "lodash"
 
 class TaskDefinitionError extends Error { }
 class TaskGraphError extends Error { }
 
-interface TaskResults {
+export interface TaskResults {
   [key: string]: any
 }
 
@@ -24,11 +25,15 @@ export abstract class Task {
     return this.dependencies
   }
 
-  getKey() {
+  getKey(): string {
+    if (!this.key) {
+      throw new TaskDefinitionError("Missing key")
+    }
+
     return this.key
   }
 
-  abstract async process(taskGraph: TaskGraph): Promise<any>
+  abstract async process(dependencyResults: TaskResults): Promise<any>
 }
 
 export class TaskGraph {
@@ -105,7 +110,10 @@ export class TaskGraph {
           this.log(`Processing task ${node.getKey()}`)
           this.log(`In progress: ${this.inProgress.getNodes().map(n => n.getKey()).join(", ")}`)
 
-          results[key] = await node.process(_this)
+          const dependencyKeys = (await node.task.getDependencies()).map(d => getIndexKey(d))
+          const dependencyResults = pick(results, dependencyKeys)
+
+          results[key] = await node.process(dependencyResults)
         } finally {
           this.completeTask(node)
         }
@@ -228,7 +236,7 @@ class TaskNode {
     return getIndexKey(this.task)
   }
 
-  async process(taskGraph: TaskGraph) {
-    return await this.task.process(taskGraph)
+  async process(dependencyResults: TaskResults) {
+    return await this.task.process(dependencyResults)
   }
 }

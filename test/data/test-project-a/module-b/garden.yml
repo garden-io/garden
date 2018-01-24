@@ -1,5 +1,9 @@
 name: module-b
 type: generic
+services:
+  service-b:
+    dependencies:
+      - service-a
 build:
   command: echo B
   dependencies:

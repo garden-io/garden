@@ -5,6 +5,7 @@ import chalk from "chalk"
 
 const sectionPrefixWidth = 20
 const sectionStyle = (s: string) => chalk.italic(s)
+const defaultLogLevel = "verbose"
 
 let logger: Logger
 
@@ -65,7 +66,7 @@ export class Logger {
   }
 }
 
-export function getLogger(level = "info") {
+export function getLogger(level = defaultLogLevel) {
   if (!logger) {
     logger = new Logger(level)
   }

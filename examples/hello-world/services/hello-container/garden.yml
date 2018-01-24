@@ -2,7 +2,7 @@ description: Hello world container service
 type: container
 services:
   hello-container:
-    command: [npm, start]
+    command: [tail, -f, /dev/null]
     ports:
       - container: 80
 build:

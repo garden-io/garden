@@ -24,6 +24,10 @@ export class NotImplementedError extends GardenError {
   type = "not-implemented"
 }
 
+export class DeploymentError extends GardenError {
+  type = "deployment"
+}
+
 export class InternalError extends GardenError {
   type = "internal"
 }

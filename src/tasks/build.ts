@@ -20,7 +20,7 @@ export class BuildTask extends Task {
 
   async process() {
     if (this.force || !(await this.module.getBuildStatus()).ready) {
-      return await this.module.build({ force: this.force })
+      return await this.module.build()
     } else {
       return { fresh: false }
     }
