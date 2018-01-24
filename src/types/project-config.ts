@@ -20,7 +20,7 @@ export interface ProjectConfig {
   version: string
   name: string
   environments: { [key: string]: EnvironmentConfig }
-  constants: { [key: string]: Primitive }
+  variables: { [key: string]: Primitive }
 }
 
 const baseSchema = Joi.object().keys({
@@ -31,7 +31,7 @@ const baseSchema = Joi.object().keys({
       type: JoiIdentifier().required(),
     })),
   })).default(() => { }, "{}"),
-  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
+  variables: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
 }).required()
 
 export function loadProjectConfig(projectRoot: string): ProjectConfig {

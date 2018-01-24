@@ -32,7 +32,7 @@ describe("GardenContext", () => {
       type: "test",
       name,
       path: "bla",
-      constants: {},
+      variables: {},
       build: { dependencies: [] },
       services: {
         testService: {},

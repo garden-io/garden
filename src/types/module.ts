@@ -19,7 +19,7 @@ class ModuleConfigBase {
   description?: string
   name: string
   type: string
-  constants: { [key: string]: Primitive }
+  variables: { [key: string]: Primitive }
   build: BuildConfig
   // further defined by subclasses
   services: { [key: string]: any }
@@ -106,7 +106,7 @@ export const baseModuleSchema = Joi.object().keys({
   type: JoiIdentifier().required(),
   name: JoiIdentifier(),
   description: Joi.string(),
-  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
+  variables: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
   services: baseServicesSchema,
   build: Joi.object().keys({
     command: Joi.string(),
