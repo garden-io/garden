@@ -2,7 +2,5 @@ description: Hello world serverless function
 name: hello-function
 type: google-cloud-function
 services:
-  helloWorld:
-    path: .
-    dependencies:
-      - hello-container
+  hello-function:
+    function: helloWorld
