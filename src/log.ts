@@ -75,5 +75,5 @@ export function getLogger(level = defaultLogLevel) {
 }
 
 export function logException(error: Error) {
-  console.error((error.stack && error.stack.red) || (error.toString().red))
+  console.error((error.stack && chalk.red(error.stack)) || (chalk.red(error.toString())))
 }
