@@ -100,7 +100,13 @@ export class LocalGcfProvider extends GenericModuleHandler {
 
     const emulator = await this.getEmulatorService()
     const result = await this.context.execInService(
-      emulator, ["functions-emulator", "deploy", "-l", containerFunctionPath, service.name, "--trigger-http"],
+      emulator,
+      [
+        "functions-emulator", "deploy",
+        "--trigger-http",
+        "-l", containerFunctionPath,
+        "-e", service.config.function, service.config.function,
+      ],
     )
 
     if (result.stderr) {
