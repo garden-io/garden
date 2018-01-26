@@ -11,7 +11,7 @@ import { Module } from "../../types/module"
 import { Service, ServiceContext, ServiceState, ServiceStatus } from "../../types/service"
 
 // should this be configurable and/or global across providers?
-const DEPLOY_TIMEOUT = 30000
+const DEPLOY_TIMEOUT = 30
 
 // TODO: Support namespacing
 export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
@@ -194,7 +194,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
         })
       }
 
-      if (lastState === "ready") {
+      if (mapContainerState(lastState) === "ready") {
         break
       }
 
@@ -232,6 +232,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     const servicePsCommand = [
       "docker", "service", "ps",
       "-f", `'name=${swarmServiceName}.1'`,
+      "-f", `'desired-state=running'`,
       swarmServiceName,
       "-q",
     ]
