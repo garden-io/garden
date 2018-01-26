@@ -37,6 +37,7 @@ export class DeployTask extends Task {
     const status = await this.ctx.getServiceStatus(this.service)
 
     if (
+      !this.force &&
       version === status.version &&
       status.state === "ready"
     ) {
