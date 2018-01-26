@@ -22,7 +22,7 @@ class ModuleConfigBase {
   variables: { [key: string]: Primitive }
   build: BuildConfig
   // further defined by subclasses
-  services: { [key: string]: any }
+  services: { [name: string]: object }
 }
 
 export interface ModuleConfig extends ModuleConfigBase { }
@@ -31,6 +31,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   public name: string
   public type: string
   public path: string
+  public services: { [name: string]: object }
 
   private _buildDependencies: Module[]
 
@@ -38,6 +39,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     this.name = config.name
     this.type = config.type
     this.path = config.path
+    this.services = config.services
   }
 
   async getVersion() {

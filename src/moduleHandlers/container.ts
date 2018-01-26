@@ -69,7 +69,7 @@ const containerSchema = baseModuleSchema.keys({
 
 export class ContainerModule extends Module<ContainerModuleConfig> {
   image?: string
-  services?: {
+  services: {
     [name: string]: ContainerService,
   }
 

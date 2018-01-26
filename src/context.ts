@@ -18,7 +18,7 @@ import { Environment, JoiIdentifier } from "./types/common"
 import { GenericModuleHandler } from "./moduleHandlers/generic"
 import { ContainerModuleHandler } from "./moduleHandlers/container"
 import { LocalDockerSwarmProvider } from "./providers/local/local-docker-swarm"
-import { Service } from "./types/service"
+import { Service, ServiceContext } from "./types/service"
 import { LocalGcfProvider } from "./providers/local/local-google-cloud-functions"
 import Bluebird = require("bluebird")
 
@@ -77,6 +77,7 @@ export class GardenContext {
       configureEnvironment: {},
       getServiceStatus: {},
       deployService: {},
+      getServiceOutputs: {},
       execInService: {},
     }
 
@@ -287,11 +288,7 @@ export class GardenContext {
         )
       }
 
-      this.services[serviceName] = {
-        name: serviceName,
-        module,
-        config: config.services[serviceName],
-      }
+      this.services[serviceName] = new Service(module, serviceName)
     }
   }
 
@@ -359,8 +356,19 @@ export class GardenContext {
     return handler(service, this.getEnvironment())
   }
 
-  async deployService<T extends Module>(service: Service<T>) {
+  async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext) {
     const handler = this.getEnvActionHandler("deployService", service.module.type)
+    return handler(service, serviceContext || {}, this.getEnvironment())
+  }
+
+  async getServiceOutputs<T extends Module>(service: Service<T>) {
+    // TODO: We might want to generally allow for "default handlers"
+    let handler
+    try {
+      handler = this.getEnvActionHandler("getServiceOutputs", service.module.type)
+    } catch (err) {
+      return {}
+    }
     return handler(service, this.getEnvironment())
   }
 

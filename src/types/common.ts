@@ -3,6 +3,7 @@ import { EnvironmentConfig } from "./project-config"
 
 export type Primitive = string | number | boolean
 
+export interface PrimitiveMap { [key: string]: Primitive }
 
 export const identifierRegex = /^[a-z0-9][\w\d\-]*$/i
 export const JoiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.string(), Joi.boolean())

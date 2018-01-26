@@ -14,21 +14,23 @@ const emulatorServiceName = "google-cloud-functions"
 
 interface GcfModuleConfig extends ModuleConfig {
   services: {
-    path: string,
+    [name: string]: {
+      function: string,
+      path: string,
+    },
   }
 }
+
+type GcfService = Service<GcfModule>
 
 const gcfServicesSchema = Joi.object()
   .pattern(identifierRegex, baseServiceSchema.keys({
+    function: Joi.string().required(),
     path: Joi.string().default("."),
   }))
-  .default(() => { }, "{}")
+  .default(() => ({}), "{}")
 
-class GcfModule extends Module<GcfModuleConfig> {
-  services: {
-    path: string,
-  }
-}
+class GcfModule extends Module<GcfModuleConfig> { }
 
 export class LocalGcfProvider extends GenericModuleHandler {
   name = "local-google-cloud-functions"
@@ -72,7 +74,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
     await this.context.deployService(service)
   }
 
-  async getServiceStatus(service: Service<GcfModule>): Promise<ServiceStatus> {
+  async getServiceStatus(service: GcfService): Promise<ServiceStatus> {
     const emulator = await this.getEmulatorService()
     const result = await this.context.execInService(emulator, ["functions-emulator", "list"])
 
@@ -87,7 +89,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
     }
   }
 
-  async deployService(service: Service<GcfModule>) {
+  async deployService(service: GcfService) {
     this.context.log.info(service.name, `Deploying function...`)
 
     const containerFunctionPath = resolve(
@@ -111,13 +113,17 @@ export class LocalGcfProvider extends GenericModuleHandler {
     this.context.log.info(service.name, `Function deployed`)
   }
 
+  async getServiceOutputs(service: GcfService) {
+    const emulator = await this.getEmulatorService()
+
+    return {
+      endpoint: `http://${emulator.name}/local/local/${service.config.function}`,
+    }
+  }
+
   private async getEmulatorService() {
     const module = await this.context.resolveModule(emulatorModulePath)
 
-    return {
-      name: emulatorServiceName,
-      module,
-      config: module.config.services[emulatorServiceName],
-    }
+    return new Service(module, emulatorServiceName)
   }
 }

@@ -4,11 +4,11 @@ import { Memoize } from "typescript-memoize"
 import { DeploymentError } from "../../exceptions"
 import { Plugin } from "../../types/plugin"
 import { ContainerModule } from "../../moduleHandlers/container"
-import { sortBy } from "lodash"
+import { sortBy, map } from "lodash"
 import { Environment } from "../../types/common"
 import { sleep } from "../../util"
 import { Module } from "../../types/module"
-import { Service, ServiceState, ServiceStatus } from "../../types/service"
+import { Service, ServiceContext, ServiceState, ServiceStatus } from "../../types/service"
 
 // should this be configurable and/or global across providers?
 const DEPLOY_TIMEOUT = 30000
@@ -87,7 +87,8 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }
   }
 
-  async deployService(service: Service<ContainerModule>, env: Environment) {
+  async deployService(service: Service<ContainerModule>, serviceContext: ServiceContext, env: Environment) {
+    // TODO: split this method up and test
     const version = await service.module.getVersion()
 
     this.context.log.info(service.name, `Deploying version ${version}`)
@@ -97,6 +98,8 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
       TargetPort: p.container,
     }))
+
+    const envVars = map(serviceContext.envVars, (v, k) => `${k}=${v}`)
 
     const volumeMounts = service.config.volumes.map(v => {
       // TODO-LOW: Support named volumes
@@ -125,6 +128,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
         ContainerSpec: {
           Image: identifier,
           Command: service.config.command,
+          Env: envVars,
           Mounts: volumeMounts,
         },
         Resources: {
@@ -199,6 +203,12 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     this.context.log.info(service.name, `Ready`)
 
     return this.getServiceStatus(service)
+  }
+
+  async getServiceOutputs(service: Service<ContainerModule>) {
+    return {
+      host: this.getSwarmServiceName(service.name),
+    }
   }
 
   async execInService(service: Service<ContainerModule>, command: string[]) {
