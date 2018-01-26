@@ -2,9 +2,12 @@ description: Hello world container service
 type: container
 services:
   hello-container:
-    command: [tail, -f, /dev/null]
+    command: [npm, start]
     ports:
-      - container: 80
+      - containerPort: 3000
+        hostPort: 3000
+    dependencies:
+      - hello-function
 build:
   dependencies:
     - hello-npm-package
