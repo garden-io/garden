@@ -10,9 +10,10 @@ import { Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
 
 interface ServicePortSpec {
-  container: number
-  protocol: "TCP" | "UDP",
   name?: string
+  protocol: "TCP" | "UDP"
+  containerPort: number
+  hostPort?: number
 }
 
 interface ServiceVolumeSpec {
@@ -46,9 +47,10 @@ const containerSchema = baseModuleSchema.keys({
         ports: Joi.array().items(
           Joi.object()
             .keys({
-              container: Joi.number().required(),
-              protocol: Joi.string().allow("TCP", "UDP"),
               name: Joi.string(),
+              protocol: Joi.string().allow("TCP", "UDP"),
+              containerPort: Joi.number().required(),
+              hostPort: Joi.number(),
             })
             .required(),
         )

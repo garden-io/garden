@@ -4,4 +4,4 @@ services:
   google-cloud-functions:
     ports:
       - protocol: TCP
-        container: 8010
+        containerPort: 8010

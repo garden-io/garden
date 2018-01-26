@@ -94,10 +94,16 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     this.context.log.info(service.name, `Deploying version ${version}`)
 
     const identifier = await service.module.getImageId()
-    const ports = service.config.ports.map(p => ({
-      Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
-      TargetPort: p.container,
-    }))
+    const ports = service.config.ports.map(p => {
+      const port: any = {
+        Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
+        TargetPort: p.container,
+      }
+
+      if (p.hostPort) {
+        port.PublishedPort = p.hostPort
+      }
+    })
 
     const envVars = map(serviceContext.envVars, (v, k) => `${k}=${v}`)
 
@@ -147,7 +153,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
         Parallelism: 1,
       },
       EndpointSpec: {
-        ExposedPorts: ports,
+        Ports: ports,
       },
     }
 
