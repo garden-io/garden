@@ -1,7 +1,7 @@
 import { readFileSync } from "fs"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { identifierRegex, JoiIdentifier, JoiLiteral, Primitive } from "./common"
+import { identifierRegex, JoiIdentifier, JoiPrimitive, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { MODULE_CONFIG_FILENAME } from "../constants"
 import { join, parse, sep } from "path"
@@ -106,7 +106,7 @@ export const baseModuleSchema = Joi.object().keys({
   type: JoiIdentifier().required(),
   name: JoiIdentifier(),
   description: Joi.string(),
-  variables: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
+  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => { }, "{}"),
   services: baseServicesSchema,
   build: Joi.object().keys({
     command: Joi.string(),

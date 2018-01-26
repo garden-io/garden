@@ -2,7 +2,7 @@ import { readFileSync } from "fs"
 import { join } from "path"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { identifierRegex, JoiIdentifier, JoiLiteral, Primitive } from "./common"
+import { identifierRegex, JoiIdentifier, JoiPrimitive, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 
 const PROJECT_CONFIG_FILENAME = "garden-project.yml"
@@ -31,7 +31,7 @@ const baseSchema = Joi.object().keys({
       type: JoiIdentifier().required(),
     })),
   })).default(() => { }, "{}"),
-  variables: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
+  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => { }, "{}"),
 }).required()
 
 export function loadProjectConfig(projectRoot: string): ProjectConfig {
