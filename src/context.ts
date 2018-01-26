@@ -1,5 +1,5 @@
 import { parse, relative, resolve } from "path"
-import { pick, values, mapValues } from "lodash"
+import { values, mapValues } from "lodash"
 import * as Joi from "joi"
 import { loadModuleConfig, Module } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
@@ -163,8 +163,31 @@ export class GardenContext {
       await this.scanModules()
     }
 
-    // TODO: Throw error on missing module
-    return names === undefined ? this.modules : pick(this.modules, names)
+    if (!names) {
+      return this.modules
+    }
+
+    const output = {}
+    const missing: string[] = []
+
+    for (const name of names) {
+      const module = this.modules[name]
+
+      if (!module) {
+        missing.push(name)
+      } else {
+        output[name] = module
+      }
+    }
+
+    if (missing.length) {
+      throw new ParameterError(`Could not find module(s): ${missing.join(", ")}`, {
+        missing,
+        available: Object.keys(this.modules),
+      })
+    }
+
+    return output
   }
 
   /*
@@ -172,12 +195,36 @@ export class GardenContext {
     Scans for modules and services in the project root if it hasn't already been done.
    */
   async getServices(names?: string[], noScan?: boolean): Promise<ServiceMap> {
+    // TODO: deduplicate (this is almost the same as getModules()
     if (!this.modulesScanned && !noScan) {
       await this.scanModules()
     }
 
-    // TODO: Throw error on missing service
-    return names === undefined ? this.services : pick(this.services, names)
+    if (!names) {
+      return this.services
+    }
+
+    const output = {}
+    const missing: string[] = []
+
+    for (const name of names) {
+      const module = this.services[name]
+
+      if (!module) {
+        missing.push(name)
+      } else {
+        output[name] = module
+      }
+    }
+
+    if (missing.length) {
+      throw new ParameterError(`Could not find service(s): ${missing.join(", ")}`, {
+        missing,
+        available: Object.keys(this.services),
+      })
+    }
+
+    return output
   }
 
   /*
