@@ -1,8 +1,10 @@
+import * as Joi from "joi"
 import { Task } from "../task-graph"
 import { GardenContext } from "../context"
 import { BuildTask } from "./build"
 import { values } from "lodash"
 import { Service } from "../types/service"
+import { JoiPrimitive } from "../types/common"
 
 export class DeployTask extends Task {
   type = "deploy"
@@ -37,6 +39,7 @@ export class DeployTask extends Task {
     const status = await this.ctx.getServiceStatus(this.service)
 
     if (
+      !this.force &&
       version === status.version &&
       status.state === "ready"
     ) {
@@ -45,6 +48,26 @@ export class DeployTask extends Task {
       return status
     }
 
-    return this.ctx.deployService(this.service)
+    const serviceContext = { envVars: await this.prepareEnvVars() }
+
+    return this.ctx.deployService(this.service, serviceContext)
+  }
+
+  private async prepareEnvVars() {
+    const envVars = {}
+    const dependencies = await this.service.getDependencies(this.ctx)
+
+    for (const dep of dependencies) {
+      const outputs = await this.ctx.getServiceOutputs(dep)
+      const serviceEnvName = dep.getEnvVarName()
+
+      for (const key in outputs) {
+        const envKey = Joi.attempt(key, Joi.string())
+        const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${envKey}`.toUpperCase()
+        envVars[envVarName] = Joi.attempt(outputs[key], JoiPrimitive())
+      }
+    }
+
+    return envVars
   }
 }

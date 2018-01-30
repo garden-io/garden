@@ -1,0 +1,17 @@
+{
+  "name": "hello-container",
+  "version": "1.0.0",
+  "description": "Garden hello world docker service",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "garden.io <info@garden.io>",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.2",
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2"
+  }
+}

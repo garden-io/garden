@@ -1,8 +1,8 @@
 import { Module } from "./module"
 import { GardenContext } from "../context"
-import { Environment } from "./common"
+import { Environment, PrimitiveMap } from "./common"
 import { Nullable } from "../util"
-import { Service, ServiceStatus } from "./service"
+import { Service, ServiceContext, ServiceStatus } from "./service"
 
 export type PluginFactory = (context: GardenContext) => PluginInterface<any>
 
@@ -27,6 +27,8 @@ interface ExecInServiceResult {
   stderr: string
 }
 
+// TODO: Make all actions accept an object with parameters, instead of positional arguments.
+// (This will make it easier to add parameters in the long run, without breaking existing signatures)
 export interface PluginActions<T extends Module> {
   parseModule: (context: GardenContext, config: T["config"]) => T
   getModuleBuildStatus: (module: T) => Promise<BuildStatus>
@@ -38,7 +40,9 @@ export interface PluginActions<T extends Module> {
   getServiceStatus:
   (service: Service<T>, env: Environment) => Promise<ServiceStatus>
   deployService:
-  (service: Service<T>, env: Environment) => Promise<ServiceStatus>
+  (service: Service<T>, serviceContext: ServiceContext, env: Environment) => Promise<ServiceStatus>
+  getServiceOutputs:
+  (service: Service<T>, env: Environment) => Promise<PrimitiveMap>
   execInService:
   (service: Service<T>, command: string[], env: Environment) => Promise<ExecInServiceResult>
 }
@@ -55,6 +59,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   configureEnvironment = null
   getServiceStatus = null
   deployService = null
+  getServiceOutputs = null
   execInService = null
 }
 

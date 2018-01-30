@@ -1,5 +1,5 @@
 import { parse, relative, resolve } from "path"
-import { pick, values, mapValues } from "lodash"
+import { values, mapValues } from "lodash"
 import * as Joi from "joi"
 import { loadModuleConfig, Module } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
@@ -18,7 +18,7 @@ import { Environment, JoiIdentifier } from "./types/common"
 import { GenericModuleHandler } from "./moduleHandlers/generic"
 import { ContainerModuleHandler } from "./moduleHandlers/container"
 import { LocalDockerSwarmProvider } from "./providers/local/local-docker-swarm"
-import { Service } from "./types/service"
+import { Service, ServiceContext } from "./types/service"
 import { LocalGcfProvider } from "./providers/local/local-google-cloud-functions"
 import Bluebird = require("bluebird")
 
@@ -77,6 +77,7 @@ export class GardenContext {
       configureEnvironment: {},
       getServiceStatus: {},
       deployService: {},
+      getServiceOutputs: {},
       execInService: {},
     }
 
@@ -163,8 +164,31 @@ export class GardenContext {
       await this.scanModules()
     }
 
-    // TODO: Throw error on missing module
-    return names === undefined ? this.modules : pick(this.modules, names)
+    if (!names) {
+      return this.modules
+    }
+
+    const output = {}
+    const missing: string[] = []
+
+    for (const name of names) {
+      const module = this.modules[name]
+
+      if (!module) {
+        missing.push(name)
+      } else {
+        output[name] = module
+      }
+    }
+
+    if (missing.length) {
+      throw new ParameterError(`Could not find module(s): ${missing.join(", ")}`, {
+        missing,
+        available: Object.keys(this.modules),
+      })
+    }
+
+    return output
   }
 
   /*
@@ -172,12 +196,36 @@ export class GardenContext {
     Scans for modules and services in the project root if it hasn't already been done.
    */
   async getServices(names?: string[], noScan?: boolean): Promise<ServiceMap> {
+    // TODO: deduplicate (this is almost the same as getModules()
     if (!this.modulesScanned && !noScan) {
       await this.scanModules()
     }
 
-    // TODO: Throw error on missing service
-    return names === undefined ? this.services : pick(this.services, names)
+    if (!names) {
+      return this.services
+    }
+
+    const output = {}
+    const missing: string[] = []
+
+    for (const name of names) {
+      const module = this.services[name]
+
+      if (!module) {
+        missing.push(name)
+      } else {
+        output[name] = module
+      }
+    }
+
+    if (missing.length) {
+      throw new ParameterError(`Could not find service(s): ${missing.join(", ")}`, {
+        missing,
+        available: Object.keys(this.services),
+      })
+    }
+
+    return output
   }
 
   /*
@@ -240,11 +288,7 @@ export class GardenContext {
         )
       }
 
-      this.services[serviceName] = {
-        name: serviceName,
-        module,
-        config: config.services[serviceName],
-      }
+      this.services[serviceName] = new Service(module, serviceName)
     }
   }
 
@@ -312,8 +356,19 @@ export class GardenContext {
     return handler(service, this.getEnvironment())
   }
 
-  async deployService<T extends Module>(service: Service<T>) {
+  async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext) {
     const handler = this.getEnvActionHandler("deployService", service.module.type)
+    return handler(service, serviceContext || {}, this.getEnvironment())
+  }
+
+  async getServiceOutputs<T extends Module>(service: Service<T>) {
+    // TODO: We might want to generally allow for "default handlers"
+    let handler
+    try {
+      handler = this.getEnvActionHandler("getServiceOutputs", service.module.type)
+    } catch (err) {
+      return {}
+    }
     return handler(service, this.getEnvironment())
   }
 

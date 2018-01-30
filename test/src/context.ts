@@ -32,7 +32,7 @@ describe("GardenContext", () => {
       type: "test",
       name,
       path: "bla",
-      constants: {},
+      variables: {},
       build: { dependencies: [] },
       services: {
         testService: {},
@@ -168,6 +168,19 @@ describe("GardenContext", () => {
 
       expect(Object.keys(modules)).to.eql(["module-b", "module-c"])
     })
+
+    it("should throw if named module is missing", async () => {
+      const ctx = new GardenContext(projectRootA)
+
+      try {
+        await ctx.getModules(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
   })
 
   describe("getServices", () => {
@@ -183,6 +196,19 @@ describe("GardenContext", () => {
       const services = await ctx.getServices(["service-b", "service-c"])
 
       expect(Object.keys(services)).to.eql(["service-b", "service-c"])
+    })
+
+    it("should throw if named service is missing", async () => {
+      const ctx = new GardenContext(projectRootA)
+
+      try {
+        await ctx.getServices(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
     })
   })
 
@@ -212,7 +238,7 @@ describe("GardenContext", () => {
       expect(Object.keys(services)).to.eql(["testService"])
     })
 
-    it("should throw when adding module twict without force parameter", async () => {
+    it("should throw when adding module twice without force parameter", async () => {
       const ctx = new GardenContext(projectRootA)
 
       const testModule = makeTestModule(ctx)

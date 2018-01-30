@@ -1,7 +1,7 @@
 import { readFileSync } from "fs"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { identifierRegex, JoiIdentifier, JoiLiteral, Primitive } from "./common"
+import { identifierRegex, JoiIdentifier, JoiPrimitive, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { MODULE_CONFIG_FILENAME } from "../constants"
 import { join, parse, sep } from "path"
@@ -19,10 +19,10 @@ class ModuleConfigBase {
   description?: string
   name: string
   type: string
-  constants: { [key: string]: Primitive }
+  variables: { [key: string]: Primitive }
   build: BuildConfig
   // further defined by subclasses
-  services: { [key: string]: any }
+  services: { [name: string]: object }
 }
 
 export interface ModuleConfig extends ModuleConfigBase { }
@@ -31,6 +31,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   public name: string
   public type: string
   public path: string
+  public services: { [name: string]: object }
 
   private _buildDependencies: Module[]
 
@@ -38,6 +39,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     this.name = config.name
     this.type = config.type
     this.path = config.path
+    this.services = config.services
   }
 
   async getVersion() {
@@ -106,7 +108,7 @@ export const baseModuleSchema = Joi.object().keys({
   type: JoiIdentifier().required(),
   name: JoiIdentifier(),
   description: Joi.string(),
-  constants: Joi.object().pattern(/[\w\d]+/i, JoiLiteral()).default(() => { }, "{}"),
+  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => { }, "{}"),
   services: baseServicesSchema,
   build: Joi.object().keys({
     command: Joi.string(),
