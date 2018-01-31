@@ -11,6 +11,7 @@ export interface ServiceStatus {
   version?: string
   state?: ServiceState
   runningReplicas?: number
+  lastMessage?: string
   lastError?: string
   createdAt?: string
   updatedAt?: string

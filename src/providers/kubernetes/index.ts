@@ -284,8 +284,8 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
         message = `${event.reason} ${message}`
       }
 
-      if (message !== "") {
-        this.context.log.verbose(service.name, message)
+      if (message) {
+        out.detail.lastMessage = message
       }
     }
 
@@ -329,10 +329,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
 
     out.runningReplicas = available
-
-    if (statusMsg !== "") {
-      this.context.log.verbose(service.name, statusMsg)
-    }
+    out.lastMessage = statusMsg
 
     return out
   }
@@ -341,6 +338,8 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
     let loops = 0
     let resourceVersion
+    let lastMessage
+    let lastDetailMessage
     const startTime = new Date().getTime()
 
     this.context.log.verbose(service.name, `Waiting for service to be ready...`)
@@ -349,6 +348,23 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       await sleep(2000 + 1000 * loops)
 
       const status = await this.checkDeploymentStatus(service, env, resourceVersion)
+
+      if (status.lastError) {
+        throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
+          serviceName: service.name,
+          status,
+        })
+      }
+
+      if (status.detail.lastMessage && status.detail.lastMessage !== lastDetailMessage) {
+        lastDetailMessage = status.detail.lastMessage
+        this.context.log.verbose(service.name, status.detail.lastMessage)
+      }
+
+      if (status.lastMessage && status.lastMessage !== lastMessage) {
+        lastMessage = status.lastMessage
+        this.context.log.verbose(service.name, status.lastMessage)
+      }
 
       if (status.state === "ready") {
         break
