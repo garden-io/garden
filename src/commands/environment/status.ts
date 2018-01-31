@@ -20,7 +20,7 @@ export class EnvironmentStatusCommand extends Command<typeof environmentStatusAr
   async action(ctx: GardenContext, args: Args) {
     ctx.setEnvironment(args.environment)
     const result = await ctx.getEnvironmentStatus()
-    console.log(args.environment, JSON.stringify(result, null, 4))
+    console.log(JSON.stringify(result, null, 4))
     return result
   }
 }

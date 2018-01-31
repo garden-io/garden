@@ -23,15 +23,17 @@ export interface ProjectConfig {
   variables: { [key: string]: Primitive }
 }
 
+export const providerConfigBase = Joi.object().keys({
+  type: JoiIdentifier().required(),
+}).unknown(true)
+
 const baseSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   name: JoiIdentifier().required(),
   environments: Joi.object().pattern(identifierRegex, Joi.object().keys({
-    providers: Joi.object().pattern(identifierRegex, Joi.object().keys({
-      type: JoiIdentifier().required(),
-    })),
-  })).default(() => { }, "{}"),
-  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => { }, "{}"),
+    providers: Joi.object().pattern(identifierRegex, providerConfigBase),
+  })).default(() => ({}), "{}"),
+  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => ({}), "{}"),
 }).required()
 
 export function loadProjectConfig(projectRoot: string): ProjectConfig {

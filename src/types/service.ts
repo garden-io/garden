@@ -13,6 +13,7 @@ export interface ServiceStatus {
   lastError?: string
   createdAt?: string
   updatedAt?: string
+  detail?: any
 }
 
 export interface ServiceContext {

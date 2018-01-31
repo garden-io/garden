@@ -8,6 +8,7 @@ import { ConfigurationError } from "../exceptions"
 import { round } from "lodash"
 import { Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
+import { Service } from "../types/service"
 
 interface ServicePortSpec {
   name?: string
@@ -22,17 +23,19 @@ interface ServiceVolumeSpec {
   name?: string
 }
 
-interface ContainerService {
+interface ContainerServiceConfig {
   command?: string,
+  daemon: boolean
+  dependencies: string[],
+  endpoints: any[], // TODO: define
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
-  dependencies: string[],
 }
 
 export interface ContainerModuleConfig extends ModuleConfig {
   image?: string
   services: {
-    [name: string]: ContainerService,
+    [name: string]: ContainerServiceConfig,
   }
 }
 
@@ -44,6 +47,9 @@ const containerSchema = baseModuleSchema.keys({
     .pattern(identifierRegex, baseServiceSchema
       .keys({
         command: Joi.array().items(Joi.string()),
+        daemon: Joi.boolean().default(false),
+        // TODO: define
+        endpoints: Joi.array().default(() => [], "[]"),
         ports: Joi.array().items(
           Joi.object()
             .keys({
@@ -69,10 +75,12 @@ const containerSchema = baseModuleSchema.keys({
     .default(() => [], "[]"),
 })
 
+export type ContainerService = Service<ContainerModule>
+
 export class ContainerModule extends Module<ContainerModuleConfig> {
   image?: string
   services: {
-    [name: string]: ContainerService,
+    [name: string]: ContainerServiceConfig,
   }
 
   constructor(context: GardenContext, config: ContainerModuleConfig) {

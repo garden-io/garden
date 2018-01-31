@@ -9,11 +9,15 @@ Just getting started now... More docs to follow.
 You need to set up the following on your local machine to use garden:
 * Node.js >= 8.x
 * Git
-* [Docker](https://docs.docker.com/engine/installation/)
+* [Docker for Mac/Windows (edge version)](https://docs.docker.com/engine/installation/)
 
-We recommend using Homebrew on Mac for everything except Docker - 
-[Docker for Mac](https://docs.docker.com/docker-for-mac/install/) is 
-usually a better choice and is well maintained.
+We recommend using Homebrew on Mac for everything except Docker. 
+
+Note that you need to install the _edge version_ of Docker for Mac/Windows in 
+order to enable Kubernetes support. Once installed, you need to open the 
+Docker preferences, go to the Kubernetes section, tick `Enable Kubernetes` and 
+save. For more information, see [here for Mac](https://docs.docker.com/docker-for-mac/kubernetes/)
+or [here for Windows](https://docs.docker.com/docker-for-windows/kubernetes/).
 
 ## Developing the framework
 

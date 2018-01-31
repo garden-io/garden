@@ -1,0 +1,11 @@
+description: Default backend for k8s ingress controller
+name: k8s-default-backend
+type: container
+image: gcr.io/google_containers/defaultbackend:1.3
+services:
+  default-backend:
+    ports:
+      - containerPort: 8080
+    # restart: Always
+    # healthCheck:
+    #   tcpPort: 8080

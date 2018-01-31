@@ -3,13 +3,15 @@ environments:
   local:
     providers:
       docker:
-        type: local-docker-swarm
+        type: kubernetes
+        context: docker-for-desktop
       gcf:
         type: local-google-cloud-functions
   dev:
     providers:
       docker:
-        type: google-app-engine
+        type: kubernetes
+        context: my-dev-context
       gcf:
         type: google-cloud-functions
 variables:

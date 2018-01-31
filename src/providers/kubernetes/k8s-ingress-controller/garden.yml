@@ -1,0 +1,23 @@
+description: Ingress controller for garden development
+name: k8s-ingress-controller
+type: container
+image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0-beta.19
+services:
+  ingress-controller:
+    command:
+      - /nginx-ingress-controller
+      - --default-backend-service=garden-system/default-backend
+      - --election-id=ingress-controller-leader
+      - --ingress-class=nginx
+      - --logtostderr
+      - --sync-period=10s
+      - --configmap=common/nginx-configuration
+    daemon: true
+#    restart: Always
+    ports:
+      - containerPort: 80
+        hostPort: 32000
+#    healthCheck:
+#      httpGet:
+#        path: /healthz
+#        port: 80
