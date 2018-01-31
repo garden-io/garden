@@ -104,6 +104,13 @@ export class GardenContext {
       })
     }
 
+    if (namespace.startsWith("garden-")) {
+      throw new ParameterError(`Namespace cannot start with "garden-"`, {
+        name,
+        namespace,
+      })
+    }
+
     this.environment = name
     this.namespace = namespace
 
