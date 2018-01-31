@@ -136,7 +136,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
   ) {
     const namespace = env.namespace
 
-    const deployment = await createDeployment(service, exposePorts)
+    const deployment = await createDeployment(service, serviceContext, exposePorts)
     await this.apply(deployment, { namespace })
 
     // TODO: automatically clean up Services and Ingresses if they should no longer exist

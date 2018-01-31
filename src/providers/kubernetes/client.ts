@@ -1,5 +1,5 @@
 import { spawn } from "child_process"
-import { extend } from "joi"
+import { extend } from "lodash"
 import { spawnPty } from "../../util"
 
 interface KubectlParams {

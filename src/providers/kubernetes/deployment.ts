@@ -1,6 +1,7 @@
 import { ContainerService } from "../../moduleHandlers/container"
-import { toPairs } from "lodash"
+import { toPairs, extend } from "lodash"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
+import { ServiceContext } from "../../types/service"
 
 const DEFAULT_CPU_REQUEST = 0.01
 const DEFAULT_CPU_LIMIT = 0.5
@@ -13,7 +14,9 @@ interface KubeEnvVar {
   valueFrom?: { fieldRef: { fieldPath: string } }
 }
 
-export async function createDeployment(service: ContainerService, exposePorts: boolean) {
+export async function createDeployment(
+  service: ContainerService, serviceContext: ServiceContext, exposePorts: boolean,
+) {
   const configuredReplicas = 1 // service.config.count[env.name] || 1
 
   // TODO: moar type-safety
@@ -53,9 +56,7 @@ export async function createDeployment(service: ContainerService, exposePorts: b
     },
   }
 
-  // TODO: pass in environment variables
-  const envVars = {}
-  // const envVars = _.extend({}, await this.getEnvVars(), service.env)
+  const envVars = extend({}, serviceContext.envVars)
 
   const labels = {
     // tier: service.tier,
