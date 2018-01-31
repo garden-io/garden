@@ -14,7 +14,7 @@ interface KubeEnvVar {
 }
 
 export async function createDeployment(service: ContainerService, exposePorts: boolean) {
-  const configuredReplicas =  1 // service.config.count[env.name] || 1
+  const configuredReplicas = 1 // service.config.count[env.name] || 1
 
   // TODO: moar type-safety
   const deployment: any = {
@@ -70,7 +70,7 @@ export async function createDeployment(service: ContainerService, exposePorts: b
     // TODO: rename this variable
     name: "GIT_HASH",
     value: await service.module.getVersion(),
-})
+  })
 
   env.push({
     name: "POD_NAME",
@@ -88,9 +88,9 @@ export async function createDeployment(service: ContainerService, exposePorts: b
   })
 
   const container: any = {
-      args: service.config.command || [],
-      name: service.name,
-      image: await service.module.getImageId(),
+    args: service.config.command || [],
+    name: service.name,
+    image: await service.module.getImageId(),
     env,
     ports: [],
     // TODO: make these configurable
@@ -105,7 +105,7 @@ export async function createDeployment(service: ContainerService, exposePorts: b
       },
     },
     imagePullPolicy: "IfNotPresent",
-    }
+  }
 
   if (service.config.entrypoint) {
     container.command = [service.config.entrypoint]

@@ -16,7 +16,7 @@ interface KubectlOutput {
   stderr?: string,
 }
 
-export const DEFAULT_CONTEXT= "docker-for-desktop"
+export const DEFAULT_CONTEXT = "docker-for-desktop"
 export const KUBECTL_DEFAULT_TIMEOUT = 600
 
 export class Kubectl {
