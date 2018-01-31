@@ -10,20 +10,21 @@ import { Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
 import { Service } from "../types/service"
 
-interface ServicePortSpec {
+export interface ServicePortSpec {
   name?: string
   protocol: "TCP" | "UDP"
   containerPort: number
   hostPort?: number
+  nodePort?: number
 }
 
-interface ServiceVolumeSpec {
+export interface ServiceVolumeSpec {
   name: string
   containerPath: string
   hostPath?: string
 }
 
-interface ContainerServiceConfig {
+export interface ContainerServiceConfig {
   command?: string,
   daemon: boolean
   dependencies: string[],
@@ -57,6 +58,7 @@ const containerSchema = baseModuleSchema.keys({
               protocol: Joi.string().allow("TCP", "UDP"),
               containerPort: Joi.number().required(),
               hostPort: Joi.number(),
+              nodePort: Joi.number(),
             })
             .required(),
         )

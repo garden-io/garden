@@ -19,6 +19,8 @@ const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
 const ingressControllerModulePath = join(__dirname, "k8s-ingress-controller")
 const defaultBackendModulePath = join(__dirname, "k8s-default-backend")
+const dashboardModulePath = join(__dirname, "k8s-dashboard")
+const dashboardSpecPath = join(dashboardModulePath, "dashboard.yml")
 
 export class KubernetesProvider extends Plugin<ContainerModule> {
   name = "kubernetes"
@@ -42,15 +44,18 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
 
     const ingressControllerService = await this.getIngressControllerService()
     const defaultBackendService = await this.getDefaultBackendService()
+    const dashboardService = await this.getDashboardService()
 
     const ingressControllerStatus = await this.getServiceStatus(ingressControllerService, gardenEnv)
     const defaultBackendStatus = await this.getServiceStatus(defaultBackendService, gardenEnv)
+    const dashboardStatus = await this.getServiceStatus(dashboardService, gardenEnv)
 
     const statusDetail = {
+      systemNamespaceReady: false,
+      namespaceReady: false,
+      dashboardStatus: dashboardStatus.state === "ready",
       ingressControllerReady: ingressControllerStatus.state === "ready",
       defaultBackendReady: defaultBackendStatus.state === "ready",
-      namespaceReady: false,
-      systemNamespaceReady: false,
     }
 
     const namespacesStatus = await this.coreApi().namespaces().get()
@@ -79,8 +84,6 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     if (status.configured) {
       return
     }
-
-    // TODO: start dashboard service
 
     if (!status.detail.systemNamespaceReady) {
       this.context.log.info("kubernetes", `Creating garden system namespace`)
@@ -114,23 +117,26 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       })
     }
 
-    if (!status.detail.defaultBackendReady || !status.detail.ingressControllerReady) {
-      this.context.log.info("kubernetes", `Configuring ingress controller`)
-      const gardenEnv = this.getSystemEnv(env)
-      await this.deployService(await this.getDefaultBackendService(), {}, gardenEnv)
-      await this.deployService(await this.getIngressControllerService(), {}, gardenEnv)
-    }
+    this.context.log.info("kubernetes", `Configuring dashboard`)
+    // TODO: deploy this as a service
+    await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
+
+    this.context.log.info("kubernetes", `Configuring ingress controller`)
+    const gardenEnv = this.getSystemEnv(env)
+    await this.deployService(await this.getDefaultBackendService(), {}, gardenEnv)
+    await this.deployService(await this.getIngressControllerService(), {}, gardenEnv, true)
   }
 
   async getServiceStatus(service: ContainerService, env: Environment): Promise<ServiceStatus> {
+    // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
     return await this.checkDeploymentStatus(service, env)
   }
 
-  async deployService(service: ContainerService, serviceContext: ServiceContext, env: Environment) {
+  async deployService(
+    service: ContainerService, serviceContext: ServiceContext, env: Environment, exposePorts = false,
+  ) {
     const namespace = env.namespace
     const version = await service.module.getVersion()
-    // TODO: allow this?
-    const exposePorts = false
 
     const deployment = await createDeployment(service, exposePorts)
     await this.apply(version, deployment, { namespace })
@@ -202,6 +208,28 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     const module = <ContainerModule>await this.context.resolveModule(defaultBackendModulePath)
 
     return new Service<ContainerModule>(module, "default-backend")
+  }
+
+  private async getDashboardService() {
+    const module = new ContainerModule(this.context, {
+      version: "0",
+      name: "k8s-dashboard",
+      type: "container",
+      path: dashboardModulePath,
+      services: {
+        dashboard: {
+          daemon: false,
+          dependencies: [],
+          endpoints: [],
+          ports: [],
+          volumes: [],
+        },
+      },
+      variables: {},
+      build: { dependencies: [] },
+    })
+
+    return new Service<ContainerModule>(module, "dashboard")
   }
 
   async checkDeploymentStatus(service: ContainerService, env: Environment, resourceVersion?: number) {

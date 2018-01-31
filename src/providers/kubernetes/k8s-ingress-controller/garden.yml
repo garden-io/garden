@@ -11,12 +11,12 @@ services:
       - --ingress-class=nginx
       - --logtostderr
       - --sync-period=10s
-      - --configmap=common/nginx-configuration
+    #  - --configmap=garden-system/nginx-configuration
     daemon: true
 #    restart: Always
     ports:
       - containerPort: 80
-        hostPort: 32000
+        nodePort: 32000
 #    healthCheck:
 #      httpGet:
 #        path: /healthz
