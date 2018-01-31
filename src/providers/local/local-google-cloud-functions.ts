@@ -9,7 +9,7 @@ import { GenericModuleHandler } from "../../moduleHandlers/generic"
 import { DeploymentError } from "../../exceptions"
 
 const emulatorModulePath = join(__dirname, "local-gcf-container")
-// const emulatorPort = 8010
+const emulatorPort = 8010
 const emulatorServiceName = "google-cloud-functions"
 
 interface GcfModuleConfig extends ModuleConfig {
@@ -124,7 +124,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
     const emulator = await this.getEmulatorService()
 
     return {
-      endpoint: `http://${emulator.name}/local/local/${service.config.function}`,
+      endpoint: `http://${emulator.name}:${emulatorPort}/local/local/${service.config.function}`,
     }
   }
 
