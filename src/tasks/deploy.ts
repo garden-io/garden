@@ -57,6 +57,10 @@ export class DeployTask extends Task {
     const envVars = {}
     const dependencies = await this.service.getDependencies(this.ctx)
 
+    for (const key in this.ctx.config.variables) {
+      envVars[key] = this.ctx.config.variables[key]
+    }
+
     for (const dep of dependencies) {
       const outputs = await this.ctx.getServiceOutputs(dep)
       const serviceEnvName = dep.getEnvVarName()

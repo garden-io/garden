@@ -6,7 +6,13 @@ export async function createIngress(service: ContainerService) {
   }
 
   const rules = service.config.endpoints.map(e => {
-    const rule: any = { host: e.hostname }
+    const rule: any = {}
+
+    // TODO: work out how to handle hostnames in multi-tenant environments
+    // (seems it'll probably happen at the ingress controller level)
+    if (e.hostname) {
+      rule.host = e.hostname
+    }
 
     const backend = {
       serviceName: service.name,

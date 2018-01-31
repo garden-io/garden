@@ -10,6 +10,12 @@ import { Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
 import { Service } from "../types/service"
 
+export interface ServiceEndpointSpec {
+  paths?: string[]
+  hostname?: string
+  containerPort: number
+}
+
 export interface ServicePortSpec {
   name?: string
   protocol: "TCP" | "UDP"
@@ -38,7 +44,7 @@ export interface ContainerServiceConfig {
   command?: string,
   daemon: boolean
   dependencies: string[],
-  endpoints: any[], // TODO: define
+  endpoints: ServiceEndpointSpec[],
   healthCheck?: ServiceHealthCheckSpec,
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
@@ -60,8 +66,12 @@ const containerSchema = baseModuleSchema.keys({
       .keys({
         command: Joi.array().items(Joi.string()),
         daemon: Joi.boolean().default(false),
-        // TODO: define
-        endpoints: Joi.array().default(() => [], "[]"),
+        endpoints: Joi.array().items(Joi.object().keys({
+          paths: Joi.array().items(Joi.string().uri(<any>{ relativeOnly: true })),
+          hostname: Joi.string(),
+          containerPort: Joi.number().required(),
+        }))
+          .default(() => [], "[]"),
         healthCheck: Joi.object().keys({
           httpGet: Joi.object().keys({
             path: Joi.string().required(),
