@@ -13,11 +13,10 @@ services:
       - --sync-period=10s
     #  - --configmap=garden-system/nginx-configuration
     daemon: true
-#    restart: Always
     ports:
       - containerPort: 80
         nodePort: 32000
-#    healthCheck:
-#      httpGet:
-#        path: /healthz
-#        port: 80
+    healthCheck:
+      httpGet:
+        path: /healthz
+        port: 80

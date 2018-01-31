@@ -5,7 +5,10 @@ services:
     command: [npm, start]
     ports:
       - containerPort: 3000
-        hostPort: 3000
+    healthCheck:
+      httpGet:
+        path: /healthz
+        port: 3000
     dependencies:
       - hello-function
 build:

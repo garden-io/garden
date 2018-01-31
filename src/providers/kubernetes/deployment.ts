@@ -1,4 +1,4 @@
-import { ContainerService } from "../../moduleHandlers/container"
+import { ContainerService, ContainerServiceConfig } from "../../moduleHandlers/container"
 import { toPairs, extend } from "lodash"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ServiceContext } from "../../types/service"
@@ -17,6 +17,8 @@ interface KubeEnvVar {
 export async function createDeployment(
   service: ContainerService, serviceContext: ServiceContext, exposePorts: boolean,
 ) {
+  const config: ContainerServiceConfig = service.config
+  // TODO: support specifying replica count
   const configuredReplicas = 1 // service.config.count[env.name] || 1
 
   // TODO: moar type-safety
@@ -44,6 +46,7 @@ export async function createDeployment(
         },
         spec: {
           containers: [],
+          // TODO: make restartPolicy configurable
           restartPolicy: "Always",
           terminationGracePeriodSeconds: 10,
           dnsPolicy: "ClusterFirst",
@@ -68,8 +71,7 @@ export async function createDeployment(
 
   // expose some metadata to the container
   env.push({
-    // TODO: rename this variable
-    name: "GIT_HASH",
+    name: "GARDEN_VERSION",
     value: await service.module.getVersion(),
   })
 
@@ -108,42 +110,41 @@ export async function createDeployment(
     imagePullPolicy: "IfNotPresent",
   }
 
-  if (service.config.entrypoint) {
-    container.command = [service.config.entrypoint]
+  // if (config.entrypoint) {
+  //   container.command = [config.entrypoint]
+  // }
+
+  if (config.healthCheck) {
+    container.readinessProbe = {
+      initialDelaySeconds: 10,
+      periodSeconds: 5,
+      timeoutSeconds: 3,
+      successThreshold: 2,
+      failureThreshold: 5,
+    }
+
+    container.livenessProbe = {
+      initialDelaySeconds: 15,
+      periodSeconds: 5,
+      timeoutSeconds: 3,
+      successThreshold: 1,
+      failureThreshold: 3,
+    }
+
+    if (config.healthCheck.httpGet) {
+      container.readinessProbe.httpGet = config.healthCheck.httpGet
+      container.livenessProbe.httpGet = container.readinessProbe.httpGet
+    } else if (config.healthCheck.command) {
+      container.readinessProbe.exec = { command: config.healthCheck.command.map(s => s.toString()) }
+      container.livenessProbe.exec = container.readinessProbe.exec
+    } else if (config.healthCheck.tcpPort) {
+      container.readinessProbe.tcpSocket = { port: config.healthCheck.tcpPort }
+      container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
+    } else {
+      throw new Error("Must specify type of health check when configuring health check.")
+    }
   }
 
-  // TODO: support healthchecks
-  // if (service.healthCheck) {
-  //   container.readinessProbe = {
-  //     initialDelaySeconds: 10,
-  //     periodSeconds: 5,
-  //     timeoutSeconds: 3,
-  //     successThreshold: 2,
-  //     failureThreshold: 5,
-  //   }
-  //
-  //   container.livenessProbe = {
-  //     initialDelaySeconds: 15,
-  //     periodSeconds: 5,
-  //     timeoutSeconds: 3,
-  //     successThreshold: 1,
-  //     failureThreshold: 3,
-  //   }
-  //
-  //   if (service.healthCheck.httpGet) {
-  //     container.readinessProbe.httpGet = service.healthCheck.httpGet
-  //     container.livenessProbe.httpGet = container.readinessProbe.httpGet
-  //   } else if (service.healthCheck.command) {
-  //     container.readinessProbe.exec = { command: service.healthCheck.command.map(s => s.toString()) }
-  //     container.livenessProbe.exec = container.readinessProbe.exec
-  //   } else if (service.healthCheck.tcpPort) {
-  //     container.readinessProbe.tcpSocket = { port: service.healthCheck.tcpPort }
-  //     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
-  //   } else {
-  //     throw new Error("Must specify type of health check when configuring health check.")
-  //   }
-  // }
-  //
   // if (service.privileged) {
   //   container.securityContext = {
   //     privileged: true,
@@ -158,11 +159,11 @@ export async function createDeployment(
   deployment.spec.selector.matchLabels = { service: service.name }
   deployment.spec.template.metadata.labels = labels
 
-  if (service.config.volumes && service.config.volumes.length) {
+  if (config.volumes && config.volumes.length) {
     const volumes: any[] = []
     const volumeMounts: any[] = []
 
-    for (let volume of service.config.volumes) {
+    for (const volume of config.volumes) {
       const volumeName = volume.name
       const volumeType = !!volume.hostPath ? "hostPath" : "emptyDir"
 
@@ -191,7 +192,7 @@ export async function createDeployment(
           mountPath: volume.containerPath || volume.hostPath,
         })
       } else {
-        throw new Error("Unsupported volume type: " + volume.type)
+        throw new Error("Unsupported volume type: " + volumeType)
       }
     }
 
@@ -199,7 +200,14 @@ export async function createDeployment(
     container.volumeMounts = volumeMounts
   }
 
-  if (service.config.daemon === true) {
+  for (const port of config.ports) {
+    container.ports.push({
+      protocol: port.protocol || DEFAULT_PORT_PROTOCOL,
+      containerPort: port.containerPort,
+    })
+  }
+
+  if (config.daemon === true) {
     // this runs a pod on every node
     deployment.kind = "DaemonSet"
     deployment.spec.updateStrategy = {
@@ -207,7 +215,7 @@ export async function createDeployment(
     }
 
     if (exposePorts) {
-      for (let port of service.config.ports.filter(p => p.hostPort)) {
+      for (const port of config.ports.filter(p => p.hostPort)) {
         // For daemons we can expose host ports directly on the Pod, as opposed to only via the Service resource.
         // This allows us to choose any port.
         // TODO: validate that conflicting ports are not defined.

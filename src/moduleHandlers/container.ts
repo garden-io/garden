@@ -24,11 +24,22 @@ export interface ServiceVolumeSpec {
   hostPath?: string
 }
 
+interface ServiceHealthCheckSpec {
+  httpGet?: {
+    path: string,
+    port: number,
+    scheme?: "HTTP" | "HTTPS",
+  },
+  command?: string[],
+  tcpPort?: number,
+}
+
 export interface ContainerServiceConfig {
   command?: string,
   daemon: boolean
   dependencies: string[],
   endpoints: any[], // TODO: define
+  healthCheck?: ServiceHealthCheckSpec,
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
 }
@@ -51,6 +62,15 @@ const containerSchema = baseModuleSchema.keys({
         daemon: Joi.boolean().default(false),
         // TODO: define
         endpoints: Joi.array().default(() => [], "[]"),
+        healthCheck: Joi.object().keys({
+          httpGet: Joi.object().keys({
+            path: Joi.string().required(),
+            port: Joi.number().required(),
+            scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+          }),
+          command: Joi.array().items(Joi.string()),
+          tcpPort: Joi.number(),
+        }),
         ports: Joi.array().items(
           Joi.object()
             .keys({

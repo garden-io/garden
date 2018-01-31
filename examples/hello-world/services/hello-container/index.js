@@ -11,4 +11,8 @@ app.get("/", (req, res) => {
     })
 })
 
-app.listen(3000, () => console.log("App started"))
+app.get("/healthz", (req, res) => {
+  res.sendStatus(200)
+})
+
+app.listen(3000, "0.0.0.0", () => console.log("App started"))
