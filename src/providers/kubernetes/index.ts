@@ -13,7 +13,7 @@ import { join } from "path"
 import { createServices } from "./service"
 import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
-import { DEFAULT_CONTEXT, kubectl, KUBECTL_DEFAULT_TIMEOUT, kubectlJson } from "./client"
+import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./client"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -29,7 +29,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
   async getEnvironmentStatus(env: Environment) {
     try {
       // TODO: use API instead of kubectl (I just couldn't find which API call to make)
-      await kubectlJson(["version"])
+      await this.kubectl().call(["version"])
     } catch (err) {
       // TODO: catch error properly
       if (err.output) {
@@ -384,6 +384,11 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
   }
 
   @Memoize()
+  public kubectl(namespace?: string) {
+    return new Kubectl({ context: DEFAULT_CONTEXT, namespace })
+  }
+
+  @Memoize()
   protected getDocker() {
     return new Docker()
   }
@@ -402,7 +407,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     args.push("-f")
     args.push("-")
 
-    await kubectl(args, { data, namespace })
+    await this.kubectl(namespace).call(args, { data })
   }
 
   private getSystemEnv(env: Environment): Environment {

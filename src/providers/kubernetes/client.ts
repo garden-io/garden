@@ -1,105 +1,127 @@
 import { spawn } from "child_process"
 import { extend } from "joi"
+import { spawnPty } from "../../util"
 
 interface KubectlParams {
-  configPath?: string,
-  context?: string,
   data?: Buffer,
   ignoreError?: boolean,
-  namespace?: string,
   silent?: boolean,
   timeout?: number,
-  tty?: boolean,
+}
+
+interface KubectlOutput {
+  code: number,
+  output: string,
+  stdout?: string,
+  stderr?: string,
 }
 
 export const DEFAULT_CONTEXT= "docker-for-desktop"
 export const KUBECTL_DEFAULT_TIMEOUT = 600
 
-export async function kubectl(
-  args: string[],
-  {
-    configPath, context = DEFAULT_CONTEXT, data, ignoreError = false, namespace,
-    silent = true, timeout = KUBECTL_DEFAULT_TIMEOUT,
-  }: KubectlParams = {},
-): Promise<any> {
+export class Kubectl {
+  public context?: string
+  public namespace?: string
+  public configPath?: string
 
-  const ops: string[] = []
-
-  if (namespace) {
-    ops.push(`--namespace=${namespace}`)
+  constructor({ context, namespace, configPath }: { context?: string, namespace?: string, configPath?: string }) {
+    this.context = context
+    this.namespace = namespace
+    this.configPath = configPath
   }
 
-  ops.push(`--context=${context}`)
+  async call(
+    args: string[],
+    { data, ignoreError = false, silent = true, timeout = KUBECTL_DEFAULT_TIMEOUT }: KubectlParams = {},
+  ): Promise<KubectlOutput> {
 
-  if (configPath) {
-    ops.push(`--kubeconfig=${configPath}`)
-  }
-
-  const out: any = {
-    code: 0,
-    output: "",
-    stdout: "",
-    stderr: "",
-  }
-
-  const proc = spawn("kubectl", ops.concat(args))
-
-  proc.stdout.on("data", (s) => {
-    if (!silent) {
-      process.stdout.write(s)
-    }
-    out.output += s
-    out.stdout += s
-  })
-
-  proc.stderr.on("data", (s) => {
-    if (!silent) {
-      process.stderr.write(s)
-    }
-    out.output += s
-    out.stderr += s
-  })
-
-  if (data) {
-    proc.stdin.end(data)
-  }
-
-  return new Promise((resolve, reject) => {
-    let _timeout
-
-    const _reject = (msg: string) => {
-      const err = new Error(msg)
-      extend(err, out)
-      reject(err)
+    const out: KubectlOutput = {
+      code: 0,
+      output: "",
+      stdout: "",
+      stderr: "",
     }
 
-    if (timeout > 0) {
-      _timeout = setTimeout(() => {
-        proc.kill("SIGKILL")
-        _reject(`kubectl timed out after ${timeout} seconds.`)
-      }, timeout * 1000)
-    }
+    const proc = spawn("kubectl", this.prepareArgs(args))
 
-    proc.on("close", (code) => {
-      _timeout && clearTimeout(_timeout)
-
-      if (code === 0) {
-        resolve(out)
-      } else {
-        _reject("Process exited with code " + code)
+    proc.stdout.on("data", (s) => {
+      if (!silent) {
+        process.stdout.write(s)
       }
+      out.output += s
+      out.stdout! += s
     })
-  })
-}
 
-export async function kubectlJson(
-  args: string[], opts: KubectlParams = {},
-) {
-  if (!args.includes("--output=json")) {
-    args.push("--output=json")
+    proc.stderr.on("data", (s) => {
+      if (!silent) {
+        process.stderr.write(s)
+      }
+      out.output += s
+      out.stderr! += s
+    })
+
+    if (data) {
+      proc.stdin.end(data)
+    }
+
+    return new Promise<KubectlOutput>((resolve, reject) => {
+      let _timeout
+
+      const _reject = (msg: string) => {
+        const err = new Error(msg)
+        extend(err, <any>out)
+        reject(err)
+      }
+
+      if (timeout > 0) {
+        _timeout = setTimeout(() => {
+          proc.kill("SIGKILL")
+          _reject(`kubectl timed out after ${timeout} seconds.`)
+        }, timeout * 1000)
+      }
+
+      proc.on("close", (code) => {
+        _timeout && clearTimeout(_timeout)
+        out.code = code
+
+        if (code === 0 || ignoreError) {
+          resolve(out)
+        } else {
+          _reject("Process exited with code " + code)
+        }
+      })
+    })
   }
 
-  const result = await kubectl(args, opts)
+  async json(args: string[], opts: KubectlParams = {}): Promise<KubectlOutput> {
+    if (!args.includes("--output=json")) {
+      args.push("--output=json")
+    }
 
-  return JSON.parse(result.output)
+    const result = await this.call(args, opts)
+
+    return JSON.parse(result.output)
+  }
+
+  async tty(args: string[], { silent = true } = {}): Promise<KubectlOutput> {
+    return spawnPty("kubectl", this.prepareArgs(args), { silent })
+  }
+
+  private prepareArgs(args: string[]) {
+    const ops: string[] = []
+
+    if (this.namespace) {
+      ops.push(`--namespace=${this.namespace}`)
+    }
+
+    if (this.context) {
+      ops.push(`--context=${this.context}`)
+    }
+
+    if (this.configPath) {
+      ops.push(`--kubeconfig=${this.configPath}`)
+    }
+
+    return ops.concat(args)
+  }
 }
