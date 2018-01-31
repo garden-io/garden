@@ -1,5 +1,4 @@
 import * as Docker from "dockerode"
-import { exec } from "child-process-promise"
 import { Memoize } from "typescript-memoize"
 import * as K8s from "kubernetes-client"
 import { DeploymentError } from "../../exceptions"
@@ -136,23 +135,22 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     service: ContainerService, serviceContext: ServiceContext, env: Environment, exposePorts = false,
   ) {
     const namespace = env.namespace
-    const version = await service.module.getVersion()
 
     const deployment = await createDeployment(service, exposePorts)
-    await this.apply(version, deployment, { namespace })
+    await this.apply(deployment, { namespace })
 
     // TODO: automatically clean up Services and Ingresses if they should no longer exist
 
     const kubeservices = await createServices(service, exposePorts)
 
     for (let kubeservice of kubeservices) {
-      await this.apply(version, kubeservice, { namespace })
+      await this.apply(kubeservice, { namespace })
     }
 
     const ingress = await createIngress(service)
 
     if (ingress !== null) {
-      await this.apply(version, ingress, { namespace })
+      await this.apply(ingress, { namespace })
     }
 
     await this.waitForDeployment(service, env)
@@ -443,8 +441,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     return new Docker()
   }
 
-  protected async apply(version: string, obj: any,
-                        { force = false, namespace }: { force?: boolean, namespace?: string } = {}) {
+  protected async apply(obj: any, { force = false, namespace }: { force?: boolean, namespace?: string } = {}) {
     const kind = obj.kind
     const name = obj.metadata.name
 
