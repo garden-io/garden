@@ -3,6 +3,10 @@ type: container
 services:
   hello-container:
     command: [npm, start]
+    endpoints:
+      - paths: [/hello]
+        hostname: helloworld.my.garden
+        containerPort: 3000
     ports:
       - containerPort: 3000
     healthCheck:
