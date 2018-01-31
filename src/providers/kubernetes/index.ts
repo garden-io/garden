@@ -189,7 +189,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     // exec in the pod via kubectl
     res = await this.kubectl(env.namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
 
-    return { output: res.output }
+    return { code: res.code, output: res.output }
   }
 
   private async getIngressControllerService() {
@@ -378,6 +378,8 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
         throw new Error(`Timed out waiting for ${service.name} to deploy`)
       }
     }
+
+    this.context.log.verbose(service.name, `Service deployed`)
   }
 
   // sadly the TS definitions are no good for this one

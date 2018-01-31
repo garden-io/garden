@@ -65,6 +65,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
 
     // We mount the project root into the container, so we can exec deploy any function in there later.
     service.config.volumes = [{
+      name: "functions",
       containerPath: "/functions",
       hostPath: this.context.projectRoot,
     }]

@@ -18,9 +18,9 @@ interface ServicePortSpec {
 }
 
 interface ServiceVolumeSpec {
+  name: string
   containerPath: string
   hostPath?: string
-  name?: string
 }
 
 interface ContainerServiceConfig {
@@ -64,9 +64,9 @@ const containerSchema = baseModuleSchema.keys({
         volumes: Joi.array().items(
           Joi.object()
             .keys({
+              name: Joi.string().required(),
               containerPath: Joi.string().required(),
               hostPath: Joi.string(),
-              name: Joi.string(),
             })
             .required(),
         )

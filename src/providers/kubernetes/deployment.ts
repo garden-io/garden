@@ -157,47 +157,46 @@ export async function createDeployment(service: ContainerService, exposePorts: b
   deployment.spec.selector.matchLabels = { service: service.name }
   deployment.spec.template.metadata.labels = labels
 
-  // TODO: support volumes
-  // if (service.volumes && service.volumes.length) {
-  //   const volumes: any[] = []
-  //   const volumeMounts: any[] = []
-  //
-  //   for (let volume of service.volumes) {
-  //     const volumeName = volume.name
-  //     const volumeType = volume.type || "hostPath"
-  //
-  //     if (!volumeName) {
-  //       throw new Error("Must specify volume name")
-  //     }
-  //
-  //     if (volumeType === "emptyDir") {
-  //       volumes.push({
-  //         name: volumeName,
-  //         emptyDir: {},
-  //       })
-  //       volumeMounts.push({
-  //         name: volumeName,
-  //         mountPath: volume.mountPath,
-  //       })
-  //     } else if (volumeType === "hostPath") {
-  //       volumes.push({
-  //         name: volumeName,
-  //         hostPath: {
-  //           path: volume.hostPath,
-  //         },
-  //       })
-  //       volumeMounts.push({
-  //         name: volumeName,
-  //         mountPath: volume.mountPath || volume.hostPath,
-  //       })
-  //     } else {
-  //       throw new Error("Unsupported volume type: " + volume.type)
-  //     }
-  //   }
-  //
-  //   deployment.spec.template.spec.volumes = volumes
-  //   container.volumeMounts = volumeMounts
-  // }
+  if (service.config.volumes && service.config.volumes.length) {
+    const volumes: any[] = []
+    const volumeMounts: any[] = []
+
+    for (let volume of service.config.volumes) {
+      const volumeName = volume.name
+      const volumeType = !!volume.hostPath ? "hostPath" : "emptyDir"
+
+      if (!volumeName) {
+        throw new Error("Must specify volume name")
+      }
+
+      if (volumeType === "emptyDir") {
+        volumes.push({
+          name: volumeName,
+          emptyDir: {},
+        })
+        volumeMounts.push({
+          name: volumeName,
+          mountPath: volume.containerPath,
+        })
+      } else if (volumeType === "hostPath") {
+        volumes.push({
+          name: volumeName,
+          hostPath: {
+            path: volume.hostPath,
+          },
+        })
+        volumeMounts.push({
+          name: volumeName,
+          mountPath: volume.containerPath || volume.hostPath,
+        })
+      } else {
+        throw new Error("Unsupported volume type: " + volume.type)
+      }
+    }
+
+    deployment.spec.template.spec.volumes = volumes
+    container.volumeMounts = volumeMounts
+  }
 
   if (service.config.daemon === true) {
     // this runs a pod on every node
