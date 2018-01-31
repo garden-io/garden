@@ -256,7 +256,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     status = statusRes.status
 
     if (!resourceVersion) {
-      out.detail.resourceVersion = parseInt(statusRes.metadata.resourceVersion, 10)
+      resourceVersion = out.detail.resourceVersion = parseInt(statusRes.metadata.resourceVersion, 10)
     }
 
     out.version = statusRes.metadata.annotations["garden.io/version"]
