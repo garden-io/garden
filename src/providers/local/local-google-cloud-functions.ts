@@ -80,7 +80,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
 
     // Regex fun. Yay.
     // TODO: Submit issue/PR to @google-cloud/functions-emulator to get machine-readable output
-    if (result.stdout.match(new RegExp(`READY\\s+│\\s+${escapeStringRegexp(service.name)}\\s+│`, "g"))) {
+    if (result.output.match(new RegExp(`READY\\s+│\\s+${escapeStringRegexp(service.name)}\\s+│`, "g"))) {
       // For now we don't have a way to track which version is developed.
       // We most likely need to keep track of that on our side.
       return { state: "ready" }
@@ -109,8 +109,8 @@ export class LocalGcfProvider extends GenericModuleHandler {
       ],
     )
 
-    if (result.stderr) {
-      throw new DeploymentError(`Deploying function ${service.name} failed: ${result.stderr}`, {
+    if (result.code !== 0) {
+      throw new DeploymentError(`Deploying function ${service.name} failed: ${result.output}`, {
         serviceName: service.name,
         error: result.stderr,
       })

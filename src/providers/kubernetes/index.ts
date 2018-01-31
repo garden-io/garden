@@ -160,33 +160,37 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
   }
 
-  // async execInService(service: Service<ContainerModule>, command: string[]) {
-  //   const status = await this.getServiceStatus(service)
-  //
-  //   if (!status.state || status.state !== "ready") {
-  //     throw new DeploymentError(`Service ${service.name} is not running`, {
-  //       name: service.name,
-  //       state: status.state,
-  //     })
-  //   }
-  //
-  //   // This is ugly, but dockerode doesn't have this, or at least it's too cumbersome to implement.
-  //   const swarmServiceName = this.getSwarmServiceName(service.name)
-  //   const servicePsCommand = [
-  //     "docker", "service", "ps",
-  //     "-f", `'name=${swarmServiceName}.1'`,
-  //     "-f", `'desired-state=running'`,
-  //     swarmServiceName,
-  //     "-q",
-  //   ]
-  //   let res = await exec(servicePsCommand.join(" "))
-  //   const serviceContainerId = `${swarmServiceName}.1.${res.stdout.trim()}`
-  //
-  //   const execCommand = ["docker", "exec", serviceContainerId, ...command]
-  //   res = await exec(execCommand.join(" "))
-  //
-  //   return { stdout: res.stdout, stderr: res.stderr }
-  // }
+  async execInService(service: Service<ContainerModule>, command: string[], env: Environment) {
+    const status = await this.getServiceStatus(service, env)
+
+    // TODO: this check should probably live outside of the plugin
+    if (!status.state || status.state !== "ready") {
+      throw new DeploymentError(`Service ${service.name} is not running`, {
+        name: service.name,
+        state: status.state,
+      })
+    }
+
+    // get a running pod
+    let res = await this.coreApi(env.namespace).namespaces.pods.get({
+      qs: {
+        labelSelector: `service=${service.name}`,
+      },
+    })
+    const pod = res.items[0]
+
+    if (!pod) {
+      // This should not happen because of the prior status check, but checking to be sure
+      throw new DeploymentError(`Could not find running pod for ${service.name}`, {
+        serviceName: service.name,
+      })
+    }
+
+    // exec in the pod via kubectl
+    res = await this.kubectl(env.namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
+
+    return { output: res.output }
+  }
 
   private async getIngressControllerService() {
     const module = <ContainerModule>await this.context.resolveModule(ingressControllerModulePath)

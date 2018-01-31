@@ -23,8 +23,10 @@ interface EnvironmentStatus {
 }
 
 interface ExecInServiceResult {
-  stdout: string
-  stderr: string
+  code: number
+  output: string
+  stdout?: string
+  stderr?: string
 }
 
 // TODO: Make all actions accept an object with parameters, instead of positional arguments.
