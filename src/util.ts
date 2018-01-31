@@ -118,6 +118,12 @@ interface SpawnPtyParams {
   data?: Buffer
 }
 
+interface SpawnPtyOutput {
+  code: number
+  output: string
+  term: any
+}
+
 export function spawnPty(
   cmd: string, args: string[],
   { silent = false, tty = false, timeout = 0, cwd, bufferOutput = true, data }: SpawnPtyParams = {},
@@ -137,7 +143,8 @@ export function spawnPty(
   // raw mode is not available if we're running without a TTY
   tty && _process.stdin.setRawMode && _process.stdin.setRawMode(true)
 
-  const result = {
+  const result: SpawnPtyOutput = {
+    code: 0,
     output: "",
     term,
   }
@@ -186,6 +193,7 @@ export function spawnPty(
 
       // make sure raw input is decoupled
       tty && _process.stdin.setRawMode && _process.stdin.setRawMode(false)
+      result.code = code
 
       if (code === 0) {
         resolve(result)
