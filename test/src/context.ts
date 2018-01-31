@@ -58,6 +58,7 @@ describe("GardenContext", () => {
       },
       name: "build-test-project",
       version: "0",
+      variables: {},
     })
   })
 
