@@ -28,6 +28,7 @@
     "js-yaml": "^3.10.0",
     "klaw": "^2.1.1",
     "kubernetes-client": "^3.18.1",
+    "node-pty": "^0.7.4",
     "runtypes": "^0.13.1",
     "serverless": "^1.25.0",
     "typescript-memoize": "^1.0.0-alpha.3",
