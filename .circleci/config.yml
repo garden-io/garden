@@ -36,5 +36,6 @@ jobs:
             - node_modules
           key: v1-dependencies-{{ checksum "package-lock.json" }}
 
-      # run tests!
+      # build and run tests
+      - run: node_modules/.bin/tsc -p .
       - run: npm test
