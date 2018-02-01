@@ -1,0 +1,9 @@
+description: redis service
+type: container
+image: redis:alpine
+services:
+  redis: 
+    ports:
+      - name: redis
+        protocol: TCP
+        containerPort: 6379

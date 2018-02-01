@@ -1,0 +1,13 @@
+description: voting service
+type: container
+services:
+  vote:
+    command: [python, app.py]
+    endpoints:
+      - paths: [/vote/]
+        hostname: vote.my.garden
+        containerPort: 80
+    ports:
+      - name: interface
+        protocol: TCP
+        containerPort: 80

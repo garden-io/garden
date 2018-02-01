@@ -1,0 +1,7 @@
+description: worker
+type: container
+services:
+  javaworker:
+    dependencies:
+      - redis
+

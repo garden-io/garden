@@ -1,0 +1,13 @@
+description: Results presentation servicw
+type: container
+services:
+  result:
+    command: [nodemon, server.js]
+    endpoints:
+      - paths: [/]
+        hostname: vote.my.garden
+        containerPort: 80
+    ports:
+      - name: ui
+        protocol: TCP
+        containerPort: 80
