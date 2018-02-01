@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="git"
+BREW_DEPS="git kubectl stern"
 
 brew update
 brew install ${BREW_DEPS}
