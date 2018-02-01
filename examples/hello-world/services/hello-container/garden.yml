@@ -3,9 +3,16 @@ type: container
 services:
   hello-container:
     command: [npm, start]
+    endpoints:
+      - paths: [/hello]
+        hostname: helloworld.my.garden
+        containerPort: 3000
     ports:
       - containerPort: 3000
-        hostPort: 3000
+    healthCheck:
+      httpGet:
+        path: /healthz
+        port: 3000
     dependencies:
       - hello-function
 build:

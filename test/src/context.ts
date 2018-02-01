@@ -58,6 +58,7 @@ describe("GardenContext", () => {
       },
       name: "build-test-project",
       version: "0",
+      variables: {},
     })
   })
 
@@ -95,6 +96,19 @@ describe("GardenContext", () => {
 
       try {
         ctx.setEnvironment("bla")
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+
+    it("should throw if namespace starts with 'garden-'", () => {
+      const ctx = new GardenContext(projectRootA)
+
+      try {
+        ctx.setEnvironment("test.garden-bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return

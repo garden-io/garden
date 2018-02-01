@@ -15,6 +15,6 @@ export const JoiIdentifier = () => Joi
 
 export interface Environment {
   name: string
-  namespace?: string
+  namespace: string
   config: EnvironmentConfig,
 }

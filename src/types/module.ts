@@ -101,14 +101,14 @@ export const baseServiceSchema = Joi.object().keys({
 
 export const baseServicesSchema = Joi.object()
   .pattern(identifierRegex, baseServiceSchema)
-  .default(() => { }, "{}")
+  .default(() => ({}), "{}")
 
 export const baseModuleSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   type: JoiIdentifier().required(),
   name: JoiIdentifier(),
   description: Joi.string(),
-  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => { }, "{}"),
+  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => ({}), "{}"),
   services: baseServicesSchema,
   build: Joi.object().keys({
     command: Joi.string(),
@@ -117,6 +117,7 @@ export const baseModuleSchema = Joi.object().keys({
 }).required()
 
 export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig> {
+  // TODO: nicer error messages when load/validation fails
   const absPath = join(modulePath, MODULE_CONFIG_FILENAME)
   let fileData
   let config

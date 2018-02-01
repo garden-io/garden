@@ -2,6 +2,7 @@ import { Module } from "./module"
 import { PrimitiveMap } from "./common"
 import { GardenContext } from "../context"
 import Bluebird = require("bluebird")
+import { ConfigurationError } from "../exceptions"
 
 export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
 
@@ -10,9 +11,11 @@ export interface ServiceStatus {
   version?: string
   state?: ServiceState
   runningReplicas?: number
+  lastMessage?: string
   lastError?: string
   createdAt?: string
   updatedAt?: string
+  detail?: any
 }
 
 export interface ServiceContext {
@@ -24,6 +27,10 @@ export class Service<T extends Module> {
 
   constructor(public module: T, public name: string) {
     this.config = module.services[name]
+
+    if (!this.config) {
+      throw new ConfigurationError(`Could not find service ${name} in module ${module}`, { module, name })
+    }
   }
 
   /*

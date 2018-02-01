@@ -5,3 +5,5 @@ services:
     ports:
       - protocol: TCP
         containerPort: 8010
+    healthCheck:
+      tcpPort: 8010

@@ -8,31 +8,52 @@ import { ConfigurationError } from "../exceptions"
 import { round } from "lodash"
 import { Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
+import { Service } from "../types/service"
 
-interface ServicePortSpec {
+export interface ServiceEndpointSpec {
+  paths?: string[]
+  hostname?: string
+  containerPort: number
+}
+
+export interface ServicePortSpec {
   name?: string
   protocol: "TCP" | "UDP"
   containerPort: number
   hostPort?: number
+  nodePort?: number
 }
 
-interface ServiceVolumeSpec {
+export interface ServiceVolumeSpec {
+  name: string
   containerPath: string
   hostPath?: string
-  name?: string
 }
 
-interface ContainerService {
+interface ServiceHealthCheckSpec {
+  httpGet?: {
+    path: string,
+    port: number,
+    scheme?: "HTTP" | "HTTPS",
+  },
+  command?: string[],
+  tcpPort?: number,
+}
+
+export interface ContainerServiceConfig {
   command?: string,
+  daemon: boolean
+  dependencies: string[],
+  endpoints: ServiceEndpointSpec[],
+  healthCheck?: ServiceHealthCheckSpec,
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
-  dependencies: string[],
 }
 
 export interface ContainerModuleConfig extends ModuleConfig {
   image?: string
   services: {
-    [name: string]: ContainerService,
+    [name: string]: ContainerServiceConfig,
   }
 }
 
@@ -44,6 +65,22 @@ const containerSchema = baseModuleSchema.keys({
     .pattern(identifierRegex, baseServiceSchema
       .keys({
         command: Joi.array().items(Joi.string()),
+        daemon: Joi.boolean().default(false),
+        endpoints: Joi.array().items(Joi.object().keys({
+          paths: Joi.array().items(Joi.string().uri(<any>{ relativeOnly: true })),
+          hostname: Joi.string(),
+          containerPort: Joi.number().required(),
+        }))
+          .default(() => [], "[]"),
+        healthCheck: Joi.object().keys({
+          httpGet: Joi.object().keys({
+            path: Joi.string().required(),
+            port: Joi.number().required(),
+            scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+          }),
+          command: Joi.array().items(Joi.string()),
+          tcpPort: Joi.number(),
+        }),
         ports: Joi.array().items(
           Joi.object()
             .keys({
@@ -51,6 +88,7 @@ const containerSchema = baseModuleSchema.keys({
               protocol: Joi.string().allow("TCP", "UDP"),
               containerPort: Joi.number().required(),
               hostPort: Joi.number(),
+              nodePort: Joi.number(),
             })
             .required(),
         )
@@ -58,9 +96,9 @@ const containerSchema = baseModuleSchema.keys({
         volumes: Joi.array().items(
           Joi.object()
             .keys({
+              name: Joi.string().required(),
               containerPath: Joi.string().required(),
               hostPath: Joi.string(),
-              name: Joi.string(),
             })
             .required(),
         )
@@ -69,10 +107,12 @@ const containerSchema = baseModuleSchema.keys({
     .default(() => [], "[]"),
 })
 
+export type ContainerService = Service<ContainerModule>
+
 export class ContainerModule extends Module<ContainerModuleConfig> {
   image?: string
   services: {
-    [name: string]: ContainerService,
+    [name: string]: ContainerServiceConfig,
   }
 
   constructor(context: GardenContext, config: ContainerModuleConfig) {

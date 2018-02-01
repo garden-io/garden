@@ -1,4 +1,5 @@
 import { parse, relative, resolve } from "path"
+import Bluebird = require("bluebird")
 import { values, mapValues } from "lodash"
 import * as Joi from "joi"
 import { loadModuleConfig, Module } from "./types/module"
@@ -20,7 +21,7 @@ import { ContainerModuleHandler } from "./moduleHandlers/container"
 import { LocalDockerSwarmProvider } from "./providers/local/local-docker-swarm"
 import { Service, ServiceContext } from "./types/service"
 import { LocalGcfProvider } from "./providers/local/local-google-cloud-functions"
-import Bluebird = require("bluebird")
+import { KubernetesProvider } from "./providers/kubernetes/index"
 
 interface ModuleMap { [key: string]: Module }
 interface ServiceMap { [key: string]: Service<any> }
@@ -37,6 +38,7 @@ const builtinPlugins = [
   GenericModuleHandler,
   ContainerModuleHandler,
   NpmPackageModuleHandler,
+  KubernetesProvider,
   LocalDockerSwarmProvider,
   LocalGcfProvider,
 ]
@@ -97,6 +99,13 @@ export class GardenContext {
 
     if (!this.config.environments[name]) {
       throw new ParameterError(`Could not find environment ${environment}`, {
+        name,
+        namespace,
+      })
+    }
+
+    if (namespace.startsWith("garden-")) {
+      throw new ParameterError(`Namespace cannot start with "garden-"`, {
         name,
         namespace,
       })

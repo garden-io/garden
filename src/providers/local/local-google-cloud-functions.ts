@@ -9,7 +9,7 @@ import { GenericModuleHandler } from "../../moduleHandlers/generic"
 import { DeploymentError } from "../../exceptions"
 
 const emulatorModulePath = join(__dirname, "local-gcf-container")
-// const emulatorPort = 8010
+const emulatorPort = 8010
 const emulatorServiceName = "google-cloud-functions"
 
 interface GcfModuleConfig extends ModuleConfig {
@@ -65,6 +65,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
 
     // We mount the project root into the container, so we can exec deploy any function in there later.
     service.config.volumes = [{
+      name: "functions",
       containerPath: "/functions",
       hostPath: this.context.projectRoot,
     }]
@@ -80,7 +81,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
 
     // Regex fun. Yay.
     // TODO: Submit issue/PR to @google-cloud/functions-emulator to get machine-readable output
-    if (result.stdout.match(new RegExp(`READY\\s+│\\s+${escapeStringRegexp(service.name)}\\s+│`, "g"))) {
+    if (result.output.match(new RegExp(`READY\\s+│\\s+${escapeStringRegexp(service.name)}\\s+│`, "g"))) {
       // For now we don't have a way to track which version is developed.
       // We most likely need to keep track of that on our side.
       return { state: "ready" }
@@ -109,8 +110,8 @@ export class LocalGcfProvider extends GenericModuleHandler {
       ],
     )
 
-    if (result.stderr) {
-      throw new DeploymentError(`Deploying function ${service.name} failed: ${result.stderr}`, {
+    if (result.code !== 0) {
+      throw new DeploymentError(`Deploying function ${service.name} failed: ${result.output}`, {
         serviceName: service.name,
         error: result.stderr,
       })
@@ -123,7 +124,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
     const emulator = await this.getEmulatorService()
 
     return {
-      endpoint: `http://${emulator.name}/local/local/${service.config.function}`,
+      endpoint: `http://${emulator.name}:${emulatorPort}/local/local/${service.config.function}`,
     }
   }
 

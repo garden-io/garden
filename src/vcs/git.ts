@@ -27,13 +27,14 @@ export class GitHandler extends VcsHandler {
         `diff-index --name-only HEAD ${directory} && git ls-files --other --exclude-standard ${directory}`,
       )
 
-      let dirtyFiles = res.stdout.trim().split("\n").filter((f) => f.length > 0)
+      const dirtyFiles = res.stdout.trim().split("\n").filter((f) => f.length > 0)
+      const repoRoot = await this.getRepoRoot()
 
       if (dirtyFiles.length) {
         // for dirty trees, we append the last modified time of last modified or added file
         let stats = dirtyFiles
           .map((file) => {
-            let filePath = join(this.context.projectRoot, file)
+            const filePath = join(repoRoot, file)
             return existsSync(filePath) ? statSync(filePath) : null
           })
           .filter((stat) => !!stat)
@@ -80,6 +81,11 @@ export class GitHandler extends VcsHandler {
   private async getOffsetFromHead(commitHash: string) {
     let res = await this.git(`rev-list --left-right --count ${commitHash}...HEAD`)
     return parseInt(res.stdout.trim().split("\t")[1], 10)
+  }
+
+  private async getRepoRoot() {
+    const res = await this.git(`rev-parse --show-toplevel`)
+    return res.stdout.trim()
   }
 
   private async git(args) {

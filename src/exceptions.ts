@@ -31,3 +31,7 @@ export class DeploymentError extends GardenError {
 export class InternalError extends GardenError {
   type = "internal"
 }
+
+export class TimeoutError extends GardenError {
+  type = "timeout"
+}
