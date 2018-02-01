@@ -14,5 +14,4 @@ environments:
         context: my-dev-context
       gcf:
         type: google-cloud-functions
-variables:
-  hello-world-message: Hello garden!
+        defaultProject: garden-hello-world

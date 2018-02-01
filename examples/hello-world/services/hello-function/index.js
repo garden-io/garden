@@ -4,4 +4,4 @@
  * @param {Object} req Cloud Function request context.
  * @param {Object} res Cloud Function response context.
  */
-exports.helloWorld = (req, res) => res.send("Hello there, I'm a function!")
+exports.helloFunction = (req, res) => res.send("Hello there, I'm a function!")

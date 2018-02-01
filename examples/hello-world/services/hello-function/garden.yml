@@ -3,4 +3,4 @@ name: hello-function
 type: google-cloud-function
 services:
   hello-function:
-    function: helloWorld
+    entrypoint: helloFunction

@@ -8,6 +8,7 @@ export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
 
 export interface ServiceStatus {
   providerId?: string
+  providerVersion?: string
   version?: string
   state?: ServiceState
   runningReplicas?: number
