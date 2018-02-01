@@ -242,7 +242,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     const execCommand = ["docker", "exec", serviceContainerId, ...command]
     res = await exec(execCommand.join(" "))
 
-    return { stdout: res.stdout, stderr: res.stderr }
+    return { code: 0, output: "", stdout: res.stdout, stderr: res.stderr }
   }
 
   private getSwarmServiceName(serviceName: string) {
