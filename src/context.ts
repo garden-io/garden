@@ -371,7 +371,7 @@ export class GardenContext {
   async configureEnvironment() {
     const handlers = this.getEnvActionHandlers("configureEnvironment")
     const env = this.getEnvironment()
-    await Bluebird.props(mapValues(handlers, h => h(env)))
+    await Bluebird.each(values(handlers), h => h(env))
     return this.getEnvironmentStatus()
   }
 
