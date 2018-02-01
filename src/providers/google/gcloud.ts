@@ -7,6 +7,7 @@ interface GCloudParams {
   ignoreError?: boolean,
   silent?: boolean,
   timeout?: number,
+  cwd?: string,
 }
 
 interface GCloudOutput {
@@ -30,7 +31,7 @@ export class GCloud {
 
   async call(
     args: string[],
-    { data, ignoreError = false, silent = true, timeout = DEFAULT_TIMEOUT }: GCloudParams = {},
+    { data, ignoreError = false, silent = true, timeout = DEFAULT_TIMEOUT, cwd }: GCloudParams = {},
   ): Promise<GCloudOutput> {
 
     const out: GCloudOutput = {
@@ -40,7 +41,7 @@ export class GCloud {
       stderr: "",
     }
 
-    const proc = spawn("gcloud", this.prepareArgs(args))
+    const proc = spawn("gcloud", this.prepareArgs(args), { cwd })
 
     proc.stdout.on("data", (s) => {
       if (!silent) {
@@ -101,8 +102,8 @@ export class GCloud {
     return JSON.parse(result.output)
   }
 
-  async tty(args: string[], { silent = true } = {}): Promise<GCloudOutput> {
-    return spawnPty("gcloud", this.prepareArgs(args), { silent, tty: true })
+  async tty(args: string[], { silent = true, cwd }: { silent?: boolean, cwd?: string } = {}): Promise<GCloudOutput> {
+    return spawnPty("gcloud", this.prepareArgs(args), { silent, cwd, tty: true })
   }
 
   private prepareArgs(args: string[]) {

@@ -6,13 +6,13 @@ services:
     endpoints:
       - paths: [/hello]
         hostname: helloworld.my.garden
-        containerPort: 3000
+        containerPort: 8080
     ports:
-      - containerPort: 3000
+      - containerPort: 8080
     healthCheck:
       httpGet:
-        path: /healthz
-        port: 3000
+        path: /_ah/health
+        port: 8080
     dependencies:
       - hello-function
 build:

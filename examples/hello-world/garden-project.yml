@@ -10,8 +10,7 @@ environments:
   dev:
     providers:
       docker:
-        type: kubernetes
-        context: my-dev-context
+        type: google-app-engine
       gcf:
         type: google-cloud-functions
-        defaultProject: garden-hello-world
+        default-project: garden-hello-world

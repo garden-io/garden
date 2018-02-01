@@ -77,7 +77,7 @@ export abstract class GoogleCloudProviderBase<T extends Module> extends GenericM
   protected getProject(service: Service<T>, env: Environment) {
     // TODO: this is very contrived - we should rethink this a bit and pass
     // provider configuration when calling the plugin
-    const providerConfig = values(env.config.providers).filter(p => p.type === this.name)
-    return providerConfig["defaultProject"] || service.config.project || null
+    const providerConfig = values(env.config.providers).filter(p => p.type === this.name)[0]
+    return providerConfig["default-project"] || service.config.project || null
   }
 }
