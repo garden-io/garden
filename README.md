@@ -50,6 +50,24 @@ And then try querying the `/hello` endpoint:
 
     ./bin/bootstrap-osx
     npm install
+    
+### Running a development version
+
+Set an alias in your shell to the `bin/garden` executable in your project. For example for zsh:
+
+    alias garden='~/my-code/garden/build/bin
+    
+Then to keep the build up to date, you can keep an open shell with the compiler running 
+and watching for changes:
+
+    npm run watch
+    
+Also, you might like to add a couple of shorthands:
+
+    alias g='garden'
+    alias k='kubectl'
+    
+
 
 ### Testing
 
