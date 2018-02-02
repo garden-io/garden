@@ -1,12 +1,14 @@
 import { readFileSync } from "fs"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { identifierRegex, JoiIdentifier, JoiPrimitive, Primitive } from "./common"
+import { identifierRegex, joiIdentifier, joiVariables, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { MODULE_CONFIG_FILENAME } from "../constants"
 import { join, parse, sep } from "path"
 import Bluebird = require("bluebird")
 import { GardenContext } from "../context"
+
+interface Variables { [key: string]: Primitive }
 
 interface BuildConfig {
   command?: string,
@@ -19,7 +21,7 @@ class ModuleConfigBase {
   description?: string
   name: string
   type: string
-  variables: { [key: string]: Primitive }
+  variables: Variables
   build: BuildConfig
   // further defined by subclasses
   services: { [name: string]: object }
@@ -96,7 +98,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 }
 
 export const baseServiceSchema = Joi.object().keys({
-  dependencies: Joi.array().items((JoiIdentifier())).default(() => [], "[]"),
+  dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
 })
 
 export const baseServicesSchema = Joi.object()
@@ -105,14 +107,14 @@ export const baseServicesSchema = Joi.object()
 
 export const baseModuleSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
-  type: JoiIdentifier().required(),
-  name: JoiIdentifier(),
+  type: joiIdentifier().required(),
+  name: joiIdentifier(),
   description: Joi.string(),
-  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => ({}), "{}"),
+  variables: joiVariables(),
   services: baseServicesSchema,
   build: Joi.object().keys({
     command: Joi.string(),
-    dependencies: Joi.array().items(JoiIdentifier()).default(() => [], "[]"),
+    dependencies: Joi.array().items(joiIdentifier()).default(() => [], "[]"),
   }).default(() => ({ dependencies: [] }), "{}"),
 }).required()
 
@@ -136,7 +138,7 @@ export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig
 
   // name is derived from the directory name unless explicitly set
   if (!config.name) {
-    config.name = Joi.attempt(parse(absPath).dir.split(sep).slice(-1)[0], JoiIdentifier())
+    config.name = Joi.attempt(parse(absPath).dir.split(sep).slice(-1)[0], joiIdentifier())
   }
 
   config.path = modulePath

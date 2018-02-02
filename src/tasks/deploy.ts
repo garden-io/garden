@@ -4,7 +4,7 @@ import { GardenContext } from "../context"
 import { BuildTask } from "./build"
 import { values } from "lodash"
 import { Service } from "../types/service"
-import { JoiPrimitive } from "../types/common"
+import { joiPrimitive } from "../types/common"
 
 export class DeployTask extends Task {
   type = "deploy"
@@ -73,7 +73,7 @@ export class DeployTask extends Task {
       for (const key of Object.keys(outputs)) {
         const envKey = Joi.attempt(key, Joi.string())
         const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${envKey}`.toUpperCase()
-        envVars[envVarName] = Joi.attempt(outputs[key], JoiPrimitive())
+        envVars[envVarName] = Joi.attempt(outputs[key], joiPrimitive())
       }
     }
 

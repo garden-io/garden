@@ -4,6 +4,7 @@ import { expect } from "chai"
 import { PluginInterface, Plugin, PluginFactory } from "../../src/types/plugin"
 import { Module } from "../../src/types/module"
 import { ContainerModule } from "../../src/plugins/container"
+import { defaultPlugins } from "../../src/plugins"
 
 const projectRootA = join(__dirname, "..", "data", "test-project-a")
 
@@ -53,13 +54,14 @@ const makeTestModule = (ctx, name = "test") => {
   })
 }
 
-export const makeTestContextA = (plugins: PluginFactory[] = []) => {
-  return new GardenContext(projectRootA, {
-    plugins: [
-      (_ctx) => testPlugin,
-      (ctx) => new TestPluginB(ctx),
-    ].concat(plugins),
-  })
+export const makeTestContextA = (extraPlugins: PluginFactory[] = []) => {
+  const testPlugins = [
+    (_ctx) => testPlugin,
+    (ctx) => new TestPluginB(ctx),
+  ]
+  const plugins: PluginFactory[] = defaultPlugins.concat(testPlugins).concat(extraPlugins)
+
+  return new GardenContext(projectRootA, { plugins })
 }
 
 describe("GardenContext", () => {
@@ -68,6 +70,17 @@ describe("GardenContext", () => {
 
     expect(ctx.config).to.eql({
       environments: {
+        local: {
+          providers: {
+            generic: {
+              type: "generic",
+            },
+            containers: {
+              type: "kubernetes",
+              context: "docker-for-desktop",
+            },
+          },
+        },
         test: {
           providers: {
             test: {
@@ -390,7 +403,12 @@ describe("GardenContext", () => {
       const handlers = ctx.getActionHandlers("parseModule")
 
       expect(Object.keys(handlers)).to.eql([
-        "generic-module",
+        "generic",
+        "container-module",
+        "npm-package-module",
+        "google-app-engine",
+        "google-cloud-functions",
+        "local-google-cloud-functions",
         "test-plugin-b",
       ])
     })
@@ -401,7 +419,7 @@ describe("GardenContext", () => {
       const handlers = ctx.getActionHandlers("parseModule", "generic")
 
       expect(Object.keys(handlers)).to.eql([
-        "generic-module",
+        "generic",
       ])
     })
   })

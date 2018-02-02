@@ -4,7 +4,7 @@ import { Module, ModuleConfig } from "../types/module"
 import { GardenContext } from "../context"
 
 export class GenericModuleHandler<T extends Module = Module> extends Plugin<T> {
-  name = "generic-module"
+  name = "generic"
   supportedModuleTypes = ["generic"]
 
   parseModule(context: GardenContext, config: ModuleConfig) {

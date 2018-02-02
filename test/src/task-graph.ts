@@ -2,6 +2,7 @@ import { join } from "path"
 import { expect } from "chai"
 import { Task, TaskGraph, TaskResults } from "../../src/task-graph"
 import { GardenContext } from "../../src/context"
+import { defaultPlugins } from "../../src/providers"
 
 describe("task-graph", () => {
   class TestTask extends Task {
@@ -29,7 +30,7 @@ describe("task-graph", () => {
   }
 
   describe("TaskGraph", () => {
-    const ctx = new GardenContext(join(__dirname, "..", "data", "test-project-empty"))
+    const ctx = new GardenContext(join(__dirname, "..", "data", "test-project-empty"), { plugins: defaultPlugins })
 
     it("should successfully process a single task without dependencies", async () => {
       const graph = new TaskGraph(ctx)

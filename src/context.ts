@@ -14,8 +14,8 @@ import { getLogger, Logger } from "./log"
 import {
   pluginActionNames, PluginActions, PluginFactory, PluginInterface,
 } from "./types/plugin"
-import { Environment, JoiIdentifier } from "./types/common"
 import { GenericModuleHandler } from "./plugins/generic"
+import { Environment, joiIdentifier } from "./types/common"
 import { Service, ServiceContext } from "./types/service"
 
 interface ModuleMap { [key: string]: Module }
@@ -154,7 +154,7 @@ export class GardenContext {
 
   registerPlugin(pluginFactory: PluginFactory) {
     const plugin = pluginFactory(this)
-    const pluginName = Joi.attempt(plugin.name, JoiIdentifier())
+    const pluginName = Joi.attempt(plugin.name, joiIdentifier())
 
     if (this.plugins[pluginName]) {
       throw new ConfigurationError(`Plugin ${pluginName} declared more than once`, {
