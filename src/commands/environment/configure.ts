@@ -18,8 +18,10 @@ export class EnvironmentConfigureCommand extends Command<typeof envConfigureArgs
   arguments = envConfigureArgs
 
   async action(ctx: GardenContext, args: Args) {
+    ctx.log.header({ emoji: "gear", command: `Configuring ${args.environment} environment` })
     ctx.setEnvironment(args.environment)
     const result = await ctx.configureEnvironment()
-    ctx.log.info({ section: args.environment, msg: JSON.stringify(result) })
+    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+    return result
   }
 }
