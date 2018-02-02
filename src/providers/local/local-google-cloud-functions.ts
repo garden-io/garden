@@ -3,18 +3,18 @@ import { Service, ServiceStatus } from "../../types/service"
 import { join, relative, resolve } from "path"
 import * as Joi from "joi"
 import * as escapeStringRegexp from "escape-string-regexp"
-import { GenericModuleHandler } from "../../moduleHandlers/generic"
 import { DeploymentError } from "../../exceptions"
 import {
   gcfServicesSchema, GoogleCloudFunctionsModule,
   GoogleCloudFunctionsModuleConfig, GoogleCloudFunctionsService,
 } from "../google/google-cloud-functions"
+import { Plugin } from "../../types/plugin"
 
 const emulatorModulePath = join(__dirname, "local-gcf-container")
 const emulatorPort = 8010
 const emulatorServiceName = "google-cloud-functions"
 
-export class LocalGoogleCloudFunctionsProvider extends GenericModuleHandler<GoogleCloudFunctionsModule> {
+export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctionsModule> {
   name = "local-google-cloud-functions"
   supportedModuleTypes = ["google-cloud-function"]
 
@@ -103,6 +103,8 @@ export class LocalGoogleCloudFunctionsProvider extends GenericModuleHandler<Goog
     }
 
     this.context.log.info(service.name, `Function deployed`)
+
+    return this.getServiceStatus(service)
   }
 
   async getServiceOutputs(service: GoogleCloudFunctionsService) {

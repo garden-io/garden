@@ -42,7 +42,7 @@ export interface PluginActions<T extends Module> {
   getServiceStatus:
   (service: Service<T>, env: Environment) => Promise<ServiceStatus>
   deployService:
-  (service: Service<T>, serviceContext: ServiceContext, env: Environment) => Promise<ServiceStatus>
+  (service: Service<T>, serviceContext: ServiceContext, env: Environment) => Promise<any>
   getServiceOutputs:
   (service: Service<T>, env: Environment) => Promise<PrimitiveMap>
   execInService:
