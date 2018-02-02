@@ -26,20 +26,19 @@ or [here for Windows](https://docs.docker.com/docker-for-windows/kubernetes/).
 TODO
 
 
-## Hello World!
+## Examples
 
 The `examples/` directory contains usage examples for the framework. You might want to start with
 the `hello-world` example project, to see an example of basic build, deployment and interaction
-flows. Take a look around the directory, taking special note of the `garden*.yml` files - 
+flows. Take a look around the projects, taking special note of the `garden*.yml` files - 
 it's pretty straightforward, promise :)
 
-To spin it up, do the following (note: the `./garden` script automatically sets 
-the root directory to the `examples/hello-world`):
+To spin it up, `cd` to any of the directories under `examples/` and run:
 
-    ./garden env configure local
-    ./garden deploy local
+    garden env configure local
+    garden deploy local
     
-And then try querying the `/hello` endpoint:
+If you've deployed the `hello-world` project, you can try querying the `/hello` endpoint:
 
     curl http://localhost:32000/hello -H 'Host: helloworld.my.garden'
 
