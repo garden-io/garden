@@ -1,0 +1,6 @@
+name: test-project-b
+environments:
+  test:
+    providers:
+      test:
+        type: test-plugin

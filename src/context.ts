@@ -9,7 +9,6 @@ import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
 import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
-import { NpmPackageModuleHandler } from "./moduleHandlers/npm-package"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, Logger } from "./log"
 import {
@@ -17,11 +16,7 @@ import {
 } from "./types/plugin"
 import { Environment, JoiIdentifier } from "./types/common"
 import { GenericModuleHandler } from "./moduleHandlers/generic"
-import { ContainerModuleHandler } from "./moduleHandlers/container"
-import { LocalDockerSwarmProvider } from "./providers/local/local-docker-swarm"
 import { Service, ServiceContext } from "./types/service"
-import { LocalGcfProvider } from "./providers/local/local-google-cloud-functions"
-import { KubernetesProvider } from "./providers/kubernetes/index"
 
 interface ModuleMap { [key: string]: Module }
 interface ServiceMap { [key: string]: Service<any> }
@@ -33,14 +28,8 @@ type PluginActionMap = {
   }
 }
 
-// TODO: these should be configured, either explicitly or as dependencies of other plugins
 const builtinPlugins = [
   GenericModuleHandler,
-  ContainerModuleHandler,
-  NpmPackageModuleHandler,
-  KubernetesProvider,
-  LocalDockerSwarmProvider,
-  LocalGcfProvider,
 ]
 
 export class GardenContext {
@@ -61,7 +50,10 @@ export class GardenContext {
 
   vcs: VcsHandler
 
-  constructor(public projectRoot: string, logger?: Logger) {
+  constructor(
+    public projectRoot: string,
+    { logger, plugins = [] }: { logger?: Logger, plugins?: PluginFactory[] } = {},
+  ) {
     this.modulesScanned = false
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
@@ -88,7 +80,30 @@ export class GardenContext {
       this.registerPlugin((ctx) => new pluginCls(ctx))
     }
 
+    // Load configured plugins
+    for (const plugin of plugins) {
+      this.registerPlugin(plugin)
+    }
+
     this.config = loadProjectConfig(this.projectRoot)
+
+    // validate the provider configuration
+    for (const envName in this.config.environments) {
+      const envConfig = this.config.environments[envName]
+
+      for (const providerName in envConfig.providers) {
+        const providerConfig = envConfig.providers[providerName]
+        const providerType = providerConfig.type
+
+        if (!this.plugins[providerType]) {
+          throw new ConfigurationError(
+            `Could not find plugin type ${providerType} (specified in environment ${envName})`,
+            { envName, providerType },
+          )
+        }
+      }
+    }
+
     this.projectName = this.config.name
   }
 
@@ -142,7 +157,7 @@ export class GardenContext {
     const pluginName = Joi.attempt(plugin.name, JoiIdentifier())
 
     if (this.plugins[pluginName]) {
-      throw new PluginError(`Plugin ${pluginName} declared more than once`, {
+      throw new ConfigurationError(`Plugin ${pluginName} declared more than once`, {
         previous: this.plugins[pluginName],
         adding: plugin,
       })
@@ -356,7 +371,7 @@ export class GardenContext {
   async configureEnvironment() {
     const handlers = this.getEnvActionHandlers("configureEnvironment")
     const env = this.getEnvironment()
-    await Bluebird.props(mapValues(handlers, h => h(env)))
+    await Bluebird.each(values(handlers), h => h(env))
     return this.getEnvironmentStatus()
   }
 

@@ -1,5 +1,3 @@
-import { identifierRegex } from "../../types/common"
-import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
 import { GardenContext } from "../../context"
 import { Service, ServiceStatus } from "../../types/service"
 import { join, relative, resolve } from "path"
@@ -7,37 +5,21 @@ import * as Joi from "joi"
 import * as escapeStringRegexp from "escape-string-regexp"
 import { GenericModuleHandler } from "../../moduleHandlers/generic"
 import { DeploymentError } from "../../exceptions"
+import {
+  gcfServicesSchema, GoogleCloudFunctionsModule,
+  GoogleCloudFunctionsModuleConfig, GoogleCloudFunctionsService,
+} from "../google/google-cloud-functions"
 
 const emulatorModulePath = join(__dirname, "local-gcf-container")
 const emulatorPort = 8010
 const emulatorServiceName = "google-cloud-functions"
 
-interface GcfModuleConfig extends ModuleConfig {
-  services: {
-    [name: string]: {
-      function: string,
-      path: string,
-    },
-  }
-}
-
-type GcfService = Service<GcfModule>
-
-const gcfServicesSchema = Joi.object()
-  .pattern(identifierRegex, baseServiceSchema.keys({
-    function: Joi.string().required(),
-    path: Joi.string().default("."),
-  }))
-  .default(() => ({}), "{}")
-
-class GcfModule extends Module<GcfModuleConfig> { }
-
-export class LocalGcfProvider extends GenericModuleHandler {
+export class LocalGoogleCloudFunctionsProvider extends GenericModuleHandler<GoogleCloudFunctionsModule> {
   name = "local-google-cloud-functions"
   supportedModuleTypes = ["google-cloud-function"]
 
-  parseModule(ctx: GardenContext, config: GcfModuleConfig) {
-    const module = new GcfModule(ctx, config)
+  parseModule(ctx: GardenContext, config: GoogleCloudFunctionsModuleConfig) {
+    const module = new GoogleCloudFunctionsModule(ctx, config)
 
     // TODO: check that each function exists at the specified path
 
@@ -75,7 +57,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
     await this.context.deployService(service)
   }
 
-  async getServiceStatus(service: GcfService): Promise<ServiceStatus> {
+  async getServiceStatus(service: GoogleCloudFunctionsService): Promise<ServiceStatus> {
     const emulator = await this.getEmulatorService()
     const result = await this.context.execInService(emulator, ["functions-emulator", "list"])
 
@@ -90,7 +72,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
     }
   }
 
-  async deployService(service: GcfService) {
+  async deployService(service: GoogleCloudFunctionsService) {
     this.context.log.info({
       section: service.name,
       msg: `Deploying function...`,
@@ -108,8 +90,11 @@ export class LocalGcfProvider extends GenericModuleHandler {
       [
         "functions-emulator", "deploy",
         "--trigger-http",
-        "-l", containerFunctionPath,
-        "-e", service.config.function, service.config.function,
+        "--project", "local",
+        "--region", "local",
+        "--local-path", containerFunctionPath,
+        "--entry-point", service.config.entrypoint || service.name,
+        service.config.function,
       ],
     )
 
@@ -126,7 +111,7 @@ export class LocalGcfProvider extends GenericModuleHandler {
     })
   }
 
-  async getServiceOutputs(service: GcfService) {
+  async getServiceOutputs(service: GoogleCloudFunctionsService) {
     const emulator = await this.getEmulatorService()
 
     return {

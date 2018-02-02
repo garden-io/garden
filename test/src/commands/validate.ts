@@ -2,11 +2,12 @@ import { join } from "path"
 import { GardenContext } from "../../../src/context"
 import { ValidateCommand } from "../../../src/commands/validate"
 import { expect } from "chai"
+import { defaultPlugins } from "../../../src/providers"
 
 describe("commands.validate", () => {
   it("should successfully validate the hello-world project", async () => {
     const root = join(__dirname, "..", "..", "..", "examples", "hello-world")
-    const ctx = new GardenContext(root)
+    const ctx = new GardenContext(root, { plugins: defaultPlugins })
     const command = new ValidateCommand()
 
     await command.action(ctx)
@@ -27,7 +28,7 @@ describe("commands.validate", () => {
 
   it("should fail validating the bad-module project", async () => {
     const root = join(__dirname, "data", "validate", "bad-module")
-    const ctx = new GardenContext(root)
+    const ctx = new GardenContext(root, { plugins: defaultPlugins })
     const command = new ValidateCommand()
 
     try {

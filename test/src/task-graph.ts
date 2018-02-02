@@ -29,7 +29,7 @@ describe("task-graph", () => {
   }
 
   describe("TaskGraph", () => {
-    const ctx = new GardenContext(join(__dirname, "..", "..", "examples", "hello-world"))
+    const ctx = new GardenContext(join(__dirname, "..", "data", "test-project-empty"))
 
     it("should successfully process a single task without dependencies", async () => {
       const graph = new TaskGraph(ctx)
