@@ -91,7 +91,10 @@ export class LocalGcfProvider extends GenericModuleHandler {
   }
 
   async deployService(service: GcfService) {
-    this.context.log.info(service.name, `Deploying function...`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Deploying function...`,
+    })
 
     const containerFunctionPath = resolve(
       "/functions",
@@ -117,7 +120,10 @@ export class LocalGcfProvider extends GenericModuleHandler {
       })
     }
 
-    this.context.log.info(service.name, `Function deployed`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Function deployed`,
+    })
   }
 
   async getServiceOutputs(service: GcfService) {

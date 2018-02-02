@@ -40,6 +40,8 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
       await ctx.addTask(task)
     }
 
+    ctx.log.header({ emoji: "rocket", command: "deploy" })
+
     return await ctx.processTasks()
   }
 }

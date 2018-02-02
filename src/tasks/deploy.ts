@@ -44,7 +44,10 @@ export class DeployTask extends Task {
       status.state === "ready"
     ) {
       // already deployed and ready
-      this.ctx.log.verbose(this.service.name, `Version ${version} already deployed`)
+      this.ctx.log.verbose({
+        section: this.service.name,
+        msg: `Version ${version} already deployed`,
+      })
       return status
     }
 

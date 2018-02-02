@@ -1,6 +1,7 @@
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
 import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
+import { LogSymbolTypes } from "../log"
 import { identifierRegex } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
@@ -130,7 +131,7 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
     const identifier = await this.getImageId()
 
     if (!await this.imageExistsLocally()) {
-      ctx.log.info(this.name, `pulling image ${identifier}...`)
+      ctx.log.info({ section: this.name, msg: `pulling image ${identifier}...` })
       await this.dockerCli(`pull ${identifier}`)
     }
   }
@@ -171,7 +172,11 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {
-      this.context.log.verbose(module.name, `Image ${await module.getImageId()} already exists`)
+      this.context.log.verbose({
+        section: module.name,
+        msg: `Image ${await module.getImageId()} already exists`,
+        symbol: LogSymbolTypes.info,
+      })
     }
 
     return { ready }
@@ -191,14 +196,14 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     // build doesn't exist, so we create it
     const startTime = new Date().getTime()
 
-    self.context.log.info(name, `building ${identifier}...`)
+    self.context.log.info({ section: name, msg: `building ${identifier}...` })
 
     // TODO: log error if it occurs
     // TODO: stream output to log if at debug log level
     await module.dockerCli(`build -t ${identifier} ${module.path}`)
 
     const buildTime = (new Date().getTime()) - startTime
-    self.context.log.info(name, `built ${identifier} (took ${round(buildTime / 1000, 1)} sec)`)
+    self.context.log.info({ section: name, msg: `built ${identifier} (took ${round(buildTime / 1000, 1)} sec)` })
 
     return { fresh: true }
   }

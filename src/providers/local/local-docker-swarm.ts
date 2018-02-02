@@ -91,7 +91,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     // TODO: split this method up and test
     const version = await service.module.getVersion()
 
-    this.context.log.info(service.name, `Deploying version ${version}`)
+    this.context.log.info({ section: service.name, msg: `Deploying version ${version}` })
 
     const identifier = await service.module.getImageId()
     const ports = service.config.ports.map(p => {
@@ -166,14 +166,17 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       const swarmService = await docker.getService(serviceStatus.providerId)
       swarmServiceStatus = await swarmService.inspect()
       opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
-      this.context.log.verbose(
-        service.name,
-        `Updating existing Swarm service (version ${opts.version})`,
-      )
+      this.context.log.verbose({
+        section: service.name,
+        msg: `Updating existing Swarm service (version ${opts.version})`,
+      })
       await swarmService.update(opts)
       serviceId = serviceStatus.providerId
     } else {
-      this.context.log.verbose(service.name, `Creating new Swarm service`)
+      this.context.log.verbose({
+        section: service.name,
+        msg: `Creating new Swarm service`,
+      })
       const swarmService = await docker.createService(opts)
       serviceId = swarmService.ID
     }
@@ -206,7 +209,10 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       }
     }
 
-    this.context.log.info(service.name, `Ready`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Ready`,
+    })
 
     return this.getServiceStatus(service)
   }
