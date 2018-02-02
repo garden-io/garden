@@ -1,18 +1,15 @@
 import { Environment } from "../../types/common"
 import { Module } from "../../types/module"
 import { Service } from "../../types/service"
-import { GenericModuleHandler } from "../../moduleHandlers/generic"
 import { ConfigurationError } from "../../exceptions"
 import { Memoize } from "typescript-memoize"
 import { GCloud } from "./gcloud"
 import { values } from "lodash"
+import { Plugin } from "../../types/plugin"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
-export abstract class GoogleCloudProviderBase<T extends Module> extends GenericModuleHandler<T> {
-  abstract name: string
-  abstract supportedModuleTypes: string[]
-
+export abstract class GoogleCloudProviderBase<T extends Module> extends Plugin<T> {
   async getEnvironmentStatus() {
     let sdkInfo
 

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
+${garden_root}/node_modules/.bin/ts-node ${garden_root}/src/bin/garden.ts "$@"

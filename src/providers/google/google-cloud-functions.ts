@@ -86,6 +86,8 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
     ])
 
     this.context.log.info(service.name, `Function deployed`)
+
+    return this.getServiceStatus(service, env)
   }
 
   async getServiceOutputs(service: GoogleCloudFunctionsService, env: Environment) {
