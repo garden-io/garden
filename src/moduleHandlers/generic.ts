@@ -3,7 +3,7 @@ import { BuildResult, BuildStatus, Plugin } from "../types/plugin"
 import { Module, ModuleConfig } from "../types/module"
 import { GardenContext } from "../context"
 
-export class GenericModuleHandler extends Plugin {
+export class GenericModuleHandler<T extends Module = Module> extends Plugin<T> {
   name = "generic-module"
   supportedModuleTypes = ["generic"]
 

@@ -9,6 +9,7 @@ import { BuildCommand } from "./commands/build"
 import { EnvironmentStatusCommand } from "./commands/environment/status"
 import { EnvironmentConfigureCommand } from "./commands/environment/configure"
 import { DeployCommand } from "./commands/deploy"
+import { defaultPlugins } from "./providers"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
@@ -116,7 +117,9 @@ export class GardenCli {
 
     cliCommand = cliCommand.action((args, opts) => {
       const root = resolve(process.cwd(), opts.root)
-      const context = new GardenContext(root, logger)
+      const plugins = defaultPlugins
+
+      const context = new GardenContext(root, { logger, plugins })
 
       return command.action(context, args, opts)
     })

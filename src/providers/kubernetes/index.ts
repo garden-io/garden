@@ -12,7 +12,7 @@ import { join } from "path"
 import { createServices } from "./service"
 import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
-import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./client"
+import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 

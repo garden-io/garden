@@ -3,7 +3,8 @@ import * as pty from "node-pty"
 import * as exitHook from "async-exit-hook"
 import * as ignore from "ignore/ignore"
 import * as klaw from "klaw"
-import { existsSync, readFileSync } from "fs"
+import * as yaml from "js-yaml"
+import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 import { getLogger } from "./log"
 import { TimeoutError } from "./exceptions"
@@ -204,4 +205,8 @@ export function spawnPty(
       }
     })
   })
+}
+
+export function dumpYaml(yamlPath, data) {
+  writeFileSync(yamlPath, yaml.safeDump(data, { noRefs: true }))
 }

@@ -29,13 +29,12 @@ class TestProvider extends Plugin<Module> {
 }
 
 describe("commands.deploy", () => {
-  const projectRootA = join(__dirname, "..", "..", "data", "test-project-a")
+  const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 
   it("should build and deploy all modules in a project", async () => {
-    const ctx = new GardenContext(projectRootA)
-    ctx.registerPlugin((c) => new TestProvider(c))
+    const ctx = new GardenContext(projectRootB, { plugins: [(c) => new TestProvider(c)] })
     const command = new DeployCommand()
 
     const result = await command.action(
@@ -54,14 +53,13 @@ describe("commands.deploy", () => {
       "build.module-b": { fresh: true, buildLog: "B\n" },
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
-      "build.module-c": { fresh: true },
+      "build.module-c": {},
       "deploy.service-c": { version: "1", state: "ready" },
     })
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
-    const ctx = new GardenContext(projectRootA)
-    ctx.registerPlugin((c) => new TestProvider(c))
+    const ctx = new GardenContext(projectRootB, { plugins: [(c) => new TestProvider(c)] })
     const command = new DeployCommand()
 
     const result = await command.action(

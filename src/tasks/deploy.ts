@@ -48,13 +48,15 @@ export class DeployTask extends Task {
       return status
     }
 
-    const serviceContext = { envVars: await this.prepareEnvVars() }
+    const serviceContext = { envVars: await this.prepareEnvVars(version) }
 
     return this.ctx.deployService(this.service, serviceContext)
   }
 
-  private async prepareEnvVars() {
-    const envVars = {}
+  private async prepareEnvVars(version: string) {
+    const envVars = {
+      GARDEN_VERSION: version,
+    }
     const dependencies = await this.service.getDependencies(this.ctx)
 
     for (const key in this.ctx.config.variables) {
@@ -65,7 +67,7 @@ export class DeployTask extends Task {
       const outputs = await this.ctx.getServiceOutputs(dep)
       const serviceEnvName = dep.getEnvVarName()
 
-      for (const key in outputs) {
+      for (const key of Object.keys(outputs)) {
         const envKey = Joi.attempt(key, Joi.string())
         const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${envKey}`.toUpperCase()
         envVars[envVarName] = Joi.attempt(outputs[key], JoiPrimitive())

@@ -11,8 +11,9 @@ app.get("/hello", (req, res) => {
     })
 })
 
-app.get("/healthz", (req, res) => {
+// This is the path GAE uses for health checks
+app.get("/_ah/health", (req, res) => {
   res.sendStatus(200)
 })
 
-app.listen(3000, "0.0.0.0", () => console.log("App started"))
+app.listen(process.env.PORT, "0.0.0.0", () => console.log("App started"))
