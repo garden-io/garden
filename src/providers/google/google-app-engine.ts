@@ -22,7 +22,10 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
   }
 
   async deployService(service: ContainerService, serviceContext: ServiceContext, env: Environment) {
-    this.context.log.info(service.name, `Deploying app...`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Deploying app...`,
+    })
 
     const config = service.config
 
@@ -35,7 +38,10 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
 
     if (config.healthCheck) {
       if (config.healthCheck.tcpPort || config.healthCheck.command) {
-        this.context.log.warn(service.name, "GAE only supports httpGet health checks")
+        this.context.log.warn({
+          section: service.name,
+          msg: "GAE only supports httpGet health checks",
+        })
       }
       if (config.healthCheck.httpGet) {
         appYaml.liveness_check = { path: config.healthCheck.httpGet.path }
@@ -54,7 +60,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
       "app", "deploy", "--quiet",
     ], { cwd: service.module.path, silent: false })
 
-    this.context.log.info(service.name, `App deployed`)
+    this.context.log.info({ section: service.name, msg: `App deployed` })
   }
 
   async getServiceOutputs(service: ContainerService, env: Environment) {

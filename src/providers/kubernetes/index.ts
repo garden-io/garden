@@ -88,7 +88,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     const entry = this.context.log.info({
       entryStyle: EntryStyles.activity,
       section: "kubernetes",
-      msg: "Configurin environment...",
+      msg: "Configuring environment...",
     })
 
     if (!status.detail.systemNamespaceReady) {
@@ -452,9 +452,6 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
   }
 
   protected async apply(obj: any, { force = false, namespace }: { force?: boolean, namespace?: string } = {}) {
-    const kind = obj.kind
-    const name = obj.metadata.name
-
     const data = Buffer.from(JSON.stringify(obj))
 
     let args = ["apply"]

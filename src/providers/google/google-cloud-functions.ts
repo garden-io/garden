@@ -70,7 +70,10 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
 
   async deployService(service: GoogleCloudFunctionsService, _serviceContext: {}, env: Environment) {
     // TODO: provide env vars somehow to function
-    this.context.log.info(service.name, `Deploying function...`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Deploying function...`,
+    })
 
     const project = this.getProject(service, env)
     const functionPath = resolve(service.module.path, service.config.path)
@@ -85,7 +88,10 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
       "--trigger-http",
     ])
 
-    this.context.log.info(service.name, `Function deployed`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Function deployed`,
+    })
 
     return this.getServiceStatus(service, env)
   }
