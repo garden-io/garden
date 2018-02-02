@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-cd $(git rev-parse --show-toplevel)
-root=$(pwd)
-${root}/node_modules/.bin/ts-node ${root}/src/bin/garden.ts --root "${root}/examples/hello-world" "$@"
