@@ -73,7 +73,10 @@ export class LocalGoogleCloudFunctionsProvider extends GenericModuleHandler<Goog
   }
 
   async deployService(service: GoogleCloudFunctionsService) {
-    this.context.log.info(service.name, `Deploying function...`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Deploying function...`,
+    })
 
     const containerFunctionPath = resolve(
       "/functions",
@@ -102,7 +105,10 @@ export class LocalGoogleCloudFunctionsProvider extends GenericModuleHandler<Goog
       })
     }
 
-    this.context.log.info(service.name, `Function deployed`)
+    this.context.log.info({
+      section: service.name,
+      msg: `Function deployed`,
+    })
   }
 
   async getServiceOutputs(service: GoogleCloudFunctionsService) {

@@ -12,6 +12,7 @@ import { join } from "path"
 import { createServices } from "./service"
 import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
+import { EntryStyles, LogEntry } from "../../log"
 import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
@@ -84,8 +85,14 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       return
     }
 
+    const entry = this.context.log.info({
+      entryStyle: EntryStyles.activity,
+      section: "kubernetes",
+      msg: "Configuring environment...",
+    })
+
     if (!status.detail.systemNamespaceReady) {
-      this.context.log.info("kubernetes", `Creating garden system namespace`)
+      entry.update({ section: "kubernetes", msg: `Creating garden system namespace`, replace: true })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -101,7 +108,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
 
     if (!status.detail.namespaceReady) {
-      this.context.log.info("kubernetes", `Creating namespace ${env.namespace}`)
+      entry.update({ section: "kubernetes", msg: `Creating namespace ${env.namespace}`, replace: true })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -116,14 +123,16 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       })
     }
 
-    this.context.log.info("kubernetes", `Configuring dashboard`)
+    entry.update({ section: "kubernetes", msg: `Configuring dashboard`, replace: true })
     // TODO: deploy this as a service
     await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
 
-    this.context.log.info("kubernetes", `Configuring ingress controller`)
+    entry.update({ section: "kubernetes", msg: `Configuring ingress controller`, replace: true })
     const gardenEnv = this.getSystemEnv(env)
     await this.deployService(await this.getDefaultBackendService(), {}, gardenEnv)
     await this.deployService(await this.getIngressControllerService(), {}, gardenEnv, true)
+
+    entry.success({ section: "kubernetes", msg: "Environment configured", replace: true })
   }
 
   async getServiceStatus(service: ContainerService, env: Environment): Promise<ServiceStatus> {
@@ -133,6 +142,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
 
   async deployService(
     service: ContainerService, serviceContext: ServiceContext, env: Environment, exposePorts = false,
+    logEntry?: LogEntry,
   ) {
     const namespace = env.namespace
 
@@ -153,7 +163,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       await this.apply(ingress, { namespace })
     }
 
-    await this.waitForDeployment(service, env)
+    await this.waitForDeployment(service, env, logEntry)
 
     return this.getServiceStatus(service, env)
   }
@@ -360,7 +370,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     return out
   }
 
-  async waitForDeployment(service: ContainerService, env: Environment) {
+  async waitForDeployment(service: ContainerService, env: Environment, logEntry?: LogEntry) {
     // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
     let loops = 0
     let resourceVersion
@@ -368,7 +378,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     let lastDetailMessage
     const startTime = new Date().getTime()
 
-    this.context.log.verbose(service.name, `Waiting for service to be ready...`)
+    logEntry && this.context.log.verbose({ section: service.name, msg: `Waiting for service to be ready...` })
 
     while (true) {
       await sleep(2000 + 1000 * loops)
@@ -384,12 +394,12 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
 
       if (status.detail.lastMessage && status.detail.lastMessage !== lastDetailMessage) {
         lastDetailMessage = status.detail.lastMessage
-        this.context.log.verbose(service.name, status.detail.lastMessage)
+        logEntry && this.context.log.verbose({ section: service.name, msg: status.detail.lastMessage })
       }
 
       if (status.lastMessage && status.lastMessage !== lastMessage) {
         lastMessage = status.lastMessage
-        this.context.log.verbose(service.name, status.lastMessage)
+        logEntry && this.context.log.verbose({ section: service.name, msg: status.lastMessage })
       }
 
       if (status.state === "ready") {
@@ -405,7 +415,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       }
     }
 
-    this.context.log.verbose(service.name, `Service deployed`)
+    logEntry && this.context.log.verbose({ section: service.name, msg: `Service deployed` })
   }
 
   // sadly the TS definitions are no good for this one
@@ -444,8 +454,6 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
   protected async apply(obj: any, { force = false, namespace }: { force?: boolean, namespace?: string } = {}) {
     const kind = obj.kind
     const name = obj.metadata.name
-
-    this.context.log.debug(name, `Applying ${kind}...`)
 
     const data = Buffer.from(JSON.stringify(obj))
 

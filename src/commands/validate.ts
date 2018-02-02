@@ -6,6 +6,9 @@ export class ValidateCommand extends Command {
   help = "Check your garden configuration for errors"
 
   async action(ctx: GardenContext) {
+
+    ctx.log.header({ emoji: "heavy_check_mark", command: "validate" })
+
     await ctx.getModules()
   }
 }
