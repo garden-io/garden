@@ -1,6 +1,9 @@
 import * as Bluebird from "bluebird"
+import chalk from "chalk"
 import { GardenContext } from "./context"
 import { pick } from "lodash"
+
+import { LogEntry, EntryStyles } from "./log"
 
 class TaskDefinitionError extends Error { }
 class TaskGraphError extends Error { }
@@ -8,6 +11,8 @@ class TaskGraphError extends Error { }
 export interface TaskResults {
   [key: string]: any
 }
+
+interface LogEntryMap { [key: string]: LogEntry }
 
 const DEFAULT_CONCURRENCY = 4
 
@@ -36,16 +41,29 @@ export abstract class Task {
   abstract async process(dependencyResults: TaskResults): Promise<any>
 }
 
+const taskStyle = chalk.cyan.bold
+
+function inProgressToStr(nodes) {
+  return `Currently in progress [${nodes.map(n => taskStyle(n.getKey())).join(", ")}]`
+}
+
+function remainingTasksToStr(num) {
+  const style = num === 0 ? chalk.green : chalk.yellow
+  return `Remaining tasks ${style.bold(String(num))}`
+}
+
 export class TaskGraph {
   private roots: TaskNodeMap
   private index: TaskNodeMap
 
   private inProgress: TaskNodeMap
+  private logEntryMap: LogEntryMap
 
   constructor(private context: GardenContext, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
+    this.logEntryMap = {}
   }
 
   async addTask(task: Task) {
@@ -80,10 +98,6 @@ export class TaskGraph {
     }
   }
 
-  log(msg: string) {
-    this.context.log.debug("tasks", msg)
-  }
-
   /*
     Process the graph until it's complete
    */
@@ -94,6 +108,7 @@ export class TaskGraph {
     const loop = async () => {
       if (_this.index.length === 0) {
         // done!
+        this.logEntryMap.counter.done()
         return
       }
 
@@ -103,12 +118,17 @@ export class TaskGraph {
 
       batch.forEach(n => this.inProgress.addNode(n))
 
+      this.initLogging()
+
       return Bluebird.map(batch, async (node: TaskNode) => {
         const key = node.getKey()
 
         try {
-          this.log(`Processing task ${node.getKey()}`)
-          this.log(`In progress: ${this.inProgress.getNodes().map(n => n.getKey()).join(", ")}`)
+          this.logTask(node, `Processing task ${taskStyle(node.getKey())}`)
+          this.logEntryMap.inProgress.update({
+            msg: inProgressToStr(this.inProgress.getNodes()),
+            replace: true,
+          })
 
           const dependencyKeys = (await node.task.getDependencies()).map(d => getIndexKey(d))
           const dependencyResults = pick(results, dependencyKeys)
@@ -144,9 +164,47 @@ export class TaskGraph {
     this.index.removeNode(node)
     this.inProgress.removeNode(node)
 
-    this.log(`Completed task ${node.getKey()}`)
-    this.log(`Remaining tasks: ${this.index.length}`)
+    this.logTaskComplete(node)
   }
+
+  // Logging
+  logTask(node: TaskNode, msg: string) {
+    const entry = this.context.log.verbose({
+      section: "tasks",
+      msg,
+      entryStyle: EntryStyles.activity,
+    })
+    this.logEntryMap[node.getKey()] = entry
+  }
+
+  logTaskComplete(node: TaskNode, msg: string = "") {
+    const entry = this.logEntryMap[node.getKey()]
+    entry && entry.success({ msg })
+    this.logEntryMap.counter.update({
+      msg: remainingTasksToStr(this.index.length),
+      replace: true,
+    })
+  }
+
+  initLogging() {
+    if (!Object.keys(this.logEntryMap).length) {
+      const header = this.context.log.verbose({ msg: "Processing tasks..." })
+      const counter = this.context.log.verbose({
+        msg: remainingTasksToStr(this.index.length),
+        entryStyle: EntryStyles.activity,
+      })
+      const inProgress = this.context.log.verbose({
+        msg: inProgressToStr(this.inProgress.getNodes()),
+      })
+      this.logEntryMap = {
+        ...this.logEntryMap,
+        header,
+        counter,
+        inProgress,
+      }
+    }
+  }
+
 }
 
 function getIndexKey(task: Task) {

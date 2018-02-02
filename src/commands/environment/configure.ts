@@ -20,6 +20,6 @@ export class EnvironmentConfigureCommand extends Command<typeof envConfigureArgs
   async action(ctx: GardenContext, args: Args) {
     ctx.setEnvironment(args.environment)
     const result = await ctx.configureEnvironment()
-    ctx.log.info(args.environment, JSON.stringify(result))
+    ctx.log.info({ section: args.environment, msg: JSON.stringify(result) })
   }
 }

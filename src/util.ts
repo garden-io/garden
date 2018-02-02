@@ -38,7 +38,7 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
     exitHook.hookEvent("exitWithError", 1)
 
     const firstHook = () => {
-      log.debug("cleanup", "Starting cleanup...")
+      log.debug({ section: "cleanup", msg: "Starting cleanup..." })
     }
 
     exitHook(firstHook)
@@ -47,12 +47,12 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
 
   const hook = (callback) => {
     if (func.length === 0) {
-      log.debug("cleanup", name)
+      log.debug({ section: "cleanup", msg: name })
       func()
     } else {
-      log.debug("cleanup", `Starting ${name}`)
+      log.debug({ section: "cleanup", msg: `Starting ${name}` })
       func(() => {
-        log.debug("cleanup", `Completed ${name}`)
+        log.debug({ section: "cleanup", msg: `Completed ${name}` })
         callback()
       })
     }

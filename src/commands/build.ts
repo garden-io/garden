@@ -32,6 +32,8 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
       await ctx.addTask(task)
     }
 
+    ctx.log.header({ emoji: "hammer", command: "build" })
+
     return await ctx.processTasks()
   }
 }
