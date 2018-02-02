@@ -12,7 +12,7 @@ class TestModule extends Module {
   type = "test"
 }
 
-class TestPluginB extends Plugin {
+class TestPluginB extends Plugin<ContainerModule> {
   name = "test-plugin-b"
   supportedModuleTypes = ["test"]
 
@@ -27,6 +27,7 @@ class TestPluginB extends Plugin {
       services: {
         testService: { daemon: false, dependencies: [], endpoints: [], ports: [], volumes: [] },
       },
+      test: {},
     })
   }
   async configureEnvironment() { }
@@ -51,6 +52,7 @@ const makeTestModule = (ctx, name = "test") => {
     services: {
       testService: {},
     },
+    test: {},
   })
 }
 

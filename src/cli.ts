@@ -10,6 +10,7 @@ import { EnvironmentStatusCommand } from "./commands/environment/status"
 import { EnvironmentConfigureCommand } from "./commands/environment/configure"
 import { DeployCommand } from "./commands/deploy"
 import { defaultPlugins } from "./plugins"
+import { TestCommand } from "./commands/test"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
@@ -39,16 +40,17 @@ export class GardenCli {
       .logger(this.logger)
 
     // monkey patch error handler for more useful output
-    // this.program.fatalError = (err: Error) => {
-    //   console.log(err)
-    // }
+    this.program.fatalError = (err: Error) => {
+      console.log(err)
+    }
 
     // configure built-in commands
     this.addCommand(new BuildCommand())
-    this.addCommand(new ValidateCommand())
     this.addCommand(new DeployCommand())
-    this.addCommand(new EnvironmentStatusCommand())
     this.addCommand(new EnvironmentConfigureCommand())
+    this.addCommand(new EnvironmentStatusCommand())
+    this.addCommand(new TestCommand())
+    this.addCommand(new ValidateCommand())
   }
 
   addCommand(command: Command) {

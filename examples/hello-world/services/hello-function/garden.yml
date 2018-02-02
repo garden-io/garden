@@ -4,3 +4,6 @@ type: google-cloud-function
 services:
   hello-function:
     entrypoint: helloFunction
+test:
+  unit:
+    command: [npm, test]

@@ -4,11 +4,13 @@ import * as exitHook from "async-exit-hook"
 import * as ignore from "ignore/ignore"
 import * as klaw from "klaw"
 import * as yaml from "js-yaml"
+import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 import { getLogger } from "./log"
 import { TimeoutError } from "./exceptions"
 import { PassThrough } from "stream"
+import { extend } from "lodash"
 
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
@@ -110,29 +112,95 @@ export async function sleep(msec) {
   return new Promise(resolve => setTimeout(resolve, msec))
 }
 
-interface SpawnPtyParams {
-  silent?: boolean
-  tty?: boolean
+interface SpawnParams {
   timeout?: number
   cwd?: string
-  bufferOutput?: boolean
   data?: Buffer
+  ignoreError?: boolean
 }
 
-interface SpawnPtyOutput {
+interface SpawnPtyParams extends SpawnParams {
+  silent?: boolean
+  tty?: boolean
+  bufferOutput?: boolean
+}
+
+interface SpawnOutput {
   code: number
   output: string
-  term: any
+  stdout?: string
+  stderr?: string
+  proc: any
+}
+
+export function spawn(
+  cmd: string, args: string[],
+  { timeout = 0, cwd, data, ignoreError = false }: SpawnParams = {},
+) {
+  const proc = _spawn(cmd, args, { cwd })
+
+  const result: SpawnOutput = {
+    code: 0,
+    output: "",
+    stdout: "",
+    stderr: "",
+    proc,
+  }
+
+  proc.stdout.on("data", (s) => {
+    result.output += s
+    result.stdout! += s
+  })
+
+  proc.stderr.on("data", (s) => {
+    result.output += s
+    result.stderr! += s
+  })
+
+  if (data) {
+    proc.stdin.end(data)
+  }
+
+  return new Promise<SpawnOutput>((resolve, reject) => {
+    let _timeout
+
+    const _reject = (msg: string) => {
+      const err = new Error(msg)
+      extend(err, <any>result)
+      reject(err)
+    }
+
+    if (timeout > 0) {
+      _timeout = setTimeout(() => {
+        proc.kill("SIGKILL")
+        _reject(`kubectl timed out after ${timeout} seconds.`)
+      }, timeout * 1000)
+    }
+
+    proc.on("close", (code) => {
+      _timeout && clearTimeout(_timeout)
+      result.code = code
+
+      if (code === 0 || ignoreError) {
+        resolve(result)
+      } else {
+        _reject("Process exited with code " + code)
+      }
+    })
+  })
 }
 
 export function spawnPty(
   cmd: string, args: string[],
-  { silent = false, tty = false, timeout = 0, cwd, bufferOutput = true, data }: SpawnPtyParams = {},
+  {
+    silent = false, tty = false, timeout = 0, cwd,
+    bufferOutput = true, data, ignoreError = false,
+  }: SpawnPtyParams = {},
 ): Bluebird<any> {
 
   let _process = <any>process
 
-  let term: any = pty.spawn(cmd, args, {
+  let proc: any = pty.spawn(cmd, args, {
     cwd,
     name: "xterm-color",
     cols: _process.stdout.columns,
@@ -144,13 +212,13 @@ export function spawnPty(
   // raw mode is not available if we're running without a TTY
   tty && _process.stdin.setRawMode && _process.stdin.setRawMode(true)
 
-  const result: SpawnPtyOutput = {
+  const result: SpawnOutput = {
     code: 0,
     output: "",
-    term,
+    proc,
   }
 
-  term.on("data", (output) => {
+  proc.on("data", (output) => {
     if (bufferOutput) {
       result.output += output.toString()
     }
@@ -163,12 +231,12 @@ export function spawnPty(
   if (data) {
     const bufferStream = new PassThrough()
     bufferStream.end(data + "\n\0")
-    bufferStream.pipe(term)
-    term.end()
+    bufferStream.pipe(proc)
+    proc.end()
   }
 
   if (tty) {
-    process.stdin.pipe(term)
+    process.stdin.pipe(proc)
   }
 
   return new Bluebird((resolve, _reject) => {
@@ -176,27 +244,27 @@ export function spawnPty(
 
     const reject = (err: any) => {
       err.output = result.output
-      err.term = result.term
+      err.proc = result.proc
       console.log(err.output)
       _reject(err)
     }
 
     if (timeout > 0) {
       _timeout = setTimeout(() => {
-        term.kill("SIGKILL")
+        proc.kill("SIGKILL")
         const err = new TimeoutError(`${cmd} command timed out after ${timeout} seconds.`, { cmd, timeout })
         reject(err)
       }, timeout * 1000)
     }
 
-    term.on("exit", (code) => {
+    proc.on("exit", (code) => {
       _timeout && clearTimeout(_timeout)
 
       // make sure raw input is decoupled
       tty && _process.stdin.setRawMode && _process.stdin.setRawMode(false)
       result.code = code
 
-      if (code === 0) {
+      if (code === 0 || ignoreError) {
         resolve(result)
       } else {
         const err: any = new Error("Process exited with code " + code)
@@ -209,4 +277,12 @@ export function spawnPty(
 
 export function dumpYaml(yamlPath, data) {
   writeFileSync(yamlPath, yaml.safeDump(data, { noRefs: true }))
+}
+
+/**
+ * Splits the input string on the first occurrence of `delimiter`.
+ */
+export function splitFirst(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts[0], parts.slice(1).join(delimiter)]
 }

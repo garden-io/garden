@@ -2,9 +2,9 @@ import * as Docker from "dockerode"
 import { Memoize } from "typescript-memoize"
 import * as K8s from "kubernetes-client"
 import { DeploymentError } from "../../exceptions"
-import { Plugin } from "../../types/plugin"
+import { Plugin, TestModuleParams, TestResult } from "../../types/plugin"
 import { ContainerModule, ContainerService } from "../container"
-import { values, every } from "lodash"
+import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
 import { sleep } from "../../util"
 import { Service, ServiceContext, ServiceStatus } from "../../types/service"
@@ -14,6 +14,7 @@ import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
 import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { EntryStyles, LogEntry } from "../../log"
+import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -210,6 +211,40 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     return { code: res.code, output: res.output }
   }
 
+  async testModule({ module, testSpec, env }: TestModuleParams<ContainerModule>): Promise<TestResult> {
+    // TODO: include a service context here
+    const baseEnv = {}
+    const envVars: {} = extend({}, baseEnv, testSpec.variables)
+    const envArgs = map(envVars, (v: string, k: string) => `--env=${k}=${v}`)
+
+    // TODO: use the runModule() method
+    const testCommandStr = testSpec.command.join(" ")
+    const image = await module.getImageId()
+
+    const kubecmd = [
+      "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
+      `--image=${image}`,
+      "--restart=Never",
+      "--command",
+      "-i",
+      "--tty",
+      "--rm",
+      ...envArgs,
+      "--",
+      "/bin/sh",
+      "-c",
+      testCommandStr,
+    ]
+
+    const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
+    const res = await this.kubectl(env.namespace).tty(kubecmd, { ignoreError: true, timeout })
+
+    return {
+      success: res.code === 0,
+      output: res.output,
+    }
+  }
+
   private async getIngressControllerService() {
     const module = <ContainerModule>await this.context.resolveModule(ingressControllerModulePath)
 
@@ -239,6 +274,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       },
       variables: {},
       build: { dependencies: [] },
+      test: {},
     })
 
     return new Service<ContainerModule>(module, "dashboard")

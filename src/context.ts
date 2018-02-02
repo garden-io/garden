@@ -2,7 +2,7 @@ import { parse, relative, resolve } from "path"
 import Bluebird = require("bluebird")
 import { values, mapValues } from "lodash"
 import * as Joi from "joi"
-import { loadModuleConfig, Module } from "./types/module"
+import { loadModuleConfig, Module, TestSpec } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
 import { getIgnorer, scanDirectory } from "./util"
 import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
@@ -67,6 +67,7 @@ export class GardenContext {
       parseModule: {},
       getModuleBuildStatus: {},
       buildModule: {},
+      testModule: {},
       getEnvironmentStatus: {},
       configureEnvironment: {},
       getServiceStatus: {},
@@ -362,6 +363,13 @@ export class GardenContext {
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
     return handler(module)
+  }
+
+  async testModule<T extends Module>(module: T, testSpec: TestSpec) {
+    const defaultHandler = this.actionHandlers["testModule"]["generic"]
+    const handler = this.getEnvActionHandler("testModule", module.type, defaultHandler)
+    const env = this.getEnvironment()
+    return handler({ module, testSpec, env })
   }
 
   async getEnvironmentStatus() {

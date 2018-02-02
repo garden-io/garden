@@ -11,8 +11,20 @@ import { GardenContext } from "../context"
 interface Variables { [key: string]: Primitive }
 
 interface BuildConfig {
+  // TODO: this should be a string array, to match other command specs
   command?: string,
   dependencies: string[],
+}
+
+export interface TestSpec {
+  command: string[]
+  dependencies: string[]
+  variables: Variables
+  timeout?: number
+}
+
+interface TestConfig {
+  [group: string]: TestSpec
 }
 
 class ModuleConfigBase {
@@ -23,6 +35,7 @@ class ModuleConfigBase {
   type: string
   variables: Variables
   build: BuildConfig
+  test: TestConfig
   // further defined by subclasses
   services: { [name: string]: object }
 }
@@ -36,6 +49,8 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   public services: { [name: string]: object }
 
   private _buildDependencies: Module[]
+
+  _ConfigType: T
 
   constructor(private context: GardenContext, public config: T) {
     this.name = config.name
@@ -95,6 +110,8 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 }
 
+export type ModuleConfigType<T extends Module> = T["_ConfigType"]
+
 export const baseServiceSchema = Joi.object().keys({
   dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
 })
@@ -102,6 +119,13 @@ export const baseServiceSchema = Joi.object().keys({
 export const baseServicesSchema = Joi.object()
   .pattern(identifierRegex, baseServiceSchema)
   .default(() => ({}), "{}")
+
+export const baseTestSpecSchema = Joi.object().keys({
+  command: Joi.array().items(Joi.string()).required(),
+  dependencies: Joi.array().items(Joi.string()).default(() => [], "[]"),
+  variables: joiVariables(),
+  timeout: Joi.number(),
+})
 
 export const baseModuleSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
@@ -114,6 +138,7 @@ export const baseModuleSchema = Joi.object().keys({
     command: Joi.string(),
     dependencies: Joi.array().items(joiIdentifier()).default(() => [], "[]"),
   }).default(() => ({ dependencies: [] }), "{}"),
+  test: Joi.object().pattern(/[\w\d]+/i, baseTestSpecSchema).default(() => ({}), "{}"),
 }).required()
 
 export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig> {
