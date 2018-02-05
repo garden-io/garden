@@ -1,4 +1,4 @@
-import { ContainerService, ContainerServiceConfig } from "../../moduleHandlers/container"
+import { ContainerService, ContainerServiceConfig } from "../container"
 import { toPairs, extend } from "lodash"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ServiceContext } from "../../types/service"

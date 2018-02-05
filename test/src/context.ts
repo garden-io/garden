@@ -3,7 +3,7 @@ import { GardenContext } from "../../src/context"
 import { expect } from "chai"
 import { PluginInterface, Plugin, PluginFactory } from "../../src/types/plugin"
 import { Module } from "../../src/types/module"
-import { ContainerModule } from "../../src/moduleHandlers/container"
+import { ContainerModule } from "../../src/plugins/container"
 
 const projectRootA = join(__dirname, "..", "data", "test-project-a")
 
