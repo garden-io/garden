@@ -15,7 +15,7 @@ import {
   pluginActionNames, PluginActions, PluginFactory, PluginInterface,
 } from "./types/plugin"
 import { Environment, JoiIdentifier } from "./types/common"
-import { GenericModuleHandler } from "./moduleHandlers/generic"
+import { GenericModuleHandler } from "./plugins/generic"
 import { Service, ServiceContext } from "./types/service"
 
 interface ModuleMap { [key: string]: Module }

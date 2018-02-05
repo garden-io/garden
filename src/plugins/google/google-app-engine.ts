@@ -2,7 +2,7 @@ import { Environment } from "../../types/common"
 import { ServiceContext, ServiceStatus } from "../../types/service"
 import { join } from "path"
 import { GOOGLE_CLOUD_DEFAULT_REGION, GoogleCloudProviderBase } from "./base"
-import { ContainerModule, ContainerService } from "../../moduleHandlers/container"
+import { ContainerModule, ContainerService } from "../container"
 import { dumpYaml } from "../../util"
 
 // TODO: support built-in GAE types (not just custom/flex containers)

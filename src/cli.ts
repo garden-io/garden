@@ -9,7 +9,7 @@ import { BuildCommand } from "./commands/build"
 import { EnvironmentStatusCommand } from "./commands/environment/status"
 import { EnvironmentConfigureCommand } from "./commands/environment/configure"
 import { DeployCommand } from "./commands/deploy"
-import { defaultPlugins } from "./providers"
+import { defaultPlugins } from "./plugins"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {

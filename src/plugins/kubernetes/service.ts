@@ -1,4 +1,4 @@
-import { ContainerService } from "../../moduleHandlers/container"
+import { ContainerService } from "../container"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 
 export async function createServices(service: ContainerService, exposePorts: boolean) {

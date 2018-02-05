@@ -2,7 +2,7 @@ import { join } from "path"
 import { GardenContext } from "../../../src/context"
 import { ValidateCommand } from "../../../src/commands/validate"
 import { expect } from "chai"
-import { defaultPlugins } from "../../../src/providers"
+import { defaultPlugins } from "../../../src/plugins"
 
 describe("commands.validate", () => {
   it("should successfully validate the hello-world project", async () => {

@@ -1,4 +1,4 @@
-import { ContainerService } from "../../moduleHandlers/container"
+import { ContainerService } from "../container"
 
 export async function createIngress(service: ContainerService) {
   if (service.config.endpoints.length === 0) {
