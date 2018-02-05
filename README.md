@@ -54,10 +54,10 @@ If you've deployed the `hello-world` project, you can try querying the `/hello` 
 
 Set an alias in your shell to the `bin/garden` executable in your project. For example for zsh:
 
-    alias garden='~/my-code/garden/build/bin
+    alias garden='~/my-code/garden/bin/garden'
     
-Then to keep the build up to date, you can keep an open shell with the compiler running 
-and watching for changes:
+Then to keep the build up to date, you can keep an open shell with the compiler running and watching 
+for changes _(Note: you probably don't need this if you're running an IDE that supports TypeScript)_:
 
     npm run watch
     
