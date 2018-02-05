@@ -17,6 +17,7 @@ tmp/
 ts-node-*
 
 # Compiled files
+build/
 examples/**/app.yaml
 src/**/*.js
 src/**/*.map
