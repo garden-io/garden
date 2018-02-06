@@ -2,7 +2,7 @@ import { join } from "path"
 import { expect } from "chai"
 import { Task, TaskGraph, TaskResults } from "../../src/task-graph"
 import { GardenContext } from "../../src/context"
-import { defaultPlugins } from "../../src/providers"
+import { defaultPlugins } from "../../src/plugins"
 
 describe("task-graph", () => {
   class TestTask extends Task {

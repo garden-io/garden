@@ -5,7 +5,7 @@ import { expect } from "chai"
 import { Plugin } from "../../../src/types/plugin"
 import { Module } from "../../../src/types/module"
 import { Service, ServiceState, ServiceStatus } from "../../../src/types/service"
-import { defaultPlugins } from "../../../src/providers"
+import { defaultPlugins } from "../../../src/plugins"
 
 class TestProvider extends Plugin<Module> {
   name = "test-plugin"

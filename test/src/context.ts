@@ -14,7 +14,7 @@ class TestModule extends Module {
 
 class TestPluginB extends Plugin {
   name = "test-plugin-b"
-  supportedModuleTypes = ["container"]
+  supportedModuleTypes = ["test"]
 
   async parseModule() {
     return new ContainerModule(this.context, {
@@ -406,7 +406,6 @@ describe("GardenContext", () => {
         "generic",
         "container-module",
         "npm-package-module",
-        "google-app-engine",
         "google-cloud-functions",
         "local-google-cloud-functions",
         "test-plugin-b",
@@ -437,7 +436,7 @@ describe("GardenContext", () => {
     it("should optionally filter to only handlers for the specified module type", async () => {
       const ctx = makeTestContextA()
 
-      const handler = ctx.getActionHandler("parseModule", "container")
+      const handler = ctx.getActionHandler("parseModule", "test")
 
       expect(handler["actionType"]).to.equal("parseModule")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
@@ -470,7 +469,7 @@ describe("GardenContext", () => {
       const ctx = makeTestContextA()
       ctx.setEnvironment("test")
 
-      const handlers = ctx.getEnvActionHandlers("configureEnvironment", "container")
+      const handlers = ctx.getEnvActionHandlers("configureEnvironment", "test")
       expect(Object.keys(handlers)).to.eql(["test-plugin-b"])
     })
 
@@ -500,7 +499,7 @@ describe("GardenContext", () => {
       const ctx = makeTestContextA()
       ctx.setEnvironment("test")
 
-      const handler = ctx.getEnvActionHandler("deployService", "container")
+      const handler = ctx.getEnvActionHandler("deployService", "test")
 
       expect(handler["actionType"]).to.equal("deployService")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
