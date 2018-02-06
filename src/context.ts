@@ -12,7 +12,7 @@ import { GitHandler } from "./vcs/git"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, Logger } from "./log"
 import {
-  pluginActionNames, PluginActions, PluginFactory, PluginInterface,
+  BuildStatus, pluginActionNames, PluginActions, PluginFactory, PluginInterface,
 } from "./types/plugin"
 import { GenericModuleHandler } from "./plugins/generic"
 import { Environment, joiIdentifier } from "./types/common"
@@ -352,13 +352,15 @@ export class GardenContext {
   //region Plugin actions
   //===========================================================================
 
-  async getModuleBuildStatus<T extends Module>(module: T) {
-    const handler = this.getActionHandler("getModuleBuildStatus", module.type)
+  async getModuleBuildStatus<T extends Module>(module: T): Promise<BuildStatus> {
+    const defaultHandler = this.actionHandlers["getModuleBuildStatus"]["generic"]
+    const handler = this.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
     return handler(module)
   }
 
   async buildModule<T extends Module>(module: T) {
-    const handler = this.getActionHandler("buildModule", module.type)
+    const defaultHandler = this.actionHandlers["buildModule"]["generic"]
+    const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
     return handler(module)
   }
 
@@ -456,13 +458,16 @@ export class GardenContext {
   /**
    * Get the last configured handler for the specified action (and optionally module type).
    */
-  public getActionHandler
-    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
+  public getActionHandler<T extends keyof PluginActions<any>>(
+    type: T, moduleType?: string, defaultHandler?: PluginActions<any>[T],
+  ): PluginActions<any>[T] {
 
     const handlers = values(this.getActionHandlers(type, moduleType))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
+    } else if (defaultHandler) {
+      return defaultHandler
     }
 
     // TODO: Make these error messages nicer
@@ -500,13 +505,16 @@ export class GardenContext {
    * Get last configured handler for the specified action for the currently set environment
    * (and optionally module type).
    */
-  public getEnvActionHandler
-    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
+  public getEnvActionHandler<T extends keyof PluginActions<any>>(
+    type: T, moduleType?: string, defaultHandler?: PluginActions<any>[T],
+  ): PluginActions<any>[T] {
 
     const handlers = values(this.getEnvActionHandlers(type, moduleType))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
+    } else if (defaultHandler) {
+      return defaultHandler
     }
 
     const env = this.getEnvironment()

@@ -60,13 +60,11 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   async getBuildStatus() {
-    const handler = this.context.getActionHandler("getModuleBuildStatus", this.type)
-    return handler(this)
+    return this.context.getModuleBuildStatus(this)
   }
 
   async build() {
-    const handler = this.context.getActionHandler("buildModule", this.type)
-    return handler(this)
+    return this.context.buildModule(this)
   }
 
   async getBuildDependencies(): Promise<Module[]> {
