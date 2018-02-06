@@ -44,10 +44,12 @@ enum EntryStates {
   WARN = "warn",
 }
 
+type EmojiName = keyof typeof nodeEmoji.emoji
+
 interface LogOpts {
   msg: string
   section?: string
-  emoji?: any
+  emoji?: EmojiName
   symbol?: LogSymbolTypes
   entryStyle?: EntryStyles
 }
@@ -60,7 +62,7 @@ interface HeaderOpts {
 interface UpdateOpts {
   msg?: string
   section?: string
-  emoji?: any
+  emoji?: EmojiName
   replace?: boolean
 }
 
