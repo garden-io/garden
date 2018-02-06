@@ -2,8 +2,8 @@
 import * as logSymbols from "log-symbols"
 import * as logUpdate from "log-update"
 import * as nodeEmoji from "node-emoji"
-import { padEnd } from "lodash"
 import chalk from "chalk"
+import hasAnsi = require("has-ansi")
 const elegantSpinner = require("elegant-spinner")
 
 const DEFAULT_LOG_LEVEL = "verbose"
@@ -72,7 +72,10 @@ const truncate = (s: string) => s.length > sectionPrefixWidth
   ? `${s.substring(0, sectionPrefixWidth - 3)}...`
   : s
 const sectionStyle = (s: string) => (
-  chalk.italic(padEnd(truncate(s), sectionPrefixWidth))
+  chalk.cyan.italic(truncate(s))
+)
+const msgStyle = (s: string) => (
+  hasAnsi(s) ? s : chalk.gray(s)
 )
 const spinnerStyle = chalk.cyan
 
@@ -91,8 +94,8 @@ function format(opts: LogOpts) {
   out += pre
   out += symbol ? `${logSymbols[symbol]} ` : ""
   out += emoji && nodeEmoji.hasEmoji(emoji) ? `${nodeEmoji.get(emoji)} ` : ""
-  out += section ? `${sectionStyle(section)} | ` : ""
-  out += msg
+  out += section ? `${sectionStyle(section)} → ` : ""
+  out += msgStyle(msg)
   return out
 }
 
