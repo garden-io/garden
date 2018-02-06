@@ -53,7 +53,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     const statusDetail = {
       systemNamespaceReady: false,
       namespaceReady: false,
-      dashboardStatus: dashboardStatus.state === "ready",
+      dashboardReady: dashboardStatus.state === "ready",
       ingressControllerReady: ingressControllerStatus.state === "ready",
       defaultBackendReady: defaultBackendStatus.state === "ready",
     }
@@ -123,14 +123,18 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       })
     }
 
-    entry.update({ section: "kubernetes", msg: `Configuring dashboard`, replace: true })
-    // TODO: deploy this as a service
-    await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
+    if (!status.detail.dashboardReady) {
+      entry.update({ section: "kubernetes", msg: `Configuring dashboard`, replace: true })
+      // TODO: deploy this as a service
+      await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
+    }
 
-    entry.update({ section: "kubernetes", msg: `Configuring ingress controller`, replace: true })
-    const gardenEnv = this.getSystemEnv(env)
-    await this.deployService(await this.getDefaultBackendService(), {}, gardenEnv)
-    await this.deployService(await this.getIngressControllerService(), {}, gardenEnv, true)
+    if (!status.detail.ingressControllerReady) {
+      entry.update({ section: "kubernetes", msg: `Configuring ingress controller`, replace: true })
+      const gardenEnv = this.getSystemEnv(env)
+      await this.deployService(await this.getDefaultBackendService(), {}, gardenEnv)
+      await this.deployService(await this.getIngressControllerService(), {}, gardenEnv, true)
+    }
 
     entry.success({ section: "kubernetes", msg: "Environment configured", replace: true })
   }
