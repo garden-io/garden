@@ -7,6 +7,7 @@ import chalk from "chalk"
 const elegantSpinner = require("elegant-spinner")
 
 const DEFAULT_LOG_LEVEL = "verbose"
+const INTERVAL_DELAY = 100
 
 let loggerInstance: Logger
 
@@ -29,10 +30,18 @@ export enum EntryStyles {
 
 // Icon to show when activity is done
 export enum LogSymbolTypes {
-  warning = "warning",
   error = "error",
-  success = "success",
   info = "info",
+  success = "success",
+  warning = "warning",
+}
+
+enum EntryStates {
+  ACTIVE = "active",
+  DONE = "done",
+  ERROR = "error",
+  SUCCESS = "success",
+  WARN = "warn",
 }
 
 interface LogOpts {
@@ -97,7 +106,7 @@ function update(symbolType: string = "") {
   }
 }
 
-const updateDone = update()
+const updateSimple = update()
 const updateError = update(LogSymbolTypes.error)
 const updateWarn = update(LogSymbolTypes.warning)
 const updateSuccess = update(LogSymbolTypes.success)
@@ -115,6 +124,7 @@ ${nodeEmoji.get(emoji)}  ${chalk.bold.magenta(command.toUpperCase())}  ${nodeEmo
 export class Logger {
   private entries: LogEntry[]
   private level: LogLevels
+  private intervalID: any // TODO
   private startTime: number
 
   constructor(level: LogLevels) {
@@ -122,23 +132,49 @@ export class Logger {
     this.level = level
     this.entries = []
     this.startTime = Date.now()
+    this.intervalID = null
   }
 
   private log(level, opts: LogOpts): LogEntry {
     const msg = format(opts)
     const entry = new LogEntry(msg, this, level, opts.entryStyle)
     this.entries.push(entry)
+    if (opts.entryStyle === EntryStyles.activity) {
+      this.startLoop()
+    }
     this.render()
     return entry
   }
 
-  render() {
+  private startLoop(): void {
+    if (!this.intervalID) {
+      this.intervalID = setInterval(this.render.bind(this), INTERVAL_DELAY)
+    }
+  }
+
+  private stopLoop(): void {
+    if (this.intervalID) {
+      clearInterval(this.intervalID)
+      this.intervalID = null
+    }
+  }
+
+  // Has a side effect in that it stops the rendering loop if no
+  // active entries found while building output.
+  render(): void {
+    let hasActiveEntries = false
     const out = this.entries.reduce((acc: string[], e: LogEntry) => {
+      if (e.getState() === EntryStates.ACTIVE) {
+        hasActiveEntries = true
+      }
       if (this.level >= e.getLevel()) {
         acc.push(e.getMsg())
       }
       return acc
     }, [])
+    if (!hasActiveEntries) {
+      this.stopLoop()
+    }
     logUpdate(out.join("\n"))
   }
 
@@ -173,7 +209,8 @@ export class Logger {
   finish() {
     const totalTime = (this.getTotalTime() / 1000).toFixed(2)
     const msg = `\n${nodeEmoji.get("sparkles")}  Finished in ${chalk.bold(totalTime + "s")}\n`
-    this.entries.map(e => e.done())
+    this.entries.map(e => e.stop())
+    this.stopLoop()
     this.log("info", { msg })
     logUpdate.done()
   }
@@ -188,7 +225,7 @@ export class LogEntry {
   private msg: string
   private logger: Logger
   private frame: any // TODO
-  private intervalID: any // TODO
+  private state: EntryStates
   private level: LogLevels
   private entryStyle?: EntryStyles
 
@@ -199,57 +236,56 @@ export class LogEntry {
     this.level = level
     if (this.entryStyle === EntryStyles.activity) {
       this.frame = elegantSpinner()
-      this.intervalID = setInterval(this.render.bind(this), 100)
+      this.state = EntryStates.ACTIVE
     }
   }
 
-  private render() {
+  private setState(msg: string, state: EntryStates): void {
+    this.msg = msg
+    this.state = state
     this.logger.render()
   }
 
-  private stop() {
-    if (this.intervalID) {
-      clearInterval(this.intervalID)
-      this.intervalID = null
+  stop() {
+    if (this.state === EntryStates.ACTIVE) {
+      this.state = EntryStates.DONE
     }
   }
 
-  getMsg() {
-    if (this.intervalID) {
+  getMsg(): string {
+    if (this.state === EntryStates.ACTIVE) {
       return `${spinnerStyle(this.frame())} ${this.msg}`
     }
     return this.msg
   }
 
-  getLevel() {
+  getLevel(): LogLevels {
     return this.level
   }
 
-  stopAndRender(msg: string) {
-    this.msg = msg
-    this.stop()
-    this.logger.render()
+  getState(): EntryStates {
+    return this.state
   }
 
-  update(opts: UpdateOpts = {}) {
-    this.msg = updateDone(opts, this.msg)
-    this.logger.render()
+  // Preserves state
+  update(opts: UpdateOpts = {}): void {
+    this.setState(updateSimple(opts, this.msg), this.state)
   }
 
-  done(opts: UpdateOpts = {}) {
-    this.stopAndRender(updateDone(opts, this.msg))
+  done(opts: UpdateOpts = {}): void {
+    this.setState(updateSimple(opts, this.msg), EntryStates.DONE)
   }
 
-  success(opts: UpdateOpts = {}) {
-    this.stopAndRender(updateSuccess(opts, this.msg))
+  success(opts: UpdateOpts = {}): void {
+    this.setState(updateSuccess(opts, this.msg), EntryStates.SUCCESS)
   }
 
-  error(opts: UpdateOpts = {}) {
-    this.stopAndRender(updateError(opts, this.msg))
+  error(opts: UpdateOpts = {}): void {
+    this.setState(updateError(opts, this.msg), EntryStates.ERROR)
   }
 
-  warn(opts: UpdateOpts = {}) {
-    this.stopAndRender(updateWarn(opts, this.msg))
+  warn(opts: UpdateOpts = {}): void {
+    this.setState(updateWarn(opts, this.msg), EntryStates.WARN)
   }
 
 }
