@@ -118,12 +118,7 @@ const updateSuccess = update(LogSymbolTypes.success)
 
 function printHeader(opts: HeaderOpts) {
   const { emoji, command } = opts
-  // tslint:disable:max-line-length
-  const header = `
-${nodeEmoji.get(emoji)}  ${chalk.bold.magenta(command.toUpperCase())}  ${nodeEmoji.get(emoji)}
-  `
-  // tslint:enablee:max-line-length
-  return header
+  return `${chalk.bold.magenta(command)} ${nodeEmoji.get(emoji)}\n`
 }
 
 export class Logger {
