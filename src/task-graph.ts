@@ -169,7 +169,7 @@ export class TaskGraph {
 
   // Logging
   logTask(node: TaskNode, msg: string) {
-    const entry = this.context.log.verbose({
+    const entry = this.context.log.debug({
       section: "tasks",
       msg,
       entryStyle: EntryStyles.activity,
@@ -188,12 +188,12 @@ export class TaskGraph {
 
   initLogging() {
     if (!Object.keys(this.logEntryMap).length) {
-      const header = this.context.log.verbose({ msg: "Processing tasks..." })
-      const counter = this.context.log.verbose({
+      const header = this.context.log.debug({ msg: "Processing tasks..." })
+      const counter = this.context.log.debug({
         msg: remainingTasksToStr(this.index.length),
         entryStyle: EntryStyles.activity,
       })
-      const inProgress = this.context.log.verbose({
+      const inProgress = this.context.log.debug({
         msg: inProgressToStr(this.inProgress.getNodes()),
       })
       this.logEntryMap = {
