@@ -4,7 +4,9 @@ import { GardenContext } from "../context"
 import { BuildTask } from "./build"
 import { values } from "lodash"
 import { Service } from "../types/service"
-import { JoiPrimitive } from "../types/common"
+import { joiPrimitive } from "../types/common"
+import { EntryStyles } from "../log"
+import chalk from "chalk"
 
 export class DeployTask extends Task {
   type = "deploy"
@@ -24,7 +26,7 @@ export class DeployTask extends Task {
       return new DeployTask(this.ctx, s, this.force, this.forceBuild)
     })
 
-    deps.push(new BuildTask(this.service.module, this.forceBuild))
+    deps.push(new BuildTask(this.ctx, this.service.module, this.forceBuild))
     return deps
   }
 
@@ -38,22 +40,30 @@ export class DeployTask extends Task {
     const version = await this.service.module.getVersion()
     const status = await this.ctx.getServiceStatus(this.service)
 
+    const entry = this.ctx.log.info({
+      section: this.service.name,
+      msg: `Deploying`,
+      entryStyle: EntryStyles.activity,
+    })
+
     if (
       !this.force &&
       version === status.version &&
       status.state === "ready"
     ) {
       // already deployed and ready
-      this.ctx.log.verbose({
-        section: this.service.name,
+      entry.success({
         msg: `Version ${version} already deployed`,
       })
       return status
     }
 
     const serviceContext = { envVars: await this.prepareEnvVars(version) }
+    const result = this.ctx.deployService(this.service, serviceContext)
 
-    return this.ctx.deployService(this.service, serviceContext)
+    entry.success({ msg: chalk.green(`Deployed`) })
+
+    return result
   }
 
   private async prepareEnvVars(version: string) {
@@ -73,7 +83,7 @@ export class DeployTask extends Task {
       for (const key of Object.keys(outputs)) {
         const envKey = Joi.attempt(key, Joi.string())
         const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${envKey}`.toUpperCase()
-        envVars[envVarName] = Joi.attempt(outputs[key], JoiPrimitive())
+        envVars[envVarName] = Joi.attempt(outputs[key], joiPrimitive())
       }
     }
 

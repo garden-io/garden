@@ -30,7 +30,7 @@ export class Service<T extends Module> {
     this.config = module.services[name]
 
     if (!this.config) {
-      throw new ConfigurationError(`Could not find service ${name} in module ${module}`, { module, name })
+      throw new ConfigurationError(`Could not find service ${name} in module ${module.name}`, { module, name })
     }
   }
 

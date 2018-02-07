@@ -8,3 +8,6 @@ build:
   command: echo B
   dependencies:
     - module-a
+test:
+  unit:
+    command: [echo, OK]

@@ -1,11 +1,26 @@
 import { readFileSync } from "fs"
 import { join } from "path"
+import { extend } from "lodash"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { identifierRegex, JoiIdentifier, JoiPrimitive, Primitive } from "./common"
+import { identifierRegex, joiIdentifier, joiPrimitive, Primitive } from "./common"
 import { ConfigurationError } from "../exceptions"
 
 const PROJECT_CONFIG_FILENAME = "garden-project.yml"
+
+const defaultEnvironments = {
+  local: {
+    providers: {
+      generic: {
+        type: "generic",
+      },
+      containers: {
+        type: "kubernetes",
+        context: "docker-for-desktop",
+      },
+    },
+  },
+}
 
 export interface ProviderConfig {
   type: string
@@ -24,16 +39,16 @@ export interface ProjectConfig {
 }
 
 export const providerConfigBase = Joi.object().keys({
-  type: JoiIdentifier().required(),
+  type: joiIdentifier().required(),
 }).unknown(true)
 
 const baseSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
-  name: JoiIdentifier().required(),
+  name: joiIdentifier().required(),
   environments: Joi.object().pattern(identifierRegex, Joi.object().keys({
     providers: Joi.object().pattern(identifierRegex, providerConfigBase),
-  })).default(() => ({}), "{}"),
-  variables: Joi.object().pattern(/[\w\d]+/i, JoiPrimitive()).default(() => ({}), "{}"),
+  })).default(() => extend({}, defaultEnvironments), JSON.stringify(defaultEnvironments)),
+  variables: Joi.object().pattern(/[\w\d]+/i, joiPrimitive()).default(() => ({}), "{}"),
 }).required()
 
 export function loadProjectConfig(projectRoot: string): ProjectConfig {
@@ -53,5 +68,10 @@ export function loadProjectConfig(projectRoot: string): ProjectConfig {
     throw new ConfigurationError(`Could not parse ${PROJECT_CONFIG_FILENAME} as valid YAML`, err)
   }
 
-  return Joi.attempt(config || {}, baseSchema)
+  const parsed = Joi.attempt(config || {}, baseSchema)
+
+  // we include the default local environment unless explicitly overridden
+  parsed.environments = extend({}, defaultEnvironments, parsed.environments)
+
+  return parsed
 }

@@ -2,16 +2,13 @@
 import * as logSymbols from "log-symbols"
 import * as logUpdate from "log-update"
 import * as nodeEmoji from "node-emoji"
-import { padEnd } from "lodash"
 import chalk from "chalk"
+import hasAnsi = require("has-ansi")
 const elegantSpinner = require("elegant-spinner")
 
-const DEFAULT_LOG_LEVEL = "verbose"
 const INTERVAL_DELAY = 100
 
-let loggerInstance: Logger
-
-enum LogLevels {
+export enum LogLevels {
   error = 0,
   warn = 1,
   info = 2,
@@ -19,6 +16,9 @@ enum LogLevels {
   debug = 4,
   silly = 5,
 }
+
+let loggerInstance: Logger
+let defaultLogLevel = LogLevels.verbose
 
 // Defines entry style and format
 export enum EntryStyles {
@@ -44,10 +44,12 @@ enum EntryStates {
   WARN = "warn",
 }
 
+type EmojiName = keyof typeof nodeEmoji.emoji
+
 interface LogOpts {
   msg: string
   section?: string
-  emoji?: any
+  emoji?: EmojiName
   symbol?: LogSymbolTypes
   entryStyle?: EntryStyles
 }
@@ -60,7 +62,7 @@ interface HeaderOpts {
 interface UpdateOpts {
   msg?: string
   section?: string
-  emoji?: any
+  emoji?: EmojiName
   replace?: boolean
 }
 
@@ -70,7 +72,10 @@ const truncate = (s: string) => s.length > sectionPrefixWidth
   ? `${s.substring(0, sectionPrefixWidth - 3)}...`
   : s
 const sectionStyle = (s: string) => (
-  chalk.italic(padEnd(truncate(s), sectionPrefixWidth))
+  chalk.cyan.italic(truncate(s))
+)
+const msgStyle = (s: string) => (
+  hasAnsi(s) ? s : chalk.gray(s)
 )
 const spinnerStyle = chalk.cyan
 
@@ -89,8 +94,8 @@ function format(opts: LogOpts) {
   out += pre
   out += symbol ? `${logSymbols[symbol]} ` : ""
   out += emoji && nodeEmoji.hasEmoji(emoji) ? `${nodeEmoji.get(emoji)} ` : ""
-  out += section ? `${sectionStyle(section)} | ` : ""
-  out += msg
+  out += section ? `${sectionStyle(section)} → ` : ""
+  out += msgStyle(msg)
   return out
 }
 
@@ -113,12 +118,7 @@ const updateSuccess = update(LogSymbolTypes.success)
 
 function printHeader(opts: HeaderOpts) {
   const { emoji, command } = opts
-  // tslint:disable:max-line-length
-  const header = `
-${nodeEmoji.get(emoji)}  ${chalk.bold.magenta(command.toUpperCase())}  ${nodeEmoji.get(emoji)}
-  `
-  // tslint:enablee:max-line-length
-  return header
+  return `${chalk.bold.magenta(command)} ${nodeEmoji.get(emoji)}\n`
 }
 
 export class Logger {
@@ -290,12 +290,16 @@ export class LogEntry {
 
 }
 
-export function getLogger(level = LogLevels[DEFAULT_LOG_LEVEL]) {
+export function getLogger(level?: LogLevels) {
   if (!loggerInstance) {
-    loggerInstance = new Logger(level)
+    loggerInstance = new Logger(level || defaultLogLevel)
   }
 
   return loggerInstance
+}
+
+export function setDefaultLogLevel(level: LogLevels) {
+  defaultLogLevel = level
 }
 
 export function logException(error: Error) {

@@ -5,3 +5,6 @@ services:
 build:
   dependencies:
     - module-b
+test:
+  unit:
+    command: [echo, OK]

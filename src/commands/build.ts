@@ -28,7 +28,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
     const modules = await ctx.getModules(names)
 
     for (const module of values(modules)) {
-      const task = new BuildTask(module, opts.force)
+      const task = new BuildTask(ctx, module, opts.force)
       await ctx.addTask(task)
     }
 

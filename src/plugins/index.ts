@@ -5,9 +5,10 @@ import { LocalGoogleCloudFunctionsProvider } from "./local/local-google-cloud-fu
 import { KubernetesProvider } from "./kubernetes"
 import { NpmPackageModuleHandler } from "./npm-package"
 import { GoogleAppEngineProvider } from "./google/google-app-engine"
+import { PluginFactory } from "../types/plugin"
 
 // TODO: these should be configured, either explicitly or as dependencies of other plugins
-export const defaultPlugins = [
+export const defaultPlugins: PluginFactory[] = [
   ContainerModuleHandler,
   NpmPackageModuleHandler,
   KubernetesProvider,

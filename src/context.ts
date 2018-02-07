@@ -2,7 +2,7 @@ import { parse, relative, resolve } from "path"
 import Bluebird = require("bluebird")
 import { values, mapValues } from "lodash"
 import * as Joi from "joi"
-import { loadModuleConfig, Module } from "./types/module"
+import { loadModuleConfig, Module, TestSpec } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
 import { getIgnorer, scanDirectory } from "./util"
 import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
@@ -12,10 +12,10 @@ import { GitHandler } from "./vcs/git"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, Logger } from "./log"
 import {
-  pluginActionNames, PluginActions, PluginFactory, PluginInterface,
+  BuildStatus, pluginActionNames, PluginActions, PluginFactory, PluginInterface,
 } from "./types/plugin"
-import { Environment, JoiIdentifier } from "./types/common"
 import { GenericModuleHandler } from "./plugins/generic"
+import { Environment, joiIdentifier } from "./types/common"
 import { Service, ServiceContext } from "./types/service"
 
 interface ModuleMap { [key: string]: Module }
@@ -67,6 +67,7 @@ export class GardenContext {
       parseModule: {},
       getModuleBuildStatus: {},
       buildModule: {},
+      testModule: {},
       getEnvironmentStatus: {},
       configureEnvironment: {},
       getServiceStatus: {},
@@ -154,7 +155,7 @@ export class GardenContext {
 
   registerPlugin(pluginFactory: PluginFactory) {
     const plugin = pluginFactory(this)
-    const pluginName = Joi.attempt(plugin.name, JoiIdentifier())
+    const pluginName = Joi.attempt(plugin.name, joiIdentifier())
 
     if (this.plugins[pluginName]) {
       throw new ConfigurationError(`Plugin ${pluginName} declared more than once`, {
@@ -352,14 +353,23 @@ export class GardenContext {
   //region Plugin actions
   //===========================================================================
 
-  async getModuleBuildStatus<T extends Module>(module: T) {
-    const handler = this.getActionHandler("getModuleBuildStatus", module.type)
+  async getModuleBuildStatus<T extends Module>(module: T): Promise<BuildStatus> {
+    const defaultHandler = this.actionHandlers["getModuleBuildStatus"]["generic"]
+    const handler = this.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
     return handler(module)
   }
 
   async buildModule<T extends Module>(module: T) {
-    const handler = this.getActionHandler("buildModule", module.type)
+    const defaultHandler = this.actionHandlers["buildModule"]["generic"]
+    const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
     return handler(module)
+  }
+
+  async testModule<T extends Module>(module: T, testSpec: TestSpec) {
+    const defaultHandler = this.actionHandlers["testModule"]["generic"]
+    const handler = this.getEnvActionHandler("testModule", module.type, defaultHandler)
+    const env = this.getEnvironment()
+    return handler({ module, testSpec, env })
   }
 
   async getEnvironmentStatus() {
@@ -456,13 +466,16 @@ export class GardenContext {
   /**
    * Get the last configured handler for the specified action (and optionally module type).
    */
-  public getActionHandler
-    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
+  public getActionHandler<T extends keyof PluginActions<any>>(
+    type: T, moduleType?: string, defaultHandler?: PluginActions<any>[T],
+  ): PluginActions<any>[T] {
 
     const handlers = values(this.getActionHandlers(type, moduleType))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
+    } else if (defaultHandler) {
+      return defaultHandler
     }
 
     // TODO: Make these error messages nicer
@@ -500,13 +513,16 @@ export class GardenContext {
    * Get last configured handler for the specified action for the currently set environment
    * (and optionally module type).
    */
-  public getEnvActionHandler
-    <T extends keyof PluginActions<any>>(type: T, moduleType?: string): PluginActions<any>[T] {
+  public getEnvActionHandler<T extends keyof PluginActions<any>>(
+    type: T, moduleType?: string, defaultHandler?: PluginActions<any>[T],
+  ): PluginActions<any>[T] {
 
     const handlers = values(this.getEnvActionHandlers(type, moduleType))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
+    } else if (defaultHandler) {
+      return defaultHandler
     }
 
     const env = this.getEnvironment()

@@ -1,4 +1,4 @@
-import { Module } from "./module"
+import { Module, TestSpec } from "./module"
 import { GardenContext } from "../context"
 import { Environment, PrimitiveMap } from "./common"
 import { Nullable } from "../util"
@@ -11,6 +11,17 @@ export interface BuildResult {
   fetched?: boolean
   fresh?: boolean
   version?: string
+}
+
+export interface TestResult {
+  success: boolean
+  output: string
+}
+
+export interface TestModuleParams<T extends Module> {
+  module: T
+  testSpec: TestSpec
+  env: Environment
 }
 
 export interface BuildStatus {
@@ -35,6 +46,7 @@ export interface PluginActions<T extends Module> {
   parseModule: (context: GardenContext, config: T["config"]) => T
   getModuleBuildStatus: (module: T) => Promise<BuildStatus>
   buildModule: (module: T) => Promise<BuildResult>
+  testModule: (params: TestModuleParams<T>) => Promise<TestResult>
 
   getEnvironmentStatus: (env: Environment) => Promise<EnvironmentStatus>
   configureEnvironment: (env: Environment) => Promise<void>
@@ -57,6 +69,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   parseModule = null
   getModuleBuildStatus = null
   buildModule = null
+  testModule = null
   getEnvironmentStatus = null
   configureEnvironment = null
   getServiceStatus = null

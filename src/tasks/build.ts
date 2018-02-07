@@ -1,16 +1,19 @@
 import { Task } from "../task-graph"
 import { Module } from "../types/module"
+import { GardenContext } from "../context"
+import { EntryStyles } from "../log"
+import chalk from "chalk"
 
 export class BuildTask extends Task {
   type = "build"
 
-  constructor(private module: Module, private force: boolean) {
+  constructor(private ctx: GardenContext, private module: Module, private force: boolean) {
     super()
   }
 
   async getDependencies() {
     const deps = await this.module.getBuildDependencies()
-    return deps.map((m: Module) => new BuildTask(m, this.force))
+    return deps.map((m: Module) => new BuildTask(this.ctx, m, this.force))
   }
 
   getKey() {
@@ -19,9 +22,18 @@ export class BuildTask extends Task {
   }
 
   async process() {
+    const entry = this.ctx.log.info({
+      section: this.module.name,
+      msg: "Building",
+      entryStyle: EntryStyles.activity,
+    })
+
     if (this.force || !(await this.module.getBuildStatus()).ready) {
-      return await this.module.build()
+      const result = await this.module.build()
+      entry.success({ msg: chalk.green("Done") })
+      return result
     } else {
+      entry.success({ msg: "Already built" })
       return { fresh: false }
     }
   }

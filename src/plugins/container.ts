@@ -172,7 +172,7 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {
-      this.context.log.verbose({
+      this.context.log.debug({
         section: module.name,
         msg: `Image ${await module.getImageId()} already exists`,
         symbol: LogSymbolTypes.info,

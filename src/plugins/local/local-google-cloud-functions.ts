@@ -73,11 +73,6 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
   }
 
   async deployService(service: GoogleCloudFunctionsService) {
-    this.context.log.info({
-      section: service.name,
-      msg: `Deploying function...`,
-    })
-
     const containerFunctionPath = resolve(
       "/functions",
       relative(this.context.projectRoot, service.module.path),
@@ -104,11 +99,6 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
         error: result.stderr,
       })
     }
-
-    this.context.log.info({
-      section: service.name,
-      msg: `Function deployed`,
-    })
 
     return this.getServiceStatus(service)
   }

@@ -34,7 +34,7 @@ export class Kubectl {
     args: string[],
     { data, ignoreError = false, silent = true, timeout = KUBECTL_DEFAULT_TIMEOUT }: KubectlParams = {},
   ): Promise<KubectlOutput> {
-
+    // TODO: use the spawn helper from util.ts
     const out: KubectlOutput = {
       code: 0,
       output: "",
@@ -103,8 +103,11 @@ export class Kubectl {
     return JSON.parse(result.output)
   }
 
-  async tty(args: string[], { silent = true } = {}): Promise<KubectlOutput> {
-    return spawnPty("kubectl", this.prepareArgs(args), { silent })
+  async tty(
+    args: string[],
+    { silent = true, ignoreError = false, timeout = KUBECTL_DEFAULT_TIMEOUT } = {},
+  ): Promise<KubectlOutput> {
+    return spawnPty("kubectl", this.prepareArgs(args), { silent, ignoreError, timeout })
   }
 
   private prepareArgs(args: string[]) {

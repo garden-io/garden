@@ -18,3 +18,10 @@ services:
 build:
   dependencies:
     - hello-npm-package
+test:
+  unit:
+    command: [npm, test]
+  integ:
+    command: [npm, run, integ]
+    dependencies:
+      - hello-function

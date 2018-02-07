@@ -4,3 +4,6 @@ services:
   service-a: {}
 build:
   command: echo A
+test:
+  unit:
+    command: [echo, OK]
