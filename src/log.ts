@@ -6,12 +6,9 @@ import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 const elegantSpinner = require("elegant-spinner")
 
-const DEFAULT_LOG_LEVEL = "verbose"
 const INTERVAL_DELAY = 100
 
-let loggerInstance: Logger
-
-enum LogLevels {
+export enum LogLevels {
   error = 0,
   warn = 1,
   info = 2,
@@ -19,6 +16,9 @@ enum LogLevels {
   debug = 4,
   silly = 5,
 }
+
+let loggerInstance: Logger
+let defaultLogLevel = LogLevels.verbose
 
 // Defines entry style and format
 export enum EntryStyles {
@@ -290,12 +290,16 @@ export class LogEntry {
 
 }
 
-export function getLogger(level = LogLevels[DEFAULT_LOG_LEVEL]) {
+export function getLogger(level?: LogLevels) {
   if (!loggerInstance) {
-    loggerInstance = new Logger(level)
+    loggerInstance = new Logger(level || defaultLogLevel)
   }
 
   return loggerInstance
+}
+
+export function setDefaultLogLevel(level: LogLevels) {
+  defaultLogLevel = level
 }
 
 export function logException(error: Error) {
