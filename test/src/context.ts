@@ -4,7 +4,6 @@ import { expect } from "chai"
 import { PluginInterface, Plugin, PluginFactory } from "../../src/types/plugin"
 import { Module } from "../../src/types/module"
 import { ContainerModule } from "../../src/plugins/container"
-import { defaultPlugins } from "../../src/plugins"
 
 const projectRootA = join(__dirname, "..", "data", "test-project-a")
 
@@ -61,7 +60,7 @@ export const makeTestContextA = (extraPlugins: PluginFactory[] = []) => {
     (_ctx) => testPlugin,
     (ctx) => new TestPluginB(ctx),
   ]
-  const plugins: PluginFactory[] = defaultPlugins.concat(testPlugins).concat(extraPlugins)
+  const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
 
   return new GardenContext(projectRootA, { plugins })
 }
@@ -73,17 +72,6 @@ describe("GardenContext", () => {
     expect(ctx.config).to.eql({
       environments: {
         local: {
-          providers: {
-            generic: {
-              type: "generic",
-            },
-            containers: {
-              type: "kubernetes",
-              context: "docker-for-desktop",
-            },
-          },
-        },
-        test: {
           providers: {
             test: {
               type: "test-plugin",
@@ -140,28 +128,28 @@ describe("GardenContext", () => {
     it("should set the active environment for the context", () => {
       const ctx = makeTestContextA()
 
-      const { name, namespace } = ctx.setEnvironment("test")
-      expect(name).to.equal("test")
+      const { name, namespace } = ctx.setEnvironment("local")
+      expect(name).to.equal("local")
       expect(namespace).to.equal("default")
 
       const env = ctx.getEnvironment()
-      expect(env.name).to.equal("test")
+      expect(env.name).to.equal("local")
       expect(env.namespace).to.equal("default")
     })
 
     it("should optionally set a namespace with the dot separator", () => {
       const ctx = makeTestContextA()
 
-      const { name, namespace } = ctx.setEnvironment("test.mynamespace")
-      expect(name).to.equal("test")
+      const { name, namespace } = ctx.setEnvironment("local.mynamespace")
+      expect(name).to.equal("local")
       expect(namespace).to.equal("mynamespace")
     })
 
     it("should split environment and namespace on the first dot", () => {
       const ctx = makeTestContextA()
 
-      const { name, namespace } = ctx.setEnvironment("test.mynamespace.2")
-      expect(name).to.equal("test")
+      const { name, namespace } = ctx.setEnvironment("local.mynamespace.2")
+      expect(name).to.equal("local")
       expect(namespace).to.equal("mynamespace.2")
     })
 
@@ -182,7 +170,7 @@ describe("GardenContext", () => {
       const ctx = makeTestContextA()
 
       try {
-        ctx.setEnvironment("test.garden-bla")
+        ctx.setEnvironment("local.garden-bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -196,12 +184,12 @@ describe("GardenContext", () => {
     it("should get the active environment for the context", () => {
       const ctx = makeTestContextA()
 
-      const { name, namespace } = ctx.setEnvironment("test")
-      expect(name).to.equal("test")
+      const { name, namespace } = ctx.setEnvironment("local")
+      expect(name).to.equal("local")
       expect(namespace).to.equal("default")
 
       const env = ctx.getEnvironment()
-      expect(env.name).to.equal("test")
+      expect(env.name).to.equal("local")
       expect(env.namespace).to.equal("default")
     })
 
@@ -406,10 +394,6 @@ describe("GardenContext", () => {
 
       expect(Object.keys(handlers)).to.eql([
         "generic",
-        "container-module",
-        "npm-package-module",
-        "google-cloud-functions",
-        "local-google-cloud-functions",
         "test-plugin-b",
       ])
     })
@@ -461,7 +445,7 @@ describe("GardenContext", () => {
   describe("getEnvActionHandlers", () => {
     it("should return all handlers for a type that are configured for the set environment", async () => {
       const ctx = makeTestContextA()
-      ctx.setEnvironment("test")
+      ctx.setEnvironment("local")
 
       const handlers = ctx.getEnvActionHandlers("configureEnvironment")
       expect(Object.keys(handlers)).to.eql(["test-plugin", "test-plugin-b"])
@@ -469,7 +453,7 @@ describe("GardenContext", () => {
 
     it("should optionally limit to handlers that support a specific module type", async () => {
       const ctx = makeTestContextA()
-      ctx.setEnvironment("test")
+      ctx.setEnvironment("local")
 
       const handlers = ctx.getEnvActionHandlers("configureEnvironment", "test")
       expect(Object.keys(handlers)).to.eql(["test-plugin-b"])
@@ -489,7 +473,7 @@ describe("GardenContext", () => {
   describe("getEnvActionHandler", () => {
     it("should return last configured handler for specified action type", async () => {
       const ctx = makeTestContextA()
-      ctx.setEnvironment("test")
+      ctx.setEnvironment("local")
 
       const handler = ctx.getEnvActionHandler("configureEnvironment")
 
@@ -499,7 +483,7 @@ describe("GardenContext", () => {
 
     it("should optionally filter to only handlers for the specified module type", async () => {
       const ctx = makeTestContextA()
-      ctx.setEnvironment("test")
+      ctx.setEnvironment("local")
 
       const handler = ctx.getEnvActionHandler("deployService", "test")
 
@@ -509,7 +493,7 @@ describe("GardenContext", () => {
 
     it("should throw if no handler is available", async () => {
       const ctx = makeTestContextA()
-      ctx.setEnvironment("test")
+      ctx.setEnvironment("local")
 
       try {
         ctx.getEnvActionHandler("deployService", "generic")

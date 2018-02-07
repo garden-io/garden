@@ -1,6 +1,6 @@
 name: build-test-project
 environments:
-  test:
+  local:
     providers:
       test:
         type: test-plugin
