@@ -5,7 +5,7 @@ import { BuildTask } from "./build"
 import { values } from "lodash"
 import { Service } from "../types/service"
 import { joiPrimitive } from "../types/common"
-import { EntryStyles } from "../log"
+import { EntryStyle } from "../log"
 import chalk from "chalk"
 
 export class DeployTask extends Task {
@@ -43,7 +43,7 @@ export class DeployTask extends Task {
     const entry = this.ctx.log.info({
       section: this.service.name,
       msg: `Deploying`,
-      entryStyle: EntryStyles.activity,
+      entryStyle: EntryStyle.activity,
     })
 
     if (

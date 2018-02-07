@@ -4,7 +4,7 @@ import { BuildTask } from "./build"
 import { TestResult } from "../types/plugin"
 import { DeployTask } from "./deploy"
 import { GardenContext } from "../context"
-import { EntryStyles } from "../log"
+import { EntryStyle } from "../log"
 import chalk from "chalk"
 
 export class TestTask extends Task {
@@ -40,7 +40,7 @@ export class TestTask extends Task {
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: `Running ${this.testType} tests`,
-      entryStyle: EntryStyles.activity,
+      entryStyle: EntryStyle.activity,
     })
 
     // TODO: the force parameters has no use because we don't track which tests have been run

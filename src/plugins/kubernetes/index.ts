@@ -13,8 +13,8 @@ import { createServices } from "./service"
 import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
 import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { EntryStyles, LogEntry } from "../../log"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
+import { EntryStyle, LogEntry } from "../../log"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -87,13 +87,13 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
 
     const entry = this.context.log.info({
-      entryStyle: EntryStyles.activity,
+      entryStyle: EntryStyle.activity,
       section: "kubernetes",
       msg: "Configuring environment...",
     })
 
     if (!status.detail.systemNamespaceReady) {
-      entry.update({ section: "kubernetes", msg: `Creating garden system namespace`, replace: true })
+      entry.update({ section: "kubernetes", msg: `Creating garden system namespace` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -109,7 +109,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
 
     if (!status.detail.namespaceReady) {
-      entry.update({ section: "kubernetes", msg: `Creating namespace ${env.namespace}`, replace: true })
+      entry.update({ section: "kubernetes", msg: `Creating namespace ${env.namespace}` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -125,19 +125,19 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
 
     if (!status.detail.dashboardReady) {
-      entry.update({ section: "kubernetes", msg: `Configuring dashboard`, replace: true })
+      entry.update({ section: "kubernetes", msg: `Configuring dashboard` })
       // TODO: deploy this as a service
       await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
     }
 
     if (!status.detail.ingressControllerReady) {
-      entry.update({ section: "kubernetes", msg: `Configuring ingress controller`, replace: true })
+      entry.update({ section: "kubernetes", msg: `Configuring ingress controller` })
       const gardenEnv = this.getSystemEnv(env)
       await this.deployService(await this.getDefaultBackendService(), {}, gardenEnv)
       await this.deployService(await this.getIngressControllerService(), {}, gardenEnv, true)
     }
 
-    entry.success({ section: "kubernetes", msg: "Environment configured", replace: true })
+    entry.success({ section: "kubernetes", msg: "Environment configured" })
   }
 
   async getServiceStatus(service: ContainerService, env: Environment): Promise<ServiceStatus> {

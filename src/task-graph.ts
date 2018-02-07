@@ -3,7 +3,7 @@ import chalk from "chalk"
 import { GardenContext } from "./context"
 import { pick } from "lodash"
 
-import { LogEntry, EntryStyles } from "./log"
+import { LogEntry, EntryStyle, LogSymbolType } from "./log"
 
 class TaskDefinitionError extends Error { }
 class TaskGraphError extends Error { }
@@ -108,7 +108,7 @@ export class TaskGraph {
     const loop = async () => {
       if (_this.index.length === 0) {
         // done!
-        this.logEntryMap.counter.done()
+        this.logEntryMap.counter.done({ symbol: LogSymbolType.info })
         return
       }
 
@@ -124,11 +124,8 @@ export class TaskGraph {
         const key = node.getKey()
 
         try {
-          this.logTask(node, `Processing task ${taskStyle(node.getKey())}`)
-          this.logEntryMap.inProgress.update({
-            msg: inProgressToStr(this.inProgress.getNodes()),
-            replace: true,
-          })
+          this.logTask(node)
+          this.logEntryMap.inProgress.update({ msg: inProgressToStr(this.inProgress.getNodes()) })
 
           const dependencyKeys = (await node.task.getDependencies()).map(d => getIndexKey(d))
           const dependencyResults = pick(results, dependencyKeys)
@@ -168,30 +165,27 @@ export class TaskGraph {
   }
 
   // Logging
-  logTask(node: TaskNode, msg: string) {
+  private logTask(node: TaskNode) {
     const entry = this.context.log.debug({
       section: "tasks",
-      msg,
-      entryStyle: EntryStyles.activity,
+      msg: `Processing task ${taskStyle(node.getKey())}`,
+      entryStyle: EntryStyle.activity,
     })
     this.logEntryMap[node.getKey()] = entry
   }
 
-  logTaskComplete(node: TaskNode, msg: string = "") {
+  private logTaskComplete(node: TaskNode) {
     const entry = this.logEntryMap[node.getKey()]
-    entry && entry.success({ msg })
-    this.logEntryMap.counter.update({
-      msg: remainingTasksToStr(this.index.length),
-      replace: true,
-    })
+    entry && entry.success()
+    this.logEntryMap.counter.update({ msg: remainingTasksToStr(this.index.length) })
   }
 
-  initLogging() {
+  private initLogging() {
     if (!Object.keys(this.logEntryMap).length) {
       const header = this.context.log.debug({ msg: "Processing tasks..." })
       const counter = this.context.log.debug({
         msg: remainingTasksToStr(this.index.length),
-        entryStyle: EntryStyles.activity,
+        entryStyle: EntryStyle.activity,
       })
       const inProgress = this.context.log.debug({
         msg: inProgressToStr(this.inProgress.getNodes()),
