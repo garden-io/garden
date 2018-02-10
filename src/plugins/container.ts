@@ -6,8 +6,7 @@ import { identifierRegex } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
-import { round } from "lodash"
-import { Plugin } from "../types/plugin"
+import { BuildModuleParams, Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
 import { Service } from "../types/service"
 
@@ -182,28 +181,21 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     return { ready }
   }
 
-  async buildModule({ module }: { module: ContainerModule }) {
-    const self = this
-
+  async buildModule({ module, logEntry }: BuildModuleParams<ContainerModule>) {
     if (!!module.image) {
+      logEntry && logEntry.update({ msg: `Fetching image ${module.image}...` })
       await module.pullImage(this.context)
       return { fetched: true }
     }
 
     const identifier = await module.getImageId()
-    const name = module.name
 
     // build doesn't exist, so we create it
-    const startTime = new Date().getTime()
-
-    self.context.log.info({ section: name, msg: `building ${identifier}...` })
+    logEntry && logEntry.update({ msg: `Building ${identifier}...` })
 
     // TODO: log error if it occurs
     // TODO: stream output to log if at debug log level
     await module.dockerCli(`build -t ${identifier} ${module.path}`)
-
-    const buildTime = (new Date().getTime()) - startTime
-    self.context.log.info({ section: name, msg: `built ${identifier} (took ${round(buildTime / 1000, 1)} sec)` })
 
     return { fresh: true }
   }

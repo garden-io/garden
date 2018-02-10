@@ -58,7 +58,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
 
     await this.gcloud(project).call([
       "app", "deploy", "--quiet",
-    ], { cwd: service.module.path, silent: false })
+    ], { cwd: service.module.path })
 
     this.context.log.info({ section: service.name, msg: `App deployed` })
   }

@@ -10,7 +10,7 @@ import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { Task, TaskGraph } from "./task-graph"
-import { getLogger, Logger } from "./logger"
+import { getLogger, LogEntry, Logger } from "./logger"
 import {
   BuildStatus, pluginActionNames, PluginActions, PluginFactory, PluginInterface,
 } from "./types/plugin"
@@ -359,17 +359,17 @@ export class GardenContext {
     return handler({ context: this, module })
   }
 
-  async buildModule<T extends Module>(module: T) {
+  async buildModule<T extends Module>(module: T, logEntry?: LogEntry) {
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
-    return handler({ context: this, module })
+    return handler({ context: this, module, logEntry })
   }
 
-  async testModule<T extends Module>(module: T, testSpec: TestSpec) {
+  async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) {
     const defaultHandler = this.actionHandlers["testModule"]["generic"]
     const handler = this.getEnvActionHandler("testModule", module.type, defaultHandler)
     const env = this.getEnvironment()
-    return handler({ context: this, module, testSpec, env })
+    return handler({ context: this, module, testSpec, env, logEntry })
   }
 
   async getEnvironmentStatus() {

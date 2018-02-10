@@ -3,7 +3,7 @@ import { GardenContext } from "../context"
 import { Environment, PrimitiveMap } from "./common"
 import { Nullable } from "../util"
 import { Service, ServiceContext, ServiceStatus } from "./service"
-import { LogEntry } from "../log"
+import { LogEntry } from "../logger"
 
 export type PluginFactory = (context: GardenContext) => PluginInterface<any>
 

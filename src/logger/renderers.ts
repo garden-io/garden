@@ -50,7 +50,7 @@ export function renderEntryStyle(style?: EntryStyle): string {
 
 export function renderEmoji(emoji?: any): string {
   if (emoji && nodeEmoji.hasEmoji(emoji)) {
-    return `${nodeEmoji.get(emoji)} `
+    return `${nodeEmoji.get(emoji)}  `
   }
   return ""
 }
@@ -64,7 +64,7 @@ export function renderSymbol(symbol?: LogSymbolType): string {
 
 export function renderMsg(msg?: string | string[]): string {
   if (msg && msg instanceof Array) {
-    return msgStyle(msg.join(" → "))
+    return msg.map(msgStyle).join(chalk.gray(" → "))
   }
   return msg ? msgStyle(msg) : ""
 }
@@ -81,5 +81,5 @@ export function format(renderers: any[][]): string {
 
 export function renderHeader(opts: HeaderOpts) {
   const { emoji, command } = opts
-  return `${chalk.bold.magenta(command)} ${nodeEmoji.get(emoji)}\n`
+  return `${chalk.bold.magenta(command)} ${emoji ? nodeEmoji.get(emoji) : ""}\n`
 }

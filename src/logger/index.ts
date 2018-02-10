@@ -3,6 +3,7 @@ import * as logUpdate from "log-update"
 import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 import { flatten } from "lodash"
+
 const elegantSpinner = require("elegant-spinner")
 
 import {
@@ -105,7 +106,6 @@ export abstract class Logger {
 }
 
 class BasicLogger extends Logger {
-
   createLogEntry(level, opts: LogOpts, depth: number): LogEntry {
     return new BasicLogEntry(level, opts, this, depth)
   }

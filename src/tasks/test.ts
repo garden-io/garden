@@ -49,9 +49,9 @@ export class TestTask extends Task {
     const result = await this.ctx.testModule(this.module, this.testSpec)
 
     if (result.success) {
-      entry.success({ msg: chalk.green(`Success`) })
+      entry.success({ msg: chalk.green(`Success`), append: true })
     } else {
-      entry.error({ msg: chalk.red(`Failed!`) })
+      entry.error({ msg: chalk.red(`Failed!`), append: true })
     }
 
     return result
