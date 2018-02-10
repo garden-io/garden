@@ -1,5 +1,4 @@
 import { ContainerModuleHandler } from "./container"
-import { LocalDockerSwarmProvider } from "./local/local-docker-swarm"
 import { GoogleCloudFunctionsProvider } from "./google/google-cloud-functions"
 import { LocalGoogleCloudFunctionsProvider } from "./local/local-google-cloud-functions"
 import { KubernetesProvider } from "./kubernetes"
@@ -14,6 +13,5 @@ export const defaultPlugins: PluginFactory[] = [
   KubernetesProvider,
   GoogleAppEngineProvider,
   GoogleCloudFunctionsProvider,
-  LocalDockerSwarmProvider,
   LocalGoogleCloudFunctionsProvider,
 ].map(pluginClass => (ctx) => new pluginClass(ctx))

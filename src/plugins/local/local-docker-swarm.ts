@@ -2,13 +2,15 @@ import * as Docker from "dockerode"
 import { exec } from "child-process-promise"
 import { Memoize } from "typescript-memoize"
 import { DeploymentError } from "../../exceptions"
-import { Plugin } from "../../types/plugin"
+import {
+  DeployServiceParams, ExecInServiceParams, GetServiceOutputsParams, GetServiceStatusParams,
+  Plugin,
+} from "../../types/plugin"
 import { ContainerModule } from "../container"
 import { sortBy, map } from "lodash"
-import { Environment } from "../../types/common"
 import { sleep } from "../../util"
 import { Module } from "../../types/module"
-import { Service, ServiceContext, ServiceState, ServiceStatus } from "../../types/service"
+import { ServiceState, ServiceStatus } from "../../types/service"
 
 // should this be configurable and/or global across providers?
 const DEPLOY_TIMEOUT = 30
@@ -45,7 +47,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }
   }
 
-  async getServiceStatus(service: Service<ContainerModule>): Promise<ServiceStatus> {
+  async getServiceStatus({ service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
     const docker = this.getDocker()
     const swarmServiceName = this.getSwarmServiceName(service.name)
     const swarmService = docker.getService(swarmServiceName)
@@ -87,7 +89,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }
   }
 
-  async deployService(service: Service<ContainerModule>, serviceContext: ServiceContext, env: Environment) {
+  async deployService({ context, service, serviceContext, env }: DeployServiceParams<ContainerModule>) {
     // TODO: split this method up and test
     const version = await service.module.getVersion()
 
@@ -158,7 +160,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }
 
     const docker = this.getDocker()
-    const serviceStatus = await this.getServiceStatus(service)
+    const serviceStatus = await this.getServiceStatus({ context, service, env })
     let swarmServiceStatus
     let serviceId
 
@@ -214,17 +216,17 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       msg: `Ready`,
     })
 
-    return this.getServiceStatus(service)
+    return this.getServiceStatus({ context, service, env })
   }
 
-  async getServiceOutputs(service: Service<ContainerModule>) {
+  async getServiceOutputs({ service }: GetServiceOutputsParams<ContainerModule>) {
     return {
       host: this.getSwarmServiceName(service.name),
     }
   }
 
-  async execInService(service: Service<ContainerModule>, command: string[]) {
-    const status = await this.getServiceStatus(service)
+  async execInService({ context, env, service, command }: ExecInServiceParams<ContainerModule>) {
+    const status = await this.getServiceStatus({ context, service, env })
 
     if (!status.state || status.state !== "ready") {
       throw new DeploymentError(`Service ${service.name} is not running`, {

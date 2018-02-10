@@ -1,11 +1,12 @@
-import { Environment, identifierRegex } from "../../types/common"
+import { identifierRegex } from "../../types/common"
 import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
 import { GardenContext } from "../../context"
-import { Service, ServiceState, ServiceStatus } from "../../types/service"
+import { ServiceState, ServiceStatus } from "../../types/service"
 import { resolve } from "path"
 import * as Joi from "joi"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { GOOGLE_CLOUD_DEFAULT_REGION, GoogleCloudProviderBase } from "./base"
+import { PluginActionParams } from "../../types/plugin"
 
 export interface GoogleCloudFunctionsModuleConfig extends ModuleConfig {
   services: {
@@ -16,8 +17,6 @@ export interface GoogleCloudFunctionsModuleConfig extends ModuleConfig {
     },
   }
 }
-
-export type GoogleCloudFunctionsService = Service<GoogleCloudFunctionsModule>
 
 export const gcfServicesSchema = Joi.object()
   .pattern(identifierRegex, baseServiceSchema.keys({
@@ -33,8 +32,8 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
   name = "google-cloud-functions"
   supportedModuleTypes = ["google-cloud-function"]
 
-  parseModule(ctx: GardenContext, config: GoogleCloudFunctionsModuleConfig) {
-    const module = new GoogleCloudFunctionsModule(ctx, config)
+  parseModule({ context, config }: { context: GardenContext, config: GoogleCloudFunctionsModuleConfig }) {
+    const module = new GoogleCloudFunctionsModule(context, config)
 
     // TODO: check that each function exists at the specified path
 
@@ -43,7 +42,9 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
     return module
   }
 
-  async getServiceStatus(service: GoogleCloudFunctionsService, env: Environment): Promise<ServiceStatus> {
+  async getServiceStatus(
+    { service, env }: PluginActionParams<GoogleCloudFunctionsModule>["getServiceStatus"],
+  ): Promise<ServiceStatus> {
     const project = this.getProject(service, env)
     const functions: any[] = await this.gcloud(project).json(["beta", "functions", "list"])
     const providerId = `projects/${project}/locations/${GOOGLE_CLOUD_DEFAULT_REGION}/functions/${service.name}`
@@ -68,9 +69,11 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
     }
   }
 
-  async deployService(service: GoogleCloudFunctionsService, _serviceContext: {}, env: Environment) {
+  async deployService(
+    { context, service, env }: PluginActionParams<GoogleCloudFunctionsModule>["deployService"],
+  ) {
     // TODO: provide env vars somehow to function
-    this.context.log.info({
+    context.log.info({
       section: service.name,
       msg: `Deploying function...`,
     })
@@ -88,15 +91,15 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
       "--trigger-http",
     ])
 
-    this.context.log.info({
+    context.log.info({
       section: service.name,
       msg: `Function deployed`,
     })
 
-    return this.getServiceStatus(service, env)
+    return this.getServiceStatus({ context, service, env })
   }
 
-  async getServiceOutputs(service: GoogleCloudFunctionsService, env: Environment) {
+  async getServiceOutputs({ service, env }: PluginActionParams<GoogleCloudFunctionsModule>["getServiceOutputs"]) {
     // TODO: we may want to pull this from the service status instead, along with other outputs
     const project = this.getProject(service, env)
 

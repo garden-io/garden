@@ -8,16 +8,16 @@ export class GenericModuleHandler<T extends Module = Module> extends Plugin<T> {
   name = "generic"
   supportedModuleTypes = ["generic"]
 
-  parseModule(context: GardenContext, config: ModuleConfigType<T>) {
+  parseModule({ context, config }: { context: GardenContext, config: ModuleConfigType<T> }) {
     return new Module<ModuleConfigType<T>>(context, config)
   }
 
-  async getModuleBuildStatus(module: T): Promise<BuildStatus> {
+  async getModuleBuildStatus({ module }: { module: T }): Promise<BuildStatus> {
     // Each module handler should keep track of this for now. Defaults to return false if a build command is specified.
     return { ready: !module.config.build.command }
   }
 
-  async buildModule(module: T): Promise<BuildResult> {
+  async buildModule({ module }: { module: T }): Promise<BuildResult> {
     // By default we run the specified build command in the module root, if any.
     // TODO: Keep track of which version has been built (needs local data store/cache).
     if (module.config.build.command) {

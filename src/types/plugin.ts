@@ -3,6 +3,7 @@ import { GardenContext } from "../context"
 import { Environment, PrimitiveMap } from "./common"
 import { Nullable } from "../util"
 import { Service, ServiceContext, ServiceStatus } from "./service"
+import { LogEntry } from "../log"
 
 export type PluginFactory = (context: GardenContext) => PluginInterface<any>
 
@@ -40,28 +41,95 @@ interface ExecInServiceResult {
   stderr?: string
 }
 
-// TODO: Make all actions accept an object with parameters, instead of positional arguments.
-// (This will make it easier to add parameters in the long run, without breaking existing signatures)
-export interface PluginActions<T extends Module> {
-  parseModule: (context: GardenContext, config: T["config"]) => T
-  getModuleBuildStatus: (module: T) => Promise<BuildStatus>
-  buildModule: (module: T) => Promise<BuildResult>
-  testModule: (params: TestModuleParams<T>) => Promise<TestResult>
-
-  getEnvironmentStatus: (env: Environment) => Promise<EnvironmentStatus>
-  configureEnvironment: (env: Environment) => Promise<void>
-
-  getServiceStatus:
-  (service: Service<T>, env: Environment) => Promise<ServiceStatus>
-  deployService:
-  (service: Service<T>, serviceContext: ServiceContext, env: Environment) => Promise<any>
-  getServiceOutputs:
-  (service: Service<T>, env: Environment) => Promise<PrimitiveMap>
-  execInService:
-  (service: Service<T>, command: string[], env: Environment) => Promise<ExecInServiceResult>
+export interface PluginActionParamsBase {
+  context: GardenContext
+  logEntry?: LogEntry
 }
 
-type PluginActionName = keyof PluginActions<any>
+export interface ParseModuleParams<T extends Module = Module> extends PluginActionParamsBase {
+  config: T["config"]
+}
+
+export interface GetModuleBuildStatusParams<T extends Module = Module> extends PluginActionParamsBase {
+  module: T
+}
+
+export interface BuildModuleParams<T extends Module = Module> extends PluginActionParamsBase {
+  module: T
+}
+
+export interface TestModuleParams<T extends Module = Module> extends PluginActionParamsBase {
+  module: T
+  testSpec: TestSpec,
+  env: Environment,
+}
+
+export interface GetEnvironmentStatusParams extends PluginActionParamsBase {
+  env: Environment,
+}
+
+export interface ConfigureEnvironmentParams extends PluginActionParamsBase {
+  env: Environment,
+}
+
+export interface GetServiceStatusParams<T extends Module = Module> extends PluginActionParamsBase {
+  service: Service<T>,
+  env: Environment,
+}
+
+export interface DeployServiceParams<T extends Module = Module> extends PluginActionParamsBase {
+  service: Service<T>,
+  serviceContext: ServiceContext,
+  env: Environment,
+  exposePorts?: boolean,
+}
+
+export interface GetServiceOutputsParams<T extends Module = Module> extends PluginActionParamsBase {
+  service: Service<T>,
+  env: Environment,
+}
+
+export interface ExecInServiceParams<T extends Module = Module> extends PluginActionParamsBase {
+  service: Service<T>,
+  env: Environment,
+  command: string[],
+}
+
+export interface PluginActionParams<T extends Module = Module> {
+  parseModule: ParseModuleParams<T>
+  getModuleBuildStatus: GetModuleBuildStatusParams<T>
+  buildModule: BuildModuleParams<T>
+  testModule: TestModuleParams<T>
+
+  getEnvironmentStatus: GetEnvironmentStatusParams
+  configureEnvironment: ConfigureEnvironmentParams
+
+  getServiceStatus: GetServiceStatusParams<T>
+  deployService: DeployServiceParams<T>
+  getServiceOutputs: GetServiceOutputsParams<T>
+  execInService: ExecInServiceParams<T>
+}
+
+interface PluginActionOutputs<T extends Module = Module> {
+  parseModule: T
+  getModuleBuildStatus: Promise<BuildStatus>
+  buildModule: Promise<BuildResult>
+  testModule: Promise<TestResult>
+
+  getEnvironmentStatus: Promise<EnvironmentStatus>
+  configureEnvironment: Promise<void>
+
+  getServiceStatus: Promise<ServiceStatus>
+  deployService: Promise<any>   // TODO: specify
+  getServiceOutputs: Promise<PrimitiveMap>
+  execInService: Promise<ExecInServiceResult>
+}
+
+export type PluginActions<T extends Module> = {
+  [P in keyof PluginActionParams<T>]: (params: PluginActionParams<T>[P]) => PluginActionOutputs<T>[P]
+}
+
+export type PluginActionName = keyof PluginActions<any>
 
 // A little convoluted, but serves the purpose of making sure we don't forget to include actions
 // in the `pluginActionNames` array
