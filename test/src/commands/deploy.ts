@@ -2,9 +2,9 @@ import { join } from "path"
 import { GardenContext } from "../../../src/context"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
-import { Plugin } from "../../../src/types/plugin"
+import { DeployServiceParams, GetServiceStatusParams, Plugin } from "../../../src/types/plugin"
 import { Module } from "../../../src/types/module"
-import { Service, ServiceState, ServiceStatus } from "../../../src/types/service"
+import { ServiceState, ServiceStatus } from "../../../src/types/service"
 import { defaultPlugins } from "../../../src/plugins"
 
 class TestProvider extends Plugin<Module> {
@@ -13,11 +13,11 @@ class TestProvider extends Plugin<Module> {
 
   testStatuses: { [key: string]: ServiceStatus } = {}
 
-  async getServiceStatus(service: Service<Module>): Promise<ServiceStatus> {
+  async getServiceStatus({ service }: GetServiceStatusParams): Promise<ServiceStatus> {
     return this.testStatuses[service.name] || {}
   }
 
-  async deployService(service: Service<Module>) {
+  async deployService({ service }: DeployServiceParams) {
     const newStatus = {
       version: "1",
       state: <ServiceState>"ready",

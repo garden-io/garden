@@ -1,16 +1,16 @@
-import { Environment } from "../../types/common"
-import { ServiceContext, ServiceStatus } from "../../types/service"
+import { ServiceStatus } from "../../types/service"
 import { join } from "path"
 import { GOOGLE_CLOUD_DEFAULT_REGION, GoogleCloudProviderBase } from "./base"
-import { ContainerModule, ContainerService } from "../container"
+import { ContainerModule } from "../container"
 import { dumpYaml } from "../../util"
+import { PluginActionParams } from "../../types/plugin"
 
 // TODO: support built-in GAE types (not just custom/flex containers)
 export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerModule> {
   name = "google-app-engine"
   supportedModuleTypes = ["container"]
 
-  async getServiceStatus(_service: ContainerService, _env: Environment): Promise<ServiceStatus> {
+  async getServiceStatus(): Promise<ServiceStatus> {
     // TODO
     // const project = this.getProject(service, env)
     //
@@ -21,7 +21,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
     return {}
   }
 
-  async deployService(service: ContainerService, serviceContext: ServiceContext, env: Environment) {
+  async deployService({ service, serviceContext, env }: PluginActionParams<ContainerModule>["deployService"]) {
     this.context.log.info({
       section: service.name,
       msg: `Deploying app...`,
@@ -63,7 +63,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
     this.context.log.info({ section: service.name, msg: `App deployed` })
   }
 
-  async getServiceOutputs(service: ContainerService, env: Environment) {
+  async getServiceOutputs({ service, env }: PluginActionParams<ContainerModule>["getServiceOutputs"]) {
     // TODO: we may want to pull this from the service status instead, along with other outputs
     const project = this.getProject(service, env)
 

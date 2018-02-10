@@ -152,7 +152,7 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
-  parseModule(context: GardenContext, config: ContainerModuleConfig) {
+  parseModule({ context, config }: { context: GardenContext, config: ContainerModuleConfig }) {
     config = <ContainerModuleConfig>Joi.attempt(config, containerSchema)
 
     const module = new ContainerModule(context, config)
@@ -168,7 +168,7 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     return module
   }
 
-  async getModuleBuildStatus(module: ContainerModule) {
+  async getModuleBuildStatus({ module }: { module: ContainerModule }) {
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {
@@ -182,7 +182,7 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     return { ready }
   }
 
-  async buildModule(module: ContainerModule) {
+  async buildModule({ module }: { module: ContainerModule }) {
     const self = this
 
     if (!!module.image) {
