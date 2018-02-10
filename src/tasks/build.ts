@@ -3,6 +3,7 @@ import { Module } from "../types/module"
 import { GardenContext } from "../context"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
+import { round } from "lodash"
 
 export class BuildTask extends Task {
   type = "build"
@@ -29,8 +30,12 @@ export class BuildTask extends Task {
     })
 
     if (this.force || !(await this.module.getBuildStatus()).ready) {
-      const result = await this.module.build()
-      entry.success({ msg: chalk.green("Done") })
+      const startTime = new Date().getTime()
+      const result = await this.ctx.buildModule(this.module, entry)
+      const buildTime = (new Date().getTime()) - startTime
+
+      entry.success({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
+
       return result
     } else {
       entry.success({ msg: "Already built" })

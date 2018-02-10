@@ -42,7 +42,7 @@ export enum EntryStatus {
 }
 
 export interface HeaderOpts {
-  emoji: string
+  emoji?: string
   command: string
 }
 

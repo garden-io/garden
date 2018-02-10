@@ -73,11 +73,6 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
     { context, service, env }: PluginActionParams<GoogleCloudFunctionsModule>["deployService"],
   ) {
     // TODO: provide env vars somehow to function
-    context.log.info({
-      section: service.name,
-      msg: `Deploying function...`,
-    })
-
     const project = this.getProject(service, env)
     const functionPath = resolve(service.module.path, service.config.path)
     const entrypoint = service.config.entrypoint || service.name
@@ -90,11 +85,6 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
       // TODO: support other trigger types
       "--trigger-http",
     ])
-
-    context.log.info({
-      section: service.name,
-      msg: `Function deployed`,
-    })
 
     return this.getServiceStatus({ context, service, env })
   }

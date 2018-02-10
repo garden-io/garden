@@ -36,15 +36,17 @@ export class DeployTask extends Task {
   }
 
   async process() {
+    const entry = this.ctx.log.info({
+      section: this.service.name,
+      msg: "Checking status",
+      entryStyle: EntryStyle.activity,
+    })
+
     // TODO: get version from build task results
     const version = await this.service.module.getVersion()
     const status = await this.ctx.getServiceStatus(this.service)
 
-    const entry = this.ctx.log.info({
-      section: this.service.name,
-      msg: `Deploying`,
-      entryStyle: EntryStyle.activity,
-    })
+    entry.update({ section: this.service.name, msg: "Deploying" })
 
     if (
       !this.force &&
@@ -54,14 +56,15 @@ export class DeployTask extends Task {
       // already deployed and ready
       entry.success({
         msg: `Version ${version} already deployed`,
+        append: true,
       })
       return status
     }
 
     const serviceContext = { envVars: await this.prepareEnvVars(version) }
-    const result = this.ctx.deployService(this.service, serviceContext)
+    const result = await this.ctx.deployService(this.service, serviceContext)
 
-    entry.success({ msg: chalk.green(`Deployed`) })
+    entry.success({ msg: chalk.green(`Ready`), append: true })
 
     return result
   }
