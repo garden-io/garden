@@ -2,6 +2,8 @@ import { BooleanParameter, Command, ParameterValues, StringParameter } from "./b
 import { GardenContext } from "../context"
 import { DeployTask } from "../tasks/deploy"
 import { values } from "lodash"
+import { Service } from "../types/service"
+import chalk from "chalk"
 
 const deployArgs = {
   environment: new StringParameter({
@@ -30,18 +32,31 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   options = deployOpts
 
   async action(ctx: GardenContext, args: Args, opts: Opts) {
-    ctx.setEnvironment(args.environment)
+    ctx.log.header({ emoji: "rocket", command: "Deploy" })
 
+    ctx.setEnvironment(args.environment)
     const names = args.service ? args.service.split(",") : undefined
     const services = await ctx.getServices(names)
 
-    for (const service of values(services)) {
-      const task = new DeployTask(ctx, service, opts.force, opts["force-build"])
-      await ctx.addTask(task)
-    }
+    const result = await deployServices(ctx, values(services), !!opts.force, !!opts["force-build"])
 
-    ctx.log.header({ emoji: "rocket", command: "deploy" })
+    ctx.log.info({ msg: "" })
+    ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green("Done!\n") })
 
-    return await ctx.processTasks()
+    return result
   }
+}
+
+export async function deployServices(
+  ctx: GardenContext,
+  services: Service<any>[],
+  force: boolean,
+  forceBuild: boolean,
+) {
+  for (const service of services) {
+    const task = new DeployTask(ctx, service, force, forceBuild)
+    await ctx.addTask(task)
+  }
+
+  return await ctx.processTasks()
 }

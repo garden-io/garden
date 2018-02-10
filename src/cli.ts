@@ -11,6 +11,7 @@ import { EnvironmentConfigureCommand } from "./commands/environment/configure"
 import { DeployCommand } from "./commands/deploy"
 import { defaultPlugins } from "./plugins"
 import { TestCommand } from "./commands/test"
+import { DevCommand } from "./commands/dev"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
@@ -47,6 +48,7 @@ export class GardenCli {
     // configure built-in commands
     this.addCommand(new BuildCommand())
     this.addCommand(new DeployCommand())
+    this.addCommand(new DevCommand())
     this.addCommand(new EnvironmentConfigureCommand())
     this.addCommand(new EnvironmentStatusCommand())
     this.addCommand(new TestCommand())
