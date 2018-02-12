@@ -2,7 +2,7 @@
 import * as logSymbols from "log-symbols"
 import * as logUpdate from "log-update"
 import * as nodeEmoji from "node-emoji"
-import { curryRight, flow, padEnd } from "lodash"
+import { curryRight, flatten, flow, padEnd } from "lodash"
 import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 const elegantSpinner = require("elegant-spinner")
@@ -60,6 +60,10 @@ interface LogOpts {
 interface HeaderOpts {
   emoji: string
   command: string
+}
+
+interface LogWriteFn {
+  (logOpts: LogOpts, parent?: LogEntry): LogEntry
 }
 
 // Style helpers
@@ -127,25 +131,29 @@ function applyRenderers(renderers: any[][]): Function {
   return flow(curried)
 }
 
-function format(renderers: any[][]) {
+// Accepts a list of tuples containing a render functions and it's args: [renderFn, [arguments]]
+function format(renderers: any[][]): string {
   const initOutput = []
   return applyRenderers(renderers)(initOutput).join("")
-}
-
-function formatForConsole(opts: LogOpts): string {
-  const renderers = [
-    [renderSymbol, [opts.symbol]],
-    [renderEntryStyle, [opts.entryStyle]],
-    [renderSection, [opts.section]],
-    [renderEmoji, [opts.emoji]],
-    [renderMsg, [opts.msg]],
-  ]
-  return format(renderers)
 }
 
 function renderHeader(opts: HeaderOpts) {
   const { emoji, command } = opts
   return `${chalk.bold.magenta(command)} ${nodeEmoji.get(emoji)}\n`
+}
+
+// Tree traversal
+interface Node {
+  children: any[]
+}
+
+function getNodeListFromTree<T extends Node>(node: T): T[] {
+  let arr: T[] = []
+  arr.push(node)
+  if (node.children.length === 0) {
+    return arr
+  }
+  return arr.concat(flatten(node.children.map(child => getNodeListFromTree(child))))
 }
 
 export class Logger {
@@ -162,14 +170,19 @@ export class Logger {
     this.intervalID = null
   }
 
-  private createLogEntry(level, opts: LogOpts): LogEntry {
-    const entry = new LogEntry(level, opts, this)
-    this.entries.push(entry)
+  createLogEntry(level, opts: LogOpts, parent?: LogEntry): LogEntry {
+    const depth = parent ? parent.depth + 1 : 0
+    const entry = new LogEntry(level, opts, this, depth)
+    if (parent) {
+      parent.pushChild(entry)
+    } else {
+      this.entries.push(entry)
+    }
     return entry
   }
 
-  private addEntryAndRender(level, opts: LogOpts): LogEntry {
-    const entry = this.createLogEntry(level, opts)
+  private addEntryAndRender(level, opts: LogOpts, parent?: LogEntry): LogEntry {
+    const entry = this.createLogEntry(level, opts, parent)
     if (opts.entryStyle === EntryStyle.activity) {
       this.startLoop()
     }
@@ -194,7 +207,8 @@ export class Logger {
   // active entries found while building output.
   render(): void {
     let hasActiveEntries = false
-    const out = this.entries.reduce((acc: string[], e: LogEntry) => {
+    const nodes = flatten(this.entries.map(e => getNodeListFromTree(e)))
+    const out = nodes.reduce((acc: string[], e: LogEntry) => {
       if (e.getStatus() === EntryStatus.ACTIVE) {
         hasActiveEntries = true
       }
@@ -209,28 +223,28 @@ export class Logger {
     logUpdate(out.join("\n"))
   }
 
-  silly(opts: LogOpts): LogEntry {
-    return this.addEntryAndRender(LogLevels.silly, opts)
+  silly: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
+    return this.addEntryAndRender(LogLevels.silly, opts, parent)
   }
 
-  debug(opts: LogOpts): LogEntry {
-    return this.addEntryAndRender(LogLevels.debug, opts)
+  debug: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
+    return this.addEntryAndRender(LogLevels.debug, opts, parent)
   }
 
-  verbose(opts: LogOpts): LogEntry {
-    return this.addEntryAndRender(LogLevels.verbose, opts)
+  verbose: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
+    return this.addEntryAndRender(LogLevels.verbose, opts, parent)
   }
 
-  info(opts: LogOpts): LogEntry {
-    return this.addEntryAndRender(LogLevels.info, opts)
+  info: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
+    return this.addEntryAndRender(LogLevels.info, opts, parent)
   }
 
-  warn(opts: LogOpts): LogEntry {
-    return this.addEntryAndRender(LogLevels.warn, { ...opts, entryStyle: EntryStyle.warn })
+  warn: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
+    return this.addEntryAndRender(LogLevels.warn, { ...opts, entryStyle: EntryStyle.warn }, parent)
   }
 
-  error(opts: LogOpts): LogEntry {
-    return this.addEntryAndRender(LogLevels.error, { ...opts, entryStyle: EntryStyle.error })
+  error: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
+    return this.addEntryAndRender(LogLevels.error, { ...opts, entryStyle: EntryStyle.error }, parent)
   }
 
   header(opts: HeaderOpts): LogEntry {
@@ -271,23 +285,41 @@ function mergeLogOpts(prevOpts: LogOpts, nextOpts: LogOpts, resolvers: LogOptsRe
   return mergeWithResolvers(prevOpts, nextOpts, resolvers)
 }
 
+type LoggerWriteMethods = { [key: string]: LogWriteFn }
+
 export class LogEntry {
   private formattedMsg: string
   private opts: LogOpts
   private logger: Logger
-  private frame: any // TODO
+  private frame: Function
   private status: EntryStatus
   private level: LogLevels
 
-  constructor(level: LogLevels, opts: LogOpts, logger: Logger) {
-    this.formattedMsg = formatForConsole(opts)
+  public depth: number
+  public children: LogEntry[]
+  public nest: LoggerWriteMethods = this.exposeLoggerWriteMethods()
+
+  constructor(level: LogLevels, opts: LogOpts, logger: Logger, depth?: number) {
+    this.depth = depth || 0
     this.opts = opts
     this.logger = logger
+    this.children = []
     this.level = level
     if (this.opts.entryStyle === EntryStyle.activity) {
       this.frame = elegantSpinner()
       this.status = EntryStatus.ACTIVE
     }
+    this.formattedMsg = this.format()
+  }
+
+  // Expose the Logger write methods on a LogEntry instance to allow for an API like logEntry.nest.info(logOpts)
+  // Feels a bit hacky though
+  private exposeLoggerWriteMethods() {
+    return ["error", "warn", "info", "verbose", "debug", "silly"].reduce((acc, key) => {
+      const fn: LogWriteFn = (logOpts: LogOpts): LogEntry => this.logger[key].bind(this.logger)(logOpts, this)
+      acc[key] = fn
+      return acc
+    }, {})
   }
 
   private setState(opts: LogOpts, status: EntryStatus): void {
@@ -315,7 +347,7 @@ export class LogEntry {
     this.opts = mergeLogOpts(this.opts, opts, {
       msg: resolveMsg,
     })
-    this.formattedMsg = formatForConsole(this.opts)
+    this.formattedMsg = this.format()
     this.status = status
   }
 
@@ -324,18 +356,50 @@ export class LogEntry {
     this.logger.render()
   }
 
+  private format(): string {
+    let renderers
+    if (this.depth > 0) {
+      // Skip section on child entries. We might want to change this a bit
+      renderers = [
+        [renderSymbol, [this.opts.symbol]],
+        [renderEmoji, [this.opts.emoji]],
+        [renderMsg, [this.opts.msg]],
+      ]
+    } else {
+      renderers = [
+        [renderSymbol, [this.opts.symbol]],
+        [renderEntryStyle, [this.opts.entryStyle]],
+        [renderSection, [this.opts.section]],
+        [renderEmoji, [this.opts.emoji]],
+        [renderMsg, [this.opts.msg]],
+      ]
+    }
+    return format(renderers)
+  }
+
+  pushChild(child: LogEntry): void {
+    this.children.push(child)
+  }
+
   stop() {
-    // Stop gracefully if still in active state (e.g. because of a crash)
+    // Stop gracefully if still in active state
     if (this.status === EntryStatus.ACTIVE) {
       this.setState({ symbol: LogSymbolType.empty }, EntryStatus.DONE)
     }
   }
 
+  // NOTE: The spinner updates on every render call but we don't want to reformat the entire string
+  // on each render so we handle the spinner (and padding because it appears before the spinner) here.
+  // Needs a better solution since it makes the format less declarative.
   render(): string {
-    if (this.status === EntryStatus.ACTIVE) {
-      return `${spinnerStyle(this.frame())} ${this.formattedMsg}`
+    let pad = ""
+    for (let i = 0; i < this.depth; i++) {
+      pad += "    "
     }
-    return this.formattedMsg
+    if (this.status === EntryStatus.ACTIVE) {
+      return `${pad}${spinnerStyle(this.frame())} ${this.formattedMsg}`
+    }
+    return `${pad}${this.formattedMsg}`
   }
 
   getLevel(): LogLevels {
@@ -352,6 +416,7 @@ export class LogEntry {
     console.log(JSON.stringify({
       ...this.opts,
       level: this.level,
+      children: this.children,
     }))
   }
 
