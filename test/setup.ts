@@ -1,3 +1,4 @@
-import { LogLevels, setDefaultLogLevel } from "../src/log"
+import { LogLevel } from "../src/logger/types"
+import { setDefaultLogLevel } from "../src/logger"
 
-setDefaultLogLevel(LogLevels.error)
+setDefaultLogLevel(LogLevel.error)

@@ -1,7 +1,7 @@
 import { Task } from "../task-graph"
 import { Module } from "../types/module"
 import { GardenContext } from "../context"
-import { EntryStyle } from "../log"
+import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
 export class BuildTask extends Task {

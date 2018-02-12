@@ -1,168 +1,48 @@
 // TODO: make log level configurable
-import * as logSymbols from "log-symbols"
 import * as logUpdate from "log-update"
 import * as nodeEmoji from "node-emoji"
-import { curryRight, flatten, flow, padEnd } from "lodash"
 import chalk from "chalk"
-import hasAnsi = require("has-ansi")
+import { flatten } from "lodash"
 const elegantSpinner = require("elegant-spinner")
 
-const INTERVAL_DELAY = 100
+import {
+  format,
+  renderEntryStyle,
+  renderEmoji,
+  renderHeader,
+  renderMsg,
+  renderSection,
+  renderSymbol,
+} from "./renderers"
 
-export enum LogLevels {
-  error = 0,
-  warn = 1,
-  info = 2,
-  verbose = 3,
-  debug = 4,
-  silly = 5,
-}
+import {
+  EntryStatus,
+  EntryStyle,
+  HeaderOpts,
+  LogLevel,
+  LogOpts,
+  LogSymbolType,
+} from "./types"
+
+import { getNodeListFromTree, mergeLogOpts } from "./util"
+
+const INTERVAL_DELAY = 100
+const spinnerStyle = chalk.cyan
 
 let loggerInstance: Logger
-let defaultLogLevel = LogLevels.verbose
-
-// Defines entry style and format
-export enum EntryStyle {
-  activity = "activity",
-  error = "error",
-  info = "info",
-  warn = "warn",
-}
-
-// Icon to show when activity is done
-export enum LogSymbolType {
-  error = "error",
-  info = "info",
-  success = "success",
-  warn = "warn",
-  empty = "empty",
-}
-
-enum EntryStatus {
-  ACTIVE = "active",
-  DONE = "done",
-  ERROR = "error",
-  SUCCESS = "success",
-  WARN = "warn",
-}
-
-type EmojiName = keyof typeof nodeEmoji.emoji
-
-interface LogOpts {
-  msg?: string | string[]
-  section?: string
-  emoji?: EmojiName
-  symbol?: LogSymbolType
-  entryStyle?: EntryStyle
-  append?: boolean
-}
-
-interface HeaderOpts {
-  emoji: string
-  command: string
-}
+let defaultLogLevel = LogLevel.verbose
 
 interface LogWriteFn {
   (logOpts: LogOpts, parent?: LogEntry): LogEntry
 }
 
-// Style helpers
-const sectionPrefixWidth = 18
-const truncate = (s: string) => s.length > sectionPrefixWidth
-  ? `${s.substring(0, sectionPrefixWidth - 3)}...`
-  : s
-const sectionStyle = (s: string) => chalk.cyan.italic(padEnd(truncate(s), sectionPrefixWidth))
-const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
-const spinnerStyle = chalk.cyan
-
-// Formatter functions
-function renderEntryStyle(style?: EntryStyle): string {
-  if (style) {
-    return {
-      info: chalk.bold.green("Info "),
-      warn: chalk.bold.yellow("Warning "),
-      error: chalk.bold.red("Error "),
-      none: "",
-    }[style] || ""
-  }
-  return ""
-}
-
-function renderEmoji(emoji?: any): string {
-  if (emoji && nodeEmoji.hasEmoji(emoji)) {
-    return `${nodeEmoji.get(emoji)} `
-  }
-  return ""
-}
-
-function renderSymbol(symbol?: LogSymbolType): string {
-  if (symbol === LogSymbolType.empty) {
-    return " "
-  }
-  return symbol ? `${logSymbols[symbol]} ` : ""
-}
-
-function renderMsg(msg?: string | string[]): string {
-  if (msg && msg instanceof Array) {
-    return msgStyle(msg.join(" → "))
-  }
-  return msg ? msgStyle(msg) : ""
-}
-
-function renderSection(section?: string): string {
-  return section ? `${sectionStyle(section)} → ` : ""
-}
-
-function insertVal(out: string[], idx: number, renderFn: Function, renderArgs: any[]): string[] {
-  out[idx] = renderFn(...renderArgs)
-  return out
-}
-
-// Helper function to create a chain of renderers that each receives the
-// updated output array along with the provided parameters
-function applyRenderers(renderers: any[][]): Function {
-  const curried = renderers.map((p, idx) => {
-    const args = [idx, p[0], p[1]]
-    // FIXME Currying like this throws "Expected 0-4 arguments, but got 0 or more"
-    // Setting (insertVal as any) does not work.
-    // @ts-ignore
-    return curryRight(insertVal)(...args)
-  })
-  return flow(curried)
-}
-
-// Accepts a list of tuples containing a render functions and it's args: [renderFn, [arguments]]
-function format(renderers: any[][]): string {
-  const initOutput = []
-  return applyRenderers(renderers)(initOutput).join("")
-}
-
-function renderHeader(opts: HeaderOpts) {
-  const { emoji, command } = opts
-  return `${chalk.bold.magenta(command)} ${nodeEmoji.get(emoji)}\n`
-}
-
-// Tree traversal
-interface Node {
-  children: any[]
-}
-
-function getNodeListFromTree<T extends Node>(node: T): T[] {
-  let arr: T[] = []
-  arr.push(node)
-  if (node.children.length === 0) {
-    return arr
-  }
-  return arr.concat(flatten(node.children.map(child => getNodeListFromTree(child))))
-}
-
 export class Logger {
   private entries: LogEntry[]
-  private level: LogLevels
-  private intervalID: any // TODO
+  private level: LogLevel
+  private intervalID: NodeJS.Timer | null
   private startTime: number
 
-  constructor(level: LogLevels) {
+  constructor(level: LogLevel) {
     this.startTime = Date.now()
     this.level = level
     this.entries = []
@@ -224,31 +104,31 @@ export class Logger {
   }
 
   silly: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevels.silly, opts, parent)
+    return this.addEntryAndRender(LogLevel.silly, opts, parent)
   }
 
   debug: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevels.debug, opts, parent)
+    return this.addEntryAndRender(LogLevel.debug, opts, parent)
   }
 
   verbose: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevels.verbose, opts, parent)
+    return this.addEntryAndRender(LogLevel.verbose, opts, parent)
   }
 
   info: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevels.info, opts, parent)
+    return this.addEntryAndRender(LogLevel.info, opts, parent)
   }
 
   warn: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevels.warn, { ...opts, entryStyle: EntryStyle.warn }, parent)
+    return this.addEntryAndRender(LogLevel.warn, { ...opts, entryStyle: EntryStyle.warn }, parent)
   }
 
   error: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevels.error, { ...opts, entryStyle: EntryStyle.error }, parent)
+    return this.addEntryAndRender(LogLevel.error, { ...opts, entryStyle: EntryStyle.error }, parent)
   }
 
   header(opts: HeaderOpts): LogEntry {
-    return this.addEntryAndRender(LogLevels.verbose, { msg: renderHeader(opts) })
+    return this.addEntryAndRender(LogLevel.verbose, { msg: renderHeader(opts) })
   }
 
   persist() {
@@ -261,7 +141,7 @@ export class Logger {
   finish() {
     const totalTime = (this.getTotalTime() / 1000).toFixed(2)
     const msg = `\n${nodeEmoji.get("sparkles")}  Finished in ${chalk.bold(totalTime + "s")}\n`
-    this.addEntryAndRender(LogLevels.info, { msg })
+    this.addEntryAndRender(LogLevel.info, { msg })
     this.persist()
   }
 
@@ -269,20 +149,6 @@ export class Logger {
     return Date.now() - this.startTime
   }
 
-}
-
-function mergeWithResolvers(objA: any, objB: any, resolvers: any = {}) {
-  const returnObj = { ...objA, ...objB }
-  return Object.keys(resolvers).reduce((acc, key) => {
-    acc[key] = resolvers[key](objA, objB)
-    return acc
-  }, returnObj)
-}
-
-type LogOptsResolvers = { [K in keyof LogOpts]?: Function }
-
-function mergeLogOpts(prevOpts: LogOpts, nextOpts: LogOpts, resolvers: LogOptsResolvers) {
-  return mergeWithResolvers(prevOpts, nextOpts, resolvers)
 }
 
 type LoggerWriteMethods = { [key: string]: LogWriteFn }
@@ -293,13 +159,13 @@ export class LogEntry {
   private logger: Logger
   private frame: Function
   private status: EntryStatus
-  private level: LogLevels
+  private level: LogLevel
 
   public depth: number
   public children: LogEntry[]
   public nest: LoggerWriteMethods = this.exposeLoggerWriteMethods()
 
-  constructor(level: LogLevels, opts: LogOpts, logger: Logger, depth?: number) {
+  constructor(level: LogLevel, opts: LogOpts, logger: Logger, depth?: number) {
     this.depth = depth || 0
     this.opts = opts
     this.logger = logger
@@ -402,7 +268,7 @@ export class LogEntry {
     return `${pad}${this.formattedMsg}`
   }
 
-  getLevel(): LogLevels {
+  getLevel(): LogLevel {
     return this.level
   }
 
@@ -443,7 +309,7 @@ export class LogEntry {
 
 }
 
-export function getLogger(level?: LogLevels) {
+export function getLogger(level?: LogLevel) {
   if (!loggerInstance) {
     loggerInstance = new Logger(level || defaultLogLevel)
   }
@@ -451,7 +317,7 @@ export function getLogger(level?: LogLevels) {
   return loggerInstance
 }
 
-export function setDefaultLogLevel(level: LogLevels) {
+export function setDefaultLogLevel(level: LogLevel) {
   defaultLogLevel = level
 }
 

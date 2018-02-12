@@ -14,7 +14,8 @@ import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
 import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
-import { EntryStyle, LogEntry } from "../../log"
+import { EntryStyle } from "../../logger/types"
+import { LogEntry } from "../../logger"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 

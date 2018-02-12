@@ -3,7 +3,8 @@ import chalk from "chalk"
 import { GardenContext } from "./context"
 import { pick } from "lodash"
 
-import { LogEntry, EntryStyle, LogSymbolType } from "./log"
+import { EntryStyle, LogSymbolType } from "./logger/types"
+import { LogEntry } from "./logger"
 
 class TaskDefinitionError extends Error { }
 class TaskGraphError extends Error { }
