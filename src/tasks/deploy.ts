@@ -5,7 +5,7 @@ import { BuildTask } from "./build"
 import { values } from "lodash"
 import { Service } from "../types/service"
 import { joiPrimitive } from "../types/common"
-import { EntryStyle } from "../log"
+import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
 export class DeployTask extends Task {

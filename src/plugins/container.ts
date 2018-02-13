@@ -1,7 +1,7 @@
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
 import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
-import { LogSymbolType } from "../log"
+import { LogSymbolType } from "../logger/types"
 import { identifierRegex } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"

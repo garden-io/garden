@@ -4,7 +4,7 @@ import { BuildTask } from "./build"
 import { TestResult } from "../types/plugin"
 import { DeployTask } from "./deploy"
 import { GardenContext } from "../context"
-import { EntryStyle } from "../log"
+import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
 export class TestTask extends Task {

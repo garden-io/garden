@@ -10,7 +10,7 @@ import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { Task, TaskGraph } from "./task-graph"
-import { getLogger, Logger } from "./log"
+import { getLogger, Logger } from "./logger"
 import {
   BuildStatus, pluginActionNames, PluginActions, PluginFactory, PluginInterface,
 } from "./types/plugin"
