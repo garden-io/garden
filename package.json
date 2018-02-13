@@ -68,7 +68,7 @@
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
     "lint": "node_modules/.bin/tslint -p . && node_modules/.bin/tsfmt --verify",
     "posttest": "npm run lint",
-    "test": "node_modules/.bin/mocha test/**/*.ts test/**/**/*.ts",
+    "test": "npm run build && node_modules/.bin/mocha test/**/*.ts test/**/**/*.ts",
     "watch": "node_modules/.bin/tsc -w -p .",
     "snyk-protect": "snyk protect",
     "prepare": "npm run snyk-protect"
