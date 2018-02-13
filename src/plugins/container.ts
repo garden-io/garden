@@ -1,7 +1,7 @@
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
 import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
-import { LogSymbolTypes } from "../log"
+import { LogSymbolType } from "../log"
 import { identifierRegex } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
@@ -175,7 +175,7 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
       this.context.log.debug({
         section: module.name,
         msg: `Image ${await module.getImageId()} already exists`,
-        symbol: LogSymbolTypes.info,
+        symbol: LogSymbolType.info,
       })
     }
 

@@ -1,7 +1,7 @@
 import { Task } from "../task-graph"
 import { Module } from "../types/module"
 import { GardenContext } from "../context"
-import { EntryStyles } from "../log"
+import { EntryStyle } from "../log"
 import chalk from "chalk"
 
 export class BuildTask extends Task {
@@ -25,7 +25,7 @@ export class BuildTask extends Task {
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",
-      entryStyle: EntryStyles.activity,
+      entryStyle: EntryStyle.activity,
     })
 
     if (this.force || !(await this.module.getBuildStatus()).ready) {
