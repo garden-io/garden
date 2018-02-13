@@ -11,6 +11,11 @@ export enum LogLevel {
   silly = 5,
 }
 
+export enum LoggerType {
+  basic = "basic",
+  fancy = "fancy",
+}
+
 // Defines entry style and format
 export enum EntryStyle {
   activity = "activity",

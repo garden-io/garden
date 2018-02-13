@@ -19,6 +19,7 @@ import {
   EntryStatus,
   EntryStyle,
   HeaderOpts,
+  LoggerType,
   LogLevel,
   LogOpts,
   LogSymbolType,
@@ -31,76 +32,36 @@ const spinnerStyle = chalk.cyan
 
 let loggerInstance: Logger
 let defaultLogLevel = LogLevel.verbose
+let defaultLoggerType = LoggerType.fancy
 
 interface LogWriteFn {
   (logOpts: LogOpts, parent?: LogEntry): LogEntry
 }
 
-export class Logger {
-  private entries: LogEntry[]
-  private level: LogLevel
-  private intervalID: NodeJS.Timer | null
-  private startTime: number
+export abstract class Logger {
+  entries: LogEntry[]
+  level: LogLevel
+  startTime: number
 
   constructor(level: LogLevel) {
     this.startTime = Date.now()
     this.level = level
     this.entries = []
-    this.startTime = Date.now()
-    this.intervalID = null
   }
 
-  createLogEntry(level, opts: LogOpts, parent?: LogEntry): LogEntry {
+  abstract render(): void
+  abstract createLogEntry(level, opts: LogOpts, depth: number): LogEntry
+
+  protected addEntryAndRender(level, opts: LogOpts, parent?: LogEntry): LogEntry {
     const depth = parent ? parent.depth + 1 : 0
-    const entry = new LogEntry(level, opts, this, depth)
+    const entry = this.createLogEntry(level, opts, depth)
     if (parent) {
       parent.pushChild(entry)
     } else {
       this.entries.push(entry)
     }
-    return entry
-  }
-
-  private addEntryAndRender(level, opts: LogOpts, parent?: LogEntry): LogEntry {
-    const entry = this.createLogEntry(level, opts, parent)
-    if (opts.entryStyle === EntryStyle.activity) {
-      this.startLoop()
-    }
     this.render()
     return entry
-  }
-
-  private startLoop(): void {
-    if (!this.intervalID) {
-      this.intervalID = setInterval(this.render.bind(this), INTERVAL_DELAY)
-    }
-  }
-
-  private stopLoop(): void {
-    if (this.intervalID) {
-      clearInterval(this.intervalID)
-      this.intervalID = null
-    }
-  }
-
-  // Has a side effect in that it stops the rendering loop if no
-  // active entries found while building output.
-  render(): void {
-    let hasActiveEntries = false
-    const nodes = flatten(this.entries.map(e => getNodeListFromTree(e)))
-    const out = nodes.reduce((acc: string[], e: LogEntry) => {
-      if (e.getStatus() === EntryStatus.ACTIVE) {
-        hasActiveEntries = true
-      }
-      if (this.level >= e.getLevel()) {
-        acc.push(e.render())
-      }
-      return acc
-    }, [])
-    if (!hasActiveEntries) {
-      this.stopLoop()
-    }
-    logUpdate(out.join("\n"))
   }
 
   silly: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
@@ -131,18 +92,10 @@ export class Logger {
     return this.addEntryAndRender(LogLevel.verbose, { msg: renderHeader(opts) })
   }
 
-  persist() {
-    this.entries.map(e => e.stop())
-    this.stopLoop()
-    this.entries = []
-    logUpdate.done()
-  }
-
   finish() {
     const totalTime = (this.getTotalTime() / 1000).toFixed(2)
     const msg = `\n${nodeEmoji.get("sparkles")}  Finished in ${chalk.bold(totalTime + "s")}\n`
     this.addEntryAndRender(LogLevel.info, { msg })
-    this.persist()
   }
 
   getTotalTime(): number {
@@ -151,15 +104,92 @@ export class Logger {
 
 }
 
+class BasicLogger extends Logger {
+
+  createLogEntry(level, opts: LogOpts, depth: number): LogEntry {
+    return new BasicLogEntry(level, opts, this, depth)
+  }
+
+  render(): void {
+    const entry = this.entries[this.entries.length - 1]
+    console.log(entry.render())
+  }
+
+}
+
+class FancyLogger extends Logger {
+  private intervalID: NodeJS.Timer | null
+
+  constructor(level: LogLevel) {
+    super(level)
+    this.intervalID = null
+  }
+
+  protected startLoop(): void {
+    if (!this.intervalID) {
+      this.intervalID = setInterval(this.render.bind(this), INTERVAL_DELAY)
+    }
+  }
+
+  protected stopLoop(): void {
+    if (this.intervalID) {
+      clearInterval(this.intervalID)
+      this.intervalID = null
+    }
+  }
+
+  createLogEntry(level, opts: LogOpts, depth: number): LogEntry {
+    return new FancyLogEntry(level, opts, this, depth)
+  }
+
+  protected addEntryAndRender(level: LogLevel, opts: LogOpts, parent?: LogEntry): LogEntry {
+    if (opts.entryStyle === EntryStyle.activity) {
+      this.startLoop()
+    }
+    return super.addEntryAndRender(level, opts, parent)
+  }
+
+  // Has a side effect in that it stops the rendering loop if no
+  // active entries found while building output.
+  render(): void {
+    let hasActiveEntries = false
+    const nodes = flatten(this.entries.map(e => getNodeListFromTree(e)))
+    const out = nodes.reduce((acc: string[], e: LogEntry) => {
+      if (e.getStatus() === EntryStatus.ACTIVE) {
+        hasActiveEntries = true
+      }
+      if (this.level >= e.getLevel()) {
+        acc.push(e.render())
+      }
+      return acc
+    }, [])
+    if (!hasActiveEntries) {
+      this.stopLoop()
+    }
+    logUpdate(out.join("\n"))
+  }
+
+  finish() {
+    super.finish()
+    this.persist()
+  }
+
+  persist() {
+    this.entries.map(e => e.stop())
+    this.stopLoop()
+    logUpdate.done()
+  }
+
+}
+
 type LoggerWriteMethods = { [key: string]: LogWriteFn }
 
-export class LogEntry {
-  private formattedMsg: string
-  private opts: LogOpts
-  private logger: Logger
-  private frame: Function
-  private status: EntryStatus
-  private level: LogLevel
+export abstract class LogEntry {
+  protected formattedMsg: string
+  protected opts: LogOpts
+  protected logger: Logger
+  protected status: EntryStatus
+  protected level: LogLevel
 
   public depth: number
   public children: LogEntry[]
@@ -171,12 +201,13 @@ export class LogEntry {
     this.logger = logger
     this.children = []
     this.level = level
-    if (this.opts.entryStyle === EntryStyle.activity) {
-      this.frame = elegantSpinner()
+    if (opts.entryStyle === EntryStyle.activity) {
       this.status = EntryStatus.ACTIVE
     }
     this.formattedMsg = this.format()
   }
+
+  abstract render(): string
 
   // Expose the Logger write methods on a LogEntry instance to allow for an API like logEntry.nest.info(logOpts)
   // Feels a bit hacky though
@@ -222,7 +253,7 @@ export class LogEntry {
     this.logger.render()
   }
 
-  private format(): string {
+  protected format(): string {
     let renderers
     if (this.depth > 0) {
       // Skip section on child entries. We might want to change this a bit
@@ -254,20 +285,6 @@ export class LogEntry {
     }
   }
 
-  // NOTE: The spinner updates on every render call but we don't want to reformat the entire string
-  // on each render so we handle the spinner (and padding because it appears before the spinner) here.
-  // Needs a better solution since it makes the format less declarative.
-  render(): string {
-    let pad = ""
-    for (let i = 0; i < this.depth; i++) {
-      pad += "    "
-    }
-    if (this.status === EntryStatus.ACTIVE) {
-      return `${pad}${spinnerStyle(this.frame())} ${this.formattedMsg}`
-    }
-    return `${pad}${this.formattedMsg}`
-  }
-
   getLevel(): LogLevel {
     return this.level
   }
@@ -276,9 +293,8 @@ export class LogEntry {
     return this.status
   }
 
-  // We need to persist all previous entries to be able to print the inspection results.
+  // FIXME Doesn't work with FancyLogger due to updates
   inspect() {
-    this.logger.persist()
     console.log(JSON.stringify({
       ...this.opts,
       level: this.level,
@@ -309,16 +325,65 @@ export class LogEntry {
 
 }
 
-export function getLogger(level?: LogLevel) {
-  if (!loggerInstance) {
-    loggerInstance = new Logger(level || defaultLogLevel)
+const padByDepth = (n: number): string => {
+  let pad = ""
+  for (let i = 0; i < n; i++) {
+    pad += "    "
+  }
+  return pad
+}
+
+class FancyLogEntry extends LogEntry {
+  private frame: Function
+
+  constructor(level: LogLevel, opts: LogOpts, logger: Logger, depth?: number) {
+    super(level, opts, logger, depth)
+    if (opts.entryStyle === EntryStyle.activity) {
+      this.frame = elegantSpinner()
+    }
   }
 
+  // NOTE: The spinner updates on every render call but we don't want to reformat the entire string
+  // on each render so we handle the spinner (and padding because it appears before the spinner) here.
+  // Needs a better solution since it makes the format less declarative.
+  render(): string {
+    const pad = padByDepth(this.depth)
+    if (this.status === EntryStatus.ACTIVE) {
+      return `${pad}${spinnerStyle(this.frame())} ${this.formattedMsg}`
+    }
+    return `${pad}${this.formattedMsg}`
+  }
+
+}
+
+class BasicLogEntry extends LogEntry {
+
+  render(): string {
+    return `${padByDepth(this.depth)}${this.formattedMsg}`
+  }
+
+}
+
+export function getLogger(level?: LogLevel, loggerType?: LoggerType) {
+  if (loggerInstance) {
+    return loggerInstance
+  }
+
+  const type = loggerType || defaultLoggerType
+  if (type === LoggerType.fancy) {
+    loggerInstance = new FancyLogger(level || defaultLogLevel)
+  } else {
+    loggerInstance = new BasicLogger(level || defaultLogLevel)
+  }
   return loggerInstance
 }
 
 export function setDefaultLogLevel(level: LogLevel) {
   defaultLogLevel = level
+}
+
+export function setDefaultLoggerType(loggerType: LoggerType) {
+  defaultLoggerType = loggerType
 }
 
 export function logException(error: Error) {
