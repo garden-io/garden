@@ -37,7 +37,8 @@
     "runtypes": "^0.13.1",
     "serverless": "^1.25.0",
     "typescript-memoize": "^1.0.0-alpha.3",
-    "winston": "^2.4.0"
+    "winston": "^2.4.0",
+    "snyk": "^1.69.7"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.18",
@@ -68,6 +69,9 @@
     "lint": "node_modules/.bin/tslint -p . && node_modules/.bin/tsfmt --verify",
     "posttest": "npm run lint",
     "test": "node_modules/.bin/mocha test/**/*.ts test/**/**/*.ts",
-    "watch": "node_modules/.bin/tsc -w -p ."
-  }
+    "watch": "node_modules/.bin/tsc -w -p .",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
+  },
+  "snyk": true
 }
