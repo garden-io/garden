@@ -112,9 +112,10 @@ class BasicLogger extends Logger {
 
   render(): void {
     const entry = this.entries[this.entries.length - 1]
-    console.log(entry.render())
+    if (this.level >= entry.level) {
+      console.log(entry.render())
+    }
   }
-
 }
 
 class FancyLogger extends Logger {
@@ -189,8 +190,8 @@ export abstract class LogEntry {
   protected opts: LogOpts
   protected logger: Logger
   protected status: EntryStatus
-  protected level: LogLevel
 
+  public level: LogLevel
   public depth: number
   public children: LogEntry[]
   public nest: LoggerWriteMethods = this.exposeLoggerWriteMethods()
