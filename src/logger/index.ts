@@ -50,7 +50,8 @@ export abstract class Logger {
     this.entries = []
   }
 
-  abstract render(): void
+  abstract render(): string | string[] | null
+  abstract write(): void
   abstract createLogEntry(level, opts: LogOpts, depth: number): LogEntry
 
   protected addEntryAndRender(level, opts: LogOpts, parent?: LogEntry): LogEntry {
@@ -61,7 +62,7 @@ export abstract class Logger {
     } else {
       this.entries.push(entry)
     }
-    this.render()
+    this.write()
     return entry
   }
 
@@ -105,20 +106,27 @@ export abstract class Logger {
 
 }
 
-class BasicLogger extends Logger {
+export class BasicLogger extends Logger {
   createLogEntry(level, opts: LogOpts, depth: number): LogEntry {
     return new BasicLogEntry(level, opts, this, depth)
   }
 
-  render(): void {
+  write(): void {
+    const out = this.render()
+    if (out !== null) { console.log(out) }
+  }
+
+  render(): string | null {
     const entry = this.entries[this.entries.length - 1]
     if (this.level >= entry.level) {
-      console.log(entry.render())
+      return entry.render()
     }
+    return null
   }
+
 }
 
-class FancyLogger extends Logger {
+export class FancyLogger extends Logger {
   private intervalID: NodeJS.Timer | null
 
   constructor(level: LogLevel) {
@@ -128,7 +136,7 @@ class FancyLogger extends Logger {
 
   protected startLoop(): void {
     if (!this.intervalID) {
-      this.intervalID = setInterval(this.render.bind(this), INTERVAL_DELAY)
+      this.intervalID = setInterval(this.write.bind(this), INTERVAL_DELAY)
     }
   }
 
@@ -150,16 +158,23 @@ class FancyLogger extends Logger {
     return super.addEntryAndRender(level, opts, parent)
   }
 
+  write(): void {
+    const out = this.render()
+    if (out) {
+      logUpdate(out.join("\n"))
+    }
+  }
+
   // Has a side effect in that it stops the rendering loop if no
   // active entries found while building output.
-  render(): void {
+  render(): string[] | null {
     let hasActiveEntries = false
     const nodes = flatten(this.entries.map(e => getNodeListFromTree(e)))
     const out = nodes.reduce((acc: string[], e: LogEntry) => {
       if (e.getStatus() === EntryStatus.ACTIVE) {
         hasActiveEntries = true
       }
-      if (this.level >= e.getLevel()) {
+      if (this.level >= e.level) {
         acc.push(e.render())
       }
       return acc
@@ -167,7 +182,10 @@ class FancyLogger extends Logger {
     if (!hasActiveEntries) {
       this.stopLoop()
     }
-    logUpdate(out.join("\n"))
+    if (out.length) {
+      return out
+    }
+    return null
   }
 
   finish() {
@@ -286,10 +304,6 @@ export abstract class LogEntry {
     }
   }
 
-  getLevel(): LogLevel {
-    return this.level
-  }
-
   getStatus(): EntryStatus {
     return this.status
   }
@@ -365,16 +379,21 @@ class BasicLogEntry extends LogEntry {
 
 }
 
-export function getLogger(level?: LogLevel, loggerType?: LoggerType) {
+interface GetLoggerParams {
+  level?: LogLevel
+  loggerType?: LoggerType
+}
+
+export function getLogger(params: GetLoggerParams = {}) {
   if (loggerInstance) {
     return loggerInstance
   }
 
-  const type = loggerType || defaultLoggerType
-  if (type === LoggerType.fancy) {
-    loggerInstance = new FancyLogger(level || defaultLogLevel)
+  const { level = defaultLogLevel, loggerType = defaultLoggerType } = params
+  if (loggerType === LoggerType.fancy) {
+    loggerInstance = new FancyLogger(level)
   } else {
-    loggerInstance = new BasicLogger(level || defaultLogLevel)
+    loggerInstance = new BasicLogger(level)
   }
   return loggerInstance
 }
