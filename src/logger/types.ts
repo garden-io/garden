@@ -3,6 +3,7 @@ import * as nodeEmoji from "node-emoji"
 type EmojiName = keyof typeof nodeEmoji.emoji
 
 export enum LogLevel {
+  silent = -1,
   error = 0,
   warn = 1,
   info = 2,
