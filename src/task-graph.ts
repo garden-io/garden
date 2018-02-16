@@ -60,7 +60,7 @@ export class TaskGraph {
   private inProgress: TaskNodeMap
   private logEntryMap: LogEntryMap
 
-  constructor(private context: GardenContext, private concurrency: number = DEFAULT_CONCURRENCY) {
+  constructor(private ctx: GardenContext, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
@@ -167,7 +167,7 @@ export class TaskGraph {
 
   // Logging
   private logTask(node: TaskNode) {
-    const entry = this.context.log.debug({
+    const entry = this.ctx.log.debug({
       section: "tasks",
       msg: `Processing task ${taskStyle(node.getKey())}`,
       entryStyle: EntryStyle.activity,
@@ -183,12 +183,12 @@ export class TaskGraph {
 
   private initLogging() {
     if (!Object.keys(this.logEntryMap).length) {
-      const header = this.context.log.debug({ msg: "Processing tasks..." })
-      const counter = this.context.log.debug({
+      const header = this.ctx.log.debug({ msg: "Processing tasks..." })
+      const counter = this.ctx.log.debug({
         msg: remainingTasksToStr(this.index.length),
         entryStyle: EntryStyle.activity,
       })
-      const inProgress = this.context.log.debug({
+      const inProgress = this.ctx.log.debug({
         msg: inProgressToStr(this.inProgress.getNodes()),
       })
       this.logEntryMap = {

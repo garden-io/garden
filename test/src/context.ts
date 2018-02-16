@@ -1,7 +1,7 @@
 import { join } from "path"
 import { GardenContext } from "../../src/context"
 import { expect } from "chai"
-import { PluginInterface, Plugin, PluginFactory } from "../../src/types/plugin"
+import { ParseModuleParams, Plugin, PluginFactory } from "../../src/types/plugin"
 import { Module } from "../../src/types/module"
 import { ContainerModule } from "../../src/plugins/container"
 
@@ -11,12 +11,12 @@ class TestModule extends Module {
   type = "test"
 }
 
-class TestPluginB extends Plugin<ContainerModule> {
+class TestPluginB implements Plugin<ContainerModule> {
   name = "test-plugin-b"
   supportedModuleTypes = ["test"]
 
-  async parseModule() {
-    return new ContainerModule(this.context, {
+  parseModule({ ctx }: ParseModuleParams) {
+    return new ContainerModule(ctx, {
       version: "0",
       type: "test",
       name: "test",
@@ -33,7 +33,7 @@ class TestPluginB extends Plugin<ContainerModule> {
   async deployService() { return {} }
 }
 
-const testPlugin: PluginInterface<Module> = {
+const testPlugin: Plugin<Module> = {
   name: "test-plugin",
   supportedModuleTypes: ["generic"],
 
@@ -58,7 +58,7 @@ const makeTestModule = (ctx, name = "test") => {
 export const makeTestContextA = (extraPlugins: PluginFactory[] = []) => {
   const testPlugins = [
     (_ctx) => testPlugin,
-    (ctx) => new TestPluginB(ctx),
+    (_ctx) => new TestPluginB(),
   ]
   const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
 
