@@ -8,8 +8,8 @@ export class GenericModuleHandler<T extends Module = Module> extends Plugin<T> {
   name = "generic"
   supportedModuleTypes = ["generic"]
 
-  parseModule({ context, config }: { context: GardenContext, config: ModuleConfigType<T> }) {
-    return new Module<ModuleConfigType<T>>(context, config)
+  parseModule({ ctx, config }: { ctx: GardenContext, config: ModuleConfigType<T> }) {
+    return new Module<ModuleConfigType<T>>(ctx, config)
   }
 
   async getModuleBuildStatus({ module }: { module: T }): Promise<BuildStatus> {

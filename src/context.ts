@@ -346,7 +346,7 @@ export class GardenContext {
     const config = await loadModuleConfig(path)
 
     const parseHandler = this.getActionHandler("parseModule", config.type)
-    return parseHandler({ context: this, config })
+    return parseHandler({ ctx: this, config })
   }
 
   //===========================================================================
@@ -356,43 +356,43 @@ export class GardenContext {
   async getModuleBuildStatus<T extends Module>(module: T): Promise<BuildStatus> {
     const defaultHandler = this.actionHandlers["getModuleBuildStatus"]["generic"]
     const handler = this.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
-    return handler({ context: this, module })
+    return handler({ ctx: this, module })
   }
 
   async buildModule<T extends Module>(module: T, logEntry?: LogEntry) {
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
-    return handler({ context: this, module, logEntry })
+    return handler({ ctx: this, module, logEntry })
   }
 
   async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) {
     const defaultHandler = this.actionHandlers["testModule"]["generic"]
     const handler = this.getEnvActionHandler("testModule", module.type, defaultHandler)
     const env = this.getEnvironment()
-    return handler({ context: this, module, testSpec, env, logEntry })
+    return handler({ ctx: this, module, testSpec, env, logEntry })
   }
 
   async getEnvironmentStatus() {
     const handlers = this.getEnvActionHandlers("getEnvironmentStatus")
     const env = this.getEnvironment()
-    return Bluebird.props(mapValues(handlers, h => h({ context: this, env })))
+    return Bluebird.props(mapValues(handlers, h => h({ ctx: this, env })))
   }
 
   async configureEnvironment() {
     const handlers = this.getEnvActionHandlers("configureEnvironment")
     const env = this.getEnvironment()
-    await Bluebird.each(values(handlers), h => h({ context: this, env }))
+    await Bluebird.each(values(handlers), h => h({ ctx: this, env }))
     return this.getEnvironmentStatus()
   }
 
   async getServiceStatus<T extends Module>(service: Service<T>) {
     const handler = this.getEnvActionHandler("getServiceStatus", service.module.type)
-    return handler({ context: this, service, env: this.getEnvironment() })
+    return handler({ ctx: this, service, env: this.getEnvironment() })
   }
 
   async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext) {
     const handler = this.getEnvActionHandler("deployService", service.module.type)
-    return handler({ context: this, service, serviceContext: serviceContext || {}, env: this.getEnvironment() })
+    return handler({ ctx: this, service, serviceContext: serviceContext || {}, env: this.getEnvironment() })
   }
 
   async getServiceOutputs<T extends Module>(service: Service<T>) {
@@ -403,12 +403,12 @@ export class GardenContext {
     } catch (err) {
       return {}
     }
-    return handler({ context: this, service, env: this.getEnvironment() })
+    return handler({ ctx: this, service, env: this.getEnvironment() })
   }
 
   async execInService<T extends Module>(service: Service<T>, command: string[]) {
     const handler = this.getEnvActionHandler("execInService", service.module.type)
-    return handler({ context: this, service, command, env: this.getEnvironment() })
+    return handler({ ctx: this, service, command, env: this.getEnvironment() })
   }
 
   //endregion

@@ -89,6 +89,6 @@ export class GitHandler extends VcsHandler {
   }
 
   private async git(args) {
-    return exec("git " + args, { cwd: this.context.projectRoot })
+    return exec("git " + args, { cwd: this.ctx.projectRoot })
   }
 }

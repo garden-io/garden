@@ -42,7 +42,7 @@ interface ExecInServiceResult {
 }
 
 export interface PluginActionParamsBase {
-  context: GardenContext
+  ctx: GardenContext
   logEntry?: LogEntry
 }
 
@@ -160,5 +160,5 @@ export abstract class Plugin<T extends Module = Module> implements PluginInterfa
   abstract name: string
   abstract supportedModuleTypes: string[]
 
-  constructor(protected context: GardenContext) { }
+  constructor(protected ctx: GardenContext) { }
 }

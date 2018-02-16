@@ -52,7 +52,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   _ConfigType: T
 
-  constructor(private context: GardenContext, public config: T) {
+  constructor(private ctx: GardenContext, public config: T) {
     this.name = config.name
     this.type = config.type
     this.path = config.path
@@ -60,7 +60,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   async getVersion() {
-    const treeVersion = await this.context.vcs.getTreeVersion([this.path])
+    const treeVersion = await this.ctx.vcs.getTreeVersion([this.path])
 
     const versionChain = await Bluebird.map(
       await this.getBuildDependencies(),
@@ -69,17 +69,17 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     versionChain.push(treeVersion)
 
     // The module version is the latest of any of the dependency modules or itself.
-    const sortedVersions = await this.context.vcs.sortVersions(versionChain)
+    const sortedVersions = await this.ctx.vcs.sortVersions(versionChain)
 
     return sortedVersions[0]
   }
 
   async getBuildStatus() {
-    return this.context.getModuleBuildStatus(this)
+    return this.ctx.getModuleBuildStatus(this)
   }
 
   async build() {
-    return this.context.buildModule(this)
+    return this.ctx.buildModule(this)
   }
 
   async getBuildDependencies(): Promise<Module[]> {
@@ -88,7 +88,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     }
 
     // TODO: Detect circular dependencies
-    const modules = await this.context.getModules()
+    const modules = await this.ctx.getModules()
     const deps: Module[] = []
 
     for (let dependencyName of this.config.build.dependencies) {

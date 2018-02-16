@@ -125,9 +125,9 @@ export class GardenCli {
       const root = resolve(process.cwd(), opts.root)
       const plugins = defaultPlugins
 
-      const context = new GardenContext(root, { logger, plugins })
+      const ctx = new GardenContext(root, { logger, plugins })
 
-      return command.action(context, args, opts)
+      return command.action(ctx, args, opts)
     })
   }
 

@@ -22,7 +22,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
   }
 
   async deployService({ service, serviceContext, env }: PluginActionParams<ContainerModule>["deployService"]) {
-    this.context.log.info({
+    this.ctx.log.info({
       section: service.name,
       msg: `Deploying app...`,
     })
@@ -38,7 +38,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
 
     if (config.healthCheck) {
       if (config.healthCheck.tcpPort || config.healthCheck.command) {
-        this.context.log.warn({
+        this.ctx.log.warn({
           section: service.name,
           msg: "GAE only supports httpGet health checks",
         })
@@ -60,7 +60,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
       "app", "deploy", "--quiet",
     ], { cwd: service.module.path })
 
-    this.context.log.info({ section: service.name, msg: `App deployed` })
+    this.ctx.log.info({ section: service.name, msg: `App deployed` })
   }
 
   async getServiceOutputs({ service, env }: PluginActionParams<ContainerModule>["getServiceOutputs"]) {

@@ -89,11 +89,11 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }
   }
 
-  async deployService({ context, service, serviceContext, env }: DeployServiceParams<ContainerModule>) {
+  async deployService({ ctx, service, serviceContext, env }: DeployServiceParams<ContainerModule>) {
     // TODO: split this method up and test
     const version = await service.module.getVersion()
 
-    this.context.log.info({ section: service.name, msg: `Deploying version ${version}` })
+    this.ctx.log.info({ section: service.name, msg: `Deploying version ${version}` })
 
     const identifier = await service.module.getImageId()
     const ports = service.config.ports.map(p => {
@@ -160,7 +160,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }
 
     const docker = this.getDocker()
-    const serviceStatus = await this.getServiceStatus({ context, service, env })
+    const serviceStatus = await this.getServiceStatus({ ctx, service, env })
     let swarmServiceStatus
     let serviceId
 
@@ -168,14 +168,14 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       const swarmService = await docker.getService(serviceStatus.providerId)
       swarmServiceStatus = await swarmService.inspect()
       opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
-      this.context.log.verbose({
+      this.ctx.log.verbose({
         section: service.name,
         msg: `Updating existing Swarm service (version ${opts.version})`,
       })
       await swarmService.update(opts)
       serviceId = serviceStatus.providerId
     } else {
-      this.context.log.verbose({
+      this.ctx.log.verbose({
         section: service.name,
         msg: `Creating new Swarm service`,
       })
@@ -211,12 +211,12 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
       }
     }
 
-    this.context.log.info({
+    this.ctx.log.info({
       section: service.name,
       msg: `Ready`,
     })
 
-    return this.getServiceStatus({ context, service, env })
+    return this.getServiceStatus({ ctx, service, env })
   }
 
   async getServiceOutputs({ service }: GetServiceOutputsParams<ContainerModule>) {
@@ -225,8 +225,8 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
     }
   }
 
-  async execInService({ context, env, service, command }: ExecInServiceParams<ContainerModule>) {
-    const status = await this.getServiceStatus({ context, service, env })
+  async execInService({ ctx, env, service, command }: ExecInServiceParams<ContainerModule>) {
+    const status = await this.getServiceStatus({ ctx, service, env })
 
     if (!status.state || status.state !== "ready") {
       throw new DeploymentError(`Service ${service.name} is not running`, {
@@ -254,7 +254,7 @@ export class LocalDockerSwarmBase<T extends Module> extends Plugin<T> {
   }
 
   private getSwarmServiceName(serviceName: string) {
-    return `${this.context.projectName}--${serviceName}`
+    return `${this.ctx.projectName}--${serviceName}`
   }
 
   private async getServiceTask(serviceId: string) {

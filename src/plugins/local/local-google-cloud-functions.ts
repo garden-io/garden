@@ -19,8 +19,8 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
   name = "local-google-cloud-functions"
   supportedModuleTypes = ["google-cloud-function"]
 
-  parseModule({ context, config }: ParseModuleParams<GoogleCloudFunctionsModule>) {
-    const module = new GoogleCloudFunctionsModule(context, config)
+  parseModule({ ctx, config }: ParseModuleParams<GoogleCloudFunctionsModule>) {
+    const module = new GoogleCloudFunctionsModule(ctx, config)
 
     // TODO: check that each function exists at the specified path
 
@@ -31,7 +31,7 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
 
   async getEnvironmentStatus() {
     // Check if functions emulator container is running
-    const status = await this.context.getServiceStatus(await this.getEmulatorService())
+    const status = await this.ctx.getServiceStatus(await this.getEmulatorService())
 
     return { configured: status.state === "ready" }
   }
@@ -50,17 +50,17 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
     service.config.volumes = [{
       name: "functions",
       containerPath: "/functions",
-      hostPath: this.context.projectRoot,
+      hostPath: this.ctx.projectRoot,
     }]
 
     // TODO: Publish this container separately from the project instead of building it here
-    await this.context.buildModule(service.module)
-    await this.context.deployService(service)
+    await this.ctx.buildModule(service.module)
+    await this.ctx.deployService(service)
   }
 
   async getServiceStatus({ service }: GetServiceStatusParams<GoogleCloudFunctionsModule>): Promise<ServiceStatus> {
     const emulator = await this.getEmulatorService()
-    const result = await this.context.execInService(emulator, ["functions-emulator", "list"])
+    const result = await this.ctx.execInService(emulator, ["functions-emulator", "list"])
 
     // Regex fun. Yay.
     // TODO: Submit issue/PR to @google-cloud/functions-emulator to get machine-readable output
@@ -73,15 +73,15 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
     }
   }
 
-  async deployService({ context, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>) {
+  async deployService({ ctx, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>) {
     const containerFunctionPath = resolve(
       "/functions",
-      relative(this.context.projectRoot, service.module.path),
+      relative(this.ctx.projectRoot, service.module.path),
       service.config.path,
     )
 
     const emulator = await this.getEmulatorService()
-    const result = await this.context.execInService(
+    const result = await this.ctx.execInService(
       emulator,
       [
         "functions-emulator", "deploy",
@@ -101,7 +101,7 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
       })
     }
 
-    return this.getServiceStatus({ context, service, env })
+    return this.getServiceStatus({ ctx, service, env })
   }
 
   async getServiceOutputs({ service }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
@@ -113,7 +113,7 @@ export class LocalGoogleCloudFunctionsProvider extends Plugin<GoogleCloudFunctio
   }
 
   private async getEmulatorService() {
-    const module = await this.context.resolveModule(emulatorModulePath)
+    const module = await this.ctx.resolveModule(emulatorModulePath)
 
     return new Service(module, emulatorServiceName)
   }

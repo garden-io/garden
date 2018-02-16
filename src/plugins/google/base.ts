@@ -55,7 +55,7 @@ export abstract class GoogleCloudProviderBase<T extends Module> extends Plugin<T
     }
 
     if (!status.detail.betaComponentsInstalled) {
-      this.context.log.info({
+      this.ctx.log.info({
         section: "google-cloud-functions",
         msg: `Installing gcloud SDK beta components...`,
       })
@@ -64,7 +64,7 @@ export abstract class GoogleCloudProviderBase<T extends Module> extends Plugin<T
     }
 
     if (!status.detail.sdkInitialized) {
-      this.context.log.info({
+      this.ctx.log.info({
         section: "google-cloud-functions",
         msg: `Initializing SDK...`,
       })
