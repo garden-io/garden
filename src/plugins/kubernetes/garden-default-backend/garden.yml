@@ -7,5 +7,5 @@ services:
     ports:
       - containerPort: 8080
     # restart: Always
-    # healthCheck:
-    #   tcpPort: 8080
+    healthCheck:
+      tcpPort: 8080
