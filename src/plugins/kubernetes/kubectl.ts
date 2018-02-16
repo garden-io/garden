@@ -110,6 +110,10 @@ export class Kubectl {
     return spawnPty("kubectl", this.prepareArgs(args), { silent, ignoreError, timeout })
   }
 
+  spawn(args: string[]) {
+    return spawn("kubectl", this.prepareArgs(args))
+  }
+
   private prepareArgs(args: string[]) {
     const ops: string[] = []
 

@@ -13,6 +13,7 @@ import { CallCommand } from "./commands/call"
 import { defaultPlugins } from "./plugins"
 import { TestCommand } from "./commands/test"
 import { DevCommand } from "./commands/dev"
+import { LogsCommand } from "./commands/logs"
 
 // TODO: feels like we should be able to set these as a global option
 const commonOptions = {
@@ -53,6 +54,7 @@ export class GardenCli {
     this.addCommand(new DevCommand())
     this.addCommand(new EnvironmentConfigureCommand())
     this.addCommand(new EnvironmentStatusCommand())
+    this.addCommand(new LogsCommand())
     this.addCommand(new TestCommand())
     this.addCommand(new ValidateCommand())
   }
@@ -133,7 +135,7 @@ export class GardenCli {
 
   async parse(argv: string[]) {
     const parsed = await this.program.parse(argv)
-    this.logger.finish()
+    // this.logger.finish()
     return parsed
   }
 

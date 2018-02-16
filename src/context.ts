@@ -74,6 +74,7 @@ export class GardenContext {
       deployService: {},
       getServiceOutputs: {},
       execInService: {},
+      getServiceLogs: {},
     }
 
     // Load built-in plugins

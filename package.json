@@ -33,13 +33,16 @@
     "kubernetes-client": "^3.18.1",
     "log-symbols": "^2.2.0",
     "log-update": "^2.3.0",
+    "moment": "^2.20.1",
     "node-emoji": "^1.8.1",
     "node-pty": "^0.7.4",
     "runtypes": "^0.13.1",
     "serverless": "^1.25.0",
+    "snyk": "^1.69.7",
+    "split": "^1.0.1",
+    "ts-stream": "^1.0.1",
     "typescript-memoize": "^1.0.0-alpha.3",
-    "winston": "^2.4.0",
-    "snyk": "^1.69.7"
+    "winston": "^2.4.0"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.18",
