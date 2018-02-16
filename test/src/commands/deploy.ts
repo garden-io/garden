@@ -40,7 +40,7 @@ describe("commands.deploy", () => {
 
     const result = await command.action(
       ctx, {
-        environment: "test",
+        environment: "local",
         service: "",
       },
       {
@@ -66,7 +66,7 @@ describe("commands.deploy", () => {
     const result = await command.action(
       ctx,
       {
-        environment: "test",
+        environment: "local",
         service: "service-b",
       },
       {

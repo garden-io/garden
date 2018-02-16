@@ -5,7 +5,6 @@ services:
     command: [nodemon, server.js]
     endpoints:
       - paths: [/]
-        hostname: vote.my.garden
         containerPort: 80
     ports:
       - name: ui

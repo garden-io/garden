@@ -1,6 +1,6 @@
 name: test-project-b
 environments:
-  test:
+  local:
     providers:
       test:
         type: test-plugin

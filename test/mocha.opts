@@ -3,3 +3,5 @@
 --watch-extensions ts,json
 --reporter spec
 --timeout 5000
+test/**/*.ts
+test/**/**/*.ts

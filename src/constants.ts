@@ -1,4 +1,7 @@
+import { resolve } from "path"
+
 export const MODULE_CONFIG_FILENAME = "garden.yml"
+export const STATIC_DIR = resolve(__dirname, "..", "static")
 export const DEFAULT_NAMESPACE = "default"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 

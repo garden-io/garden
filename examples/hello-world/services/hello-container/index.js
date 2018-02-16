@@ -7,7 +7,7 @@ app.get("/hello", (req, res) => {
   // Query the example cloud function and return the response
   request.get(process.env.GARDEN_SERVICES_HELLO_FUNCTION_ENDPOINT)
     .then(response => {
-      res.send(response)
+      res.send(response + "\n")
     })
 })
 

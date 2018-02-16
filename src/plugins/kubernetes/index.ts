@@ -8,7 +8,7 @@ import {
   GetServiceStatusParams, Plugin,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
-import { ContainerModule, ContainerService } from "../container"
+import { ContainerModule, ContainerService, ServiceEndpointSpec } from "../container"
 import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
 import { sleep } from "../../util"
@@ -21,6 +21,7 @@ import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 import { EntryStyle } from "../../logger/types"
 import { LogEntry } from "../../logger"
+import { GardenContext } from "../../context"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -28,6 +29,7 @@ const ingressControllerModulePath = join(__dirname, "garden-ingress-controller")
 const defaultBackendModulePath = join(__dirname, "garden-default-backend")
 const dashboardModulePath = join(__dirname, "garden-dashboard")
 const dashboardSpecPath = join(dashboardModulePath, "dashboard.yml")
+const localIngressPort = "32000"
 
 export class KubernetesProvider extends Plugin<ContainerModule> {
   name = "kubernetes"
@@ -169,9 +171,9 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     entry.success({ section: "kubernetes", msg: "Environment configured" })
   }
 
-  async getServiceStatus({ service, env }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
+  async getServiceStatus({ context, service, env }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
     // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-    return await this.checkDeploymentStatus({ service, env })
+    return await this.checkDeploymentStatus({ context, service, env })
   }
 
   async deployService(
@@ -190,13 +192,13 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       await this.apply(kubeservice, { namespace })
     }
 
-    const ingress = await createIngress(service)
+    const ingress = await createIngress(service, this.getServiceHostname(context, service))
 
     if (ingress !== null) {
       await this.apply(ingress, { namespace })
     }
 
-    await this.waitForDeployment(service, env, logEntry)
+    await this.waitForDeployment(context, service, env, logEntry)
 
     return this.getServiceStatus({ context, service, env })
   }
@@ -308,13 +310,39 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     return new Service<ContainerModule>(module, "dashboard")
   }
 
+  protected getProjectHostname() {
+    // TODO: for remote Garden environments, this will depend on the configured project
+    // TODO: make configurable for the generic kubernetes plugin
+    return "local.app.garden"
+  }
+
+  protected getServiceHostname(ctx: GardenContext, service: ContainerService) {
+    return `${service.name}.${ctx.projectName}.${this.getProjectHostname()}`
+  }
+
   async checkDeploymentStatus(
-    { service, env, resourceVersion }: { service: ContainerService, env: Environment, resourceVersion?: number },
-  ) {
+    { context, service, env, resourceVersion }:
+      { context: GardenContext, service: ContainerService, env: Environment, resourceVersion?: number },
+  ): Promise<ServiceStatus> {
     const type = service.config.daemon ? "daemonsets" : "deployments"
     const namespace = env.namespace
+    const hostname = this.getServiceHostname(context, service)
+
+    const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
+      // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
+      const protocol = "http"
+
+      return {
+        protocol,
+        hostname,
+        port: localIngressPort,
+        url: `${protocol}://${hostname}:${localIngressPort}`,
+        paths: e.paths,
+      }
+    })
 
     const out: ServiceStatus = {
+      endpoints,
       runningReplicas: 0,
       detail: { resourceVersion },
     }
@@ -440,7 +468,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     return out
   }
 
-  async waitForDeployment(service: ContainerService, env: Environment, logEntry?: LogEntry) {
+  async waitForDeployment(context: GardenContext, service: ContainerService, env: Environment, logEntry?: LogEntry) {
     // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
     let loops = 0
     let resourceVersion
@@ -453,7 +481,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     while (true) {
       await sleep(2000 + 1000 * loops)
 
-      const status = await this.checkDeploymentStatus({ service, env, resourceVersion })
+      const status = await this.checkDeploymentStatus({ context, service, env, resourceVersion })
 
       if (status.lastError) {
         throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {

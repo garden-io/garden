@@ -6,12 +6,23 @@ import { ConfigurationError } from "../exceptions"
 
 export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
 
+export type ServiceProtocol = "http" | "https" | "tcp" | "udp"
+
+interface ServiceEndpoint {
+  protocol: ServiceProtocol
+  hostname: string
+  port?: number
+  url: string
+  paths?: string[]
+}
+
 export interface ServiceStatus {
   providerId?: string
   providerVersion?: string
   version?: string
   state?: ServiceState
   runningReplicas?: number
+  endpoints?: ServiceEndpoint[],
   lastMessage?: string
   lastError?: string
   createdAt?: string

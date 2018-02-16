@@ -1,6 +1,6 @@
 import { ContainerService } from "../container"
 
-export async function createIngress(service: ContainerService) {
+export async function createIngress(service: ContainerService, externalHostname: string) {
   if (service.config.endpoints.length === 0) {
     return null
   }
@@ -8,11 +8,8 @@ export async function createIngress(service: ContainerService) {
   const rules = service.config.endpoints.map(e => {
     const rule: any = {}
 
-    // TODO: work out how to handle hostnames in multi-tenant environments
-    // (seems it'll probably happen at the ingress controller level)
-    if (e.hostname) {
-      rule.host = e.hostname
-    }
+    // TODO: support separate hostnames per endpoint
+    rule.host = externalHostname
 
     const backend = {
       serviceName: service.name,
