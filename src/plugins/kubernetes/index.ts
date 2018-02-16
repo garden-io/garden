@@ -31,7 +31,7 @@ const dashboardModulePath = join(__dirname, "garden-dashboard")
 const dashboardSpecPath = join(dashboardModulePath, "dashboard.yml")
 const localIngressPort = "32000"
 
-export class KubernetesProvider extends Plugin<ContainerModule> {
+export class KubernetesProvider implements Plugin<ContainerModule> {
   name = "kubernetes"
   supportedModuleTypes = ["container"]
 
@@ -51,9 +51,9 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
 
     const gardenEnv = this.getSystemEnv(env)
 
-    const ingressControllerService = await this.getIngressControllerService()
-    const defaultBackendService = await this.getDefaultBackendService()
-    const dashboardService = await this.getDashboardService()
+    const ingressControllerService = await this.getIngressControllerService(ctx)
+    const defaultBackendService = await this.getDefaultBackendService(ctx)
+    const dashboardService = await this.getDashboardService(ctx)
 
     const ingressControllerStatus = await this.getServiceStatus({
       ctx,
@@ -106,7 +106,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       return
     }
 
-    const entry = this.ctx.log.info({
+    const entry = ctx.log.info({
       entryStyle: EntryStyle.activity,
       section: "kubernetes",
       msg: "Configuring environment...",
@@ -155,13 +155,13 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       const gardenEnv = this.getSystemEnv(env)
       await this.deployService({
         ctx,
-        service: await this.getDefaultBackendService(),
+        service: await this.getDefaultBackendService(ctx),
         serviceContext: {},
         env: gardenEnv,
       })
       await this.deployService({
         ctx,
-        service: await this.getIngressControllerService(),
+        service: await this.getIngressControllerService(ctx),
         serviceContext: {},
         env: gardenEnv,
         exposePorts: true,
@@ -275,20 +275,20 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
   }
 
-  private async getIngressControllerService() {
-    const module = <ContainerModule>await this.ctx.resolveModule(ingressControllerModulePath)
+  private async getIngressControllerService(ctx: GardenContext) {
+    const module = <ContainerModule>await ctx.resolveModule(ingressControllerModulePath)
 
     return new Service<ContainerModule>(module, "ingress-controller")
   }
 
-  private async getDefaultBackendService() {
-    const module = <ContainerModule>await this.ctx.resolveModule(defaultBackendModulePath)
+  private async getDefaultBackendService(ctx: GardenContext) {
+    const module = <ContainerModule>await ctx.resolveModule(defaultBackendModulePath)
 
     return new Service<ContainerModule>(module, "default-backend")
   }
 
-  private async getDashboardService() {
-    const module = new ContainerModule(this.ctx, {
+  private async getDashboardService(ctx: GardenContext) {
+    const module = new ContainerModule(ctx, {
       version: "0",
       name: "garden-dashboard",
       type: "container",
@@ -476,7 +476,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     let lastDetailMessage
     const startTime = new Date().getTime()
 
-    logEntry && this.ctx.log.verbose({ section: service.name, msg: `Waiting for service to be ready...` })
+    logEntry && ctx.log.verbose({ section: service.name, msg: `Waiting for service to be ready...` })
 
     while (true) {
       await sleep(2000 + 1000 * loops)
@@ -492,12 +492,12 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
 
       if (status.detail.lastMessage && status.detail.lastMessage !== lastDetailMessage) {
         lastDetailMessage = status.detail.lastMessage
-        logEntry && this.ctx.log.verbose({ section: service.name, msg: status.detail.lastMessage })
+        logEntry && ctx.log.verbose({ section: service.name, msg: status.detail.lastMessage })
       }
 
       if (status.lastMessage && status.lastMessage !== lastMessage) {
         lastMessage = status.lastMessage
-        logEntry && this.ctx.log.verbose({ section: service.name, msg: status.lastMessage })
+        logEntry && ctx.log.verbose({ section: service.name, msg: status.lastMessage })
       }
 
       if (status.state === "ready") {
@@ -513,7 +513,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       }
     }
 
-    logEntry && this.ctx.log.verbose({ section: service.name, msg: `Service deployed` })
+    logEntry && ctx.log.verbose({ section: service.name, msg: `Service deployed` })
   }
 
   // sadly the TS definitions are no good for this one

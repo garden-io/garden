@@ -7,7 +7,7 @@ import { Module } from "../../../src/types/module"
 import { ServiceState, ServiceStatus } from "../../../src/types/service"
 import { defaultPlugins } from "../../../src/plugins"
 
-class TestProvider extends Plugin<Module> {
+class TestProvider implements Plugin<Module> {
   name = "test-plugin"
   supportedModuleTypes = ["generic", "container"]
 
@@ -35,7 +35,7 @@ describe("commands.deploy", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 
   it("should build and deploy all modules in a project", async () => {
-    const ctx = new GardenContext(projectRootB, { plugins: defaultPlugins.concat([(c) => new TestProvider(c)]) })
+    const ctx = new GardenContext(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
     const command = new DeployCommand()
 
     const result = await command.action(
@@ -60,7 +60,7 @@ describe("commands.deploy", () => {
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
-    const ctx = new GardenContext(projectRootB, { plugins: defaultPlugins.concat([(c) => new TestProvider(c)]) })
+    const ctx = new GardenContext(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
     const command = new DeployCommand()
 
     const result = await command.action(

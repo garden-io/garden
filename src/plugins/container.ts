@@ -6,7 +6,7 @@ import { identifierRegex } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
-import { BuildModuleParams, Plugin } from "../types/plugin"
+import { BuildModuleParams, GetModuleBuildStatusParams, Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
 import { Service } from "../types/service"
 
@@ -148,7 +148,7 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
 }
 
 // TODO: support remote registries and pushing
-export class ContainerModuleHandler extends Plugin<ContainerModule> {
+export class ContainerModuleHandler implements Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
@@ -168,11 +168,11 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     return module
   }
 
-  async getModuleBuildStatus({ module }: { module: ContainerModule }) {
+  async getModuleBuildStatus({ ctx, module }: GetModuleBuildStatusParams<ContainerModule>) {
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {
-      this.ctx.log.debug({
+      ctx.log.debug({
         section: module.name,
         msg: `Image ${await module.getImageId()} already exists`,
         symbol: LogSymbolType.info,
@@ -182,10 +182,10 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     return { ready }
   }
 
-  async buildModule({ module, logEntry }: BuildModuleParams<ContainerModule>) {
+  async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
     if (!!module.image) {
       logEntry && logEntry.update({ msg: `Fetching image ${module.image}...` })
-      await module.pullImage(this.ctx)
+      await module.pullImage(ctx)
       return { fetched: true }
     }
 

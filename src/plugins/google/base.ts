@@ -5,11 +5,14 @@ import { ConfigurationError } from "../../exceptions"
 import { Memoize } from "typescript-memoize"
 import { GCloud } from "./gcloud"
 import { values } from "lodash"
-import { Plugin } from "../../types/plugin"
+import { ConfigureEnvironmentParams, Plugin } from "../../types/plugin"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
-export abstract class GoogleCloudProviderBase<T extends Module> extends Plugin<T> {
+export abstract class GoogleCloudProviderBase<T extends Module> implements Plugin<T> {
+  abstract name: string
+  abstract supportedModuleTypes: string[]
+
   async getEnvironmentStatus() {
     let sdkInfo
 
@@ -43,7 +46,7 @@ export abstract class GoogleCloudProviderBase<T extends Module> extends Plugin<T
     return output
   }
 
-  async configureEnvironment() {
+  async configureEnvironment({ ctx }: ConfigureEnvironmentParams) {
     const status = await this.getEnvironmentStatus()
 
     if (!status.detail.sdkInstalled) {
@@ -55,7 +58,7 @@ export abstract class GoogleCloudProviderBase<T extends Module> extends Plugin<T
     }
 
     if (!status.detail.betaComponentsInstalled) {
-      this.ctx.log.info({
+      ctx.log.info({
         section: "google-cloud-functions",
         msg: `Installing gcloud SDK beta components...`,
       })
@@ -64,7 +67,7 @@ export abstract class GoogleCloudProviderBase<T extends Module> extends Plugin<T
     }
 
     if (!status.detail.sdkInitialized) {
-      this.ctx.log.info({
+      ctx.log.info({
         section: "google-cloud-functions",
         msg: `Initializing SDK...`,
       })

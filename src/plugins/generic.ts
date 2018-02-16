@@ -1,15 +1,14 @@
 import { exec } from "child-process-promise"
-import { BuildResult, BuildStatus, Plugin, TestModuleParams, TestResult } from "../types/plugin"
-import { Module, ModuleConfigType } from "../types/module"
-import { GardenContext } from "../context"
+import { BuildResult, BuildStatus, ParseModuleParams, Plugin, TestModuleParams, TestResult } from "../types/plugin"
+import { Module } from "../types/module"
 import { spawn } from "../util"
 
-export class GenericModuleHandler<T extends Module = Module> extends Plugin<T> {
+export class GenericModuleHandler<T extends Module = Module> implements Plugin<T> {
   name = "generic"
   supportedModuleTypes = ["generic"]
 
-  parseModule({ ctx, config }: { ctx: GardenContext, config: ModuleConfigType<T> }) {
-    return new Module<ModuleConfigType<T>>(ctx, config)
+  parseModule({ ctx, config }: ParseModuleParams<T>) {
+    return <T>new Module(ctx, config)
   }
 
   async getModuleBuildStatus({ module }: { module: T }): Promise<BuildStatus> {

@@ -3,7 +3,7 @@ import { join } from "path"
 import { GOOGLE_CLOUD_DEFAULT_REGION, GoogleCloudProviderBase } from "./base"
 import { ContainerModule } from "../container"
 import { dumpYaml } from "../../util"
-import { PluginActionParams } from "../../types/plugin"
+import { DeployServiceParams, PluginActionParams } from "../../types/plugin"
 
 // TODO: support built-in GAE types (not just custom/flex containers)
 export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerModule> {
@@ -21,8 +21,8 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
     return {}
   }
 
-  async deployService({ service, serviceContext, env }: PluginActionParams<ContainerModule>["deployService"]) {
-    this.ctx.log.info({
+  async deployService({ ctx, service, serviceContext, env }: DeployServiceParams<ContainerModule>) {
+    ctx.log.info({
       section: service.name,
       msg: `Deploying app...`,
     })
@@ -38,7 +38,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
 
     if (config.healthCheck) {
       if (config.healthCheck.tcpPort || config.healthCheck.command) {
-        this.ctx.log.warn({
+        ctx.log.warn({
           section: service.name,
           msg: "GAE only supports httpGet health checks",
         })
@@ -60,7 +60,7 @@ export class GoogleAppEngineProvider extends GoogleCloudProviderBase<ContainerMo
       "app", "deploy", "--quiet",
     ], { cwd: service.module.path })
 
-    this.ctx.log.info({ section: service.name, msg: `App deployed` })
+    ctx.log.info({ section: service.name, msg: `App deployed` })
   }
 
   async getServiceOutputs({ service, env }: PluginActionParams<ContainerModule>["getServiceOutputs"]) {

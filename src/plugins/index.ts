@@ -14,4 +14,4 @@ export const defaultPlugins: PluginFactory[] = [
   GoogleAppEngineProvider,
   GoogleCloudFunctionsProvider,
   LocalGoogleCloudFunctionsProvider,
-].map(pluginClass => (ctx) => new pluginClass(ctx))
+].map(pluginClass => (_ctx) => new pluginClass())

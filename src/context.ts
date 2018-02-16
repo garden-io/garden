@@ -12,7 +12,7 @@ import { GitHandler } from "./vcs/git"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, LogEntry, Logger } from "./logger"
 import {
-  BuildStatus, pluginActionNames, PluginActions, PluginFactory, PluginInterface,
+  BuildStatus, pluginActionNames, PluginActions, PluginFactory, Plugin,
 } from "./types/plugin"
 import { GenericModuleHandler } from "./plugins/generic"
 import { Environment, joiIdentifier } from "./types/common"
@@ -37,7 +37,7 @@ export class GardenContext {
   public readonly actionHandlers: PluginActionMap
   public readonly projectName: string
   public readonly config: ProjectConfig
-  public readonly plugins: { [key: string]: PluginInterface<any> }
+  public readonly plugins: { [key: string]: Plugin<any> }
 
   // TODO: We may want to use the _ prefix for private properties even if it's not idiomatic TS,
   // because we're supporting plain-JS plugins as well.
@@ -78,7 +78,7 @@ export class GardenContext {
 
     // Load built-in plugins
     for (const pluginCls of builtinPlugins) {
-      this.registerPlugin((ctx) => new pluginCls(ctx))
+      this.registerPlugin(() => new pluginCls())
     }
 
     // Load configured plugins
@@ -422,7 +422,7 @@ export class GardenContext {
    *
    * Optionally filter to only include plugins that support a specific module type.
    */
-  private getAllPlugins(moduleType?: string): PluginInterface<any>[] {
+  private getAllPlugins(moduleType?: string): Plugin<any>[] {
     const allPlugins = values(this.plugins)
 
     if (moduleType) {
