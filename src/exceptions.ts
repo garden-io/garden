@@ -28,6 +28,10 @@ export class DeploymentError extends GardenError {
   type = "deployment"
 }
 
+export class RuntimeError extends GardenError {
+  type = "runtime"
+}
+
 export class InternalError extends GardenError {
   type = "internal"
 }
