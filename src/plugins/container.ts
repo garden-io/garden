@@ -6,7 +6,7 @@ import { identifierRegex } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
-import { BuildModuleParams, Plugin } from "../types/plugin"
+import { BuildModuleParams, GetModuleBuildStatusParams, Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
 import { Service } from "../types/service"
 
@@ -116,8 +116,8 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
     [name: string]: ContainerServiceConfig,
   }
 
-  constructor(context: GardenContext, config: ContainerModuleConfig) {
-    super(context, config)
+  constructor(ctx: GardenContext, config: ContainerModuleConfig) {
+    super(ctx, config)
 
     this.image = config.image
     this.services = config.services || {}
@@ -148,14 +148,14 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
 }
 
 // TODO: support remote registries and pushing
-export class ContainerModuleHandler extends Plugin<ContainerModule> {
+export class ContainerModuleHandler implements Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
-  parseModule({ context, config }: { context: GardenContext, config: ContainerModuleConfig }) {
+  parseModule({ ctx, config }: { ctx: GardenContext, config: ContainerModuleConfig }) {
     config = <ContainerModuleConfig>Joi.attempt(config, containerSchema)
 
-    const module = new ContainerModule(context, config)
+    const module = new ContainerModule(ctx, config)
 
     // make sure we can build the thing
     if (!module.image && !existsSync(join(module.path, "Dockerfile"))) {
@@ -168,11 +168,11 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     return module
   }
 
-  async getModuleBuildStatus({ module }: { module: ContainerModule }) {
+  async getModuleBuildStatus({ ctx, module }: GetModuleBuildStatusParams<ContainerModule>) {
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {
-      this.context.log.debug({
+      ctx.log.debug({
         section: module.name,
         msg: `Image ${await module.getImageId()} already exists`,
         symbol: LogSymbolType.info,
@@ -182,10 +182,10 @@ export class ContainerModuleHandler extends Plugin<ContainerModule> {
     return { ready }
   }
 
-  async buildModule({ module, logEntry }: BuildModuleParams<ContainerModule>) {
+  async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
     if (!!module.image) {
       logEntry && logEntry.update({ msg: `Fetching image ${module.image}...` })
-      await module.pullImage(this.context)
+      await module.pullImage(ctx)
       return { fetched: true }
     }
 

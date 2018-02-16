@@ -109,5 +109,5 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract async action(context: GardenContext, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<any>
+  abstract async action(ctx: GardenContext, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<any>
 }

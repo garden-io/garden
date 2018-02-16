@@ -32,8 +32,8 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
   name = "google-cloud-functions"
   supportedModuleTypes = ["google-cloud-function"]
 
-  parseModule({ context, config }: { context: GardenContext, config: GoogleCloudFunctionsModuleConfig }) {
-    const module = new GoogleCloudFunctionsModule(context, config)
+  parseModule({ ctx, config }: { ctx: GardenContext, config: GoogleCloudFunctionsModuleConfig }) {
+    const module = new GoogleCloudFunctionsModule(ctx, config)
 
     // TODO: check that each function exists at the specified path
 
@@ -70,7 +70,7 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
   }
 
   async deployService(
-    { context, service, env }: PluginActionParams<GoogleCloudFunctionsModule>["deployService"],
+    { ctx, service, env }: PluginActionParams<GoogleCloudFunctionsModule>["deployService"],
   ) {
     // TODO: provide env vars somehow to function
     const project = this.getProject(service, env)
@@ -86,7 +86,7 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
       "--trigger-http",
     ])
 
-    return this.getServiceStatus({ context, service, env })
+    return this.getServiceStatus({ ctx, service, env })
   }
 
   async getServiceOutputs({ service, env }: PluginActionParams<GoogleCloudFunctionsModule>["getServiceOutputs"]) {

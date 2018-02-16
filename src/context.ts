@@ -12,7 +12,7 @@ import { GitHandler } from "./vcs/git"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, LogEntry, Logger } from "./logger"
 import {
-  BuildStatus, pluginActionNames, PluginActions, PluginFactory, PluginInterface,
+  BuildStatus, pluginActionNames, PluginActions, PluginFactory, Plugin,
 } from "./types/plugin"
 import { GenericModuleHandler } from "./plugins/generic"
 import { Environment, joiIdentifier } from "./types/common"
@@ -37,7 +37,7 @@ export class GardenContext {
   public readonly actionHandlers: PluginActionMap
   public readonly projectName: string
   public readonly config: ProjectConfig
-  public readonly plugins: { [key: string]: PluginInterface<any> }
+  public readonly plugins: { [key: string]: Plugin<any> }
 
   // TODO: We may want to use the _ prefix for private properties even if it's not idiomatic TS,
   // because we're supporting plain-JS plugins as well.
@@ -78,7 +78,7 @@ export class GardenContext {
 
     // Load built-in plugins
     for (const pluginCls of builtinPlugins) {
-      this.registerPlugin((ctx) => new pluginCls(ctx))
+      this.registerPlugin(() => new pluginCls())
     }
 
     // Load configured plugins
@@ -346,7 +346,7 @@ export class GardenContext {
     const config = await loadModuleConfig(path)
 
     const parseHandler = this.getActionHandler("parseModule", config.type)
-    return parseHandler({ context: this, config })
+    return parseHandler({ ctx: this, config })
   }
 
   //===========================================================================
@@ -356,43 +356,43 @@ export class GardenContext {
   async getModuleBuildStatus<T extends Module>(module: T): Promise<BuildStatus> {
     const defaultHandler = this.actionHandlers["getModuleBuildStatus"]["generic"]
     const handler = this.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
-    return handler({ context: this, module })
+    return handler({ ctx: this, module })
   }
 
   async buildModule<T extends Module>(module: T, logEntry?: LogEntry) {
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
-    return handler({ context: this, module, logEntry })
+    return handler({ ctx: this, module, logEntry })
   }
 
   async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) {
     const defaultHandler = this.actionHandlers["testModule"]["generic"]
     const handler = this.getEnvActionHandler("testModule", module.type, defaultHandler)
     const env = this.getEnvironment()
-    return handler({ context: this, module, testSpec, env, logEntry })
+    return handler({ ctx: this, module, testSpec, env, logEntry })
   }
 
   async getEnvironmentStatus() {
     const handlers = this.getEnvActionHandlers("getEnvironmentStatus")
     const env = this.getEnvironment()
-    return Bluebird.props(mapValues(handlers, h => h({ context: this, env })))
+    return Bluebird.props(mapValues(handlers, h => h({ ctx: this, env })))
   }
 
   async configureEnvironment() {
     const handlers = this.getEnvActionHandlers("configureEnvironment")
     const env = this.getEnvironment()
-    await Bluebird.each(values(handlers), h => h({ context: this, env }))
+    await Bluebird.each(values(handlers), h => h({ ctx: this, env }))
     return this.getEnvironmentStatus()
   }
 
   async getServiceStatus<T extends Module>(service: Service<T>) {
     const handler = this.getEnvActionHandler("getServiceStatus", service.module.type)
-    return handler({ context: this, service, env: this.getEnvironment() })
+    return handler({ ctx: this, service, env: this.getEnvironment() })
   }
 
   async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext) {
     const handler = this.getEnvActionHandler("deployService", service.module.type)
-    return handler({ context: this, service, serviceContext: serviceContext || {}, env: this.getEnvironment() })
+    return handler({ ctx: this, service, serviceContext: serviceContext || {}, env: this.getEnvironment() })
   }
 
   async getServiceOutputs<T extends Module>(service: Service<T>) {
@@ -403,12 +403,12 @@ export class GardenContext {
     } catch (err) {
       return {}
     }
-    return handler({ context: this, service, env: this.getEnvironment() })
+    return handler({ ctx: this, service, env: this.getEnvironment() })
   }
 
   async execInService<T extends Module>(service: Service<T>, command: string[]) {
     const handler = this.getEnvActionHandler("execInService", service.module.type)
-    return handler({ context: this, service, command, env: this.getEnvironment() })
+    return handler({ ctx: this, service, command, env: this.getEnvironment() })
   }
 
   //endregion
@@ -422,7 +422,7 @@ export class GardenContext {
    *
    * Optionally filter to only include plugins that support a specific module type.
    */
-  private getAllPlugins(moduleType?: string): PluginInterface<any>[] {
+  private getAllPlugins(moduleType?: string): Plugin<any>[] {
     const allPlugins = values(this.plugins)
 
     if (moduleType) {

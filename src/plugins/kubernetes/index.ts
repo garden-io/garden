@@ -31,13 +31,13 @@ const dashboardModulePath = join(__dirname, "garden-dashboard")
 const dashboardSpecPath = join(dashboardModulePath, "dashboard.yml")
 const localIngressPort = "32000"
 
-export class KubernetesProvider extends Plugin<ContainerModule> {
+export class KubernetesProvider implements Plugin<ContainerModule> {
   name = "kubernetes"
   supportedModuleTypes = ["container"]
 
   // TODO: validate provider config
 
-  async getEnvironmentStatus({ context, env }: GetEnvironmentStatusParams) {
+  async getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusParams) {
     try {
       // TODO: use API instead of kubectl (I just couldn't find which API call to make)
       await this.kubectl().call(["version"])
@@ -51,22 +51,22 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
 
     const gardenEnv = this.getSystemEnv(env)
 
-    const ingressControllerService = await this.getIngressControllerService()
-    const defaultBackendService = await this.getDefaultBackendService()
-    const dashboardService = await this.getDashboardService()
+    const ingressControllerService = await this.getIngressControllerService(ctx)
+    const defaultBackendService = await this.getDefaultBackendService(ctx)
+    const dashboardService = await this.getDashboardService(ctx)
 
     const ingressControllerStatus = await this.getServiceStatus({
-      context,
+      ctx,
       service: ingressControllerService,
       env: gardenEnv,
     })
     const defaultBackendStatus = await this.getServiceStatus({
-      context,
+      ctx,
       service: defaultBackendService,
       env: gardenEnv,
     })
     const dashboardStatus = await this.getServiceStatus({
-      context,
+      ctx,
       service: dashboardService,
       env: gardenEnv,
     })
@@ -99,14 +99,14 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
   }
 
-  async configureEnvironment({ context, env }: ConfigureEnvironmentParams) {
-    const status = await this.getEnvironmentStatus({ context, env })
+  async configureEnvironment({ ctx, env }: ConfigureEnvironmentParams) {
+    const status = await this.getEnvironmentStatus({ ctx, env })
 
     if (status.configured) {
       return
     }
 
-    const entry = this.context.log.info({
+    const entry = ctx.log.info({
       entryStyle: EntryStyle.activity,
       section: "kubernetes",
       msg: "Configuring environment...",
@@ -154,14 +154,14 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       entry.update({ section: "kubernetes", msg: `Configuring ingress controller` })
       const gardenEnv = this.getSystemEnv(env)
       await this.deployService({
-        context,
-        service: await this.getDefaultBackendService(),
+        ctx,
+        service: await this.getDefaultBackendService(ctx),
         serviceContext: {},
         env: gardenEnv,
       })
       await this.deployService({
-        context,
-        service: await this.getIngressControllerService(),
+        ctx,
+        service: await this.getIngressControllerService(ctx),
         serviceContext: {},
         env: gardenEnv,
         exposePorts: true,
@@ -171,13 +171,13 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     entry.success({ section: "kubernetes", msg: "Environment configured" })
   }
 
-  async getServiceStatus({ context, service, env }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
+  async getServiceStatus({ ctx, service, env }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
     // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-    return await this.checkDeploymentStatus({ context, service, env })
+    return await this.checkDeploymentStatus({ ctx, service, env })
   }
 
   async deployService(
-    { context, service, env, serviceContext, exposePorts = false, logEntry }: DeployServiceParams<ContainerModule>,
+    { ctx, service, env, serviceContext, exposePorts = false, logEntry }: DeployServiceParams<ContainerModule>,
   ) {
     const namespace = env.namespace
 
@@ -192,15 +192,15 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       await this.apply(kubeservice, { namespace })
     }
 
-    const ingress = await createIngress(service, this.getServiceHostname(context, service))
+    const ingress = await createIngress(service, this.getServiceHostname(ctx, service))
 
     if (ingress !== null) {
       await this.apply(ingress, { namespace })
     }
 
-    await this.waitForDeployment(context, service, env, logEntry)
+    await this.waitForDeployment(ctx, service, env, logEntry)
 
-    return this.getServiceStatus({ context, service, env })
+    return this.getServiceStatus({ ctx, service, env })
   }
 
   async getServiceOutputs({ service }: GetServiceOutputsParams<ContainerModule>) {
@@ -209,8 +209,8 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
   }
 
-  async execInService({ context, service, env, command }: ExecInServiceParams<ContainerModule>) {
-    const status = await this.getServiceStatus({ context, service, env })
+  async execInService({ ctx, service, env, command }: ExecInServiceParams<ContainerModule>) {
+    const status = await this.getServiceStatus({ ctx, service, env })
 
     // TODO: this check should probably live outside of the plugin
     if (!status.state || status.state !== "ready") {
@@ -275,20 +275,20 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     }
   }
 
-  private async getIngressControllerService() {
-    const module = <ContainerModule>await this.context.resolveModule(ingressControllerModulePath)
+  private async getIngressControllerService(ctx: GardenContext) {
+    const module = <ContainerModule>await ctx.resolveModule(ingressControllerModulePath)
 
     return new Service<ContainerModule>(module, "ingress-controller")
   }
 
-  private async getDefaultBackendService() {
-    const module = <ContainerModule>await this.context.resolveModule(defaultBackendModulePath)
+  private async getDefaultBackendService(ctx: GardenContext) {
+    const module = <ContainerModule>await ctx.resolveModule(defaultBackendModulePath)
 
     return new Service<ContainerModule>(module, "default-backend")
   }
 
-  private async getDashboardService() {
-    const module = new ContainerModule(this.context, {
+  private async getDashboardService(ctx: GardenContext) {
+    const module = new ContainerModule(ctx, {
       version: "0",
       name: "garden-dashboard",
       type: "container",
@@ -321,12 +321,12 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
   }
 
   async checkDeploymentStatus(
-    { context, service, env, resourceVersion }:
-      { context: GardenContext, service: ContainerService, env: Environment, resourceVersion?: number },
+    { ctx, service, env, resourceVersion }:
+      { ctx: GardenContext, service: ContainerService, env: Environment, resourceVersion?: number },
   ): Promise<ServiceStatus> {
     const type = service.config.daemon ? "daemonsets" : "deployments"
     const namespace = env.namespace
-    const hostname = this.getServiceHostname(context, service)
+    const hostname = this.getServiceHostname(ctx, service)
 
     const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
       // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
@@ -468,7 +468,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     return out
   }
 
-  async waitForDeployment(context: GardenContext, service: ContainerService, env: Environment, logEntry?: LogEntry) {
+  async waitForDeployment(ctx: GardenContext, service: ContainerService, env: Environment, logEntry?: LogEntry) {
     // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
     let loops = 0
     let resourceVersion
@@ -476,12 +476,12 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
     let lastDetailMessage
     const startTime = new Date().getTime()
 
-    logEntry && this.context.log.verbose({ section: service.name, msg: `Waiting for service to be ready...` })
+    logEntry && ctx.log.verbose({ section: service.name, msg: `Waiting for service to be ready...` })
 
     while (true) {
       await sleep(2000 + 1000 * loops)
 
-      const status = await this.checkDeploymentStatus({ context, service, env, resourceVersion })
+      const status = await this.checkDeploymentStatus({ ctx, service, env, resourceVersion })
 
       if (status.lastError) {
         throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
@@ -492,12 +492,12 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
 
       if (status.detail.lastMessage && status.detail.lastMessage !== lastDetailMessage) {
         lastDetailMessage = status.detail.lastMessage
-        logEntry && this.context.log.verbose({ section: service.name, msg: status.detail.lastMessage })
+        logEntry && ctx.log.verbose({ section: service.name, msg: status.detail.lastMessage })
       }
 
       if (status.lastMessage && status.lastMessage !== lastMessage) {
         lastMessage = status.lastMessage
-        logEntry && this.context.log.verbose({ section: service.name, msg: status.lastMessage })
+        logEntry && ctx.log.verbose({ section: service.name, msg: status.lastMessage })
       }
 
       if (status.state === "ready") {
@@ -513,7 +513,7 @@ export class KubernetesProvider extends Plugin<ContainerModule> {
       }
     }
 
-    logEntry && this.context.log.verbose({ section: service.name, msg: `Service deployed` })
+    logEntry && ctx.log.verbose({ section: service.name, msg: `Service deployed` })
   }
 
   // sadly the TS definitions are no good for this one
