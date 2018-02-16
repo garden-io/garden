@@ -5,10 +5,7 @@ services:
     command: [npm, start]
     endpoints:
       - paths: [/hello]
-        hostname: helloworld.my.garden
         containerPort: 8080
-    ports:
-      - containerPort: 8080
     healthCheck:
       httpGet:
         path: /_ah/health

@@ -5,7 +5,6 @@ services:
     command: [python, app.py]
     endpoints:
       - paths: [/vote/]
-        hostname: vote.my.garden
         containerPort: 80
     ports:
       - name: interface

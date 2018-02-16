@@ -12,7 +12,8 @@ import { Service } from "../types/service"
 
 export interface ServiceEndpointSpec {
   paths?: string[]
-  hostname?: string
+  // TODO: support definition of hostnames on endpoints
+  // hostname?: string
   containerPort: number
 }
 
@@ -68,7 +69,7 @@ const containerSchema = baseModuleSchema.keys({
         daemon: Joi.boolean().default(false),
         endpoints: Joi.array().items(Joi.object().keys({
           paths: Joi.array().items(Joi.string().uri(<any>{ relativeOnly: true })),
-          hostname: Joi.string(),
+          // hostname: Joi.string(),
           containerPort: Joi.number().required(),
         }))
           .default(() => [], "[]"),
