@@ -1,4 +1,4 @@
-import { Task } from "../task-graph"
+import { Task, TaskResults } from "../task-graph"
 import { Module } from "../types/module"
 import { GardenContext } from "../context"
 import { EntryStyle } from "../logger/types"
@@ -22,7 +22,7 @@ export class BuildTask extends Task {
     return this.module.name
   }
 
-  async process() {
+  async process(dependencyResults: TaskResults) {
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",

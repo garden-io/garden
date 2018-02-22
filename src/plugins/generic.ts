@@ -20,12 +20,36 @@ export class GenericModuleHandler<T extends Module = Module> implements Plugin<T
     // By default we run the specified build command in the module root, if any.
     // TODO: Keep track of which version has been built (needs local data store/cache).
     if (module.config.build.command) {
-      const result = await exec(module.config.build.command, { cwd: module.path })
+      const result = await exec(module.config.build.command, { cwd: module.getBuildPath() })
 
       return { fresh: true, buildLog: result.stdout }
     } else {
       return {}
     }
+  }
+
+  /**
+   * TODO: Each plugin type should define processDependencyResult (if relevant for that plugin type),
+   * which in turn should handle each plugin-type of dependency appropriately - and as configured
+   * by the dependant plugin's garden.yml specification for the dependency in question.
+   *
+   * E.g. a container module A depending B, C (npm modules) and D (a container module), with A's
+   * garden.yml shaped like:
+   *
+   *  ...
+   *  build:
+   *    dependencies:
+   *      ..
+   *      B:
+   *        dirs: [build, foo]
+   *        destination: some_dir/some_subdir // build and foo are copied to A/some_dir/some_subdir
+   *      C // no dirs specified, defaults to copying all of C's project dir to A/C (i.e. to A's top-level dir)
+   *      D
+   *      ..
+   *
+   */
+  async processDependencyResult(dependencyResult) {
+    return // no-op
   }
 
   async testModule({ module, testSpec }: TestModuleParams<T>): Promise<TestResult> {

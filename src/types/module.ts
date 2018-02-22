@@ -74,6 +74,10 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     return sortedVersions[0]
   }
 
+  async getBuildPath() {
+    return this.ctx.getModuleBuildPath(this)
+  }
+
   async getBuildStatus() {
     return this.ctx.getModuleBuildStatus(this)
   }

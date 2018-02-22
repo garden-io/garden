@@ -37,6 +37,7 @@
     "log-update": "^2.3.0",
     "moment": "^2.20.1",
     "node-emoji": "^1.8.1",
+    "node-fs-extra": "^0.8.2",
     "node-pty": "^0.7.4",
     "runtypes": "^0.13.1",
     "serverless": "^1.25.0",
