@@ -4,7 +4,9 @@ import chalk from "chalk"
 import { curryRight, flow, padEnd } from "lodash"
 import hasAnsi = require("has-ansi")
 
-import { EntryStyle, HeaderOpts, LogSymbolType } from "./types"
+import { duration } from "./util"
+
+import { HeaderOpts, LogSymbolType } from "./types"
 
 /*** STYLE HELPERS ***/
 
@@ -36,18 +38,6 @@ function applyRenderers(renderers: any[][]): Function {
 
 /*** RENDERERS ***/
 
-export function renderEntryStyle(style?: EntryStyle): string {
-  if (style) {
-    return {
-      info: chalk.bold.green("Info "),
-      warn: chalk.bold.yellow("Warning "),
-      error: chalk.bold.red("Error "),
-      none: "",
-    }[style] || ""
-  }
-  return ""
-}
-
 export function renderEmoji(emoji?: any): string {
   if (emoji && nodeEmoji.hasEmoji(emoji)) {
     return `${nodeEmoji.get(emoji)}  `
@@ -71,6 +61,12 @@ export function renderMsg(msg?: string | string[]): string {
 
 export function renderSection(section?: string): string {
   return section ? `${sectionStyle(section)} → ` : ""
+}
+
+export function renderDuration(startTime: number, showDuration: boolean = false): string {
+  return showDuration
+    ? msgStyle(` (finished in ${duration(startTime)}s)`)
+    : ""
 }
 
 // Accepts a list of tuples containing a render functions and it's args: [renderFn, [arguments]]

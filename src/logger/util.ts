@@ -44,3 +44,7 @@ function mergeWithResolvers(objA: any, objB: any, resolvers: any = {}) {
 export function mergeLogOpts(prevOpts: LogOpts, nextOpts: LogOpts, resolvers: LogOptsResolvers) {
   return mergeWithResolvers(prevOpts, nextOpts, resolvers)
 }
+
+export function duration(startTime: number): string {
+  return ((Date.now() - startTime) / 1000).toFixed(2)
+}

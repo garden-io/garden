@@ -8,7 +8,7 @@ const elegantSpinner = require("elegant-spinner")
 
 import {
   format,
-  renderEntryStyle,
+  renderDuration,
   renderEmoji,
   renderHeader,
   renderMsg,
@@ -26,7 +26,11 @@ import {
   LogSymbolType,
 } from "./types"
 
-import { getNodeListFromTree, mergeLogOpts } from "./util"
+import {
+  duration,
+  getNodeListFromTree,
+  mergeLogOpts,
+} from "./util"
 
 const INTERVAL_DELAY = 100
 const spinnerStyle = chalk.cyan
@@ -39,10 +43,14 @@ interface LogWriteFn {
   (logOpts: LogOpts, parent?: LogEntry): LogEntry
 }
 
+interface FinishOpts {
+  showDuration?: boolean
+}
+
 export abstract class Logger {
-  entries: LogEntry[]
-  level: LogLevel
-  startTime: number
+  public entries: LogEntry[]
+  public level: LogLevel
+  public startTime: number
 
   constructor(level: LogLevel) {
     this.startTime = Date.now()
@@ -83,30 +91,30 @@ export abstract class Logger {
   }
 
   warn: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevel.warn, { ...opts, entryStyle: EntryStyle.warn }, parent)
+    return this.addEntryAndRender(LogLevel.warn, opts, parent)
   }
 
   error: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevel.error, { ...opts, entryStyle: EntryStyle.error }, parent)
+    return this.addEntryAndRender(LogLevel.error, opts, parent)
   }
 
   header(opts: HeaderOpts): LogEntry {
     return this.addEntryAndRender(LogLevel.verbose, { msg: renderHeader(opts) })
   }
 
-  finish() {
-    const totalTime = (this.getTotalTime() / 1000).toFixed(2)
-    const msg = `\n${nodeEmoji.get("sparkles")}  Finished in ${chalk.bold(totalTime + "s")}\n`
-    this.addEntryAndRender(LogLevel.info, { msg })
-  }
-
-  getTotalTime(): number {
-    return Date.now() - this.startTime
+  finish(opts?: FinishOpts): LogEntry {
+    const msg = format([
+      [() => `\n${nodeEmoji.get("sparkles")}  Finished`, []],
+      [() => opts && opts.showDuration ? ` in ${chalk.bold(duration(this.startTime) + "s")}` : "!", []],
+      [() => "\n", []],
+    ])
+    return this.info({ msg })
   }
 
 }
 
 export class BasicLogger extends Logger {
+
   createLogEntry(level, opts: LogOpts, depth: number): LogEntry {
     return new BasicLogEntry(level, opts, this, depth)
   }
@@ -209,12 +217,14 @@ export abstract class LogEntry {
   protected logger: Logger
   protected status: EntryStatus
 
+  public startTime: number
   public level: LogLevel
   public depth: number
   public children: LogEntry[]
   public nest: LoggerWriteMethods = this.exposeLoggerWriteMethods()
 
   constructor(level: LogLevel, opts: LogOpts, logger: Logger, depth?: number) {
+    this.startTime = Date.now()
     this.depth = depth || 0
     this.opts = opts
     this.logger = logger
@@ -267,9 +277,10 @@ export abstract class LogEntry {
     this.status = status
   }
 
-  private setStateAndRender(opts: LogOpts, status: EntryStatus): void {
+  private setStateAndRender(opts: LogOpts, status: EntryStatus): LogEntry {
     this.setState(opts, status)
     this.logger.render()
+    return this
   }
 
   protected format(): string {
@@ -318,24 +329,24 @@ export abstract class LogEntry {
   }
 
   // Preserves status
-  update(opts: LogOpts = {}): void {
-    this.setStateAndRender(opts, this.status)
+  update(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender(opts, this.status)
   }
 
-  done(opts: LogOpts = {}): void {
-    this.setStateAndRender(opts, EntryStatus.DONE)
+  done(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender(opts, EntryStatus.DONE)
   }
 
-  success(opts: LogOpts = {}): void {
-    this.setStateAndRender({ ...opts, symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
+  success(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender({ ...opts, symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
   }
 
-  error(opts: LogOpts = {}): void {
-    this.setStateAndRender({ ...opts, symbol: LogSymbolType.error }, EntryStatus.ERROR)
+  error(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender({ ...opts, symbol: LogSymbolType.error }, EntryStatus.ERROR)
   }
 
-  warn(opts: LogOpts = {}): void {
-    this.setStateAndRender({ ...opts, symbol: LogSymbolType.warn }, EntryStatus.WARN)
+  warn(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender({ ...opts, symbol: LogSymbolType.warn }, EntryStatus.WARN)
   }
 
 }
