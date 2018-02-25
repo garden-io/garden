@@ -4,40 +4,8 @@ import { Environment, PrimitiveMap } from "./common"
 import { Nullable } from "../util"
 import { Service, ServiceContext, ServiceStatus } from "./service"
 import { LogEntry } from "../logger"
-
-export interface BuildResult {
-  buildLog?: string
-  fetched?: boolean
-  fresh?: boolean
-  version?: string
-}
-
-export interface TestResult {
-  success: boolean
-  output: string
-}
-
-export interface TestModuleParams<T extends Module> {
-  module: T
-  testSpec: TestSpec
-  env: Environment
-}
-
-export interface BuildStatus {
-  ready: boolean
-}
-
-interface EnvironmentStatus {
-  configured: boolean
-  detail?: any
-}
-
-interface ExecInServiceResult {
-  code: number
-  output: string
-  stdout?: string
-  stderr?: string
-}
+import { Stream } from "ts-stream"
+import { Moment } from "moment"
 
 export interface PluginActionParamsBase {
   ctx: GardenContext
@@ -93,6 +61,14 @@ export interface ExecInServiceParams<T extends Module = Module> extends PluginAc
   command: string[],
 }
 
+export interface GetServiceLogsParams<T extends Module = Module> extends PluginActionParamsBase {
+  service: Service<T>,
+  env: Environment,
+  stream: Stream<ServiceLogEntry>,
+  tail?: boolean,
+  startTime?: Date,
+}
+
 export interface PluginActionParams<T extends Module = Module> {
   parseModule: ParseModuleParams<T>
   getModuleBuildStatus: GetModuleBuildStatusParams<T>
@@ -106,6 +82,41 @@ export interface PluginActionParams<T extends Module = Module> {
   deployService: DeployServiceParams<T>
   getServiceOutputs: GetServiceOutputsParams<T>
   execInService: ExecInServiceParams<T>
+  getServiceLogs: GetServiceLogsParams<T>
+}
+
+export interface BuildResult {
+  buildLog?: string
+  fetched?: boolean
+  fresh?: boolean
+  version?: string
+}
+
+export interface TestResult {
+  success: boolean
+  output: string
+}
+
+export interface BuildStatus {
+  ready: boolean
+}
+
+interface EnvironmentStatus {
+  configured: boolean
+  detail?: any
+}
+
+interface ExecInServiceResult {
+  code: number
+  output: string
+  stdout?: string
+  stderr?: string
+}
+
+export interface ServiceLogEntry {
+  serviceName: string
+  timestamp: Moment | Date
+  msg: string
 }
 
 interface PluginActionOutputs<T extends Module = Module> {
@@ -121,6 +132,7 @@ interface PluginActionOutputs<T extends Module = Module> {
   deployService: Promise<any>   // TODO: specify
   getServiceOutputs: Promise<PrimitiveMap>
   execInService: Promise<ExecInServiceResult>
+  getServiceLogs: Promise<void>
 }
 
 export type PluginActions<T extends Module> = {
@@ -142,6 +154,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   deployService = null
   getServiceOutputs = null
   execInService = null
+  getServiceLogs = null
 }
 
 export const pluginActionNames: PluginActionName[] =

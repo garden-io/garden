@@ -8,7 +8,8 @@ import {
 } from "../google/google-cloud-functions"
 import {
   ConfigureEnvironmentParams,
-  DeployServiceParams, GetEnvironmentStatusParams, GetServiceOutputsParams, GetServiceStatusParams, ParseModuleParams,
+  DeployServiceParams, GetEnvironmentStatusParams, GetServiceLogsParams, GetServiceOutputsParams,
+  GetServiceStatusParams, ParseModuleParams,
   Plugin,
 } from "../../types/plugin"
 import { GardenContext } from "../../context"
@@ -112,6 +113,13 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
     return {
       endpoint: `http://${emulator.name}:${emulatorPort}/local/local/${service.config.function}`,
     }
+  }
+
+  async getServiceLogs({ ctx, env, stream, tail }: GetServiceLogsParams) {
+    const emulator = await this.getEmulatorService(ctx)
+    const handler = ctx.getActionHandler("getServiceLogs", "container")
+    // TODO: filter to only relevant function logs
+    return handler({ ctx, service: emulator, env, stream, tail })
   }
 
   private async getEmulatorService(ctx: GardenContext) {

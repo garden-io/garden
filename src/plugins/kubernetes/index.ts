@@ -4,6 +4,7 @@ import * as K8s from "kubernetes-client"
 import { DeploymentError } from "../../exceptions"
 import {
   ConfigureEnvironmentParams, DeployServiceParams, ExecInServiceParams, GetEnvironmentStatusParams,
+  GetServiceLogsParams,
   GetServiceOutputsParams,
   GetServiceStatusParams, Plugin,
   TestModuleParams, TestResult,
@@ -11,7 +12,7 @@ import {
 import { ContainerModule, ContainerService, ServiceEndpointSpec } from "../container"
 import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
-import { sleep } from "../../util"
+import { sleep, splitFirst } from "../../util"
 import { Service, ServiceStatus } from "../../types/service"
 import { join } from "path"
 import { createServices } from "./service"
@@ -22,6 +23,8 @@ import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 import { EntryStyle } from "../../logger/types"
 import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
+import * as split from "split"
+import moment = require("moment")
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -273,6 +276,39 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       success: res.code === 0,
       output: res.output,
     }
+  }
+
+  async getServiceLogs({ service, env, stream, tail }: GetServiceLogsParams<ContainerModule>) {
+    const resourceType = service.config.daemon ? "daemonset" : "deployment"
+
+    const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
+
+    if (tail) {
+      kubectlArgs.push("--follow")
+    }
+
+    const proc = this.kubectl(env.namespace).spawn(kubectlArgs)
+
+    proc.stdout
+      .pipe(split())
+      .on("data", (s) => {
+        if (!s) {
+          return
+        }
+        const [timestampStr, msg] = splitFirst(s, " ")
+        const timestamp = moment(timestampStr)
+        stream.write({ serviceName: service.name, timestamp, msg })
+      })
+
+    proc.stderr.pipe(process.stderr)
+
+    return new Promise<void>((resolve, reject) => {
+      proc.on("error", reject)
+
+      proc.on("exit", () => {
+        resolve()
+      })
+    })
   }
 
   private async getIngressControllerService(ctx: GardenContext) {
