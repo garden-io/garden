@@ -6,6 +6,8 @@ import { flatten } from "lodash"
 
 const elegantSpinner = require("elegant-spinner")
 
+import { interceptStream } from "./util"
+
 import {
   format,
   renderDuration,
@@ -61,6 +63,7 @@ export abstract class Logger {
   abstract render(): string | string[] | null
   abstract write(): void
   abstract createLogEntry(level, opts: LogOpts, depth: number): LogEntry
+  abstract stop(): void
 
   protected addEntryAndRender(level, opts: LogOpts, parent?: LogEntry): LogEntry {
     const depth = parent ? parent.depth + 1 : 0
@@ -132,13 +135,34 @@ export class BasicLogger extends Logger {
     return null
   }
 
+  stop() { }
+
 }
 
 export class FancyLogger extends Logger {
+  private releaseStreamFns: Function[]
+  private logUpdate
   private intervalID: NodeJS.Timer | null
 
   constructor(level: LogLevel) {
     super(level)
+
+    // Force log-update library to call write method with extra param.
+    const stream = {
+      ...process.stdout,
+      // @ts-ignore
+      write: (str, enc, cb) => process.stdout.write(str, enc, cb, { skipIntercept: true }),
+    }
+    // @ts-ignore
+    this.logUpdate = logUpdate.create(stream)
+    this.releaseStreamFns = [
+      interceptStream(process.stdout, msg => this.info({
+        msg: msg.replace(/\r?\n|\r/, ""),
+        fromOtherSrc: true,
+      })),
+      // FIXME Intercepting stderr not working when msg pushed to logger
+      interceptStream(process.stderr, () => { }),
+    ]
     this.intervalID = null
   }
 
@@ -169,7 +193,7 @@ export class FancyLogger extends Logger {
   write(): void {
     const out = this.render()
     if (out) {
-      logUpdate(out.join("\n"))
+      this.logUpdate(out.join("\n"))
     }
   }
 
@@ -196,15 +220,14 @@ export class FancyLogger extends Logger {
     return null
   }
 
-  finish() {
-    super.finish()
-    this.persist()
-  }
-
-  persist() {
-    this.entries.map(e => e.stop())
+  stop() {
     this.stopLoop()
-    logUpdate.done()
+    this.entries = this.entries.filter(e => {
+      e.stop()
+      return !e.isFromOtherSrc()
+    })
+    this.releaseStreamFns.forEach(stream => stream())
+    this.logUpdate.done()
   }
 
 }
@@ -291,17 +314,22 @@ export abstract class LogEntry {
         [renderSymbol, [this.opts.symbol]],
         [renderEmoji, [this.opts.emoji]],
         [renderMsg, [this.opts.msg]],
+        [renderDuration, [this.startTime, this.opts.showDuration]],
       ]
     } else {
       renderers = [
         [renderSymbol, [this.opts.symbol]],
-        [renderEntryStyle, [this.opts.entryStyle]],
         [renderSection, [this.opts.section]],
         [renderEmoji, [this.opts.emoji]],
         [renderMsg, [this.opts.msg]],
+        [renderDuration, [this.startTime, this.opts.showDuration]],
       ]
     }
     return format(renderers)
+  }
+
+  isFromOtherSrc(): boolean {
+    return !this.opts.fromOtherSrc
   }
 
   pushChild(child: LogEntry): void {
@@ -319,7 +347,6 @@ export abstract class LogEntry {
     return this.status
   }
 
-  // FIXME Doesn't work with FancyLogger due to updates
   inspect() {
     console.log(JSON.stringify({
       ...this.opts,

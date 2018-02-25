@@ -48,3 +48,36 @@ export function mergeLogOpts(prevOpts: LogOpts, nextOpts: LogOpts, resolvers: Lo
 export function duration(startTime: number): string {
   return ((Date.now() - startTime) / 1000).toFixed(2)
 }
+
+interface StreamWriteExtraParam {
+  skipIntercept?: boolean
+}
+
+// Override the write method so that it accepts and extra param.
+// Used by FancyLogger so that writes from other sources can be intercepted
+// and pushed to the log stack. Writes from the logger itself are then applied as usual.
+// TODO Causes TS errors.
+export function interceptStream(stream: NodeJS.WritableStream, callback: Function) {
+  const prevWrite = stream.write
+
+  // @ts-ignore
+  stream.write = (write =>
+    (
+      string: string,
+      encoding?: string,
+      cb?: Function,
+      extraParam?: StreamWriteExtraParam,
+    ): boolean => {
+      if (extraParam && extraParam.skipIntercept) {
+        const args = [string, encoding, cb]
+        return write.apply(stream, args)
+      }
+      callback(string)
+      return true
+    })(stream.write)
+
+  // Restore write method
+  return function release() {
+    stream.write = prevWrite
+  }
+}
