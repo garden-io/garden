@@ -143,7 +143,7 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
 
   async dockerCli(args) {
     // TODO: use dockerode instead of CLI
-    return childProcess.exec("docker " + args, { cwd: this.getBU, maxBuffer: 1024 * 1024 })
+    return childProcess.exec("docker " + args, { cwd: this.getBuildPath(), maxBuffer: 1024 * 1024 })
   }
 }
 

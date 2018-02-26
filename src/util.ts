@@ -9,6 +9,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 import { getLogger } from "./logger"
 import { TimeoutError } from "./exceptions"
+const Rsync = require('rsync')
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues } from "lodash"
 
@@ -28,6 +29,18 @@ export function shutdown(code) {
   } else {
     process.exit(code)
   }
+}
+
+export function execRsyncCmd(rsyncCmd, stdoutHandler?: (object) => void, stderrHandler?: (object) => void): Bluebird<any> {
+  return new Bluebird((resolve, reject) => {
+    rsyncCmd.execute((error, code, cmd) => {
+      if (!error) {
+        resolve()
+      } else {
+        reject({ error, code, cmd })
+      }
+    }, stdoutHandler, stderrHandler)
+  })
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {

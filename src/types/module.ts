@@ -10,10 +10,16 @@ import { GardenContext } from "../context"
 
 interface Variables { [key: string]: Primitive }
 
+interface BuildDependencyConfig {
+  name: string,
+  copy?: string[],
+  copyDestination?: string
+}
+
 interface BuildConfig {
   // TODO: this should be a string array, to match other command specs
   command?: string,
-  dependencies: string[],
+  dependencies: BuildDependencyConfig[],
 }
 
 export interface TestSpec {
@@ -95,7 +101,8 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     const modules = await this.ctx.getModules()
     const deps: Module[] = []
 
-    for (let dependencyName of this.config.build.dependencies) {
+    for (let dependencyConfig of this.config.build.dependencies) {
+      const dependencyName = dependencyConfig.name;
       const dependency = modules[dependencyName]
 
       if (!dependency) {
@@ -131,6 +138,12 @@ export const baseTestSpecSchema = Joi.object().keys({
   timeout: Joi.number(),
 })
 
+export const baseDependencySchema = Joi.object().keys({
+  name: joiIdentifier().required(),
+  copy: Joi.array().items().default(() => [], "[]"),
+  copyDestination: Joi.string().default(() => "", '""')
+})
+
 export const baseModuleSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   type: joiIdentifier().required(),
@@ -140,7 +153,7 @@ export const baseModuleSchema = Joi.object().keys({
   services: baseServicesSchema,
   build: Joi.object().keys({
     command: Joi.string(),
-    dependencies: Joi.array().items(joiIdentifier()).default(() => [], "[]"),
+    dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),
   }).default(() => ({ dependencies: [] }), "{}"),
   test: Joi.object().pattern(/[\w\d]+/i, baseTestSpecSchema).default(() => ({}), "{}"),
 }).required()
@@ -169,6 +182,18 @@ export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig
   }
 
   config.path = modulePath
+
+  /*
+    We allow specifying modules by name only as a shorthand:
+
+      dependencies:
+        foo-module
+        name: foo-module // same as the above
+   */
+  if (config.build.dependencies) {
+    config.build.dependencies = config.build.dependencies
+      .map(d => (typeof d) === 'string' ? {name: d} : d)
+  }
 
   const result = baseModuleSchema.validate(config, { allowUnknown: true })
 

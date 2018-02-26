@@ -82,6 +82,12 @@ export class GardenContext {
       getServiceLogs: {},
     }
 
+    this.buildDir.init()
+
+    // Load built-in plugins
+    for (const pluginCls of builtinPlugins) {
+      this.registerPlugin(() => new pluginCls())
+    }
     this.projectConfig = projectConfig
     this.projectName = this.projectConfig.name
 
@@ -390,7 +396,6 @@ export class GardenContext {
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
     const buildResult = await handler({ ctx: this, module, logEntry })
-    await this.buildDir.put(module)
     return buildResult
   }
 
