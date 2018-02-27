@@ -1,7 +1,7 @@
 import { resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
-import { Command, ParameterValues, StringParameter } from "./base"
+import { Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import { splitFirst } from "../util"
 import { ParameterError, RuntimeError } from "../exceptions"
@@ -9,26 +9,30 @@ import { EntryStyle } from "../logger/types"
 import { pick } from "lodash"
 
 const callArgs = {
-  environment: new StringParameter({
-    help: "The environment (and optionally namespace) to call to",
-    required: true,
-  }),
   serviceAndPath: new StringParameter({
     help: "The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath)",
     required: true,
   }),
 }
 
+const options = {
+  env: new EnvironmentOption({
+    help: "The environment (and optionally namespace) to call to",
+  }),
+}
+
 type Args = ParameterValues<typeof callArgs>
+type Opts = ParameterValues<typeof options>
 
 export class CallCommand extends Command<typeof callArgs> {
   name = "call"
   help = "Call a service endpoint"
 
   arguments = callArgs
+  options = options
 
-  async action(ctx: GardenContext, args: Args) {
-    ctx.setEnvironment(args.environment)
+  async action(ctx: GardenContext, args: Args, opts: Opts) {
+    opts.env && ctx.setEnvironment(opts.env)
 
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
     path = "/" + path

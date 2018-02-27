@@ -1,4 +1,4 @@
-import { Command, ParameterValues, StringParameter } from "./base"
+import { Command, EnvironmentOption, ParameterValues } from "./base"
 import { GardenContext } from "../context"
 import { join } from "path"
 import { STATIC_DIR } from "../constants"
@@ -11,22 +11,19 @@ import { sleep } from "../util"
 const imgcatPath = join(__dirname, "..", "..", "bin", "imgcat")
 const bannerPath = join(STATIC_DIR, "garden-banner-1-half.png")
 
-const devArgs = {
-  environment: new StringParameter({
-    help: "The environment (and optionally namespace) to deploy to",
-    defaultValue: "local",
-  }),
+const options = {
+  env: new EnvironmentOption(),
 }
 
-type Args = ParameterValues<typeof devArgs>
+type Opts = ParameterValues<typeof options>
 
-export class DevCommand extends Command<Args> {
+export class DevCommand extends Command<Opts> {
   name = "dev"
   help = "Starts the garden development console"
 
-  arguments = devArgs
+  options = options
 
-  async action(ctx: GardenContext, args: Args) {
+  async action(ctx: GardenContext, _args, opts: Opts) {
     try {
       spawnSync(imgcatPath, [bannerPath], {
         stdio: "inherit",
@@ -39,7 +36,7 @@ export class DevCommand extends Command<Args> {
     console.log(chalk.bold(` garden - dev\n`))
     console.log(chalk.gray.italic(` Good afternoon, Jon! Let's get your environment wired up...\n`))
 
-    ctx.setEnvironment(args.environment)
+    opts.env && ctx.setEnvironment(opts.env)
 
     await ctx.configureEnvironment()
 

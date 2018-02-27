@@ -40,10 +40,10 @@ describe("commands.deploy", () => {
 
     const result = await command.action(
       ctx, {
-        environment: "local",
         service: "",
       },
       {
+        env: "local",
         force: false,
         "force-build": true,
       },
@@ -66,10 +66,10 @@ describe("commands.deploy", () => {
     const result = await command.action(
       ctx,
       {
-        environment: "local",
         service: "service-b",
       },
       {
+        env: "local",
         force: false,
         "force-build": true,
       },

@@ -35,12 +35,12 @@ it's pretty straightforward, promise :)
 
 To spin it up, `cd` to any of the directories under `examples/` and run:
 
-    garden env configure local
-    garden deploy local
+    garden env configure
+    garden deploy
     
 If you've deployed the `hello-world` project, you can try querying the `/hello` endpoint:
 
-    curl http://localhost:32000/hello -H 'Host: helloworld.my.garden'
+    garden call hello-container/hello
 
 
 ## Developing the framework

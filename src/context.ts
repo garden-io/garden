@@ -107,6 +107,7 @@ export class GardenContext {
     }
 
     this.projectName = this.config.name
+    this.setEnvironment(this.config.defaultEnvironment)
   }
 
   setEnvironment(environment: string) {

@@ -52,9 +52,12 @@ describe("commands.call", () => {
       .reply(200, "bla")
 
     const result = await command.action(
-      ctx, {
-        environment: "local",
+      ctx,
+      {
         serviceAndPath: "service-a/path-a",
+      },
+      {
+        env: "local",
       },
     )
 
@@ -72,9 +75,12 @@ describe("commands.call", () => {
 
     try {
       await command.action(
-        ctx, {
-          environment: "local",
+        ctx,
+        {
           serviceAndPath: "service-b/path-b",
+        },
+        {
+          env: "local",
         },
       )
     } catch (err) {
@@ -91,9 +97,12 @@ describe("commands.call", () => {
 
     try {
       await command.action(
-        ctx, {
-          environment: "local",
+        ctx,
+        {
           serviceAndPath: "service-c/path-c",
+        },
+        {
+          env: "local",
         },
       )
     } catch (err) {
@@ -110,9 +119,12 @@ describe("commands.call", () => {
 
     try {
       await command.action(
-        ctx, {
-          environment: "local",
+        ctx,
+        {
           serviceAndPath: "service-a/bla",
+        },
+        {
+          env: "local",
         },
       )
     } catch (err) {

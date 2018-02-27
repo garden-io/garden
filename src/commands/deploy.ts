@@ -1,4 +1,4 @@
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
+import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import { DeployTask } from "../tasks/deploy"
 import { values } from "lodash"
@@ -6,10 +6,6 @@ import { Service } from "../types/service"
 import chalk from "chalk"
 
 const deployArgs = {
-  environment: new StringParameter({
-    help: "The environment (and optionally namespace) to deploy to",
-    required: true,
-  }),
   service: new StringParameter({
     help: "The name of the service(s) to deploy (skip to deploy all services). " +
       "Use comma as separator to specify multiple services.",
@@ -17,6 +13,9 @@ const deployArgs = {
 }
 
 const deployOpts = {
+  env: new EnvironmentOption({
+    help: "Set the environment (and optionally namespace) to deploy to",
+  }),
   force: new BooleanParameter({ help: "Force redeploy of service(s)" }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)" }),
 }
@@ -34,7 +33,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   async action(ctx: GardenContext, args: Args, opts: Opts) {
     ctx.log.header({ emoji: "rocket", command: "Deploy" })
 
-    ctx.setEnvironment(args.environment)
+    opts.env && ctx.setEnvironment(opts.env)
     const names = args.service ? args.service.split(",") : undefined
     const services = await ctx.getServices(names)
 
