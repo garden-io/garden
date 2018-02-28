@@ -70,6 +70,7 @@ describe("GardenContext", () => {
     const ctx = makeTestContextA()
 
     expect(ctx.config).to.eql({
+      defaultEnvironment: "local",
       environments: {
         local: {
           providers: {
@@ -81,6 +82,7 @@ describe("GardenContext", () => {
             },
           },
         },
+        other: {},
       },
       name: "build-test-project",
       version: "0",
@@ -184,26 +186,21 @@ describe("GardenContext", () => {
     it("should get the active environment for the context", () => {
       const ctx = makeTestContextA()
 
-      const { name, namespace } = ctx.setEnvironment("local")
-      expect(name).to.equal("local")
+      const { name, namespace } = ctx.setEnvironment("other")
+      expect(name).to.equal("other")
       expect(namespace).to.equal("default")
 
       const env = ctx.getEnvironment()
-      expect(env.name).to.equal("local")
+      expect(env.name).to.equal("other")
       expect(env.namespace).to.equal("default")
     })
 
-    it("should throw if an environment hasn't been set", () => {
+    it("should return default environment if none has been explicitly set", () => {
       const ctx = makeTestContextA()
 
-      try {
-        ctx.getEnvironment()
-      } catch (err) {
-        expect(err.type).to.equal("plugin")
-        return
-      }
-
-      throw new Error("Expected error")
+      const { name, namespace } = ctx.getEnvironment()
+      expect(name).to.equal("local")
+      expect(namespace).to.equal("default")
     })
   })
 

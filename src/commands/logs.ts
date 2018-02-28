@@ -1,4 +1,4 @@
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
+import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import chalk from "chalk"
 import { GetServiceLogsParams, ServiceLogEntry } from "../types/plugin"
@@ -8,10 +8,6 @@ import { Service } from "../types/service"
 import Stream from "ts-stream"
 
 const logsArgs = {
-  environment: new StringParameter({
-    help: "The environment (and optionally namespace) to logs to",
-    required: true,
-  }),
   service: new StringParameter({
     help: "The name of the service(s) to logs (skip to logs all services). " +
       "Use comma as separator to specify multiple services.",
@@ -19,6 +15,7 @@ const logsArgs = {
 }
 
 const logsOpts = {
+  env: new EnvironmentOption(),
   tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s)", alias: "t" }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
@@ -35,7 +32,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   options = logsOpts
 
   async action(ctx: GardenContext, args: Args, opts: Opts) {
-    ctx.setEnvironment(args.environment)
+    opts.env && ctx.setEnvironment(opts.env)
     const env = ctx.getEnvironment()
     const names = args.service ? args.service.split(",") : undefined
     const services = await ctx.getServices(names)

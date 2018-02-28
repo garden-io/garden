@@ -34,6 +34,7 @@ export interface EnvironmentConfig {
 export interface ProjectConfig {
   version: string
   name: string
+  defaultEnvironment: string
   environments: { [key: string]: EnvironmentConfig }
   variables: { [key: string]: Primitive }
 }
@@ -45,6 +46,8 @@ export const providerConfigBase = Joi.object().keys({
 const baseSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   name: joiIdentifier().required(),
+  // TODO: allow a user override for this
+  defaultEnvironment: Joi.string().default("", "<first specified environment>"),
   environments: Joi.object().pattern(identifierRegex, Joi.object().keys({
     providers: Joi.object().pattern(identifierRegex, providerConfigBase),
   })).default(() => extend({}, defaultEnvironments), JSON.stringify(defaultEnvironments)),
@@ -72,6 +75,20 @@ export function loadProjectConfig(projectRoot: string): ProjectConfig {
 
   // we include the default local environment unless explicitly overridden
   parsed.environments = extend({}, defaultEnvironments, parsed.environments)
+
+  // the default environment is the first specified environment in the config, unless specified
+  const defaultEnvironment = parsed.defaultEnvironment
+
+  if (defaultEnvironment === "") {
+    parsed.defaultEnvironment = Object.keys(parsed.environments)[0]
+  } else {
+    if (!parsed.environments[defaultEnvironment]) {
+      throw new ConfigurationError(`The specified default environment ${defaultEnvironment} is not defined`, {
+        defaultEnvironment,
+        availableEnvironments: Object.keys(parsed.environments),
+      })
+    }
+  }
 
   return parsed
 }

@@ -1,25 +1,24 @@
-import { Command, ParameterValues, StringParameter } from "../base"
+import { Command, EnvironmentOption, ParameterValues } from "../base"
 import { GardenContext } from "../../context"
 
-const envConfigureArgs = {
-  environment: new StringParameter({
-    help: "The environment (and optionally namespace) to configure",
-    required: true,
+const options = {
+  env: new EnvironmentOption({
+    help: "Set the environment (and optionally namespace) to configure",
   }),
 }
 
-type Args = ParameterValues<typeof envConfigureArgs>
+type Opts = ParameterValues<typeof options>
 
-export class EnvironmentConfigureCommand extends Command<typeof envConfigureArgs> {
+export class EnvironmentConfigureCommand extends Command<typeof options> {
   name = "environment configure"
   alias = "env configure"
-  help = "Outputs the status of the specified environment"
+  help = "Configures your environment"
 
-  arguments = envConfigureArgs
+  options = options
 
-  async action(ctx: GardenContext, args: Args) {
-    ctx.log.header({ emoji: "gear", command: `Configuring ${args.environment} environment` })
-    ctx.setEnvironment(args.environment)
+  async action(ctx: GardenContext, _args, opts: Opts) {
+    ctx.log.header({ emoji: "gear", command: `Configuring ${opts.env} environment` })
+    opts.env && ctx.setEnvironment(opts.env)
 
     const result = await ctx.configureEnvironment()
 

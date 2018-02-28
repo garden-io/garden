@@ -1,4 +1,4 @@
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
+import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import { values, padEnd } from "lodash"
 import { TestTask } from "../tasks/test"
@@ -13,11 +13,7 @@ const testArgs = {
 }
 
 const testOpts = {
-  env: new StringParameter({
-    help: "Specify environment to run in (defaults to local.test)",
-    alias: "e",
-    defaultValue: "local.test",
-  }),
+  env: new EnvironmentOption(),
   group: new StringParameter({
     help: "Only run tests with the specfied group (e.g. unit or integ)",
     alias: "g",
@@ -45,7 +41,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
       command: `Running tests`,
     })
 
-    ctx.setEnvironment(opts.env)
+    opts.env && ctx.setEnvironment(opts.env)
     await ctx.configureEnvironment()
 
     for (const module of values(modules)) {

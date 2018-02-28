@@ -6,3 +6,4 @@ environments:
         type: test-plugin
       test-b:
         type: test-plugin-b
+  other: {}
