@@ -69,12 +69,12 @@
     "typescript-formatter": "^7.0.1"
   },
   "scripts": {
-    "build": "node_modules/.bin/tsc -p .",
+    "build": "./bin/build",
     "clean": "git clean -x -f",
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
     "lint": "node_modules/.bin/tslint -p . && node_modules/.bin/tsfmt --verify",
     "posttest": "npm run lint",
-    "test": "npm run build && node_modules/.bin/mocha ",
+    "test": "npm run build && node_modules/.bin/mocha",
     "update-submodules": "git submodule update --init --recursive --jobs 4",
     "watch": "node_modules/.bin/tsc -w -p .",
     "snyk-protect": "snyk protect",

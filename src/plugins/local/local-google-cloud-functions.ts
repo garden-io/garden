@@ -13,8 +13,9 @@ import {
   Plugin,
 } from "../../types/plugin"
 import { GardenContext } from "../../context"
+import { STATIC_DIR } from "../../constants"
 
-const emulatorModulePath = join(__dirname, "local-gcf-container")
+const emulatorModulePath = join(STATIC_DIR, "local-gcf-container")
 const emulatorPort = 8010
 const emulatorServiceName = "google-cloud-functions"
 
