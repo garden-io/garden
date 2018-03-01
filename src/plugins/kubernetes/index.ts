@@ -19,7 +19,7 @@ import { createServices } from "./service"
 import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
 import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { DEFAULT_TEST_TIMEOUT } from "../../constants"
+import { DEFAULT_TEST_TIMEOUT, STATIC_DIR } from "../../constants"
 import { EntryStyle } from "../../logger/types"
 import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
@@ -28,9 +28,9 @@ import moment = require("moment")
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
-const ingressControllerModulePath = join(__dirname, "garden-ingress-controller")
-const defaultBackendModulePath = join(__dirname, "garden-default-backend")
-const dashboardModulePath = join(__dirname, "garden-dashboard")
+const ingressControllerModulePath = join(STATIC_DIR, "garden-ingress-controller")
+const defaultBackendModulePath = join(STATIC_DIR, "garden-default-backend")
+const dashboardModulePath = join(STATIC_DIR, "garden-dashboard")
 const dashboardSpecPath = join(dashboardModulePath, "dashboard.yml")
 const localIngressPort = "32000"
 
