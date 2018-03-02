@@ -63,6 +63,7 @@
     "json-schema-to-typescript": "^5.2.2",
     "mocha": "^4.1.0",
     "nock": "^9.1.6",
+    "pegjs": "^0.10.0",
     "ts-node": "^4.1.0",
     "tslint": "^5.8.0",
     "tslint-microsoft-contrib": "^5.0.1",

@@ -22,3 +22,7 @@ export interface Environment {
   namespace: string
   config: EnvironmentConfig,
 }
+
+export function isPrimitive(value: any) {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+}
