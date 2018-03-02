@@ -9,7 +9,6 @@ import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 import { getLogger } from "./logger"
 import { TimeoutError } from "./exceptions"
-const Rsync = require('rsync')
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues } from "lodash"
 
@@ -31,7 +30,10 @@ export function shutdown(code) {
   }
 }
 
-export function execRsyncCmd(rsyncCmd, stdoutHandler?: (object) => void, stderrHandler?: (object) => void): Bluebird<any> {
+type RsyncCallback = () => void
+
+// rsyncCmd should be an instance of Rsync
+export function execRsyncCmd(rsyncCmd, stdoutHandler?: RsyncCallback, stderrHandler?: RsyncCallback): Bluebird<any> {
   return new Bluebird((resolve, reject) => {
     rsyncCmd.execute((error, code, cmd) => {
       if (!error) {
@@ -117,6 +119,7 @@ export function getIgnorer(rootPath: string) {
 
   // should we be adding this (or more) by default?
   ig.add("node_modules")
+  ig.add(".garden")
 
   return ig
 }

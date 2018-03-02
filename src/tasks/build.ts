@@ -1,4 +1,4 @@
-import { Task, TaskResults } from "../task-graph"
+import { Task } from "../task-graph"
 import { Module } from "../types/module"
 import { GardenContext } from "../context"
 import { EntryStyle } from "../logger/types"
@@ -22,7 +22,7 @@ export class BuildTask extends Task {
     return this.module.name
   }
 
-  async process(dependencyResults: TaskResults) {
+  async process() {
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",
@@ -30,7 +30,6 @@ export class BuildTask extends Task {
     })
 
     if (this.force || !(await this.module.getBuildStatus()).ready) {
-      await this.ctx.buildDir.syncFromSrc(this.module)
       await this.ctx.buildDir.syncDependencyProducts(this.module)
       const startTime = new Date().getTime()
       const result = await this.ctx.buildModule(this.module, entry)

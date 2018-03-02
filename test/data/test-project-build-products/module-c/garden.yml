@@ -1,0 +1,4 @@
+name: module-c
+type: generic
+build:
+  command: "echo C"

@@ -1,0 +1,14 @@
+name: module-d
+type: generic
+build:
+  command: "echo D && mkdir build && touch build/d.txt"
+  dependencies:
+    - name: module-a
+      copy:
+        - a.txt
+       copyDestination: "a"
+    - name: module-b
+      copy:
+        - "build/b1.txt"
+        - build/build_subdir
+      copyDestination: b

@@ -13,7 +13,7 @@ interface Variables { [key: string]: Primitive }
 interface BuildDependencyConfig {
   name: string,
   copy?: string[],
-  copyDestination?: string
+  copyDestination?: string // TODO: if we stick with this format, make mandatory if copy is provided
 }
 
 interface BuildConfig {
@@ -102,7 +102,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     const deps: Module[] = []
 
     for (let dependencyConfig of this.config.build.dependencies) {
-      const dependencyName = dependencyConfig.name;
+      const dependencyName = dependencyConfig.name
       const dependency = modules[dependencyName]
 
       if (!dependency) {
@@ -140,8 +140,8 @@ export const baseTestSpecSchema = Joi.object().keys({
 
 export const baseDependencySchema = Joi.object().keys({
   name: joiIdentifier().required(),
-  copy: Joi.array().items().default(() => [], "[]"),
-  copyDestination: Joi.string().default(() => "", '""')
+  copy: Joi.array(),
+  copyDestination: Joi.string(),
 })
 
 export const baseModuleSchema = Joi.object().keys({
@@ -190,9 +190,9 @@ export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig
         foo-module
         name: foo-module // same as the above
    */
-  if (config.build.dependencies) {
+  if (config.build && config.build.dependencies) {
     config.build.dependencies = config.build.dependencies
-      .map(d => (typeof d) === 'string' ? {name: d} : d)
+      .map(dep => (typeof dep) === "string" ? { name: dep } : dep)
   }
 
   const result = baseModuleSchema.validate(config, { allowUnknown: true })

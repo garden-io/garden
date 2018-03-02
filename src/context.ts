@@ -84,10 +84,6 @@ export class GardenContext {
 
     this.buildDir.init()
 
-    // Load built-in plugins
-    for (const pluginCls of builtinPlugins) {
-      this.registerPlugin(() => new pluginCls())
-    }
     this.projectConfig = projectConfig
     this.projectName = this.projectConfig.name
 

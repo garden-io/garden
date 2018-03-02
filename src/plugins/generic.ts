@@ -1,5 +1,12 @@
 import { exec } from "child-process-promise"
-import { BuildResult, BuildStatus, ParseModuleParams, Plugin, TestModuleParams, TestResult } from "../types/plugin"
+import {
+  BuildResult,
+  BuildStatus,
+  ParseModuleParams,
+  Plugin,
+  TestModuleParams,
+  TestResult,
+} from "../types/plugin"
 import { Module } from "../types/module"
 import { spawn } from "../util"
 
@@ -20,20 +27,16 @@ export class GenericModuleHandler<T extends Module = Module> implements Plugin<T
     // By default we run the specified build command in the module root, if any.
     // TODO: Keep track of which version has been built (needs local data store/cache).
     if (module.config.build.command) {
-      const result = await exec(module.config.build.command, { cwd: module.getBuildPath() })
+      const buildPath = await module.getBuildPath()
+      const result = await exec(module.config.build.command, { cwd: buildPath })
 
       return {
-        module,
         fresh: true,
-        buildLog: result.stdout
+        buildLog: result.stdout,
       }
     } else {
-      return { module }
+      return {}
     }
-  }
-
-  async processDependencyResult(dependencyResult) {
-    return // no-op
   }
 
   async testModule({ module, testSpec }: TestModuleParams<T>): Promise<TestResult> {
