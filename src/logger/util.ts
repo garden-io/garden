@@ -44,3 +44,42 @@ function mergeWithResolvers(objA: any, objB: any, resolvers: any = {}) {
 export function mergeLogOpts(prevOpts: LogOpts, nextOpts: LogOpts, resolvers: LogOptsResolvers) {
   return mergeWithResolvers(prevOpts, nextOpts, resolvers)
 }
+
+export function duration(startTime: number): string {
+  return ((Date.now() - startTime) / 1000).toFixed(2)
+}
+
+interface StreamWriteExtraParam {
+  noIntercept?: boolean
+}
+
+// Intercepts the write method of a WriteableStream and calls the provided callback on the
+// string to write (or optionally applies the string to the write method)
+// Returns a function which sets the write back to default.
+//
+// Used e.g. by FancyLogger so that writes from other sources can be intercepted
+// and pushed to the log stack.
+export function interceptStream(stream: NodeJS.WritableStream, callback: Function) {
+  const prevWrite = stream.write
+
+  stream.write = (write =>
+    (
+      string: string,
+      encoding?: string,
+      cb?: Function,
+      extraParam?: StreamWriteExtraParam,
+    ): boolean => {
+      if (extraParam && extraParam.noIntercept) {
+        const args = [string, encoding, cb]
+        return write.apply(stream, args)
+      }
+      callback(string)
+      return true
+    })(stream.write) as any
+
+  const restore = () => {
+    stream.write = prevWrite
+  }
+
+  return restore
+}

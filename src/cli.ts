@@ -135,7 +135,7 @@ export class GardenCli {
 
   async parse(argv: string[]) {
     const parsed = await this.program.parse(argv)
-    // this.logger.finish()
+    this.logger.stop()
     return parsed
   }
 

@@ -1,14 +1,17 @@
 // TODO: make log level configurable
 import * as logUpdate from "log-update"
 import * as nodeEmoji from "node-emoji"
+import * as cliCursor from "cli-cursor"
 import chalk from "chalk"
 import { flatten } from "lodash"
 
 const elegantSpinner = require("elegant-spinner")
 
+import { interceptStream } from "./util"
+
 import {
   format,
-  renderEntryStyle,
+  renderDuration,
   renderEmoji,
   renderHeader,
   renderMsg,
@@ -26,7 +29,11 @@ import {
   LogSymbolType,
 } from "./types"
 
-import { getNodeListFromTree, mergeLogOpts } from "./util"
+import {
+  duration,
+  getNodeListFromTree,
+  mergeLogOpts,
+} from "./util"
 
 const INTERVAL_DELAY = 100
 const spinnerStyle = chalk.cyan
@@ -39,10 +46,14 @@ interface LogWriteFn {
   (logOpts: LogOpts, parent?: LogEntry): LogEntry
 }
 
+interface FinishOpts {
+  showDuration?: boolean
+}
+
 export abstract class Logger {
-  entries: LogEntry[]
-  level: LogLevel
-  startTime: number
+  public entries: LogEntry[]
+  public level: LogLevel
+  public startTime: number
 
   constructor(level: LogLevel) {
     this.startTime = Date.now()
@@ -53,6 +64,7 @@ export abstract class Logger {
   abstract render(): string | string[] | null
   abstract write(): void
   abstract createLogEntry(level, opts: LogOpts, depth: number): LogEntry
+  abstract stop(): void
 
   protected addEntryAndRender(level, opts: LogOpts, parent?: LogEntry): LogEntry {
     const depth = parent ? parent.depth + 1 : 0
@@ -83,30 +95,30 @@ export abstract class Logger {
   }
 
   warn: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevel.warn, { ...opts, entryStyle: EntryStyle.warn }, parent)
+    return this.addEntryAndRender(LogLevel.warn, opts, parent)
   }
 
   error: LogWriteFn = (opts: LogOpts, parent?: LogEntry): LogEntry => {
-    return this.addEntryAndRender(LogLevel.error, { ...opts, entryStyle: EntryStyle.error }, parent)
+    return this.addEntryAndRender(LogLevel.error, opts, parent)
   }
 
   header(opts: HeaderOpts): LogEntry {
     return this.addEntryAndRender(LogLevel.verbose, { msg: renderHeader(opts) })
   }
 
-  finish() {
-    const totalTime = (this.getTotalTime() / 1000).toFixed(2)
-    const msg = `\n${nodeEmoji.get("sparkles")}  Finished in ${chalk.bold(totalTime + "s")}\n`
-    this.addEntryAndRender(LogLevel.info, { msg })
-  }
-
-  getTotalTime(): number {
-    return Date.now() - this.startTime
+  finish(opts?: FinishOpts): LogEntry {
+    const msg = format([
+      [() => `\n${nodeEmoji.get("sparkles")}  Finished`, []],
+      [() => opts && opts.showDuration ? ` in ${chalk.bold(duration(this.startTime) + "s")}` : "!", []],
+      [() => "\n", []],
+    ])
+    return this.info({ msg })
   }
 
 }
 
 export class BasicLogger extends Logger {
+
   createLogEntry(level, opts: LogOpts, depth: number): LogEntry {
     return new BasicLogEntry(level, opts, this, depth)
   }
@@ -124,14 +136,54 @@ export class BasicLogger extends Logger {
     return null
   }
 
+  stop() { }
+
 }
 
 export class FancyLogger extends Logger {
+  private logUpdate: any
   private intervalID: NodeJS.Timer | null
 
   constructor(level: LogLevel) {
     super(level)
+
     this.intervalID = null
+    this.logUpdate = this.initLogUpdate()
+  }
+
+  initLogUpdate(): any {
+    // Create custom stream that calls write method with the 'noIntercept' option.
+    const stream = {
+      ...process.stdout,
+      write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
+    }
+    const makeOpts = (msg: string) => ({
+      // Remove trailing new line from console writes since Logger already handles it
+      msg: msg.replace(/\n$/, ""),
+      notOriginatedFromLogger: true,
+    })
+    // NOTE: On every write, log-update library calls the cli-cursor library to hide the cursor
+    // which the cli-cursor library does via stderr write. This causes an infinite loop as
+    // the stderr writes are intercepted and funneled back to the Logger.
+    // Therefore we manually toggle the cursor using the custom stream from above.
+    //
+    // log-update types are missing the `opts?: {showCursor?: boolean}` parameter
+    const customLogUpdate = (<any>logUpdate.create)(<any>stream, { showCursor: true })
+    cliCursor.hide(stream)
+
+    const releaseStreamFns = [
+      interceptStream(process.stdout, msg => this.info(makeOpts(msg))),
+      interceptStream(process.stderr, msg => this.error(makeOpts(msg))),
+    ]
+
+    const cleanUp = () => {
+      cliCursor.show(stream)
+      releaseStreamFns.forEach(releaseStream => releaseStream())
+      logUpdate.done()
+    }
+    customLogUpdate.cleanUp = cleanUp
+
+    return customLogUpdate
   }
 
   protected startLoop(): void {
@@ -161,7 +213,7 @@ export class FancyLogger extends Logger {
   write(): void {
     const out = this.render()
     if (out) {
-      logUpdate(out.join("\n"))
+      this.logUpdate(out.join("\n"))
     }
   }
 
@@ -188,15 +240,13 @@ export class FancyLogger extends Logger {
     return null
   }
 
-  finish() {
-    super.finish()
-    this.persist()
-  }
-
-  persist() {
-    this.entries.map(e => e.stop())
+  stop() {
     this.stopLoop()
-    logUpdate.done()
+    this.entries = this.entries.filter(e => {
+      e.stop()
+      return !e.originIsNotLogger()
+    })
+    this.logUpdate.cleanUp()
   }
 
 }
@@ -209,12 +259,14 @@ export abstract class LogEntry {
   protected logger: Logger
   protected status: EntryStatus
 
+  public startTime: number
   public level: LogLevel
   public depth: number
   public children: LogEntry[]
   public nest: LoggerWriteMethods = this.exposeLoggerWriteMethods()
 
   constructor(level: LogLevel, opts: LogOpts, logger: Logger, depth?: number) {
+    this.startTime = Date.now()
     this.depth = depth || 0
     this.opts = opts
     this.logger = logger
@@ -267,9 +319,10 @@ export abstract class LogEntry {
     this.status = status
   }
 
-  private setStateAndRender(opts: LogOpts, status: EntryStatus): void {
+  private setStateAndRender(opts: LogOpts, status: EntryStatus): LogEntry {
     this.setState(opts, status)
     this.logger.render()
+    return this
   }
 
   protected format(): string {
@@ -280,17 +333,22 @@ export abstract class LogEntry {
         [renderSymbol, [this.opts.symbol]],
         [renderEmoji, [this.opts.emoji]],
         [renderMsg, [this.opts.msg]],
+        [renderDuration, [this.startTime, this.opts.showDuration]],
       ]
     } else {
       renderers = [
         [renderSymbol, [this.opts.symbol]],
-        [renderEntryStyle, [this.opts.entryStyle]],
         [renderSection, [this.opts.section]],
         [renderEmoji, [this.opts.emoji]],
         [renderMsg, [this.opts.msg]],
+        [renderDuration, [this.startTime, this.opts.showDuration]],
       ]
     }
     return format(renderers)
+  }
+
+  originIsNotLogger(): boolean {
+    return !!this.opts.originIsNotLogger
   }
 
   pushChild(child: LogEntry): void {
@@ -308,7 +366,6 @@ export abstract class LogEntry {
     return this.status
   }
 
-  // FIXME Doesn't work with FancyLogger due to updates
   inspect() {
     console.log(JSON.stringify({
       ...this.opts,
@@ -318,24 +375,24 @@ export abstract class LogEntry {
   }
 
   // Preserves status
-  update(opts: LogOpts = {}): void {
-    this.setStateAndRender(opts, this.status)
+  update(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender(opts, this.status)
   }
 
-  done(opts: LogOpts = {}): void {
-    this.setStateAndRender(opts, EntryStatus.DONE)
+  done(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender(opts, EntryStatus.DONE)
   }
 
-  success(opts: LogOpts = {}): void {
-    this.setStateAndRender({ ...opts, symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
+  success(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender({ ...opts, symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
   }
 
-  error(opts: LogOpts = {}): void {
-    this.setStateAndRender({ ...opts, symbol: LogSymbolType.error }, EntryStatus.ERROR)
+  error(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender({ ...opts, symbol: LogSymbolType.error }, EntryStatus.ERROR)
   }
 
-  warn(opts: LogOpts = {}): void {
-    this.setStateAndRender({ ...opts, symbol: LogSymbolType.warn }, EntryStatus.WARN)
+  warn(opts: LogOpts = {}): LogEntry {
+    return this.setStateAndRender({ ...opts, symbol: LogSymbolType.warn }, EntryStatus.WARN)
   }
 
 }

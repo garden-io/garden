@@ -17,20 +17,17 @@ export enum LoggerType {
   fancy = "fancy",
 }
 
-// Defines entry style and format
+// Defines entry style and format (only one available style at the moment)
 export enum EntryStyle {
   activity = "activity",
-  error = "error",
-  info = "info",
-  warn = "warn",
 }
 
-// Icon to show when activity is done
+// Icon to show when activity is done (values are the keys used in log-symbols package)
 export enum LogSymbolType {
   error = "error",
   info = "info",
   success = "success",
-  warn = "warn",
+  warn = "warning",
   empty = "empty",
 }
 
@@ -54,4 +51,6 @@ export interface LogOpts {
   symbol?: LogSymbolType
   entryStyle?: EntryStyle
   append?: boolean
+  originIsNotLogger?: boolean
+  showDuration?: boolean
 }
