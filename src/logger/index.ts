@@ -1,6 +1,7 @@
 // TODO: make log level configurable
 import * as logUpdate from "log-update"
 import * as nodeEmoji from "node-emoji"
+import * as cliCursor from "cli-cursor"
 import chalk from "chalk"
 import { flatten } from "lodash"
 
@@ -140,30 +141,49 @@ export class BasicLogger extends Logger {
 }
 
 export class FancyLogger extends Logger {
-  private releaseStreamFns: Function[]
-  private logUpdate
+  private logUpdate: any
   private intervalID: NodeJS.Timer | null
 
   constructor(level: LogLevel) {
     super(level)
 
-    // Force log-update library to call write method with extra param.
+    this.intervalID = null
+    this.logUpdate = this.initLogUpdate()
+  }
+
+  initLogUpdate(): any {
+    // Create custom stream that calls write method with the 'noIntercept' option.
     const stream = {
       ...process.stdout,
-      // @ts-ignore
-      write: (str, enc, cb) => process.stdout.write(str, enc, cb, { skipIntercept: true }),
+      write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
     }
-    // @ts-ignore
-    this.logUpdate = logUpdate.create(stream)
-    this.releaseStreamFns = [
-      interceptStream(process.stdout, msg => this.info({
-        msg: msg.replace(/\r?\n|\r/, ""),
-        fromOtherSrc: true,
-      })),
-      // FIXME Intercepting stderr not working when msg pushed to logger
-      interceptStream(process.stderr, () => { }),
+    const makeOpts = (msg: string) => ({
+      // Remove trailing new line from console writes since Logger already handles it
+      msg: msg.replace(/\n$/, ""),
+      notOriginatedFromLogger: true,
+    })
+    // NOTE: On every write, log-update library calls the cli-cursor library to hide the cursor
+    // which the cli-cursor library does via stderr write. This causes an infinite loop as
+    // the stderr writes are intercepted and funneled back to the Logger.
+    // Therefore we manually toggle the cursor using the custom stream from above.
+    //
+    // log-update types are missing the `opts?: {showCursor?: boolean}` parameter
+    const customLogUpdate = (<any>logUpdate.create)(<any>stream, { showCursor: true })
+    cliCursor.hide(stream)
+
+    const releaseStreamFns = [
+      interceptStream(process.stdout, msg => this.info(makeOpts(msg))),
+      interceptStream(process.stderr, msg => this.error(makeOpts(msg))),
     ]
-    this.intervalID = null
+
+    const cleanUp = () => {
+      cliCursor.show(stream)
+      releaseStreamFns.forEach(releaseStream => releaseStream())
+      logUpdate.done()
+    }
+    customLogUpdate.cleanUp = cleanUp
+
+    return customLogUpdate
   }
 
   protected startLoop(): void {
@@ -224,10 +244,9 @@ export class FancyLogger extends Logger {
     this.stopLoop()
     this.entries = this.entries.filter(e => {
       e.stop()
-      return !e.isFromOtherSrc()
+      return !e.originIsNotLogger()
     })
-    this.releaseStreamFns.forEach(stream => stream())
-    this.logUpdate.done()
+    this.logUpdate.cleanUp()
   }
 
 }
@@ -328,8 +347,8 @@ export abstract class LogEntry {
     return format(renderers)
   }
 
-  isFromOtherSrc(): boolean {
-    return !this.opts.fromOtherSrc
+  originIsNotLogger(): boolean {
+    return !!this.opts.originIsNotLogger
   }
 
   pushChild(child: LogEntry): void {

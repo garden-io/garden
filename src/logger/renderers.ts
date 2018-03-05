@@ -29,9 +29,7 @@ function applyRenderers(renderers: any[][]): Function {
   const curried = renderers.map((p, idx) => {
     const args = [idx, p[0], p[1]]
     // FIXME Currying like this throws "Expected 0-4 arguments, but got 0 or more"
-    // Setting (insertVal as any) does not work.
-    // @ts-ignore
-    return curryRight(insertVal)(...args)
+    return (<any>curryRight)(insertVal)(...args)
   })
   return flow(curried)
 }

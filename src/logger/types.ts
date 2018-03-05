@@ -51,6 +51,6 @@ export interface LogOpts {
   symbol?: LogSymbolType
   entryStyle?: EntryStyle
   append?: boolean
-  fromOtherSrc?: boolean
+  originIsNotLogger?: boolean
   showDuration?: boolean
 }

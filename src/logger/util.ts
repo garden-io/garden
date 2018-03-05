@@ -50,17 +50,18 @@ export function duration(startTime: number): string {
 }
 
 interface StreamWriteExtraParam {
-  skipIntercept?: boolean
+  noIntercept?: boolean
 }
 
-// Override the write method so that it accepts and extra param.
-// Used by FancyLogger so that writes from other sources can be intercepted
-// and pushed to the log stack. Writes from the logger itself are then applied as usual.
-// TODO Causes TS errors.
+// Intercepts the write method of a WriteableStream and calls the provided callback on the
+// string to write (or optionally applies the string to the write method)
+// Returns a function which sets the write back to default.
+//
+// Used e.g. by FancyLogger so that writes from other sources can be intercepted
+// and pushed to the log stack.
 export function interceptStream(stream: NodeJS.WritableStream, callback: Function) {
   const prevWrite = stream.write
 
-  // @ts-ignore
   stream.write = (write =>
     (
       string: string,
@@ -68,16 +69,17 @@ export function interceptStream(stream: NodeJS.WritableStream, callback: Functio
       cb?: Function,
       extraParam?: StreamWriteExtraParam,
     ): boolean => {
-      if (extraParam && extraParam.skipIntercept) {
+      if (extraParam && extraParam.noIntercept) {
         const args = [string, encoding, cb]
         return write.apply(stream, args)
       }
       callback(string)
       return true
-    })(stream.write)
+    })(stream.write) as any
 
-  // Restore write method
-  return function release() {
+  const restore = () => {
     stream.write = prevWrite
   }
+
+  return restore
 }
