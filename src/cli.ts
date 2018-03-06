@@ -3,7 +3,7 @@ import { Parameter, Command, StringParameter } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { PluginError } from "./exceptions"
 import { GardenContext } from "./context"
-import { getLogger, Logger } from "./logger"
+import { getLogger, RootLogNode } from "./logger"
 import { resolve } from "path"
 import { BuildCommand } from "./commands/build"
 import { EnvironmentStatusCommand } from "./commands/environment/status"
@@ -29,7 +29,7 @@ export class GardenCli {
   // TODO: I don't particularly like Caporal.js, we might want to replace it at some point -JE
   program: any
   commands: { [key: string]: Command } = {}
-  logger: Logger
+  logger: RootLogNode
 
   constructor() {
     this.logger = getLogger()

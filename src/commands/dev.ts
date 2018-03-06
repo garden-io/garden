@@ -50,7 +50,7 @@ export class DevCommand extends Command<Opts> {
     while (true) {
       // TODO: actually do stuff
       await sleep(10000)
-      watchEntry.update({ emoji: "koala", msg: `Waiting for code changes...` })
+      watchEntry.setState({ emoji: "koala", msg: `Waiting for code changes...` })
     }
   }
 }

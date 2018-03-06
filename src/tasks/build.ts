@@ -34,11 +34,11 @@ export class BuildTask extends Task {
       const result = await this.ctx.buildModule(this.module, entry)
       const buildTime = (new Date().getTime()) - startTime
 
-      entry.success({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
+      entry.setSuccess({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
 
       return result
     } else {
-      entry.success({ msg: "Already built" })
+      entry.setSuccess({ msg: "Already built" })
       return { fresh: false }
     }
   }

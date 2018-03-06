@@ -109,11 +109,11 @@ export class CallCommand extends Command<typeof callArgs> {
 
     try {
       res = await req
-      entry.success()
+      entry.setSuccess()
       ctx.log.info({ msg: chalk.green(`\n${res.status} ${res.statusText}\n`) })
     } catch (err) {
       res = err.response
-      entry.error()
+      entry.setError()
       ctx.log.info({ msg: chalk.red(`\n${res.status} ${res.statusText}\n`) })
     }
 

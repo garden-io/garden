@@ -10,7 +10,7 @@ import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { Task, TaskGraph } from "./task-graph"
-import { getLogger, LogEntry, Logger } from "./logger"
+import { getLogger, LogEntry, RootLogNode } from "./logger"
 import {
   BuildStatus, pluginActionNames, PluginActions, PluginFactory, Plugin,
 } from "./types/plugin"
@@ -33,7 +33,7 @@ const builtinPlugins = [
 ]
 
 export class GardenContext {
-  public readonly log: Logger
+  public readonly log: RootLogNode
   public readonly actionHandlers: PluginActionMap
   public readonly projectName: string
   public readonly config: ProjectConfig
@@ -52,7 +52,7 @@ export class GardenContext {
 
   constructor(
     public projectRoot: string,
-    { logger, plugins = [] }: { logger?: Logger, plugins?: PluginFactory[] } = {},
+    { logger, plugins = [] }: { logger?: RootLogNode, plugins?: PluginFactory[] } = {},
   ) {
     this.modulesScanned = false
     this.log = logger || getLogger()

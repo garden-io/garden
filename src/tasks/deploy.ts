@@ -46,7 +46,7 @@ export class DeployTask extends Task {
     const version = await this.service.module.getVersion()
     const status = await this.ctx.getServiceStatus(this.service)
 
-    entry.update({ section: this.service.name, msg: "Deploying" })
+    entry.setState({ section: this.service.name, msg: "Deploying" })
 
     if (
       !this.force &&
@@ -54,7 +54,7 @@ export class DeployTask extends Task {
       status.state === "ready"
     ) {
       // already deployed and ready
-      entry.success({
+      entry.setSuccess({
         msg: `Version ${version} already deployed`,
         append: true,
       })
@@ -64,7 +64,7 @@ export class DeployTask extends Task {
     const serviceContext = { envVars: await this.prepareEnvVars(version) }
     const result = await this.ctx.deployService(this.service, serviceContext)
 
-    entry.success({ msg: chalk.green(`Ready`), append: true })
+    entry.setSuccess({ msg: chalk.green(`Ready`), append: true })
 
     return result
   }

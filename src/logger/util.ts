@@ -18,6 +18,10 @@ export function getNodeListFromTree<T extends Node>(node: T): T[] {
   return arr.concat(flatten(node.children.map(child => getNodeListFromTree(child))))
 }
 
+export function getChildNodes<T extends Node>(node: T): T[] {
+  return getNodeListFromTree(node).slice(1)
+}
+
 export function traverseTree<T extends Node>(root: T, visitNode: Function): void {
   let stack: any[] = []
   stack.push(root)
