@@ -2,11 +2,13 @@ import { readFileSync } from "fs"
 import { resolve } from "path"
 import Bluebird = require("bluebird")
 import { isPrimitive, Primitive } from "./types/common"
+import { deepResolve } from "./util"
+import * as deepMap from "deep-map"
 
 type KeyResolver = (keyParts: string[]) => Promise<string> | string
 
-interface TemplateStringContext {
-  [type: string]: Primitive | KeyResolver | TemplateStringContext
+export interface TemplateStringContext {
+  [type: string]: Primitive | KeyResolver | TemplateStringContext | undefined
 }
 
 class TemplateStringError extends Error { }
@@ -45,8 +47,14 @@ function getParser() {
  */
 export async function parseTemplateString(string: string, context: TemplateStringContext) {
   const parser = getParser()
+  const parsed = parser.parse(string, { getKey: genericResolver(context), TemplateStringError })
 
-  const getKey = (parts: string[]) => {
+  const resolved = await Bluebird.all(parsed)
+  return resolved.join("")
+}
+
+export function genericResolver(context: TemplateStringContext) {
+  return (parts: string[]) => {
     const path = parts.join(".")
     let value
 
@@ -70,9 +78,25 @@ export async function parseTemplateString(string: string, context: TemplateStrin
 
     return value
   }
+}
 
-  const parsed = parser.parse(string, { getKey, TemplateStringError })
+/**
+ * Recursively parses and resolves all templated strings in the given object.
+ *
+ * @param {T} o
+ * @param {TemplateStringContext} context
+ * @returns {Promise<T>}
+ */
+export async function resolveTemplateStrings<T extends object>(o: T, context: TemplateStringContext): Promise<T> {
+  const mapped = deepMap(o, (v) => typeof v === "string" ? parseTemplateString(v, context) : v)
+  return deepResolve(mapped)
+}
 
-  const resolved = await Bluebird.all(parsed)
-  return resolved.join("")
+export async function getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
+  const baseContext: TemplateStringContext = {
+    // TODO: add user configuration here
+    env: process.env,
+  }
+
+  return { ...baseContext, ...extraContext }
 }

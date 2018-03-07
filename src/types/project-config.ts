@@ -40,7 +40,7 @@ export interface ProjectConfig {
 }
 
 export const providerConfigBase = Joi.object().keys({
-  type: joiIdentifier().required(),
+  type: Joi.string().required(),
 }).unknown(true)
 
 const baseSchema = Joi.object().keys({

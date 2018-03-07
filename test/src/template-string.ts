@@ -1,5 +1,6 @@
 import { expect } from "chai"
-import { parseTemplateString } from "../../src/template-string"
+import { parseTemplateString, resolveTemplateStrings } from "../../src/template-string"
+import { makeTestContextA } from "./context"
 
 /* tslint:disable:no-invalid-template-strings */
 
@@ -107,5 +108,34 @@ describe("parseTemplateString", async () => {
     }
 
     throw new Error("Expected error")
+  })
+})
+
+describe("resolveTemplateStrings", () => {
+  it("should resolve all template strings in an object with the given context", async () => {
+    const obj = {
+      some: "${key}",
+      other: {
+        nested: "${something}",
+        noTemplate: "at-all",
+      },
+      resolved: "${resolver.my.key}",
+    }
+    const templateContext = {
+      key: "value",
+      something: "else",
+      resolver: async (parts: string[]) => Promise.resolve(parts.join(">")),
+    }
+
+    const result = await resolveTemplateStrings(obj, templateContext)
+
+    expect(result).to.eql({
+      some: "value",
+      other: {
+        nested: "else",
+        noTemplate: "at-all",
+      },
+      resolved: "my>key",
+    })
   })
 })

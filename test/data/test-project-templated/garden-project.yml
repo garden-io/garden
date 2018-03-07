@@ -1,0 +1,8 @@
+name: test-project-templated
+environments:
+  local:
+    providers:
+      test:
+        type: ${env.TEST_PROVIDER_TYPE}
+variables:
+  some: ${env.TEST_VARIABLE}

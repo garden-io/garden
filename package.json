@@ -23,6 +23,7 @@
     "chalk": "^2.3.0",
     "child-process-promise": "^2.2.1",
     "cli-cursor": "^2.1.0",
+    "deep-map": "^1.5.0",
     "dockerode": "^2.5.3",
     "elegant-spinner": "^1.0.1",
     "escape-string-regexp": "^1.0.5",

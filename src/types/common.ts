@@ -4,6 +4,7 @@ import { EnvironmentConfig } from "./project-config"
 export type Primitive = string | number | boolean
 
 export interface PrimitiveMap { [key: string]: Primitive }
+export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap }
 
 export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.string(), Joi.boolean())
 

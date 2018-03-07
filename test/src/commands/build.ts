@@ -1,10 +1,10 @@
 import { BuildCommand } from "../../../src/commands/build"
 import { expect } from "chai"
-import { makeTestContextA } from "../context"
+import { makeTestContextA } from "../../helpers"
 
 describe("commands.build", () => {
   it("should build all modules in a project", async () => {
-    const ctx = makeTestContextA()
+    const ctx = await makeTestContextA()
     const command = new BuildCommand()
 
     const result = await command.action(ctx, { module: undefined }, { force: true })
@@ -17,7 +17,7 @@ describe("commands.build", () => {
   })
 
   it("should optionally build single module and its dependencies", async () => {
-    const ctx = makeTestContextA()
+    const ctx = await makeTestContextA()
     const command = new BuildCommand()
 
     const result = await command.action(ctx, { module: "module-b" }, { force: true })

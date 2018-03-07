@@ -10,7 +10,7 @@ import { join } from "path"
 import { getLogger } from "./logger"
 import { TimeoutError } from "./exceptions"
 import { PassThrough } from "stream"
-import { extend } from "lodash"
+import { isArray, isPlainObject, extend, mapValues } from "lodash"
 
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
@@ -285,4 +285,21 @@ export function dumpYaml(yamlPath, data) {
 export function splitFirst(s: string, delimiter: string) {
   const parts = s.split(delimiter)
   return [parts[0], parts.slice(1).join(delimiter)]
+}
+
+/**
+ * Recursively resolves all promises in the given input,
+ * walking through all object keys and array items.
+ *
+ * @param v: T
+ * @returns {Promise<T>}
+ */
+export async function deepResolve<T>(v: T) {
+  if (isArray(v)) {
+    return await Bluebird.map(v, deepResolve)
+  } else if (isPlainObject(v)) {
+    return await Bluebird.props(mapValues(v, deepResolve))
+  } else {
+    return Promise.resolve(v)
+  }
 }

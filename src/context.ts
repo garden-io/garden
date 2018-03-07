@@ -17,6 +17,7 @@ import {
 import { GenericModuleHandler } from "./plugins/generic"
 import { Environment, joiIdentifier } from "./types/common"
 import { Service, ServiceContext } from "./types/service"
+import { TemplateStringContext, getTemplateContext, resolveTemplateStrings } from "./template-string"
 
 interface ModuleMap { [key: string]: Module }
 interface ServiceMap { [key: string]: Service<any> }
@@ -28,15 +29,19 @@ type PluginActionMap = {
   }
 }
 
-const builtinPlugins = [
-  GenericModuleHandler,
+interface ContextOpts {
+  logger?: RootLogNode,
+  plugins?: PluginFactory[],
+}
+
+const builtinPlugins: PluginFactory[] = [
+  () => new GenericModuleHandler(),
 ]
 
 export class GardenContext {
   public readonly log: RootLogNode
   public readonly actionHandlers: PluginActionMap
   public readonly projectName: string
-  public readonly config: ProjectConfig
   public readonly plugins: { [key: string]: Plugin<any> }
 
   // TODO: We may want to use the _ prefix for private properties even if it's not idiomatic TS,
@@ -50,10 +55,7 @@ export class GardenContext {
 
   vcs: VcsHandler
 
-  constructor(
-    public projectRoot: string,
-    { logger, plugins = [] }: { logger?: RootLogNode, plugins?: PluginFactory[] } = {},
-  ) {
+  constructor(public projectRoot: string, public projectConfig: ProjectConfig, logger?: RootLogNode) {
     this.modulesScanned = false
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
@@ -77,27 +79,33 @@ export class GardenContext {
       getServiceLogs: {},
     }
 
-    // Load built-in plugins
-    for (const pluginCls of builtinPlugins) {
-      this.registerPlugin(() => new pluginCls())
-    }
+    this.projectConfig = projectConfig
+    this.projectName = this.projectConfig.name
+
+    this.setEnvironment(this.projectConfig.defaultEnvironment)
+  }
+
+  static async factory(projectRoot: string, { logger, plugins = [] }: ContextOpts = {}) {
+    const projectConfig = await resolveTemplateStrings(loadProjectConfig(projectRoot), await getTemplateContext())
+
+    plugins = builtinPlugins.concat(plugins)
+
+    const ctx = new GardenContext(projectRoot, projectConfig, logger)
 
     // Load configured plugins
     for (const plugin of plugins) {
-      this.registerPlugin(plugin)
+      ctx.registerPlugin(plugin)
     }
 
-    this.config = loadProjectConfig(this.projectRoot)
-
     // validate the provider configuration
-    for (const envName in this.config.environments) {
-      const envConfig = this.config.environments[envName]
+    for (const envName in projectConfig.environments) {
+      const envConfig = projectConfig.environments[envName]
 
       for (const providerName in envConfig.providers) {
         const providerConfig = envConfig.providers[providerName]
         const providerType = providerConfig.type
 
-        if (!this.plugins[providerType]) {
+        if (!ctx.plugins[providerType]) {
           throw new ConfigurationError(
             `Could not find plugin type ${providerType} (specified in environment ${envName})`,
             { envName, providerType },
@@ -106,8 +114,7 @@ export class GardenContext {
       }
     }
 
-    this.projectName = this.config.name
-    this.setEnvironment(this.config.defaultEnvironment)
+    return ctx
   }
 
   setEnvironment(environment: string) {
@@ -115,7 +122,7 @@ export class GardenContext {
     const name = parts[0]
     const namespace = parts.slice(1).join(".") || DEFAULT_NAMESPACE
 
-    if (!this.config.environments[name]) {
+    if (!this.projectConfig.environments[name]) {
       throw new ParameterError(`Could not find environment ${environment}`, {
         name,
         namespace,
@@ -143,7 +150,7 @@ export class GardenContext {
     return {
       name: this.environment,
       namespace: this.namespace,
-      config: this.config.environments[this.environment],
+      config: this.projectConfig.environments[this.environment],
     }
   }
 
@@ -327,7 +334,7 @@ export class GardenContext {
 
     // TODO: support git URLs
    */
-  async resolveModule(nameOrLocation: string): Promise<Module> {
+  async resolveModule<T extends Module = Module>(nameOrLocation: string): Promise<T> {
     const parsedPath = parse(nameOrLocation)
 
     if (parsedPath.dir === "") {
@@ -340,7 +347,7 @@ export class GardenContext {
         })
       }
 
-      return module
+      return <T>module
     }
 
     // Looks like a path
@@ -349,6 +356,17 @@ export class GardenContext {
 
     const parseHandler = this.getActionHandler("parseModule", config.type)
     return parseHandler({ ctx: this, config })
+  }
+
+  async getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
+    const context: TemplateStringContext = {
+      // TODO: add secret resolver here
+      variables: this.projectConfig.variables,
+      environmentConfig: <any>this.getEnvironment().config,
+      ...extraContext,
+    }
+
+    return getTemplateContext(context)
   }
 
   //===========================================================================
