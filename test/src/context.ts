@@ -249,7 +249,7 @@ describe("GardenContext", () => {
       const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
-      ctx.addModule(testModule)
+      await ctx.addModule(testModule)
 
       const modules = await ctx.getModules(undefined, true)
       expect(Object.keys(modules)).to.eql(["test"])
@@ -262,10 +262,10 @@ describe("GardenContext", () => {
       const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
-      ctx.addModule(testModule)
+      await ctx.addModule(testModule)
 
       try {
-        ctx.addModule(testModule)
+        await ctx.addModule(testModule)
       } catch (err) {
         expect(err.type).to.equal("configuration")
         return
@@ -278,8 +278,8 @@ describe("GardenContext", () => {
       const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
-      ctx.addModule(testModule)
-      ctx.addModule(testModule, true)
+      await ctx.addModule(testModule)
+      await ctx.addModule(testModule, true)
 
       const modules = await ctx.getModules(undefined, true)
       expect(Object.keys(modules)).to.eql(["test"])
@@ -290,10 +290,10 @@ describe("GardenContext", () => {
 
       const testModule = makeTestModule(ctx)
       const testModuleB = makeTestModule(ctx, "test-b")
-      ctx.addModule(testModule)
+      await ctx.addModule(testModule)
 
       try {
-        ctx.addModule(testModuleB)
+        await ctx.addModule(testModuleB)
       } catch (err) {
         expect(err.type).to.equal("configuration")
         return
@@ -307,8 +307,8 @@ describe("GardenContext", () => {
 
       const testModule = makeTestModule(ctx)
       const testModuleB = makeTestModule(ctx, "test-b")
-      ctx.addModule(testModule)
-      ctx.addModule(testModuleB, true)
+      await ctx.addModule(testModule)
+      await ctx.addModule(testModuleB, true)
 
       const services = await ctx.getServices(undefined, true)
       expect(Object.keys(services)).to.eql(["testService"])

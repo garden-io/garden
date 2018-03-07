@@ -9,11 +9,14 @@ import {
   GetServiceStatusParams, Plugin,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
-import { ContainerModule, ContainerService, ServiceEndpointSpec } from "../container"
+import {
+  ContainerModule, ContainerService, ContainerServiceConfig, ServiceEndpointSpec,
+  ServicePortSpec, ServiceVolumeSpec,
+} from "../container"
 import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
 import { sleep, splitFirst } from "../../util"
-import { Service, ServiceStatus } from "../../types/service"
+import { Service, ServiceProtocol, ServiceStatus } from "../../types/service"
 import { join } from "path"
 import { createServices } from "./service"
 import { createIngress } from "./ingress"
@@ -32,7 +35,7 @@ const ingressControllerModulePath = join(STATIC_DIR, "garden-ingress-controller"
 const defaultBackendModulePath = join(STATIC_DIR, "garden-default-backend")
 const dashboardModulePath = join(STATIC_DIR, "garden-dashboard")
 const dashboardSpecPath = join(dashboardModulePath, "dashboard.yml")
-const localIngressPort = "32000"
+const localIngressPort = 32000
 
 export class KubernetesProvider implements Plugin<ContainerModule> {
   name = "kubernetes"
@@ -314,36 +317,37 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   private async getIngressControllerService(ctx: GardenContext) {
     const module = <ContainerModule>await ctx.resolveModule(ingressControllerModulePath)
 
-    return new Service<ContainerModule>(module, "ingress-controller")
+    return ContainerService.factory(ctx, module, "ingress-controller")
   }
 
   private async getDefaultBackendService(ctx: GardenContext) {
     const module = <ContainerModule>await ctx.resolveModule(defaultBackendModulePath)
 
-    return new Service<ContainerModule>(module, "default-backend")
+    return ContainerService.factory(ctx, module, "default-backend")
   }
 
   private async getDashboardService(ctx: GardenContext) {
+    // TODO: implement raw kubernetes module load this module the same way as the ones above
     const module = new ContainerModule(ctx, {
       version: "0",
       name: "garden-dashboard",
       type: "container",
       path: dashboardModulePath,
-      services: {
+      services: <{ [name: string]: ContainerServiceConfig }>{
         dashboard: {
           daemon: false,
-          dependencies: [],
-          endpoints: [],
-          ports: [],
-          volumes: [],
+          dependencies: <string[]>[],
+          endpoints: <ServiceEndpointSpec[]>[],
+          ports: <ServicePortSpec[]>[],
+          volumes: <ServiceVolumeSpec[]>[],
         },
       },
       variables: {},
-      build: { dependencies: [] },
+      build: { dependencies: <string[]>[] },
       test: {},
     })
 
-    return new Service<ContainerModule>(module, "dashboard")
+    return Service.factory(ctx, module, "dashboard")
   }
 
   protected getProjectHostname() {
@@ -366,7 +370,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
     const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
       // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
-      const protocol = "http"
+      const protocol: ServiceProtocol = "http"
 
       return {
         protocol,

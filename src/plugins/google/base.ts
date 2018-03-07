@@ -1,5 +1,5 @@
 import { Environment } from "../../types/common"
-import { Module } from "../../types/module"
+import { Module, ModuleConfig, ServiceConfig } from "../../types/module"
 import { Service } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
 import { Memoize } from "typescript-memoize"
@@ -9,7 +9,15 @@ import { ConfigureEnvironmentParams, Plugin } from "../../types/plugin"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
-export abstract class GoogleCloudProviderBase<T extends Module> implements Plugin<T> {
+export interface GoogleCloudServiceConfig extends ServiceConfig {
+  project?: string
+}
+
+interface GoogleCloudModuleConfig extends ModuleConfig<GoogleCloudServiceConfig> { }
+
+export abstract class GoogleCloudModule extends Module<GoogleCloudModuleConfig> { }
+
+export abstract class GoogleCloudProviderBase<T extends GoogleCloudModule> implements Plugin<T> {
   abstract name: string
   abstract supportedModuleTypes: string[]
 
@@ -84,6 +92,6 @@ export abstract class GoogleCloudProviderBase<T extends Module> implements Plugi
     // TODO: this is very contrived - we should rethink this a bit and pass
     // provider configuration when calling the plugin
     const providerConfig = values(env.config.providers).filter(p => p.type === this.name)[0]
-    return providerConfig["default-project"] || service.config.project || null
+    return service.config.project || providerConfig["default-project"] || null
   }
 }

@@ -33,7 +33,11 @@ interface TestConfig {
   [group: string]: TestSpec
 }
 
-class ModuleConfigBase {
+export interface ServiceConfig {
+  dependencies: string[]
+}
+
+export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
   path: string
   version: string
   description?: string
@@ -43,16 +47,14 @@ class ModuleConfigBase {
   build: BuildConfig
   test: TestConfig
   // further defined by subclasses
-  services: { [name: string]: object }
+  services: { [name: string]: T }
 }
-
-export interface ModuleConfig extends ModuleConfigBase { }
 
 export class Module<T extends ModuleConfig = ModuleConfig> {
   public name: string
   public type: string
   public path: string
-  public services: { [name: string]: object }
+  public services: T["services"]
 
   private _buildDependencies: Module[]
 

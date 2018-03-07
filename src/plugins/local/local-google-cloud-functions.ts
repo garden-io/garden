@@ -1,4 +1,4 @@
-import { Service, ServiceStatus } from "../../types/service"
+import { ServiceStatus } from "../../types/service"
 import { join, relative, resolve } from "path"
 import * as Joi from "joi"
 import * as escapeStringRegexp from "escape-string-regexp"
@@ -14,6 +14,7 @@ import {
 } from "../../types/plugin"
 import { GardenContext } from "../../context"
 import { STATIC_DIR } from "../../constants"
+import { ContainerModule, ContainerService } from "../container"
 
 const emulatorModulePath = join(STATIC_DIR, "local-gcf-container")
 const emulatorPort = 8010
@@ -116,7 +117,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
     }
   }
 
-  async getServiceLogs({ ctx, env, stream, tail }: GetServiceLogsParams) {
+  async getServiceLogs({ ctx, env, stream, tail }: GetServiceLogsParams<GoogleCloudFunctionsModule>) {
     const emulator = await this.getEmulatorService(ctx)
     const handler = ctx.getActionHandler("getServiceLogs", "container")
     // TODO: filter to only relevant function logs
@@ -124,8 +125,8 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
   }
 
   private async getEmulatorService(ctx: GardenContext) {
-    const module = await ctx.resolveModule(emulatorModulePath)
+    const module = await ctx.resolveModule<ContainerModule>(emulatorModulePath)
 
-    return new Service(module, emulatorServiceName)
+    return ContainerService.factory(ctx, module, emulatorServiceName)
   }
 }

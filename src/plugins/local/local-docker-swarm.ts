@@ -99,7 +99,7 @@ export class LocalDockerSwarmProvider implements Plugin<ContainerModule> {
     const ports = service.config.ports.map(p => {
       const port: any = {
         Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
-        TargetPort: p.container,
+        TargetPort: p.containerPort,
       }
 
       if (p.hostPort) {

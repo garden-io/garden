@@ -278,6 +278,7 @@ export class GardenContext {
         return !ignorer.ignores(relPath)
       },
     }
+    const modules: Module[] = []
 
     for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
       const parsedPath = parse(item.path)
@@ -287,7 +288,11 @@ export class GardenContext {
       }
 
       const module = await this.resolveModule(parsedPath.dir)
-      this.addModule(module)
+      modules.push(module)
+    }
+
+    for (const module of modules) {
+      await this.addModule(module)
     }
 
     this.modulesScanned = true
@@ -298,7 +303,7 @@ export class GardenContext {
 
     @param force - add the module again, even if it's already registered
    */
-  addModule(module: Module, force = false) {
+  async addModule(module: Module, force = false) {
     const config = module.config
 
     if (!force && this.modules[config.name]) {
@@ -327,7 +332,7 @@ export class GardenContext {
         )
       }
 
-      this.services[serviceName] = new Service(module, serviceName)
+      this.services[serviceName] = await Service.factory(this, module, serviceName)
     }
   }
 

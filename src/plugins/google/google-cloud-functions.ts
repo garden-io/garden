@@ -1,5 +1,5 @@
 import { identifierRegex } from "../../types/common"
-import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
+import { baseServiceSchema, Module, ModuleConfig, ServiceConfig } from "../../types/module"
 import { GardenContext } from "../../context"
 import { ServiceState, ServiceStatus } from "../../types/service"
 import { resolve } from "path"
@@ -8,15 +8,14 @@ import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { GOOGLE_CLOUD_DEFAULT_REGION, GoogleCloudProviderBase } from "./base"
 import { PluginActionParams } from "../../types/plugin"
 
-export interface GoogleCloudFunctionsModuleConfig extends ModuleConfig {
-  services: {
-    [name: string]: {
-      entrypoint?: string,
-      path: string,
-      project?: string,
-    },
-  }
+interface GoogleCloudFunctionsServiceConfig extends ServiceConfig {
+  function: string,
+  entrypoint?: string,
+  path: string,
+  project?: string,
 }
+
+export interface GoogleCloudFunctionsModuleConfig extends ModuleConfig<GoogleCloudFunctionsServiceConfig> { }
 
 export const gcfServicesSchema = Joi.object()
   .pattern(identifierRegex, baseServiceSchema.keys({

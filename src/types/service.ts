@@ -35,14 +35,16 @@ export interface ServiceContext {
 }
 
 export class Service<T extends Module> {
-  config: any
+  constructor(public module: T, public name: keyof T["services"], public config: T["services"][string]) { }
 
-  constructor(public module: T, public name: string) {
-    this.config = module.services[name]
+  static async factory<T extends Module, K extends keyof T["services"]>(ctx: GardenContext, module: T, name: K) {
+    const config = module.services[name]
 
-    if (!this.config) {
+    if (!config) {
       throw new ConfigurationError(`Could not find service ${name} in module ${module.name}`, { module, name })
     }
+
+    return new Service<T>(module, name, parsed)
   }
 
   /*
