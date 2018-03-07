@@ -23,7 +23,7 @@ FormatEnd
   = "}"
 
 Identifier
-  = [a-zA-Z][a-zA-Z0-9_]* { return text() }
+  = [a-zA-Z][a-zA-Z0-9_\-]* { return text() }
 
 KeySeparator
   = "."
