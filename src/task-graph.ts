@@ -109,7 +109,7 @@ export class TaskGraph {
     const loop = async () => {
       if (_this.index.length === 0) {
         // done!
-        this.logEntryMap.counter.done({ symbol: LogSymbolType.info })
+        this.logEntryMap.counter.setDone({ symbol: LogSymbolType.info })
         return
       }
 
@@ -126,7 +126,7 @@ export class TaskGraph {
 
         try {
           this.logTask(node)
-          this.logEntryMap.inProgress.update({ msg: inProgressToStr(this.inProgress.getNodes()) })
+          this.logEntryMap.inProgress.setState({ msg: inProgressToStr(this.inProgress.getNodes()) })
 
           const dependencyKeys = (await node.task.getDependencies()).map(d => getIndexKey(d))
           const dependencyResults = pick(results, dependencyKeys)
@@ -177,8 +177,8 @@ export class TaskGraph {
 
   private logTaskComplete(node: TaskNode) {
     const entry = this.logEntryMap[node.getKey()]
-    entry && entry.success()
-    this.logEntryMap.counter.update({ msg: remainingTasksToStr(this.index.length) })
+    entry && entry.setSuccess()
+    this.logEntryMap.counter.setState({ msg: remainingTasksToStr(this.index.length) })
   }
 
   private initLogging() {
