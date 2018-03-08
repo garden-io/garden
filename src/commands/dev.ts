@@ -33,7 +33,7 @@ export class DevCommand extends Command<Opts> {
       // the above fails for terminals other than iTerm2. just ignore the error and move on.
     }
 
-    console.log(chalk.bold(` garden - dev\n`))
+    // console.log(chalk.bold(` garden - dev\n`))
     console.log(chalk.gray.italic(` Good afternoon, Jon! Let's get your environment wired up...\n`))
 
     opts.env && ctx.setEnvironment(opts.env)

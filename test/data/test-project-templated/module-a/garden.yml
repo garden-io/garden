@@ -1,0 +1,10 @@
+name: module-a
+type: generic
+services:
+  service-a:
+    command: echo ${env.TEST_VARIABLE}
+build:
+  command: ${variables.service-a-build-command}
+test:
+  unit:
+    command: [echo, OK]

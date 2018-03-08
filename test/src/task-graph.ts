@@ -29,8 +29,9 @@ describe("task-graph", () => {
     }
   }
 
-  describe("TaskGraph", () => {
-    const ctx = new GardenContext(join(__dirname, "..", "data", "test-project-empty"), { plugins: defaultPlugins })
+  describe("TaskGraph", async () => {
+    const projectRoot = join(__dirname, "..", "data", "test-project-empty")
+    const ctx = await GardenContext.factory(projectRoot, { plugins: defaultPlugins })
 
     it("should successfully process a single task without dependencies", async () => {
       const graph = new TaskGraph(ctx)

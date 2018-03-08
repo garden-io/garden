@@ -1,10 +1,10 @@
 import { expect } from "chai"
-import { makeTestContextA } from "../context"
+import { makeTestContextA } from "../../helpers"
 import { TestCommand } from "../../../src/commands/test"
 
 describe("commands.test", () => {
   it("should run all tests in a simple project", async () => {
-    const ctx = makeTestContextA()
+    const ctx = await makeTestContextA()
     const command = new TestCommand()
 
     const result = await command.action(
@@ -39,7 +39,7 @@ describe("commands.test", () => {
   })
 
   it("should optionally test single module", async () => {
-    const ctx = makeTestContextA()
+    const ctx = await makeTestContextA()
     const command = new TestCommand()
 
     const result = await command.action(

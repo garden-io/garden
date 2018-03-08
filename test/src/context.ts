@@ -1,75 +1,50 @@
 import { join } from "path"
 import { GardenContext } from "../../src/context"
 import { expect } from "chai"
-import { ParseModuleParams, Plugin, PluginFactory } from "../../src/types/plugin"
-import { Module } from "../../src/types/module"
-import { ContainerModule } from "../../src/plugins/container"
-
-const projectRootA = join(__dirname, "..", "data", "test-project-a")
-
-class TestModule extends Module {
-  type = "test"
-}
-
-class TestPluginB implements Plugin<ContainerModule> {
-  name = "test-plugin-b"
-  supportedModuleTypes = ["test"]
-
-  parseModule({ ctx }: ParseModuleParams) {
-    return new ContainerModule(ctx, {
-      version: "0",
-      type: "test",
-      name: "test",
-      path: "bla",
-      variables: {},
-      build: { dependencies: [] },
-      services: {
-        testService: { daemon: false, dependencies: [], endpoints: [], ports: [], volumes: [] },
-      },
-      test: {},
-    })
-  }
-  async configureEnvironment() { }
-  async deployService() { return {} }
-}
-
-const testPlugin: Plugin<Module> = {
-  name: "test-plugin",
-  supportedModuleTypes: ["generic"],
-
-  configureEnvironment: async () => { },
-}
-
-const makeTestModule = (ctx, name = "test") => {
-  return new TestModule(ctx, {
-    version: "0",
-    type: "test",
-    name,
-    path: "bla",
-    variables: {},
-    build: { dependencies: [] },
-    services: {
-      testService: {},
-    },
-    test: {},
-  })
-}
-
-export const makeTestContextA = (extraPlugins: PluginFactory[] = []) => {
-  const testPlugins = [
-    (_ctx) => testPlugin,
-    (_ctx) => new TestPluginB(),
-  ]
-  const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
-
-  return new GardenContext(projectRootA, { plugins })
-}
+import { makeTestContext, makeTestContextA, makeTestModule, projectRootA, testPlugin } from "../helpers"
 
 describe("GardenContext", () => {
-  it("should initialize with the config from a project root", () => {
-    const ctx = makeTestContextA()
+  it("should throw when initializing with missing plugins", async () => {
+    try {
+      await GardenContext.factory(projectRootA)
+    } catch (err) {
+      expect(err.type).to.equal("configuration")
+      return
+    }
 
-    expect(ctx.config).to.eql({
+    throw new Error("Expected error")
+  })
+
+  it("should initialize add the action handlers for a plugin", async () => {
+    const ctx = await makeTestContextA()
+
+    expect(ctx.plugins["test-plugin"]).to.be.ok
+    expect(ctx.actionHandlers.configureEnvironment["test-plugin"]).to.be.ok
+    expect(ctx.plugins["test-plugin-b"]).to.be.ok
+    expect(ctx.actionHandlers.configureEnvironment["test-plugin-b"]).to.be.ok
+  })
+
+  it("should throw if registering same plugin twice", async () => {
+    try {
+      await GardenContext.factory(projectRootA, {
+        plugins: [
+          (_ctx) => testPlugin,
+          (_ctx) => testPlugin,
+        ],
+      })
+    } catch (err) {
+      expect(err.type).to.equal("configuration")
+      return
+    }
+
+    throw new Error("Expected error")
+  })
+
+  it("should parse the config from the project root", async () => {
+    const ctx = await makeTestContextA()
+    const config = ctx.projectConfig
+
+    expect(config).to.eql({
       defaultEnvironment: "local",
       environments: {
         local: {
@@ -86,49 +61,44 @@ describe("GardenContext", () => {
       },
       name: "build-test-project",
       version: "0",
-      variables: {},
+      variables: {
+        some: "variable",
+      },
     })
   })
 
-  it("should throw when initializing with missing plugins", () => {
-    try {
-      new GardenContext(projectRootA)
-    } catch (err) {
-      expect(err.type).to.equal("configuration")
-      return
-    }
+  it("should expand templated env variables in project config", async () => {
+    process.env.TEST_PROVIDER_TYPE = "test-plugin"
+    process.env.TEST_VARIABLE = "banana"
 
-    throw new Error("Expected error")
-  })
+    const ctx = await makeTestContext(join(__dirname, "..", "data", "test-project-templated"))
+    const config = ctx.projectConfig
 
-  it("should initialize add the action handlers for a plugin", () => {
-    const ctx = makeTestContextA()
+    delete process.env.TEST_PROVIDER_TYPE
+    delete process.env.TEST_VARIABLE
 
-    expect(ctx.plugins["test-plugin"]).to.be.ok
-    expect(ctx.actionHandlers.configureEnvironment["test-plugin"]).to.be.ok
-    expect(ctx.plugins["test-plugin-b"]).to.be.ok
-    expect(ctx.actionHandlers.configureEnvironment["test-plugin-b"]).to.be.ok
-  })
-
-  it("should throw if registering same plugin twice", () => {
-    try {
-      new GardenContext(projectRootA, {
-        plugins: [
-          (_ctx) => testPlugin,
-          (_ctx) => testPlugin,
-        ],
-      })
-    } catch (err) {
-      expect(err.type).to.equal("configuration")
-      return
-    }
-
-    throw new Error("Expected error")
+    expect(config).to.eql({
+      defaultEnvironment: "local",
+      environments: {
+        local: {
+          providers: {
+            test: {
+              type: "test-plugin",
+            },
+          },
+        },
+      },
+      name: "test-project-templated",
+      version: "0",
+      variables: {
+        some: "banana",
+      },
+    })
   })
 
   describe("setEnvironment", () => {
-    it("should set the active environment for the context", () => {
-      const ctx = makeTestContextA()
+    it("should set the active environment for the context", async () => {
+      const ctx = await makeTestContextA()
 
       const { name, namespace } = ctx.setEnvironment("local")
       expect(name).to.equal("local")
@@ -139,24 +109,24 @@ describe("GardenContext", () => {
       expect(env.namespace).to.equal("default")
     })
 
-    it("should optionally set a namespace with the dot separator", () => {
-      const ctx = makeTestContextA()
+    it("should optionally set a namespace with the dot separator", async () => {
+      const ctx = await makeTestContextA()
 
       const { name, namespace } = ctx.setEnvironment("local.mynamespace")
       expect(name).to.equal("local")
       expect(namespace).to.equal("mynamespace")
     })
 
-    it("should split environment and namespace on the first dot", () => {
-      const ctx = makeTestContextA()
+    it("should split environment and namespace on the first dot", async () => {
+      const ctx = await makeTestContextA()
 
       const { name, namespace } = ctx.setEnvironment("local.mynamespace.2")
       expect(name).to.equal("local")
       expect(namespace).to.equal("mynamespace.2")
     })
 
-    it("should throw if the specified environment isn't configured", () => {
-      const ctx = makeTestContextA()
+    it("should throw if the specified environment isn't configured", async () => {
+      const ctx = await makeTestContextA()
 
       try {
         ctx.setEnvironment("bla")
@@ -168,8 +138,8 @@ describe("GardenContext", () => {
       throw new Error("Expected error")
     })
 
-    it("should throw if namespace starts with 'garden-'", () => {
-      const ctx = makeTestContextA()
+    it("should throw if namespace starts with 'garden-'", async () => {
+      const ctx = await makeTestContextA()
 
       try {
         ctx.setEnvironment("local.garden-bla")
@@ -183,8 +153,8 @@ describe("GardenContext", () => {
   })
 
   describe("getEnvironment", () => {
-    it("should get the active environment for the context", () => {
-      const ctx = makeTestContextA()
+    it("should get the active environment for the context", async () => {
+      const ctx = await makeTestContextA()
 
       const { name, namespace } = ctx.setEnvironment("other")
       expect(name).to.equal("other")
@@ -195,8 +165,8 @@ describe("GardenContext", () => {
       expect(env.namespace).to.equal("default")
     })
 
-    it("should return default environment if none has been explicitly set", () => {
-      const ctx = makeTestContextA()
+    it("should return default environment if none has been explicitly set", async () => {
+      const ctx = await makeTestContextA()
 
       const { name, namespace } = ctx.getEnvironment()
       expect(name).to.equal("local")
@@ -206,21 +176,21 @@ describe("GardenContext", () => {
 
   describe("getModules", () => {
     it("should scan and return all registered modules in the context", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       const modules = await ctx.getModules()
 
       expect(Object.keys(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should optionally return specified modules in the context", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       const modules = await ctx.getModules(["module-b", "module-c"])
 
       expect(Object.keys(modules)).to.eql(["module-b", "module-c"])
     })
 
     it("should throw if named module is missing", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       try {
         await ctx.getModules(["bla"])
@@ -235,21 +205,21 @@ describe("GardenContext", () => {
 
   describe("getServices", () => {
     it("should scan for modules and return all registered services in the context", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       const services = await ctx.getServices()
 
       expect(Object.keys(services)).to.eql(["service-a", "service-b", "service-c"])
     })
 
     it("should optionally return specified modules in the context", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       const services = await ctx.getServices(["service-b", "service-c"])
 
       expect(Object.keys(services)).to.eql(["service-b", "service-c"])
     })
 
     it("should throw if named service is missing", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       try {
         await ctx.getServices(["bla"])
@@ -266,7 +236,7 @@ describe("GardenContext", () => {
     // TODO: assert that gitignore in project root is respected
 
     it("should scan the project root for modules and add to the context", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       await ctx.scanModules()
 
       const modules = await ctx.getModules(undefined, true)
@@ -276,7 +246,7 @@ describe("GardenContext", () => {
 
   describe("addModule", () => {
     it("should add the given module and its services to the context", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
       ctx.addModule(testModule)
@@ -289,7 +259,7 @@ describe("GardenContext", () => {
     })
 
     it("should throw when adding module twice without force parameter", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
       ctx.addModule(testModule)
@@ -305,7 +275,7 @@ describe("GardenContext", () => {
     })
 
     it("should allow adding module multiple times with force parameter", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
       ctx.addModule(testModule)
@@ -315,8 +285,8 @@ describe("GardenContext", () => {
       expect(Object.keys(modules)).to.eql(["test"])
     })
 
-    it("should throw if a service is added twice without force parameter", () => {
-      const ctx = makeTestContextA()
+    it("should throw if a service is added twice without force parameter", async () => {
+      const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
       const testModuleB = makeTestModule(ctx, "test-b")
@@ -333,7 +303,7 @@ describe("GardenContext", () => {
     })
 
     it("should allow adding service multiple times with force parameter", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
       const testModuleB = makeTestModule(ctx, "test-b")
@@ -347,7 +317,7 @@ describe("GardenContext", () => {
 
   describe("resolveModule", () => {
     it("should return named module", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       await ctx.scanModules()
 
       const module = await ctx.resolveModule("module-a")
@@ -355,7 +325,7 @@ describe("GardenContext", () => {
     })
 
     it("should throw if named module is requested and not available", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       try {
         await ctx.resolveModule("module-a")
@@ -368,7 +338,7 @@ describe("GardenContext", () => {
     })
 
     it("should resolve module by absolute path", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       const path = join(projectRootA, "module-a")
 
       const module = await ctx.resolveModule(path)
@@ -376,16 +346,51 @@ describe("GardenContext", () => {
     })
 
     it("should resolve module by relative path to project root", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const module = await ctx.resolveModule("./module-a")
       expect(module.name).to.equal("module-a")
     })
   })
 
+  describe("getTemplateContext", () => {
+    it("should return the basic project context without parameters", async () => {
+      const ctx = await makeTestContextA()
+
+      const result = await ctx.getTemplateContext()
+
+      expect(Object.keys(result).length).to.equal(3)
+      expect(result.variables).to.eql({ some: "variable" })
+      expect(result.env).to.eql(process.env)
+      expect(result.environmentConfig).to.eql({
+        providers: {
+          test: { type: "test-plugin" },
+          "test-b": { type: "test-plugin-b" },
+        },
+      })
+    })
+
+    it("should extend the basic project context if specified", async () => {
+      const ctx = await makeTestContextA()
+
+      const result = await ctx.getTemplateContext({ my: "things" })
+
+      expect(Object.keys(result).length).to.equal(4)
+      expect(result.variables).to.eql({ some: "variable" })
+      expect(result.env).to.eql(process.env)
+      expect(result.environmentConfig).to.eql({
+        providers: {
+          test: { type: "test-plugin" },
+          "test-b": { type: "test-plugin-b" },
+        },
+      })
+      expect(result.my).to.eql("things")
+    })
+  })
+
   describe("getActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const handlers = ctx.getActionHandlers("parseModule")
 
@@ -396,7 +401,7 @@ describe("GardenContext", () => {
     })
 
     it("should optionally limit to handlers for specific module type", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const handlers = ctx.getActionHandlers("parseModule", "generic")
 
@@ -408,7 +413,7 @@ describe("GardenContext", () => {
 
   describe("getActionHandler", () => {
     it("should return last configured handler for specified action type", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const handler = ctx.getActionHandler("parseModule")
 
@@ -417,7 +422,7 @@ describe("GardenContext", () => {
     })
 
     it("should optionally filter to only handlers for the specified module type", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       const handler = ctx.getActionHandler("parseModule", "test")
 
@@ -426,7 +431,7 @@ describe("GardenContext", () => {
     })
 
     it("should throw if no handler is available", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       try {
         ctx.getActionHandler("deployService", "generic")
@@ -441,7 +446,7 @@ describe("GardenContext", () => {
 
   describe("getEnvActionHandlers", () => {
     it("should return all handlers for a type that are configured for the set environment", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       ctx.setEnvironment("local")
 
       const handlers = ctx.getEnvActionHandlers("configureEnvironment")
@@ -449,7 +454,7 @@ describe("GardenContext", () => {
     })
 
     it("should optionally limit to handlers that support a specific module type", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       ctx.setEnvironment("local")
 
       const handlers = ctx.getEnvActionHandlers("configureEnvironment", "test")
@@ -457,7 +462,7 @@ describe("GardenContext", () => {
     })
 
     it("should throw if environment has not been set", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
 
       try {
         ctx.getEnvActionHandlers("configureEnvironment", "container")
@@ -469,7 +474,7 @@ describe("GardenContext", () => {
 
   describe("getEnvActionHandler", () => {
     it("should return last configured handler for specified action type", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       ctx.setEnvironment("local")
 
       const handler = ctx.getEnvActionHandler("configureEnvironment")
@@ -479,7 +484,7 @@ describe("GardenContext", () => {
     })
 
     it("should optionally filter to only handlers for the specified module type", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       ctx.setEnvironment("local")
 
       const handler = ctx.getEnvActionHandler("deployService", "test")
@@ -489,7 +494,7 @@ describe("GardenContext", () => {
     })
 
     it("should throw if no handler is available", async () => {
-      const ctx = makeTestContextA()
+      const ctx = await makeTestContextA()
       ctx.setEnvironment("local")
 
       try {

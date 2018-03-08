@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 
+set -e
+
 garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
 
 cd ${garden_root}
 
+rm -rf build/bin || true
 rm -rf build/static || true
-mkdir -p build
 mkdir -p build/src
 
 cp package.json build/
 cp package-lock.json build/
+cp -r bin build/bin
 cp -r static build/static
 
+node_modules/.bin/pegjs -o build/src/template-string-parser.js src/template-string.pegjs
 node_modules/.bin/tsc -p . --outDir build/src

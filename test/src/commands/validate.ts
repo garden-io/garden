@@ -7,7 +7,7 @@ import { defaultPlugins } from "../../../src/plugins"
 describe("commands.validate", () => {
   it("should successfully validate the hello-world project", async () => {
     const root = join(__dirname, "..", "..", "..", "examples", "hello-world")
-    const ctx = new GardenContext(root, { plugins: defaultPlugins })
+    const ctx = await GardenContext.factory(root, { plugins: defaultPlugins })
     const command = new ValidateCommand()
 
     await command.action(ctx)
@@ -17,7 +17,7 @@ describe("commands.validate", () => {
     const root = join(__dirname, "data", "validate", "bad-project")
 
     try {
-      new GardenContext(root)
+      await GardenContext.factory(root)
     } catch (err) {
       expect(err.name).to.equal("ValidationError")
       return
@@ -28,7 +28,7 @@ describe("commands.validate", () => {
 
   it("should fail validating the bad-module project", async () => {
     const root = join(__dirname, "data", "validate", "bad-module")
-    const ctx = new GardenContext(root, { plugins: defaultPlugins })
+    const ctx = await GardenContext.factory(root, { plugins: defaultPlugins })
     const command = new ValidateCommand()
 
     try {

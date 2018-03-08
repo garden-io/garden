@@ -14,3 +14,5 @@ environments:
       gcf:
         type: google-cloud-functions
         default-project: garden-hello-world
+variables:
+  my-variable: hello-variable

@@ -7,3 +7,5 @@ environments:
       test-b:
         type: test-plugin-b
   other: {}
+variables:
+  some: variable

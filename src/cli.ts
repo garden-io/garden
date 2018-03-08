@@ -123,11 +123,9 @@ export class GardenCli {
 
     const logger = this.logger
 
-    cliCommand = cliCommand.action((args, opts) => {
+    cliCommand = cliCommand.action(async (args, opts) => {
       const root = resolve(process.cwd(), opts.root)
-      const plugins = defaultPlugins
-
-      const ctx = new GardenContext(root, { logger, plugins })
+      const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
 
       return command.action(ctx, args, opts)
     })
