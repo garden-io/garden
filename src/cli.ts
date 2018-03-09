@@ -1,5 +1,6 @@
-import * as caporal from "caporal"
-import { Parameter, Command, StringParameter } from "./commands/base"
+import * as yargs from "yargs"
+import { intersection } from "lodash"
+import { Parameter, Command, ChoicesParameter, StringParameter } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { PluginError } from "./exceptions"
 import { GardenContext } from "./context"
@@ -15,8 +16,7 @@ import { TestCommand } from "./commands/test"
 import { DevCommand } from "./commands/dev"
 import { LogsCommand } from "./commands/logs"
 
-// TODO: feels like we should be able to set these as a global option
-const commonOptions = {
+const GLOBAL_OPTIONS = {
   root: new StringParameter({
     alias: "r",
     help: "override project root directory (defaults to working directory)",
@@ -24,39 +24,87 @@ const commonOptions = {
   }),
 }
 
+// Helper functions
+const getKeys = (obj: any): string[] => Object.keys(obj || {})
+const filterByArr = (obj: any, arr: string[]): any => {
+  return arr.reduce((memo, key) => {
+    if (obj[key]) {
+      memo[key] = obj[key]
+    }
+    return memo
+  }, {})
+}
+
+type Argv = yargs.Argv["argv"]
+
+function makeOptsConfig(param: Parameter<any>): yargs.Options {
+  return makeParamConfig(param)
+}
+
+function makeArgConfig(param: Parameter<any>): yargs.PositionalOptions {
+  return makeParamConfig(param)
+}
+
+// TODO autocomplete
+function makeParamConfig(param: Parameter<any>): yargs.PositionalOptions {
+  const {
+    alias,
+    defaultValue,
+    help: description,
+    type,
+    validate: coerce,
+  } = param
+  const opts: yargs.PositionalOptions = {
+    alias,
+    coerce,
+    description,
+    default: defaultValue,
+  }
+  if (type === "choice") {
+    opts["choices"] = (<ChoicesParameter>param).choices
+  }
+  return opts
+}
+// Workaround to let Yargs handle async actions. See https://github.com/yargs/yargs/issues/1069
+function asyncHandleAction(action): (argv: Argv) => Promise<void> {
+  return async argv => {
+    argv.promisedResult = action(argv)
+  }
+}
+// Global opts are set with `program.options({opt1: opt1Config, opt2: optConfig, ...})`
+function makeGlobalOptsConfig() {
+  return getKeys(GLOBAL_OPTIONS).reduce((memo, key) => {
+    memo[key] = makeOptsConfig(GLOBAL_OPTIONS[key])
+    return memo
+  }, {})
+}
+
 export class GardenCli {
-  // The types in Caporal are are broken atm: https://github.com/mattallty/Caporal.js/issues/91
-  // TODO: I don't particularly like Caporal.js, we might want to replace it at some point -JE
-  program: any
+  program: yargs.Argv
   commands: { [key: string]: Command } = {}
   logger: RootLogNode
 
   constructor() {
-    this.logger = getLogger()
-
     const version = require("../package.json").version
 
-    this.program = (<any>caporal)
-      .name("garden")
-      .bin("garden")
+    this.logger = getLogger()
+    this.program = yargs
       .version(version)
-      .logger(this.logger)
-
-    // monkey patch error handler for more useful output
-    this.program.fatalError = (err: Error) => {
-      console.log(err)
-    }
+      .options(makeGlobalOptsConfig())
 
     // configure built-in commands
-    this.addCommand(new BuildCommand())
-    this.addCommand(new CallCommand())
-    this.addCommand(new DeployCommand())
-    this.addCommand(new DevCommand())
-    this.addCommand(new EnvironmentConfigureCommand())
-    this.addCommand(new EnvironmentStatusCommand())
-    this.addCommand(new LogsCommand())
-    this.addCommand(new TestCommand())
-    this.addCommand(new ValidateCommand())
+    const commands = [
+      new BuildCommand(),
+      new CallCommand(),
+      new DeployCommand(),
+      new DevCommand(),
+      new EnvironmentConfigureCommand(),
+      new EnvironmentStatusCommand(),
+      new LogsCommand(),
+      new TestCommand(),
+      new ValidateCommand(),
+    ]
+    commands.forEach(command => this.addCommand(command))
   }
 
   addCommand(command: Command) {
@@ -67,84 +115,85 @@ export class GardenCli {
 
     this.commands[command.name] = command
 
-    // Translate the Command class and its arguments to the Caporal program
-    let cliCommand = this.program
-      .command(command.name, command.help)
-      .help(command.help)
-
-    if (command.alias) {
-      cliCommand = cliCommand.alias(command.alias)
-    }
-
-    const addArgument = (name: string, arg: Parameter<any>) => {
-      const synopsis = arg.required ? `<${name}>` : `[${name}]`
-
-      cliCommand = cliCommand
-        .argument(synopsis, arg.help, (input: string) => {
-          return arg.validate(input)
-        }, arg.defaultValue)
-        .complete(() => {
-          return arg.autoComplete()
-        })
-    }
-
-    const addOption = (name: string, arg: Parameter<any>) => {
-      const valueName = arg.required ? `<${arg.valueName}>` : `[${arg.valueName}]`
-      let synopsis = arg.type === "boolean" ? `--${name}` : `--${name} ${valueName}`
-
-      if (arg.alias) {
-        synopsis = `-${arg.alias}, ${synopsis}`
-      }
-
-      cliCommand = cliCommand
-        .option(synopsis, arg.help, (input: string) => {
-          return arg.validate(input)
-        }, arg.defaultValue)
-        .complete(() => {
-          return arg.autoComplete()
-        })
-    }
-
-    for (let key of Object.keys(commonOptions)) {
-      addOption(key, commonOptions[key])
-    }
-
-    for (let key of Object.keys(command.arguments || {})) {
-      addArgument(key, command.arguments[key])
-    }
-
-    for (let key of Object.keys(command.options || {})) {
-      if (commonOptions[key]) {
-        throw new PluginError(`Common option ${key} cannot be redefined`, {})
-      }
-
-      addOption(key, command.options[key])
-    }
-
     const logger = this.logger
 
-    cliCommand = cliCommand.action(async (args, opts) => {
-      const root = resolve(process.cwd(), opts.root)
+    const args = command.arguments as Parameter<any>
+    const options = command.options as Parameter<any>
+    const argKeys = getKeys(args)
+    const optKeys = getKeys(options)
+    const globalKeys = getKeys(GLOBAL_OPTIONS)
+    const dupKeys: string[] = intersection(optKeys, globalKeys)
+
+    if (dupKeys.length > 0) {
+      throw new PluginError(`Global option(s) ${dupKeys.join(" ")} cannot be redefined`, {})
+    }
+
+    const action = async argv => {
+      // Yargs returns positional args and options in a single object which we separate into args and opts
+      const argsForAction = filterByArr(argv, argKeys)
+      const optsForAction = filterByArr(argv, optKeys.concat(globalKeys))
+      const root = resolve(process.cwd(), optsForAction.root)
       const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
 
-      return command.action(ctx, args, opts)
+      return command.action(ctx, argsForAction, optsForAction)
+    }
+
+    // Command specific positional args and options are set inside the builder function
+    const builder: yargs.CommandBuilder = parser => {
+      argKeys.forEach(key => parser.positional(key, makeArgConfig(args[key])))
+      optKeys.forEach(key => parser.option(key, makeOptsConfig(options[key])))
+      return parser
+    }
+    const handler = asyncHandleAction(action)
+
+    const argSynopsis: string[] = argKeys.map(key => args[key].required ? `<${key}>` : `[${key}]`)
+    const commandStr = `${command.name}${argSynopsis.length > 0 ? " " + argSynopsis.join(" ") : ""}`
+
+    const commandOpts = {
+      builder,
+      handler,
+      aliases: command.alias,
+      command: commandStr,
+      describe: command.help,
+    }
+
+    this.program.command(commandOpts)
+  }
+
+  async parse(args: string) {
+    return new Promise((res, rej) => {
+      this.program.parse(args, (parseErr, argv, output) => {
+        // Maybe let logger handle these
+        if (output || parseErr || argv.promisedResult) {
+          this.logger.stop()
+        }
+
+        // Process exited due to a call to --help or --version
+        if (output) {
+          console.log(output)
+          return res()
+        }
+        if (parseErr) {
+          console.log(parseErr)
+          return rej(parseErr)
+        }
+        if (argv.promisedResult) {
+          return argv.promisedResult
+            .then(res)
+            .catch(err => {
+              console.error(err)
+              return rej(err)
+            })
+        } else {
+          return res()
+        }
+      })
     })
-  }
-
-  async parse(argv: string[]) {
-    const parsed = await this.program.parse(argv)
-    this.logger.stop()
-    return parsed
-  }
-
-  exec(args: string[], opts?: object) {
-    return this.program.exec(args, opts || {})
   }
 }
 
 export async function run(argv: string[]) {
   // The second parameter is the path to folder that contains command modules.
   const cli = new GardenCli()
-
-  return cli.parse(argv)
+  return cli.parse(argv.slice(2).join(" "))
 }
