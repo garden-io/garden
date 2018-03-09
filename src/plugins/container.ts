@@ -143,7 +143,7 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
 
   async dockerCli(args) {
     // TODO: use dockerode instead of CLI
-    return childProcess.exec("docker " + args, { cwd: this.getBuildPath(), maxBuffer: 1024 * 1024 })
+    return childProcess.exec("docker " + args, { cwd: await this.getBuildPath(), maxBuffer: 1024 * 1024 })
   }
 }
 
@@ -196,7 +196,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
 
     // TODO: log error if it occurs
     // TODO: stream output to log if at debug log level
-    await module.dockerCli(`build -t ${identifier} ${module.getBuildPath()}`)
+    await module.dockerCli(`build -t ${identifier} ${await module.getBuildPath()}`)
 
     return { fresh: true }
   }
