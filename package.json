@@ -30,6 +30,7 @@
     "dockerode": "^2.5.3",
     "elegant-spinner": "^1.0.1",
     "escape-string-regexp": "^1.0.5",
+    "fb-watchman": "^2.0.0",
     "fs-extra": "^5.0.0",
     "has-ansi": "^3.0.0",
     "ignore": "^3.3.7",
@@ -52,7 +53,9 @@
     "sywac": "^1.2.0",
     "ts-stream": "^1.0.1",
     "typescript-memoize": "^1.0.0-alpha.3",
-    "winston": "^3.0.0-rc3"
+    "uuid": "^3.2.1",
+    "winston": "^3.0.0-rc3",
+    "yargs": "^11.0.0"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.18",

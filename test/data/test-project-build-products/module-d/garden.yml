@@ -2,7 +2,7 @@ module:
   name: module-d
   type: generic
   build:
-    command: "echo D && mkdir build && touch build/d.txt"
+    command: "echo D && mkdir -p build && touch build/d.txt"
     dependencies:
       - name: module-a
         copy:

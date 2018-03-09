@@ -12,6 +12,8 @@ import { Module, TestSpec } from "../types/module"
 import { BuildTask } from "./build"
 import { TestResult } from "../types/plugin"
 import { DeployTask } from "./deploy"
+import { TestResult } from "../types/plugin"
+import { Task } from "../types/task"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
@@ -45,7 +47,7 @@ export class TestTask<T extends Module> extends Task {
     return deps
   }
 
-  getKey() {
+  getName() {
     return `${this.module.name}.${this.testType}`
   }
 

@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
-import { Task } from "../task-graph"
-import { Module } from "../types/module"
-import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 import { round } from "lodash"
+import { PluginContext } from "../plugin-context"
+import { Module } from "../types/module"
+import { EntryStyle } from "../logger/types"
 import { BuildResult } from "../types/plugin"
+import { Task } from "../types/task"
 
 export class BuildTask<T extends Module> extends Task {
   type = "build"
@@ -26,8 +26,7 @@ export class BuildTask<T extends Module> extends Task {
     return deps.map(<M extends Module>(m: M) => new BuildTask(this.ctx, m, this.force))
   }
 
-  getKey() {
-    // TODO: Include version in the task key (may need to make this method async).
+  protected getName() {
     return this.module.name
   }
 

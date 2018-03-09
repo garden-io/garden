@@ -9,46 +9,26 @@
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { pick } from "lodash"
+import { GardenContext } from "./context"
+import { Task, TaskDefinitionError } from "./types/task"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
 import { LogEntry } from "./logger"
 import { PluginContext } from "./plugin-context"
 
-class TaskDefinitionError extends Error { }
 class TaskGraphError extends Error { }
 
+/*
+  When multiple tasks with the same baseKey are completed during a call to processTasks,
+  the result from the last processed is used (hence only one key-value pair here per baseKey).
+ */
 export interface TaskResults {
-  [key: string]: any
+  [baseKey: string]: any
 }
 
 interface LogEntryMap { [key: string]: LogEntry }
 
 const DEFAULT_CONCURRENCY = 4
-
-export abstract class Task {
-  abstract type: string
-
-  key?: string
-  dependencies: Task[]
-
-  constructor() {
-    this.dependencies = []
-  }
-
-  async getDependencies(): Promise<Task[]> {
-    return this.dependencies
-  }
-
-  getKey(): string {
-    if (!this.key) {
-      throw new TaskDefinitionError("Missing key")
-    }
-
-    return this.key
-  }
-
-  abstract async process(dependencyResults: TaskResults): Promise<any>
-}
 
 const taskStyle = chalk.cyan.bold
 
@@ -77,42 +57,51 @@ export class TaskGraph {
 
   async addTask(task: Task) {
     // TODO: Detect circular dependencies.
-    const node = this.getNode(task)
 
-    for (const d of await task.getDependencies()) {
-      node.addDependency(this.getNode(d))
+    const predecessor = this.getPredecessor(task)
+    let node = this.getNode(task)
+
+    if (predecessor) {
+      /*
+        predecessor is already in the graph, having the same baseKey as task,
+        but a different key (see the getPredecessor method below).
+      */
+      if (this.inProgress.contains(predecessor)) {
+        this.index.addNode(node)
+        /*
+          We transition
+            [dependencies] > predecessor > [dependants]
+          to
+            [dependencies] > predecessor > node > [dependants]
+         */
+        this.inherit(predecessor, node)
+        return
+      } else {
+        node = predecessor // No need to add a new TaskNode.
+      }
     }
 
-    const nodeDependencies = node.getDependencies()
+    this.index.addNode(node)
+    await this.addDependencies(node)
 
-    if (nodeDependencies.length === 0) {
+    if (node.getDependencies().length === 0) {
       this.roots.addNode(node)
     } else {
-      for (const d of nodeDependencies) {
-        await this.addTask(d.task)
-        d.addDependant(node)
-      }
+      await this.addDependants(node)
     }
   }
 
   private getNode(task: Task): TaskNode {
     const existing = this.index.getNode(task)
-
-    if (existing) {
-      return existing
-    } else {
-      const node = new TaskNode(task)
-      this.index.addNode(node)
-      return node
-    }
+    return existing || new TaskNode(task)
   }
 
   /*
     Process the graph until it's complete
    */
   async processTasks(): Promise<TaskResults> {
-    const results = {}
     const _this = this
+    let results: TaskResults = {}
 
     const loop = async () => {
       if (_this.index.length === 0) {
@@ -130,16 +119,17 @@ export class TaskGraph {
       this.initLogging()
 
       return Bluebird.map(batch, async (node: TaskNode) => {
-        const key = node.getKey()
+        const baseKey = node.getBaseKey()
 
         try {
           this.logTask(node)
           this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
-          const dependencyKeys = (await node.task.getDependencies()).map(d => getIndexKey(d))
-          const dependencyResults = pick(results, dependencyKeys)
+          const dependencyBaseKeys = (await node.task.getDependencies())
+            .map(task => task.getBaseKey())
+          const dependencyResults = pick(results, dependencyBaseKeys)
 
-          results[key] = await node.process(dependencyResults)
+          results[baseKey] = await node.process(dependencyResults)
         } finally {
           this.completeTask(node)
         }
@@ -166,11 +156,54 @@ export class TaskGraph {
       }
     }
 
+    this.remove(node)
+    this.logTaskComplete(node)
+  }
+
+  private getPredecessor(task: Task): TaskNode | null {
+    const key = task.getKey()
+    const baseKey = task.getBaseKey()
+    const predecessors = this.index.getNodes()
+      .filter(n => n.getBaseKey() === baseKey && n.getKey() !== key)
+      .reverse()
+    return predecessors[0] || null
+  }
+
+  private async addDependencies(node: TaskNode) {
+    const task = node.task
+    for (const d of await task.getDependencies()) {
+      const dependency = this.getPredecessor(d) || this.getNode(d)
+      this.index.addNode(dependency)
+      node.addDependency(dependency)
+    }
+  }
+
+  private async addDependants(node: TaskNode) {
+    const nodeDependencies = node.getDependencies()
+    for (const d of nodeDependencies) {
+      const dependant = this.getPredecessor(d.task) || d
+      await this.addTask(dependant.task)
+      dependant.addDependant(node)
+    }
+  }
+
+  private inherit(oldNode: TaskNode, newNode: TaskNode) {
+    oldNode.getDependants().forEach(node => {
+      newNode.addDependant(node)
+      oldNode.removeDependant(node)
+      node.removeDependency(oldNode)
+      node.addDependency(newNode)
+    })
+
+    newNode.addDependency(oldNode)
+    oldNode.addDependant(newNode)
+  }
+
+  // Should only be called when node is not a dependant for any task.
+  private remove(node: TaskNode) {
     this.roots.removeNode(node)
     this.index.removeNode(node)
     this.inProgress.removeNode(node)
-
-    this.logTaskComplete(node)
   }
 
   // Logging
@@ -215,48 +248,48 @@ function getIndexKey(task: Task) {
     throw new TaskDefinitionError("Tasks must define a type and a key")
   }
 
-  return `${task.type}.${key}`
+  return key
 }
 
 class TaskNodeMap {
-  index: { [key: string]: TaskNode }
+  // Map is used here to facilitate in-order traversal.
+  index: Map<string, TaskNode>
   length: number
 
   constructor() {
-    this.index = {}
+    this.index = new Map()
     this.length = 0
   }
 
   getNode(task: Task) {
     const indexKey = getIndexKey(task)
-    return this.index[indexKey]
+    const element = this.index.get(indexKey)
+    return element
   }
 
-  addNode(node: TaskNode) {
-    const indexKey = getIndexKey(node.task)
+  addNode(node: TaskNode): void {
+    const indexKey = node.getKey()
 
-    if (!this.index[indexKey]) {
-      this.index[indexKey] = node
+    if (!this.index.get(indexKey)) {
+      this.index.set(indexKey, node)
       this.length++
     }
   }
 
-  removeNode(node: TaskNode) {
-    const indexKey = getIndexKey(node.task)
-
-    if (this.index[indexKey]) {
-      delete this.index[indexKey]
+  removeNode(node: TaskNode): void {
+    if (this.index.delete(node.getKey())) {
       this.length--
     }
   }
 
-  getNodes() {
-    return Object.keys(this.index).map(k => this.index[k])
+  getNodes(): TaskNode[] {
+    return Array.from(this.index.values())
   }
 
-  contains(node: TaskNode) {
-    return this.index.hasOwnProperty(node.getKey())
+  contains(node: TaskNode): boolean {
+    return this.index.has(node.getKey())
   }
+
 }
 
 class TaskNode {
@@ -283,6 +316,10 @@ class TaskNode {
     this.dependencies.removeNode(node)
   }
 
+  removeDependant(node: TaskNode) {
+    this.dependants.removeNode(node)
+  }
+
   getDependencies() {
     return this.dependencies.getNodes()
   }
@@ -291,8 +328,21 @@ class TaskNode {
     return this.dependants.getNodes()
   }
 
+  getBaseKey() {
+    return this.task.getBaseKey()
+  }
+
   getKey() {
     return getIndexKey(this.task)
+  }
+
+  // For testing/debugging purposes
+  inspect(): object {
+    return {
+      key: this.getKey(),
+      dependencies: this.getDependencies().map(d => d.getKey()),
+      dependants: this.getDependants().map(d => d.getKey()),
+    }
   }
 
   async process(dependencyResults: TaskResults) {

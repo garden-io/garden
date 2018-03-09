@@ -1,0 +1,7 @@
+project:
+  name: auto-reload-project
+  environments:
+    local:
+      providers:
+        test:
+          type: test-plugin

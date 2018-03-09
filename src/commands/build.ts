@@ -38,8 +38,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
     const modules = await ctx.getModules(names)
 
     for (const module of values(modules)) {
-      const task = new BuildTask(ctx, module, opts.force)
-      await ctx.addTask(task)
+      await ctx.addTask(new BuildTask(ctx, module, opts.force))
     }
 
     ctx.log.header({ emoji: "hammer", command: "build" })

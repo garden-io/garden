@@ -1,0 +1,16 @@
+module:
+  name: module-e
+  type: generic
+  services:
+    service-e:
+      dependencies:
+        - service-b
+        - service-c
+      endpoints:
+        - paths: [/path-e]
+          containerPort: 8080
+  build:
+    dependencies:
+      - module-b
+      - module-c
+    command: echo E
