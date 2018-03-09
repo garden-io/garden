@@ -59,7 +59,6 @@ import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
 import {
-  Task,
   TaskGraph,
   TaskResults,
 } from "./task-graph"
@@ -90,6 +89,7 @@ import {
   GardenConfig,
   loadConfig,
 } from "./types/config"
+import { Task } from "./types/task"
 
 export interface ModuleMap<T extends Module> {
   [key: string]: T

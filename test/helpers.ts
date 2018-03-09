@@ -20,6 +20,14 @@ export function getDataDir(name: string) {
   return resolve(dataDir, name)
 }
 
+export async function profileBlock(description: string, block: () => Promise<any>) {
+  const startTime = new Date().getTime()
+  const result = await block()
+  const executionTime = (new Date().getTime()) - startTime
+  console.log(description, "took", executionTime, "ms")
+  return result
+}
+
 export const projectRootA = getDataDir("test-project-a")
 
 class TestModule extends Module {
