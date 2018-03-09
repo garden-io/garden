@@ -44,7 +44,8 @@
     "split": "^1.0.1",
     "ts-stream": "^1.0.1",
     "typescript-memoize": "^1.0.0-alpha.3",
-    "winston": "^2.4.0"
+    "winston": "^2.4.0",
+    "yargs": "^11.0.0"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.18",
@@ -60,6 +61,7 @@
     "@types/node": "^8.0.53",
     "@types/node-emoji": "^1.8.0",
     "@types/winston": "^2.3.7",
+    "@types/yargs": "^11.0.0",
     "chai": "^4.1.2",
     "json-schema-to-typescript": "^5.2.2",
     "mocha": "^4.1.0",
