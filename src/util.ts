@@ -30,12 +30,24 @@ export function shutdown(code) {
   }
 }
 
-type RsyncCallback = () => void
+type RsyncStdIOCallback = () => void
 
-// rsyncCmd should be an instance of Rsync
-export function execRsyncCmd(rsyncCmd, stdoutHandler?: RsyncCallback, stderrHandler?: RsyncCallback): Bluebird<any> {
+type RsyncErrorCallback = (error: Error, code: string, cmd: string) => void
+
+// Note: Rsync instances from the rsync npm module fit this interface.
+interface RsyncCommand {
+  execute: (
+    errorCallback: RsyncErrorCallback,
+    stdoutHandler?: RsyncErrorCallback,
+    stderrHandler?: RsyncErrorCallback,
+  ) => void
+}
+
+export function execRsyncCmd(rsyncCmd: RsyncCommand, stdoutHandler?: RsyncStdIOCallback,
+  stderrHandler?: RsyncStdIOCallback): Bluebird<any> {
+
   return new Bluebird((resolve, reject) => {
-    rsyncCmd.execute((error, code, cmd) => {
+    rsyncCmd.execute((error: Error, code: string, cmd: string) => {
       if (!error) {
         resolve()
       } else {
@@ -43,6 +55,7 @@ export function execRsyncCmd(rsyncCmd, stdoutHandler?: RsyncCallback, stderrHand
       }
     }, stdoutHandler, stderrHandler)
   })
+
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {

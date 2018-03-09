@@ -1,3 +1,4 @@
+import { map as bluebirdMap } from "bluebird"
 import {
   dirname,
   join,
@@ -9,8 +10,8 @@ import {
   ensureDir,
   ensureDirSync,
 } from "fs-extra"
+import * as Rsync from "rsync"
 import { GARDEN_DIR_NAME } from "./constants"
-const Rsync = require("rsync")
 import { execRsyncCmd } from "./util"
 import { Module } from "./types/module"
 import { GardenContext } from "./context"
@@ -41,26 +42,22 @@ export class BuildDir {
 
   async syncDependencyProducts<T extends Module>(module: T) {
     await this.syncFromSrc(module)
-
     const buildPath = this.buildPath(module)
-    let syncPromises: Promise<any>[] = []
 
-    for (const depConfig of module.config.build.dependencies || []) {
+    await bluebirdMap(module.config.build.dependencies || [], (depConfig) => {
       if (!depConfig.copy) {
-        continue
+        return []
       }
 
       // Sync to the module's top-level dir by default.
       const destinationDir = depConfig.copyDestination || ""
 
-      for (const relSourcePath of depConfig.copy) {
+      return bluebirdMap(depConfig.copy, (relSourcePath) => {
         const sourcePath = resolve(this.buildDirPath, depConfig.name, relSourcePath)
         const destinationPath = dirname(resolve(buildPath, destinationDir, relSourcePath)) + sep
-        syncPromises.push(this.sync(sourcePath, destinationPath))
-      }
-    }
-
-    await Promise.all(syncPromises)
+        return this.sync(sourcePath, destinationPath)
+      })
+    })
   }
 
   async clear() {
@@ -71,7 +68,7 @@ export class BuildDir {
     return resolve(this.buildDirPath, module.name)
   }
 
-  private async sync(sourcePath: string, destinationPath: string): Promise<any> {
+  private async sync(sourcePath: string, destinationPath: string): Promise<void> {
 
     await ensureDir(destinationPath)
 
@@ -80,7 +77,7 @@ export class BuildDir {
       .source(sourcePath)
       .destination(destinationPath)
 
-    return execRsyncCmd(syncCmd)
+    await execRsyncCmd(syncCmd)
   }
 
 }

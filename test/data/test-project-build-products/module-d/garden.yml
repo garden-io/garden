@@ -6,9 +6,9 @@ build:
     - name: module-a
       copy:
         - a.txt
-       copyDestination: "a"
+      copyDestination: a
     - name: module-b
       copy:
-        - "build/b1.txt"
+        - build/b1.txt
         - build/build_subdir
       copyDestination: b
