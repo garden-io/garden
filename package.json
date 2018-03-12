@@ -79,7 +79,7 @@
     "posttest": "npm run lint",
     "test": "npm run build && node_modules/.bin/mocha",
     "update-submodules": "git submodule update --init --recursive --jobs 4",
-    "watch": "node_modules/.bin/tsc -w -p .",
+    "watch": "npm run build -- -w",
     "snyk-protect": "snyk protect",
     "prepare": "npm run snyk-protect"
   },
