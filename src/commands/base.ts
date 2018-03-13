@@ -87,10 +87,7 @@ export class BooleanParameter extends Parameter<boolean> {
   type = "boolean"
 
   validate(input: any) {
-    if (input) {
-      return true
-    }
-    return false
+    return !!input
   }
 }
 

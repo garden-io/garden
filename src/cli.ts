@@ -25,8 +25,8 @@ const GLOBAL_OPTIONS = {
 }
 
 // Helper functions
-const getKeys = (obj: any): string[] => Object.keys(obj || {})
-const filterByArr = (obj: any, arr: string[]): any => {
+const getKeys = (obj): string[] => Object.keys(obj || {})
+const filterByArray = (obj: any, arr: string[]): any => {
   return arr.reduce((memo, key) => {
     if (obj[key]) {
       memo[key] = obj[key]
@@ -130,8 +130,8 @@ export class GardenCli {
 
     const action = async argv => {
       // Yargs returns positional args and options in a single object which we separate into args and opts
-      const argsForAction = filterByArr(argv, argKeys)
-      const optsForAction = filterByArr(argv, optKeys.concat(globalKeys))
+      const argsForAction = filterByArray(argv, argKeys)
+      const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
       const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
 
