@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+
+garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
+garden_bin=${garden_root}/build/bin/garden
+
+export GARDEN_LOGGER_TYPE=basic
+
+cd ${garden_root}/examples/hello-world
+
+${garden_bin} build

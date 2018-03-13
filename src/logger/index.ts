@@ -28,6 +28,7 @@ import {
   getChildNodes,
   mergeLogOpts,
 } from "./util"
+import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
 const spinnerStyle = chalk.cyan
@@ -361,4 +362,20 @@ export function setDefaultLoggerType(loggerType: LoggerType) {
 
 export function logException(error: Error) {
   console.error((error.stack && chalk.red(error.stack)) || (chalk.red(error.toString())))
+}
+
+// allow configuring logger type via environment variable
+// TODO: we may want a more generalized mechanism for these types of env flags
+if (process.env.GARDEN_LOGGER_TYPE) {
+  const type = LoggerType[process.env.GARDEN_LOGGER_TYPE]
+
+  if (!type) {
+    throw new ParameterError(`Invalid logger type specified: ${process.env.GARDEN_LOGGER_TYPE}`, {
+      loggerType: process.env.GARDEN_LOGGER_TYPE,
+      availableTypes: Object.keys(LoggerType),
+    })
+  }
+
+  defaultLoggerType = type
+  getLogger().debug({ msg: `Setting logger type to ${type} (from GARDEN_LOGGER_TYPE)` })
 }
