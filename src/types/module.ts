@@ -81,7 +81,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   async getBuildPath() {
-    return this.ctx.getModuleBuildPath(this)
+    return await this.ctx.getModuleBuildPath(this)
   }
 
   async getBuildStatus() {

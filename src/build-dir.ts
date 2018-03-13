@@ -42,7 +42,7 @@ export class BuildDir {
 
   async syncDependencyProducts<T extends Module>(module: T) {
     await this.syncFromSrc(module)
-    const buildPath = this.buildPath(module)
+    const buildPath = await this.buildPath(module)
 
     await bluebirdMap(module.config.build.dependencies || [], (depConfig) => {
       if (!depConfig.copy) {
@@ -64,8 +64,10 @@ export class BuildDir {
     await emptyDir(this.buildDirPath)
   }
 
-  buildPath<T extends Module>(module: T) {
-    return resolve(this.buildDirPath, module.name)
+  async buildPath<T extends Module>(module: T): Promise<string> {
+    const path = resolve(this.buildDirPath, module.name)
+    await ensureDir(path)
+    return path
   }
 
   private async sync(sourcePath: string, destinationPath: string): Promise<void> {

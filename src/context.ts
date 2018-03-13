@@ -378,8 +378,8 @@ export class GardenContext {
   //region Plugin actions
   //===========================================================================
 
-  getModuleBuildPath<T extends Module>(module: T): string {
-    return this.buildDir.buildPath(module)
+  async getModuleBuildPath<T extends Module>(module: T): Promise<string> {
+    return await this.buildDir.buildPath(module)
   }
 
   async getModuleBuildStatus<T extends Module>(module: T): Promise<BuildStatus> {

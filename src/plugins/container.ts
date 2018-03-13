@@ -169,6 +169,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
   }
 
   async getModuleBuildStatus({ ctx, module }: GetModuleBuildStatusParams<ContainerModule>) {
+
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {
