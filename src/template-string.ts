@@ -31,7 +31,7 @@ function getParser() {
   return _parser
 }
 
-interface TemplateOpts {
+export interface TemplateOpts {
   ignoreMissingKeys?: boolean
 }
 
@@ -58,7 +58,7 @@ export async function resolveTemplateString(
   return resolved.join("")
 }
 
-export function genericResolver(context: TemplateStringContext, ignoreMissingKeys = false) {
+export function genericResolver(context: TemplateStringContext, ignoreMissingKeys = false): KeyResolver {
   return (parts: string[]) => {
     const path = parts.join(".")
     let value
@@ -103,7 +103,9 @@ export async function resolveTemplateStrings<T extends object>(
 export async function getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
   const baseContext: TemplateStringContext = {
     // TODO: add user configuration here
-    env: process.env,
+    local: {
+      env: process.env,
+    },
   }
 
   return { ...baseContext, ...extraContext }

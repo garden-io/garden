@@ -7,12 +7,12 @@ import { GardenContext } from "../context"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
-export class TestTask extends Task {
+export class TestTask<T extends Module> extends Task {
   type = "test"
 
   constructor(
     private ctx: GardenContext,
-    private module: Module, private testType: string, private testSpec: TestSpec,
+    private module: T, private testType: string, private testSpec: TestSpec,
     private force: boolean, private forceBuild: boolean,
   ) {
     super()

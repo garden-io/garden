@@ -267,6 +267,13 @@ export class GardenContext {
     return output
   }
 
+  /**
+   * Returns the service with the specified name. Throws error if it doesn't exist.
+   */
+  async getService(name: string, noScan?: boolean): Promise<Service<any>> {
+    return (await this.getServices([name], noScan))[name]
+  }
+
   /*
     Scans the project root for modules and adds them to the context
    */
@@ -278,7 +285,7 @@ export class GardenContext {
         return !ignorer.ignores(relPath)
       },
     }
-    const modules: Module[] = []
+    const modulePaths: string[] = []
 
     for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
       const parsedPath = parse(item.path)
@@ -287,11 +294,11 @@ export class GardenContext {
         continue
       }
 
-      const module = await this.resolveModule(parsedPath.dir)
-      modules.push(module)
+      modulePaths.push(parsedPath.dir)
     }
 
-    for (const module of modules) {
+    for (const path of modulePaths) {
+      const module = await this.resolveModule(path)
       await this.addModule(module)
     }
 
@@ -304,10 +311,10 @@ export class GardenContext {
     @param force - add the module again, even if it's already registered
    */
   async addModule(module: Module, force = false) {
-    const config = module.config
+    const config = await module.getConfig()
 
     if (!force && this.modules[config.name]) {
-      const pathA = this.modules[config.name].path
+      const pathA = relative(this.projectRoot, this.modules[config.name].path)
       const pathB = relative(this.projectRoot, module.path)
 
       throw new ConfigurationError(
@@ -369,10 +376,12 @@ export class GardenContext {
   }
 
   async getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
-    const context: TemplateStringContext = {
+    const env = this.getEnvironment()
+
+    const context = {
       // TODO: add secret resolver here
       variables: this.projectConfig.variables,
-      environmentConfig: <any>this.getEnvironment().config,
+      environment: { name: env.name, config: <any>env.config },
       ...extraContext,
     }
 
@@ -427,7 +436,12 @@ export class GardenContext {
 
   async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext) {
     const handler = this.getEnvActionHandler("deployService", service.module.type)
-    return handler({ ctx: this, service, serviceContext: serviceContext || {}, env: this.getEnvironment() })
+
+    if (!serviceContext) {
+      serviceContext = { envVars: {}, dependencies: {} }
+    }
+
+    return handler({ ctx: this, service, serviceContext, env: this.getEnvironment() })
   }
 
   async getServiceOutputs<T extends Module>(service: Service<T>) {

@@ -68,6 +68,8 @@
     "nock": "^9.1.6",
     "nodetree": "0.0.3",
     "pegjs": "^0.10.0",
+    "testdouble": "^3.5.2",
+    "testdouble-chai": "^0.5.0",
     "ts-node": "^4.1.0",
     "tslint": "^5.8.0",
     "tslint-microsoft-contrib": "^5.0.1",

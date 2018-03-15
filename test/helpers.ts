@@ -1,42 +1,41 @@
-import { ParseModuleParams, Plugin, PluginFactory } from "../src/types/plugin"
-import { join } from "path"
+import * as td from "testdouble"
+import { resolve } from "path"
+import { ParseModuleParams, Plugin, PluginActions, PluginFactory } from "../src/types/plugin"
 import { GardenContext } from "../src/context"
 import { Module } from "../src/types/module"
 import { ContainerModule } from "../src/plugins/container"
 
-export const projectRootA = join(__dirname, "data", "test-project-a")
+export const dataDir = resolve(__dirname, "data")
+
+export function getDataDir(name: string) {
+  return resolve(dataDir, name)
+}
+
+export const projectRootA = getDataDir("test-project-a")
 
 class TestModule extends Module {
   type = "test"
 }
 
-class TestPluginB implements Plugin<ContainerModule> {
-  name = "test-plugin-b"
-  supportedModuleTypes = ["test"]
-
-  parseModule({ ctx }: ParseModuleParams) {
-    return new ContainerModule(ctx, {
-      version: "0",
-      type: "test",
-      name: "test",
-      path: "bla",
-      variables: {},
-      build: { dependencies: [] },
-      services: {
-        testService: { daemon: false, dependencies: [], endpoints: [], ports: [], volumes: [] },
-      },
-      test: {},
-    })
-  }
-  async configureEnvironment() { }
-  async deployService() { return {} }
-}
-
-export const testPlugin: Plugin<Module> = {
+export const testPluginA: Plugin<Module> = {
   name: "test-plugin",
   supportedModuleTypes: ["generic"],
 
   configureEnvironment: async () => { },
+  getServiceStatus: async () => ({}),
+  deployService: async () => ({}),
+}
+
+class TestPluginB implements Plugin<Module> {
+  name = "test-plugin-b"
+  supportedModuleTypes = ["test"]
+
+  async parseModule({ ctx, config }: ParseModuleParams) {
+    return new Module(ctx, config)
+  }
+  async configureEnvironment() { }
+  async getServiceStatus() { return {} }
+  async deployService() { return {} }
 }
 
 export const makeTestModule = (ctx, name = "test") => {
@@ -56,7 +55,7 @@ export const makeTestModule = (ctx, name = "test") => {
 
 export const makeTestContext = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
   const testPlugins = [
-    (_ctx) => testPlugin,
+    (_ctx) => testPluginA,
     (_ctx) => new TestPluginB(),
   ]
   const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
@@ -66,4 +65,10 @@ export const makeTestContext = async (projectRoot: string, extraPlugins: PluginF
 
 export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
   return makeTestContext(projectRootA, extraPlugins)
+}
+
+export function stubPluginAction<T extends keyof PluginActions<any>> (
+  ctx: GardenContext, pluginName: string, type: T, handler?: PluginActions<any>[T],
+) {
+  return td.replace(ctx["actionHandlers"][type], pluginName, handler)
 }

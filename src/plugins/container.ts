@@ -147,7 +147,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
-  parseModule({ ctx, config }: { ctx: GardenContext, config: ContainerModuleConfig }) {
+  async parseModule({ ctx, config }: { ctx: GardenContext, config: ContainerModuleConfig }) {
     config = <ContainerModuleConfig>Joi.attempt(config, containerSchema)
 
     const module = new ContainerModule(ctx, config)

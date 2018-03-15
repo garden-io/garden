@@ -14,21 +14,23 @@ export class GenericModuleHandler<T extends Module = Module> implements Plugin<T
   name = "generic"
   supportedModuleTypes = ["generic"]
 
-  parseModule({ ctx, config }: ParseModuleParams<T>) {
+  async parseModule({ ctx, config }: ParseModuleParams<T>) {
     return <T>new Module(ctx, config)
   }
 
   async getModuleBuildStatus({ module }: { module: T }): Promise<BuildStatus> {
     // Each module handler should keep track of this for now. Defaults to return false if a build command is specified.
-    return { ready: !module.config.build.command }
+    return { ready: !(await module.getConfig()).build.command }
   }
 
   async buildModule({ module }: { module: T }): Promise<BuildResult> {
     // By default we run the specified build command in the module root, if any.
     // TODO: Keep track of which version has been built (needs local data store/cache).
-    if (module.config.build.command) {
+    const config = await module.getConfig()
+
+    if (config.build.command) {
       const buildPath = await module.getBuildPath()
-      const result = await exec(module.config.build.command, { cwd: buildPath })
+      const result = await exec(config.build.command, { cwd: buildPath })
 
       return {
         fresh: true,

@@ -1,6 +1,6 @@
 import { Environment } from "../../types/common"
-import { Module, ModuleConfig, ServiceConfig } from "../../types/module"
-import { Service } from "../../types/service"
+import { Module, ModuleConfig } from "../../types/module"
+import { Service, ServiceConfig } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
 import { Memoize } from "typescript-memoize"
 import { GCloud } from "./gcloud"

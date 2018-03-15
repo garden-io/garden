@@ -28,6 +28,7 @@ import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
 import * as split from "split"
 import moment = require("moment")
+import { BuildDependencyConfig } from "../../types/module"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -162,13 +163,13 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       await this.deployService({
         ctx,
         service: await this.getDefaultBackendService(ctx),
-        serviceContext: {},
+        serviceContext: { envVars: {}, dependencies: {} },
         env: gardenEnv,
       })
       await this.deployService({
         ctx,
         service: await this.getIngressControllerService(ctx),
-        serviceContext: {},
+        serviceContext: { envVars: {}, dependencies: {} },
         env: gardenEnv,
         exposePorts: true,
       })
@@ -343,7 +344,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         },
       },
       variables: {},
-      build: { dependencies: <string[]>[] },
+      build: { dependencies: <BuildDependencyConfig[]>[] },
       test: {},
     })
 

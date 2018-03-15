@@ -45,11 +45,13 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
     await ctx.configureEnvironment()
 
     for (const module of values(modules)) {
-      for (const testGroup of Object.keys(module.config.test)) {
+      const config = await module.getConfig()
+
+      for (const testGroup of Object.keys(config.test)) {
         if (opts.group && testGroup !== opts.group) {
           continue
         }
-        const testSpec = module.config.test[testGroup]
+        const testSpec = config.test[testGroup]
         const task = new TestTask(ctx, module, testGroup, testSpec, opts.force, opts["force-build"])
         await ctx.addTask(task)
       }

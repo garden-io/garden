@@ -24,7 +24,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
   name = "local-google-cloud-functions"
   supportedModuleTypes = ["google-cloud-function"]
 
-  parseModule({ ctx, config }: ParseModuleParams<GoogleCloudFunctionsModule>) {
+  async parseModule({ ctx, config }: ParseModuleParams<GoogleCloudFunctionsModule>) {
     const module = new GoogleCloudFunctionsModule(ctx, config)
 
     // TODO: check that each function exists at the specified path

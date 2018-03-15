@@ -5,16 +5,16 @@ import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 import { round } from "lodash"
 
-export class BuildTask extends Task {
+export class BuildTask<T extends Module> extends Task {
   type = "build"
 
-  constructor(private ctx: GardenContext, private module: Module, private force: boolean) {
+  constructor(private ctx: GardenContext, private module: T, private force: boolean) {
     super()
   }
 
   async getDependencies() {
     const deps = await this.module.getBuildDependencies()
-    return deps.map((m: Module) => new BuildTask(this.ctx, m, this.force))
+    return deps.map(<M extends Module>(m: M) => new BuildTask(this.ctx, m, this.force))
   }
 
   getKey() {

@@ -1,8 +1,10 @@
-import { Module } from "./module"
-import { PrimitiveMap } from "./common"
-import { GardenContext } from "../context"
 import Bluebird = require("bluebird")
+import * as Joi from "joi"
+import { Module } from "./module"
+import { joiPrimitive, PrimitiveMap } from "./common"
+import { GardenContext } from "../context"
 import { ConfigurationError } from "../exceptions"
+import { resolveTemplateStrings, TemplateOpts, TemplateStringContext } from "../template-string"
 
 export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
 
@@ -14,6 +16,10 @@ interface ServiceEndpoint {
   port?: number
   url: string
   paths?: string[]
+}
+
+export interface ServiceConfig {
+  dependencies: string[]
 }
 
 export interface ServiceStatus {
@@ -30,30 +36,44 @@ export interface ServiceStatus {
   detail?: any
 }
 
-export interface ServiceContext {
-  envVars?: PrimitiveMap
+export type ServiceContext = {
+  envVars: PrimitiveMap
+  dependencies: {
+    [name: string]: {
+      version: string,
+      outputs: PrimitiveMap,
+    },
+  },
 }
 
-export class Service<T extends Module> {
-  constructor(public module: T, public name: keyof T["services"], public config: T["services"][string]) { }
+export class Service<M extends Module> {
+  constructor(
+    protected ctx: GardenContext, public module: M,
+    public name: string, public config: M["services"][string],
+  ) { }
 
-  static async factory<T extends Module, K extends keyof T["services"]>(ctx: GardenContext, module: T, name: K) {
+  static async factory<S extends Service<M>, M extends Module>(
+    this: (new (ctx: GardenContext, module: M, name: string, config: S["config"]) => S),
+    ctx: GardenContext, module: M, name: string,
+  ) {
     const config = module.services[name]
 
     if (!config) {
       throw new ConfigurationError(`Could not find service ${name} in module ${module.name}`, { module, name })
     }
 
-    return new Service<T>(module, name, parsed)
+    // we allow missing keys here, because we don't have the required context for all keys at this point
+    const context = await ctx.getTemplateContext()
+    return (new this(ctx, module, name, config)).resolveConfig(context, { ignoreMissingKeys: true })
   }
 
   /*
     Returns all Services that this service depends on at runtime.
    */
-  async getDependencies(ctx: GardenContext) {
+  async getDependencies() {
     return Bluebird.map(
       this.config.dependencies,
-      async (depName: string) => (await ctx.getServices([depName]))[depName],
+      async (depName: string) => await this.ctx.getService(depName),
     )
   }
 
@@ -62,5 +82,50 @@ export class Service<T extends Module> {
    */
   getEnvVarName() {
     return this.name.replace("-", "_").toUpperCase()
+  }
+
+  /**
+   * Resolves all template strings in the service and returns a new Service instance with the resolved config.
+   */
+  async resolveConfig(context?: TemplateStringContext, opts?: TemplateOpts): Promise<Service<M>> {
+    if (!context) {
+      context = await this.ctx.getTemplateContext(await this.prepareContext())
+    }
+    const resolved = await resolveTemplateStrings(this.config, context, opts)
+    const cls = Object.getPrototypeOf(this).constructor
+    return new cls(this.ctx, this.module, this.name, resolved)
+  }
+
+  async prepareContext(): Promise<ServiceContext> {
+    const envVars = {
+      GARDEN_VERSION: await this.module.getVersion(),
+    }
+    const dependencies = {}
+
+    for (const key in this.ctx.projectConfig.variables) {
+      envVars[key] = this.ctx.projectConfig.variables[key]
+    }
+
+    for (const dep of await this.getDependencies()) {
+      const depContext = dependencies[dep.name] = {
+        version: await dep.module.getVersion(),
+        outputs: {},
+      }
+
+      const outputs = await this.ctx.getServiceOutputs(dep)
+      const serviceEnvName = dep.getEnvVarName()
+
+      for (const key of Object.keys(outputs)) {
+        const envKey = Joi.attempt(key, Joi.string())
+        const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${envKey}`.toUpperCase()
+
+        const value = Joi.attempt(outputs[key], joiPrimitive())
+
+        envVars[envVarName] = value
+        depContext.outputs[envKey] = value
+      }
+    }
+
+    return { envVars, dependencies }
   }
 }
