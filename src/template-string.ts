@@ -31,6 +31,10 @@ function getParser() {
   return _parser
 }
 
+export interface TemplateOpts {
+  ignoreMissingKeys?: boolean
+}
+
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -40,20 +44,21 @@ function getParser() {
  * or a nested context maps.
  *
  * Resolver functions should accept a key path as an array of strings and return a string or string Promise.
- *
- * @param {string} string
- * @param {TemplateStringContext} context
- * @returns {Promise<string>}
  */
-export async function parseTemplateString(string: string, context: TemplateStringContext) {
+export async function resolveTemplateString(
+  string: string, context: TemplateStringContext, { ignoreMissingKeys = false }: TemplateOpts = {},
+) {
   const parser = getParser()
-  const parsed = parser.parse(string, { getKey: genericResolver(context), TemplateStringError })
+  const parsed = parser.parse(string, {
+    getKey: genericResolver(context, ignoreMissingKeys),
+    TemplateStringError,
+  })
 
   const resolved = await Bluebird.all(parsed)
   return resolved.join("")
 }
 
-export function genericResolver(context: TemplateStringContext) {
+export function genericResolver(context: TemplateStringContext, ignoreMissingKeys = false): KeyResolver {
   return (parts: string[]) => {
     const path = parts.join(".")
     let value
@@ -68,7 +73,12 @@ export function genericResolver(context: TemplateStringContext) {
           return value(parts.slice(p + 1))
 
         case "undefined":
-          throw new TemplateStringError(`Could not find key: ${path}`)
+          if (ignoreMissingKeys) {
+            // return the format string unchanged if option is set
+            return `\$\{${path}\}`
+          } else {
+            throw new TemplateStringError(`Could not find key: ${path}`)
+          }
       }
     }
 
@@ -82,20 +92,20 @@ export function genericResolver(context: TemplateStringContext) {
 
 /**
  * Recursively parses and resolves all templated strings in the given object.
- *
- * @param {T} o
- * @param {TemplateStringContext} context
- * @returns {Promise<T>}
  */
-export async function resolveTemplateStrings<T extends object>(o: T, context: TemplateStringContext): Promise<T> {
-  const mapped = deepMap(o, (v) => typeof v === "string" ? parseTemplateString(v, context) : v)
+export async function resolveTemplateStrings<T extends object>(
+  o: T, context: TemplateStringContext, opts?: TemplateOpts,
+): Promise<T> {
+  const mapped = deepMap(o, (v) => typeof v === "string" ? resolveTemplateString(v, context, opts) : v)
   return deepResolve(mapped)
 }
 
 export async function getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
   const baseContext: TemplateStringContext = {
     // TODO: add user configuration here
-    env: process.env,
+    local: {
+      env: process.env,
+    },
   }
 
   return { ...baseContext, ...extraContext }

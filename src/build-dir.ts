@@ -43,8 +43,9 @@ export class BuildDir {
   async syncDependencyProducts<T extends Module>(module: T) {
     await this.syncFromSrc(module)
     const buildPath = await this.buildPath(module)
+    const config = await module.getConfig()
 
-    await bluebirdMap(module.config.build.dependencies || [], (depConfig) => {
+    await bluebirdMap(config.build.dependencies || [], (depConfig) => {
       if (!depConfig.copy) {
         return []
       }

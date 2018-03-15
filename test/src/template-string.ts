@@ -1,32 +1,31 @@
 import { expect } from "chai"
-import { parseTemplateString, resolveTemplateStrings } from "../../src/template-string"
-import { makeTestContextA } from "./context"
+import { resolveTemplateString, resolveTemplateStrings } from "../../src/template-string"
 
 /* tslint:disable:no-invalid-template-strings */
 
-describe("parseTemplateString", async () => {
+describe("resolveTemplateString", async () => {
   it("should return a non-templated string unchanged", async () => {
-    const res = await parseTemplateString("somestring", {})
+    const res = await resolveTemplateString("somestring", {})
     expect(res).to.equal("somestring")
   })
 
   it("should interpolate a simple format string", async () => {
-    const res = await parseTemplateString("${some}", { some: "value" })
+    const res = await resolveTemplateString("${some}", { some: "value" })
     expect(res).to.equal("value")
   })
 
   it("should interpolate a format string with a prefix", async () => {
-    const res = await parseTemplateString("prefix-${some}", { some: "value" })
+    const res = await resolveTemplateString("prefix-${some}", { some: "value" })
     expect(res).to.equal("prefix-value")
   })
 
   it("should interpolate a format string with a suffix", async () => {
-    const res = await parseTemplateString("${some}-suffix", { some: "value" })
+    const res = await resolveTemplateString("${some}-suffix", { some: "value" })
     expect(res).to.equal("value-suffix")
   })
 
   it("should handle a nested key", async () => {
-    const res = await parseTemplateString("${some.nested}", { some: { nested: "value" }})
+    const res = await resolveTemplateString("${some.nested}", { some: { nested: "value" }})
     expect(res).to.equal("value")
   })
 
@@ -35,7 +34,7 @@ describe("parseTemplateString", async () => {
       expect(parts).to.eql(["nested", "key"])
       return "value"
     }
-    const res = await parseTemplateString("${some.nested.key}", { some: resolver })
+    const res = await resolveTemplateString("${some.nested.key}", { some: resolver })
     expect(res).to.equal("value")
   })
 
@@ -44,7 +43,7 @@ describe("parseTemplateString", async () => {
       expect(parts).to.eql(["nested", "key"])
       return "value"
     }
-    const res = await parseTemplateString("${some.nested.key}", { some: resolver })
+    const res = await resolveTemplateString("${some.nested.key}", { some: resolver })
     expect(res).to.equal("value")
   })
 
@@ -53,33 +52,33 @@ describe("parseTemplateString", async () => {
       expect(parts).to.eql(["key"])
       return "value"
     }
-    const res = await parseTemplateString("${some.nested.key}", { some: { nested: resolver } })
+    const res = await resolveTemplateString("${some.nested.key}", { some: { nested: resolver } })
     expect(res).to.equal("value")
   })
 
   it("should handle multiple format strings", async () => {
-    const res = await parseTemplateString("prefix-${a}-${b}-suffix", { a: "value", b: "other" })
+    const res = await resolveTemplateString("prefix-${a}-${b}-suffix", { a: "value", b: "other" })
     expect(res).to.equal("prefix-value-other-suffix")
   })
 
   it("should handle consecutive format strings", async () => {
-    const res = await parseTemplateString("${a}${b}", { a: "value", b: "other" })
+    const res = await resolveTemplateString("${a}${b}", { a: "value", b: "other" })
     expect(res).to.equal("valueother")
   })
 
   it("should interpolate a simple format string that resolves to a number", async () => {
-    const res = await parseTemplateString("${some}", { some: 123 })
+    const res = await resolveTemplateString("${some}", { some: 123 })
     expect(res).to.equal("123")
   })
 
   it("should interpolate a simple format string that resolves to a boolean", async () => {
-    const res = await parseTemplateString("${some}", { some: false })
+    const res = await resolveTemplateString("${some}", { some: false })
     expect(res).to.equal("false")
   })
 
   it("should throw when a key is not found", async () => {
     try {
-      await parseTemplateString("${some}", {})
+      await resolveTemplateString("${some}", {})
     } catch (err) {
       expect(err.message).to.equal("Could not find key: some")
       return
@@ -90,7 +89,7 @@ describe("parseTemplateString", async () => {
 
   it("should throw when a nested key is not found", async () => {
     try {
-      await parseTemplateString("${some.other}", { some: {} })
+      await resolveTemplateString("${some.other}", { some: {} })
     } catch (err) {
       expect(err.message).to.equal("Could not find key: some.other")
       return
@@ -101,13 +100,25 @@ describe("parseTemplateString", async () => {
 
   it("should throw when a found key is not a primitive", async () => {
     try {
-      await parseTemplateString("${some}", { some: {} })
+      await resolveTemplateString("${some}", { some: {} })
     } catch (err) {
       expect(err.message).to.equal("Value at some exists but is not a primitive (string, number or boolean)")
       return
     }
 
     throw new Error("Expected error")
+  })
+
+  context("ignoreMissingKeys is set", () => {
+    it("return string unchanged when key is not found", async () => {
+      const result = await resolveTemplateString("${some}", {}, { ignoreMissingKeys: true })
+      expect(result).to.equal("${some}")
+    })
+
+    it("return string unchanged when nested key is not found", async () => {
+      const result = await resolveTemplateString("${some.other}", { some: {} }, { ignoreMissingKeys: true })
+      expect(result).to.equal("${some.other}")
+    })
   })
 })
 

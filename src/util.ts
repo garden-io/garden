@@ -10,7 +10,7 @@ import { join } from "path"
 import { getLogger } from "./logger"
 import { TimeoutError } from "./exceptions"
 import { PassThrough } from "stream"
-import { isArray, isPlainObject, extend, mapValues } from "lodash"
+import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
@@ -331,4 +331,8 @@ export async function deepResolve<T>(v: T) {
   } else {
     return Promise.resolve(v)
   }
+}
+
+export function omitUndefined(o: object) {
+  return pickBy(o, (v: any) => v !== undefined)
 }

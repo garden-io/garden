@@ -1,7 +1,7 @@
 import { join } from "path"
 import { GardenContext } from "../../src/context"
 import { expect } from "chai"
-import { makeTestContext, makeTestContextA, makeTestModule, projectRootA, testPlugin } from "../helpers"
+import { makeTestContext, makeTestContextA, makeTestModule, projectRootA, testPluginA } from "../helpers"
 
 describe("GardenContext", () => {
   it("should throw when initializing with missing plugins", async () => {
@@ -28,8 +28,8 @@ describe("GardenContext", () => {
     try {
       await GardenContext.factory(projectRootA, {
         plugins: [
-          (_ctx) => testPlugin,
-          (_ctx) => testPlugin,
+          (_ctx) => testPluginA,
+          (_ctx) => testPluginA,
         ],
       })
     } catch (err) {
@@ -92,6 +92,7 @@ describe("GardenContext", () => {
       version: "0",
       variables: {
         some: "banana",
+        "service-a-build-command": "echo OK",
       },
     })
   })
@@ -211,7 +212,7 @@ describe("GardenContext", () => {
       expect(Object.keys(services)).to.eql(["service-a", "service-b", "service-c"])
     })
 
-    it("should optionally return specified modules in the context", async () => {
+    it("should optionally return specified services in the context", async () => {
       const ctx = await makeTestContextA()
       const services = await ctx.getServices(["service-b", "service-c"])
 
@@ -219,6 +220,28 @@ describe("GardenContext", () => {
     })
 
     it("should throw if named service is missing", async () => {
+      const ctx = await makeTestContextA()
+
+      try {
+        await ctx.getServices(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+  })
+
+  describe("getService", () => {
+    it("should return the specified service", async () => {
+      const ctx = await makeTestContextA()
+      const service = await ctx.getService("service-b")
+
+      expect(service.name).to.equal("service-b")
+    })
+
+    it("should throw if service is missing", async () => {
       const ctx = await makeTestContextA()
 
       try {
@@ -249,7 +272,7 @@ describe("GardenContext", () => {
       const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
-      ctx.addModule(testModule)
+      await ctx.addModule(testModule)
 
       const modules = await ctx.getModules(undefined, true)
       expect(Object.keys(modules)).to.eql(["test"])
@@ -262,10 +285,10 @@ describe("GardenContext", () => {
       const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
-      ctx.addModule(testModule)
+      await ctx.addModule(testModule)
 
       try {
-        ctx.addModule(testModule)
+        await ctx.addModule(testModule)
       } catch (err) {
         expect(err.type).to.equal("configuration")
         return
@@ -278,8 +301,8 @@ describe("GardenContext", () => {
       const ctx = await makeTestContextA()
 
       const testModule = makeTestModule(ctx)
-      ctx.addModule(testModule)
-      ctx.addModule(testModule, true)
+      await ctx.addModule(testModule)
+      await ctx.addModule(testModule, true)
 
       const modules = await ctx.getModules(undefined, true)
       expect(Object.keys(modules)).to.eql(["test"])
@@ -290,10 +313,10 @@ describe("GardenContext", () => {
 
       const testModule = makeTestModule(ctx)
       const testModuleB = makeTestModule(ctx, "test-b")
-      ctx.addModule(testModule)
+      await ctx.addModule(testModule)
 
       try {
-        ctx.addModule(testModuleB)
+        await ctx.addModule(testModuleB)
       } catch (err) {
         expect(err.type).to.equal("configuration")
         return
@@ -307,8 +330,8 @@ describe("GardenContext", () => {
 
       const testModule = makeTestModule(ctx)
       const testModuleB = makeTestModule(ctx, "test-b")
-      ctx.addModule(testModule)
-      ctx.addModule(testModuleB, true)
+      await ctx.addModule(testModule)
+      await ctx.addModule(testModuleB, true)
 
       const services = await ctx.getServices(undefined, true)
       expect(Object.keys(services)).to.eql(["testService"])
@@ -361,11 +384,14 @@ describe("GardenContext", () => {
 
       expect(Object.keys(result).length).to.equal(3)
       expect(result.variables).to.eql({ some: "variable" })
-      expect(result.env).to.eql(process.env)
-      expect(result.environmentConfig).to.eql({
-        providers: {
-          test: { type: "test-plugin" },
-          "test-b": { type: "test-plugin-b" },
+      expect(result.local).to.eql({ env: process.env })
+      expect(result.environment).to.eql({
+        name: "local",
+        config: {
+          providers: {
+            test: { type: "test-plugin" },
+            "test-b": { type: "test-plugin-b" },
+          },
         },
       })
     })
@@ -377,11 +403,14 @@ describe("GardenContext", () => {
 
       expect(Object.keys(result).length).to.equal(4)
       expect(result.variables).to.eql({ some: "variable" })
-      expect(result.env).to.eql(process.env)
-      expect(result.environmentConfig).to.eql({
-        providers: {
-          test: { type: "test-plugin" },
-          "test-b": { type: "test-plugin-b" },
+      expect(result.local).to.eql({ env: process.env })
+      expect(result.environment).to.eql({
+        name: "local",
+        config: {
+          providers: {
+            test: { type: "test-plugin" },
+            "test-b": { type: "test-plugin-b" },
+          },
         },
       })
       expect(result.my).to.eql("things")
@@ -434,7 +463,7 @@ describe("GardenContext", () => {
       const ctx = await makeTestContextA()
 
       try {
-        ctx.getActionHandler("deployService", "generic")
+        ctx.getActionHandler("deployService", "container")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -498,7 +527,7 @@ describe("GardenContext", () => {
       ctx.setEnvironment("local")
 
       try {
-        ctx.getEnvActionHandler("deployService", "generic")
+        ctx.getEnvActionHandler("deployService", "container")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return

@@ -1,16 +1,17 @@
 import { readFileSync } from "fs"
 import * as yaml from "js-yaml"
 import * as Joi from "joi"
-import { identifierRegex, joiIdentifier, joiVariables, Primitive } from "./common"
+import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { MODULE_CONFIG_FILENAME } from "../constants"
 import { join, parse, sep } from "path"
 import Bluebird = require("bluebird")
 import { GardenContext } from "../context"
+import { ServiceConfig } from "./service"
+import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
+import { Memoize } from "typescript-memoize"
 
-interface Variables { [key: string]: Primitive }
-
-interface BuildDependencyConfig {
+export interface BuildDependencyConfig {
   name: string,
   copy?: string[],
   copyDestination?: string // TODO: if we stick with this format, make mandatory if copy is provided
@@ -25,7 +26,7 @@ interface BuildConfig {
 export interface TestSpec {
   command: string[]
   dependencies: string[]
-  variables: Variables
+  variables: PrimitiveMap
   timeout?: number
 }
 
@@ -33,36 +34,53 @@ interface TestConfig {
   [group: string]: TestSpec
 }
 
-class ModuleConfigBase {
-  path: string
-  version: string
+export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
+  build: BuildConfig
   description?: string
   name: string
-  type: string
-  variables: Variables
-  build: BuildConfig
+  path: string
+  services: { [name: string]: T }
   test: TestConfig
-  // further defined by subclasses
-  services: { [name: string]: object }
+  type: string
+  variables: PrimitiveMap
+  version: string
 }
-
-export interface ModuleConfig extends ModuleConfigBase { }
 
 export class Module<T extends ModuleConfig = ModuleConfig> {
   public name: string
   public type: string
   public path: string
-  public services: { [name: string]: object }
+  public services: T["services"]
 
   private _buildDependencies: Module[]
 
   _ConfigType: T
 
-  constructor(private ctx: GardenContext, public config: T) {
+  constructor(private ctx: GardenContext, private config: T) {
     this.name = config.name
     this.type = config.type
     this.path = config.path
     this.services = config.services
+  }
+
+  @Memoize()
+  async getConfig(context?: TemplateStringContext): Promise<T> {
+    // TODO: allow referencing other module configs (non-trivial, need to save for later)
+    const templateContext = await this.ctx.getTemplateContext(context)
+    const config = this.config
+
+    return <T>{
+      build: await resolveTemplateStrings(config.build, templateContext),
+      description: config.description,
+      name: config.name,
+      path: config.path,
+      // service configs are resolved separately in the Service class
+      services: config.services,
+      test: await resolveTemplateStrings(config.test, templateContext),
+      type: config.type,
+      variables: await resolveTemplateStrings(config.variables, templateContext),
+      version: config.version,
+    }
   }
 
   async getVersion() {

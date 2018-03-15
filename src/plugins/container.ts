@@ -51,11 +51,10 @@ export interface ContainerServiceConfig {
   volumes: ServiceVolumeSpec[],
 }
 
-export interface ContainerModuleConfig extends ModuleConfig {
+export interface ContainerModuleConfig
+  <T extends ContainerServiceConfig = ContainerServiceConfig>
+  extends ModuleConfig<T> {
   image?: string
-  services: {
-    [name: string]: ContainerServiceConfig,
-  }
 }
 
 const containerSchema = baseModuleSchema.keys({
@@ -108,19 +107,15 @@ const containerSchema = baseModuleSchema.keys({
     .default(() => [], "[]"),
 })
 
-export type ContainerService = Service<ContainerModule>
+export class ContainerService extends Service<ContainerModule> { }
 
-export class ContainerModule extends Module<ContainerModuleConfig> {
+export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleConfig> extends Module<T> {
   image?: string
-  services: {
-    [name: string]: ContainerServiceConfig,
-  }
 
-  constructor(ctx: GardenContext, config: ContainerModuleConfig) {
+  constructor(ctx: GardenContext, config: T) {
     super(ctx, config)
 
     this.image = config.image
-    this.services = config.services || {}
   }
 
   async getImageId() {
@@ -152,7 +147,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
-  parseModule({ ctx, config }: { ctx: GardenContext, config: ContainerModuleConfig }) {
+  async parseModule({ ctx, config }: { ctx: GardenContext, config: ContainerModuleConfig }) {
     config = <ContainerModuleConfig>Joi.attempt(config, containerSchema)
 
     const module = new ContainerModule(ctx, config)

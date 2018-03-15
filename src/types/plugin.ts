@@ -13,7 +13,7 @@ export interface PluginActionParamsBase {
 }
 
 export interface ParseModuleParams<T extends Module = Module> extends PluginActionParamsBase {
-  config: T["config"]
+  config: T["_ConfigType"]
 }
 
 export interface GetModuleBuildStatusParams<T extends Module = Module> extends PluginActionParamsBase {
@@ -120,7 +120,7 @@ export interface ServiceLogEntry {
 }
 
 interface PluginActionOutputs<T extends Module = Module> {
-  parseModule: T
+  parseModule: Promise<T>
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>
   testModule: Promise<TestResult>

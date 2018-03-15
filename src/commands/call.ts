@@ -38,9 +38,7 @@ export class CallCommand extends Command<typeof callArgs> {
     path = "/" + path
 
     // TODO: better error when service doesn't exist
-    const services = await ctx.getServices([serviceName])
-    const service = services[serviceName]
-
+    const service = await (await ctx.getService(serviceName)).resolveConfig()
     const status = await ctx.getServiceStatus(service)
 
     if (status.state !== "ready") {
