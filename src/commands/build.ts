@@ -24,6 +24,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   options = buildOptions
 
   async action(ctx: GardenContext, args: BuildArguments, opts: BuildOptions) {
+    await ctx.buildDir.clear()
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 

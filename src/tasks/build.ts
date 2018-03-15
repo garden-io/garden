@@ -30,6 +30,7 @@ export class BuildTask extends Task {
     })
 
     if (this.force || !(await this.module.getBuildStatus()).ready) {
+      await this.ctx.buildDir.syncDependencyProducts(this.module)
       const startTime = new Date().getTime()
       const result = await this.ctx.buildModule(this.module, entry)
       const buildTime = (new Date().getTime()) - startTime

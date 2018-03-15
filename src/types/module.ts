@@ -10,10 +10,16 @@ import { GardenContext } from "../context"
 
 interface Variables { [key: string]: Primitive }
 
+interface BuildDependencyConfig {
+  name: string,
+  copy?: string[],
+  copyDestination?: string // TODO: if we stick with this format, make mandatory if copy is provided
+}
+
 interface BuildConfig {
   // TODO: this should be a string array, to match other command specs
   command?: string,
-  dependencies: string[],
+  dependencies: BuildDependencyConfig[],
 }
 
 export interface TestSpec {
@@ -74,6 +80,10 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     return sortedVersions[0]
   }
 
+  async getBuildPath() {
+    return await this.ctx.getModuleBuildPath(this)
+  }
+
   async getBuildStatus() {
     return this.ctx.getModuleBuildStatus(this)
   }
@@ -91,7 +101,8 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     const modules = await this.ctx.getModules()
     const deps: Module[] = []
 
-    for (let dependencyName of this.config.build.dependencies) {
+    for (let dependencyConfig of this.config.build.dependencies) {
+      const dependencyName = dependencyConfig.name
       const dependency = modules[dependencyName]
 
       if (!dependency) {
@@ -127,6 +138,12 @@ export const baseTestSpecSchema = Joi.object().keys({
   timeout: Joi.number(),
 })
 
+export const baseDependencySchema = Joi.object().keys({
+  name: joiIdentifier().required(),
+  copy: Joi.array(),
+  copyDestination: Joi.string(),
+})
+
 export const baseModuleSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   type: joiIdentifier().required(),
@@ -136,7 +153,7 @@ export const baseModuleSchema = Joi.object().keys({
   services: baseServicesSchema,
   build: Joi.object().keys({
     command: Joi.string(),
-    dependencies: Joi.array().items(joiIdentifier()).default(() => [], "[]"),
+    dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),
   }).default(() => ({ dependencies: [] }), "{}"),
   test: Joi.object().pattern(/[\w\d]+/i, baseTestSpecSchema).default(() => ({}), "{}"),
 }).required()
@@ -165,6 +182,18 @@ export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig
   }
 
   config.path = modulePath
+
+  /*
+    We allow specifying modules by name only as a shorthand:
+
+      dependencies:
+        foo-module
+        name: foo-module // same as the above
+   */
+  if (config.build && config.build.dependencies) {
+    config.build.dependencies = config.build.dependencies
+      .map(dep => (typeof dep) === "string" ? { name: dep } : dep)
+  }
 
   const result = baseModuleSchema.validate(config, { allowUnknown: true })
 

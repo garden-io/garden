@@ -11,6 +11,7 @@ Just getting started now... More docs to follow.
 You need to set up the following on your local machine to use garden:
 * Node.js >= 8.x
 * Git
+* rsync
 * [Docker for Mac/Windows (edge version)](https://docs.docker.com/engine/installation/)
 
 We recommend using Homebrew on Mac for everything except Docker. 

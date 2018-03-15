@@ -30,6 +30,34 @@ export function shutdown(code) {
   }
 }
 
+type RsyncStdIOCallback = () => void
+
+type RsyncErrorCallback = (error: Error, code: string, cmd: string) => void
+
+// Note: Rsync instances from the rsync npm module fit this interface.
+interface RsyncCommand {
+  execute: (
+    errorCallback: RsyncErrorCallback,
+    stdoutHandler?: RsyncErrorCallback,
+    stderrHandler?: RsyncErrorCallback,
+  ) => void
+}
+
+export function execRsyncCmd(rsyncCmd: RsyncCommand, stdoutHandler?: RsyncStdIOCallback,
+  stderrHandler?: RsyncStdIOCallback): Bluebird<any> {
+
+  return new Bluebird((resolve, reject) => {
+    rsyncCmd.execute((error: Error, code: string, cmd: string) => {
+      if (!error) {
+        resolve()
+      } else {
+        reject({ error, code, cmd })
+      }
+    }, stdoutHandler, stderrHandler)
+  })
+
+}
+
 export function registerCleanupFunction(name: string, func: HookCallback) {
   // NOTE: this currently does not work on SIGINT in ts-node due to a bug
   // (see https://github.com/TypeStrong/ts-node/pull/458)
@@ -104,6 +132,7 @@ export function getIgnorer(rootPath: string) {
 
   // should we be adding this (or more) by default?
   ig.add("node_modules")
+  ig.add(".garden")
 
   return ig
 }

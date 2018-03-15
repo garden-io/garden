@@ -9,6 +9,7 @@ import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
 import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
+import { BuildDir } from "./build-dir"
 import { Task, TaskGraph } from "./task-graph"
 import { getLogger, LogEntry, RootLogNode } from "./logger"
 import {
@@ -39,6 +40,7 @@ const builtinPlugins: PluginFactory[] = [
 ]
 
 export class GardenContext {
+  public buildDir: BuildDir
   public readonly log: RootLogNode
   public readonly actionHandlers: PluginActionMap
   public readonly projectName: string
@@ -61,6 +63,7 @@ export class GardenContext {
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this)
     this.taskGraph = new TaskGraph(this)
+    this.buildDir = new BuildDir(this)
 
     this.modules = {}
     this.services = {}
@@ -78,6 +81,8 @@ export class GardenContext {
       execInService: {},
       getServiceLogs: {},
     }
+
+    this.buildDir.init()
 
     this.projectConfig = projectConfig
     this.projectName = this.projectConfig.name
@@ -373,6 +378,10 @@ export class GardenContext {
   //region Plugin actions
   //===========================================================================
 
+  async getModuleBuildPath<T extends Module>(module: T): Promise<string> {
+    return await this.buildDir.buildPath(module)
+  }
+
   async getModuleBuildStatus<T extends Module>(module: T): Promise<BuildStatus> {
     const defaultHandler = this.actionHandlers["getModuleBuildStatus"]["generic"]
     const handler = this.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
@@ -382,7 +391,8 @@ export class GardenContext {
   async buildModule<T extends Module>(module: T, logEntry?: LogEntry) {
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
-    return handler({ ctx: this, module, logEntry })
+    const buildResult = await handler({ ctx: this, module, logEntry })
+    return buildResult
   }
 
   async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) {

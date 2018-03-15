@@ -143,7 +143,7 @@ export class ContainerModule extends Module<ContainerModuleConfig> {
 
   async dockerCli(args) {
     // TODO: use dockerode instead of CLI
-    return childProcess.exec("docker " + args, { cwd: this.path, maxBuffer: 1024 * 1024 })
+    return childProcess.exec("docker " + args, { cwd: await this.getBuildPath(), maxBuffer: 1024 * 1024 })
   }
 }
 
@@ -169,6 +169,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
   }
 
   async getModuleBuildStatus({ ctx, module }: GetModuleBuildStatusParams<ContainerModule>) {
+
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {
@@ -196,7 +197,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
 
     // TODO: log error if it occurs
     // TODO: stream output to log if at debug log level
-    await module.dockerCli(`build -t ${identifier} ${module.path}`)
+    await module.dockerCli(`build -t ${identifier} ${await module.getBuildPath()}`)
 
     return { fresh: true }
   }

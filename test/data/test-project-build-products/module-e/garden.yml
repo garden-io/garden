@@ -1,0 +1,9 @@
+name: module-e
+type: generic
+build:
+  command: "echo E"
+  dependencies:
+    - name: module-d
+      copy:
+        - "build/d.txt"
+      copyDestination: d
