@@ -86,8 +86,8 @@ export class ChoicesParameter extends Parameter<string> {
 export class BooleanParameter extends Parameter<boolean> {
   type = "boolean"
 
-  validate(_input: any) {
-    return true
+  validate(input: any) {
+    return !!input
   }
 }
 
