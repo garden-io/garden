@@ -68,13 +68,13 @@ type UpdateLogEntry = (logOpts?: LogOpts) => LogEntry
 
 abstract class LogNode {
   public root: RootLogNode
-  public startTime: number
+  public timestamp: number
   public level: LogLevel
   public depth: number
   public children: LogEntry[]
 
   constructor(level: LogLevel, depth: number) {
-    this.startTime = Date.now()
+    this.timestamp = Date.now()
     this.children = []
     this.depth = depth
     this.level = level
@@ -108,7 +108,7 @@ abstract class LogNode {
   }
 
   public error: CreateLogEntry = (opts: LogOpts): LogEntry => {
-    return this.addNode(LogLevel.error, opts)
+    return this.addNode(LogLevel.error, { ...opts, entryStyle: EntryStyle.error })
   }
 
 }
@@ -118,7 +118,7 @@ export abstract class LogEntry extends LogNode {
 
   public status: EntryStatus
   public root: RootLogNode
-  public startTime: number
+  public timestamp: number
   public level: LogLevel
   public depth: number
   public children: LogEntry[]
@@ -170,15 +170,15 @@ export abstract class LogEntry extends LogNode {
         [renderSymbol, [this.opts.symbol]],
         [renderEmoji, [this.opts.emoji]],
         [renderMsg, [this.opts.msg]],
-        [renderDuration, [this.startTime, this.opts.showDuration]],
+        [renderDuration, [this.timestamp, this.opts.showDuration]],
       ]
     } else {
       renderers = [
         [renderSymbol, [this.opts.symbol]],
         [renderSection, [this.opts.section]],
         [renderEmoji, [this.opts.emoji]],
-        [renderMsg, [this.opts.msg]],
-        [renderDuration, [this.startTime, this.opts.showDuration]],
+        [renderMsg, [this.opts.msg, this.opts.entryStyle]],
+        [renderDuration, [this.timestamp, this.opts.showDuration]],
       ]
     }
     return format(renderers)
@@ -329,7 +329,7 @@ export class RootLogNode extends LogNode {
   public finish(opts?: FinishOpts): LogEntry {
     const msg = format([
       [() => `\n${nodeEmoji.get("sparkles")}  Finished`, []],
-      [() => opts && opts.showDuration ? ` in ${chalk.bold(duration(this.startTime) + "s")}` : "!", []],
+      [() => opts && opts.showDuration ? ` in ${chalk.bold(duration(this.timestamp) + "s")}` : "!", []],
       [() => "\n", []],
     ])
     return this.info({ msg })

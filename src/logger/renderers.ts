@@ -6,7 +6,7 @@ import hasAnsi = require("has-ansi")
 
 import { duration } from "./util"
 
-import { HeaderOpts, LogSymbolType } from "./types"
+import { HeaderOpts, LogSymbolType, EntryStyle } from "./types"
 
 /*** STYLE HELPERS ***/
 
@@ -16,6 +16,7 @@ const truncate = (s: string) => s.length > sectionPrefixWidth
   : s
 const sectionStyle = (s: string) => chalk.cyan.italic(padEnd(truncate(s), sectionPrefixWidth))
 const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
+const errorStyle = (s: string) => hasAnsi(s) ? s : chalk.red(s)
 
 /*** RENDER HELPERS ***/
 
@@ -50,11 +51,12 @@ export function renderSymbol(symbol?: LogSymbolType): string {
   return symbol ? `${logSymbols[symbol]} ` : ""
 }
 
-export function renderMsg(msg?: string | string[]): string {
+export function renderMsg(msg: string | string[], style: EntryStyle): string {
+  const styleFn = style === EntryStyle.error ? errorStyle : msgStyle
   if (msg && msg instanceof Array) {
-    return msg.map(msgStyle).join(chalk.gray(" → "))
+    return msg.map(styleFn).join(chalk.gray(" → "))
   }
-  return msg ? msgStyle(msg) : ""
+  return msg ? styleFn(msg) : ""
 }
 
 export function renderSection(section?: string): string {

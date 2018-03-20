@@ -20,6 +20,7 @@ export enum LoggerType {
 // Defines entry style and format (only one available style at the moment)
 export enum EntryStyle {
   activity = "activity",
+  error = "error",
 }
 
 // Icon to show when activity is done (values are the keys used in log-symbols package)
@@ -53,4 +54,5 @@ export interface LogOpts {
   append?: boolean
   originIsNotLogger?: boolean
   showDuration?: boolean
+  meta?: any
 }
