@@ -1,12 +1,12 @@
 import { flatten } from "lodash"
 
-import { LogOpts } from "./types"
+import { LogEntryOpts } from "./types"
 
 interface Node {
   children: any[]
 }
 
-type LogOptsResolvers = {[K in keyof LogOpts]?: Function}
+type LogOptsResolvers = {[K in keyof LogEntryOpts]?: Function}
 
 // TODO Tail call optimization?
 export function getNodeListFromTree<T extends Node>(node: T): T[] {
@@ -45,7 +45,7 @@ function mergeWithResolvers(objA: any, objB: any, resolvers: any = {}) {
   }, returnObj)
 }
 
-export function mergeLogOpts(prevOpts: LogOpts, nextOpts: LogOpts, resolvers: LogOptsResolvers) {
+export function mergeLogOpts(prevOpts: LogEntryOpts, nextOpts: LogEntryOpts, resolvers: LogOptsResolvers) {
   return mergeWithResolvers(prevOpts, nextOpts, resolvers)
 }
 

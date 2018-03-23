@@ -1,70 +1,63 @@
-// TODO: make log level configurable
 import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 
-const elegantSpinner = require("elegant-spinner")
-
-import {
-  format,
-  renderDuration,
-  renderEmoji,
-  renderHeader,
-  renderMsg,
-  renderSection,
-  renderSymbol,
-} from "./renderers"
-import { BasicConsoleWriter, ConsoleWriter, FancyConsoleWriter } from "./writers"
-import {
-  EntryStatus,
-  EntryStyle,
-  HeaderOpts,
-  LoggerType,
-  LogLevel,
-  LogOpts,
-  LogSymbolType,
-} from "./types"
+import { Writer, FancyConsoleWriter } from "./writers"
 import {
   duration,
   getChildNodes,
   mergeLogOpts,
 } from "./util"
+import {
+  EntryStatus,
+  EntryStyle,
+  LoggerType,
+  LogLevel,
+  LogEntryOpts,
+  LogSymbolType,
+} from "./types"
+import { format } from "./renderers"
 import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
-const spinnerStyle = chalk.cyan
+const DEFAULT_CONFIGS: {[key in LoggerType]: LoggerConfig} = {
+  [LoggerType.development]: {
+    level: LogLevel.verbose,
+    writers: [new FancyConsoleWriter()],
+  },
+  [LoggerType.test]: {
+    level: LogLevel.error,
+  },
+}
 
-let loggerInstance: RootLogNode
-let defaultLogLevel = LogLevel.verbose
-let defaultLoggerType = LoggerType.fancy
-
-interface FinishOpts {
-  showDuration?: boolean
+interface LoggerConfig {
+  level: LogLevel
+  writers?: Writer[]
 }
 
 interface LogEntryConstructor {
   level: LogLevel
-  opts: LogOpts
+  opts: LogEntryOpts
   depth: number
   root: RootLogNode
 }
 
-function createLogEntry(level: LogLevel, opts: LogOpts, parent: LogNode) {
+let loggerInstance: RootLogNode
+let defaultLoggerType: LoggerType = LoggerType.development
+let defaultLoggerConfig: LoggerConfig = DEFAULT_CONFIGS[defaultLoggerType]
+
+function createLogEntry(level: LogLevel, opts: LogEntryOpts, parent: LogNode) {
   const { depth, root } = parent
-  const { loggerType } = root
   const params = {
     depth: depth + 1,
     root,
     level,
     opts,
   }
-  if (loggerType === LoggerType.fancy) {
-    return new FancyLogEntry(params)
-  }
-  return new BasicLogEntry(params)
+  return new LogEntry(params)
 }
 
-type CreateLogEntry = (logOpts: LogOpts) => LogEntry
-type UpdateLogEntry = (logOpts?: LogOpts) => LogEntry
+type CreateLogEntry = (logOpts: LogEntryOpts) => LogEntry
+type UpdateLogEntry = (logOpts?: LogEntryOpts) => LogEntry
 
 abstract class LogNode {
   public root: RootLogNode
@@ -80,42 +73,41 @@ abstract class LogNode {
     this.level = level
   }
 
-  protected addNode(level: LogLevel, opts: LogOpts): LogEntry {
+  protected addNode(level: LogLevel, opts: LogEntryOpts): LogEntry {
     const node = createLogEntry(level, opts, this)
     this.children.push(node)
     this.root.onGraphChange(node)
     return node
   }
 
-  public silly: CreateLogEntry = (opts: LogOpts): LogEntry => {
+  public silly: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
     return this.addNode(LogLevel.silly, opts)
   }
 
-  public debug: CreateLogEntry = (opts: LogOpts): LogEntry => {
+  public debug: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
     return this.addNode(LogLevel.debug, opts)
   }
 
-  public verbose: CreateLogEntry = (opts: LogOpts): LogEntry => {
+  public verbose: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
     return this.addNode(LogLevel.verbose, opts)
   }
 
-  public info: CreateLogEntry = (opts: LogOpts): LogEntry => {
+  public info: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
     return this.addNode(LogLevel.info, opts)
   }
 
-  public warn: CreateLogEntry = (opts: LogOpts): LogEntry => {
+  public warn: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
     return this.addNode(LogLevel.warn, opts)
   }
 
-  public error: CreateLogEntry = (opts: LogOpts): LogEntry => {
+  public error: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
     return this.addNode(LogLevel.error, { ...opts, entryStyle: EntryStyle.error })
   }
 
 }
 
-export abstract class LogEntry extends LogNode {
-  protected opts: LogOpts
-
+export class LogEntry extends LogNode {
+  public opts: LogEntryOpts
   public status: EntryStatus
   public root: RootLogNode
   public timestamp: number
@@ -132,9 +124,7 @@ export abstract class LogEntry extends LogNode {
     }
   }
 
-  abstract render(): string
-
-  protected setOwnState(opts: LogOpts, status: EntryStatus): void {
+  protected setOwnState(opts: LogEntryOpts, status: EntryStatus): void {
     const resolveMsg = (prevOpts, nextOpts) => {
       const { msg: prevMsg } = prevOpts
       const { append, msg: nextMsg } = nextOpts
@@ -162,33 +152,52 @@ export abstract class LogEntry extends LogNode {
     this.status = status
   }
 
-  protected getFormattedEntry(): string {
-    let renderers
-    if (this.depth > 0) {
-      // Skip section on child entries.
-      renderers = [
-        [renderSymbol, [this.opts.symbol]],
-        [renderEmoji, [this.opts.emoji]],
-        [renderMsg, [this.opts.msg]],
-        [renderDuration, [this.timestamp, this.opts.showDuration]],
-      ]
-    } else {
-      renderers = [
-        [renderSymbol, [this.opts.symbol]],
-        [renderSection, [this.opts.section]],
-        [renderEmoji, [this.opts.emoji]],
-        [renderMsg, [this.opts.msg, this.opts.entryStyle]],
-        [renderDuration, [this.timestamp, this.opts.showDuration]],
-      ]
-    }
-    return format(renderers)
+  //  Update node and child nodes
+  private deepSetState(opts: LogEntryOpts, status: EntryStatus): void {
+    this.setOwnState(opts, status)
+    getChildNodes(this).forEach(entry => {
+      if (entry.status === EntryStatus.ACTIVE) {
+        entry.setOwnState({}, EntryStatus.DONE)
+      }
+    })
   }
 
-  originIsNotLogger(): boolean {
+  // Preserves status
+  public setState: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
+    this.deepSetState(opts, this.status)
+    this.root.onGraphChange(this)
+    return this
+  }
+
+  public setDone: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
+    this.deepSetState(opts, EntryStatus.DONE)
+    this.root.onGraphChange(this)
+    return this
+  }
+
+  public setSuccess: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
+    this.deepSetState({ ...opts, symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
+    this.root.onGraphChange(this)
+    return this
+  }
+
+  public setError: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
+    this.deepSetState({ ...opts, symbol: LogSymbolType.error }, EntryStatus.ERROR)
+    this.root.onGraphChange(this)
+    return this
+  }
+
+  public setWarn: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
+    this.deepSetState({ ...opts, symbol: LogSymbolType.warn }, EntryStatus.WARN)
+    this.root.onGraphChange(this)
+    return this
+  }
+
+  public originIsNotLogger(): boolean {
     return !!this.opts.originIsNotLogger
   }
 
-  stop() {
+  public stop() {
     // Stop gracefully if still in active state
     if (this.status === EntryStatus.ACTIVE) {
       this.setOwnState({ symbol: LogSymbolType.empty }, EntryStatus.DONE)
@@ -203,133 +212,39 @@ export abstract class LogEntry extends LogNode {
     }))
   }
 
-  //  Update node and child nodes
-  private deepSetState(opts: LogOpts, status: EntryStatus): void {
-    this.setOwnState(opts, status)
-    getChildNodes(this).forEach(entry => {
-      if (entry.status === EntryStatus.ACTIVE) {
-        entry.setOwnState({}, EntryStatus.DONE)
-      }
-    })
-  }
-
-  // Preserves status
-  public setState: UpdateLogEntry = (opts: LogOpts = {}): LogEntry => {
-    this.deepSetState(opts, this.status)
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  public setDone: UpdateLogEntry = (opts: LogOpts = {}): LogEntry => {
-    this.deepSetState(opts, EntryStatus.DONE)
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  public setSuccess: UpdateLogEntry = (opts: LogOpts = {}): LogEntry => {
-    this.deepSetState({ ...opts, symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  public setError: UpdateLogEntry = (opts: LogOpts = {}): LogEntry => {
-    this.deepSetState({ ...opts, symbol: LogSymbolType.error }, EntryStatus.ERROR)
-    this.root.onGraphChange(this)
-    return this
-  }
-
-  public setWarn: UpdateLogEntry = (opts: LogOpts = {}): LogEntry => {
-    this.deepSetState({ ...opts, symbol: LogSymbolType.warn }, EntryStatus.WARN)
-    this.root.onGraphChange(this)
-    return this
-  }
-
-}
-
-const padByDepth = (n: number): string => {
-  let pad = ""
-  for (let i = 0; i < n; i++) {
-    pad += "    "
-  }
-  return pad
-}
-
-class FancyLogEntry extends LogEntry {
-  private formatted: string
-  private frame: Function
-
-  constructor(params: LogEntryConstructor) {
-    super(params)
-    // Cache string so we don't have to rebuild it on each render
-    this.formatted = this.getFormattedEntry()
-    if (params.opts.entryStyle === EntryStyle.activity) {
-      this.frame = elegantSpinner()
-    }
-  }
-
-  protected setOwnState(opts: LogOpts, status: EntryStatus): void {
-    super.setOwnState(opts, status)
-    this.formatted = this.getFormattedEntry()
-  }
-
-  // NOTE: The spinner updates on every render call but we don't want to reformat the entire string
-  // on each render so we handle the spinner (and padding because it appears before the spinner) here.
-  // Needs a better solution since it makes the format less declarative.
-  render(): string {
-    const pad = padByDepth(this.depth)
-    if (this.status === EntryStatus.ACTIVE) {
-      return `${pad}${spinnerStyle(this.frame())} ${this.formatted}`
-    }
-    return `${pad}${this.formatted}`
-  }
-
-}
-
-class BasicLogEntry extends LogEntry {
-
-  render(): string {
-    return `${padByDepth(this.depth)}${this.getFormattedEntry()}`
-  }
-
-}
-
-const WRITERS = {
-  [LoggerType.basic]: BasicConsoleWriter,
-  [LoggerType.fancy]: FancyConsoleWriter,
 }
 
 export class RootLogNode extends LogNode {
   public root: RootLogNode
-  public writer?: ConsoleWriter
-  public loggerType: LoggerType
+  public writers: Writer[]
 
-  constructor(level, loggerType) {
-    super(level, ROOT_DEPTH)
-    this.level = level
+  constructor(config: LoggerConfig) {
+    super(config.level, ROOT_DEPTH)
     this.root = this
-    this.loggerType = loggerType
-    const WriterClass = WRITERS[this.loggerType]
-    if (WriterClass) {
-      this.writer = new WriterClass(this.level, this)
-    }
+    this.writers = config.writers || []
   }
 
   public onGraphChange(entry: LogEntry): void {
-    this.writer && this.writer.write(entry)
-  }
-
-  public header(opts: HeaderOpts): LogEntry {
-    return this.verbose({ msg: renderHeader(opts) })
+    this.writers.forEach(writer => writer.write(entry, this))
   }
 
   public getLogEntries(): LogEntry[] {
     return getChildNodes(<any>this).filter(entry => !entry.originIsNotLogger())
   }
 
-  public finish(opts?: FinishOpts): LogEntry {
+  public header({ command, emoji }: { command: string, emoji?: string }): LogEntry {
+    const msg = format([
+      [() => chalk.bold.magenta(command), []],
+      [() => emoji ? nodeEmoji.get(emoji) : "", []],
+      [() => "\n", []],
+    ])
+    return this.verbose({ msg })
+  }
+
+  public finish({ showDuration = true }: { showDuration?: boolean } = {}): LogEntry {
     const msg = format([
       [() => `\n${nodeEmoji.get("sparkles")}  Finished`, []],
-      [() => opts && opts.showDuration ? ` in ${chalk.bold(duration(this.timestamp) + "s")}` : "!", []],
+      [() => showDuration ? ` in ${chalk.bold(duration(this.timestamp) + "s")}` : "!", []],
       [() => "\n", []],
     ])
     return this.info({ msg })
@@ -337,31 +252,26 @@ export class RootLogNode extends LogNode {
 
   public stop(): void {
     this.getLogEntries().forEach(e => e.stop())
-    this.writer && this.writer.stop()
+    this.writers.forEach(writer => writer.stop())
   }
 
 }
 
-export function getLogger(params: { level?: LogLevel, loggerType?: LoggerType } = {}) {
-  if (loggerInstance) {
-    return loggerInstance
+export function getLogger(config: LoggerConfig = defaultLoggerConfig) {
+  if (!loggerInstance) {
+    loggerInstance = new RootLogNode(config)
   }
 
-  const { level = defaultLogLevel, loggerType = defaultLoggerType } = params
-  loggerInstance = new RootLogNode(level, loggerType)
   return loggerInstance
-}
-
-export function setDefaultLogLevel(level: LogLevel) {
-  defaultLogLevel = level
 }
 
 export function setDefaultLoggerType(loggerType: LoggerType) {
   defaultLoggerType = loggerType
+  defaultLoggerConfig = DEFAULT_CONFIGS[loggerType]
 }
 
-export function logException(error: Error) {
-  console.error((error.stack && chalk.red(error.stack)) || (chalk.red(error.toString())))
+export function setDefaultLoggerConfig(config: LoggerConfig) {
+  defaultLoggerConfig = config
 }
 
 // allow configuring logger type via environment variable
@@ -377,5 +287,6 @@ if (process.env.GARDEN_LOGGER_TYPE) {
   }
 
   defaultLoggerType = type
+  defaultLoggerConfig = DEFAULT_CONFIGS[type]
   getLogger().debug({ msg: `Setting logger type to ${type} (from GARDEN_LOGGER_TYPE)` })
 }

@@ -2,10 +2,11 @@ import * as sywac from "sywac"
 import chalk from "chalk"
 import { shutdown } from "./util"
 import { intersection } from "lodash"
-import { Parameter, Command, ChoicesParameter, StringParameter } from "./commands/base"
+import { Parameter, Command, ChoicesParameter, StringParameter, BooleanParameter } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { InternalError, PluginError } from "./exceptions"
 import { GardenContext } from "./context"
+import { FileWriter } from "./logger/writers"
 import { getLogger, RootLogNode } from "./logger"
 import { resolve } from "path"
 import { BuildCommand } from "./commands/build"
@@ -17,6 +18,7 @@ import { defaultPlugins } from "./plugins"
 import { TestCommand } from "./commands/test"
 import { DevCommand } from "./commands/dev"
 import { LogsCommand } from "./commands/logs"
+import { LogLevel } from "./logger/types"
 
 const GLOBAL_OPTIONS = {
   root: new StringParameter({
@@ -24,10 +26,12 @@ const GLOBAL_OPTIONS = {
     help: "override project root directory (defaults to working directory)",
     defaultValue: process.cwd(),
   }),
+  verbose: new BooleanParameter({
+    alias: "v",
+    help: "verbose logging",
+  }),
 }
-
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
-
 const STYLE_CONFIG = {
   usagePrefix: str => (
     `
@@ -54,6 +58,7 @@ ${chalk.bold(str.slice(0, 5).toUpperCase())}
   hintsError: str => chalk.red(str),
   messages: str => chalk.red.bold(str), // these are error messages
 }
+const ERROR_LOG_FILENAME = "error.log"
 
 // Helper functions
 const getKeys = (obj): string[] => Object.keys(obj || {})
@@ -67,6 +72,7 @@ const filterByArray = (obj: any, arr: string[]): any => {
 }
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library
+// In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
 const VALID_PARAMETER_TYPES = ["boolean", "number", "choice", "string"]
 
 interface OptConfig {
@@ -98,11 +104,10 @@ function makeArgSynopsis(key: string, param: Parameter<any>) {
 }
 
 function makeArgConfig(param: Parameter<any>) {
-  const config = {
+  return {
     desc: param.help,
     params: [makeOptConfig(param)],
   }
-  return config
 }
 
 function makeOptConfig(param: Parameter<any>): OptConfig {
@@ -187,7 +192,6 @@ export class GardenCli {
     this.commands[command.name] = command
 
     const logger = this.logger
-
     const args = command.arguments as Parameter<any>
     const options = command.options as Parameter<any>
     const argKeys = getKeys(args)
@@ -204,8 +208,16 @@ export class GardenCli {
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
-      const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
 
+      // Update logger config
+      const level = argv.verbose ? LogLevel.verbose : logger.level
+      logger.level = level
+      logger.writers.push(
+        new FileWriter({ level, root }),
+        new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
+      )
+
+      const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
       return command.action(ctx, argsForAction, optsForAction)
     }
 
@@ -237,13 +249,18 @@ export class GardenCli {
       }
 
       if (errors.length > 0) {
-        errors.forEach(err => this.logger.error({ msg: err.message, meta: err }))
+        errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
+        this.logger.info({
+          msg: `See ${ERROR_LOG_FILENAME} for detailed error message`,
+        },
+        )
       }
 
       this.logger.stop()
       return { argv, code, errors }
     })
   }
+
 }
 
 export async function run(): Promise<void> {

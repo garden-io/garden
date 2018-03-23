@@ -5,7 +5,7 @@ import { BasicConsoleWriter,  FancyConsoleWriter } from "../../src/logger/writer
 import { RootLogNode } from "../../src/logger"
 import { getChildNodes } from "../../src/logger/util"
 
-const logger = new RootLogNode(LogLevel.silent, LoggerType.basic)
+const logger = new RootLogNode({ level: LogLevel.silent })
 
 logger.error({ msg: "error" })
 logger.warn({ msg: "warn" })
@@ -51,26 +51,26 @@ describe("RootLogNode", () => {
 
   describe("BasicConsoleWriter.render", () => {
     it("should return a string if log level is geq than entry level", () => {
-      const logger2 = new RootLogNode(LogLevel.silent, LoggerType.basic)
-      const writer = new BasicConsoleWriter(LogLevel.silent, logger2)
+      const writer = new BasicConsoleWriter({ level: LogLevel.silent })
+      const logger2 = new RootLogNode({ level: LogLevel.silent })
       const entry = logger2.info({ msg: "" })
-      const out1 = writer.render(entry)
+      const out1 = writer.render(entry, logger2)
       writer.level = LogLevel.verbose
-      const out2 = writer.render(entry)
+      const out2 = writer.render(entry, logger2)
 
-      expect(out1).to.a("null")
+      expect(out1).to.be.a("null")
       expect(out2).to.be.a("string")
     })
   })
 
   describe("FancyConsoleWriter.render", () => {
     it("should return an array of strings if log level is geq than respective entry level", () => {
-      const logger3 = new RootLogNode(LogLevel.silent, LoggerType.basic)
-      const writer = new FancyConsoleWriter(LogLevel.silent, logger3)
+      const writer = new FancyConsoleWriter({ level: LogLevel.silent })
+      const logger3 = new RootLogNode({level: LogLevel.silent})
       const entry = logger3.info({ msg: "" })
-      const out1 = writer.render()
+      const out1 = writer.render(logger3)
       writer.level = LogLevel.verbose
-      const out2 = writer.render()
+      const out2 = writer.render(logger3)
 
       writer.stop()
 

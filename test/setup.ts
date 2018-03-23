@@ -1,5 +1,4 @@
 import { LogLevel, LoggerType } from "../src/logger/types"
-import { setDefaultLogLevel, setDefaultLoggerType } from "../src/logger"
+import { setDefaultLoggerType, setDefaultLoggerConfig } from "../src/logger"
 
-setDefaultLogLevel(LogLevel.error)
-setDefaultLoggerType(LoggerType.basic)
+setDefaultLoggerType(LoggerType.test)

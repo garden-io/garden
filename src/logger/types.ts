@@ -13,8 +13,8 @@ export enum LogLevel {
 }
 
 export enum LoggerType {
-  basic = "basic",
-  fancy = "fancy",
+  development = "development",
+  test = "test",
 }
 
 // Defines entry style and format (only one available style at the moment)
@@ -45,7 +45,7 @@ export interface HeaderOpts {
   command: string
 }
 
-export interface LogOpts {
+export interface LogEntryOpts {
   msg?: string | string[]
   section?: string
   emoji?: EmojiName
@@ -54,5 +54,5 @@ export interface LogOpts {
   append?: boolean
   originIsNotLogger?: boolean
   showDuration?: boolean
-  meta?: any
+  error?: Error
 }

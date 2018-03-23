@@ -1,36 +1,95 @@
-import * as logUpdate from "log-update"
 import * as cliCursor from "cli-cursor"
-import { getChildNodes, interceptStream } from "./util"
+import * as elegantSpinner from "elegant-spinner"
+import * as logUpdate from "log-update"
+import * as path from "path"
+import * as winston from "winston"
+import chalk from "chalk"
+const stripAnsi = require("strip-ansi")
 
+import { getChildNodes, interceptStream } from "./util"
 import {
   EntryStatus,
   LogLevel,
 } from "./types"
 
+import {
+  format,
+  leftPad,
+  renderDuration,
+  renderEmoji,
+  renderError,
+  renderMsg,
+  renderSection,
+  renderSymbol,
+} from "./renderers"
+
 import { LogEntry, RootLogNode } from "./index"
 
 const INTERVAL_DELAY = 100
-
-export interface ConsoleWriter {
-  rootLogNode: RootLogNode
-  level: LogLevel
-  render(entry: LogEntry): string | string[] | null
-  write(entry: LogEntry): void
-  stop(): void
+const spinnerStyle = chalk.cyan
+const DEFAULT_LOG_FILENAME = "development.log"
+const DEFAULT_FILE_TRANSPORT_OPTIONS = {
+  maxsize: 10000000, // 10 MB
+  maxFiles: 1,
 }
 
-export class BasicConsoleWriter implements ConsoleWriter {
-  public rootLogNode: RootLogNode
+const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
+
+interface WriterConfig {
+  level?: LogLevel
+}
+
+interface FileWriterConfig {
+  level: LogLevel
+  root: string
+  filename?: string
+  fileTransportOptions?: {}
+}
+
+export abstract class Writer {
+  public level: LogLevel | undefined
+
+  constructor({ level }: WriterConfig = {}) {
+    this.level = level
+  }
+
+  abstract render(...args): string | string[] | null
+  abstract write(entry: LogEntry, rootLogNode: RootLogNode): void
+  abstract stop(): void
+}
+
+export class FileWriter extends Writer {
+  private winston: any // Types are still missing from Winston 3.x.x.
+  private filepath: string
+
   public level: LogLevel
 
-  constructor(level: LogLevel, rootLogNode: RootLogNode) {
-    this.level = level
-    this.rootLogNode = rootLogNode
+  constructor(config: FileWriterConfig) {
+    const {
+      fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS,
+      filename = DEFAULT_LOG_FILENAME,
+      level,
+      root,
+    } = config
+
+    super({ level })
+
+    this.filepath = path.join(root, filename)
+    this.winston = winston.createLogger({
+      level: levelToStr(level),
+      transports: [
+        new winston.transports.File({
+          ...fileTransportOptions,
+          filename: this.filepath,
+        }),
+      ],
+    })
   }
 
   render(entry: LogEntry): string | null {
-    if (this.level >= entry.level) {
-      return entry.render()
+    const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
+    if (entry.opts.msg && this.level >= entry.level) {
+      return stripAnsi(renderFn(entry))
     }
     return null
   }
@@ -38,29 +97,73 @@ export class BasicConsoleWriter implements ConsoleWriter {
   write(entry: LogEntry) {
     const out = this.render(entry)
     if (out) {
+      this.winston.log(levelToStr(entry.level), out)
+    }
+  }
+
+  stop() { }
+}
+
+function formatForConsole(entry: LogEntry): string {
+  let renderers
+  if (entry.depth > 0) {
+    // Skip section on child entries.
+    renderers = [
+      [leftPad, [entry]],
+      [renderSymbol, [entry]],
+      [renderEmoji, [entry]],
+      [renderMsg, [entry]],
+      [renderDuration, [entry]],
+    ]
+  } else {
+    renderers = [
+      [renderSymbol, [entry]],
+      [renderSection, [entry]],
+      [renderEmoji, [entry]],
+      [renderMsg, [entry]],
+      [renderDuration, [entry]],
+    ]
+  }
+  return format(renderers)
+}
+
+export class BasicConsoleWriter extends Writer {
+  public level: LogLevel
+
+  render(entry: LogEntry, rootLogNode: RootLogNode): string | null {
+    const level = this.level || rootLogNode.level
+    if (level >= entry.level) {
+      return formatForConsole(entry)
+    }
+    return null
+  }
+
+  write(entry: LogEntry, rootLogNode: RootLogNode) {
+    const out = this.render(entry, rootLogNode)
+    if (out) {
       console.log(out)
     }
   }
 
-  // No op
   stop() { }
 }
 
-export class FancyConsoleWriter implements ConsoleWriter {
+export class FancyConsoleWriter extends Writer {
+  private spinners: Function[]
+  private formattedEntries: string[]
   private logUpdate: any
   private intervalID: NodeJS.Timer | null
 
-  public rootLogNode: RootLogNode
   public level: LogLevel
 
-  constructor(level: LogLevel, rootLogNode: RootLogNode) {
-    this.level = level
-    this.rootLogNode = rootLogNode
+  constructor(config: WriterConfig = {}) {
+    super(config)
     this.intervalID = null
-    this.logUpdate = this.initLogUpdate()
+    this.formattedEntries = [] // Entries are cached on format
+    this.spinners = [] // Each entry has it's own spinner
   }
 
-  private initLogUpdate(): any {
+  private initLogUpdate(rootLogNode: RootLogNode): any {
     // Create custom stream that calls write method with the 'noIntercept' option.
     const stream = {
       ...process.stdout,
@@ -71,33 +174,34 @@ export class FancyConsoleWriter implements ConsoleWriter {
       msg: msg.replace(/\n$/, ""),
       notOriginatedFromLogger: true,
     })
-    // NOTE: On every write, log-update library calls the cli-cursor library to hide the cursor
-    // which the cli-cursor library does via stderr write. This causes an infinite loop as
-    // the stderr writes are intercepted and funneled back to the Logger.
-    // Therefore we manually toggle the cursor using the custom stream from above.
-    //
-    // log-update types are missing the `opts?: {showCursor?: boolean}` parameter
+    /*
+      NOTE: On every write, log-update library calls the cli-cursor library to hide the cursor
+      which the cli-cursor library does via stderr write. This causes an infinite loop as
+      the stderr writes are intercepted and funneled back to the Logger.
+      Therefore we manually toggle the cursor using the custom stream from above.
+
+      log-update types are missing the `opts?: {showCursor?: boolean}` parameter
+    */
     const customLogUpdate = (<any>logUpdate.create)(<any>stream, { showCursor: true })
     cliCursor.hide(stream)
 
     const restoreStreamFns = [
-      interceptStream(process.stdout, msg => this.rootLogNode.info(makeOpts(msg))),
-      interceptStream(process.stderr, msg => this.rootLogNode.error(makeOpts(msg))),
+      interceptStream(process.stdout, msg => rootLogNode.info(makeOpts(msg))),
+      interceptStream(process.stderr, msg => rootLogNode.error(makeOpts(msg))),
     ]
 
-    const cleanUp = () => {
+    customLogUpdate.cleanUp = () => {
       cliCursor.show(stream)
       restoreStreamFns.forEach(restoreStream => restoreStream())
       logUpdate.done()
     }
-    customLogUpdate.cleanUp = cleanUp
 
     return customLogUpdate
   }
 
-  private startLoop(): void {
+  private startLoop(rootLogNode: RootLogNode): void {
     if (!this.intervalID) {
-      this.intervalID = setInterval(this.write.bind(this), INTERVAL_DELAY)
+      this.intervalID = setInterval(this.updateStream.bind(this, rootLogNode), INTERVAL_DELAY)
     }
   }
 
@@ -108,29 +212,60 @@ export class FancyConsoleWriter implements ConsoleWriter {
     }
   }
 
-  write(): void {
-    const out = this.render()
+  private readOrSetSpinner(idx: number): string {
+    if (!this.spinners[idx]) {
+      this.spinners[idx] = elegantSpinner()
+    }
+    return this.spinners[idx]()
+  }
+
+  private readerOrSetFormattedEntry(entry: LogEntry, idx: number): string {
+    if (!this.formattedEntries[idx]) {
+      this.formattedEntries[idx] = formatForConsole(entry)
+    }
+    return this.formattedEntries[idx]
+  }
+
+  private updateStream(rootLogNode: RootLogNode): void {
+    const out = this.render(rootLogNode)
     if (out) {
       this.logUpdate(out.join("\n"))
     }
   }
 
-  // Has a side effect in that it starts/stops the rendering loop depending on
-  // whether or not active entries were found while building output
-  render(): string[] | null {
+  /*
+    Has a side effect in that it starts/stops the rendering loop depending on
+    whether or not active entries were found while building output
+  */
+  public render(rootLogNode: RootLogNode): string[] | null {
     let hasActiveEntries = false
-    const entries = <any>getChildNodes(this.rootLogNode)
-    const out = entries.reduce((acc: string[], e: LogEntry) => {
-      if (e.status === EntryStatus.ACTIVE) {
+    const level = this.level || rootLogNode.level
+    const entries = <any>getChildNodes(rootLogNode)
+
+    /*
+      This is a bit ugly for performance sake.
+      Rather than just creating a new string with an updated spinner frame in each render cycle
+      we instead cache the formatted string and splice the updated frame into it.
+    */
+    const out = entries.reduce((acc: string[], entry: LogEntry, idx: number): string[] => {
+      let spinnerFrame = ""
+      if (entry.status === EntryStatus.ACTIVE) {
         hasActiveEntries = true
+        spinnerFrame = this.readOrSetSpinner(idx)
       }
-      if (this.level >= e.level) {
-        acc.push(e.render())
+      if (level >= entry.level) {
+        const formatted = this.readerOrSetFormattedEntry(entry, idx)
+        const startPos = leftPad(entry).length
+        const withSpinner = spinnerFrame
+          ? `${formatted.slice(0, startPos)}${spinnerStyle(spinnerFrame)} ${formatted.slice(startPos)}`
+          : formatted
+        acc.push(withSpinner)
       }
       return acc
     }, [])
+
     if (hasActiveEntries) {
-      this.startLoop()
+      this.startLoop(rootLogNode)
     } else {
       this.stopLoop()
     }
@@ -140,9 +275,19 @@ export class FancyConsoleWriter implements ConsoleWriter {
     return null
   }
 
-  stop() {
+  public write(_, rootLogNode: RootLogNode): void {
+    // Init on first write since we don't have access to rootLogNode in constructor
+    if (!this.logUpdate) {
+      this.logUpdate = this.initLogUpdate(rootLogNode)
+    }
+    // Clear cache
+    this.formattedEntries = []
+    this.updateStream(rootLogNode)
+  }
+
+  public stop(): void {
     this.stopLoop()
-    this.logUpdate.cleanUp()
+    this.logUpdate && this.logUpdate.cleanUp()
   }
 
 }
