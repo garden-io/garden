@@ -1,8 +1,15 @@
 import * as sywac from "sywac"
 import chalk from "chalk"
 import { shutdown } from "./util"
-import { intersection } from "lodash"
-import { Parameter, Command, ChoicesParameter, StringParameter, BooleanParameter } from "./commands/base"
+import { merge, intersection, reduce } from "lodash"
+import {
+  BooleanParameter,
+  Command,
+  ChoicesParameter,
+  ParameterValues,
+  Parameter,
+  StringParameter,
+} from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { InternalError, PluginError } from "./exceptions"
 import { GardenContext } from "./context"
@@ -29,6 +36,11 @@ const GLOBAL_OPTIONS = {
   verbose: new BooleanParameter({
     alias: "v",
     help: "verbose logging",
+    overrides: ["silent"],
+  }),
+  silent: new BooleanParameter({
+    alias: "s",
+    help: "silence logger",
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
@@ -74,6 +86,8 @@ const filterByArray = (obj: any, arr: string[]): any => {
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
 const VALID_PARAMETER_TYPES = ["boolean", "number", "choice", "string"]
+
+type FalsifiedParams = { [key: string]: false }
 
 interface OptConfig {
   desc: string | string[]
@@ -137,6 +151,32 @@ function makeOptConfig(param: Parameter<any>): OptConfig {
   return config
 }
 
+/**
+ * Returns the params that need to be overridden set to false
+ */
+function falsifyConflictingParams(argv, params: ParameterValues<any>): FalsifiedParams {
+  return reduce(argv, (acc: {}, val: any, key: string) => {
+    const param = params[key]
+    const overrides = (param || {}).overrides || []
+    // argv always contains the "_" key which is irrelevant here
+    if (key === "_" || !param || !val || !(overrides.length > 0)) {
+      return acc
+    }
+    const withAliases = overrides.reduce((_, keyToOverride: string): string[] => {
+      if (!params[keyToOverride]) {
+        throw new InternalError(`Cannot override non-existing parameter: ${keyToOverride}`, {
+          keyToOverride,
+          availableKeys: Object.keys(params),
+        })
+      }
+      return [keyToOverride, ...params[keyToOverride].alias]
+    }, [])
+
+    withAliases.forEach(keyToOverride => acc[keyToOverride] = false)
+    return acc
+  }, {})
+}
+
 export class GardenCli {
   program: any
   commands: { [key: string]: Command } = {}
@@ -157,6 +197,10 @@ export class GardenCli {
         implicitCommand: false,
       })
       .showHelpByDefault()
+      .check((argv, _context) => {
+        // NOTE: Need to mutate argv!
+        merge(argv, falsifyConflictingParams(argv, GLOBAL_OPTIONS))
+      })
       .style(STYLE_CONFIG)
 
     const commands = [
@@ -205,17 +249,23 @@ export class GardenCli {
 
     const action = async argv => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
+
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
 
       // Update logger config
-      const level = argv.verbose ? LogLevel.verbose : logger.level
-      logger.level = level
-      logger.writers.push(
-        new FileWriter({ level, root }),
-        new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
-      )
+      if (argv.silent) {
+        logger.level = LogLevel.silent
+        logger.writers = []
+      } else {
+        const level = argv.verbose ? LogLevel.verbose : logger.level
+        logger.level = level
+        logger.writers.push(
+          new FileWriter({ level, root }),
+          new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
+        )
+      }
 
       const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
       return command.action(ctx, argsForAction, optsForAction)
