@@ -10,8 +10,8 @@ const options = {
 type Opts = ParameterValues<typeof options>
 
 export class EnvironmentConfigureCommand extends Command<typeof options> {
-  name = "environment configure"
-  alias = "env configure"
+  name = "configure"
+  alias = "c"
   help = "Configures your environment"
 
   options = options

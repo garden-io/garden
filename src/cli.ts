@@ -17,8 +17,7 @@ import { FileWriter } from "./logger/writers"
 import { getLogger, RootLogNode } from "./logger"
 import { resolve } from "path"
 import { BuildCommand } from "./commands/build"
-import { EnvironmentStatusCommand } from "./commands/environment/status"
-import { EnvironmentConfigureCommand } from "./commands/environment/configure"
+import { EnvironmentCommand } from "./commands/environment/environment"
 import { DeployCommand } from "./commands/deploy"
 import { CallCommand } from "./commands/call"
 import { defaultPlugins } from "./plugins"
@@ -208,15 +207,14 @@ export class GardenCli {
       new CallCommand(),
       new DeployCommand(),
       new DevCommand(),
-      new EnvironmentConfigureCommand(),
-      new EnvironmentStatusCommand(),
+      new EnvironmentCommand(),
       new LogsCommand(),
       new TestCommand(),
       new ValidateCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
-    commands.forEach(command => this.addCommand(command))
+    commands.forEach(command => this.addCommand(command, this.program))
     globalOptions.forEach(([key, opt]) => this.addGlobalOption(key, opt))
   }
 
@@ -227,7 +225,7 @@ export class GardenCli {
     })
   }
 
-  addCommand(command: Command): void {
+  addCommand(command: Command, program): void {
     if (this.commands[command.name]) {
       // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
       throw new PluginError(`Multiple definitions of command "${command.name}"`, {})
@@ -235,9 +233,9 @@ export class GardenCli {
 
     this.commands[command.name] = command
 
-    const logger = this.logger
     const args = command.arguments as Parameter<any>
     const options = command.options as Parameter<any>
+    const subCommands = command.subCommands || []
     const argKeys = getKeys(args)
     const optKeys = getKeys(options)
     const globalKeys = getKeys(GLOBAL_OPTIONS)
@@ -248,8 +246,8 @@ export class GardenCli {
     }
 
     const action = async argv => {
+      const logger = this.logger
       // Sywac returns positional args and options in a single object which we separate into args and opts
-
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
@@ -273,6 +271,7 @@ export class GardenCli {
 
     // Command specific positional args and options are set inside the builder function
     const setup = parser => {
+      subCommands.forEach(subCommand => this.addCommand(subCommand, parser))
       argKeys.forEach(key => parser.positional(makeArgSynopsis(key, args[key]), makeArgConfig(args[key])))
       optKeys.forEach(key => parser.option(makeOptSynopsis(key, options[key]), makeOptConfig(options[key])))
     }
@@ -284,7 +283,7 @@ export class GardenCli {
       run: action,
     }
 
-    this.program.command(command.name, commandOpts)
+    program.command(command.name, commandOpts)
   }
 
   async parse(): Promise<ParseResults> {
