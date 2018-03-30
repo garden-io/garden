@@ -4,14 +4,19 @@ import Bluebird = require("bluebird")
 import { isPrimitive, Primitive } from "./types/common"
 import { deepResolve } from "./util"
 import * as deepMap from "deep-map"
+import { GardenError } from "./exceptions"
+import { getLogger } from "./logger"
 
-type KeyResolver = (keyParts: string[]) => Promise<string> | string
+type StringOrStringPromise = Promise<string> | string
+type KeyResolver = (keyParts: string[]) => StringOrStringPromise
 
 export interface TemplateStringContext {
   [type: string]: Primitive | KeyResolver | TemplateStringContext | undefined
 }
 
-class TemplateStringError extends Error { }
+class TemplateStringError extends GardenError {
+  type = "template-string"
+}
 
 let _parser: any
 
@@ -24,7 +29,7 @@ function getParser() {
       const peg = require("pegjs")
       const pegFilePath = resolve(__dirname, "template-string.pegjs")
       const grammar = readFileSync(pegFilePath)
-      _parser = peg.generate(grammar.toString())
+      _parser = peg.generate(grammar.toString(), { trace: false })
     }
   }
 
@@ -51,6 +56,11 @@ export async function resolveTemplateString(
   const parser = getParser()
   const parsed = parser.parse(string, {
     getKey: genericResolver(context, ignoreMissingKeys),
+    // need this to allow nested template strings
+    resolve: async (parts: string[]) => {
+      const s = (await Bluebird.all(parts)).join("")
+      return resolveTemplateString(`\$\{${s}\}`, context, { ignoreMissingKeys })
+    },
     TemplateStringError,
   })
 
@@ -77,13 +87,17 @@ export function genericResolver(context: TemplateStringContext, ignoreMissingKey
             // return the format string unchanged if option is set
             return `\$\{${path}\}`
           } else {
-            throw new TemplateStringError(`Could not find key: ${path}`)
+            throw new TemplateStringError(`Could not find key: ${path}`, { path, context })
           }
       }
     }
 
     if (!isPrimitive(value)) {
-      throw new TemplateStringError(`Value at ${path} exists but is not a primitive (string, number or boolean)`)
+      throw new TemplateStringError(`Value at ${path} exists but is not a primitive (string, number or boolean)`, {
+        value,
+        path,
+        context,
+      })
     }
 
     return value
