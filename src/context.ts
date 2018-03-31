@@ -1,6 +1,6 @@
 import { parse, relative, resolve } from "path"
 import Bluebird = require("bluebird")
-import { values, mapValues, fromPairs } from "lodash"
+import { values, mapValues, fromPairs, toPairs } from "lodash"
 import * as Joi from "joi"
 import { loadModuleConfig, Module, TestSpec } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
@@ -19,6 +19,7 @@ import { GenericModuleHandler } from "./plugins/generic"
 import { Environment, joiIdentifier } from "./types/common"
 import { Service, ServiceContext } from "./types/service"
 import { TemplateStringContext, getTemplateContext, resolveTemplateStrings } from "./template-string"
+import { EntryStyle } from "./logger/types"
 
 interface ModuleMap { [key: string]: Module }
 interface ServiceMap { [key: string]: Service<any> }
@@ -400,10 +401,10 @@ export class GardenContext {
   }
 
   async buildModule<T extends Module>(module: T, logEntry?: LogEntry) {
+    await this.buildDir.syncDependencyProducts(module)
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
-    const buildResult = await handler({ ctx: this, module, logEntry })
-    return buildResult
+    return handler({ ctx: this, module, logEntry })
   }
 
   async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) {
@@ -422,7 +423,19 @@ export class GardenContext {
   async configureEnvironment() {
     const handlers = this.getEnvActionHandlers("configureEnvironment")
     const env = this.getEnvironment()
-    await Bluebird.each(values(handlers), h => h({ ctx: this, env }))
+    const _this = this
+
+    await Bluebird.each(toPairs(handlers), async ([name, handler]) => {
+      const logEntry = _this.log.info({
+        entryStyle: EntryStyle.activity,
+        section: name,
+        msg: "Configuring...",
+      })
+
+      await handler({ ctx: this, env, logEntry })
+
+      logEntry.setSuccess({ msg: "Configured" })
+    })
     return this.getEnvironmentStatus()
   }
 

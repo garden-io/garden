@@ -117,21 +117,15 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
   }
 
-  async configureEnvironment({ ctx, env }: ConfigureEnvironmentParams) {
+  async configureEnvironment({ ctx, env, logEntry }: ConfigureEnvironmentParams) {
     const status = await this.getEnvironmentStatus({ ctx, env })
 
     if (status.configured) {
       return
     }
 
-    const entry = ctx.log.info({
-      entryStyle: EntryStyle.activity,
-      section: "kubernetes",
-      msg: "Configuring environment...",
-    })
-
     if (!status.detail.systemNamespaceReady) {
-      entry.setState({ section: "kubernetes", msg: `Creating garden system namespace` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating garden system namespace` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -147,7 +141,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     if (!status.detail.namespaceReady) {
-      entry.setState({ section: "kubernetes", msg: `Creating namespace ${env.namespace}` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -164,7 +158,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
     if (!status.detail.metadataNamespaceReady) {
       const ns = this.getMetadataNamespaceName(ctx)
-      entry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -180,13 +174,13 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     if (!status.detail.dashboardReady) {
-      entry.setState({ section: "kubernetes", msg: `Configuring dashboard` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Configuring dashboard` })
       // TODO: deploy this as a service
       await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
     }
 
     if (!status.detail.ingressControllerReady) {
-      entry.setState({ section: "kubernetes", msg: `Configuring ingress controller` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Configuring ingress controller` })
       const gardenEnv = this.getSystemEnv(env)
       await this.deployService({
         ctx,
@@ -202,8 +196,6 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         exposePorts: true,
       })
     }
-
-    entry.setSuccess({ section: "kubernetes", msg: "Environment configured" })
   }
 
   async getServiceStatus({ ctx, service, env }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
