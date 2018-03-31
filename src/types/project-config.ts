@@ -28,6 +28,7 @@ export interface ProviderConfig {
 }
 
 export interface EnvironmentConfig {
+  configurationHandler?: string
   providers: { [key: string]: ProviderConfig }
 }
 
@@ -46,9 +47,9 @@ export const providerConfigBase = Joi.object().keys({
 const baseSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   name: joiIdentifier().required(),
-  // TODO: allow a user override for this
   defaultEnvironment: Joi.string().default("", "<first specified environment>"),
   environments: Joi.object().pattern(identifierRegex, Joi.object().keys({
+    configurationHandler: joiIdentifier(),
     providers: Joi.object().pattern(identifierRegex, providerConfigBase),
   })).default(() => extend({}, defaultEnvironments), JSON.stringify(defaultEnvironments)),
   variables: Joi.object().pattern(/[\w\d]+/i, joiPrimitive()).default(() => ({}), "{}"),
@@ -89,6 +90,9 @@ export function loadProjectConfig(projectRoot: string): ProjectConfig {
       })
     }
   }
+
+  // TODO: require `configurationHandler` to be specified on any environment where there are multiple candidates for
+  // handling configuration
 
   return parsed
 }
