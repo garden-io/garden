@@ -235,7 +235,7 @@ export class RootLogNode extends LogNode {
   public header({ command, emoji }: { command: string, emoji?: string }): LogEntry {
     const msg = format([
       [() => chalk.bold.magenta(command), []],
-      [() => emoji ? nodeEmoji.get(emoji) : "", []],
+      [() => emoji ? " " + nodeEmoji.get(emoji) : "", []],
       [() => "\n", []],
     ])
     return this.verbose({ msg })
