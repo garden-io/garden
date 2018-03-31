@@ -109,7 +109,7 @@ export class TaskGraph {
     const loop = async () => {
       if (_this.index.length === 0) {
         // done!
-        this.logEntryMap.counter.setDone({ symbol: LogSymbolType.info })
+        this.logEntryMap.counter && this.logEntryMap.counter.setDone({ symbol: LogSymbolType.info })
         return
       }
 
