@@ -1,20 +1,30 @@
-import * as yargs from "yargs"
-import { intersection } from "lodash"
-import { Parameter, Command, ChoicesParameter, StringParameter } from "./commands/base"
+import * as sywac from "sywac"
+import chalk from "chalk"
+import { shutdown } from "./util"
+import { merge, intersection, reduce } from "lodash"
+import {
+  BooleanParameter,
+  Command,
+  ChoicesParameter,
+  ParameterValues,
+  Parameter,
+  StringParameter,
+} from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
-import { PluginError } from "./exceptions"
+import { InternalError, PluginError } from "./exceptions"
 import { GardenContext } from "./context"
+import { FileWriter } from "./logger/writers"
 import { getLogger, RootLogNode } from "./logger"
 import { resolve } from "path"
 import { BuildCommand } from "./commands/build"
-import { EnvironmentStatusCommand } from "./commands/environment/status"
-import { EnvironmentConfigureCommand } from "./commands/environment/configure"
+import { EnvironmentCommand } from "./commands/environment/environment"
 import { DeployCommand } from "./commands/deploy"
 import { CallCommand } from "./commands/call"
 import { defaultPlugins } from "./plugins"
 import { TestCommand } from "./commands/test"
 import { DevCommand } from "./commands/dev"
 import { LogsCommand } from "./commands/logs"
+import { LogLevel } from "./logger/types"
 
 const GLOBAL_OPTIONS = {
   root: new StringParameter({
@@ -22,7 +32,44 @@ const GLOBAL_OPTIONS = {
     help: "override project root directory (defaults to working directory)",
     defaultValue: process.cwd(),
   }),
+  verbose: new BooleanParameter({
+    alias: "v",
+    help: "verbose logging",
+    overrides: ["silent"],
+  }),
+  silent: new BooleanParameter({
+    alias: "s",
+    help: "silence logger",
+  }),
 }
+const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
+const STYLE_CONFIG = {
+  usagePrefix: str => (
+    `
+${chalk.bold(str.slice(0, 5).toUpperCase())}
+
+  ${chalk.italic(str.slice(7))}`
+  ),
+  usageCommandPlaceholder: str => chalk.blue(str),
+  usagePositionals: str => chalk.magenta(str),
+  usageArgsPlaceholder: str => chalk.magenta(str),
+  usageOptionsPlaceholder: str => chalk.yellow(str),
+  group: (str: string) => {
+    const cleaned = str.endsWith(":") ? str.slice(0, -1) : str
+    return chalk.bold(cleaned.toUpperCase()) + "\n"
+  },
+  flags: (str, _type) => {
+    const style = str.startsWith("-") ? chalk.green : chalk.magenta
+    return style(str)
+  },
+  hints: str => chalk.gray(str),
+  groupError: str => chalk.red.bold(str),
+  flagsError: str => chalk.red.bold(str),
+  descError: str => chalk.yellow.bold(str),
+  hintsError: str => chalk.red(str),
+  messages: str => chalk.red.bold(str), // these are error messages
+}
+const ERROR_LOG_FILENAME = "error.log"
 
 // Helper functions
 const getKeys = (obj): string[] => Object.keys(obj || {})
@@ -35,52 +82,102 @@ const filterByArray = (obj: any, arr: string[]): any => {
   }, {})
 }
 
-type Argv = yargs.Argv["argv"]
+// Parameter types T which map between the Parameter<T> class and the Sywac cli library
+// In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
+const VALID_PARAMETER_TYPES = ["boolean", "number", "choice", "string"]
 
-function makeOptsConfig(param: Parameter<any>): yargs.Options {
-  return makeParamConfig(param)
+type FalsifiedParams = { [key: string]: false }
+
+interface OptConfig {
+  desc: string | string[]
+  type: string
+  defaultValue?: any
+  choices?: any[]
+  required?: boolean
+  strict: true
 }
 
-function makeArgConfig(param: Parameter<any>): yargs.PositionalOptions {
-  return makeParamConfig(param)
+interface ParseResults {
+  argv: any
+  code: number
+  errors: Error[]
 }
 
-// TODO autocomplete
-function makeParamConfig(param: Parameter<any>): yargs.PositionalOptions {
+interface SywacParseResults extends ParseResults {
+  output: string
+  details: any
+}
+
+function makeOptSynopsis(key: string, param: Parameter<any>): string {
+  return param.alias ? `-${param.alias}, --${key}` : `--${key}`
+}
+
+function makeArgSynopsis(key: string, param: Parameter<any>) {
+  return param.required ? `<${key}>` : `[${key}]`
+}
+
+function makeArgConfig(param: Parameter<any>) {
+  return {
+    desc: param.help,
+    params: [makeOptConfig(param)],
+  }
+}
+
+function makeOptConfig(param: Parameter<any>): OptConfig {
   const {
-    alias,
     defaultValue,
-    help: description,
+    help: desc,
+    required,
     type,
-    validate: coerce,
   } = param
-  const opts: yargs.PositionalOptions = {
-    alias,
-    coerce,
-    description,
-    default: defaultValue,
+  if (!VALID_PARAMETER_TYPES.includes(type)) {
+    throw new InternalError(`Invalid parameter type for cli: ${type}`, {
+      type,
+      validParameterTypes: VALID_PARAMETER_TYPES,
+    })
+  }
+  let config: OptConfig = {
+    defaultValue,
+    desc,
+    required,
+    type,
+    strict: true,
   }
   if (type === "choice") {
-    opts["choices"] = (<ChoicesParameter>param).choices
+    config.type = "enum"
+    config.choices = (<ChoicesParameter>param).choices
   }
-  return opts
+  return config
 }
-// Workaround to let Yargs handle async actions. See https://github.com/yargs/yargs/issues/1069
-function asyncHandleAction(action): (argv: Argv) => Promise<void> {
-  return async argv => {
-    argv.promisedResult = action(argv)
-  }
-}
-// Global opts are set with `program.options({opt1: opt1Config, opt2: optConfig, ...})`
-function makeGlobalOptsConfig() {
-  return getKeys(GLOBAL_OPTIONS).reduce((memo, key) => {
-    memo[key] = makeOptsConfig(GLOBAL_OPTIONS[key])
-    return memo
+
+/**
+ * Returns the params that need to be overridden set to false
+ */
+function falsifyConflictingParams(argv, params: ParameterValues<any>): FalsifiedParams {
+  return reduce(argv, (acc: {}, val: any, key: string) => {
+    const param = params[key]
+    const overrides = (param || {}).overrides || []
+    // argv always contains the "_" key which is irrelevant here
+    if (key === "_" || !param || !val || !(overrides.length > 0)) {
+      return acc
+    }
+    const withAliases = overrides.reduce((_, keyToOverride: string): string[] => {
+      if (!params[keyToOverride]) {
+        throw new InternalError(`Cannot override non-existing parameter: ${keyToOverride}`, {
+          keyToOverride,
+          availableKeys: Object.keys(params),
+        })
+      }
+      return [keyToOverride, ...params[keyToOverride].alias]
+    }, [])
+
+    withAliases.forEach(keyToOverride => acc[keyToOverride] = false)
+    return acc
   }, {})
 }
 
 export class GardenCli {
-  program: yargs.Argv
+  program: any
   commands: { [key: string]: Command } = {}
   logger: RootLogNode
 
@@ -88,26 +185,47 @@ export class GardenCli {
     const version = require("../package.json").version
 
     this.logger = getLogger()
-    this.program = yargs
-      .version(version)
-      .options(makeGlobalOptsConfig())
+    this.program = sywac
+      .help("-h, --help", {
+        group: GLOBAL_OPTIONS_GROUP_NAME,
+        implicitCommand: false,
+      })
+      .version("-v, --version", {
+        version,
+        group: GLOBAL_OPTIONS_GROUP_NAME,
+        implicitCommand: false,
+      })
+      .showHelpByDefault()
+      .check((argv, _context) => {
+        // NOTE: Need to mutate argv!
+        merge(argv, falsifyConflictingParams(argv, GLOBAL_OPTIONS))
+      })
+      .style(STYLE_CONFIG)
 
-    // configure built-in commands
     const commands = [
       new BuildCommand(),
       new CallCommand(),
       new DeployCommand(),
       new DevCommand(),
-      new EnvironmentConfigureCommand(),
-      new EnvironmentStatusCommand(),
+      new EnvironmentCommand(),
       new LogsCommand(),
       new TestCommand(),
       new ValidateCommand(),
     ]
-    commands.forEach(command => this.addCommand(command))
+    const globalOptions = Object.entries(GLOBAL_OPTIONS)
+
+    commands.forEach(command => this.addCommand(command, this.program))
+    globalOptions.forEach(([key, opt]) => this.addGlobalOption(key, opt))
   }
 
-  addCommand(command: Command) {
+  addGlobalOption(key: string, option: Parameter<any>): void {
+    this.program.option(makeOptSynopsis(key, option), {
+      ...makeOptConfig(option),
+      group: GLOBAL_OPTIONS_GROUP_NAME,
+    })
+  }
+
+  addCommand(command: Command, program): void {
     if (this.commands[command.name]) {
       // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
       throw new PluginError(`Multiple definitions of command "${command.name}"`, {})
@@ -115,10 +233,9 @@ export class GardenCli {
 
     this.commands[command.name] = command
 
-    const logger = this.logger
-
     const args = command.arguments as Parameter<any>
     const options = command.options as Parameter<any>
+    const subCommands = command.subCommands || []
     const argKeys = getKeys(args)
     const optKeys = getKeys(options)
     const globalKeys = getKeys(GLOBAL_OPTIONS)
@@ -129,71 +246,73 @@ export class GardenCli {
     }
 
     const action = async argv => {
-      // Yargs returns positional args and options in a single object which we separate into args and opts
+      const logger = this.logger
+      // Sywac returns positional args and options in a single object which we separate into args and opts
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
-      const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
 
+      // Update logger config
+      if (argv.silent) {
+        logger.level = LogLevel.silent
+        logger.writers = []
+      } else {
+        const level = argv.verbose ? LogLevel.verbose : logger.level
+        logger.level = level
+        logger.writers.push(
+          new FileWriter({ level, root }),
+          new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
+        )
+      }
+
+      const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
       return command.action(ctx, argsForAction, optsForAction)
     }
 
     // Command specific positional args and options are set inside the builder function
-    const builder: yargs.CommandBuilder = parser => {
-      argKeys.forEach(key => parser.positional(key, makeArgConfig(args[key])))
-      optKeys.forEach(key => parser.option(key, makeOptsConfig(options[key])))
-      return parser
+    const setup = parser => {
+      subCommands.forEach(subCommand => this.addCommand(subCommand, parser))
+      argKeys.forEach(key => parser.positional(makeArgSynopsis(key, args[key]), makeArgConfig(args[key])))
+      optKeys.forEach(key => parser.option(makeOptSynopsis(key, options[key]), makeOptConfig(options[key])))
     }
-    const handler = asyncHandleAction(action)
-
-    const argSynopsis: string[] = argKeys.map(key => args[key].required ? `<${key}>` : `[${key}]`)
-    const commandStr = `${command.name}${argSynopsis.length > 0 ? " " + argSynopsis.join(" ") : ""}`
 
     const commandOpts = {
-      builder,
-      handler,
+      setup,
       aliases: command.alias,
-      command: commandStr,
-      describe: command.help,
+      desc: command.help,
+      run: action,
     }
 
-    this.program.command(commandOpts)
+    program.command(command.name, commandOpts)
   }
 
-  async parse(args: string) {
-    return new Promise((res, rej) => {
-      this.program.parse(args, (parseErr, argv, output) => {
-        // Maybe let logger handle these
-        if (output || parseErr || argv.promisedResult) {
-          this.logger.stop()
-        }
+  async parse(): Promise<ParseResults> {
+    return this.program.parse().then((result: SywacParseResults) => {
+      const { argv, errors, code, output } = result
 
-        // Process exited due to a call to --help or --version
-        if (output) {
-          console.log(output)
-          return res()
-        }
-        if (parseErr) {
-          console.log(parseErr)
-          return rej(parseErr)
-        }
-        if (argv.promisedResult) {
-          return argv.promisedResult
-            .then(res)
-            .catch(err => {
-              console.error(err)
-              return rej(err)
-            })
-        } else {
-          return res()
-        }
-      })
+      // --help or --version options were called
+      if (output && !(errors.length > 0)) {
+        this.logger.stop()
+        console.log(output)
+        process.exit(result.code)
+      }
+
+      if (errors.length > 0) {
+        errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
+        this.logger.info({
+          msg: `See ${ERROR_LOG_FILENAME} for detailed error message`,
+        },
+        )
+      }
+
+      this.logger.stop()
+      return { argv, code, errors }
     })
   }
+
 }
 
-export async function run(argv: string[]) {
-  // The second parameter is the path to folder that contains command modules.
+export async function run(): Promise<void> {
   const cli = new GardenCli()
-  return cli.parse(argv.slice(2).join(" "))
+  return cli.parse().then(result => shutdown(result.code))
 }

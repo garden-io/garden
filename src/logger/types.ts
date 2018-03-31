@@ -13,13 +13,14 @@ export enum LogLevel {
 }
 
 export enum LoggerType {
-  basic = "basic",
-  fancy = "fancy",
+  development = "development",
+  test = "test",
 }
 
 // Defines entry style and format (only one available style at the moment)
 export enum EntryStyle {
   activity = "activity",
+  error = "error",
 }
 
 // Icon to show when activity is done (values are the keys used in log-symbols package)
@@ -44,7 +45,7 @@ export interface HeaderOpts {
   command: string
 }
 
-export interface LogOpts {
+export interface LogEntryOpts {
   msg?: string | string[]
   section?: string
   emoji?: EmojiName
@@ -53,4 +54,5 @@ export interface LogOpts {
   append?: boolean
   originIsNotLogger?: boolean
   showDuration?: boolean
+  error?: Error
 }

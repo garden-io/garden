@@ -8,6 +8,7 @@ interface ParameterConstructor<T> {
   alias?: string,
   defaultValue?: T,
   valueName?: string,
+  overrides?: string[],
 }
 
 export abstract class Parameter<T> {
@@ -20,13 +21,15 @@ export abstract class Parameter<T> {
   required: boolean
   alias?: string
   valueName: string
+  overrides: string[]
 
-  constructor({ help, required, alias, defaultValue, valueName }: ParameterConstructor<T>) {
+  constructor({ help, required, alias, defaultValue, valueName, overrides }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
     this.alias = alias
     this.defaultValue = defaultValue
     this.valueName = valueName || "_valueType"
+    this.overrides = overrides || []
   }
 
   abstract validate(input: string): T
@@ -113,6 +116,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
   arguments: T
   options: U
+  subCommands?: Command[]
 
   constructor() { }
 

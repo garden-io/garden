@@ -10,15 +10,16 @@ const options = {
 type Opts = ParameterValues<typeof options>
 
 export class EnvironmentConfigureCommand extends Command<typeof options> {
-  name = "environment configure"
-  alias = "env configure"
+  name = "configure"
+  alias = "c"
   help = "Configures your environment"
 
   options = options
 
   async action(ctx: GardenContext, _args, opts: Opts) {
-    ctx.log.header({ emoji: "gear", command: `Configuring ${opts.env} environment` })
     opts.env && ctx.setEnvironment(opts.env)
+    const { name } = ctx.getEnvironment()
+    ctx.log.header({ emoji: "gear", command: `Configuring ${name} environment` })
 
     const result = await ctx.configureEnvironment()
 
