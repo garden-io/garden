@@ -15,7 +15,7 @@ export const joiIdentifier = () => Joi
   .description(
     "may contain lowercase letters, numbers and dashes, must start with a letter, " +
     "cannot contain consecutive dashes and cannot end with a dash",
-  )
+)
 
 export const joiVariables = () => Joi
   .object().pattern(/[\w\d]+/i, joiPrimitive())

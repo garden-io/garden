@@ -1,6 +1,6 @@
 import { Module, TestSpec } from "./module"
 import { GardenContext } from "../context"
-import { Environment, PrimitiveMap } from "./common"
+import { Environment, Primitive, PrimitiveMap } from "./common"
 import { Nullable } from "../util"
 import { Service, ServiceContext, ServiceStatus } from "./service"
 import { LogEntry } from "../logger"
@@ -69,6 +69,22 @@ export interface GetServiceLogsParams<T extends Module = Module> extends PluginA
   startTime?: Date,
 }
 
+export interface GetConfigParams extends PluginActionParamsBase {
+  env: Environment,
+  key: string[]
+}
+
+export interface SetConfigParams extends PluginActionParamsBase {
+  env: Environment,
+  key: string[]
+  value: Primitive
+}
+
+export interface DeleteConfigParams extends PluginActionParamsBase {
+  env: Environment,
+  key: string[]
+}
+
 export interface PluginActionParams<T extends Module = Module> {
   parseModule: ParseModuleParams<T>
   getModuleBuildStatus: GetModuleBuildStatusParams<T>
@@ -83,6 +99,10 @@ export interface PluginActionParams<T extends Module = Module> {
   getServiceOutputs: GetServiceOutputsParams<T>
   execInService: ExecInServiceParams<T>
   getServiceLogs: GetServiceLogsParams<T>
+
+  getConfig: GetConfigParams
+  setConfig: SetConfigParams
+  deleteConfig: DeleteConfigParams
 }
 
 export interface BuildResult {
@@ -119,6 +139,10 @@ export interface ServiceLogEntry {
   msg: string
 }
 
+export interface DeleteConfigResult {
+  found: boolean
+}
+
 interface PluginActionOutputs<T extends Module = Module> {
   parseModule: Promise<T>
   getModuleBuildStatus: Promise<BuildStatus>
@@ -133,6 +157,10 @@ interface PluginActionOutputs<T extends Module = Module> {
   getServiceOutputs: Promise<PrimitiveMap>
   execInService: Promise<ExecInServiceResult>
   getServiceLogs: Promise<void>
+
+  getConfig: Promise<string | undefined>
+  setConfig: Promise<void>
+  deleteConfig: Promise<DeleteConfigResult>
 }
 
 export type PluginActions<T extends Module> = {
@@ -148,13 +176,19 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   getModuleBuildStatus = null
   buildModule = null
   testModule = null
+
   getEnvironmentStatus = null
   configureEnvironment = null
+
   getServiceStatus = null
   deployService = null
   getServiceOutputs = null
   execInService = null
   getServiceLogs = null
+
+  getConfig = null
+  setConfig = null
+  deleteConfig = null
 }
 
 export const pluginActionNames: PluginActionName[] =
@@ -165,6 +199,8 @@ export interface Plugin<T extends Module> extends Partial<PluginActions<T>> {
 
   // Specify which module types are applicable to the module actions
   supportedModuleTypes: string[]
+
+  configKeys?: string[]
 }
 
 export type PluginFactory = (ctx: GardenContext) => Plugin<any>

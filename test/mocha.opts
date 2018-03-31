@@ -3,5 +3,5 @@
 --watch-extensions ts,json,pegjs
 --reporter spec
 --timeout 5000
-test/**/*.ts
-test/**/**/*.ts
+test/src/*.ts
+test/src/**/*.ts

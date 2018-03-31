@@ -17,7 +17,7 @@ import { FileWriter } from "./logger/writers"
 import { getLogger, RootLogNode } from "./logger"
 import { resolve } from "path"
 import { BuildCommand } from "./commands/build"
-import { EnvironmentCommand } from "./commands/environment/environment"
+import { EnvironmentCommand } from "./commands/environment/index"
 import { DeployCommand } from "./commands/deploy"
 import { CallCommand } from "./commands/call"
 import { defaultPlugins } from "./plugins"
@@ -25,6 +25,7 @@ import { TestCommand } from "./commands/test"
 import { DevCommand } from "./commands/dev"
 import { LogsCommand } from "./commands/logs"
 import { LogLevel } from "./logger/types"
+import { ConfigCommand } from "./commands/config"
 
 const GLOBAL_OPTIONS = {
   root: new StringParameter({
@@ -210,6 +211,7 @@ export class GardenCli {
       new EnvironmentCommand(),
       new LogsCommand(),
       new TestCommand(),
+      new ConfigCommand(),
       new ValidateCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)

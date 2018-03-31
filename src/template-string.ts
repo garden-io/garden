@@ -5,7 +5,6 @@ import { isPrimitive, Primitive } from "./types/common"
 import { deepResolve } from "./util"
 import * as deepMap from "deep-map"
 import { GardenError } from "./exceptions"
-import { getLogger } from "./logger"
 
 type StringOrStringPromise = Promise<string> | string
 type KeyResolver = (keyParts: string[]) => StringOrStringPromise

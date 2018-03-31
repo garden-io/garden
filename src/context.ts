@@ -1,12 +1,12 @@
 import { parse, relative, resolve } from "path"
 import Bluebird = require("bluebird")
-import { values, mapValues } from "lodash"
+import { values, mapValues, fromPairs } from "lodash"
 import * as Joi from "joi"
 import { loadModuleConfig, Module, TestSpec } from "./types/module"
 import { loadProjectConfig, ProjectConfig } from "./types/project-config"
 import { getIgnorer, scanDirectory } from "./util"
 import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
-import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
+import { ConfigurationError, NotFoundError, ParameterError, PluginError } from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
@@ -54,10 +54,13 @@ export class GardenContext {
   private modulesScanned: boolean
   private services: ServiceMap
   private taskGraph: TaskGraph
+  private configKeyNamespaces: string[]
 
   vcs: VcsHandler
 
-  constructor(public projectRoot: string, public projectConfig: ProjectConfig, logger?: RootLogNode) {
+  constructor(
+    public projectRoot: string, public projectConfig: ProjectConfig, logger?: RootLogNode,
+  ) {
     this.modulesScanned = false
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
@@ -68,36 +71,28 @@ export class GardenContext {
     this.modules = {}
     this.services = {}
     this.plugins = {}
-    this.actionHandlers = {
-      parseModule: {},
-      getModuleBuildStatus: {},
-      buildModule: {},
-      testModule: {},
-      getEnvironmentStatus: {},
-      configureEnvironment: {},
-      getServiceStatus: {},
-      deployService: {},
-      getServiceOutputs: {},
-      execInService: {},
-      getServiceLogs: {},
-    }
+    this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
 
     this.buildDir.init()
 
     this.projectConfig = projectConfig
     this.projectName = this.projectConfig.name
 
+    this.configKeyNamespaces = ["project"]
+
     this.setEnvironment(this.projectConfig.defaultEnvironment)
   }
 
   static async factory(projectRoot: string, { logger, plugins = [] }: ContextOpts = {}) {
-    const projectConfig = await resolveTemplateStrings(loadProjectConfig(projectRoot), await getTemplateContext())
-
-    plugins = builtinPlugins.concat(plugins)
+    // const localConfig = new LocalConfig(projectRoot)
+    const templateContext = await getTemplateContext()
+    const projectConfig = await resolveTemplateStrings(loadProjectConfig(projectRoot), templateContext)
 
     const ctx = new GardenContext(projectRoot, projectConfig, logger)
 
     // Load configured plugins
+    plugins = builtinPlugins.concat(plugins)
+
     for (const plugin of plugins) {
       ctx.registerPlugin(plugin)
     }
@@ -377,15 +372,17 @@ export class GardenContext {
 
   async getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
     const env = this.getEnvironment()
+    const _this = this
 
-    const context = {
-      // TODO: add secret resolver here
+    return {
+      ...await getTemplateContext(),
+      config: async (key: string[]) => {
+        return _this.getConfig(key)
+      },
       variables: this.projectConfig.variables,
       environment: { name: env.name, config: <any>env.config },
       ...extraContext,
     }
-
-    return getTemplateContext(context)
   }
 
   //===========================================================================
@@ -458,6 +455,37 @@ export class GardenContext {
   async execInService<T extends Module>(service: Service<T>, command: string[]) {
     const handler = this.getEnvActionHandler("execInService", service.module.type)
     return handler({ ctx: this, service, command, env: this.getEnvironment() })
+  }
+
+  async getConfig(key: string[]): Promise<string> {
+    this.validateConfigKey(key)
+    // TODO: allow specifying which provider to use for configs
+    const handler = this.getEnvActionHandler("getConfig")
+    const value = await handler({ ctx: this, key, env: this.getEnvironment() })
+
+    if (value === undefined) {
+      throw new NotFoundError(`Could not find config key ${key}`, { key })
+    } else {
+      return value
+    }
+  }
+
+  async setConfig(key: string[], value: string) {
+    this.validateConfigKey(key)
+    const handler = this.getEnvActionHandler("setConfig")
+    return handler({ ctx: this, key, value, env: this.getEnvironment() })
+  }
+
+  async deleteConfig(key: string[]) {
+    this.validateConfigKey(key)
+    const handler = this.getEnvActionHandler("deleteConfig")
+    const res = await handler({ ctx: this, key, env: this.getEnvironment() })
+
+    if (!res.found) {
+      throw new NotFoundError(`Could not find config key ${key}`, { key })
+    } else {
+      return res
+    }
   }
 
   //endregion
@@ -586,6 +614,34 @@ export class GardenContext {
       requestedModuleType: moduleType,
       environment: env.name,
     })
+  }
+
+  /**
+   * Validates the specified config key, making sure it's properly formatted and matches defined keys.
+   */
+  private validateConfigKey(key: string[]) {
+    try {
+      Joi.attempt(key, Joi.array().items(joiIdentifier()))
+    } catch (err) {
+      throw new ParameterError(
+        `Invalid config key: ${key.join(".")} (must be a dot delimited string of identifiers)`,
+        { key },
+      )
+    }
+
+    if (!this.configKeyNamespaces.includes(key[0])) {
+      throw new ParameterError(
+        `Invalid config key namespace ${key[0]} (must be one of ${this.configKeyNamespaces.join(", ")})`,
+        { key, validNamespaces: this.configKeyNamespaces },
+      )
+    }
+
+    if (key[0] === "project") {
+      // we allow any custom key under the project namespace
+      return
+    } else {
+      // TODO: validate built-in (garden) and plugin config keys
+    }
   }
 
   //endregion

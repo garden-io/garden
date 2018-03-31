@@ -3,10 +3,11 @@ import { Memoize } from "typescript-memoize"
 import * as K8s from "kubernetes-client"
 import { DeploymentError } from "../../exceptions"
 import {
-  ConfigureEnvironmentParams, DeployServiceParams, ExecInServiceParams, GetEnvironmentStatusParams,
+  ConfigureEnvironmentParams, DeleteConfigParams, DeployServiceParams, ExecInServiceParams, GetConfigParams,
+  GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
-  GetServiceStatusParams, Plugin,
+  GetServiceStatusParams, Plugin, SetConfigParams,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
 import {
@@ -43,6 +44,10 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   supportedModuleTypes = ["container"]
 
   // TODO: validate provider config
+
+  //===========================================================================
+  //region Plugin actions
+  //===========================================================================
 
   async getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusParams) {
     try {
@@ -81,16 +86,22 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     const statusDetail = {
       systemNamespaceReady: false,
       namespaceReady: false,
+      metadataNamespaceReady: false,
       dashboardReady: dashboardStatus.state === "ready",
       ingressControllerReady: ingressControllerStatus.state === "ready",
       defaultBackendReady: defaultBackendStatus.state === "ready",
     }
 
+    const metadataNamespace = this.getMetadataNamespaceName(ctx)
     const namespacesStatus = await this.coreApi().namespaces().get()
 
     for (const n of namespacesStatus.items) {
       if (n.metadata.name === env.namespace && n.status.phase === "Active") {
         statusDetail.namespaceReady = true
+      }
+
+      if (n.metadata.name === metadataNamespace && n.status.phase === "Active") {
+        statusDetail.metadataNamespaceReady = true
       }
 
       if (n.metadata.name === GARDEN_SYSTEM_NAMESPACE && n.status.phase === "Active") {
@@ -143,6 +154,23 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
           kind: "Namespace",
           metadata: {
             name: env.namespace,
+            annotations: {
+              "garden.io/generated": "true",
+            },
+          },
+        },
+      })
+    }
+
+    if (!status.detail.metadataNamespaceReady) {
+      const ns = this.getMetadataNamespaceName(ctx)
+      entry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
+      await this.coreApi().namespaces.post({
+        body: {
+          apiVersion: "v1",
+          kind: "Namespace",
+          metadata: {
+            name: ns,
             annotations: {
               "garden.io/generated": "true",
             },
@@ -313,6 +341,78 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         resolve()
       })
     })
+  }
+
+  async getConfig({ ctx, key }: GetConfigParams) {
+    const ns = this.getMetadataNamespaceName(ctx)
+    try {
+      const res = await this.coreApi(ns).namespaces.secrets(key.join(".")).get()
+      return Buffer.from(res.data.value, "base64").toString()
+    } catch (err) {
+      if (err.code === 404) {
+        return undefined
+      } else {
+        throw err
+      }
+    }
+  }
+
+  async setConfig({ ctx, key, value }: SetConfigParams) {
+    // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
+    const ns = this.getMetadataNamespaceName(ctx)
+    const body = {
+      body: {
+        apiVersion: "v1",
+        kind: "Secret",
+        metadata: {
+          name: key,
+          annotations: {
+            "garden.io/generated": "true",
+          },
+        },
+        type: "generic",
+        stringData: { value },
+      },
+    }
+    try {
+      await this.coreApi(ns).namespaces.secrets.post(body)
+    } catch (err) {
+      if (err.code === 409) {
+        await this.coreApi(ns).namespaces.secrets(key.join(".")).put(body)
+      } else {
+        throw err
+      }
+    }
+  }
+
+  async deleteConfig({ ctx, key }: DeleteConfigParams) {
+    const ns = this.getMetadataNamespaceName(ctx)
+    try {
+      await this.coreApi(ns).namespaces.secrets(key.join(".")).delete()
+    } catch (err) {
+      if (err.code === 404) {
+        return { found: false }
+      } else {
+        throw err
+      }
+    }
+    return { found: true }
+  }
+
+  //endregion
+
+  //===========================================================================
+  //region Internal helpers
+  //===========================================================================
+
+  // private getNamespaceName(ctx: GardenContext) {
+  //   const env = ctx.getEnvironment()
+  //   return `garden--${ctx.projectName}--${env.namespace}`
+  // }
+  //
+  private getMetadataNamespaceName(ctx: GardenContext) {
+    const env = ctx.getEnvironment()
+    return `garden-metadata--${ctx.projectName}--${env.namespace}`
   }
 
   private async getIngressControllerService(ctx: GardenContext) {
@@ -604,4 +704,6 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   private getSystemEnv(env: Environment): Environment {
     return { name: env.name, namespace: GARDEN_SYSTEM_NAMESPACE, config: { providers: {} } }
   }
+
+  //endregion
 }

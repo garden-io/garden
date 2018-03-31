@@ -39,3 +39,7 @@ export class InternalError extends GardenError {
 export class TimeoutError extends GardenError {
   type = "timeout"
 }
+
+export class NotFoundError extends GardenError {
+  type = "not-found"
+}

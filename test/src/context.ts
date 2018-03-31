@@ -1,7 +1,10 @@
 import { join } from "path"
 import { GardenContext } from "../../src/context"
 import { expect } from "chai"
-import { makeTestContext, makeTestContextA, makeTestModule, projectRootA, testPluginA } from "../helpers"
+import {
+  expectErrorType, makeTestContext, makeTestContextA, makeTestModule, projectRootA,
+  TestPlugin
+} from "../helpers"
 
 describe("GardenContext", () => {
   it("should throw when initializing with missing plugins", async () => {
@@ -28,8 +31,8 @@ describe("GardenContext", () => {
     try {
       await GardenContext.factory(projectRootA, {
         plugins: [
-          (_ctx) => testPluginA,
-          (_ctx) => testPluginA,
+          (_ctx) => new TestPlugin(),
+          (_ctx) => new TestPlugin(),
         ],
       })
     } catch (err) {
@@ -67,11 +70,13 @@ describe("GardenContext", () => {
     })
   })
 
-  it("should expand templated env variables in project config", async () => {
+  it("should resolve templated env variables in project config", async () => {
     process.env.TEST_PROVIDER_TYPE = "test-plugin"
     process.env.TEST_VARIABLE = "banana"
 
-    const ctx = await makeTestContext(join(__dirname, "..", "data", "test-project-templated"))
+    const projectRoot = join(__dirname, "..", "data", "test-project-templated")
+
+    const ctx = await makeTestContext(projectRoot)
     const config = ctx.projectConfig
 
     delete process.env.TEST_PROVIDER_TYPE
@@ -382,7 +387,8 @@ describe("GardenContext", () => {
 
       const result = await ctx.getTemplateContext()
 
-      expect(Object.keys(result).length).to.equal(3)
+      expect(Object.keys(result).length).to.equal(4)
+      expect(result.config).to.be.a("function")
       expect(result.variables).to.eql({ some: "variable" })
       expect(result.local).to.eql({ env: process.env })
       expect(result.environment).to.eql({
@@ -401,7 +407,8 @@ describe("GardenContext", () => {
 
       const result = await ctx.getTemplateContext({ my: "things" })
 
-      expect(Object.keys(result).length).to.equal(4)
+      expect(Object.keys(result).length).to.equal(5)
+      expect(result.config).to.be.a("function")
       expect(result.variables).to.eql({ some: "variable" })
       expect(result.local).to.eql({ env: process.env })
       expect(result.environment).to.eql({
@@ -425,6 +432,7 @@ describe("GardenContext", () => {
 
       expect(Object.keys(handlers)).to.eql([
         "generic",
+        "test-plugin",
         "test-plugin-b",
       ])
     })
@@ -436,6 +444,7 @@ describe("GardenContext", () => {
 
       expect(Object.keys(handlers)).to.eql([
         "generic",
+        "test-plugin",
       ])
     })
   })
@@ -534,6 +543,108 @@ describe("GardenContext", () => {
       }
 
       throw new Error("Expected error")
+    })
+  })
+
+  describe("setConfig", () => {
+    it("should set a valid key in the 'project' namespace", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "my", "variable"]
+      const value = "myvalue"
+
+      await ctx.setConfig(key, value)
+      expect(await ctx.getConfig(key)).to.equal(value)
+    })
+
+    it("should throw with an invalid namespace in the key", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["bla", "my", "variable"]
+      const value = "myvalue"
+
+      await expectErrorType(async () => await ctx.setConfig(key, value), "parameter")
+    })
+
+    it("should throw with malformatted key", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "!4215"]
+      const value = "myvalue"
+
+      await expectErrorType(async () => await ctx.setConfig(key, value), "parameter")
+    })
+  })
+
+  describe("getConfig", () => {
+    it("should get a valid key in the 'project' namespace", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "my", "variable"]
+      const value = "myvalue"
+
+      await ctx.setConfig(key, value)
+      expect(await ctx.getConfig(key)).to.equal(value)
+    })
+
+    it("should throw if key does not exist", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "my", "variable"]
+
+      await expectErrorType(async () => await ctx.getConfig(key), "not-found")
+    })
+
+    it("should throw with an invalid namespace in the key", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["bla", "my", "variable"]
+
+      await expectErrorType(async () => await ctx.getConfig(key), "parameter")
+    })
+
+    it("should throw with malformatted key", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "!4215"]
+
+      await expectErrorType(async () => await ctx.getConfig(key), "parameter")
+    })
+  })
+
+  describe("deleteConfig", () => {
+    it("should delete a valid key in the 'project' namespace", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "my", "variable"]
+      const value = "myvalue"
+
+      await ctx.setConfig(key, value)
+      expect(await ctx.deleteConfig(key)).to.eql({ found: true })
+    })
+
+    it("should return {found:false} if key does not exist", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "my", "variable"]
+
+      await expectErrorType(async () => await ctx.deleteConfig(key), "not-found")
+    })
+
+    it("should throw with an invalid namespace in the key", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["bla", "my", "variable"]
+
+      await expectErrorType(async () => await ctx.deleteConfig(key), "parameter")
+    })
+
+    it("should throw with malformatted key", async () => {
+      const ctx = await makeTestContextA()
+
+      const key = ["project", "!4215"]
+
+      await expectErrorType(async () => await ctx.deleteConfig(key), "parameter")
     })
   })
 })
