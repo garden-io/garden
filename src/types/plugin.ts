@@ -30,6 +30,12 @@ export interface TestModuleParams<T extends Module = Module> extends PluginActio
   env: Environment,
 }
 
+export interface GetTestResultParams<T extends Module = Module> extends PluginActionParamsBase {
+  module: T,
+  version: string,
+  env: Environment,
+}
+
 export interface GetEnvironmentStatusParams extends PluginActionParamsBase {
   env: Environment,
 }
@@ -90,6 +96,7 @@ export interface PluginActionParams<T extends Module = Module> {
   getModuleBuildStatus: GetModuleBuildStatusParams<T>
   buildModule: BuildModuleParams<T>
   testModule: TestModuleParams<T>
+  getTestResult: GetTestResultParams<T>
 
   getEnvironmentStatus: GetEnvironmentStatusParams
   configureEnvironment: ConfigureEnvironmentParams
@@ -113,7 +120,10 @@ export interface BuildResult {
 }
 
 export interface TestResult {
+  version: string
   success: boolean
+  startedAt: Moment | Date
+  completedAt: Moment | Date
   output: string
 }
 
@@ -148,6 +158,7 @@ interface PluginActionOutputs<T extends Module = Module> {
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>
   testModule: Promise<TestResult>
+  getTestResult: Promise<TestResult | null>
 
   getEnvironmentStatus: Promise<EnvironmentStatus>
   configureEnvironment: Promise<void>
@@ -158,7 +169,7 @@ interface PluginActionOutputs<T extends Module = Module> {
   execInService: Promise<ExecInServiceResult>
   getServiceLogs: Promise<void>
 
-  getConfig: Promise<string | undefined>
+  getConfig: Promise<string | null>
   setConfig: Promise<void>
   deleteConfig: Promise<DeleteConfigResult>
 }
@@ -176,6 +187,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   getModuleBuildStatus = null
   buildModule = null
   testModule = null
+  getTestResult = null
 
   getEnvironmentStatus = null
   configureEnvironment = null

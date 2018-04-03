@@ -44,7 +44,7 @@ export class TestPlugin implements Plugin<Module> {
   }
 
   async getConfig({ key }: GetConfigParams) {
-    return this._config[key.join(".")]
+    return this._config[key.join(".")] || null
   }
 
   async deleteConfig({ key }: DeleteConfigParams) {

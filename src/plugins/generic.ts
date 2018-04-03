@@ -42,10 +42,14 @@ export class GenericModuleHandler<T extends Module = Module> implements Plugin<T
   }
 
   async testModule({ module, testSpec }: TestModuleParams<T>): Promise<TestResult> {
+    const startedAt = new Date()
     const result = await spawn(testSpec.command[0], testSpec.command.slice(1), { cwd: module.path, ignoreError: true })
 
     return {
+      version: await module.getVersion(),
       success: result.code === 0,
+      startedAt,
+      completedAt: new Date(),
       output: result.output,
     }
   }

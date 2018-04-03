@@ -414,6 +414,12 @@ export class GardenContext {
     return handler({ ctx: this, module, testSpec, env, logEntry })
   }
 
+  async getTestResult<T extends Module>(module: T, version: string, logEntry?: LogEntry) {
+    const handler = this.getEnvActionHandler("getTestResult", module.type, async () => null)
+    const env = this.getEnvironment()
+    return handler({ ctx: this, module, version, env, logEntry })
+  }
+
   async getEnvironmentStatus() {
     const handlers = this.getEnvActionHandlers("getEnvironmentStatus")
     const env = this.getEnvironment()
@@ -476,7 +482,7 @@ export class GardenContext {
     const handler = this.getEnvActionHandler("getConfig")
     const value = await handler({ ctx: this, key, env: this.getEnvironment() })
 
-    if (value === undefined) {
+    if (value === null) {
       throw new NotFoundError(`Could not find config key ${key}`, { key })
     } else {
       return value

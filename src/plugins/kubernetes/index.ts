@@ -7,7 +7,7 @@ import {
   GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
-  GetServiceStatusParams, Plugin, SetConfigParams,
+  GetServiceStatusParams, GetTestResultParams, Plugin, SetConfigParams,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
 import {
@@ -16,7 +16,7 @@ import {
 } from "../container"
 import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
-import { sleep, splitFirst } from "../../util"
+import { deserializeKeys, serializeKeys, sleep, splitFirst } from "../../util"
 import { Service, ServiceProtocol, ServiceStatus } from "../../types/service"
 import { join } from "path"
 import { createServices } from "./service"
@@ -278,6 +278,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     // TODO: use the runModule() method
     const testCommandStr = testSpec.command.join(" ")
     const image = await module.getImageId()
+    const version = await module.getVersion()
 
     const kubecmd = [
       "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
@@ -294,13 +295,46 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       testCommandStr,
     ]
 
+    const startedAt = new Date()
+
     const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
     const res = await this.kubectl(this.getNamespaceName(ctx)).tty(kubecmd, { ignoreError: true, timeout })
 
-    return {
+    const testResult: TestResult = {
+      version,
       success: res.code === 0,
+      startedAt,
+      completedAt: new Date(),
       output: res.output,
     }
+
+    const ns = this.getMetadataNamespaceName(ctx)
+    const resultKey = `test-result--${module.name}--${version}`
+    const body = {
+      body: {
+        apiVersion: "v1",
+        kind: "ConfigMap",
+        metadata: {
+          name: resultKey,
+          annotations: {
+            "garden.io/generated": "true",
+          },
+        },
+        type: "generic",
+        data: serializeKeys(testResult),
+      },
+    }
+
+    await apiPostOrPut(this.coreApi(ns).namespaces.configmaps, resultKey, body)
+
+    return testResult
+  }
+
+  async getTestResult({ ctx, module, version }: GetTestResultParams<ContainerModule>) {
+    const ns = this.getMetadataNamespaceName(ctx)
+    const resultKey = getTestResultKey(module, version)
+    const res = await apiGetOrNull(this.coreApi(ns).namespaces.configmaps, resultKey)
+    return res && <TestResult>deserializeKeys(res.data)
   }
 
   async getServiceLogs({ ctx, service, stream, tail }: GetServiceLogsParams<ContainerModule>) {
@@ -338,16 +372,8 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
   async getConfig({ ctx, key }: GetConfigParams) {
     const ns = this.getMetadataNamespaceName(ctx)
-    try {
-      const res = await this.coreApi(ns).namespaces.secrets(key.join(".")).get()
-      return Buffer.from(res.data.value, "base64").toString()
-    } catch (err) {
-      if (err.code === 404) {
-        return undefined
-      } else {
-        throw err
-      }
-    }
+    const res = await apiGetOrNull(this.coreApi(ns).namespaces.secrets, key.join("."))
+    return res && Buffer.from(res.data.value, "base64").toString()
   }
 
   async setConfig({ ctx, key, value }: SetConfigParams) {
@@ -367,15 +393,8 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         stringData: { value },
       },
     }
-    try {
-      await this.coreApi(ns).namespaces.secrets.post(body)
-    } catch (err) {
-      if (err.code === 409) {
-        await this.coreApi(ns).namespaces.secrets(key.join(".")).put(body)
-      } else {
-        throw err
-      }
-    }
+
+    await apiPostOrPut(this.coreApi(ns).namespaces.secrets, key.join("."), body)
   }
 
   async deleteConfig({ ctx, key }: DeleteConfigParams) {
@@ -699,4 +718,32 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   }
 
   //endregion
+}
+
+function getTestResultKey(module: ContainerModule, version: string) {
+  return `test-result--${module.name}--${version}`
+}
+
+async function apiPostOrPut(api: any, name: string, body: object) {
+  try {
+    await api.post(body)
+  } catch (err) {
+    if (err.code === 409) {
+      await api(name).put(body)
+    } else {
+      throw err
+    }
+  }
+}
+
+async function apiGetOrNull(api: any, name: string) {
+  try {
+    return await api(name).get()
+  } catch (err) {
+    if (err.code === 404) {
+      return null
+    } else {
+      throw err
+    }
+  }
 }

@@ -4,6 +4,7 @@ import * as exitHook from "async-exit-hook"
 import * as ignore from "ignore/ignore"
 import * as klaw from "klaw"
 import * as yaml from "js-yaml"
+import * as Cryo from "cryo"
 import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
@@ -335,4 +336,20 @@ export async function deepResolve<T>(v: T) {
 
 export function omitUndefined(o: object) {
   return pickBy(o, (v: any) => v !== undefined)
+}
+
+export function serializeObject(o: object) {
+  return Buffer.from(Cryo.stringify(o)).toString("base64")
+}
+
+export function deserializeObject(s: string) {
+  return Cryo.parse(Buffer.from(s, "base64"))
+}
+
+export function serializeKeys(o: object) {
+  return mapValues(o, serializeObject)
+}
+
+export function deserializeKeys(o: object) {
+  return mapValues(o, deserializeObject)
 }
