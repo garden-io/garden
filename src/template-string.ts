@@ -56,7 +56,7 @@ export async function resolveTemplateString(
   const parsed = parser.parse(string, {
     getKey: genericResolver(context, ignoreMissingKeys),
     // need this to allow nested template strings
-    resolve: async (parts: string[]) => {
+    resolve: async (parts: StringOrStringPromise[]) => {
       const s = (await Bluebird.all(parts)).join("")
       return resolveTemplateString(`\$\{${s}\}`, context, { ignoreMissingKeys })
     },

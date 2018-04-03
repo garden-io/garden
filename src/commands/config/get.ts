@@ -32,9 +32,6 @@ export class ConfigGetCommand extends Command<typeof configGetArgs, typeof confi
 
     ctx.log.info({ msg: res })
 
-    const output = {}
-    output[args.key] = res
-
-    return output
+    return { [args.key]: res }
   }
 }
