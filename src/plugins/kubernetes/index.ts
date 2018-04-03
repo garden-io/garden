@@ -24,7 +24,6 @@ import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
 import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT, STATIC_DIR } from "../../constants"
-import { EntryStyle } from "../../logger/types"
 import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
 import * as split from "split"
@@ -96,7 +95,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     const namespacesStatus = await this.coreApi().namespaces().get()
 
     for (const n of namespacesStatus.items) {
-      if (n.metadata.name === env.namespace && n.status.phase === "Active") {
+      if (n.metadata.name === this.getNamespaceName(ctx) && n.status.phase === "Active") {
         statusDetail.namespaceReady = true
       }
 
@@ -117,21 +116,15 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
   }
 
-  async configureEnvironment({ ctx, env }: ConfigureEnvironmentParams) {
+  async configureEnvironment({ ctx, env, logEntry }: ConfigureEnvironmentParams) {
     const status = await this.getEnvironmentStatus({ ctx, env })
 
     if (status.configured) {
       return
     }
 
-    const entry = ctx.log.info({
-      entryStyle: EntryStyle.activity,
-      section: "kubernetes",
-      msg: "Configuring environment...",
-    })
-
     if (!status.detail.systemNamespaceReady) {
-      entry.setState({ section: "kubernetes", msg: `Creating garden system namespace` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating garden system namespace` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -147,13 +140,14 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     if (!status.detail.namespaceReady) {
-      entry.setState({ section: "kubernetes", msg: `Creating namespace ${env.namespace}` })
+      const ns = this.getNamespaceName(ctx)
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
           kind: "Namespace",
           metadata: {
-            name: env.namespace,
+            name: ns,
             annotations: {
               "garden.io/generated": "true",
             },
@@ -164,7 +158,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
     if (!status.detail.metadataNamespaceReady) {
       const ns = this.getMetadataNamespaceName(ctx)
-      entry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -180,13 +174,13 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     if (!status.detail.dashboardReady) {
-      entry.setState({ section: "kubernetes", msg: `Configuring dashboard` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Configuring dashboard` })
       // TODO: deploy this as a service
       await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
     }
 
     if (!status.detail.ingressControllerReady) {
-      entry.setState({ section: "kubernetes", msg: `Configuring ingress controller` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Configuring ingress controller` })
       const gardenEnv = this.getSystemEnv(env)
       await this.deployService({
         ctx,
@@ -202,19 +196,17 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         exposePorts: true,
       })
     }
-
-    entry.setSuccess({ section: "kubernetes", msg: "Environment configured" })
   }
 
-  async getServiceStatus({ ctx, service, env }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
+  async getServiceStatus({ ctx, service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
     // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-    return await this.checkDeploymentStatus({ ctx, service, env })
+    return await this.checkDeploymentStatus({ ctx, service })
   }
 
   async deployService(
     { ctx, service, env, serviceContext, exposePorts = false, logEntry }: DeployServiceParams<ContainerModule>,
   ) {
-    const namespace = env.namespace
+    const namespace = this.getNamespaceName(ctx)
 
     const deployment = await createDeployment(service, serviceContext, exposePorts)
     await this.apply(deployment, { namespace })
@@ -233,7 +225,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       await this.apply(ingress, { namespace })
     }
 
-    await this.waitForDeployment(ctx, service, env, logEntry)
+    await this.waitForDeployment(ctx, service, logEntry)
 
     return this.getServiceStatus({ ctx, service, env })
   }
@@ -246,6 +238,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
   async execInService({ ctx, service, env, command }: ExecInServiceParams<ContainerModule>) {
     const status = await this.getServiceStatus({ ctx, service, env })
+    const namespace = this.getNamespaceName(ctx)
 
     // TODO: this check should probably live outside of the plugin
     if (!status.state || status.state !== "ready") {
@@ -256,7 +249,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     // get a running pod
-    let res = await this.coreApi(env.namespace).namespaces.pods.get({
+    let res = await this.coreApi(namespace).namespaces.pods.get({
       qs: {
         labelSelector: `service=${service.name}`,
       },
@@ -271,12 +264,12 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     // exec in the pod via kubectl
-    res = await this.kubectl(env.namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
+    res = await this.kubectl(namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
 
     return { code: res.code, output: res.output }
   }
 
-  async testModule({ module, testSpec, env }: TestModuleParams<ContainerModule>): Promise<TestResult> {
+  async testModule({ ctx, module, testSpec }: TestModuleParams<ContainerModule>): Promise<TestResult> {
     // TODO: include a service context here
     const baseEnv = {}
     const envVars: {} = extend({}, baseEnv, testSpec.variables)
@@ -302,7 +295,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     ]
 
     const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
-    const res = await this.kubectl(env.namespace).tty(kubecmd, { ignoreError: true, timeout })
+    const res = await this.kubectl(this.getNamespaceName(ctx)).tty(kubecmd, { ignoreError: true, timeout })
 
     return {
       success: res.code === 0,
@@ -310,7 +303,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
   }
 
-  async getServiceLogs({ service, env, stream, tail }: GetServiceLogsParams<ContainerModule>) {
+  async getServiceLogs({ ctx, service, stream, tail }: GetServiceLogsParams<ContainerModule>) {
     const resourceType = service.config.daemon ? "daemonset" : "deployment"
 
     const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
@@ -319,7 +312,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       kubectlArgs.push("--follow")
     }
 
-    const proc = this.kubectl(env.namespace).spawn(kubectlArgs)
+    const proc = this.kubectl(this.getNamespaceName(ctx)).spawn(kubectlArgs)
 
     proc.stdout
       .pipe(split())
@@ -405,11 +398,11 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   //region Internal helpers
   //===========================================================================
 
-  // private getNamespaceName(ctx: GardenContext) {
-  //   const env = ctx.getEnvironment()
-  //   return `garden--${ctx.projectName}--${env.namespace}`
-  // }
-  //
+  private getNamespaceName(ctx: GardenContext) {
+    const env = ctx.getEnvironment()
+    return `garden--${ctx.projectName}--${env.namespace}`
+  }
+
   private getMetadataNamespaceName(ctx: GardenContext) {
     const env = ctx.getEnvironment()
     return `garden-metadata--${ctx.projectName}--${env.namespace}`
@@ -462,11 +455,11 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   }
 
   async checkDeploymentStatus(
-    { ctx, service, env, resourceVersion }:
-      { ctx: GardenContext, service: ContainerService, env: Environment, resourceVersion?: number },
+    { ctx, service, resourceVersion }:
+      { ctx: GardenContext, service: ContainerService, resourceVersion?: number },
   ): Promise<ServiceStatus> {
     const type = service.config.daemon ? "daemonsets" : "deployments"
-    const namespace = env.namespace
+    const namespace = this.getNamespaceName(ctx)
     const hostname = this.getServiceHostname(ctx, service)
 
     const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
@@ -609,7 +602,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     return out
   }
 
-  async waitForDeployment(ctx: GardenContext, service: ContainerService, env: Environment, logEntry?: LogEntry) {
+  async waitForDeployment(ctx: GardenContext, service: ContainerService, logEntry?: LogEntry) {
     // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
     let loops = 0
     let resourceVersion
@@ -622,7 +615,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     while (true) {
       await sleep(2000 + 1000 * loops)
 
-      const status = await this.checkDeploymentStatus({ ctx, service, env, resourceVersion })
+      const status = await this.checkDeploymentStatus({ ctx, service, resourceVersion })
 
       if (status.lastError) {
         throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
