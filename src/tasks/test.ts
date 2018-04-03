@@ -19,6 +19,12 @@ export class TestTask<T extends Module> extends Task {
   }
 
   async getDependencies() {
+    const testResult = await this.getTestResult()
+
+    if (testResult && testResult.success) {
+      return []
+    }
+
     const deps: Task[] = [new BuildTask(this.ctx, this.module, this.forceBuild)]
 
     const services = await this.ctx.getServices(this.testSpec.dependencies)
@@ -36,15 +42,23 @@ export class TestTask<T extends Module> extends Task {
   }
 
   async process(): Promise<TestResult> {
-    // TODO: find out if module has already been tested
+    // find out if module has already been tested
+    const testResult = await this.getTestResult()
+
+    if (testResult && testResult.success) {
+      const passedEntry = this.ctx.log.info({
+        section: this.module.name,
+        msg: `${this.testType} tests`,
+      })
+      passedEntry.setSuccess({ msg: chalk.green("Already passed"), append: true })
+      return testResult
+    }
+
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: `Running ${this.testType} tests`,
       entryStyle: EntryStyle.activity,
     })
-
-    // TODO: the force parameters has no use because we don't track which tests have been run
-    this.force
 
     const result = await this.ctx.testModule(this.module, this.testSpec)
 
@@ -55,5 +69,14 @@ export class TestTask<T extends Module> extends Task {
     }
 
     return result
+  }
+
+  async getTestResult() {
+    if (this.force) {
+      return null
+    }
+
+    const testResult = await this.ctx.getTestResult(this.module, await this.module.getVersion())
+    return testResult && testResult.success && testResult
   }
 }

@@ -1,9 +1,13 @@
 import * as td from "testdouble"
 import { resolve } from "path"
-import { ParseModuleParams, Plugin, PluginActions, PluginFactory } from "../src/types/plugin"
+import {
+  DeleteConfigParams,
+  GetConfigParams, ParseModuleParams, Plugin, PluginActions, PluginFactory,
+  SetConfigParams,
+} from "../src/types/plugin"
 import { GardenContext } from "../src/context"
 import { Module } from "../src/types/module"
-import { ContainerModule } from "../src/plugins/container"
+import { expect } from "chai"
 
 export const dataDir = resolve(__dirname, "data")
 
@@ -17,25 +21,46 @@ class TestModule extends Module {
   type = "test"
 }
 
-export const testPluginA: Plugin<Module> = {
-  name: "test-plugin",
-  supportedModuleTypes: ["generic"],
+export class TestPlugin implements Plugin<Module> {
+  name = "test-plugin"
+  supportedModuleTypes = ["generic"]
 
-  configureEnvironment: async () => { },
-  getServiceStatus: async () => ({}),
-  deployService: async () => ({}),
-}
+  private _config: object
 
-class TestPluginB implements Plugin<Module> {
-  name = "test-plugin-b"
-  supportedModuleTypes = ["test"]
+  constructor() {
+    this._config = {}
+  }
 
   async parseModule({ ctx, config }: ParseModuleParams) {
     return new Module(ctx, config)
   }
+
   async configureEnvironment() { }
   async getServiceStatus() { return {} }
   async deployService() { return {} }
+
+  async setConfig({ key, value }: SetConfigParams) {
+    this._config[key.join(".")] = value
+  }
+
+  async getConfig({ key }: GetConfigParams) {
+    return this._config[key.join(".")] || null
+  }
+
+  async deleteConfig({ key }: DeleteConfigParams) {
+    const k = key.join(".")
+    if (this._config[k]) {
+      delete this._config[k]
+      return { found: true }
+    } else {
+      return { found: false }
+    }
+  }
+}
+
+class TestPluginB extends TestPlugin {
+  name = "test-plugin-b"
+  supportedModuleTypes = ["test"]
 }
 
 export const makeTestModule = (ctx, name = "test") => {
@@ -54,8 +79,8 @@ export const makeTestModule = (ctx, name = "test") => {
 }
 
 export const makeTestContext = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
-  const testPlugins = [
-    (_ctx) => testPluginA,
+  const testPlugins: PluginFactory[] = [
+    (_ctx) => new TestPlugin(),
     (_ctx) => new TestPluginB(),
   ]
   const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
@@ -71,4 +96,15 @@ export function stubPluginAction<T extends keyof PluginActions<any>> (
   ctx: GardenContext, pluginName: string, type: T, handler?: PluginActions<any>[T],
 ) {
   return td.replace(ctx["actionHandlers"][type], pluginName, handler)
+}
+
+export async function expectErrorType(fn: Function, type: string) {
+  try {
+    await fn()
+  } catch (err) {
+    expect(err.type).to.equal(type)
+    return
+  }
+
+  throw new Error(`Expected ${type} error`)
 }

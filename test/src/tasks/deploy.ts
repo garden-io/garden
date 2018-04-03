@@ -14,6 +14,8 @@ describe("DeployTask", () => {
     process.env.TEST_PROVIDER_TYPE = "test-plugin-b"
 
     const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
+    await ctx.setConfig(["project", "my", "variable"], "OK")
+
     const serviceA = await ctx.getService("service-a")
     const serviceB = await ctx.getService("service-b")
 

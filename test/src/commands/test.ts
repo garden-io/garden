@@ -1,6 +1,7 @@
 import { expect } from "chai"
 import { makeTestContextA } from "../../helpers"
 import { TestCommand } from "../../../src/commands/test"
+import * as isSubset from "is-subset"
 
 describe("commands.test", () => {
   it("should run all tests in a simple project", async () => {
@@ -13,7 +14,7 @@ describe("commands.test", () => {
       { env: "local.test", group: undefined, force: true, "force-build": true },
     )
 
-    expect(result).to.eql({
+    expect(isSubset(result, {
       "build.module-a": {
         fresh: true,
         buildLog: "A\n",
@@ -35,7 +36,7 @@ describe("commands.test", () => {
         success: true,
         output: "OK\n",
       },
-    })
+    })).to.be.true
   })
 
   it("should optionally test single module", async () => {
@@ -48,7 +49,7 @@ describe("commands.test", () => {
       { env: "local.test", group: undefined, force: true, "force-build": true },
     )
 
-    expect(result).to.eql({
+    expect(isSubset(result, {
       "build.module-a": {
         fresh: true,
         buildLog: "A\n",
@@ -57,6 +58,6 @@ describe("commands.test", () => {
         success: true,
         output: "OK\n",
       },
-    })
+    })).to.be.true
   })
 })

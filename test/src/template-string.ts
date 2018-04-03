@@ -109,6 +109,37 @@ describe("resolveTemplateString", async () => {
     throw new Error("Expected error")
   })
 
+  it("should throw with an incomplete template string", async () => {
+    try {
+      await resolveTemplateString("${some", { some: {} })
+    } catch (err) {
+      expect(err.message).to.equal("Invalid template string: ...${some")
+      return
+    }
+
+    throw new Error("Expected error")
+  })
+
+  it("should handle nested format strings", async () => {
+    const res = await resolveTemplateString("${resol${part}ed}", { resolved: 123, part: "v" })
+    expect(res).to.equal("123")
+  })
+
+  it("should handle nested format strings with nested keys", async () => {
+    const res = await resolveTemplateString("${resol${part}ed.nested}", { resolved: { nested: 123 }, part: "v" })
+    expect(res).to.equal("123")
+  })
+
+  it("should handle nested format strings with format string at end", async () => {
+    const res = await resolveTemplateString("${resolv${part}}", { resolved: 123, part: "ed" })
+    expect(res).to.equal("123")
+  })
+
+  it("should handle deeply nested format strings", async () => {
+    const res = await resolveTemplateString("${resol${pa${deep}t}ed}", { resolved: 123, deep: "r", part: "v" })
+    expect(res).to.equal("123")
+  })
+
   context("ignoreMissingKeys is set", () => {
     it("return string unchanged when key is not found", async () => {
       const result = await resolveTemplateString("${some}", {}, { ignoreMissingKeys: true })

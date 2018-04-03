@@ -20,6 +20,8 @@ describe("Service", () => {
       process.env.TEST_PROVIDER_TYPE = "test-plugin"
 
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
+      await ctx.setConfig(["project", "my", "variable"], "OK")
+
       const module = (await ctx.getModules(["module-a"]))["module-a"]
 
       const service = await Service.factory(ctx, module, "service-a")
@@ -47,7 +49,12 @@ describe("Service", () => {
 
   describe("resolveConfig", () => {
     it("should resolve the configuration for the service and return a new Service instance", async () => {
+      process.env.TEST_PROVIDER_TYPE = "test-plugin"
+      process.env.TEST_VARIABLE = "banana"
+
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
+      await ctx.setConfig(["project", "my", "variable"], "OK")
+
       const serviceA = await ctx.getService("service-a")
       const serviceB = await ctx.getService("service-b")
 
@@ -57,6 +64,9 @@ describe("Service", () => {
         command: `echo ${await serviceA.module.getVersion()}`,
         dependencies: ["service-a"],
       })
+
+      delete process.env.TEST_PROVIDER_TYPE
+      delete process.env.TEST_VARIABLE
     })
   })
 })

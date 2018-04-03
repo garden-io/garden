@@ -3,10 +3,11 @@ import { Memoize } from "typescript-memoize"
 import * as K8s from "kubernetes-client"
 import { DeploymentError } from "../../exceptions"
 import {
-  ConfigureEnvironmentParams, DeployServiceParams, ExecInServiceParams, GetEnvironmentStatusParams,
+  ConfigureEnvironmentParams, DeleteConfigParams, DeployServiceParams, ExecInServiceParams, GetConfigParams,
+  GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
-  GetServiceStatusParams, Plugin,
+  GetServiceStatusParams, GetTestResultParams, Plugin, SetConfigParams,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
 import {
@@ -15,7 +16,7 @@ import {
 } from "../container"
 import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
-import { sleep, splitFirst } from "../../util"
+import { deserializeKeys, serializeKeys, sleep, splitFirst } from "../../util"
 import { Service, ServiceProtocol, ServiceStatus } from "../../types/service"
 import { join } from "path"
 import { createServices } from "./service"
@@ -23,7 +24,6 @@ import { createIngress } from "./ingress"
 import { createDeployment } from "./deployment"
 import { DEFAULT_CONTEXT, Kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT, STATIC_DIR } from "../../constants"
-import { EntryStyle } from "../../logger/types"
 import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
 import * as split from "split"
@@ -43,6 +43,10 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   supportedModuleTypes = ["container"]
 
   // TODO: validate provider config
+
+  //===========================================================================
+  //region Plugin actions
+  //===========================================================================
 
   async getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusParams) {
     try {
@@ -81,16 +85,22 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     const statusDetail = {
       systemNamespaceReady: false,
       namespaceReady: false,
+      metadataNamespaceReady: false,
       dashboardReady: dashboardStatus.state === "ready",
       ingressControllerReady: ingressControllerStatus.state === "ready",
       defaultBackendReady: defaultBackendStatus.state === "ready",
     }
 
+    const metadataNamespace = this.getMetadataNamespaceName(ctx)
     const namespacesStatus = await this.coreApi().namespaces().get()
 
     for (const n of namespacesStatus.items) {
-      if (n.metadata.name === env.namespace && n.status.phase === "Active") {
+      if (n.metadata.name === this.getNamespaceName(ctx) && n.status.phase === "Active") {
         statusDetail.namespaceReady = true
+      }
+
+      if (n.metadata.name === metadataNamespace && n.status.phase === "Active") {
+        statusDetail.metadataNamespaceReady = true
       }
 
       if (n.metadata.name === GARDEN_SYSTEM_NAMESPACE && n.status.phase === "Active") {
@@ -106,21 +116,15 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
   }
 
-  async configureEnvironment({ ctx, env }: ConfigureEnvironmentParams) {
+  async configureEnvironment({ ctx, env, logEntry }: ConfigureEnvironmentParams) {
     const status = await this.getEnvironmentStatus({ ctx, env })
 
     if (status.configured) {
       return
     }
 
-    const entry = ctx.log.info({
-      entryStyle: EntryStyle.activity,
-      section: "kubernetes",
-      msg: "Configuring environment...",
-    })
-
     if (!status.detail.systemNamespaceReady) {
-      entry.setState({ section: "kubernetes", msg: `Creating garden system namespace` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating garden system namespace` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
@@ -136,13 +140,31 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     if (!status.detail.namespaceReady) {
-      entry.setState({ section: "kubernetes", msg: `Creating namespace ${env.namespace}` })
+      const ns = this.getNamespaceName(ctx)
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
       await this.coreApi().namespaces.post({
         body: {
           apiVersion: "v1",
           kind: "Namespace",
           metadata: {
-            name: env.namespace,
+            name: ns,
+            annotations: {
+              "garden.io/generated": "true",
+            },
+          },
+        },
+      })
+    }
+
+    if (!status.detail.metadataNamespaceReady) {
+      const ns = this.getMetadataNamespaceName(ctx)
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
+      await this.coreApi().namespaces.post({
+        body: {
+          apiVersion: "v1",
+          kind: "Namespace",
+          metadata: {
+            name: ns,
             annotations: {
               "garden.io/generated": "true",
             },
@@ -152,13 +174,13 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     if (!status.detail.dashboardReady) {
-      entry.setState({ section: "kubernetes", msg: `Configuring dashboard` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Configuring dashboard` })
       // TODO: deploy this as a service
       await this.kubectl(GARDEN_SYSTEM_NAMESPACE).call(["apply", "-f", dashboardSpecPath])
     }
 
     if (!status.detail.ingressControllerReady) {
-      entry.setState({ section: "kubernetes", msg: `Configuring ingress controller` })
+      logEntry && logEntry.setState({ section: "kubernetes", msg: `Configuring ingress controller` })
       const gardenEnv = this.getSystemEnv(env)
       await this.deployService({
         ctx,
@@ -174,19 +196,17 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         exposePorts: true,
       })
     }
-
-    entry.setSuccess({ section: "kubernetes", msg: "Environment configured" })
   }
 
-  async getServiceStatus({ ctx, service, env }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
+  async getServiceStatus({ ctx, service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
     // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-    return await this.checkDeploymentStatus({ ctx, service, env })
+    return await this.checkDeploymentStatus({ ctx, service })
   }
 
   async deployService(
     { ctx, service, env, serviceContext, exposePorts = false, logEntry }: DeployServiceParams<ContainerModule>,
   ) {
-    const namespace = env.namespace
+    const namespace = this.getNamespaceName(ctx)
 
     const deployment = await createDeployment(service, serviceContext, exposePorts)
     await this.apply(deployment, { namespace })
@@ -205,7 +225,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       await this.apply(ingress, { namespace })
     }
 
-    await this.waitForDeployment(ctx, service, env, logEntry)
+    await this.waitForDeployment(ctx, service, logEntry)
 
     return this.getServiceStatus({ ctx, service, env })
   }
@@ -218,6 +238,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
   async execInService({ ctx, service, env, command }: ExecInServiceParams<ContainerModule>) {
     const status = await this.getServiceStatus({ ctx, service, env })
+    const namespace = this.getNamespaceName(ctx)
 
     // TODO: this check should probably live outside of the plugin
     if (!status.state || status.state !== "ready") {
@@ -228,7 +249,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     // get a running pod
-    let res = await this.coreApi(env.namespace).namespaces.pods.get({
+    let res = await this.coreApi(namespace).namespaces.pods.get({
       qs: {
         labelSelector: `service=${service.name}`,
       },
@@ -243,12 +264,12 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     // exec in the pod via kubectl
-    res = await this.kubectl(env.namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
+    res = await this.kubectl(namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
 
     return { code: res.code, output: res.output }
   }
 
-  async testModule({ module, testSpec, env }: TestModuleParams<ContainerModule>): Promise<TestResult> {
+  async testModule({ ctx, module, testSpec }: TestModuleParams<ContainerModule>): Promise<TestResult> {
     // TODO: include a service context here
     const baseEnv = {}
     const envVars: {} = extend({}, baseEnv, testSpec.variables)
@@ -257,6 +278,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     // TODO: use the runModule() method
     const testCommandStr = testSpec.command.join(" ")
     const image = await module.getImageId()
+    const version = await module.getVersion()
 
     const kubecmd = [
       "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
@@ -273,16 +295,49 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       testCommandStr,
     ]
 
-    const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
-    const res = await this.kubectl(env.namespace).tty(kubecmd, { ignoreError: true, timeout })
+    const startedAt = new Date()
 
-    return {
+    const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
+    const res = await this.kubectl(this.getNamespaceName(ctx)).tty(kubecmd, { ignoreError: true, timeout })
+
+    const testResult: TestResult = {
+      version,
       success: res.code === 0,
+      startedAt,
+      completedAt: new Date(),
       output: res.output,
     }
+
+    const ns = this.getMetadataNamespaceName(ctx)
+    const resultKey = `test-result--${module.name}--${version}`
+    const body = {
+      body: {
+        apiVersion: "v1",
+        kind: "ConfigMap",
+        metadata: {
+          name: resultKey,
+          annotations: {
+            "garden.io/generated": "true",
+          },
+        },
+        type: "generic",
+        data: serializeKeys(testResult),
+      },
+    }
+
+    await apiPostOrPut(this.coreApi(ns).namespaces.configmaps, resultKey, body)
+
+    return testResult
   }
 
-  async getServiceLogs({ service, env, stream, tail }: GetServiceLogsParams<ContainerModule>) {
+  async getTestResult({ ctx, module, version }: GetTestResultParams<ContainerModule>) {
+    const ns = this.getMetadataNamespaceName(ctx)
+    const resultKey = getTestResultKey(module, version)
+    const res = await apiGetOrNull(this.coreApi(ns).namespaces.configmaps, resultKey)
+    return res && <TestResult>deserializeKeys(res.data)
+  }
+
+  async getServiceLogs({ ctx, service, stream, tail }: GetServiceLogsParams<ContainerModule>) {
     const resourceType = service.config.daemon ? "daemonset" : "deployment"
 
     const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
@@ -291,7 +346,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       kubectlArgs.push("--follow")
     }
 
-    const proc = this.kubectl(env.namespace).spawn(kubectlArgs)
+    const proc = this.kubectl(this.getNamespaceName(ctx)).spawn(kubectlArgs)
 
     proc.stdout
       .pipe(split())
@@ -313,6 +368,63 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         resolve()
       })
     })
+  }
+
+  async getConfig({ ctx, key }: GetConfigParams) {
+    const ns = this.getMetadataNamespaceName(ctx)
+    const res = await apiGetOrNull(this.coreApi(ns).namespaces.secrets, key.join("."))
+    return res && Buffer.from(res.data.value, "base64").toString()
+  }
+
+  async setConfig({ ctx, key, value }: SetConfigParams) {
+    // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
+    const ns = this.getMetadataNamespaceName(ctx)
+    const body = {
+      body: {
+        apiVersion: "v1",
+        kind: "Secret",
+        metadata: {
+          name: key,
+          annotations: {
+            "garden.io/generated": "true",
+          },
+        },
+        type: "generic",
+        stringData: { value },
+      },
+    }
+
+    await apiPostOrPut(this.coreApi(ns).namespaces.secrets, key.join("."), body)
+  }
+
+  async deleteConfig({ ctx, key }: DeleteConfigParams) {
+    const ns = this.getMetadataNamespaceName(ctx)
+    try {
+      await this.coreApi(ns).namespaces.secrets(key.join(".")).delete()
+    } catch (err) {
+      if (err.code === 404) {
+        return { found: false }
+      } else {
+        throw err
+      }
+    }
+    return { found: true }
+  }
+
+  //endregion
+
+  //===========================================================================
+  //region Internal helpers
+  //===========================================================================
+
+  private getNamespaceName(ctx: GardenContext) {
+    const env = ctx.getEnvironment()
+    return `garden--${ctx.projectName}--${env.namespace}`
+  }
+
+  private getMetadataNamespaceName(ctx: GardenContext) {
+    const env = ctx.getEnvironment()
+    return `garden-metadata--${ctx.projectName}--${env.namespace}`
   }
 
   private async getIngressControllerService(ctx: GardenContext) {
@@ -362,11 +474,11 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   }
 
   async checkDeploymentStatus(
-    { ctx, service, env, resourceVersion }:
-      { ctx: GardenContext, service: ContainerService, env: Environment, resourceVersion?: number },
+    { ctx, service, resourceVersion }:
+      { ctx: GardenContext, service: ContainerService, resourceVersion?: number },
   ): Promise<ServiceStatus> {
     const type = service.config.daemon ? "daemonsets" : "deployments"
-    const namespace = env.namespace
+    const namespace = this.getNamespaceName(ctx)
     const hostname = this.getServiceHostname(ctx, service)
 
     const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
@@ -509,7 +621,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     return out
   }
 
-  async waitForDeployment(ctx: GardenContext, service: ContainerService, env: Environment, logEntry?: LogEntry) {
+  async waitForDeployment(ctx: GardenContext, service: ContainerService, logEntry?: LogEntry) {
     // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
     let loops = 0
     let resourceVersion
@@ -522,7 +634,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     while (true) {
       await sleep(2000 + 1000 * loops)
 
-      const status = await this.checkDeploymentStatus({ ctx, service, env, resourceVersion })
+      const status = await this.checkDeploymentStatus({ ctx, service, resourceVersion })
 
       if (status.lastError) {
         throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
@@ -603,5 +715,35 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
   private getSystemEnv(env: Environment): Environment {
     return { name: env.name, namespace: GARDEN_SYSTEM_NAMESPACE, config: { providers: {} } }
+  }
+
+  //endregion
+}
+
+function getTestResultKey(module: ContainerModule, version: string) {
+  return `test-result--${module.name}--${version}`
+}
+
+async function apiPostOrPut(api: any, name: string, body: object) {
+  try {
+    await api.post(body)
+  } catch (err) {
+    if (err.code === 409) {
+      await api(name).put(body)
+    } else {
+      throw err
+    }
+  }
+}
+
+async function apiGetOrNull(api: any, name: string) {
+  try {
+    return await api(name).get()
+  } catch (err) {
+    if (err.code === 404) {
+      return null
+    } else {
+      throw err
+    }
   }
 }
