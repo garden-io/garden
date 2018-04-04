@@ -15,7 +15,6 @@
   "preferGlobal": true,
   "bin": "./src/bin/garden.js",
   "dependencies": {
-    "@google-cloud/functions-emulator": "^1.0.0-alpha.29",
     "@types/fs-extra": "^5.0.1",
     "async-exit-hook": "^2.0.1",
     "axios": "^0.17.1",
