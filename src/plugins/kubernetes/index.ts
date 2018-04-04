@@ -74,17 +74,17 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     const defaultBackendService = await this.getDefaultBackendService(ctx)
     const dashboardService = await this.getDashboardService(ctx)
 
-    const ingressControllerStatus = await this.getServiceStatus({
+    const ingressControllerStatus = await this.checkDeploymentStatus({
       ctx,
       service: ingressControllerService,
       env: gardenEnv,
     })
-    const defaultBackendStatus = await this.getServiceStatus({
+    const defaultBackendStatus = await this.checkDeploymentStatus({
       ctx,
       service: defaultBackendService,
       env: gardenEnv,
     })
-    const dashboardStatus = await this.getServiceStatus({
+    const dashboardStatus = await this.checkDeploymentStatus({
       ctx,
       service: dashboardService,
       env: gardenEnv,
@@ -125,6 +125,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   }
 
   async configureEnvironment({ ctx, env, logEntry }: ConfigureEnvironmentParams) {
+    // TODO: use Helm 3 when it's released instead of this custom/manual stuff
     const status = await this.getEnvironmentStatus({ ctx, env })
 
     if (status.configured) {
@@ -455,7 +456,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       type: "container",
       path: dashboardModulePath,
       services: <{ [name: string]: ContainerServiceConfig }>{
-        dashboard: {
+        "kubernetes-dashboard": {
           daemon: false,
           dependencies: <string[]>[],
           endpoints: <ServiceEndpointSpec[]>[],
@@ -468,7 +469,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       test: {},
     })
 
-    return Service.factory(ctx, module, "dashboard")
+    return Service.factory(ctx, module, "kubernetes-dashboard")
   }
 
   protected getProjectHostname() {
@@ -482,12 +483,14 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   }
 
   async checkDeploymentStatus(
-    { ctx, service, resourceVersion }:
-      { ctx: GardenContext, service: ContainerService, resourceVersion?: number },
+    { ctx, service, resourceVersion, env }:
+      { ctx: GardenContext, service: ContainerService, resourceVersion?: number, env?: Environment },
   ): Promise<ServiceStatus> {
     const type = service.config.daemon ? "daemonsets" : "deployments"
-    const namespace = this.getNamespaceName(ctx)
     const hostname = this.getServiceHostname(ctx, service)
+
+    env = env || ctx.getEnvironment()
+    const namespace = env.namespace
 
     const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
       // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
