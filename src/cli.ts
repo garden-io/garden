@@ -34,6 +34,7 @@ import { DevCommand } from "./commands/dev"
 import { LogsCommand } from "./commands/logs"
 import { LogLevel } from "./logger/types"
 import { ConfigCommand } from "./commands/config"
+import { StatusCommand } from "./commands/status"
 
 const GLOBAL_OPTIONS = {
   root: new StringParameter({
@@ -221,6 +222,7 @@ export class GardenCli {
       new TestCommand(),
       new ConfigCommand(),
       new ValidateCommand(),
+      new StatusCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 

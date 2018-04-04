@@ -7,7 +7,6 @@
  */
 
 import { Command } from "../base"
-import { EnvironmentStatusCommand } from "./status"
 import { EnvironmentConfigureCommand } from "./configure"
 
 export class EnvironmentCommand extends Command {
@@ -16,7 +15,6 @@ export class EnvironmentCommand extends Command {
   help = "Outputs the status of your environment"
 
   subCommands = [
-    new EnvironmentStatusCommand(),
     new EnvironmentConfigureCommand(),
   ]
 

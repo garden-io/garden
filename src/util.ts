@@ -20,6 +20,8 @@ import { getLogger } from "./logger"
 import { TimeoutError } from "./exceptions"
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
+import highlight from "cli-highlight"
+import chalk from "chalk"
 
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
@@ -360,4 +362,15 @@ export function serializeKeys(o: object) {
 
 export function deserializeKeys(o: object) {
   return mapValues(o, deserializeObject)
+}
+
+export function highlightYaml(s: string) {
+  return highlight(s, {
+    language: "yaml",
+    theme: {
+      keyword: chalk.white.italic,
+      literal: chalk.white.italic,
+      string: chalk.white,
+    },
+  })
 }
