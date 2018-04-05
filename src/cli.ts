@@ -106,7 +106,7 @@ interface OptConfig {
   strict: true
 }
 
-interface ParseResults {
+export interface ParseResults {
   argv: any
   code: number
   errors: Error[]

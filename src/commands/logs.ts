@@ -15,22 +15,22 @@ import { values } from "lodash"
 import { Service } from "../types/service"
 import Stream from "ts-stream"
 
-const logsArgs = {
+export const logsArgs = {
   service: new StringParameter({
     help: "The name of the service(s) to logs (skip to logs all services). " +
       "Use comma as separator to specify multiple services.",
   }),
 }
 
-const logsOpts = {
+export const logsOpts = {
   env: new EnvironmentOption(),
   tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s)", alias: "t" }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
 }
 
-type Args = ParameterValues<typeof logsArgs>
-type Opts = ParameterValues<typeof logsOpts>
+export type Args = ParameterValues<typeof logsArgs>
+export type Opts = ParameterValues<typeof logsOpts>
 
 export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   name = "logs"

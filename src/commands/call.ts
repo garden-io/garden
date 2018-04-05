@@ -16,21 +16,21 @@ import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
 import { pick } from "lodash"
 
-const callArgs = {
+export const callArgs = {
   serviceAndPath: new StringParameter({
     help: "The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath)",
     required: true,
   }),
 }
 
-const options = {
+export const options = {
   env: new EnvironmentOption({
     help: "The environment (and optionally namespace) to call to",
   }),
 }
 
-type Args = ParameterValues<typeof callArgs>
-type Opts = ParameterValues<typeof options>
+export type Args = ParameterValues<typeof callArgs>
+export type Opts = ParameterValues<typeof options>
 
 export class CallCommand extends Command<typeof callArgs> {
   name = "call"

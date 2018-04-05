@@ -18,6 +18,7 @@ import { GardenContext } from "../context"
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
+import { BuildResult, BuildStatus } from "./plugin"
 
 export interface BuildDependencyConfig {
   name: string,
@@ -25,7 +26,7 @@ export interface BuildDependencyConfig {
   copyDestination?: string // TODO: if we stick with this format, make mandatory if copy is provided
 }
 
-interface BuildConfig {
+export interface BuildConfig {
   // TODO: this should be a string array, to match other command specs
   command?: string,
   dependencies: BuildDependencyConfig[],
@@ -38,7 +39,7 @@ export interface TestSpec {
   timeout?: number
 }
 
-interface TestConfig {
+export interface TestConfig {
   [group: string]: TestSpec
 }
 
@@ -110,11 +111,11 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     return await this.ctx.getModuleBuildPath(this)
   }
 
-  async getBuildStatus() {
+  async getBuildStatus(): Promise<BuildStatus> {
     return this.ctx.getModuleBuildStatus(this)
   }
 
-  async build() {
+  async build(): Promise<BuildResult> {
     return this.ctx.buildModule(this)
   }
 

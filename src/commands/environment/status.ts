@@ -9,13 +9,13 @@
 import { Command, EnvironmentOption, ParameterValues } from "../base"
 import { GardenContext } from "../../context"
 
-const options = {
+export const options = {
   env: new EnvironmentOption({
     help: "The environment (and optionally namespace) to check",
   }),
 }
 
-type Opts = ParameterValues<typeof options>
+export type Opts = ParameterValues<typeof options>
 
 export class EnvironmentStatusCommand extends Command<typeof options> {
   name = "status"

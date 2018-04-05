@@ -18,7 +18,7 @@ export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
 
 export type ServiceProtocol = "http" | "https" | "tcp" | "udp"
 
-interface ServiceEndpoint {
+export interface ServiceEndpoint {
   protocol: ServiceProtocol
   hostname: string
   port?: number

@@ -12,6 +12,7 @@ import { GardenContext } from "../context"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 import { round } from "lodash"
+import { BuildResult } from "../types/plugin"
 
 export class BuildTask<T extends Module> extends Task {
   type = "build"
@@ -30,7 +31,7 @@ export class BuildTask<T extends Module> extends Task {
     return this.module.name
   }
 
-  async process() {
+  async process(): Promise<BuildResult> {
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",

@@ -13,13 +13,13 @@ import { ContainerModule, ContainerModuleConfig, ContainerServiceConfig } from "
 import { dumpYaml } from "../../util"
 import { DeployServiceParams, PluginActionParams } from "../../types/plugin"
 
-interface GoogleAppEngineServiceConfig extends ContainerServiceConfig {
+export interface GoogleAppEngineServiceConfig extends ContainerServiceConfig {
   project: string
 }
 
-interface GoogleAppEngineModuleConfig extends ContainerModuleConfig<GoogleAppEngineServiceConfig> { }
+export interface GoogleAppEngineModuleConfig extends ContainerModuleConfig<GoogleAppEngineServiceConfig> { }
 
-class GoogleAppEngineModule extends ContainerModule<GoogleAppEngineModuleConfig> { }
+export class GoogleAppEngineModule extends ContainerModule<GoogleAppEngineModuleConfig> { }
 
 // TODO: support built-in GAE types (not just custom/flex containers)
 export class GoogleAppEngineProvider extends GoogleCloudProviderBase<GoogleAppEngineModule> {

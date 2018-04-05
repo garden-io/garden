@@ -10,7 +10,7 @@ import { spawn } from "child_process"
 import { extend } from "lodash"
 import { spawnPty } from "../../util"
 
-interface GCloudParams {
+export interface GCloudParams {
   data?: Buffer,
   ignoreError?: boolean,
   silent?: boolean,
@@ -18,7 +18,7 @@ interface GCloudParams {
   cwd?: string,
 }
 
-interface GCloudOutput {
+export interface GCloudOutput {
   code: number,
   output: string,
   stdout?: string,

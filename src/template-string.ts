@@ -14,8 +14,8 @@ import { deepResolve } from "./util"
 import * as deepMap from "deep-map"
 import { GardenError } from "./exceptions"
 
-type StringOrStringPromise = Promise<string> | string
-type KeyResolver = (keyParts: string[]) => StringOrStringPromise
+export type StringOrStringPromise = Promise<string> | string
+export type KeyResolver = (keyParts: string[]) => StringOrStringPromise
 
 export interface TemplateStringContext {
   [type: string]: Primitive | KeyResolver | TemplateStringContext | undefined

@@ -21,7 +21,7 @@ export interface GoogleCloudServiceConfig extends ServiceConfig {
   project?: string
 }
 
-interface GoogleCloudModuleConfig extends ModuleConfig<GoogleCloudServiceConfig> { }
+export interface GoogleCloudModuleConfig extends ModuleConfig<GoogleCloudServiceConfig> { }
 
 export abstract class GoogleCloudModule extends Module<GoogleCloudModuleConfig> { }
 

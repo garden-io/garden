@@ -43,11 +43,11 @@ const DEFAULT_FILE_TRANSPORT_OPTIONS = {
 
 const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
 
-interface WriterConfig {
+export interface WriterConfig {
   level?: LogLevel
 }
 
-interface FileWriterConfig {
+export interface FileWriterConfig {
   level: LogLevel
   root: string
   filename?: string

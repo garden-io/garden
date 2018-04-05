@@ -17,7 +17,7 @@ import { duration } from "./util"
 import { LogSymbolType, EntryStyle } from "./types"
 import { LogEntry } from "./index"
 
-type Renderers = [() => string, any[]][]
+export type Renderers = [() => string, any[]][]
 
 /*** STYLE HELPERS ***/
 

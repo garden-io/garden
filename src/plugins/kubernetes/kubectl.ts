@@ -6,18 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { spawn } from "child_process"
+import { ChildProcess, spawn } from "child_process"
 import { extend } from "lodash"
 import { spawnPty } from "../../util"
 
-interface KubectlParams {
+export interface KubectlParams {
   data?: Buffer,
   ignoreError?: boolean,
   silent?: boolean,
   timeout?: number,
 }
 
-interface KubectlOutput {
+export interface KubectlOutput {
   code: number,
   output: string,
   stdout?: string,
@@ -118,7 +118,7 @@ export class Kubectl {
     return spawnPty("kubectl", this.prepareArgs(args), { silent, ignoreError, timeout })
   }
 
-  spawn(args: string[]) {
+  spawn(args: string[]): ChildProcess {
     return spawn("kubectl", this.prepareArgs(args))
   }
 

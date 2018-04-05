@@ -39,7 +39,7 @@ export interface ServiceVolumeSpec {
   hostPath?: string
 }
 
-interface ServiceHealthCheckSpec {
+export interface ServiceHealthCheckSpec {
   httpGet?: {
     path: string,
     port: number,

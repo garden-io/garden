@@ -19,11 +19,11 @@ import { sleep } from "../util"
 const imgcatPath = join(__dirname, "..", "..", "bin", "imgcat")
 const bannerPath = join(STATIC_DIR, "garden-banner-1-half.png")
 
-const options = {
+export const options = {
   env: new EnvironmentOption(),
 }
 
-type Opts = ParameterValues<typeof options>
+export type Opts = ParameterValues<typeof options>
 
 export class DevCommand extends Command<Opts> {
   name = "dev"

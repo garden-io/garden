@@ -139,12 +139,12 @@ export interface BuildStatus {
   ready: boolean
 }
 
-interface EnvironmentStatus {
+export interface EnvironmentStatus {
   configured: boolean
   detail?: any
 }
 
-interface ExecInServiceResult {
+export interface ExecInServiceResult {
   code: number
   output: string
   stdout?: string
@@ -161,7 +161,7 @@ export interface DeleteConfigResult {
   found: boolean
 }
 
-interface PluginActionOutputs<T extends Module = Module> {
+export interface PluginActionOutputs<T extends Module = Module> {
   parseModule: Promise<T>
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>

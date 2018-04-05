@@ -16,7 +16,7 @@ import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { GOOGLE_CLOUD_DEFAULT_REGION, GoogleCloudProviderBase } from "./base"
 import { PluginActionParams } from "../../types/plugin"
 
-interface GoogleCloudFunctionsServiceConfig extends ServiceConfig {
+export interface GoogleCloudFunctionsServiceConfig extends ServiceConfig {
   function: string,
   entrypoint?: string,
   path: string,

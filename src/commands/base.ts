@@ -10,7 +10,7 @@ import { GardenContext } from "../context"
 
 export class ValidationError extends Error { }
 
-interface ParameterConstructor<T> {
+export interface ParameterConstructor<T> {
   help: string,
   required?: boolean,
   alias?: string,
@@ -67,7 +67,7 @@ export class NumberParameter extends Parameter<number> {
   }
 }
 
-interface ChoicesConstructor extends ParameterConstructor<string> {
+export interface ChoicesConstructor extends ParameterConstructor<string> {
   choices: string[],
 }
 

@@ -9,7 +9,7 @@
 import { Command, EnvironmentOption, ParameterValues, StringParameter } from "../base"
 import { GardenContext } from "../../context"
 
-const configSetArgs = {
+export const configSetArgs = {
   key: new StringParameter({
     help: "The key of the configuration variable. Separate with dots to set a nested key (e.g. key.nested)",
     required: true,
@@ -20,14 +20,14 @@ const configSetArgs = {
   }),
 }
 
-const configSetOpts = {
+export const configSetOpts = {
   env: new EnvironmentOption({
     help: "Set the environment (and optionally namespace) where the config should be stored",
   }),
 }
 
-type SetArgs = ParameterValues<typeof configSetArgs>
-type SetOpts = ParameterValues<typeof configSetOpts>
+export type SetArgs = ParameterValues<typeof configSetArgs>
+export type SetOpts = ParameterValues<typeof configSetOpts>
 
 // TODO: allow reading key/value pairs from a file
 

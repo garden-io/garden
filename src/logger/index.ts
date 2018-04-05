@@ -37,12 +37,12 @@ const DEFAULT_CONFIGS: {[key in LoggerType]: LoggerConfig} = {
   },
 }
 
-interface LoggerConfig {
+export interface LoggerConfig {
   level: LogLevel
   writers?: Writer[]
 }
 
-interface LogEntryConstructor {
+export interface LogEntryConstructor {
   level: LogLevel
   opts: LogEntryOpts
   depth: number
@@ -64,10 +64,10 @@ function createLogEntry(level: LogLevel, opts: LogEntryOpts, parent: LogNode) {
   return new LogEntry(params)
 }
 
-type CreateLogEntry = (logOpts: LogEntryOpts) => LogEntry
-type UpdateLogEntry = (logOpts?: LogEntryOpts) => LogEntry
+export type CreateLogEntry = (logOpts: LogEntryOpts) => LogEntry
+export type UpdateLogEntry = (logOpts?: LogEntryOpts) => LogEntry
 
-abstract class LogNode {
+export abstract class LogNode {
   public root: RootLogNode
   public timestamp: number
   public level: LogLevel

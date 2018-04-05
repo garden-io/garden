@@ -10,11 +10,11 @@ import { flatten } from "lodash"
 
 import { LogEntryOpts } from "./types"
 
-interface Node {
+export interface Node {
   children: any[]
 }
 
-type LogOptsResolvers = {[K in keyof LogEntryOpts]?: Function}
+export type LogOptsResolvers = {[K in keyof LogEntryOpts]?: Function}
 
 // TODO Tail call optimization?
 export function getNodeListFromTree<T extends Node>(node: T): T[] {
