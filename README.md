@@ -93,6 +93,22 @@ the build locally.
 Every source file must include the contents of `static/license-header.txt` at the top. This is 
 automatically checked during CI. You can run the check with `npm run check-licenses` and you can
 automatically add the header to new sources using `npm run add-licenses`. 
+  
+### Release process
+
+We use [Release It!](https://github.com/webpro/release-it) to automate the release process.
+
+To set up, first make sure you're logged in to npm (`npm login`). You'll also need to get a 
+[Github token](https://github.com/settings/tokens) for the repository with "repo" access to 
+the repository ("admin" scope is not necessary) and expose it as an environment variable:
+
+    export GITHUB_TOKEN="f941e0..."
+    
+Then to start the release process, use any of the following commands:
+
+    npm run release-major  # for major (potentially breaking) updates, e.g. 2.0.0 
+    npm run release-minor  # for minor releases, e.g. 0.10.0
+    npm run release-patch  # for bugfix releases, e.g. 0.10.1 
 
 
 ## License
