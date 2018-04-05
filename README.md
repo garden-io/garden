@@ -46,7 +46,7 @@ If you've deployed the `hello-world` project, you can try querying the `/hello` 
 
 ## Developing the framework
 
-### Setting up your environment
+### Setting up your development environment
 
     ./bin/bootstrap-osx
     npm install
@@ -67,11 +67,15 @@ Also, you might like to add a couple of shorthands:
     alias g='garden'
     alias k='kubectl'
     
-
-
 ### Testing
 
     npm test
+    
+### License
+
+Every source file must include the contents of `static/license-header.txt` at the top. This is 
+automatically checked during CI. You can run the check with `npm run check-licenses` and you can
+automatically add the header to new sources using `npm run add-licenses`. 
   
 #### CI
 
