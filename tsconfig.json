@@ -3,7 +3,6 @@
     "allowJs": false,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
