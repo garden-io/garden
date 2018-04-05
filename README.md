@@ -46,6 +46,13 @@ If you've deployed the `hello-world` project, you can try querying the `/hello` 
 
 ## Developing the framework
 
+### Contributing guidelines
+
+We heartily welcome any form of contribution to the project, including issue reports, feature requests, 
+discussion, pull requests, feature requests and any type of feedback. We request that all contributors 
+adhere to the [Contributor Covenant](CODE_OF_CONDUCT.md) and work with us to make the collaboration and 
+community productive and fun for everyone :)
+
 ### Setting up your development environment
 
     ./bin/bootstrap-osx
@@ -69,14 +76,10 @@ Also, you might like to add a couple of shorthands:
     
 ### Testing
 
+Tests are run using `mocha`. To run the full test suite, including linting and other validation, simply run
+
     npm test
     
-### License
-
-Every source file must include the contents of `static/license-header.txt` at the top. This is 
-automatically checked during CI. You can run the check with `npm run check-licenses` and you can
-automatically add the header to new sources using `npm run add-licenses`. 
-  
 #### CI
 
 We use [Circle CI](https://circleci.com) for integration testing. Sometimes
@@ -86,3 +89,14 @@ updating or adding dependencies. You can use their
 is installed automatically by the `./bin/bootstrap-osx` script. Once you
 have it installed you can run `circleci build` in the repo root to test 
 the build locally.
+
+### License/copyright headers
+
+Every source file must include the contents of `static/license-header.txt` at the top. This is 
+automatically checked during CI. You can run the check with `npm run check-licenses` and you can
+automatically add the header to new sources using `npm run add-licenses`. 
+
+
+## License
+
+[Mozilla Public License 2.0 (MPL-2.0)](LICENSE.md)
