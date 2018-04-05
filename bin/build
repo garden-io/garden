@@ -4,7 +4,7 @@ set -e
 
 garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
 
-WATCH=''
+WATCH=""
 TARGET_DIR="build"
 
 for i in "$@"
@@ -13,20 +13,22 @@ case $i in
     -w*|--watch*)
     WATCH="-w"
     ;;
+    --dist*)
+    TARGET_DIR="dist"
+    ;;
 esac
 done
 
 cd ${garden_root}
 
-rm -rf build/bin || true
-rm -rf build/static || true
-mkdir -p build/src
+rm -rf ${TARGET_DIR}/bin || true
+rm -rf ${TARGET_DIR}/static || true
+mkdir -p ${TARGET_DIR}/src
 
-cp package.json build/
-cp package-lock.json build/
-cp -r bin build/bin
-cp -r static build/static
+cp package.json ${TARGET_DIR}/
+cp package-lock.json ${TARGET_DIR}/
 cp .snyk ${TARGET_DIR}/
+cp -r static ${TARGET_DIR}/static
 
-node_modules/.bin/pegjs -o build/src/template-string-parser.js src/template-string.pegjs
-node_modules/.bin/tsc ${WATCH} -p . --outDir build/src
+node_modules/.bin/pegjs -o ${TARGET_DIR}/src/template-string-parser.js src/template-string.pegjs
+node_modules/.bin/tsc ${WATCH} -p . --outDir ${TARGET_DIR}/src

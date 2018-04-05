@@ -90,6 +90,7 @@
     "check-licenses": "./bin/check-licenses",
     "clean": "git clean -x -f",
     "dev": "npm run build && cd build && npm link && cd .. && npm run watch",
+    "dist": "./bin/build --dist",
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
     "lint": "node_modules/.bin/tslint -p . && node_modules/.bin/tsfmt --verify",
     "posttest": "npm run lint && npm run check-licenses",
