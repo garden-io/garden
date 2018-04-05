@@ -60,14 +60,12 @@ community productive and fun for everyone :)
     
 ### Running a development version
 
-Set an alias in your shell to the `bin/garden` executable in your project. For example for zsh:
+Start the dev command in your console:
 
-    alias garden='~/my-code/garden/bin/garden'
+    npm run dev
     
-Then to keep the build up to date, you can keep an open shell with the compiler running and watching 
-for changes _(Note: you probably don't need this if you're running an IDE that supports TypeScript)_:
-
-    npm run watch
+This will do an initial development build, `npm link` it to your global npm folder, and then watch for 
+changes and auto-rebuild as you code. You can then run the `garden` command as normal. 
     
 Also, you might like to add a couple of shorthands:
 

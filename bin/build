@@ -5,6 +5,7 @@ set -e
 garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
 
 WATCH=''
+TARGET_DIR="build"
 
 for i in "$@"
 do
@@ -25,6 +26,7 @@ cp package.json build/
 cp package-lock.json build/
 cp -r bin build/bin
 cp -r static build/static
+cp .snyk ${TARGET_DIR}/
 
 node_modules/.bin/pegjs -o build/src/template-string-parser.js src/template-string.pegjs
 node_modules/.bin/tsc ${WATCH} -p . --outDir build/src

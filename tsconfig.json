@@ -21,6 +21,7 @@
     "src/**/*.ts"
   ],
   "exclude": [
+    "build",
     "node_modules"
   ]
 }
