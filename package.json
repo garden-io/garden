@@ -1,7 +1,7 @@
 {
-  "name": "garden",
-  "version": "0.0.0",
-  "description": "",
+  "name": "garden-cli",
+  "version": "0.0.1",
+  "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/garden-io/garden.git"
