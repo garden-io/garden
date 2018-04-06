@@ -10,7 +10,7 @@ import { ServiceStatus } from "../../types/service"
 import { join, relative, resolve } from "path"
 import * as Joi from "joi"
 import * as escapeStringRegexp from "escape-string-regexp"
-import { DeploymentError } from "../../exceptions"
+import { DeploymentError, PluginError } from "../../exceptions"
 import {
   gcfServicesSchema, GoogleCloudFunctionsModule,
 } from "../google/google-cloud-functions"
@@ -140,6 +140,12 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
 
   private async getEmulatorService(ctx: GardenContext) {
     const module = await ctx.resolveModule<ContainerModule>(emulatorModulePath)
+
+    if (!module) {
+      throw new PluginError(`Could not find Google Cloud Function emulator module`, {
+        emulatorModulePath,
+      })
+    }
 
     return ContainerService.factory(ctx, module, emulatorServiceName)
   }

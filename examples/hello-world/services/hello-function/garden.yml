@@ -1,9 +1,10 @@
-description: Hello world serverless function
-name: hello-function
-type: google-cloud-function
-services:
-  hello-function:
-    entrypoint: helloFunction
-test:
-  unit:
-    command: [npm, test]
+module:
+  description: Hello world serverless function
+  name: hello-function
+  type: google-cloud-function
+  services:
+    hello-function:
+      entrypoint: helloFunction
+  test:
+    unit:
+      command: [npm, test]

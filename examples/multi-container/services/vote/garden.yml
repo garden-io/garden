@@ -1,12 +1,13 @@
-description: voting service
-type: container
-services:
-  vote:
-    command: [python, app.py]
-    endpoints:
-      - paths: [/vote/]
-        containerPort: 80
-    ports:
-      - name: interface
-        protocol: TCP
-        containerPort: 80
+module:
+  description: voting service
+  type: container
+  services:
+    vote:
+      command: [python, app.py]
+      endpoints:
+        - paths: [/vote/]
+          containerPort: 80
+      ports:
+        - name: interface
+          protocol: TCP
+          containerPort: 80

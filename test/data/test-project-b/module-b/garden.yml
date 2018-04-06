@@ -1,13 +1,14 @@
-name: module-b
-type: generic
-services:
-  service-b:
-    endpoints:
-      - paths: [/path-b]
-        containerPort: 8080
+module:
+  name: module-b
+  type: generic
+  services:
+    service-b:
+      endpoints:
+        - paths: [/path-b]
+          containerPort: 8080
+      dependencies:
+        - service-a
+  build:
+    command: echo B
     dependencies:
-      - service-a
-build:
-  command: echo B
-  dependencies:
-    - module-a
+      - module-a

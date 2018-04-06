@@ -1,7 +1,8 @@
-description: Kubernetes dashboard configuration
-name: k8s-dashboard
-# TODO: add support for raw kubernetes specs as services
-type: kubernetes
-services:
-  kubernetes-dashboard:
-    specs: [dashboard.yml]
+module:
+  description: Kubernetes dashboard configuration
+  name: k8s-dashboard
+  # TODO: add support for raw kubernetes specs as services
+  type: kubernetes
+  services:
+    kubernetes-dashboard:
+      specs: [dashboard.yml]

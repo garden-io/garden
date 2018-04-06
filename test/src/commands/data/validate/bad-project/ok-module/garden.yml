@@ -1,4 +1,5 @@
-name: module-a
-type: generic
-build:
-  command: echo A
+module:
+  name: module-a
+  type: generic
+  build:
+    command: echo A

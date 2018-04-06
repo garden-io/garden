@@ -1,13 +1,14 @@
-name: module-b
-type: generic
-services:
-  service-b:
+module:
+  name: module-b
+  type: generic
+  services:
+    service-b:
+      dependencies:
+        - service-a
+  build:
+    command: echo B
     dependencies:
-      - service-a
-build:
-  command: echo B
-  dependencies:
-    - module-a
-test:
-  unit:
-    command: [echo, OK]
+      - module-a
+  test:
+    unit:
+      command: [echo, OK]

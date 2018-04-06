@@ -10,8 +10,8 @@ import { parse, relative, resolve } from "path"
 import Bluebird = require("bluebird")
 import { values, mapValues, fromPairs, toPairs } from "lodash"
 import * as Joi from "joi"
-import { loadModuleConfig, Module, TestSpec } from "./types/module"
-import { loadProjectConfig, ProjectConfig } from "./types/project-config"
+import { Module, ModuleConfigType, TestSpec } from "./types/module"
+import { ProjectConfig } from "./types/project"
 import { getIgnorer, scanDirectory } from "./util"
 import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
 import { ConfigurationError, NotFoundError, ParameterError, PluginError } from "./exceptions"
@@ -36,8 +36,9 @@ import { Environment, joiIdentifier, PrimitiveMap } from "./types/common"
 import { Service, ServiceContext, ServiceStatus } from "./types/service"
 import { TemplateStringContext, getTemplateContext, resolveTemplateStrings } from "./template-string"
 import { EntryStyle } from "./logger/types"
+import { loadConfig } from "./types/config"
 
-export interface ModuleMap { [key: string]: Module }
+export interface ModuleMap<T extends Module> { [key: string]: T }
 export interface ServiceMap { [key: string]: Service<any> }
 export interface ActionHandlerMap<T extends keyof PluginActions<any>> { [key: string]: PluginActions<any>[T] }
 
@@ -67,11 +68,11 @@ export class GardenContext {
   // because we're supporting plain-JS plugins as well.
   private environment: string
   private namespace: string
-  private modules: ModuleMap
+  private readonly modules: ModuleMap<any>
   private modulesScanned: boolean
-  private services: ServiceMap
+  private readonly services: ServiceMap
   private taskGraph: TaskGraph
-  private configKeyNamespaces: string[]
+  private readonly configKeyNamespaces: string[]
 
   vcs: VcsHandler
 
@@ -103,7 +104,15 @@ export class GardenContext {
   static async factory(projectRoot: string, { logger, plugins = [] }: ContextOpts = {}) {
     // const localConfig = new LocalConfig(projectRoot)
     const templateContext = await getTemplateContext()
-    const projectConfig = await resolveTemplateStrings(loadProjectConfig(projectRoot), templateContext)
+    const config = await resolveTemplateStrings(await loadConfig(projectRoot), templateContext)
+    const projectConfig = config.project
+
+    if (!projectConfig) {
+      throw new ConfigurationError(`Path ${projectRoot} does not contain a project configuration`, {
+        projectRoot,
+        config,
+      })
+    }
 
     const ctx = new GardenContext(projectRoot, projectConfig, logger)
 
@@ -311,7 +320,7 @@ export class GardenContext {
 
     for (const path of modulePaths) {
       const module = await this.resolveModule(path)
-      await this.addModule(module)
+      module && await this.addModule(module)
     }
 
     this.modulesScanned = true
@@ -363,7 +372,7 @@ export class GardenContext {
 
     // TODO: support git URLs
    */
-  async resolveModule<T extends Module = Module>(nameOrLocation: string): Promise<T> {
+  async resolveModule<T extends Module = Module>(nameOrLocation: string): Promise<T | null> {
     const parsedPath = parse(nameOrLocation)
 
     if (parsedPath.dir === "") {
@@ -381,10 +390,15 @@ export class GardenContext {
 
     // Looks like a path
     const path = resolve(this.projectRoot, nameOrLocation)
-    const config = await loadModuleConfig(path)
+    const config = await loadConfig(path)
+    const moduleConfig = <ModuleConfigType<T>>config.module
 
-    const parseHandler = this.getActionHandler("parseModule", config.type)
-    return parseHandler({ ctx: this, config })
+    if (!moduleConfig) {
+      return null
+    }
+
+    const parseHandler = this.getActionHandler("parseModule", moduleConfig.type)
+    return parseHandler({ ctx: this, config: moduleConfig })
   }
 
   async getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
