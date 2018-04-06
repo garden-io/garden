@@ -73,6 +73,12 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
 
   async getServiceStatus({ ctx, service }: GetServiceStatusParams<GoogleCloudFunctionsModule>): Promise<ServiceStatus> {
     const emulator = await this.getEmulatorService(ctx)
+    const emulatorStatus = await ctx.getServiceStatus(emulator)
+
+    if (emulatorStatus !== "ready") {
+      return { state: "stopped" }
+    }
+
     const result = await ctx.execInService(emulator, ["functions-emulator", "list"])
 
     // Regex fun. Yay.

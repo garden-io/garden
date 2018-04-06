@@ -74,17 +74,17 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     const defaultBackendService = await this.getDefaultBackendService(ctx)
     const dashboardService = await this.getDashboardService(ctx)
 
-    const ingressControllerStatus = await this.getServiceStatus({
+    const ingressControllerStatus = await this.checkDeploymentStatus({
       ctx,
       service: ingressControllerService,
       env: gardenEnv,
     })
-    const defaultBackendStatus = await this.getServiceStatus({
+    const defaultBackendStatus = await this.checkDeploymentStatus({
       ctx,
       service: defaultBackendService,
       env: gardenEnv,
     })
-    const dashboardStatus = await this.getServiceStatus({
+    const dashboardStatus = await this.checkDeploymentStatus({
       ctx,
       service: dashboardService,
       env: gardenEnv,
@@ -103,7 +103,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     const namespacesStatus = await this.coreApi().namespaces().get()
 
     for (const n of namespacesStatus.items) {
-      if (n.metadata.name === this.getNamespaceName(ctx) && n.status.phase === "Active") {
+      if (n.metadata.name === this.getNamespaceName(ctx, env) && n.status.phase === "Active") {
         statusDetail.namespaceReady = true
       }
 
@@ -125,6 +125,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   }
 
   async configureEnvironment({ ctx, env, logEntry }: ConfigureEnvironmentParams) {
+    // TODO: use Helm 3 when it's released instead of this custom/manual stuff
     const status = await this.getEnvironmentStatus({ ctx, env })
 
     if (status.configured) {
@@ -148,7 +149,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     if (!status.detail.namespaceReady) {
-      const ns = this.getNamespaceName(ctx)
+      const ns = this.getNamespaceName(ctx, env)
       logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
       await this.coreApi().namespaces.post({
         body: {
@@ -214,7 +215,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   async deployService(
     { ctx, service, env, serviceContext, exposePorts = false, logEntry }: DeployServiceParams<ContainerModule>,
   ) {
-    const namespace = this.getNamespaceName(ctx)
+    const namespace = this.getNamespaceName(ctx, env)
 
     const deployment = await createDeployment(service, serviceContext, exposePorts)
     await this.apply(deployment, { namespace })
@@ -233,7 +234,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       await this.apply(ingress, { namespace })
     }
 
-    await this.waitForDeployment(ctx, service, logEntry)
+    await this.waitForDeployment({ ctx, service, logEntry, env })
 
     return this.getServiceStatus({ ctx, service, env })
   }
@@ -246,7 +247,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
   async execInService({ ctx, service, env, command }: ExecInServiceParams<ContainerModule>) {
     const status = await this.getServiceStatus({ ctx, service, env })
-    const namespace = this.getNamespaceName(ctx)
+    const namespace = this.getNamespaceName(ctx, env)
 
     // TODO: this check should probably live outside of the plugin
     if (!status.state || status.state !== "ready") {
@@ -425,9 +426,12 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   //region Internal helpers
   //===========================================================================
 
-  private getNamespaceName(ctx: GardenContext) {
-    const env = ctx.getEnvironment()
-    return `garden--${ctx.projectName}--${env.namespace}`
+  private getNamespaceName(ctx: GardenContext, env?: Environment) {
+    const currentEnv = env || ctx.getEnvironment()
+    if (currentEnv.namespace === GARDEN_SYSTEM_NAMESPACE) {
+      return currentEnv.namespace
+    }
+    return `garden--${ctx.projectName}--${currentEnv.namespace}`
   }
 
   private getMetadataNamespaceName(ctx: GardenContext) {
@@ -455,7 +459,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       type: "container",
       path: dashboardModulePath,
       services: <{ [name: string]: ContainerServiceConfig }>{
-        dashboard: {
+        "kubernetes-dashboard": {
           daemon: false,
           dependencies: <string[]>[],
           endpoints: <ServiceEndpointSpec[]>[],
@@ -468,7 +472,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       test: {},
     })
 
-    return Service.factory(ctx, module, "dashboard")
+    return Service.factory(ctx, module, "kubernetes-dashboard")
   }
 
   protected getProjectHostname() {
@@ -482,12 +486,13 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   }
 
   async checkDeploymentStatus(
-    { ctx, service, resourceVersion }:
-      { ctx: GardenContext, service: ContainerService, resourceVersion?: number },
+    { ctx, service, resourceVersion, env }:
+      { ctx: GardenContext, service: ContainerService, resourceVersion?: number, env?: Environment },
   ): Promise<ServiceStatus> {
     const type = service.config.daemon ? "daemonsets" : "deployments"
-    const namespace = this.getNamespaceName(ctx)
     const hostname = this.getServiceHostname(ctx, service)
+
+    const namespace = this.getNamespaceName(ctx, env)
 
     const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
       // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
@@ -629,7 +634,10 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     return out
   }
 
-  async waitForDeployment(ctx: GardenContext, service: ContainerService, logEntry?: LogEntry) {
+  async waitForDeployment(
+    { ctx, service, logEntry, env }:
+      { ctx: GardenContext, service: ContainerService, logEntry?: LogEntry, env?: Environment },
+  ) {
     // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
     let loops = 0
     let resourceVersion
@@ -642,7 +650,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     while (true) {
       await sleep(2000 + 1000 * loops)
 
-      const status = await this.checkDeploymentStatus({ ctx, service, resourceVersion })
+      const status = await this.checkDeploymentStatus({ ctx, service, resourceVersion, env })
 
       if (status.lastError) {
         throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {

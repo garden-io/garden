@@ -98,7 +98,7 @@ export class LocalConfig {
   private async loadLocalConfig() {
     // TODO: cache config instead of loading from disk each time
     await this.ensureConfigFileExists()
-    return yaml.safeLoad(await readFile(this.configPath)) || {}
+    return yaml.safeLoad((await readFile(this.configPath)).toString()) || {}
   }
 
   private async saveLocalConfig(config: object) {
