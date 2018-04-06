@@ -9,7 +9,7 @@
 import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 
-import { Writer, FancyConsoleWriter } from "./writers"
+import { combine } from "./renderers"
 import {
   duration,
   getChildNodes,
@@ -23,7 +23,7 @@ import {
   LogEntryOpts,
   LogSymbolType,
 } from "./types"
-import { format } from "./renderers"
+import { FancyConsoleWriter, Writer } from "./writers"
 import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
@@ -64,8 +64,14 @@ function createLogEntry(level: LogLevel, opts: LogEntryOpts, parent: LogNode) {
   return new LogEntry(params)
 }
 
-export type CreateLogEntry = (logOpts: LogEntryOpts) => LogEntry
-export type UpdateLogEntry = (logOpts?: LogEntryOpts) => LogEntry
+export type CreateLogEntryParam = string | LogEntryOpts
+export type CreateLogEntry = (entryVal: CreateLogEntryParam) => LogEntry
+export type UpdateLogEntryParam = string | LogEntryOpts | undefined
+export type UpdateLogEntry = (entryVal?: UpdateLogEntryParam) => LogEntry
+
+function makeLogOpts(entryVal: CreateLogEntryParam | UpdateLogEntryParam): LogEntryOpts {
+  return typeof entryVal === "string" ? { msg: entryVal } : entryVal || {}
+}
 
 export abstract class LogNode {
   public root: RootLogNode
@@ -88,28 +94,28 @@ export abstract class LogNode {
     return node
   }
 
-  public silly: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
-    return this.addNode(LogLevel.silly, opts)
+  public silly: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
+    return this.addNode(LogLevel.silly, makeLogOpts(entryVal))
   }
 
-  public debug: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
-    return this.addNode(LogLevel.debug, opts)
+  public debug: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
+    return this.addNode(LogLevel.debug, makeLogOpts(entryVal))
   }
 
-  public verbose: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
-    return this.addNode(LogLevel.verbose, opts)
+  public verbose: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
+    return this.addNode(LogLevel.verbose, makeLogOpts(entryVal))
   }
 
-  public info: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
-    return this.addNode(LogLevel.info, opts)
+  public info: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
+    return this.addNode(LogLevel.info, makeLogOpts(entryVal))
   }
 
-  public warn: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
-    return this.addNode(LogLevel.warn, opts)
+  public warn: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
+    return this.addNode(LogLevel.warn, makeLogOpts(entryVal))
   }
 
-  public error: CreateLogEntry = (opts: LogEntryOpts): LogEntry => {
-    return this.addNode(LogLevel.error, { ...opts, entryStyle: EntryStyle.error })
+  public error: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
+    return this.addNode(LogLevel.error, { ...makeLogOpts(entryVal), entryStyle: EntryStyle.error })
   }
 
 }
@@ -171,32 +177,33 @@ export class LogEntry extends LogNode {
   }
 
   // Preserves status
-  public setState: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
-    this.deepSetState(opts, this.status)
+  public setState: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
+    this.deepSetState(makeLogOpts(entryVal), this.status)
     this.root.onGraphChange(this)
     return this
   }
 
-  public setDone: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
-    this.deepSetState(opts, EntryStatus.DONE)
+  public setDone: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
+    this.deepSetState(makeLogOpts(entryVal), EntryStatus.DONE)
     this.root.onGraphChange(this)
     return this
   }
 
-  public setSuccess: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
-    this.deepSetState({ ...opts, symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
+  // public setSuccess: UpdateLogEntry = (entryVal: CreateLogEntryParam = {}): LogEntry => {
+  public setSuccess: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
+    this.deepSetState({ ...makeLogOpts(entryVal), symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
     this.root.onGraphChange(this)
     return this
   }
 
-  public setError: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
-    this.deepSetState({ ...opts, symbol: LogSymbolType.error }, EntryStatus.ERROR)
+  public setError: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
+    this.deepSetState({ ...makeLogOpts(entryVal), symbol: LogSymbolType.error }, EntryStatus.ERROR)
     this.root.onGraphChange(this)
     return this
   }
 
-  public setWarn: UpdateLogEntry = (opts: LogEntryOpts = {}): LogEntry => {
-    this.deepSetState({ ...opts, symbol: LogSymbolType.warn }, EntryStatus.WARN)
+  public setWarn: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
+    this.deepSetState({ ...makeLogOpts(entryVal), symbol: LogSymbolType.warn }, EntryStatus.WARN)
     this.root.onGraphChange(this)
     return this
   }
@@ -240,22 +247,28 @@ export class RootLogNode extends LogNode {
     return getChildNodes(<any>this).filter(entry => !entry.originIsNotLogger())
   }
 
-  public header({ command, emoji }: { command: string, emoji?: string }): LogEntry {
-    const msg = format([
-      [() => chalk.bold.magenta(command), []],
-      [() => emoji ? " " + nodeEmoji.get(emoji) : "", []],
-      [() => "\n", []],
+  public header(
+    { command, emoji, level = LogLevel.verbose }: { command: string, emoji?: string, level?: LogLevel },
+  ): LogEntry {
+    const msg = combine([
+      [chalk.bold.magenta(command)],
+      [emoji ? " " + nodeEmoji.get(emoji) : ""],
+      ["\n"],
     ])
-    return this.verbose({ msg })
+    const lvlStr = LogLevel[level]
+    return this[lvlStr](msg)
   }
 
-  public finish({ showDuration = true }: { showDuration?: boolean } = {}): LogEntry {
-    const msg = format([
-      [() => `\n${nodeEmoji.get("sparkles")}  Finished`, []],
-      [() => showDuration ? ` in ${chalk.bold(duration(this.timestamp) + "s")}` : "!", []],
-      [() => "\n", []],
+  public finish(
+    { showDuration = true, level = LogLevel.verbose }: { showDuration?: boolean, level?: LogLevel } = {},
+  ): LogEntry {
+    const msg = combine([
+      [`\n${nodeEmoji.get("sparkles")}  Finished`],
+      [showDuration ? ` in ${chalk.bold(duration(this.timestamp) + "s")}` : "!"],
+      ["\n"],
     ])
-    return this.info({ msg })
+    const lvlStr = LogLevel[level]
+    return this[lvlStr](msg)
   }
 
   public stop(): void {
@@ -296,5 +309,5 @@ if (process.env.GARDEN_LOGGER_TYPE) {
 
   defaultLoggerType = type
   defaultLoggerConfig = DEFAULT_CONFIGS[type]
-  getLogger().debug({ msg: `Setting logger type to ${type} (from GARDEN_LOGGER_TYPE)` })
+  getLogger().debug(`Setting logger type to ${type} (from GARDEN_LOGGER_TYPE)`)
 }

@@ -48,7 +48,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
 
     const result = await deployServices(ctx, values(services), !!opts.force, !!opts["force-build"])
 
-    ctx.log.info({ msg: "" })
+    ctx.log.info("")
     ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green("Done!\n") })
 
     return result

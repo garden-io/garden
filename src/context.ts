@@ -470,7 +470,7 @@ export class GardenContext {
 
       await handler({ ctx: this, env, logEntry })
 
-      logEntry.setSuccess({ msg: "Configured" })
+      logEntry.setSuccess("Configured")
     })
     return this.getEnvironmentStatus()
   }

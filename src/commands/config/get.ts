@@ -38,7 +38,7 @@ export class ConfigGetCommand extends Command<typeof configGetArgs, typeof confi
     opts.env && ctx.setEnvironment(opts.env)
     const res = await ctx.getConfig(args.key.split("."))
 
-    ctx.log.info({ msg: res })
+    ctx.log.info(res)
 
     return { [args.key]: res }
   }

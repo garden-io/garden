@@ -41,7 +41,7 @@ export class ConfigDeleteCommand extends Command<typeof configDeleteArgs, typeof
     const res = await ctx.deleteConfig(args.key.split("."))
 
     if (res.found) {
-      ctx.log.info({ msg: `Deleted config key ${args.key}` })
+      ctx.log.info(`Deleted config key ${args.key}`)
     } else {
       throw new NotFoundError(`Could not find config key ${args.key}`, { key: args.key })
     }

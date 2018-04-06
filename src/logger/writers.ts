@@ -21,7 +21,7 @@ import {
 } from "./types"
 
 import {
-  format,
+  combine,
   leftPad,
   renderDuration,
   renderEmoji,
@@ -33,10 +33,22 @@ import {
 
 import { LogEntry, RootLogNode } from "./index"
 
+<<<<<<< Updated upstream
+=======
+const { combine: winstonCombine, timestamp, printf } = winston.format
+
+>>>>>>> Stashed changes
 const INTERVAL_DELAY = 100
 const spinnerStyle = chalk.cyan
 const DEFAULT_LOG_FILENAME = "development.log"
 const DEFAULT_FILE_TRANSPORT_OPTIONS = {
+<<<<<<< Updated upstream
+=======
+  format: winstonCombine(
+    timestamp(),
+    printf(info => `\n[${info.timestamp}] ${info.message}`),
+  ),
+>>>>>>> Stashed changes
   maxsize: 10000000, // 10 MB
   maxFiles: 1,
 }
@@ -132,7 +144,7 @@ function formatForConsole(entry: LogEntry): string {
       [renderDuration, [entry]],
     ]
   }
-  return format(renderers)
+  return combine(renderers)
 }
 
 export class BasicConsoleWriter extends Writer {

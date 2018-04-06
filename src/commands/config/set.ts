@@ -41,7 +41,7 @@ export class ConfigSetCommand extends Command<typeof configSetArgs, typeof confi
   async action(ctx: GardenContext, args: SetArgs, opts: SetOpts) {
     opts.env && ctx.setEnvironment(opts.env)
     await ctx.setConfig(args.key.split("."), args.value)
-    ctx.log.info({ msg: `Set config key ${args.key}` })
+    ctx.log.info(`Set config key ${args.key}`)
     return { ok: true }
   }
 }

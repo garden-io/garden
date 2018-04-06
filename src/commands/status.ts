@@ -46,7 +46,7 @@ export class StatusCommand extends Command<typeof options> {
     const yamlStatus = yaml.safeDump(status, { noRefs: true, skipInvalid: true })
 
     // TODO: do a nicer print of this by default and add --yaml/--json options (maybe globally) for exporting
-    ctx.log.info({ msg: highlightYaml(yamlStatus) })
+    ctx.log.info(highlightYaml(yamlStatus))
 
     return status
   }
