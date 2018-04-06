@@ -19,7 +19,7 @@ export type Opts = ParameterValues<typeof options>
 
 export class EnvironmentConfigureCommand extends Command<typeof options> {
   name = "configure"
-  alias = "c"
+  alias = "config"
   help = "Configures your environment"
 
   options = options
