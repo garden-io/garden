@@ -6,7 +6,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["es5", "es2015.promise", "es2016", "esnext", "esnext.asynciterable"],
+    "lib": ["es5", "es2015.promise", "es2016", "esnext", "esnext.asynciterable", "es2017", "dom"],
     "module": "commonjs",
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
