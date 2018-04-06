@@ -8,4 +8,5 @@ module:
         - name: data
           containerPath: /db-data
       ports:
-        - containerPort: 5432
+        db:
+          containerPort: 5432

@@ -8,7 +8,6 @@
 
 import { ContainerService, ContainerServiceConfig } from "../container"
 import { toPairs, extend } from "lodash"
-import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ServiceContext } from "../../types/service"
 
 const DEFAULT_CPU_REQUEST = 0.01
@@ -140,13 +139,18 @@ export async function createDeployment(
     }
 
     if (config.healthCheck.httpGet) {
-      container.readinessProbe.httpGet = config.healthCheck.httpGet
-      container.livenessProbe.httpGet = container.readinessProbe.httpGet
+      const httpGet: any = extend({}, config.healthCheck.httpGet)
+      httpGet.port = config.ports[httpGet.port].containerPort
+
+      container.readinessProbe.httpGet = httpGet
+      container.livenessProbe.httpGet = httpGet
     } else if (config.healthCheck.command) {
       container.readinessProbe.exec = { command: config.healthCheck.command.map(s => s.toString()) }
       container.livenessProbe.exec = container.readinessProbe.exec
     } else if (config.healthCheck.tcpPort) {
-      container.readinessProbe.tcpSocket = { port: config.healthCheck.tcpPort }
+      container.readinessProbe.tcpSocket = {
+        port: config.ports[config.healthCheck.tcpPort].containerPort,
+      }
       container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
     } else {
       throw new Error("Must specify type of health check when configuring health check.")
@@ -208,14 +212,16 @@ export async function createDeployment(
     container.volumeMounts = volumeMounts
   }
 
-  for (const port of config.ports) {
+  const ports = Object.values(config.ports)
+
+  for (const port of ports) {
     container.ports.push({
-      protocol: port.protocol || DEFAULT_PORT_PROTOCOL,
+      protocol: port.protocol,
       containerPort: port.containerPort,
     })
   }
 
-  if (config.daemon === true) {
+  if (config.daemon) {
     // this runs a pod on every node
     deployment.kind = "DaemonSet"
     deployment.spec.updateStrategy = {
@@ -223,12 +229,12 @@ export async function createDeployment(
     }
 
     if (exposePorts) {
-      for (const port of config.ports.filter(p => p.hostPort)) {
+      for (const port of ports.filter(p => p.hostPort)) {
         // For daemons we can expose host ports directly on the Pod, as opposed to only via the Service resource.
         // This allows us to choose any port.
         // TODO: validate that conflicting ports are not defined.
         container.ports.push({
-          protocol: port.protocol || DEFAULT_PORT_PROTOCOL,
+          protocol: port.protocol,
           containerPort: port.containerPort,
           hostPort: port.hostPort,
         })

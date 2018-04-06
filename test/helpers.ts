@@ -65,7 +65,6 @@ class TestPluginB extends TestPlugin {
 
 export const makeTestModule = (ctx, name = "test") => {
   return new TestModule(ctx, {
-    version: "0",
     type: "test",
     name,
     path: "bla",
@@ -102,6 +101,9 @@ export async function expectErrorType(fn: Function, type: string) {
   try {
     await fn()
   } catch (err) {
+    if (!err.type) {
+      throw new Error(`Expected GardenError with type ${type}, got: ${err}`)
+    }
     expect(err.type).to.equal(type)
     return
   }

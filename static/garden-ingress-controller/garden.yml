@@ -15,9 +15,10 @@ module:
       #  - --configmap=garden-system/nginx-configuration
       daemon: true
       ports:
-        - containerPort: 80
+        http:
+          containerPort: 80
           nodePort: 32000
       healthCheck:
         httpGet:
           path: /healthz
-          port: 80
+          port: http

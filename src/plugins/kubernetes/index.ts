@@ -19,8 +19,7 @@ import {
   TestModuleParams, TestResult,
 } from "../../types/plugin"
 import {
-  ContainerModule, ContainerService, ContainerServiceConfig, ServiceEndpointSpec,
-  ServicePortSpec, ServiceVolumeSpec,
+  ContainerModule, ContainerService, ServiceEndpointSpec,
 } from "../container"
 import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
@@ -36,7 +35,6 @@ import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
 import * as split from "split"
 import moment = require("moment")
-import { BuildDependencyConfig } from "../../types/module"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -458,17 +456,17 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       name: "garden-dashboard",
       type: "container",
       path: dashboardModulePath,
-      services: <{ [name: string]: ContainerServiceConfig }>{
+      services: {
         "kubernetes-dashboard": {
           daemon: false,
-          dependencies: <string[]>[],
-          endpoints: <ServiceEndpointSpec[]>[],
-          ports: <ServicePortSpec[]>[],
-          volumes: <ServiceVolumeSpec[]>[],
+          dependencies: [],
+          endpoints: [],
+          ports: {},
+          volumes: [],
         },
       },
       variables: {},
-      build: { dependencies: <BuildDependencyConfig[]>[] },
+      build: { dependencies: [] },
       test: {},
     })
 

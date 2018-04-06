@@ -1,0 +1,7 @@
+project:
+  name: container-module-test-project
+  environments:
+    local:
+      providers:
+        test:
+          type: test-plugin

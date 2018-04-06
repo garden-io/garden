@@ -6,7 +6,8 @@ module:
   services:
     default-backend:
       ports:
-        - containerPort: 8080
+        http:
+          containerPort: 8080
       # restart: Always
       healthCheck:
-        tcpPort: 8080
+        tcpPort: http

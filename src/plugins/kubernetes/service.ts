@@ -7,13 +7,12 @@
  */
 
 import { ContainerService } from "../container"
-import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 
 export async function createServices(service: ContainerService, exposePorts: boolean) {
   const services: any = []
   const version = await service.module.getVersion()
 
-  const addService = (name: string, type: string, ports: any[]) => {
+  const addService = (name: string, type: string, servicePorts: any[]) => {
     services.push({
       apiVersion: "v1",
       kind: "Service",
@@ -25,7 +24,7 @@ export async function createServices(service: ContainerService, exposePorts: boo
         },
       },
       spec: {
-        ports,
+        ports: servicePorts,
         selector: {
           service: service.name,
         },
@@ -36,13 +35,14 @@ export async function createServices(service: ContainerService, exposePorts: boo
 
   // first add internally exposed (ClusterIP) service
   const internalPorts: any = []
+  const ports = Object.entries(service.config.ports)
 
-  for (let port of service.config.ports) {
+  for (const [portName, portSpec] of ports) {
     internalPorts.push({
-      name: port.name || "default",
-      protocol: port.protocol || DEFAULT_PORT_PROTOCOL,
-      targetPort: port.containerPort,
-      port: port.containerPort,
+      name: portName,
+      protocol: portSpec.protocol,
+      targetPort: portSpec.containerPort,
+      port: portSpec.containerPort,
     })
   }
 
@@ -53,15 +53,15 @@ export async function createServices(service: ContainerService, exposePorts: boo
   // optionally add a NodePort service for externally open ports, if applicable
   // TODO: explore nicer ways to do this
   if (exposePorts) {
-    const exposedPorts = service.config.ports.filter(p => p.nodePort)
+    const exposedPorts = ports.filter(([_, portSpec]) => portSpec.nodePort)
 
     if (exposedPorts.length > 0) {
-      addService(service.name + "-nodeport", "NodePort", exposedPorts.map(port => ({
+      addService(service.name + "-nodeport", "NodePort", exposedPorts.map(([portName, portSpec]) => ({
         // TODO: do the parsing and defaults when loading the yaml
-        name: port.name || "default",
-        protocol: port.protocol || DEFAULT_PORT_PROTOCOL,
-        port: port.containerPort,
-        nodePort: port.nodePort,
+        name: portName,
+        protocol: portSpec.protocol,
+        port: portSpec.containerPort,
+        nodePort: portSpec.nodePort,
       })))
     }
   }

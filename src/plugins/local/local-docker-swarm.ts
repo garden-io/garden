@@ -104,7 +104,7 @@ export class LocalDockerSwarmProvider implements Plugin<ContainerModule> {
     ctx.log.info({ section: service.name, msg: `Deploying version ${version}` })
 
     const identifier = await service.module.getImageId()
-    const ports = service.config.ports.map(p => {
+    const ports = Object.values(service.config.ports).map(p => {
       const port: any = {
         Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
         TargetPort: p.containerPort,
