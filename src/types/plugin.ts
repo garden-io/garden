@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { Module, TestSpec } from "./module"
 import { GardenContext } from "../context"
 import { Environment, Primitive, PrimitiveMap } from "./common"
@@ -131,12 +139,12 @@ export interface BuildStatus {
   ready: boolean
 }
 
-interface EnvironmentStatus {
+export interface EnvironmentStatus {
   configured: boolean
   detail?: any
 }
 
-interface ExecInServiceResult {
+export interface ExecInServiceResult {
   code: number
   output: string
   stdout?: string
@@ -153,7 +161,7 @@ export interface DeleteConfigResult {
   found: boolean
 }
 
-interface PluginActionOutputs<T extends Module = Module> {
+export interface PluginActionOutputs<T extends Module = Module> {
   parseModule: Promise<T>
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>

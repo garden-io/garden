@@ -1,22 +1,30 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { Command, EnvironmentOption, ParameterValues, StringParameter } from "../base"
 import { GardenContext } from "../../context"
 import { NotFoundError } from "../../exceptions"
 
-const configDeleteArgs = {
+export const configDeleteArgs = {
   key: new StringParameter({
     help: "The key of the configuration variable",
     required: true,
   }),
 }
 
-const configDeleteOpts = {
+export const configDeleteOpts = {
   env: new EnvironmentOption({
     help: "Set the environment (and optionally namespace) to delete the config variable from",
   }),
 }
 
-type DeleteArgs = ParameterValues<typeof configDeleteArgs>
-type DeleteOpts = ParameterValues<typeof configDeleteOpts>
+export type DeleteArgs = ParameterValues<typeof configDeleteArgs>
+export type DeleteOpts = ParameterValues<typeof configDeleteOpts>
 
 // TODO: add --all option to remove all configs
 

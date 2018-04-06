@@ -1,22 +1,22 @@
 {
-  "name": "garden",
-  "version": "0.0.0",
-  "description": "",
+  "name": "garden-cli",
+  "version": "0.0.1",
+  "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/garden-io/garden.git"
   },
-  "author": "",
-  "license": "UNLICENSED",
+  "author": "Garden Technologies, Inc. <info@garden.io>",
+  "license": "MPL-2.0",
   "engines": {
     "node": ">=8.0.0",
     "npm": ">=5.0.0"
   },
   "preferGlobal": true,
-  "bin": "./src/bin/garden.js",
+  "bin": {
+    "garden": "./src/bin/garden.js"
+  },
   "dependencies": {
-    "@google-cloud/functions-emulator": "^1.0.0-alpha.29",
-    "@types/fs-extra": "^5.0.1",
     "async-exit-hook": "^2.0.1",
     "axios": "^0.17.1",
     "bluebird": "^3.5.1",
@@ -57,6 +57,7 @@
     "@types/bluebird": "^3.5.18",
     "@types/chai": "^4.1.0",
     "@types/dockerode": "^2.5.3",
+    "@types/fs-extra": "^5.0.1",
     "@types/has-ansi": "^3.0.0",
     "@types/joi": "^13.0.4",
     "@types/klaw": "^2.1.1",
@@ -69,30 +70,41 @@
     "@types/yargs": "^11.0.0",
     "chai": "^4.1.2",
     "json-schema-to-typescript": "^5.2.2",
+    "license-checker": "^18.0.0",
     "mocha": "^4.1.0",
     "nock": "^9.1.6",
     "nodetree": "0.0.3",
     "pegjs": "^0.10.0",
     "testdouble": "^3.5.2",
     "testdouble-chai": "^0.5.0",
-    "ts-node": "^4.1.0",
     "tmp-promise": "^1.0.4",
+    "ts-node": "^4.1.0",
     "tslint": "^5.8.0",
     "tslint-microsoft-contrib": "^5.0.1",
     "typescript": "^2.7.2",
     "typescript-formatter": "^7.0.1"
   },
   "scripts": {
+    "add-licenses": "./bin/add-licenses",
     "build": "./bin/build",
+    "check-licenses": "./bin/check-licenses",
     "clean": "git clean -x -f",
+    "dev": "npm run build && cd build && npm link && cd .. && npm run watch",
+    "dist": "./bin/build --dist",
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
     "lint": "node_modules/.bin/tslint -p . && node_modules/.bin/tsfmt --verify",
-    "posttest": "npm run lint",
-    "test": "npm run build && node_modules/.bin/mocha",
-    "update-submodules": "git submodule update --init --recursive --jobs 4",
-    "watch": "npm run build -- -w",
+    "posttest": "npm run lint && npm run check-licenses",
+    "prepare": "npm run snyk-protect",
+    "pretest": "npm run build",
+    "preversion": "npm test",
+    "release": "release-it",
+    "release-major": "npm run release -- major",
+    "release-minor": "npm run release -- minor",
+    "release-patch": "npm run release -- patch",
     "snyk-protect": "snyk protect",
-    "prepare": "npm run snyk-protect"
+    "test": "node_modules/.bin/mocha",
+    "update-submodules": "git submodule update --init --recursive --jobs 4",
+    "watch": "npm run build -- -w"
   },
   "snyk": true
 }

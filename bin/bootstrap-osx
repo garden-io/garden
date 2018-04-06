@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="git kubectl stern rsync"
+BREW_DEPS="cmake git kubectl stern rsync ruby"
 
 brew update
 brew install ${BREW_DEPS}
@@ -16,12 +16,11 @@ gcloud components install beta
 # install nvm and node
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
 nvm install 9.4
-nvm install 6.11
 nvm alias default 9.4
 
-# install/update global npm packages
-nvm exec 6.11 npm install -g @google-cloud/functions-emulator
+# install/update global packages
 npm install -g tslint typescript-formatter
+gem install copyright-header
 
 # install CircleCI CLI
 curl -o /usr/local/bin/circleci https://circle-downloads.s3.amazonaws.com/releases/build_agent_wrapper/circleci

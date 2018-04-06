@@ -1,9 +1,18 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { Task } from "../task-graph"
 import { Module } from "../types/module"
 import { GardenContext } from "../context"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 import { round } from "lodash"
+import { BuildResult } from "../types/plugin"
 
 export class BuildTask<T extends Module> extends Task {
   type = "build"
@@ -22,7 +31,7 @@ export class BuildTask<T extends Module> extends Task {
     return this.module.name
   }
 
-  async process() {
+  async process(): Promise<BuildResult> {
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",

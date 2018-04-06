@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import * as cliCursor from "cli-cursor"
 import * as elegantSpinner from "elegant-spinner"
 import * as logUpdate from "log-update"
@@ -35,11 +43,11 @@ const DEFAULT_FILE_TRANSPORT_OPTIONS = {
 
 const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
 
-interface WriterConfig {
+export interface WriterConfig {
   level?: LogLevel
 }
 
-interface FileWriterConfig {
+export interface FileWriterConfig {
   level: LogLevel
   root: string
   filename?: string

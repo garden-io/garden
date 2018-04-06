@@ -1,13 +1,21 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { Command, EnvironmentOption, ParameterValues } from "../base"
 import { GardenContext } from "../../context"
 
-const options = {
+export const options = {
   env: new EnvironmentOption({
     help: "Set the environment (and optionally namespace) to configure",
   }),
 }
 
-type Opts = ParameterValues<typeof options>
+export type Opts = ParameterValues<typeof options>
 
 export class EnvironmentConfigureCommand extends Command<typeof options> {
   name = "configure"

@@ -3,7 +3,9 @@
 set -e
 
 garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
-garden_bin=${garden_root}/build/bin/garden
+garden_bin=${garden_root}/build/src/bin/garden.js
+
+chmod +x ${garden_bin}
 
 export GARDEN_LOGGER_TYPE=test
 

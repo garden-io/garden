@@ -19,8 +19,10 @@ ts-node-*
 
 # Compiled files
 build/
+dist/
 examples/**/app.yaml
 src/**/*.js
 src/**/*.map
+src/**/*.d.ts
 test/**/*.js
 test/**/*.map

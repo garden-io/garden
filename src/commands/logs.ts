@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import chalk from "chalk"
@@ -7,22 +15,22 @@ import { values } from "lodash"
 import { Service } from "../types/service"
 import Stream from "ts-stream"
 
-const logsArgs = {
+export const logsArgs = {
   service: new StringParameter({
     help: "The name of the service(s) to logs (skip to logs all services). " +
       "Use comma as separator to specify multiple services.",
   }),
 }
 
-const logsOpts = {
+export const logsOpts = {
   env: new EnvironmentOption(),
   tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s)", alias: "t" }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
 }
 
-type Args = ParameterValues<typeof logsArgs>
-type Opts = ParameterValues<typeof logsOpts>
+export type Args = ParameterValues<typeof logsArgs>
+export type Opts = ParameterValues<typeof logsOpts>
 
 export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   name = "logs"

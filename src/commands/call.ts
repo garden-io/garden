@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
@@ -8,21 +16,21 @@ import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
 import { pick } from "lodash"
 
-const callArgs = {
+export const callArgs = {
   serviceAndPath: new StringParameter({
     help: "The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath)",
     required: true,
   }),
 }
 
-const options = {
+export const options = {
   env: new EnvironmentOption({
     help: "The environment (and optionally namespace) to call to",
   }),
 }
 
-type Args = ParameterValues<typeof callArgs>
-type Opts = ParameterValues<typeof options>
+export type Args = ParameterValues<typeof callArgs>
+export type Opts = ParameterValues<typeof options>
 
 export class CallCommand extends Command<typeof callArgs> {
   name = "call"

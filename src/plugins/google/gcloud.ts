@@ -1,8 +1,16 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { spawn } from "child_process"
 import { extend } from "lodash"
 import { spawnPty } from "../../util"
 
-interface GCloudParams {
+export interface GCloudParams {
   data?: Buffer,
   ignoreError?: boolean,
   silent?: boolean,
@@ -10,7 +18,7 @@ interface GCloudParams {
   cwd?: string,
 }
 
-interface GCloudOutput {
+export interface GCloudOutput {
   code: number,
   output: string,
   stdout?: string,

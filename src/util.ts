@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import Bluebird = require("bluebird")
 import * as pty from "node-pty"
 import * as exitHook from "async-exit-hook"
@@ -16,7 +24,7 @@ import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
 
-type HookCallback = (callback?: () => void) => void
+export type HookCallback = (callback?: () => void) => void
 
 const exitHooks: HookCallback[] = []
 
@@ -31,12 +39,12 @@ export function shutdown(code) {
   }
 }
 
-type RsyncStdIOCallback = () => void
+export type RsyncStdIOCallback = () => void
 
-type RsyncErrorCallback = (error: Error, code: string, cmd: string) => void
+export type RsyncErrorCallback = (error: Error, code: string, cmd: string) => void
 
 // Note: Rsync instances from the rsync npm module fit this interface.
-interface RsyncCommand {
+export interface RsyncCommand {
   execute: (
     errorCallback: RsyncErrorCallback,
     stdoutHandler?: RsyncErrorCallback,
@@ -142,20 +150,20 @@ export async function sleep(msec) {
   return new Promise(resolve => setTimeout(resolve, msec))
 }
 
-interface SpawnParams {
+export interface SpawnParams {
   timeout?: number
   cwd?: string
   data?: Buffer
   ignoreError?: boolean
 }
 
-interface SpawnPtyParams extends SpawnParams {
+export interface SpawnPtyParams extends SpawnParams {
   silent?: boolean
   tty?: boolean
   bufferOutput?: boolean
 }
 
-interface SpawnOutput {
+export interface SpawnOutput {
   code: number
   output: string
   stdout?: string

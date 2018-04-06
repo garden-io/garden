@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 
@@ -29,12 +37,12 @@ const DEFAULT_CONFIGS: {[key in LoggerType]: LoggerConfig} = {
   },
 }
 
-interface LoggerConfig {
+export interface LoggerConfig {
   level: LogLevel
   writers?: Writer[]
 }
 
-interface LogEntryConstructor {
+export interface LogEntryConstructor {
   level: LogLevel
   opts: LogEntryOpts
   depth: number
@@ -56,10 +64,10 @@ function createLogEntry(level: LogLevel, opts: LogEntryOpts, parent: LogNode) {
   return new LogEntry(params)
 }
 
-type CreateLogEntry = (logOpts: LogEntryOpts) => LogEntry
-type UpdateLogEntry = (logOpts?: LogEntryOpts) => LogEntry
+export type CreateLogEntry = (logOpts: LogEntryOpts) => LogEntry
+export type UpdateLogEntry = (logOpts?: LogEntryOpts) => LogEntry
 
-abstract class LogNode {
+export abstract class LogNode {
   public root: RootLogNode
   public timestamp: number
   public level: LogLevel

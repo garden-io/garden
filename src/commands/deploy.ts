@@ -1,18 +1,27 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import { DeployTask } from "../tasks/deploy"
 import { values } from "lodash"
 import { Service } from "../types/service"
 import chalk from "chalk"
+import { TaskResults } from "../task-graph"
 
-const deployArgs = {
+export const deployArgs = {
   service: new StringParameter({
     help: "The name of the service(s) to deploy (skip to deploy all services). " +
       "Use comma as separator to specify multiple services.",
   }),
 }
 
-const deployOpts = {
+export const deployOpts = {
   env: new EnvironmentOption({
     help: "Set the environment (and optionally namespace) to deploy to",
   }),
@@ -20,8 +29,8 @@ const deployOpts = {
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)" }),
 }
 
-type Args = ParameterValues<typeof deployArgs>
-type Opts = ParameterValues<typeof deployOpts>
+export type Args = ParameterValues<typeof deployArgs>
+export type Opts = ParameterValues<typeof deployOpts>
 
 export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts> {
   name = "deploy"
@@ -30,7 +39,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   arguments = deployArgs
   options = deployOpts
 
-  async action(ctx: GardenContext, args: Args, opts: Opts) {
+  async action(ctx: GardenContext, args: Args, opts: Opts): Promise<TaskResults> {
     ctx.log.header({ emoji: "rocket", command: "Deploy" })
 
     opts.env && ctx.setEnvironment(opts.env)

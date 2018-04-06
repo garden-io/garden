@@ -1,0 +1,209 @@
+#
+# Copyright Header - A utility to manipulate copyright headers on source code files
+# Copyright (C) 2012-2017 Erik Osterman <e@osterman.com>
+#
+# This file is part of Copyright Header.
+#
+# Copyright Header is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Copyright Header is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Copyright Header.  If not, see <http://www.gnu.org/licenses/>.
+#
+ruby:
+  ext: ['.rb', '.rake']
+  after: ['^#!', '^#.*encoding:']
+  comment:
+    open:   '#\n'
+    close:  '#\n'
+    prefix: '# '
+
+perl:
+  ext: ['.pl']
+  after: ['^#!', '^#.*encoding:']
+  comment:
+    open:   '#\n'
+    close:  '#\n'
+    prefix: '# '
+
+# Support PEP 0263 comments:
+# coding=<encoding name>
+# -*- coding: <encoding name> -*-
+# vim: set fileencoding=<encoding name> :
+python:
+  ext: ['.py']
+  after: ['^#!', '^#.*coding:', '^#.*coding=', '^#.*fileencoding=']
+  comment:
+    open:   '\n'
+    close:  '\n'
+    prefix: '# '
+
+html:
+  ext: ['.html', '.htm', '.xhtml']
+  comment:
+    open:   '<!--\n'
+    close:  '-->\n'
+    prefix: '    '
+
+php:
+  ext: ['.php']
+  after: [ '^#!' ]
+  comment:
+    open:   '<?php \n/*\n'
+    close:  ' */ ?>\n'
+    prefix: ' * '
+
+javacript:
+  ext: ['.js', '.jsx', '.ts']
+  comment:
+    open:   '/*\n'
+    close:  ' */\n\n'
+    prefix: ' * '
+
+css:
+  ext: ['.css']
+  comment:
+    open:   '/*\n'
+    close:  ' */\n\n'
+    prefix: ' * '
+
+c:
+  ext: ['.c', '.h']
+  comment:
+    open:   '/*'
+    close:  ' */\n\n'
+    prefix: ' * '
+
+cpp:
+  ext: ['.cpp', '.hpp', '.cc', '.hh']
+  comment:
+    open:   '//\n'
+    close:  '//\n\n'
+    prefix: '// '
+
+java:
+  ext: ['.java']
+  comment:
+    open:   '/*\n'
+    close:  ' */\n\n'
+    prefix: ' * '
+
+golang:
+  ext: ['.go']
+  comment:
+    open:   '/*\n'
+    close:  ' */\n\n'
+    prefix: ' * '
+
+groovy:
+  ext: ['.groovy']
+  comment:
+    open:   '/*\n'
+    close:  ' */\n\n'
+    prefix: ' * '
+
+haml:
+  ext: ['.haml', '.hamlc']
+  comment:
+    open:   '-#\n'
+    close:  '-#\n'
+    prefix: '-# '
+
+coffee:
+  ext: ['.coffee']
+  comment:
+    open:   '###\n'
+    close:  '###\n'
+    prefix: ''
+
+# M4 macro language, use #, not dnl
+m4:
+  ext:  ['.m4']
+  comment:
+    open:   '#\n'
+    close:  '#\n'
+    prefix: '# '
+
+# Most shells, really
+shell:
+  ext:  ['.sh']
+  after: ['^#!']
+  comment:
+    open:   '#\n'
+    close:  '#\n'
+    prefix: '# '
+
+# Use "-- " to make sure e.g. MySQL understands it
+sql:
+  ext:  ['.sql']
+  comment:
+    open:   '-- \n'
+    close:  '-- \n'
+    prefix: '-- '
+
+# XML is *not* the same as HTML, and the comments need to go after a
+# preprocessing directive, if present.
+# FIXME: only supports single line directives
+xml:
+  ext: ['.xml', '.xsd', '.mxml']
+  after: ['^<\?']
+  comment:
+    open:   '<!--\n'
+    close:  '-->\n'
+    prefix: '    '
+
+yaml:
+  ext:  ['.yml', '.yaml']
+  comment:
+    open:   '#\n'
+    close:  '#\n'
+    prefix: '# '
+
+action_script:
+  ext: ['.as']
+  comment:
+    open:   '//\n'
+    close:  '//\n\n'
+    prefix: '// '
+
+sass:
+  ext: ['.sass', '.scss']
+  comment:
+    open:   '/*\n'
+    close:  ' */\n\n'
+    prefix: ' * '
+
+verilog:
+  ext: ['.v', '.sv']
+  comment:
+    open:   '//\n'
+    close:  '//\n\n'
+    prefix: '// '
+
+vhdl:
+  ext: ['.vhd']
+  comment:
+    open:   '--\n'
+    close:  '--\n\n'
+    prefix: '-- '
+
+elm:
+  ext: ['.elm']
+  comment:
+    open: '{-\n'
+    close: '-}\n\n'
+    prefix: '  '
+
+swift:
+  ext: ['.swift']
+  comment:
+    open:   '/*\n'
+    close:  ' */\n\n'
+    prefix: ' * '

@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { readFileSync } from "fs"
 import { resolve } from "path"
 import Bluebird = require("bluebird")
@@ -6,8 +14,8 @@ import { deepResolve } from "./util"
 import * as deepMap from "deep-map"
 import { GardenError } from "./exceptions"
 
-type StringOrStringPromise = Promise<string> | string
-type KeyResolver = (keyParts: string[]) => StringOrStringPromise
+export type StringOrStringPromise = Promise<string> | string
+export type KeyResolver = (keyParts: string[]) => StringOrStringPromise
 
 export interface TemplateStringContext {
   [type: string]: Primitive | KeyResolver | TemplateStringContext | undefined

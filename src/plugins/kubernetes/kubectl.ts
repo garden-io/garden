@@ -1,15 +1,23 @@
-import { spawn } from "child_process"
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChildProcess, spawn } from "child_process"
 import { extend } from "lodash"
 import { spawnPty } from "../../util"
 
-interface KubectlParams {
+export interface KubectlParams {
   data?: Buffer,
   ignoreError?: boolean,
   silent?: boolean,
   timeout?: number,
 }
 
-interface KubectlOutput {
+export interface KubectlOutput {
   code: number,
   output: string,
   stdout?: string,
@@ -110,7 +118,7 @@ export class Kubectl {
     return spawnPty("kubectl", this.prepareArgs(args), { silent, ignoreError, timeout })
   }
 
-  spawn(args: string[]) {
+  spawn(args: string[]): ChildProcess {
     return spawn("kubectl", this.prepareArgs(args))
   }
 

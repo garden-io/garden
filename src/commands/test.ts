@@ -1,18 +1,27 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
 import { GardenContext } from "../context"
 import { values, padEnd } from "lodash"
 import { TestTask } from "../tasks/test"
 import { splitFirst } from "../util"
 import chalk from "chalk"
+import { TaskResults } from "../task-graph"
 
-const testArgs = {
+export const testArgs = {
   module: new StringParameter({
     help: "The name of the module(s) to deploy (skip to test all modules). " +
       "Use comma as separator to specify multiple modules.",
   }),
 }
 
-const testOpts = {
+export const testOpts = {
   env: new EnvironmentOption(),
   group: new StringParameter({
     help: "Only run tests with the specfied group (e.g. unit or integ)",
@@ -22,8 +31,8 @@ const testOpts = {
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)" }),
 }
 
-type Args = ParameterValues<typeof testArgs>
-type Opts = ParameterValues<typeof testOpts>
+export type Args = ParameterValues<typeof testArgs>
+export type Opts = ParameterValues<typeof testOpts>
 
 export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   name = "test"
@@ -32,7 +41,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   arguments = testArgs
   options = testOpts
 
-  async action(ctx: GardenContext, args: Args, opts: Opts) {
+  async action(ctx: GardenContext, args: Args, opts: Opts): Promise<TaskResults> {
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 

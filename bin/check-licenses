@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+# check dependency licenses
+node_modules/.bin/license-checker --failOn GPL --summary
+
+if [[ $? != 0 ]]; then
+    exit 1
+fi
+
+# make sure no source files are missing license headers
+updated=$(./bin/add-licenses --dry-run 2>&1 >/dev/null | grep UPDATE)
+
+if [[ $updated != "" ]] ; then
+    echo "Some files are missing licenses:"
+    printf $(echo $updated | sed 's/^UPDATE //' | sed 's/\[dry-run\]//')
+    exit 1
+fi

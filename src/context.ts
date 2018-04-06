@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { parse, relative, resolve } from "path"
 import Bluebird = require("bluebird")
 import { values, mapValues, fromPairs, toPairs } from "lodash"
@@ -10,28 +18,36 @@ import { ConfigurationError, NotFoundError, ParameterError, PluginError } from "
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
-import { Task, TaskGraph } from "./task-graph"
+import { Task, TaskGraph, TaskResults } from "./task-graph"
 import { getLogger, LogEntry, RootLogNode } from "./logger"
 import {
-  BuildStatus, pluginActionNames, PluginActions, PluginFactory, Plugin,
+  BuildStatus,
+  pluginActionNames,
+  PluginActions,
+  PluginFactory,
+  Plugin,
+  BuildResult,
+  TestResult,
+  ExecInServiceResult,
+  DeleteConfigResult,
 } from "./types/plugin"
 import { GenericModuleHandler } from "./plugins/generic"
-import { Environment, joiIdentifier } from "./types/common"
-import { Service, ServiceContext } from "./types/service"
+import { Environment, joiIdentifier, PrimitiveMap } from "./types/common"
+import { Service, ServiceContext, ServiceStatus } from "./types/service"
 import { TemplateStringContext, getTemplateContext, resolveTemplateStrings } from "./template-string"
 import { EntryStyle } from "./logger/types"
 
-interface ModuleMap { [key: string]: Module }
-interface ServiceMap { [key: string]: Service<any> }
-interface ActionHandlerMap<T extends keyof PluginActions<any>> { [key: string]: PluginActions<any>[T] }
+export interface ModuleMap { [key: string]: Module }
+export interface ServiceMap { [key: string]: Service<any> }
+export interface ActionHandlerMap<T extends keyof PluginActions<any>> { [key: string]: PluginActions<any>[T] }
 
-type PluginActionMap = {
+export type PluginActionMap = {
   [A in keyof PluginActions<any>]: {
     [pluginName: string]: PluginActions<any>[A],
   }
 }
 
-interface ContextOpts {
+export interface ContextOpts {
   logger?: RootLogNode,
   plugins?: PluginFactory[],
 }
@@ -159,7 +175,7 @@ export class GardenContext {
     await this.taskGraph.addTask(task)
   }
 
-  async processTasks() {
+  async processTasks(): Promise<TaskResults> {
     return this.taskGraph.processTasks()
   }
 
@@ -400,21 +416,21 @@ export class GardenContext {
     return handler({ ctx: this, module })
   }
 
-  async buildModule<T extends Module>(module: T, logEntry?: LogEntry) {
+  async buildModule<T extends Module>(module: T, logEntry?: LogEntry): Promise<BuildResult> {
     await this.buildDir.syncDependencyProducts(module)
     const defaultHandler = this.actionHandlers["buildModule"]["generic"]
     const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
     return handler({ ctx: this, module, logEntry })
   }
 
-  async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) {
+  async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry): Promise<TestResult> {
     const defaultHandler = this.actionHandlers["testModule"]["generic"]
     const handler = this.getEnvActionHandler("testModule", module.type, defaultHandler)
     const env = this.getEnvironment()
     return handler({ ctx: this, module, testSpec, env, logEntry })
   }
 
-  async getTestResult<T extends Module>(module: T, version: string, logEntry?: LogEntry) {
+  async getTestResult<T extends Module>(module: T, version: string, logEntry?: LogEntry): Promise<TestResult | null> {
     const handler = this.getEnvActionHandler("getTestResult", module.type, async () => null)
     const env = this.getEnvironment()
     return handler({ ctx: this, module, version, env, logEntry })
@@ -445,7 +461,7 @@ export class GardenContext {
     return this.getEnvironmentStatus()
   }
 
-  async getServiceStatus<T extends Module>(service: Service<T>) {
+  async getServiceStatus<T extends Module>(service: Service<T>): Promise<ServiceStatus> {
     const handler = this.getEnvActionHandler("getServiceStatus", service.module.type)
     return handler({ ctx: this, service, env: this.getEnvironment() })
   }
@@ -460,7 +476,7 @@ export class GardenContext {
     return handler({ ctx: this, service, serviceContext, env: this.getEnvironment() })
   }
 
-  async getServiceOutputs<T extends Module>(service: Service<T>) {
+  async getServiceOutputs<T extends Module>(service: Service<T>): Promise<PrimitiveMap> {
     // TODO: We might want to generally allow for "default handlers"
     let handler: PluginActions<T>["getServiceOutputs"]
     try {
@@ -471,7 +487,7 @@ export class GardenContext {
     return handler({ ctx: this, service, env: this.getEnvironment() })
   }
 
-  async execInService<T extends Module>(service: Service<T>, command: string[]) {
+  async execInService<T extends Module>(service: Service<T>, command: string[]): Promise<ExecInServiceResult> {
     const handler = this.getEnvActionHandler("execInService", service.module.type)
     return handler({ ctx: this, service, command, env: this.getEnvironment() })
   }
@@ -495,7 +511,7 @@ export class GardenContext {
     return handler({ ctx: this, key, value, env: this.getEnvironment() })
   }
 
-  async deleteConfig(key: string[]) {
+  async deleteConfig(key: string[]): Promise<DeleteConfigResult> {
     this.validateConfigKey(key)
     const handler = this.getEnvActionHandler("deleteConfig")
     const res = await handler({ ctx: this, key, env: this.getEnvironment() })

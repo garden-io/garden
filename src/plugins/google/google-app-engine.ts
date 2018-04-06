@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { ServiceStatus } from "../../types/service"
 import { join } from "path"
 import { GOOGLE_CLOUD_DEFAULT_REGION, GoogleCloudProviderBase } from "./base"
@@ -5,13 +13,13 @@ import { ContainerModule, ContainerModuleConfig, ContainerServiceConfig } from "
 import { dumpYaml } from "../../util"
 import { DeployServiceParams, PluginActionParams } from "../../types/plugin"
 
-interface GoogleAppEngineServiceConfig extends ContainerServiceConfig {
+export interface GoogleAppEngineServiceConfig extends ContainerServiceConfig {
   project: string
 }
 
-interface GoogleAppEngineModuleConfig extends ContainerModuleConfig<GoogleAppEngineServiceConfig> { }
+export interface GoogleAppEngineModuleConfig extends ContainerModuleConfig<GoogleAppEngineServiceConfig> { }
 
-class GoogleAppEngineModule extends ContainerModule<GoogleAppEngineModuleConfig> { }
+export class GoogleAppEngineModule extends ContainerModule<GoogleAppEngineModuleConfig> { }
 
 // TODO: support built-in GAE types (not just custom/flex containers)
 export class GoogleAppEngineProvider extends GoogleCloudProviderBase<GoogleAppEngineModule> {
