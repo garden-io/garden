@@ -480,14 +480,14 @@ export class GardenContext {
     return handler({ ctx: this, service, env: this.getEnvironment() })
   }
 
-  async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext) {
+  async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext, logEntry?: LogEntry) {
     const handler = this.getEnvActionHandler("deployService", service.module.type)
 
     if (!serviceContext) {
       serviceContext = { envVars: {}, dependencies: {} }
     }
 
-    return handler({ ctx: this, service, serviceContext, env: this.getEnvironment() })
+    return handler({ ctx: this, service, serviceContext, env: this.getEnvironment(), logEntry })
   }
 
   async getServiceOutputs<T extends Module>(service: Service<T>): Promise<PrimitiveMap> {
