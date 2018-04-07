@@ -8,6 +8,8 @@
 
 import * as nodeEmoji from "node-emoji"
 
+import { GardenError } from "../exceptions"
+
 export type EmojiName = keyof typeof nodeEmoji.emoji
 
 export enum LogLevel {
@@ -62,5 +64,5 @@ export interface LogEntryOpts {
   append?: boolean
   originIsNotLogger?: boolean
   showDuration?: boolean
-  error?: Error
+  error?: GardenError | Error
 }

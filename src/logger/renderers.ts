@@ -8,14 +8,15 @@
 
 import * as logSymbols from "log-symbols"
 import * as nodeEmoji from "node-emoji"
+import * as yaml from "js-yaml"
 import chalk from "chalk"
 import { curryRight, flow, padEnd, padStart } from "lodash"
 import hasAnsi = require("has-ansi")
 
 import { duration } from "./util"
-
 import { LogSymbolType, EntryStyle } from "./types"
 import { LogEntry } from "./index"
+import { GardenError } from "../exceptions"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -68,7 +69,12 @@ export function renderEmoji(entry: LogEntry): string {
 export function renderError(entry: LogEntry) {
   const { error } = entry.opts
   if (error) {
-    return error.stack
+    let out = `${error.stack}`
+    if (error instanceof GardenError) {
+      const detail = yaml.safeDump(error.detail, { noRefs: true, skipInvalid: true })
+      out += `\nError Details:\n${detail}`
+    }
+    return out
   }
   return ""
 }
