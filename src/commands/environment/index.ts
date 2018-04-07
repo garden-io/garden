@@ -8,6 +8,7 @@
 
 import { Command } from "../base"
 import { EnvironmentConfigureCommand } from "./configure"
+import { EnvironmentDestroyCommand } from "./destroy"
 
 export class EnvironmentCommand extends Command {
   name = "environment"
@@ -16,6 +17,7 @@ export class EnvironmentCommand extends Command {
 
   subCommands = [
     new EnvironmentConfigureCommand(),
+    new EnvironmentDestroyCommand(),
   ]
 
   async action() { }
