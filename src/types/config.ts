@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, parse, sep } from "path"
+import { join, parse, relative, sep } from "path"
 import { baseModuleSchema, ModuleConfig } from "./module"
-import { joiIdentifier } from "./common"
+import { joiIdentifier, validate } from "./common"
 import { ConfigurationError } from "../exceptions"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
@@ -32,7 +32,7 @@ export const configSchema = Joi.object().keys({
   project: projectSchema,
 }).optionalKeys(["module", "project"]).required()
 
-export async function loadConfig(path: string): Promise<Config> {
+export async function loadConfig(projectRoot: string, path: string): Promise<Config> {
   // TODO: nicer error messages when load/validation fails
   const absPath = join(path, CONFIG_FILENAME)
   let fileData
@@ -50,12 +50,7 @@ export async function loadConfig(path: string): Promise<Config> {
     throw new ConfigurationError(`Could not parse ${CONFIG_FILENAME} in directory ${path} as valid YAML`, err)
   }
 
-  config.dirname = Joi.attempt(parse(absPath).dir.split(sep).slice(-1)[0], joiIdentifier())
-  config.path = path
-
   if (config.module) {
-    config.module.path = path
-
     /*
       We allow specifying modules by name only as a shorthand:
 
@@ -69,15 +64,13 @@ export async function loadConfig(path: string): Promise<Config> {
     }
   }
 
-  const result = configSchema.validate(config, { allowUnknown: true })
+  const parsed = <Config>validate(config, configSchema, relative(projectRoot, absPath))
 
-  if (result.error) {
-    throw result.error
-  }
-
-  const parsed = result.value
   const project = parsed.project
   const module = parsed.module
+
+  parsed.dirname = parse(absPath).dir.split(sep).slice(-1)[0]
+  parsed.path = path
 
   if (project) {
     // we include the default local environment unless explicitly overridden
@@ -99,8 +92,18 @@ export async function loadConfig(path: string): Promise<Config> {
   }
 
   if (module) {
+    module.path = path
+
     if (!module.name) {
-      module.name = config.dirname
+      try {
+        module.name = validate(parsed.dirname, joiIdentifier())
+      } catch (_) {
+        throw new ConfigurationError(
+          `Directory name ${parsed.dirname} is not a valid module name (must be valid identifier). ` +
+          `Please rename the directory or specify a module name in the garden.yml file.`,
+          { dirname: parsed.dirname },
+        )
+      }
     }
   }
 

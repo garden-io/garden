@@ -33,7 +33,7 @@ import {
   EnvironmentStatusMap,
 } from "./types/plugin"
 import { GenericModuleHandler } from "./plugins/generic"
-import { Environment, joiIdentifier, PrimitiveMap } from "./types/common"
+import { Environment, joiIdentifier, PrimitiveMap, validate } from "./types/common"
 import { Service, ServiceContext, ServiceStatus } from "./types/service"
 import { TemplateStringContext, getTemplateContext, resolveTemplateStrings } from "./template-string"
 import { EntryStyle } from "./logger/types"
@@ -105,7 +105,7 @@ export class GardenContext {
   static async factory(projectRoot: string, { logger, plugins = [] }: ContextOpts = {}) {
     // const localConfig = new LocalConfig(projectRoot)
     const templateContext = await getTemplateContext()
-    const config = await resolveTemplateStrings(await loadConfig(projectRoot), templateContext)
+    const config = await resolveTemplateStrings(await loadConfig(projectRoot, projectRoot), templateContext)
     const projectConfig = config.project
 
     if (!projectConfig) {
@@ -191,7 +191,7 @@ export class GardenContext {
 
   registerPlugin(pluginFactory: PluginFactory) {
     const plugin = pluginFactory(this)
-    const pluginName = Joi.attempt(plugin.name, joiIdentifier())
+    const pluginName = validate(plugin.name, joiIdentifier(), "plugin name")
 
     if (this.plugins[pluginName]) {
       throw new ConfigurationError(`Plugin ${pluginName} declared more than once`, {
@@ -391,7 +391,7 @@ export class GardenContext {
 
     // Looks like a path
     const path = resolve(this.projectRoot, nameOrLocation)
-    const config = await loadConfig(path)
+    const config = await loadConfig(this.projectRoot, path)
     const moduleConfig = <ModuleConfigType<T>>config.module
 
     if (!moduleConfig) {
@@ -678,7 +678,7 @@ export class GardenContext {
    */
   private validateConfigKey(key: string[]) {
     try {
-      Joi.attempt(key, Joi.array().items(joiIdentifier()))
+      validate(key, Joi.array().items(joiIdentifier()))
     } catch (err) {
       throw new ParameterError(
         `Invalid config key: ${key.join(".")} (must be a dot delimited string of identifiers)`,

@@ -20,6 +20,10 @@ export class ConfigurationError extends GardenError {
   type = "configuration"
 }
 
+export class ValidationError extends GardenError {
+  type = "validation"
+}
+
 export class PluginError extends GardenError {
   type = "plugin"
 }

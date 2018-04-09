@@ -97,16 +97,24 @@ export function stubPluginAction<T extends keyof PluginActions<any>> (
   return td.replace(ctx["actionHandlers"][type], pluginName, handler)
 }
 
-export async function expectErrorType(fn: Function, type: string) {
+export async function expectError(fn: Function, typeOrCallback: string | ((err: any) => void)) {
   try {
     await fn()
   } catch (err) {
-    if (!err.type) {
-      throw new Error(`Expected GardenError with type ${type}, got: ${err}`)
+    if (typeof typeOrCallback === "function") {
+      return typeOrCallback(err)
+    } else {
+      if (!err.type) {
+        throw new Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
+      }
+      expect(err.type).to.equal(typeOrCallback)
     }
-    expect(err.type).to.equal(type)
     return
   }
 
-  throw new Error(`Expected ${type} error`)
+  if (typeof typeOrCallback === "string") {
+    throw new Error(`Expected ${typeOrCallback} error`)
+  } else {
+    throw new Error(`Expected error`)
+  }
 }

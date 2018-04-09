@@ -1,5 +1,5 @@
 import { ContainerModuleConfig, ContainerModuleHandler } from "../../../src/plugins/container"
-import { dataDir, expectErrorType, makeTestContext } from "../../helpers"
+import { dataDir, expectError, makeTestContext } from "../../helpers"
 import { resolve } from "path"
 
 describe("ContainerModuleHandler", () => {
@@ -94,7 +94,7 @@ describe("ContainerModuleHandler", () => {
         variables: {},
       }
 
-      await expectErrorType(() => handler.parseModule({ ctx, config }), "configuration")
+      await expectError(() => handler.parseModule({ ctx, config }), "configuration")
     })
 
     it("should fail with invalid port in httpGet healthcheck spec", async () => {
@@ -134,7 +134,7 @@ describe("ContainerModuleHandler", () => {
         variables: {},
       }
 
-      await expectErrorType(() => handler.parseModule({ ctx, config }), "configuration")
+      await expectError(() => handler.parseModule({ ctx, config }), "configuration")
     })
 
     it("should fail with invalid port in tcpPort healthcheck spec", async () => {
@@ -171,7 +171,7 @@ describe("ContainerModuleHandler", () => {
         variables: {},
       }
 
-      await expectErrorType(() => handler.parseModule({ ctx, config }), "configuration")
+      await expectError(() => handler.parseModule({ ctx, config }), "configuration")
     })
   })
 })

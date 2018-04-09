@@ -2,20 +2,13 @@ import { join } from "path"
 import { GardenContext } from "../../src/context"
 import { expect } from "chai"
 import {
-  expectErrorType, makeTestContext, makeTestContextA, makeTestModule, projectRootA,
-  TestPlugin
+  expectError, makeTestContext, makeTestContextA, makeTestModule, projectRootA,
+  TestPlugin,
 } from "../helpers"
 
 describe("GardenContext", () => {
   it("should throw when initializing with missing plugins", async () => {
-    try {
-      await GardenContext.factory(projectRootA)
-    } catch (err) {
-      expect(err.type).to.equal("configuration")
-      return
-    }
-
-    throw new Error("Expected error")
+    await expectError(async () => await GardenContext.factory(projectRootA), "configuration")
   })
 
   it("should initialize add the action handlers for a plugin", async () => {
@@ -563,7 +556,7 @@ describe("GardenContext", () => {
       const key = ["bla", "my", "variable"]
       const value = "myvalue"
 
-      await expectErrorType(async () => await ctx.setConfig(key, value), "parameter")
+      await expectError(async () => await ctx.setConfig(key, value), "parameter")
     })
 
     it("should throw with malformatted key", async () => {
@@ -572,7 +565,7 @@ describe("GardenContext", () => {
       const key = ["project", "!4215"]
       const value = "myvalue"
 
-      await expectErrorType(async () => await ctx.setConfig(key, value), "parameter")
+      await expectError(async () => await ctx.setConfig(key, value), "parameter")
     })
   })
 
@@ -592,7 +585,7 @@ describe("GardenContext", () => {
 
       const key = ["project", "my", "variable"]
 
-      await expectErrorType(async () => await ctx.getConfig(key), "not-found")
+      await expectError(async () => await ctx.getConfig(key), "not-found")
     })
 
     it("should throw with an invalid namespace in the key", async () => {
@@ -600,7 +593,7 @@ describe("GardenContext", () => {
 
       const key = ["bla", "my", "variable"]
 
-      await expectErrorType(async () => await ctx.getConfig(key), "parameter")
+      await expectError(async () => await ctx.getConfig(key), "parameter")
     })
 
     it("should throw with malformatted key", async () => {
@@ -608,7 +601,7 @@ describe("GardenContext", () => {
 
       const key = ["project", "!4215"]
 
-      await expectErrorType(async () => await ctx.getConfig(key), "parameter")
+      await expectError(async () => await ctx.getConfig(key), "parameter")
     })
   })
 
@@ -628,7 +621,7 @@ describe("GardenContext", () => {
 
       const key = ["project", "my", "variable"]
 
-      await expectErrorType(async () => await ctx.deleteConfig(key), "not-found")
+      await expectError(async () => await ctx.deleteConfig(key), "not-found")
     })
 
     it("should throw with an invalid namespace in the key", async () => {
@@ -636,7 +629,7 @@ describe("GardenContext", () => {
 
       const key = ["bla", "my", "variable"]
 
-      await expectErrorType(async () => await ctx.deleteConfig(key), "parameter")
+      await expectError(async () => await ctx.deleteConfig(key), "parameter")
     })
 
     it("should throw with malformatted key", async () => {
@@ -644,7 +637,7 @@ describe("GardenContext", () => {
 
       const key = ["project", "!4215"]
 
-      await expectErrorType(async () => await ctx.deleteConfig(key), "parameter")
+      await expectError(async () => await ctx.deleteConfig(key), "parameter")
     })
   })
 })

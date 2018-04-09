@@ -8,7 +8,6 @@
 
 import { ServiceStatus } from "../../types/service"
 import { join, relative, resolve } from "path"
-import * as Joi from "joi"
 import * as escapeStringRegexp from "escape-string-regexp"
 import { DeploymentError, PluginError } from "../../exceptions"
 import {
@@ -23,6 +22,7 @@ import {
 import { GardenContext } from "../../context"
 import { STATIC_DIR } from "../../constants"
 import { ContainerModule, ContainerService } from "../container"
+import { validate } from "../../types/common"
 
 const emulatorModulePath = join(STATIC_DIR, "local-gcf-container")
 const emulatorPort = 8010
@@ -37,7 +37,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
 
     // TODO: check that each function exists at the specified path
 
-    module.services = Joi.attempt(config.services, gcfServicesSchema)
+    module.services = validate(config.services, gcfServicesSchema, `services in module ${config.name}`)
 
     return module
   }

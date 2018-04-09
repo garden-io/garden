@@ -1,5 +1,5 @@
 import { ConfigDeleteCommand } from "../../../../src/commands/config/delete"
-import { expectErrorType, makeTestContextA } from "../../../helpers"
+import { expectError, makeTestContextA } from "../../../helpers"
 
 describe("ConfigDeleteCommand", () => {
   it("should delete a config variable", async () => {
@@ -10,7 +10,7 @@ describe("ConfigDeleteCommand", () => {
 
     await command.action(ctx, { key: "project.mykey" }, { env: undefined })
 
-    await expectErrorType(
+    await expectError(
       async () => await ctx.getConfig(["project", "mykey"]),
       "not-found",
     )
@@ -20,7 +20,7 @@ describe("ConfigDeleteCommand", () => {
     const ctx = await makeTestContextA()
     const command = new ConfigDeleteCommand()
 
-    await expectErrorType(
+    await expectError(
       async () => await command.action(ctx, { key: "bla.mykey" }, { env: undefined }),
       "parameter",
     )
@@ -30,7 +30,7 @@ describe("ConfigDeleteCommand", () => {
     const ctx = await makeTestContextA()
     const command = new ConfigDeleteCommand()
 
-    await expectErrorType(
+    await expectError(
       async () => await command.action(ctx, { key: "project.mykey" }, { env: undefined }),
       "not-found",
     )
