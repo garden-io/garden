@@ -71,7 +71,7 @@ export class DeployTask<T extends Service<any>> extends Task {
       return status
     }
 
-    const result = await this.ctx.deployService(service, serviceContext)
+    const result = await this.ctx.deployService(service, serviceContext, entry)
 
     entry.setSuccess({ msg: chalk.green(`Ready`), append: true })
 

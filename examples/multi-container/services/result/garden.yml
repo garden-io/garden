@@ -1,13 +1,13 @@
 module:
-  description: Results presentation servicw
+  description: Results presentation service
   type: container
   services:
     result:
       command: [nodemon, server.js]
       endpoints:
         - paths: [/]
-          containerPort: 80
+          port: ui
       ports:
-        - name: ui
+        ui:
           protocol: TCP
           containerPort: 80

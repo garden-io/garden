@@ -6,8 +6,10 @@ module:
       command: [python, app.py]
       endpoints:
         - paths: [/vote/]
-          containerPort: 80
+          port: interface
       ports:
-        - name: interface
+        interface:
           protocol: TCP
           containerPort: 80
+      dependencies:
+        - redis

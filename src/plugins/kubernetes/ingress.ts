@@ -21,7 +21,7 @@ export async function createIngress(service: ContainerService, externalHostname:
 
     const backend = {
       serviceName: service.name,
-      servicePort: e.containerPort,
+      servicePort: service.config.ports[e.port].containerPort,
     }
 
     rule.http = {

@@ -1,0 +1,13 @@
+module:
+  name: module-a
+  type: container
+  services:
+    service-a:
+      ports:
+        http:
+          containerPort: 8080
+      endpoints:
+        - paths: [/]
+          port: http
+      healthCheck:
+        tcpPort: http

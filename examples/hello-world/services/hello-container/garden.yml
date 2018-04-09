@@ -4,13 +4,16 @@ module:
   services:
     hello-container:
       command: [npm, start]
+      ports:
+        http:
+          containerPort: 8080
       endpoints:
         - paths: [/hello]
-          containerPort: 8080
+          port: http
       healthCheck:
         httpGet:
           path: /_ah/health
-          port: 8080
+          port: http
       dependencies:
         - hello-function
   build:

@@ -17,16 +17,16 @@ import { ConfigurationError } from "../exceptions"
 import { BuildModuleParams, GetModuleBuildStatusParams, Plugin } from "../types/plugin"
 import { GardenContext } from "../context"
 import { Service } from "../types/service"
+import { DEFAULT_PORT_PROTOCOL } from "../constants"
 
 export interface ServiceEndpointSpec {
   paths?: string[]
   // TODO: support definition of hostnames on endpoints
   // hostname?: string
-  containerPort: number
+  port: string
 }
 
 export interface ServicePortSpec {
-  name?: string
   protocol: "TCP" | "UDP"
   containerPort: number
   hostPort?: number
@@ -42,20 +42,20 @@ export interface ServiceVolumeSpec {
 export interface ServiceHealthCheckSpec {
   httpGet?: {
     path: string,
-    port: number,
+    port: string,
     scheme?: "HTTP" | "HTTPS",
   },
   command?: string[],
-  tcpPort?: number,
+  tcpPort?: string,
 }
 
 export interface ContainerServiceConfig {
-  command?: string,
+  command?: string[],
   daemon: boolean
   dependencies: string[],
   endpoints: ServiceEndpointSpec[],
   healthCheck?: ServiceHealthCheckSpec,
-  ports: ServicePortSpec[],
+  ports: { [portName: string]: ServicePortSpec },
   volumes: ServiceVolumeSpec[],
 }
 
@@ -65,54 +65,55 @@ export interface ContainerModuleConfig
   image?: string
 }
 
+const endpointSchema = Joi.object()
+  .keys({
+    paths: Joi.array().items(Joi.string().uri(<any>{ relativeOnly: true })),
+    // hostname: Joi.string(),
+    port: Joi.string().required(),
+  })
+
+const healthCheckSchema = Joi.object()
+  .keys({
+    httpGet: Joi.object().keys({
+      path: Joi.string().required(),
+      port: Joi.string().required(),
+      scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+    }),
+    command: Joi.array().items(Joi.string()),
+    tcpPort: Joi.string(),
+  }).xor("httpGet", "command", "tcpPort")
+
+const portSchema = Joi.object()
+  .keys({
+    protocol: Joi.string().allow("TCP", "UDP").default(DEFAULT_PORT_PROTOCOL),
+    containerPort: Joi.number().required(),
+    hostPort: Joi.number(),
+    nodePort: Joi.number(),
+  })
+  .required()
+
+const volumeSchema = Joi.object()
+  .keys({
+    name: Joi.string().required(),
+    containerPath: Joi.string().required(),
+    hostPath: Joi.string(),
+  })
+
+const serviceSchema = baseServiceSchema
+  .keys({
+    command: Joi.array().items(Joi.string()),
+    daemon: Joi.boolean().default(false),
+    endpoints: Joi.array().items(endpointSchema).default(() => [], "[]"),
+    healthCheck: healthCheckSchema,
+    ports: Joi.object().pattern(identifierRegex, portSchema).default(() => ({}), "{}"),
+    volumes: Joi.array().items(volumeSchema).default(() => [], "[]"),
+  })
+
 const containerSchema = baseModuleSchema.keys({
   type: Joi.string().allow("container").required(),
   path: Joi.string().required(),
   image: Joi.string(),
-  services: Joi.object()
-    .pattern(identifierRegex, baseServiceSchema
-      .keys({
-        command: Joi.array().items(Joi.string()),
-        daemon: Joi.boolean().default(false),
-        endpoints: Joi.array().items(Joi.object().keys({
-          paths: Joi.array().items(Joi.string().uri(<any>{ relativeOnly: true })),
-          // hostname: Joi.string(),
-          containerPort: Joi.number().required(),
-        }))
-          .default(() => [], "[]"),
-        healthCheck: Joi.object().keys({
-          httpGet: Joi.object().keys({
-            path: Joi.string().required(),
-            port: Joi.number().required(),
-            scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
-          }),
-          command: Joi.array().items(Joi.string()),
-          tcpPort: Joi.number(),
-        }),
-        ports: Joi.array().items(
-          Joi.object()
-            .keys({
-              name: Joi.string(),
-              protocol: Joi.string().allow("TCP", "UDP"),
-              containerPort: Joi.number().required(),
-              hostPort: Joi.number(),
-              nodePort: Joi.number(),
-            })
-            .required(),
-        )
-          .default(() => [], "[]"),
-        volumes: Joi.array().items(
-          Joi.object()
-            .keys({
-              name: Joi.string().required(),
-              containerPath: Joi.string().required(),
-              hostPath: Joi.string(),
-            })
-            .required(),
-        )
-          .default(() => [], "[]"),
-      }))
-    .default(() => [], "[]"),
+  services: Joi.object().pattern(identifierRegex, serviceSchema).default(() => ({}), "{}"),
 })
 
 export class ContainerService extends Service<ContainerModule> { }
@@ -168,11 +169,49 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
       )
     }
 
+    // validate services
+    for (const [name, service] of Object.entries(module.services)) {
+      // make sure ports are correctly configured
+      const definedPorts = Object.keys(service.ports)
+
+      for (const endpoint of service.endpoints) {
+        const endpointPort = endpoint.port
+
+        if (!service.ports[endpointPort]) {
+          throw new ConfigurationError(
+            `Service ${name} does not define port ${endpointPort} defined in endpoint`,
+            { definedPorts, endpointPort },
+          )
+        }
+      }
+
+      if (service.healthCheck && service.healthCheck.httpGet) {
+        const healthCheckHttpPort = service.healthCheck.httpGet.port
+
+        if (!service.ports[healthCheckHttpPort]) {
+          throw new ConfigurationError(
+            `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
+            { definedPorts, healthCheckHttpPort },
+          )
+        }
+      }
+
+      if (service.healthCheck && service.healthCheck.tcpPort) {
+        const healthCheckTcpPort = service.healthCheck.tcpPort
+
+        if (!service.ports[healthCheckTcpPort]) {
+          throw new ConfigurationError(
+            `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
+            { definedPorts, healthCheckTcpPort },
+          )
+        }
+      }
+    }
+
     return module
   }
 
   async getModuleBuildStatus({ ctx, module }: GetModuleBuildStatusParams<ContainerModule>) {
-
     const ready = !!module.image ? true : await module.imageExistsLocally()
 
     if (ready) {

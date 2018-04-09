@@ -160,7 +160,7 @@ export class FancyConsoleWriter extends Writer {
   private spinners: Function[]
   private formattedEntries: string[]
   private logUpdate: any
-  private intervalID: NodeJS.Timer | null
+  private intervalID: number | null
 
   public level: LogLevel
 

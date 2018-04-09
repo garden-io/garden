@@ -29,7 +29,7 @@ import { ParameterError } from "../exceptions"
 const ROOT_DEPTH = -1
 const DEFAULT_CONFIGS: {[key in LoggerType]: LoggerConfig} = {
   [LoggerType.development]: {
-    level: LogLevel.verbose,
+    level: LogLevel.info,
     writers: [new FancyConsoleWriter()],
   },
   [LoggerType.test]: {

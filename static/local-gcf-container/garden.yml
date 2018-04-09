@@ -4,7 +4,8 @@ module:
   services:
     google-cloud-functions:
       ports:
-        - protocol: TCP
+        http:
+          protocol: TCP
           containerPort: 8010
       healthCheck:
-        tcpPort: 8010
+        tcpPort: http

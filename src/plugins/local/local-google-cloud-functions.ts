@@ -49,7 +49,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
     return { configured: status.state === "ready" }
   }
 
-  async configureEnvironment({ ctx, env }: ConfigureEnvironmentParams) {
+  async configureEnvironment({ ctx, env, logEntry }: ConfigureEnvironmentParams) {
     const status = await this.getEnvironmentStatus({ ctx, env })
 
     // TODO: This check should happen ahead of calling this handler
@@ -68,7 +68,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
 
     // TODO: Publish this container separately from the project instead of building it here
     await ctx.buildModule(service.module)
-    await ctx.deployService(service)
+    await ctx.deployService(service, undefined, logEntry)
   }
 
   async getServiceStatus({ ctx, service }: GetServiceStatusParams<GoogleCloudFunctionsModule>): Promise<ServiceStatus> {
