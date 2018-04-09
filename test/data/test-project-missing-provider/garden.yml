@@ -1,0 +1,9 @@
+project:
+  name: build-test-project
+  environments:
+    test:
+      providers:
+        test:
+          type: test-plugin
+        test-b:
+          type: test-plugin-b

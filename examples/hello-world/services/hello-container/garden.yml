@@ -1,24 +1,28 @@
-description: Hello world container service
-type: container
-services:
-  hello-container:
-    command: [npm, start]
-    endpoints:
-      - paths: [/hello]
-        containerPort: 8080
-    healthCheck:
-      httpGet:
-        path: /_ah/health
-        port: 8080
+module:
+  description: Hello world container service
+  type: container
+  services:
+    hello-container:
+      command: [npm, start]
+      ports:
+        http:
+          containerPort: 8080
+      endpoints:
+        - paths: [/hello]
+          port: http
+      healthCheck:
+        httpGet:
+          path: /_ah/health
+          port: http
+      dependencies:
+        - hello-function
+  build:
     dependencies:
-      - hello-function
-build:
-  dependencies:
-    - hello-npm-package
-test:
-  unit:
-    command: [npm, test]
-  integ:
-    command: [npm, run, integ]
-    dependencies:
-      - hello-function
+      - hello-npm-package
+  test:
+    unit:
+      command: [npm, test]
+    integ:
+      command: [npm, run, integ]
+      dependencies:
+        - hello-function

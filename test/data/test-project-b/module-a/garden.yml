@@ -1,9 +1,10 @@
-name: module-a
-type: generic
-services:
-  service-a:
-    endpoints:
-      - paths: [/path-a]
-        containerPort: 8080
-build:
-  command: echo A
+module:
+  name: module-a
+  type: generic
+  services:
+    service-a:
+      endpoints:
+        - paths: [/path-a]
+          containerPort: 8080
+  build:
+    command: echo A

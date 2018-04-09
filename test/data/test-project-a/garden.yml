@@ -1,0 +1,12 @@
+project:
+  name: build-test-project
+  environments:
+    local:
+      providers:
+        test:
+          type: test-plugin
+        test-b:
+          type: test-plugin-b
+    other: {}
+  variables:
+    some: variable

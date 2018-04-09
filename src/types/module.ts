@@ -6,13 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { readFileSync } from "fs"
-import * as yaml from "js-yaml"
 import * as Joi from "joi"
 import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
-import { MODULE_CONFIG_FILENAME } from "../constants"
-import { join, parse, sep } from "path"
 import Bluebird = require("bluebird")
 import { GardenContext } from "../context"
 import { ServiceConfig } from "./service"
@@ -52,7 +48,6 @@ export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
   test: TestConfig
   type: string
   variables: PrimitiveMap
-  version: string
 }
 
 export class Module<T extends ModuleConfig = ModuleConfig> {
@@ -88,7 +83,6 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
       test: await resolveTemplateStrings(config.test, templateContext),
       type: config.type,
       variables: await resolveTemplateStrings(config.variables, templateContext),
-      version: config.version,
     }
   }
 
@@ -172,7 +166,6 @@ export const baseDependencySchema = Joi.object().keys({
 })
 
 export const baseModuleSchema = Joi.object().keys({
-  version: Joi.string().default("0").only("0"),
   type: joiIdentifier().required(),
   name: joiIdentifier(),
   description: Joi.string(),
@@ -184,49 +177,3 @@ export const baseModuleSchema = Joi.object().keys({
   }).default(() => ({ dependencies: [] }), "{}"),
   test: Joi.object().pattern(/[\w\d]+/i, baseTestSpecSchema).default(() => ({}), "{}"),
 }).required()
-
-export async function loadModuleConfig(modulePath: string): Promise<ModuleConfig> {
-  // TODO: nicer error messages when load/validation fails
-  const absPath = join(modulePath, MODULE_CONFIG_FILENAME)
-  let fileData
-  let config
-
-  try {
-    fileData = readFileSync(absPath)
-  } catch (err) {
-    throw new ConfigurationError(`Could not find ${MODULE_CONFIG_FILENAME} in module directory ${modulePath}`, err)
-  }
-
-  try {
-    config = yaml.safeLoad(fileData)
-  } catch (err) {
-    throw new ConfigurationError(`Could not parse ${MODULE_CONFIG_FILENAME} as valid YAML`, err)
-  }
-
-  // name is derived from the directory name unless explicitly set
-  if (!config.name) {
-    config.name = Joi.attempt(parse(absPath).dir.split(sep).slice(-1)[0], joiIdentifier())
-  }
-
-  config.path = modulePath
-
-  /*
-    We allow specifying modules by name only as a shorthand:
-
-      dependencies:
-        foo-module
-        name: foo-module // same as the above
-   */
-  if (config.build && config.build.dependencies) {
-    config.build.dependencies = config.build.dependencies
-      .map(dep => (typeof dep) === "string" ? { name: dep } : dep)
-  }
-
-  const result = baseModuleSchema.validate(config, { allowUnknown: true })
-
-  if (result.error) {
-    throw result.error
-  }
-
-  return result.value
-}

@@ -9,6 +9,7 @@
 import { ChildProcess, spawn } from "child_process"
 import { extend } from "lodash"
 import { spawnPty } from "../../util"
+import { RuntimeError } from "../../exceptions"
 
 export interface KubectlParams {
   data?: Buffer,
@@ -50,7 +51,8 @@ export class Kubectl {
       stderr: "",
     }
 
-    const proc = spawn("kubectl", this.prepareArgs(args))
+    const preparedArgs = this.prepareArgs(args)
+    const proc = spawn("kubectl", preparedArgs)
 
     proc.stdout.on("data", (s) => {
       if (!silent) {
@@ -76,8 +78,8 @@ export class Kubectl {
       let _timeout
 
       const _reject = (msg: string) => {
-        const err = new Error(msg)
-        extend(err, <any>out)
+        const details = extend({ args, preparedArgs, msg }, <any>out)
+        const err = new RuntimeError(`Failed running 'kubectl ${args.join(" ")}'`, details)
         reject(err)
       }
 

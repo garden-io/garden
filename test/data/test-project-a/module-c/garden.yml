@@ -1,10 +1,11 @@
-name: module-c
-type: generic
-services:
-  service-c: {}
-build:
-  dependencies:
-    - module-b
-test:
-  unit:
-    command: [echo, OK]
+module:
+  name: module-c
+  type: generic
+  services:
+    service-c: {}
+  build:
+    dependencies:
+      - module-b
+  test:
+    unit:
+      command: [echo, OK]

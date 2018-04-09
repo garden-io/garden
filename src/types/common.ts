@@ -7,7 +7,7 @@
  */
 
 import * as Joi from "joi"
-import { EnvironmentConfig } from "./project-config"
+import { EnvironmentConfig } from "./project"
 
 export type Primitive = string | number | boolean
 

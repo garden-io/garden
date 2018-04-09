@@ -10,7 +10,7 @@ import { ServiceStatus } from "../../types/service"
 import { join, relative, resolve } from "path"
 import * as Joi from "joi"
 import * as escapeStringRegexp from "escape-string-regexp"
-import { DeploymentError } from "../../exceptions"
+import { DeploymentError, PluginError } from "../../exceptions"
 import {
   gcfServicesSchema, GoogleCloudFunctionsModule,
 } from "../google/google-cloud-functions"
@@ -49,7 +49,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
     return { configured: status.state === "ready" }
   }
 
-  async configureEnvironment({ ctx, env }: ConfigureEnvironmentParams) {
+  async configureEnvironment({ ctx, env, logEntry }: ConfigureEnvironmentParams) {
     const status = await this.getEnvironmentStatus({ ctx, env })
 
     // TODO: This check should happen ahead of calling this handler
@@ -68,7 +68,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
 
     // TODO: Publish this container separately from the project instead of building it here
     await ctx.buildModule(service.module)
-    await ctx.deployService(service)
+    await ctx.deployService(service, undefined, logEntry)
   }
 
   async getServiceStatus({ ctx, service }: GetServiceStatusParams<GoogleCloudFunctionsModule>): Promise<ServiceStatus> {
@@ -140,6 +140,12 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
 
   private async getEmulatorService(ctx: GardenContext) {
     const module = await ctx.resolveModule<ContainerModule>(emulatorModulePath)
+
+    if (!module) {
+      throw new PluginError(`Could not find Google Cloud Function emulator module`, {
+        emulatorModulePath,
+      })
+    }
 
     return ContainerService.factory(ctx, module, emulatorServiceName)
   }

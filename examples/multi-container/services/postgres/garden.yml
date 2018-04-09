@@ -1,10 +1,12 @@
-description: postgres container
-type: container
-image: postgres:9.4
-services:
-  db:
-    volumes:
-      - name: data
-        containerPath: /db-data
-    ports:
-      - containerPort: 5432
+module:
+  description: postgres container
+  type: container
+  image: postgres:9.4
+  services:
+    db:
+      volumes:
+        - name: data
+          containerPath: /db-data
+      ports:
+        db:
+          containerPort: 5432

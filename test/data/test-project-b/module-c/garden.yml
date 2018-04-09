@@ -1,10 +1,11 @@
-name: module-c
-type: generic
-services:
-  service-c:
-    endpoints:
-      - paths: [/path-c]
-        containerPort: 8080
-build:
-  dependencies:
-    - module-b
+module:
+  name: module-c
+  type: generic
+  services:
+    service-c:
+      endpoints:
+        - paths: [/path-c]
+          containerPort: 8080
+  build:
+    dependencies:
+      - module-b

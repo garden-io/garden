@@ -19,8 +19,7 @@ import {
   TestModuleParams, TestResult,
 } from "../../types/plugin"
 import {
-  ContainerModule, ContainerService, ContainerServiceConfig, ServiceEndpointSpec,
-  ServicePortSpec, ServiceVolumeSpec,
+  ContainerModule, ContainerService, ServiceEndpointSpec,
 } from "../container"
 import { values, every, map, extend } from "lodash"
 import { Environment } from "../../types/common"
@@ -36,7 +35,7 @@ import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
 import * as split from "split"
 import moment = require("moment")
-import { BuildDependencyConfig } from "../../types/module"
+import { LogSymbolType } from "../../logger/types"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -196,6 +195,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         service: await this.getDefaultBackendService(ctx),
         serviceContext: { envVars: {}, dependencies: {} },
         env: gardenEnv,
+        logEntry,
       })
       await this.deployService({
         ctx,
@@ -203,6 +203,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
         serviceContext: { envVars: {}, dependencies: {} },
         env: gardenEnv,
         exposePorts: true,
+        logEntry,
       })
     }
   }
@@ -458,17 +459,17 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       name: "garden-dashboard",
       type: "container",
       path: dashboardModulePath,
-      services: <{ [name: string]: ContainerServiceConfig }>{
+      services: {
         "kubernetes-dashboard": {
           daemon: false,
-          dependencies: <string[]>[],
-          endpoints: <ServiceEndpointSpec[]>[],
-          ports: <ServicePortSpec[]>[],
-          volumes: <ServiceVolumeSpec[]>[],
+          dependencies: [],
+          endpoints: [],
+          ports: {},
+          volumes: [],
         },
       },
       variables: {},
-      build: { dependencies: <BuildDependencyConfig[]>[] },
+      build: { dependencies: [] },
       test: {},
     })
 
@@ -645,7 +646,11 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     let lastDetailMessage
     const startTime = new Date().getTime()
 
-    logEntry && ctx.log.verbose({ section: service.name, msg: `Waiting for service to be ready...` })
+    logEntry && ctx.log.verbose({
+      symbol: LogSymbolType.info,
+      section: service.name,
+      msg: `Waiting for service to be ready...`,
+    })
 
     while (true) {
       await sleep(2000 + 1000 * loops)
@@ -661,12 +666,20 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
       if (status.detail.lastMessage && status.detail.lastMessage !== lastDetailMessage) {
         lastDetailMessage = status.detail.lastMessage
-        logEntry && ctx.log.verbose({ section: service.name, msg: status.detail.lastMessage })
+        logEntry && ctx.log.verbose({
+          symbol: LogSymbolType.info,
+          section: service.name,
+          msg: status.detail.lastMessage,
+        })
       }
 
       if (status.lastMessage && status.lastMessage !== lastMessage) {
         lastMessage = status.lastMessage
-        logEntry && ctx.log.verbose({ section: service.name, msg: status.lastMessage })
+        logEntry && ctx.log.verbose({
+          symbol: LogSymbolType.info,
+          section: service.name,
+          msg: status.lastMessage,
+        })
       }
 
       if (status.state === "ready") {
@@ -682,7 +695,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
       }
     }
 
-    logEntry && ctx.log.verbose({ section: service.name, msg: `Service deployed` })
+    logEntry && ctx.log.verbose({ symbol: LogSymbolType.info, section: service.name, msg: `Service deployed` })
   }
 
   // sadly the TS definitions are no good for this one
