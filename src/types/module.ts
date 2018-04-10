@@ -14,7 +14,8 @@ import Bluebird = require("bluebird")
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
-import { BuildResult, BuildStatus } from "./plugin"
+import { BuildStatus } from "./plugin"
+import { TreeVersion } from "../vcs/base"
 
 export interface BuildDependencyConfig {
   name: string,
@@ -86,10 +87,10 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     }
   }
 
-  async getVersion() {
+  async getVersion(): Promise<TreeVersion> {
     const treeVersion = await this.ctx.vcs.getTreeVersion([this.path])
 
-    const versionChain = await Bluebird.map(
+    const versionChain: TreeVersion[] = await Bluebird.map(
       await this.getBuildDependencies(),
       async (m: Module) => await m.getVersion(),
     )
@@ -107,10 +108,6 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   async getBuildStatus(): Promise<BuildStatus> {
     return this.ctx.getModuleBuildStatus(this)
-  }
-
-  async build(): Promise<BuildResult> {
-    return this.ctx.buildModule(this)
   }
 
   async getBuildDependencies(): Promise<Module[]> {

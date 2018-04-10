@@ -35,6 +35,8 @@ export async function createIngress(service: ContainerService, externalHostname:
     return rule
   })
 
+  const { versionString } = await service.module.getVersion()
+
   return {
     apiVersion: "extensions/v1beta1",
     kind: "Ingress",
@@ -42,7 +44,7 @@ export async function createIngress(service: ContainerService, externalHostname:
       name: service.name,
       annotations: {
         "garden.io/generated": "true",
-        "garden.io/version": await service.module.getVersion(),
+        "garden.io/version": versionString,
         "kubernetes.io/ingress.class": "nginx",
         // TODO: allow overriding this (should only be applied to localhost deployments)
         "ingress.kubernetes.io/force-ssl-redirect": "false",

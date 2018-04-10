@@ -46,6 +46,7 @@ import {
   toPairs,
   values,
 } from "lodash"
+import { TreeVersion } from "./vcs/base"
 
 export type PluginContextGuard = {
   readonly [P in keyof PluginActionParams<any>]: (...args: any[]) => Promise<any>
@@ -73,7 +74,7 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getModuleBuildStatus: <T extends Module>(module: T) => Promise<BuildStatus>
   buildModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildResult>
   testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
-  getTestResult: <T extends Module>(module: T, version: string, logEntry?: LogEntry) => Promise<TestResult | null>
+  getTestResult: <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => Promise<TestResult | null>
   getEnvironmentStatus: () => Promise<EnvironmentStatusMap>
   configureEnvironment: () => Promise<EnvironmentStatusMap>
   destroyEnvironment: () => Promise<EnvironmentStatusMap>
@@ -147,7 +148,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ctx, module, testSpec, env, logEntry })
     },
 
-    getTestResult: async <T extends Module>(module: T, version: string, logEntry?: LogEntry) => {
+    getTestResult: async <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => {
       const handler = garden.getEnvActionHandler("getTestResult", module.type, async () => null)
       const env = garden.getEnvironment()
       return handler({ ctx, module, version, env, logEntry })

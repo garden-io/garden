@@ -128,7 +128,8 @@ export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleCo
   }
 
   async getImageId() {
-    return this.image || `${this.name}:${await this.getVersion()}`
+    const { versionString } = await this.getVersion()
+    return this.image || `${this.name}:${versionString}`
   }
 
   async pullImage(ctx: PluginContext) {

@@ -15,6 +15,7 @@ import { Service, ServiceContext, ServiceStatus } from "./service"
 import { LogEntry } from "../logger"
 import { Stream } from "ts-stream"
 import { Moment } from "moment"
+import { TreeVersion } from "../vcs/base"
 
 export interface PluginActionParamsBase {
   ctx: PluginContext
@@ -41,7 +42,7 @@ export interface TestModuleParams<T extends Module = Module> extends PluginActio
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T,
-  version: string,
+  version: TreeVersion,
   env: Environment,
 }
 
@@ -134,7 +135,7 @@ export interface BuildResult {
 }
 
 export interface TestResult {
-  version: string
+  version: TreeVersion
   success: boolean
   startedAt: Moment | Date
   completedAt: Moment | Date

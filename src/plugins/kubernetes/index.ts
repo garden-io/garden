@@ -18,6 +18,7 @@ import {
   SetConfigParams,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
+import { TreeVersion } from "../../vcs/base"
 import {
   ContainerModule,
 } from "../container"
@@ -232,7 +233,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
     }
 
     const ns = getMetadataNamespace(ctx)
-    const resultKey = `test-result--${module.name}--${version}`
+    const resultKey = `test-result--${module.name}--${version.versionString}`
     const body = {
       body: {
         apiVersion: "v1",
@@ -337,6 +338,6 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   //endregion
 }
 
-function getTestResultKey(module: ContainerModule, version: string) {
-  return `test-result--${module.name}--${version}`
+function getTestResultKey(module: ContainerModule, version: TreeVersion) {
+  return `test-result--${module.name}--${version.versionString}`
 }

@@ -56,19 +56,19 @@ export class DeployTask<T extends Service<any>> extends Task {
     const service = await this.service.resolveConfig(serviceContext)
 
     // TODO: get version from build task results
-    const version = await this.service.module.getVersion()
+    const { versionString } = await this.service.module.getVersion()
     const status = await this.ctx.getServiceStatus(service)
 
     entry.setState({ section: this.service.name, msg: "Deploying" })
 
     if (
       !this.force &&
-      version === status.version &&
+      versionString === status.version &&
       status.state === "ready"
     ) {
       // already deployed and ready
       entry.setSuccess({
-        msg: `Version ${version} already deployed`,
+        msg: `Version ${versionString} already deployed`,
         append: true,
       })
       return status
