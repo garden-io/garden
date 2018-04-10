@@ -31,7 +31,7 @@ export class EnvironmentConfigureCommand extends Command<typeof options> {
 
     const result = await ctx.configureEnvironment()
 
-    ctx.log.info({ msg: "" })
+    ctx.log.info("")
     ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
 
     return result

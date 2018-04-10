@@ -227,7 +227,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
 
   async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
     if (!!module.image) {
-      logEntry && logEntry.setState({ msg: `Fetching image ${module.image}...` })
+      logEntry && logEntry.setState(`Fetching image ${module.image}...`)
       await module.pullImage(ctx)
       return { fetched: true }
     }
@@ -235,7 +235,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
     const identifier = await module.getImageId()
 
     // build doesn't exist, so we create it
-    logEntry && logEntry.setState({ msg: `Building ${identifier}...` })
+    logEntry && logEntry.setState(`Building ${identifier}...`)
 
     // TODO: log error if it occurs
     // TODO: stream output to log if at debug log level

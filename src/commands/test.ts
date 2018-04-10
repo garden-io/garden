@@ -83,10 +83,10 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
         const [moduleName, testType] = splitFirst(taskKey, ".")
         const divider = padEnd("—", 80)
 
-        ctx.log.error({ msg: `${testType} tests for ${moduleName} failed. Here is the output:` })
-        ctx.log.error({ msg: divider })
-        ctx.log.error({ msg: result.output })
-        ctx.log.error({ msg: divider + "\n" })
+        ctx.log.error(`${testType} tests for ${moduleName} failed. Here is the output:`)
+        ctx.log.error(divider)
+        ctx.log.error(result.output)
+        ctx.log.error(divider + "\n")
 
         failed++
       }
@@ -95,7 +95,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
     if (failed) {
       ctx.log.error({ emoji: "warning", msg: `${failed} tests runs failed! See log output above.\n` })
     } else {
-      ctx.log.info({ msg: "" })
+      ctx.log.info("")
       ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green(` All tests passing!\n`) })
     }
 

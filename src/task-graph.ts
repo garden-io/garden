@@ -134,7 +134,7 @@ export class TaskGraph {
 
         try {
           this.logTask(node)
-          this.logEntryMap.inProgress.setState({ msg: inProgressToStr(this.inProgress.getNodes()) })
+          this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
           const dependencyKeys = (await node.task.getDependencies()).map(d => getIndexKey(d))
           const dependencyResults = pick(results, dependencyKeys)
@@ -186,19 +186,17 @@ export class TaskGraph {
   private logTaskComplete(node: TaskNode) {
     const entry = this.logEntryMap[node.getKey()]
     entry && entry.setSuccess()
-    this.logEntryMap.counter.setState({ msg: remainingTasksToStr(this.index.length) })
+    this.logEntryMap.counter.setState(remainingTasksToStr(this.index.length))
   }
 
   private initLogging() {
     if (!Object.keys(this.logEntryMap).length) {
-      const header = this.ctx.log.debug({ msg: "Processing tasks..." })
+      const header = this.ctx.log.debug("Processing tasks...")
       const counter = this.ctx.log.debug({
         msg: remainingTasksToStr(this.index.length),
         entryStyle: EntryStyle.activity,
       })
-      const inProgress = this.ctx.log.debug({
-        msg: inProgressToStr(this.inProgress.getNodes()),
-      })
+      const inProgress = this.ctx.log.debug(inProgressToStr(this.inProgress.getNodes()))
       this.logEntryMap = {
         ...this.logEntryMap,
         header,

@@ -7,12 +7,12 @@ import { getChildNodes } from "../../src/logger/util"
 
 const logger = new RootLogNode({ level: LogLevel.silent })
 
-logger.error({ msg: "error" })
-logger.warn({ msg: "warn" })
-logger.info({ msg: "info" })
-logger.verbose({ msg: "verbose" })
-logger.debug({ msg: "debug" })
-logger.silly({ msg: "silly" })
+logger.error("error")
+logger.warn("warn")
+logger.info("info")
+logger.verbose("verbose")
+logger.debug("debug")
+logger.silly("silly")
 
 describe("RootLogNode", () => {
 
@@ -38,8 +38,8 @@ describe("RootLogNode", () => {
     it("should add new child entries to respective node", () => {
       const prevLength = logger.children.length
       const entry = logger.children[0]
-      const nested = entry.info({ msg: "nested" })
-      const deepNested = nested.info({ msg: "deep" })
+      const nested = entry.info("nested")
+      const deepNested = nested.info("deep")
 
       expect(logger.children[0].children).to.have.lengthOf(1)
       expect(logger.children[0].children[0]).to.eql(nested)
@@ -53,7 +53,7 @@ describe("RootLogNode", () => {
     it("should return a string if log level is geq than entry level", () => {
       const writer = new BasicConsoleWriter({ level: LogLevel.silent })
       const logger2 = new RootLogNode({ level: LogLevel.silent })
-      const entry = logger2.info({ msg: "" })
+      const entry = logger2.info("")
       const out1 = writer.render(entry, logger2)
       writer.level = LogLevel.verbose
       const out2 = writer.render(entry, logger2)
@@ -67,7 +67,7 @@ describe("RootLogNode", () => {
     it("should return an array of strings if log level is geq than respective entry level", () => {
       const writer = new FancyConsoleWriter({ level: LogLevel.silent })
       const logger3 = new RootLogNode({level: LogLevel.silent})
-      const entry = logger3.info({ msg: "" })
+      const entry = logger3.info("")
       const out1 = writer.render(logger3)
       writer.level = LogLevel.verbose
       const out2 = writer.render(logger3)
@@ -83,7 +83,7 @@ describe("RootLogNode", () => {
     const entry = logger.children[0]
     describe("setState", () => {
       it("should update entry state and optionally append new msg to previous msg", () => {
-        entry.setState({ msg: "new" })
+        entry.setState("new")
         expect(entry["opts"]["msg"]).to.equal("new")
         entry.setState({ msg: "new2", append: true })
         expect(entry["opts"]["msg"]).to.eql(["new", "new2"])

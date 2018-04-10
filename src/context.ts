@@ -30,6 +30,7 @@ import {
   TestResult,
   ExecInServiceResult,
   DeleteConfigResult,
+  EnvironmentStatusMap,
 } from "./types/plugin"
 import { GenericModuleHandler } from "./plugins/generic"
 import { Environment, joiIdentifier, PrimitiveMap } from "./types/common"
@@ -470,8 +471,15 @@ export class GardenContext {
 
       await handler({ ctx: this, env, logEntry })
 
-      logEntry.setSuccess({ msg: "Configured" })
+      logEntry.setSuccess("Configured")
     })
+    return this.getEnvironmentStatus()
+  }
+
+  async destroyEnvironment(): Promise<EnvironmentStatusMap> {
+    const handlers = this.getEnvActionHandlers("destroyEnvironment")
+    const env = this.getEnvironment()
+    await Bluebird.each(values(handlers), h => h({ ctx: this, env }))
     return this.getEnvironmentStatus()
   }
 

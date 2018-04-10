@@ -9,13 +9,16 @@
 import * as Docker from "dockerode"
 import { Memoize } from "typescript-memoize"
 import * as K8s from "kubernetes-client"
-import { DeploymentError } from "../../exceptions"
+import { DeploymentError, NotFoundError } from "../../exceptions"
 import {
-  ConfigureEnvironmentParams, DeleteConfigParams, DeployServiceParams, ExecInServiceParams, GetConfigParams,
+  ConfigureEnvironmentParams, DeleteConfigParams,
+  DeployServiceParams, DestroyEnvironmentParams,
+  ExecInServiceParams, GetConfigParams,
   GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
-  GetServiceStatusParams, GetTestResultParams, Plugin, SetConfigParams,
+  GetServiceStatusParams, GetTestResultParams, Plugin,
+  SetConfigParams,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
 import {
@@ -35,7 +38,7 @@ import { LogEntry } from "../../logger"
 import { GardenContext } from "../../context"
 import * as split from "split"
 import moment = require("moment")
-import { LogSymbolType } from "../../logger/types"
+import { EntryStyle, LogSymbolType } from "../../logger/types"
 
 const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
@@ -211,6 +214,22 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
   async getServiceStatus({ ctx, service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
     // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
     return await this.checkDeploymentStatus({ ctx, service })
+  }
+
+  async destroyEnvironment({ ctx, env }: DestroyEnvironmentParams) {
+    const namespace = this.getNamespaceName(ctx, env)
+    const entry = ctx.log.info({
+      section: "kubernetes",
+      msg: `Deleting namespace ${namespace}`,
+      entryStyle: EntryStyle.activity,
+    })
+    try {
+      await this.coreApi().namespace(namespace).delete(namespace)
+      entry.setSuccess("Finished")
+    } catch (err) {
+      entry.setError(err.message)
+      throw new NotFoundError(err, { namespace })
+    }
   }
 
   async deployService(

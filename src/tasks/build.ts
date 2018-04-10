@@ -47,7 +47,7 @@ export class BuildTask<T extends Module> extends Task {
 
       return result
     } else {
-      entry.setSuccess({ msg: "Already built" })
+      entry.setSuccess("Already built")
       return { fresh: false }
     }
   }

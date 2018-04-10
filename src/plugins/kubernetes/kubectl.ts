@@ -10,6 +10,7 @@ import { ChildProcess, spawn } from "child_process"
 import { extend } from "lodash"
 import { spawnPty } from "../../util"
 import { RuntimeError } from "../../exceptions"
+import { getLogger } from "../../logger"
 
 export interface KubectlParams {
   data?: Buffer,
@@ -44,6 +45,7 @@ export class Kubectl {
     { data, ignoreError = false, silent = true, timeout = KUBECTL_DEFAULT_TIMEOUT }: KubectlParams = {},
   ): Promise<KubectlOutput> {
     // TODO: use the spawn helper from util.ts
+    const logger = getLogger()
     const out: KubectlOutput = {
       code: 0,
       output: "",
@@ -56,7 +58,7 @@ export class Kubectl {
 
     proc.stdout.on("data", (s) => {
       if (!silent) {
-        process.stdout.write(s)
+        logger.info(s.toString())
       }
       out.output += s
       out.stdout! += s
@@ -64,7 +66,7 @@ export class Kubectl {
 
     proc.stderr.on("data", (s) => {
       if (!silent) {
-        process.stderr.write(s)
+        logger.error(s.toString())
       }
       out.output += s
       out.stderr! += s

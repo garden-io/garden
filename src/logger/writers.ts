@@ -21,7 +21,7 @@ import {
 } from "./types"
 
 import {
-  format,
+  combine,
   leftPad,
   renderDuration,
   renderEmoji,
@@ -33,10 +33,16 @@ import {
 
 import { LogEntry, RootLogNode } from "./index"
 
+const { combine: winstonCombine, timestamp, printf } = winston.format
+
 const INTERVAL_DELAY = 100
 const spinnerStyle = chalk.cyan
 const DEFAULT_LOG_FILENAME = "development.log"
 const DEFAULT_FILE_TRANSPORT_OPTIONS = {
+  format: winstonCombine(
+    timestamp(),
+    printf(info => `\n[${info.timestamp}] ${info.message}`),
+  ),
   maxsize: 10000000, // 10 MB
   maxFiles: 1,
 }
@@ -68,7 +74,6 @@ export abstract class Writer {
 
 export class FileWriter extends Writer {
   private winston: any // Types are still missing from Winston 3.x.x.
-  private filepath: string
 
   public level: LogLevel
 
@@ -82,13 +87,12 @@ export class FileWriter extends Writer {
 
     super({ level })
 
-    this.filepath = path.join(root, filename)
     this.winston = winston.createLogger({
       level: levelToStr(level),
       transports: [
         new winston.transports.File({
           ...fileTransportOptions,
-          filename: this.filepath,
+          filename: path.join(root, filename),
         }),
       ],
     })
@@ -132,7 +136,7 @@ function formatForConsole(entry: LogEntry): string {
       [renderDuration, [entry]],
     ]
   }
-  return format(renderers)
+  return combine(renderers)
 }
 
 export class BasicConsoleWriter extends Writer {
@@ -177,9 +181,9 @@ export class FancyConsoleWriter extends Writer {
       ...process.stdout,
       write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
     }
-    const makeOpts = (msg: string) => ({
+    const makeOpts = msg => ({
       // Remove trailing new line from console writes since Logger already handles it
-      msg: msg.replace(/\n$/, ""),
+      msg: typeof msg === "string" ? msg.replace(/\n$/, "") : msg,
       notOriginatedFromLogger: true,
     })
     /*
@@ -284,7 +288,7 @@ export class FancyConsoleWriter extends Writer {
   }
 
   public write(_, rootLogNode: RootLogNode): void {
-    // Init on first write since we don't have access to rootLogNode in constructor
+    // Init on first write to prevent unneccesary stream hijacking.
     if (!this.logUpdate) {
       this.logUpdate = this.initLogUpdate(rootLogNode)
     }

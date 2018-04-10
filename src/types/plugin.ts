@@ -52,6 +52,10 @@ export interface ConfigureEnvironmentParams extends PluginActionParamsBase {
   env: Environment,
 }
 
+export interface DestroyEnvironmentParams extends PluginActionParamsBase {
+  env: Environment,
+}
+
 export interface GetServiceStatusParams<T extends Module = Module> extends PluginActionParamsBase {
   service: Service<T>,
   env: Environment,
@@ -108,6 +112,7 @@ export interface PluginActionParams<T extends Module = Module> {
 
   getEnvironmentStatus: GetEnvironmentStatusParams
   configureEnvironment: ConfigureEnvironmentParams
+  destroyEnvironment: DestroyEnvironmentParams
 
   getServiceStatus: GetServiceStatusParams<T>
   deployService: DeployServiceParams<T>
@@ -144,6 +149,10 @@ export interface EnvironmentStatus {
   detail?: any
 }
 
+export type EnvironmentStatusMap = {
+  [key: string]: EnvironmentStatus,
+}
+
 export interface ExecInServiceResult {
   code: number
   output: string
@@ -170,6 +179,7 @@ export interface PluginActionOutputs<T extends Module = Module> {
 
   getEnvironmentStatus: Promise<EnvironmentStatus>
   configureEnvironment: Promise<void>
+  destroyEnvironment: Promise<void>
 
   getServiceStatus: Promise<ServiceStatus>
   deployService: Promise<any>   // TODO: specify
@@ -199,7 +209,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
 
   getEnvironmentStatus = null
   configureEnvironment = null
-
+  destroyEnvironment = null
   getServiceStatus = null
   deployService = null
   getServiceOutputs = null

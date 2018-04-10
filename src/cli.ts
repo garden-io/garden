@@ -311,10 +311,7 @@ export class GardenCli {
 
       if (errors.length > 0) {
         errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
-        this.logger.info({
-          msg: `See ${ERROR_LOG_FILENAME} for detailed error message`,
-        },
-        )
+        this.logger.info(`See ${ERROR_LOG_FILENAME} for detailed error message`)
       }
 
       this.logger.stop()
