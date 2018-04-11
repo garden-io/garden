@@ -1,7 +1,7 @@
 --require ts-node/register
---require test/setup.ts
 --watch-extensions ts,json,pegjs
 --reporter spec
 --timeout 5000
+test/setup.ts
 test/src/*.ts
 test/src/**/*.ts

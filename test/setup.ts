@@ -1,4 +1,7 @@
-import { LogLevel, LoggerType } from "../src/logger/types"
-import { setDefaultLoggerType, setDefaultLoggerConfig } from "../src/logger"
+import { LoggerType } from "../src/logger/types"
+import { setDefaultLoggerType } from "../src/logger"
 
-setDefaultLoggerType(LoggerType.test)
+// Global before hooks
+before(() => {
+  setDefaultLoggerType(LoggerType.test)
+})
