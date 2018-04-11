@@ -26,11 +26,15 @@ export interface Config {
   project: ProjectConfig
 }
 
-export const configSchema = Joi.object().keys({
-  version: Joi.string().default("0").only("0"),
-  module: baseModuleSchema,
-  project: projectSchema,
-}).optionalKeys(["module", "project"]).required()
+export const configSchema = Joi.object()
+  .keys({
+    version: Joi.string().default("0").only("0"),
+    module: baseModuleSchema,
+    project: projectSchema,
+  })
+  .optionalKeys(["module", "project"])
+  .options({ allowUnknown: true })
+  .required()
 
 export async function loadConfig(projectRoot: string, path: string): Promise<Config> {
   // TODO: nicer error messages when load/validation fails
