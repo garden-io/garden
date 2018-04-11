@@ -47,7 +47,7 @@ export async function loadConfig(path: string): Promise<Config> {
   try {
     config = <Config>yaml.safeLoad(fileData) || {}
   } catch (err) {
-    throw new ConfigurationError(`Could not parse ${CONFIG_FILENAME} as valid YAML`, err)
+    throw new ConfigurationError(`Could not parse ${CONFIG_FILENAME} in directory ${path} as valid YAML`, err)
   }
 
   config.dirname = Joi.attempt(parse(absPath).dir.split(sep).slice(-1)[0], joiIdentifier())
