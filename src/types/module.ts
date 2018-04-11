@@ -11,6 +11,7 @@ import { PluginContext } from "../plugin-context"
 import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
+import { extend } from "lodash"
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
@@ -41,6 +42,7 @@ export interface TestConfig {
 }
 
 export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
+  allowPush: boolean
   build: BuildConfig
   description?: string
   name: string
@@ -69,22 +71,16 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   @Memoize()
-  async getConfig(context?: TemplateStringContext): Promise<T> {
+  async getConfig(context?: TemplateStringContext): Promise<ModuleConfig> {
     // TODO: allow referencing other module configs (non-trivial, need to save for later)
     const templateContext = await this.ctx.getTemplateContext(context)
-    const config = this.config
+    const config = <T>extend({}, this.config)
 
-    return <T>{
-      build: await resolveTemplateStrings(config.build, templateContext),
-      description: config.description,
-      name: config.name,
-      path: config.path,
-      // service configs are resolved separately in the Service class
-      services: config.services,
-      test: await resolveTemplateStrings(config.test, templateContext),
-      type: config.type,
-      variables: await resolveTemplateStrings(config.variables, templateContext),
-    }
+    config.build = await resolveTemplateStrings(config.build, templateContext)
+    config.test = await resolveTemplateStrings(config.test, templateContext)
+    config.variables = await resolveTemplateStrings(config.variables, templateContext)
+
+    return config
   }
 
   async getVersion(): Promise<TreeVersion> {
@@ -170,6 +166,8 @@ export const baseModuleSchema = Joi.object().keys({
   description: Joi.string(),
   variables: joiVariables(),
   services: baseServicesSchema,
+  allowPush: Joi.boolean()
+    .default(true, "Set to false to disable pushing this module to remote registries"),
   build: Joi.object().keys({
     command: Joi.string(),
     dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),

@@ -38,6 +38,7 @@ describe("loadConfig", () => {
     expect(parsed.module).to.eql({
       name: "module-a",
       type: "generic",
+      allowPush: true,
       services: { "service-a": { dependencies: [] } },
       build: { command: "echo A", dependencies: [] },
       test: {

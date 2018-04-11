@@ -32,6 +32,8 @@ import {
   GetServiceLogsParams,
   PluginActionParams,
   PluginActions,
+  PushModuleParams,
+  PushResult,
   ServiceLogEntry,
   TestResult,
 } from "./types/plugin"
@@ -73,6 +75,7 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getModuleBuildPath: <T extends Module>(module: T) => Promise<string>
   getModuleBuildStatus: <T extends Module>(module: T) => Promise<BuildStatus>
   buildModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildResult>
+  pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
   testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
   getTestResult: <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => Promise<TestResult | null>
   getEnvironmentStatus: () => Promise<EnvironmentStatusMap>
@@ -138,6 +141,11 @@ export function createPluginContext(garden: Garden): PluginContext {
       await garden.buildDir.syncDependencyProducts(module)
       const defaultHandler = garden.actionHandlers["buildModule"]["generic"]
       const handler = garden.getActionHandler("buildModule", module.type, defaultHandler)
+      return handler({ ctx, module, logEntry })
+    },
+
+    pushModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
+      const handler = garden.getActionHandler("pushModule", module.type, dummyPushHandler)
       return handler({ ctx, module, logEntry })
     },
 
@@ -263,4 +271,12 @@ const dummyLogStreamer = async ({ ctx, service }: GetServiceLogsParams) => {
     section: service.name,
     msg: chalk.yellow(`No handler for log retrieval available for module type ${service.module.type}`),
   })
+}
+
+const dummyPushHandler = async ({ ctx, logEntry, module }: PushModuleParams) => {
+  (logEntry || ctx.log).warn({
+    section: module.name,
+    msg: chalk.yellow(`No push handler available for module type ${module.type}`),
+  })
+  return { pushed: false }
 }

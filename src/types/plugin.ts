@@ -34,6 +34,10 @@ export interface BuildModuleParams<T extends Module = Module> extends PluginActi
   module: T
 }
 
+export interface PushModuleParams<T extends Module = Module> extends PluginActionParamsBase {
+  module: T
+}
+
 export interface TestModuleParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
   testSpec: TestSpec,
@@ -109,6 +113,7 @@ export interface PluginActionParams<T extends Module = Module> {
   parseModule: ParseModuleParams<T>
   getModuleBuildStatus: GetModuleBuildStatusParams<T>
   buildModule: BuildModuleParams<T>
+  pushModule: PushModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>
 
@@ -132,6 +137,10 @@ export interface BuildResult {
   fetched?: boolean
   fresh?: boolean
   version?: string
+}
+
+export interface PushResult {
+  pushed: boolean
 }
 
 export interface TestResult {
@@ -176,6 +185,7 @@ export interface PluginActionOutputs<T extends Module = Module> {
   parseModule: Promise<T>
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>
+  pushModule: Promise<PushResult>
   testModule: Promise<TestResult>
   getTestResult: Promise<TestResult | null>
 
@@ -206,6 +216,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   parseModule = null
   getModuleBuildStatus = null
   buildModule = null
+  pushModule = null
   testModule = null
   getTestResult = null
 

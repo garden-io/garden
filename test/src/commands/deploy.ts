@@ -54,8 +54,6 @@ describe("commands.deploy", () => {
       "build.module-b": { fresh: true, buildLog: "B\n" },
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
-      "build.module-c": {},
-      "deploy.service-c": { version: "1", state: "ready" },
     })
   })
 
