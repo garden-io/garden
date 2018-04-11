@@ -57,9 +57,6 @@ describe("commands.call", () => {
       {
         serviceAndPath: "service-a/path-a",
       },
-      {
-        env: "local",
-      },
     )
 
     expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
@@ -81,9 +78,6 @@ describe("commands.call", () => {
         {
           serviceAndPath: "service-b/path-b",
         },
-        {
-          env: "local",
-        },
       )
     } catch (err) {
       expect(err.type).to.equal("runtime")
@@ -104,9 +98,6 @@ describe("commands.call", () => {
         {
           serviceAndPath: "service-c/path-c",
         },
-        {
-          env: "local",
-        },
       )
     } catch (err) {
       expect(err.type).to.equal("parameter")
@@ -126,9 +117,6 @@ describe("commands.call", () => {
         ctx,
         {
           serviceAndPath: "service-a/bla",
-        },
-        {
-          env: "local",
         },
       )
     } catch (err) {

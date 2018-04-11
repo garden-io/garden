@@ -47,7 +47,7 @@ describe("EnvironmentDestroyCommand", () => {
       plugins: defaultPlugins.concat([() => new TestProvider()]),
     })
 
-    const result = await command.action(garden.pluginContext, {}, { env: undefined })
+    const result = await command.action(garden.pluginContext)
 
     expect(result["test-plugin"]["configured"]).to.be.false
   })
@@ -65,7 +65,7 @@ describe("EnvironmentDestroyCommand", () => {
       }),
     )
 
-    const result = await command.action(garden.pluginContext, {}, { env: undefined })
+    const result = await command.action(garden.pluginContext)
 
     expect(result["test-plugin"]["configured"]).to.be.false
   })

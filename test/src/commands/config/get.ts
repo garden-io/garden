@@ -9,7 +9,7 @@ describe("ConfigGetCommand", () => {
 
     await ctx.setConfig(["project", "mykey"], "myvalue")
 
-    const res = await command.action(ctx, { key: "project.mykey" }, { env: undefined })
+    const res = await command.action(ctx, { key: "project.mykey" })
 
     expect(res).to.eql({ "project.mykey": "myvalue" })
   })
@@ -19,7 +19,7 @@ describe("ConfigGetCommand", () => {
     const command = new ConfigGetCommand()
 
     await expectError(
-      async () => await command.action(ctx, { key: "bla.mykey" }, { env: undefined }),
+      async () => await command.action(ctx, { key: "bla.mykey" }),
       "parameter",
     )
   })
@@ -29,7 +29,7 @@ describe("ConfigGetCommand", () => {
     const command = new ConfigGetCommand()
 
     await expectError(
-      async () => await command.action(ctx, { key: "project.mykey" }, { env: undefined }),
+      async () => await command.action(ctx, { key: "project.mykey" }),
       "not-found",
     )
   })

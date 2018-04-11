@@ -18,6 +18,7 @@ describe("ContainerModuleHandler", () => {
         },
         name: "module-a",
         path: modulePath,
+        allowPush: false,
         services: {
           "service-a": {
             command: ["echo"],
@@ -68,6 +69,7 @@ describe("ContainerModuleHandler", () => {
         },
         name: "module-a",
         path: modulePath,
+        allowPush: false,
         services: {
           "service-a": {
             command: ["echo"],
@@ -107,6 +109,7 @@ describe("ContainerModuleHandler", () => {
         },
         name: "module-a",
         path: modulePath,
+        allowPush: false,
         services: {
           "service-a": {
             command: ["echo"],
@@ -147,6 +150,7 @@ describe("ContainerModuleHandler", () => {
         },
         name: "module-a",
         path: modulePath,
+        allowPush: false,
         services: {
           "service-a": {
             command: ["echo"],
