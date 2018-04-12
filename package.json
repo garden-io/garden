@@ -72,6 +72,7 @@
     "@types/prettyjson": "0.0.28",
     "@types/yargs": "^11.0.0",
     "chai": "^4.1.2",
+    "husky": "^0.15.0-rc.13",
     "json-schema-to-typescript": "^5.2.2",
     "license-checker": "^18.0.0",
     "mocha": "^4.1.0",
@@ -85,7 +86,8 @@
     "tslint": "^5.8.0",
     "tslint-microsoft-contrib": "^5.0.1",
     "typescript": "^2.7.2",
-    "typescript-formatter": "^7.0.1"
+    "typescript-formatter": "^7.0.1",
+    "validate-commit": "^3.4.0"
   },
   "scripts": {
     "add-licenses": "./bin/add-licenses",
@@ -108,6 +110,11 @@
     "test": "node_modules/.bin/mocha",
     "update-submodules": "git submodule update --init --recursive --jobs 4",
     "watch": "npm run build -- -w"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "validate-commit-msg -p angular"
+    }
   },
   "snyk": true
 }
