@@ -248,7 +248,7 @@ export class RootLogNode extends LogNode {
   }
 
   public header(
-    { command, emoji, level = LogLevel.verbose }: { command: string, emoji?: string, level?: LogLevel },
+    { command, emoji, level = LogLevel.info }: { command: string, emoji?: string, level?: LogLevel },
   ): LogEntry {
     const msg = combine([
       [chalk.bold.magenta(command)],
@@ -260,7 +260,7 @@ export class RootLogNode extends LogNode {
   }
 
   public finish(
-    { showDuration = true, level = LogLevel.verbose }: { showDuration?: boolean, level?: LogLevel } = {},
+    { showDuration = true, level = LogLevel.info }: { showDuration?: boolean, level?: LogLevel } = {},
   ): LogEntry {
     const msg = combine([
       [`\n${nodeEmoji.get("sparkles")}  Finished`],
