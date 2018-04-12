@@ -2,6 +2,11 @@ module:
   name: module-c
   type: generic
   allowPush: false
+  services:
+    service-c:
+      endpoints:
+        - paths: [/path-c]
+          containerPort: 8080
   build:
     dependencies:
       - module-b

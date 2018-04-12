@@ -141,6 +141,7 @@ export interface BuildResult {
 
 export interface PushResult {
   pushed: boolean
+  message?: string
 }
 
 export interface TestResult {

@@ -73,7 +73,7 @@ export type WrappedFromGarden = Pick<Garden,
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   parseModule: <T extends Module>(config: T["_ConfigType"]) => Promise<T>
   getModuleBuildPath: <T extends Module>(module: T) => Promise<string>
-  getModuleBuildStatus: <T extends Module>(module: T) => Promise<BuildStatus>
+  getModuleBuildStatus: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildStatus>
   buildModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildResult>
   pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
   testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
@@ -131,10 +131,10 @@ export function createPluginContext(garden: Garden): PluginContext {
       return await garden.buildDir.buildPath(module)
     },
 
-    getModuleBuildStatus: async <T extends Module>(module: T) => {
+    getModuleBuildStatus: async <T extends Module>(module: T, logEntry?: LogEntry) => {
       const defaultHandler = garden.actionHandlers["getModuleBuildStatus"]["generic"]
       const handler = garden.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
-      return handler({ ctx, module })
+      return handler({ ctx, module, logEntry })
     },
 
     buildModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
@@ -273,10 +273,6 @@ const dummyLogStreamer = async ({ ctx, service }: GetServiceLogsParams) => {
   })
 }
 
-const dummyPushHandler = async ({ ctx, logEntry, module }: PushModuleParams) => {
-  (logEntry || ctx.log).warn({
-    section: module.name,
-    msg: chalk.yellow(`No push handler available for module type ${module.type}`),
-  })
-  return { pushed: false }
+const dummyPushHandler = async ({ module }: PushModuleParams) => {
+  return { pushed: false, message: chalk.yellow(`No push handler available for module type ${module.type}`) }
 }

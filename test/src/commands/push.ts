@@ -1,3 +1,4 @@
+import chalk from "chalk"
 import { join } from "path"
 import { expect } from "chai"
 import * as td from "testdouble"
@@ -11,7 +12,9 @@ import {
 import { Module } from "../../../src/types/module"
 import { PushCommand } from "../../../src/commands/push"
 import { TreeVersion } from "../../../src/vcs/base"
-import { expectError } from "../../helpers"
+import {
+  expectError,
+} from "../../helpers"
 
 const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
 
@@ -174,7 +177,7 @@ describe("PushCommand", () => {
 
     expect(result).to.eql({
       "build.module-a": { fresh: false },
-      "push.module-a": { pushed: false },
+      "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type generic") },
     })
   })
 

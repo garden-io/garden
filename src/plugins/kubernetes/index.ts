@@ -201,7 +201,7 @@ export class KubernetesProvider implements Plugin<ContainerModule> {
 
     // TODO: use the runModule() method
     const testCommandStr = testSpec.command.join(" ")
-    const image = await module.getImageId()
+    const image = await module.getLocalImageId()
     const version = await module.getVersion()
 
     const kubecmd = [

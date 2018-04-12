@@ -15,7 +15,6 @@ import { extend } from "lodash"
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
-import { BuildStatus } from "./plugin"
 import { TreeVersion } from "../vcs/base"
 
 export interface BuildDependencyConfig {
@@ -100,10 +99,6 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   async getBuildPath() {
     return await this.ctx.getModuleBuildPath(this)
-  }
-
-  async getBuildStatus(): Promise<BuildStatus> {
-    return this.ctx.getModuleBuildStatus(this)
   }
 
   async getBuildDependencies(): Promise<Module[]> {

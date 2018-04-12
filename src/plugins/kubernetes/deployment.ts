@@ -147,7 +147,7 @@ export async function createDeployment(
   const container: any = {
     args: service.config.command || [],
     name: service.name,
-    image: await service.module.getImageId(),
+    image: await service.module.getLocalImageId(),
     env,
     ports: [],
     // TODO: make these configurable

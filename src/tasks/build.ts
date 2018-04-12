@@ -38,7 +38,7 @@ export class BuildTask<T extends Module> extends Task {
       entryStyle: EntryStyle.activity,
     })
 
-    if (this.force || !(await this.module.getBuildStatus()).ready) {
+    if (this.force || !(await this.ctx.getModuleBuildStatus(this.module, entry)).ready) {
       const startTime = new Date().getTime()
       const result = await this.ctx.buildModule(this.module, entry)
       const buildTime = (new Date().getTime()) - startTime

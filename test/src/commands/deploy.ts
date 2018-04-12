@@ -52,8 +52,10 @@ describe("commands.deploy", () => {
     expect(result).to.eql({
       "build.module-a": { fresh: true, buildLog: "A\n" },
       "build.module-b": { fresh: true, buildLog: "B\n" },
+      "build.module-c": {},
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
+      "deploy.service-c": { version: "1", state: "ready" },
     })
   })
 

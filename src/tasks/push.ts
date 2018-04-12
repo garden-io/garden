@@ -54,7 +54,11 @@ export class PushTask<T extends Module<any>> extends Task {
 
     const result = await this.ctx.pushModule(this.module, entry)
 
-    entry.setSuccess({ msg: chalk.green(`Ready`), append: true })
+    if (result.pushed) {
+      entry.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
+    } else {
+      entry.setWarn({ msg: result.message, append: true })
+    }
 
     return result
   }
