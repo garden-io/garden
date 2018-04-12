@@ -53,6 +53,12 @@ discussion, pull requests, feature requests and any type of feedback. We request
 adhere to the [Contributor Covenant](CODE_OF_CONDUCT.md) and work with us to make the collaboration and 
 community productive and fun for everyone :)
 
+### Commit messages
+
+We follow and automatically validate 
+[Angular-like formatting](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#commits) for our
+commit messages, for consistency and clarity.
+
 ### Setting up your development environment
 
     ./bin/bootstrap-osx
