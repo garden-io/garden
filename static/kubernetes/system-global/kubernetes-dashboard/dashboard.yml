@@ -45,6 +45,8 @@ metadata:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
   name: kubernetes-dashboard-minimal
   namespace: garden-system
 rules:
@@ -80,6 +82,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
   name: kubernetes-dashboard-minimal
   namespace: garden-system
 roleRef:
@@ -157,13 +161,13 @@ apiVersion: v1
 metadata:
   labels:
     k8s-app: kubernetes-dashboard
-  name: kubernetes-dashboard
+  name: dashboard
   namespace: garden-system
 spec:
   type: NodePort
   ports:
     - port: 443
-      nodePort: 32001
+      nodePort: 3200
       targetPort: 8443
   selector:
     k8s-app: kubernetes-dashboard
