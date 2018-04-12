@@ -113,7 +113,8 @@
   },
   "husky": {
     "hooks": {
-      "commit-msg": "validate-commit-msg -p angular"
+      "commit-msg": "validate-commit-msg -p angular",
+      "pre-push": "npm test"
     }
   },
   "snyk": true
