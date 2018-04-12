@@ -7,7 +7,7 @@
  */
 
 import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import chalk from "chalk"
 import { GetServiceLogsParams, ServiceLogEntry } from "../types/plugin"
 import Bluebird = require("bluebird")
@@ -39,7 +39,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   arguments = logsArgs
   options = logsOpts
 
-  async action(ctx: GardenContext, args: Args, opts: Opts) {
+  async action(ctx: Garden, args: Args, opts: Opts) {
     opts.env && ctx.setEnvironment(opts.env)
     const env = ctx.getEnvironment()
     const names = args.service ? args.service.split(",") : undefined

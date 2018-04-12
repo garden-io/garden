@@ -11,7 +11,7 @@ import { every, reduce } from "lodash"
 import { Command, EnvironmentOption, ParameterValues } from "../base"
 import { EntryStyle } from "../../logger/types"
 import { EnvironmentStatus, EnvironmentStatusMap } from "../../types/plugin"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 import { LogEntry } from "../../logger"
 import { sleep } from "../../util"
 import { TimeoutError } from "../../exceptions"
@@ -34,7 +34,7 @@ export class EnvironmentDestroyCommand extends Command {
   alias = "d"
   help = "Destroy environment"
 
-  async action(ctx: GardenContext, _args, opts: Opts) {
+  async action(ctx: Garden, _args, opts: Opts) {
     opts.env && ctx.setEnvironment(opts.env)
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "skull_and_crossbones", command: `Destroying ${name} environment` })
@@ -65,7 +65,7 @@ export class EnvironmentDestroyCommand extends Command {
     return result
   }
 
-  async waitForShutdown(ctx: GardenContext, name: string, logEntries: LogEntryMap) {
+  async waitForShutdown(ctx: Garden, name: string, logEntries: LogEntryMap) {
     const startTime = new Date().getTime()
     let result: EnvironmentStatusMap
 

@@ -8,7 +8,7 @@
 
 import { join } from "path"
 import { STATIC_DIR } from "../../constants"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 import { Environment } from "../../types/common"
 import {
   ConfigureEnvironmentParams,
@@ -37,7 +37,7 @@ const dashboardSpecPath = join(dashboardModulePath, "dashboard.yml")
 
 export const localIngressPort = 32000
 
-export async function getGlobalSystemStatus(ctx: GardenContext, env: Environment) {
+export async function getGlobalSystemStatus(ctx: Garden, env: Environment) {
   const gardenEnv = getSystemEnv(env)
 
   const systemNamespaceReady = namespaceReady(GARDEN_GLOBAL_SYSTEM_NAMESPACE)
@@ -119,19 +119,19 @@ function getSystemEnv(env: Environment): Environment {
   return { name: env.name, namespace: GARDEN_GLOBAL_SYSTEM_NAMESPACE, config: { providers: {} } }
 }
 
-async function getIngressControllerService(ctx: GardenContext) {
+async function getIngressControllerService(ctx: Garden) {
   const module = <ContainerModule>await ctx.resolveModule(ingressControllerModulePath)
 
   return ContainerService.factory(ctx, module, "ingress-controller")
 }
 
-async function getDefaultBackendService(ctx: GardenContext) {
+async function getDefaultBackendService(ctx: Garden) {
   const module = <ContainerModule>await ctx.resolveModule(defaultBackendModulePath)
 
   return ContainerService.factory(ctx, module, "default-backend")
 }
 
-async function getDashboardService(ctx: GardenContext) {
+async function getDashboardService(ctx: Garden) {
   // TODO: implement raw kubernetes module load this module the same way as the ones above
   const module = new ContainerModule(ctx, {
     version: "0",

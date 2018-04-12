@@ -7,7 +7,7 @@
  */
 
 import { Command, EnvironmentOption, ParameterValues, StringParameter } from "../base"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 
 export const configGetArgs = {
   key: new StringParameter({
@@ -34,7 +34,7 @@ export class ConfigGetCommand extends Command<typeof configGetArgs, typeof confi
   arguments = configGetArgs
   options = configGetOpts
 
-  async action(ctx: GardenContext, args: GetArgs, opts: GetOpts) {
+  async action(ctx: Garden, args: GetArgs, opts: GetOpts) {
     opts.env && ctx.setEnvironment(opts.env)
     const res = await ctx.getConfig(args.key.split("."))
 

@@ -10,7 +10,7 @@ import * as Joi from "joi"
 import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
@@ -60,7 +60,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   _ConfigType: T
 
-  constructor(private ctx: GardenContext, private config: T) {
+  constructor(private ctx: Garden, private config: T) {
     this.name = config.name
     this.type = config.type
     this.path = config.path

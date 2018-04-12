@@ -15,7 +15,7 @@ import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
 import { BuildModuleParams, GetModuleBuildStatusParams, Plugin } from "../types/plugin"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { Service } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 
@@ -121,7 +121,7 @@ export class ContainerService extends Service<ContainerModule> { }
 export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleConfig> extends Module<T> {
   image?: string
 
-  constructor(ctx: GardenContext, config: T) {
+  constructor(ctx: Garden, config: T) {
     super(ctx, config)
 
     this.image = config.image
@@ -131,7 +131,7 @@ export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleCo
     return this.image || `${this.name}:${await this.getVersion()}`
   }
 
-  async pullImage(ctx: GardenContext) {
+  async pullImage(ctx: Garden) {
     const identifier = await this.getImageId()
 
     if (!await this.imageExistsLocally()) {
@@ -156,7 +156,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
-  async parseModule({ ctx, config }: { ctx: GardenContext, config: ContainerModuleConfig }) {
+  async parseModule({ ctx, config }: { ctx: Garden, config: ContainerModuleConfig }) {
     config = validate(config, containerSchema, `module ${config.name}`)
 
     const module = new ContainerModule(ctx, config)

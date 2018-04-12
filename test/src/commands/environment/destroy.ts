@@ -11,7 +11,7 @@ import {
   Plugin,
 } from "../../../../src/types/plugin"
 import { EnvironmentDestroyCommand } from "../../../../src/commands/environment/destroy"
-import { GardenContext } from "../../../../src/context"
+import { Garden } from "../../../../src/garden"
 import { Module } from "../../../../src/types/module"
 import { sleep } from "../../../../src/util"
 
@@ -45,7 +45,7 @@ describe("EnvironmentDestroyCommand", () => {
   const command = new EnvironmentDestroyCommand()
 
   it("should destroy environment", async () => {
-    const ctx = await GardenContext.factory(projectRootB, {
+    const ctx = await Garden.factory(projectRootB, {
       plugins: defaultPlugins.concat([() => new TestProvider()]),
     })
 
@@ -55,7 +55,7 @@ describe("EnvironmentDestroyCommand", () => {
   })
 
   it("should wait until each provider is no longer configured", async () => {
-    const ctx = await GardenContext.factory(projectRootB, {
+    const ctx = await Garden.factory(projectRootB, {
       plugins: defaultPlugins.concat([() => new TestProviderSlow()]),
     })
 

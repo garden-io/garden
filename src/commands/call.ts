@@ -10,7 +10,7 @@ import { resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
 import { Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { splitFirst } from "../util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
@@ -39,7 +39,7 @@ export class CallCommand extends Command<typeof callArgs> {
   arguments = callArgs
   options = options
 
-  async action(ctx: GardenContext, args: Args, opts: Opts) {
+  async action(ctx: Garden, args: Args, opts: Opts) {
     opts.env && ctx.setEnvironment(opts.env)
 
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")

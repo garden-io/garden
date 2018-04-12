@@ -8,7 +8,7 @@
 
 import { identifierRegex, validate } from "../../types/common"
 import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 import { ServiceConfig, ServiceState, ServiceStatus } from "../../types/service"
 import { resolve } from "path"
 import * as Joi from "joi"
@@ -39,7 +39,7 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
   name = "google-cloud-functions"
   supportedModuleTypes = ["google-cloud-function"]
 
-  async parseModule({ ctx, config }: { ctx: GardenContext, config: GoogleCloudFunctionsModuleConfig }) {
+  async parseModule({ ctx, config }: { ctx: Garden, config: GoogleCloudFunctionsModuleConfig }) {
     const module = new GoogleCloudFunctionsModule(ctx, config)
 
     // TODO: check that each function exists at the specified path

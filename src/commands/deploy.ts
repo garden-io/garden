@@ -7,7 +7,7 @@
  */
 
 import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { DeployTask } from "../tasks/deploy"
 import { values } from "lodash"
 import { Service } from "../types/service"
@@ -39,7 +39,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   arguments = deployArgs
   options = deployOpts
 
-  async action(ctx: GardenContext, args: Args, opts: Opts): Promise<TaskResults> {
+  async action(ctx: Garden, args: Args, opts: Opts): Promise<TaskResults> {
     ctx.log.header({ emoji: "rocket", command: "Deploy" })
 
     opts.env && ctx.setEnvironment(opts.env)
@@ -56,7 +56,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
 }
 
 export async function deployServices(
-  ctx: GardenContext,
+  ctx: Garden,
   services: Service<any>[],
   force: boolean,
   forceBuild: boolean,

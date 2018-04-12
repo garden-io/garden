@@ -7,7 +7,7 @@
  */
 
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { BuildTask } from "../tasks/build"
 import { values } from "lodash"
 import { TaskResults } from "../task-graph"
@@ -32,7 +32,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   arguments = buildArguments
   options = buildOptions
 
-  async action(ctx: GardenContext, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
+  async action(ctx: Garden, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
     await ctx.buildDir.clear()
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)

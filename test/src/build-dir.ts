@@ -4,7 +4,7 @@ import { expect } from "chai"
 const nodetree = require("nodetree")
 import { values } from "lodash"
 import { defaultPlugins } from "../../src/plugins";
-import { GardenContext } from "../../src/context";
+import { Garden } from "../../src/garden";
 import { BuildTask } from "../../src/tasks/build";
 import { makeTestContext } from "../helpers";
 
@@ -26,7 +26,7 @@ const makeContext = async () => {
 
 describe("BuildDir", () => {
 
-  it("should have ensured the existence of the build dir when GardenContext was initialized", async () => {
+  it("should have ensured the existence of the build dir when Garden was initialized", async () => {
     const ctx = await makeContext()
     const buildDirExists = await pathExists(ctx.buildDir.buildDirPath)
     expect(buildDirExists).to.eql(true)

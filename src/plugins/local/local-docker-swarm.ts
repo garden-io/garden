@@ -18,7 +18,7 @@ import { ContainerModule } from "../container"
 import { sortBy, map } from "lodash"
 import { sleep } from "../../util"
 import { ServiceState, ServiceStatus } from "../../types/service"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 
 // should this be configurable and/or global across providers?
 const DEPLOY_TIMEOUT = 30
@@ -261,7 +261,7 @@ export class LocalDockerSwarmProvider implements Plugin<ContainerModule> {
     return { code: 0, output: "", stdout: res.stdout, stderr: res.stderr }
   }
 
-  private getSwarmServiceName(ctx: GardenContext, serviceName: string) {
+  private getSwarmServiceName(ctx: Garden, serviceName: string) {
     return `${ctx.projectName}--${serviceName}`
   }
 

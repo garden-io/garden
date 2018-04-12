@@ -7,7 +7,7 @@
  */
 
 import { Command, EnvironmentOption, ParameterValues } from "../base"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 
 export const options = {
   env: new EnvironmentOption({
@@ -24,7 +24,7 @@ export class EnvironmentConfigureCommand extends Command<typeof options> {
 
   options = options
 
-  async action(ctx: GardenContext, _args, opts: Opts) {
+  async action(ctx: Garden, _args, opts: Opts) {
     opts.env && ctx.setEnvironment(opts.env)
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "gear", command: `Configuring ${name} environment` })

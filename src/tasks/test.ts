@@ -11,7 +11,7 @@ import { Module, TestSpec } from "../types/module"
 import { BuildTask } from "./build"
 import { TestResult } from "../types/plugin"
 import { DeployTask } from "./deploy"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
@@ -19,7 +19,7 @@ export class TestTask<T extends Module> extends Task {
   type = "test"
 
   constructor(
-    private ctx: GardenContext,
+    private ctx: Garden,
     private module: T, private testType: string, private testSpec: TestSpec,
     private force: boolean, private forceBuild: boolean,
   ) {

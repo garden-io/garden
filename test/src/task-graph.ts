@@ -1,7 +1,7 @@
 import { join } from "path"
 import { expect } from "chai"
 import { Task, TaskGraph, TaskResults } from "../../src/task-graph"
-import { GardenContext } from "../../src/context"
+import { Garden } from "../../src/garden"
 import { defaultPlugins } from "../../src/plugins"
 
 describe("task-graph", () => {
@@ -31,7 +31,7 @@ describe("task-graph", () => {
 
   describe("TaskGraph", async () => {
     const projectRoot = join(__dirname, "..", "data", "test-project-empty")
-    const ctx = await GardenContext.factory(projectRoot, { plugins: defaultPlugins })
+    const ctx = await Garden.factory(projectRoot, { plugins: defaultPlugins })
 
     it("should successfully process a single task without dependencies", async () => {
       const graph = new TaskGraph(ctx)

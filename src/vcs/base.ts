@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 
 export const NEW_MODULE_VERSION = "0000000000"
 
 export abstract class VcsHandler {
-  constructor(protected ctx: GardenContext) { }
+  constructor(protected ctx: Garden) { }
 
   abstract async getTreeVersion(directories): Promise<string>
   abstract async sortVersions(versions: string[]): Promise<string[]>

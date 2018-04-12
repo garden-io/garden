@@ -19,7 +19,7 @@ import {
   GetServiceStatusParams, ParseModuleParams,
   Plugin,
 } from "../../types/plugin"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 import { STATIC_DIR } from "../../constants"
 import { ContainerModule, ContainerService } from "../container"
 import { validate } from "../../types/common"
@@ -138,7 +138,7 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
     return handler({ ctx, service: emulator, env, stream, tail })
   }
 
-  private async getEmulatorService(ctx: GardenContext) {
+  private async getEmulatorService(ctx: Garden) {
     const module = await ctx.resolveModule<ContainerModule>(emulatorModulePath)
 
     if (!module) {

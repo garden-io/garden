@@ -7,13 +7,13 @@
  */
 
 import { Command } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors"
 
-  async action(ctx: GardenContext) {
+  async action(ctx: Garden) {
 
     ctx.log.header({ emoji: "heavy_check_mark", command: "validate" })
 

@@ -20,7 +20,7 @@ import {
 } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { InternalError, PluginError } from "./exceptions"
-import { GardenContext } from "./context"
+import { Garden } from "./garden"
 import { FileWriter } from "./logger/writers"
 import { getLogger, RootLogNode } from "./logger"
 import { resolve } from "path"
@@ -277,7 +277,7 @@ export class GardenCli {
         )
       }
 
-      const ctx = await GardenContext.factory(root, { logger, plugins: defaultPlugins })
+      const ctx = await Garden.factory(root, { logger, plugins: defaultPlugins })
       return command.action(ctx, argsForAction, optsForAction)
     }
 

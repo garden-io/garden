@@ -58,7 +58,7 @@ const builtinPlugins: PluginFactory[] = [
   () => new GenericModuleHandler(),
 ]
 
-export class GardenContext {
+export class Garden {
   public buildDir: BuildDir
   public readonly log: RootLogNode
   public readonly actionHandlers: PluginActionMap
@@ -115,7 +115,7 @@ export class GardenContext {
       })
     }
 
-    const ctx = new GardenContext(projectRoot, projectConfig, logger)
+    const ctx = new Garden(projectRoot, projectConfig, logger)
 
     // Load configured plugins
     plugins = builtinPlugins.concat(plugins)

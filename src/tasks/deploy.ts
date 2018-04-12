@@ -7,7 +7,7 @@
  */
 
 import { Task } from "../task-graph"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { BuildTask } from "./build"
 import { values } from "lodash"
 import { Service } from "../types/service"
@@ -18,7 +18,7 @@ export class DeployTask<T extends Service<any>> extends Task {
   type = "deploy"
 
   constructor(
-    private ctx: GardenContext,
+    private ctx: Garden,
     private service: T,
     private force: boolean,
     private forceBuild: boolean) {

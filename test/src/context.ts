@@ -1,14 +1,14 @@
 import { join } from "path"
-import { GardenContext } from "../../src/context"
+import { Garden } from "../../src/garden"
 import { expect } from "chai"
 import {
   expectError, makeTestContext, makeTestContextA, makeTestModule, projectRootA,
   TestPlugin,
 } from "../helpers"
 
-describe("GardenContext", () => {
+describe("Garden", () => {
   it("should throw when initializing with missing plugins", async () => {
-    await expectError(async () => await GardenContext.factory(projectRootA), "configuration")
+    await expectError(async () => await Garden.factory(projectRootA), "configuration")
   })
 
   it("should initialize add the action handlers for a plugin", async () => {
@@ -22,7 +22,7 @@ describe("GardenContext", () => {
 
   it("should throw if registering same plugin twice", async () => {
     try {
-      await GardenContext.factory(projectRootA, {
+      await Garden.factory(projectRootA, {
         plugins: [
           (_ctx) => new TestPlugin(),
           (_ctx) => new TestPlugin(),

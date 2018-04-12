@@ -7,7 +7,7 @@
  */
 
 import { Command, EnvironmentOption, ParameterValues } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { join } from "path"
 import { STATIC_DIR } from "../constants"
 import { spawnSync } from "child_process"
@@ -31,7 +31,7 @@ export class DevCommand extends Command<Opts> {
 
   options = options
 
-  async action(ctx: GardenContext, _args, opts: Opts) {
+  async action(ctx: Garden, _args, opts: Opts) {
     try {
       spawnSync(imgcatPath, [bannerPath], {
         stdio: "inherit",

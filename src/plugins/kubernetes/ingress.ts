@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 import { ContainerService } from "../container"
 
 export async function createIngress(service: ContainerService, externalHostname: string) {
@@ -59,6 +59,6 @@ export function getProjectHostname() {
   return "local.app.garden"
 }
 
-export function getServiceHostname(ctx: GardenContext, service: ContainerService) {
+export function getServiceHostname(ctx: Garden, service: ContainerService) {
   return `${service.name}.${ctx.projectName}.${getProjectHostname()}`
 }

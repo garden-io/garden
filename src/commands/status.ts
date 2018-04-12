@@ -10,7 +10,7 @@ import Bluebird = require("bluebird")
 import { mapValues } from "lodash"
 import * as yaml from "js-yaml"
 import { Command, EnvironmentOption, ParameterValues } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { Service } from "../types/service"
 import { highlightYaml } from "../util"
 
@@ -29,7 +29,7 @@ export class StatusCommand extends Command<typeof options> {
 
   options = options
 
-  async action(ctx: GardenContext, _args, opts: Opts) {
+  async action(ctx: Garden, _args, opts: Opts) {
     opts.env && ctx.setEnvironment(opts.env)
 
     const envStatus = await ctx.getEnvironmentStatus()

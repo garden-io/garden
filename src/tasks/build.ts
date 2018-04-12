@@ -8,7 +8,7 @@
 
 import { Task } from "../task-graph"
 import { Module } from "../types/module"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 import { round } from "lodash"
@@ -17,7 +17,7 @@ import { BuildResult } from "../types/plugin"
 export class BuildTask<T extends Module> extends Task {
   type = "build"
 
-  constructor(private ctx: GardenContext, private module: T, private force: boolean) {
+  constructor(private ctx: Garden, private module: T, private force: boolean) {
     super()
   }
 

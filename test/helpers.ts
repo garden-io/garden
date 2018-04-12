@@ -5,7 +5,7 @@ import {
   GetConfigParams, ParseModuleParams, Plugin, PluginActions, PluginFactory,
   SetConfigParams,
 } from "../src/types/plugin"
-import { GardenContext } from "../src/context"
+import { Garden } from "../src/garden"
 import { Module } from "../src/types/module"
 import { expect } from "chai"
 
@@ -84,7 +84,7 @@ export const makeTestContext = async (projectRoot: string, extraPlugins: PluginF
   ]
   const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
 
-  return await GardenContext.factory(projectRoot, { plugins })
+  return await Garden.factory(projectRoot, { plugins })
 }
 
 export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
@@ -92,7 +92,7 @@ export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
 }
 
 export function stubPluginAction<T extends keyof PluginActions<any>> (
-  ctx: GardenContext, pluginName: string, type: T, handler?: PluginActions<any>[T],
+  ctx: Garden, pluginName: string, type: T, handler?: PluginActions<any>[T],
 ) {
   return td.replace(ctx["actionHandlers"][type], pluginName, handler)
 }

@@ -7,7 +7,7 @@
  */
 
 import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
-import { GardenContext } from "../context"
+import { Garden } from "../garden"
 import { values, padEnd } from "lodash"
 import { TestTask } from "../tasks/test"
 import { splitFirst } from "../util"
@@ -41,7 +41,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   arguments = testArgs
   options = testOpts
 
-  async action(ctx: GardenContext, args: Args, opts: Opts): Promise<TaskResults> {
+  async action(ctx: Garden, args: Args, opts: Opts): Promise<TaskResults> {
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 

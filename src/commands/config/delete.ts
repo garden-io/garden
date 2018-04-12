@@ -7,7 +7,7 @@
  */
 
 import { Command, EnvironmentOption, ParameterValues, StringParameter } from "../base"
-import { GardenContext } from "../../context"
+import { Garden } from "../../garden"
 import { NotFoundError } from "../../exceptions"
 
 export const configDeleteArgs = {
@@ -36,7 +36,7 @@ export class ConfigDeleteCommand extends Command<typeof configDeleteArgs, typeof
   arguments = configDeleteArgs
   options = configDeleteOpts
 
-  async action(ctx: GardenContext, args: DeleteArgs, opts: DeleteOpts) {
+  async action(ctx: Garden, args: DeleteArgs, opts: DeleteOpts) {
     opts.env && ctx.setEnvironment(opts.env)
     const res = await ctx.deleteConfig(args.key.split("."))
 

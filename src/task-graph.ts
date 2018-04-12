@@ -8,7 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { GardenContext } from "./context"
+import { Garden } from "./garden"
 import { pick } from "lodash"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
@@ -68,7 +68,7 @@ export class TaskGraph {
   private inProgress: TaskNodeMap
   private logEntryMap: LogEntryMap
 
-  constructor(private ctx: GardenContext, private concurrency: number = DEFAULT_CONCURRENCY) {
+  constructor(private ctx: Garden, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
