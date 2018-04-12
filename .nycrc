@@ -1,0 +1,9 @@
+{
+  "check-coverage": true,
+  "per-file": true,
+  "reporter": [
+    "html",
+    "text"
+  ],
+  "cache": true
+}

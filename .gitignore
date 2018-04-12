@@ -18,7 +18,9 @@ tmp/
 ts-node-*
 
 # Compiled files
+.nyc_output
 build/
+coverage/
 dist/
 examples/**/app.yaml
 src/**/*.js

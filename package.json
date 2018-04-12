@@ -78,6 +78,7 @@
     "mocha": "^4.1.0",
     "nock": "^9.1.6",
     "nodetree": "0.0.3",
+    "nyc": "^11.6.0",
     "pegjs": "^0.10.0",
     "testdouble": "^3.5.2",
     "testdouble-chai": "^0.5.0",
@@ -107,8 +108,9 @@
     "release-minor": "npm run release -- minor",
     "release-patch": "npm run release -- patch",
     "snyk-protect": "snyk protect",
-    "test": "node_modules/.bin/mocha",
+    "test": "node_modules/.bin/nyc node_modules/.bin/mocha",
     "update-submodules": "git submodule update --init --recursive --jobs 4",
+    "view-report": "open coverage/index.html",
     "watch": "npm run build -- -w"
   },
   "husky": {
