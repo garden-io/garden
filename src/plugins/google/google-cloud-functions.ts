@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { identifierRegex } from "../../types/common"
+import { identifierRegex, validate } from "../../types/common"
 import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
 import { GardenContext } from "../../context"
 import { ServiceConfig, ServiceState, ServiceStatus } from "../../types/service"
@@ -44,7 +44,7 @@ export class GoogleCloudFunctionsProvider extends GoogleCloudProviderBase<Google
 
     // TODO: check that each function exists at the specified path
 
-    module.services = Joi.attempt(config.services, gcfServicesSchema)
+    module.services = validate(config.services, gcfServicesSchema, `services in module ${config.name}`)
 
     return module
   }

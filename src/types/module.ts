@@ -144,9 +144,11 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
 export type ModuleConfigType<T extends Module> = T["_ConfigType"]
 
-export const baseServiceSchema = Joi.object().keys({
-  dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
-})
+export const baseServiceSchema = Joi.object()
+  .keys({
+    dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
+  })
+  .options({ allowUnknown: true })
 
 export const baseServicesSchema = Joi.object()
   .pattern(identifierRegex, baseServiceSchema)

@@ -9,7 +9,7 @@ const modulePathA = resolve(projectPathA, "module-a")
 describe("loadConfig", () => {
   // TODO: test more cases + error cases
   it("should load and parse a project config", async () => {
-    const parsed = await loadConfig(projectPathA)
+    const parsed = await loadConfig(projectPathA, projectPathA)
 
     expect(parsed.project).to.eql({
       name: "build-test-project",
@@ -33,7 +33,7 @@ describe("loadConfig", () => {
   })
 
   it("should load and parse a module config", async () => {
-    const parsed = await loadConfig(modulePathA)
+    const parsed = await loadConfig(projectPathA, modulePathA)
 
     expect(parsed.module).to.eql({
       name: "module-a",

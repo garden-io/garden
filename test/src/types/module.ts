@@ -11,7 +11,7 @@ describe("Module", () => {
   describe("factory", () => {
     it("should create a module instance with the given config", async () => {
       const ctx = await makeTestContextA()
-      const config = await loadConfig(modulePathA)
+      const config = await loadConfig(ctx.projectRoot, modulePathA)
       const module = new Module(ctx, config.module)
 
       expect(module.name).to.equal(config.module.name)
@@ -25,7 +25,7 @@ describe("Module", () => {
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
       const modulePath = resolve(ctx.projectRoot, "module-a")
 
-      const config = await loadConfig(modulePath)
+      const config = await loadConfig(ctx.projectRoot, modulePath)
       const module = new Module(ctx, config.module)
 
       expect(module.name).to.equal(config.module.name)

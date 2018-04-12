@@ -10,7 +10,7 @@ import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
 import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
 import { LogSymbolType } from "../logger/types"
-import { identifierRegex } from "../types/common"
+import { identifierRegex, validate } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
@@ -157,7 +157,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
   supportedModuleTypes = ["container"]
 
   async parseModule({ ctx, config }: { ctx: GardenContext, config: ContainerModuleConfig }) {
-    config = <ContainerModuleConfig>Joi.attempt(config, containerSchema)
+    config = validate(config, containerSchema, `module ${config.name}`)
 
     const module = new ContainerModule(ctx, config)
 

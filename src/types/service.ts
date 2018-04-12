@@ -9,7 +9,7 @@
 import Bluebird = require("bluebird")
 import * as Joi from "joi"
 import { Module } from "./module"
-import { joiPrimitive, PrimitiveMap } from "./common"
+import { joiPrimitive, PrimitiveMap, validate } from "./common"
 import { GardenContext } from "../context"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateStrings, TemplateOpts, TemplateStringContext } from "../template-string"
@@ -53,6 +53,8 @@ export type ServiceContext = {
     },
   },
 }
+
+const serviceOutputsSchema = Joi.object().pattern(/.+/, joiPrimitive())
 
 export class Service<M extends Module> {
   constructor(
@@ -123,14 +125,13 @@ export class Service<M extends Module> {
       const outputs = await this.ctx.getServiceOutputs(dep)
       const serviceEnvName = dep.getEnvVarName()
 
-      for (const key of Object.keys(outputs)) {
-        const envKey = Joi.attempt(key, Joi.string())
-        const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${envKey}`.toUpperCase()
+      validate(outputs, serviceOutputsSchema, `outputs for service ${dep.name}`)
 
-        const value = Joi.attempt(outputs[key], joiPrimitive())
+      for (const [key, value] of Object.entries(outputs)) {
+        const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${key}`.toUpperCase()
 
         envVars[envVarName] = value
-        depContext.outputs[envKey] = value
+        depContext.outputs[key] = value
       }
     }
 

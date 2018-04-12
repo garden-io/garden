@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { ConfigSetCommand } from "../../../../src/commands/config/set"
-import { expectErrorType, makeTestContextA } from "../../../helpers"
+import { expectError, makeTestContextA } from "../../../helpers"
 import { ConfigGetCommand } from "../../../../src/commands/config/get"
 
 describe("ConfigSetCommand", () => {
@@ -17,7 +17,7 @@ describe("ConfigSetCommand", () => {
     const ctx = await makeTestContextA()
     const command = new ConfigSetCommand()
 
-    await expectErrorType(
+    await expectError(
       async () => await command.action(ctx, { key: "bla.mykey", value: "ble" }, { env: undefined }),
       "parameter",
     )
