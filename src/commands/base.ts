@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../garden"
+import { PluginContext } from "../plugin-context"
 
 export class ValidationError extends Error { }
 
@@ -132,5 +132,5 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract async action(ctx: Garden, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<any>
+  abstract async action(ctx: PluginContext, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<any>
 }

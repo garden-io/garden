@@ -8,6 +8,7 @@
 
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
+import { PluginContext } from "../plugin-context"
 import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
 import { LogSymbolType } from "../logger/types"
 import { identifierRegex, validate } from "../types/common"
@@ -15,7 +16,6 @@ import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
 import { BuildModuleParams, GetModuleBuildStatusParams, Plugin } from "../types/plugin"
-import { Garden } from "../garden"
 import { Service } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 
@@ -121,7 +121,7 @@ export class ContainerService extends Service<ContainerModule> { }
 export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleConfig> extends Module<T> {
   image?: string
 
-  constructor(ctx: Garden, config: T) {
+  constructor(ctx: PluginContext, config: T) {
     super(ctx, config)
 
     this.image = config.image
@@ -131,7 +131,7 @@ export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleCo
     return this.image || `${this.name}:${await this.getVersion()}`
   }
 
-  async pullImage(ctx: Garden) {
+  async pullImage(ctx: PluginContext) {
     const identifier = await this.getImageId()
 
     if (!await this.imageExistsLocally()) {
@@ -156,7 +156,7 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
   name = "container-module"
   supportedModuleTypes = ["container"]
 
-  async parseModule({ ctx, config }: { ctx: Garden, config: ContainerModuleConfig }) {
+  async parseModule({ ctx, config }: { ctx: PluginContext, config: ContainerModuleConfig }) {
     config = validate(config, containerSchema, `module ${config.name}`)
 
     const module = new ContainerModule(ctx, config)

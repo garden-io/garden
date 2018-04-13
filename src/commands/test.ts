@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
-import { Garden } from "../garden"
+import { PluginContext } from "../plugin-context"
+import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { values, padEnd } from "lodash"
 import { TestTask } from "../tasks/test"
 import { splitFirst } from "../util"
@@ -22,7 +22,6 @@ export const testArgs = {
 }
 
 export const testOpts = {
-  env: new EnvironmentOption(),
   group: new StringParameter({
     help: "Only run tests with the specfied group (e.g. unit or integ)",
     alias: "g",
@@ -41,7 +40,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   arguments = testArgs
   options = testOpts
 
-  async action(ctx: Garden, args: Args, opts: Opts): Promise<TaskResults> {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<TaskResults> {
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 
@@ -50,7 +49,6 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
       command: `Running tests`,
     })
 
-    opts.env && ctx.setEnvironment(opts.env)
     await ctx.configureEnvironment()
 
     for (const module of values(modules)) {

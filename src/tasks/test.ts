@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { PluginContext } from "../plugin-context"
 import { Task } from "../task-graph"
 import { Module, TestSpec } from "../types/module"
 import { BuildTask } from "./build"
 import { TestResult } from "../types/plugin"
 import { DeployTask } from "./deploy"
-import { Garden } from "../garden"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
@@ -19,7 +19,7 @@ export class TestTask<T extends Module> extends Task {
   type = "test"
 
   constructor(
-    private ctx: Garden,
+    private ctx: PluginContext,
     private module: T, private testType: string, private testSpec: TestSpec,
     private force: boolean, private forceBuild: boolean,
   ) {

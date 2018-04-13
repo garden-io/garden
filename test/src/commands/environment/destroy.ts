@@ -6,14 +6,12 @@ import { defaultPlugins } from "../../../../src/plugins"
 import {
   DestroyEnvironmentParams,
   EnvironmentStatus,
-  EnvironmentStatusMap,
   GetEnvironmentStatusParams,
   Plugin,
 } from "../../../../src/types/plugin"
 import { EnvironmentDestroyCommand } from "../../../../src/commands/environment/destroy"
 import { Garden } from "../../../../src/garden"
 import { Module } from "../../../../src/types/module"
-import { sleep } from "../../../../src/util"
 
 class TestProvider implements Plugin<Module> {
   name = "test-plugin"
@@ -45,17 +43,17 @@ describe("EnvironmentDestroyCommand", () => {
   const command = new EnvironmentDestroyCommand()
 
   it("should destroy environment", async () => {
-    const ctx = await Garden.factory(projectRootB, {
+    const garden = await Garden.factory(projectRootB, {
       plugins: defaultPlugins.concat([() => new TestProvider()]),
     })
 
-    const result = await command.action(ctx, {}, { env: undefined })
+    const result = await command.action(garden.pluginContext, {}, { env: undefined })
 
     expect(result["test-plugin"]["configured"]).to.be.false
   })
 
   it("should wait until each provider is no longer configured", async () => {
-    const ctx = await Garden.factory(projectRootB, {
+    const garden = await Garden.factory(projectRootB, {
       plugins: defaultPlugins.concat([() => new TestProviderSlow()]),
     })
 
@@ -67,7 +65,7 @@ describe("EnvironmentDestroyCommand", () => {
       }),
     )
 
-    const result = await command.action(ctx, {}, { env: undefined })
+    const result = await command.action(garden.pluginContext, {}, { env: undefined })
 
     expect(result["test-plugin"]["configured"]).to.be.false
   })

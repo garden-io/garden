@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, EnvironmentOption, ParameterValues, StringParameter } from "../base"
-import { Garden } from "../../garden"
+import { PluginContext } from "../../plugin-context"
+import { Command, ParameterValues, StringParameter } from "../base"
 import { NotFoundError } from "../../exceptions"
 
 export const configDeleteArgs = {
@@ -17,27 +17,18 @@ export const configDeleteArgs = {
   }),
 }
 
-export const configDeleteOpts = {
-  env: new EnvironmentOption({
-    help: "Set the environment (and optionally namespace) to delete the config variable from",
-  }),
-}
-
 export type DeleteArgs = ParameterValues<typeof configDeleteArgs>
-export type DeleteOpts = ParameterValues<typeof configDeleteOpts>
 
 // TODO: add --all option to remove all configs
 
-export class ConfigDeleteCommand extends Command<typeof configDeleteArgs, typeof configDeleteOpts> {
+export class ConfigDeleteCommand extends Command<typeof configDeleteArgs> {
   name = "delete"
   alias = "del"
   help = "Delete a configuration variable"
 
   arguments = configDeleteArgs
-  options = configDeleteOpts
 
-  async action(ctx: Garden, args: DeleteArgs, opts: DeleteOpts) {
-    opts.env && ctx.setEnvironment(opts.env)
+  async action(ctx: PluginContext, args: DeleteArgs) {
     const res = await ctx.deleteConfig(args.key.split("."))
 
     if (res.found) {

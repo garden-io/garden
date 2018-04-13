@@ -6,11 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { PluginContext } from "../plugin-context"
 import { Task } from "../task-graph"
-import { Garden } from "../garden"
 import { BuildTask } from "./build"
 import { values } from "lodash"
-import { Service } from "../types/service"
+import {
+  Service,
+  ServiceStatus,
+} from "../types/service"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
@@ -18,7 +21,7 @@ export class DeployTask<T extends Service<any>> extends Task {
   type = "deploy"
 
   constructor(
-    private ctx: Garden,
+    private ctx: PluginContext,
     private service: T,
     private force: boolean,
     private forceBuild: boolean) {
@@ -41,7 +44,7 @@ export class DeployTask<T extends Service<any>> extends Task {
     return this.service.name
   }
 
-  async process() {
+  async process(): Promise<ServiceStatus> {
     const entry = this.ctx.log.info({
       section: this.service.name,
       msg: "Checking status",

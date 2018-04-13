@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../../garden"
+import { PluginContext } from "../../plugin-context"
 import { Environment } from "../../types/common"
 import {
   apiGetOrNull,
@@ -34,7 +34,7 @@ export async function createNamespace(namespace: string) {
   })
 }
 
-export function getAppNamespace(ctx: Garden, env?: Environment) {
+export function getAppNamespace(ctx: PluginContext, env?: Environment) {
   const currentEnv = env || ctx.getEnvironment()
   if (currentEnv.namespace === GARDEN_GLOBAL_SYSTEM_NAMESPACE) {
     return currentEnv.namespace
@@ -42,7 +42,7 @@ export function getAppNamespace(ctx: Garden, env?: Environment) {
   return `garden--${ctx.projectName}--${currentEnv.namespace}`
 }
 
-export function getMetadataNamespace(ctx: Garden) {
+export function getMetadataNamespace(ctx: PluginContext) {
   const env = ctx.getEnvironment()
   return `garden-metadata--${ctx.projectName}--${env.namespace}`
 }

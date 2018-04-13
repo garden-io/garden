@@ -31,7 +31,8 @@ describe("task-graph", () => {
 
   describe("TaskGraph", async () => {
     const projectRoot = join(__dirname, "..", "data", "test-project-empty")
-    const ctx = await Garden.factory(projectRoot, { plugins: defaultPlugins })
+    const garden = await Garden.factory(projectRoot, { plugins: defaultPlugins })
+    const ctx = garden.pluginContext
 
     it("should successfully process a single task without dependencies", async () => {
       const graph = new TaskGraph(ctx)

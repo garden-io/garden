@@ -1,5 +1,6 @@
 import * as td from "testdouble"
 import { resolve } from "path"
+import { PluginContext } from "../src/plugin-context"
 import {
   DeleteConfigParams,
   GetConfigParams, ParseModuleParams, Plugin, PluginActions, PluginFactory,
@@ -77,24 +78,34 @@ export const makeTestModule = (ctx, name = "test") => {
   })
 }
 
-export const makeTestContext = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
+export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
   const testPlugins: PluginFactory[] = [
     (_ctx) => new TestPlugin(),
     (_ctx) => new TestPluginB(),
   ]
   const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
 
-  return await Garden.factory(projectRoot, { plugins })
+  return Garden.factory(projectRoot, { plugins })
+}
+
+export const makeTestContext = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
+  const garden = await makeTestGarden(projectRoot, extraPlugins)
+  return garden.pluginContext
+}
+
+export const makeTestGardenA = async (extraPlugins: PluginFactory[] = []) => {
+  return makeTestGarden(projectRootA, extraPlugins)
 }
 
 export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
-  return makeTestContext(projectRootA, extraPlugins)
+  const garden = await makeTestGardenA(extraPlugins)
+  return garden.pluginContext
 }
 
 export function stubPluginAction<T extends keyof PluginActions<any>> (
-  ctx: Garden, pluginName: string, type: T, handler?: PluginActions<any>[T],
+  garden: Garden, pluginName: string, type: T, handler?: PluginActions<any>[T],
 ) {
-  return td.replace(ctx["actionHandlers"][type], pluginName, handler)
+  return td.replace(garden["actionHandlers"][type], pluginName, handler)
 }
 
 export async function expectError(fn: Function, typeOrCallback: string | ((err: any) => void)) {

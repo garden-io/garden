@@ -7,36 +7,36 @@
  */
 
 import { parse, relative, resolve } from "path"
-import Bluebird = require("bluebird")
-import { values, mapValues, fromPairs, toPairs } from "lodash"
+import { values, fromPairs } from "lodash"
 import * as Joi from "joi"
-import { Module, ModuleConfigType, TestSpec } from "./types/module"
+import {
+  PluginContext,
+  createPluginContext,
+} from "./plugin-context"
+import { Module, ModuleConfigType } from "./types/module"
 import { ProjectConfig } from "./types/project"
 import { getIgnorer, scanDirectory } from "./util"
 import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
-import { ConfigurationError, NotFoundError, ParameterError, PluginError } from "./exceptions"
+import {
+  ConfigurationError,
+  ParameterError,
+  PluginError,
+} from "./exceptions"
 import { VcsHandler } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
 import { Task, TaskGraph, TaskResults } from "./task-graph"
-import { getLogger, LogEntry, RootLogNode } from "./logger"
+import { getLogger, RootLogNode } from "./logger"
 import {
-  BuildStatus,
   pluginActionNames,
   PluginActions,
   PluginFactory,
   Plugin,
-  BuildResult,
-  TestResult,
-  ExecInServiceResult,
-  DeleteConfigResult,
-  EnvironmentStatusMap,
 } from "./types/plugin"
 import { GenericModuleHandler } from "./plugins/generic"
-import { Environment, joiIdentifier, PrimitiveMap, validate } from "./types/common"
-import { Service, ServiceContext, ServiceStatus } from "./types/service"
+import { Environment, joiIdentifier, validate } from "./types/common"
+import { Service } from "./types/service"
 import { TemplateStringContext, getTemplateContext, resolveTemplateStrings } from "./template-string"
-import { EntryStyle } from "./logger/types"
 import { loadConfig } from "./types/config"
 
 export interface ModuleMap<T extends Module> { [key: string]: T }
@@ -50,6 +50,7 @@ export type PluginActionMap = {
 }
 
 export interface ContextOpts {
+  env?: string,
   logger?: RootLogNode,
   plugins?: PluginFactory[],
 }
@@ -64,9 +65,8 @@ export class Garden {
   public readonly actionHandlers: PluginActionMap
   public readonly projectName: string
   public readonly plugins: { [key: string]: Plugin<any> }
+  public readonly pluginContext: PluginContext
 
-  // TODO: We may want to use the _ prefix for private properties even if it's not idiomatic TS,
-  // because we're supporting plain-JS plugins as well.
   private environment: string
   private namespace: string
   private readonly modules: ModuleMap<any>
@@ -78,14 +78,14 @@ export class Garden {
   vcs: VcsHandler
 
   constructor(
-    public projectRoot: string, public projectConfig: ProjectConfig, logger?: RootLogNode,
+    public projectRoot: string, public projectConfig: ProjectConfig,
+    env?: string, logger?: RootLogNode,
   ) {
     this.modulesScanned = false
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
-    this.vcs = new GitHandler(this)
-    this.taskGraph = new TaskGraph(this)
-    this.buildDir = new BuildDir(this)
+    this.vcs = new GitHandler(this.projectRoot)
+    this.buildDir = new BuildDir(this.projectRoot)
 
     this.modules = {}
     this.services = {}
@@ -99,10 +99,13 @@ export class Garden {
 
     this.configKeyNamespaces = ["project"]
 
-    this.setEnvironment(this.projectConfig.defaultEnvironment)
+    this.setEnvironment(env || this.projectConfig.defaultEnvironment)
+
+    this.pluginContext = createPluginContext(this)
+    this.taskGraph = new TaskGraph(this.pluginContext)
   }
 
-  static async factory(projectRoot: string, { logger, plugins = [] }: ContextOpts = {}) {
+  static async factory(projectRoot: string, { env, logger, plugins = [] }: ContextOpts = {}) {
     // const localConfig = new LocalConfig(projectRoot)
     const templateContext = await getTemplateContext()
     const config = await resolveTemplateStrings(await loadConfig(projectRoot, projectRoot), templateContext)
@@ -115,7 +118,7 @@ export class Garden {
       })
     }
 
-    const ctx = new Garden(projectRoot, projectConfig, logger)
+    const ctx = new Garden(projectRoot, projectConfig, env, logger)
 
     // Load configured plugins
     plugins = builtinPlugins.concat(plugins)
@@ -181,6 +184,10 @@ export class Garden {
     }
   }
 
+  async clearBuilds() {
+    return this.buildDir.clear()
+  }
+
   async addTask(task: Task) {
     await this.taskGraph.addTask(task)
   }
@@ -220,7 +227,7 @@ export class Garden {
     Returns all modules that are registered in this context.
     Scans for modules in the project root if it hasn't already been done.
    */
-  async getModules(names?: string[], noScan?: boolean) {
+  async getModules(names?: string[], noScan?: boolean): Promise<ModuleMap<any>> {
     if (!this.modulesScanned && !noScan) {
       await this.scanModules()
     }
@@ -361,7 +368,7 @@ export class Garden {
         )
       }
 
-      this.services[serviceName] = await Service.factory(this, module, serviceName)
+      this.services[serviceName] = await Service.factory(this.pluginContext, module, serviceName)
     }
   }
 
@@ -398,8 +405,7 @@ export class Garden {
       return null
     }
 
-    const parseHandler = this.getActionHandler("parseModule", moduleConfig.type)
-    return parseHandler({ ctx: this, config: moduleConfig })
+    return this.pluginContext.parseModule(moduleConfig)
   }
 
   async getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
@@ -409,143 +415,13 @@ export class Garden {
     return {
       ...await getTemplateContext(),
       config: async (key: string[]) => {
-        return _this.getConfig(key)
+        return _this.pluginContext.getConfig(key)
       },
       variables: this.projectConfig.variables,
       environment: { name: env.name, config: <any>env.config },
       ...extraContext,
     }
   }
-
-  //===========================================================================
-  //region Plugin actions
-  //===========================================================================
-
-  async getModuleBuildPath<T extends Module>(module: T): Promise<string> {
-    return await this.buildDir.buildPath(module)
-  }
-
-  async getModuleBuildStatus<T extends Module>(module: T): Promise<BuildStatus> {
-    const defaultHandler = this.actionHandlers["getModuleBuildStatus"]["generic"]
-    const handler = this.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
-    return handler({ ctx: this, module })
-  }
-
-  async buildModule<T extends Module>(module: T, logEntry?: LogEntry): Promise<BuildResult> {
-    await this.buildDir.syncDependencyProducts(module)
-    const defaultHandler = this.actionHandlers["buildModule"]["generic"]
-    const handler = this.getActionHandler("buildModule", module.type, defaultHandler)
-    return handler({ ctx: this, module, logEntry })
-  }
-
-  async testModule<T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry): Promise<TestResult> {
-    const defaultHandler = this.actionHandlers["testModule"]["generic"]
-    const handler = this.getEnvActionHandler("testModule", module.type, defaultHandler)
-    const env = this.getEnvironment()
-    return handler({ ctx: this, module, testSpec, env, logEntry })
-  }
-
-  async getTestResult<T extends Module>(module: T, version: string, logEntry?: LogEntry): Promise<TestResult | null> {
-    const handler = this.getEnvActionHandler("getTestResult", module.type, async () => null)
-    const env = this.getEnvironment()
-    return handler({ ctx: this, module, version, env, logEntry })
-  }
-
-  async getEnvironmentStatus() {
-    const handlers = this.getEnvActionHandlers("getEnvironmentStatus")
-    const env = this.getEnvironment()
-    return Bluebird.props(mapValues(handlers, h => h({ ctx: this, env })))
-  }
-
-  async configureEnvironment() {
-    const handlers = this.getEnvActionHandlers("configureEnvironment")
-    const env = this.getEnvironment()
-    const _this = this
-
-    await Bluebird.each(toPairs(handlers), async ([name, handler]) => {
-      const logEntry = _this.log.info({
-        entryStyle: EntryStyle.activity,
-        section: name,
-        msg: "Configuring...",
-      })
-
-      await handler({ ctx: this, env, logEntry })
-
-      logEntry.setSuccess("Configured")
-    })
-    return this.getEnvironmentStatus()
-  }
-
-  async destroyEnvironment(): Promise<EnvironmentStatusMap> {
-    const handlers = this.getEnvActionHandlers("destroyEnvironment")
-    const env = this.getEnvironment()
-    await Bluebird.each(values(handlers), h => h({ ctx: this, env }))
-    return this.getEnvironmentStatus()
-  }
-
-  async getServiceStatus<T extends Module>(service: Service<T>): Promise<ServiceStatus> {
-    const handler = this.getEnvActionHandler("getServiceStatus", service.module.type)
-    return handler({ ctx: this, service, env: this.getEnvironment() })
-  }
-
-  async deployService<T extends Module>(service: Service<T>, serviceContext?: ServiceContext, logEntry?: LogEntry) {
-    const handler = this.getEnvActionHandler("deployService", service.module.type)
-
-    if (!serviceContext) {
-      serviceContext = { envVars: {}, dependencies: {} }
-    }
-
-    return handler({ ctx: this, service, serviceContext, env: this.getEnvironment(), logEntry })
-  }
-
-  async getServiceOutputs<T extends Module>(service: Service<T>): Promise<PrimitiveMap> {
-    // TODO: We might want to generally allow for "default handlers"
-    let handler: PluginActions<T>["getServiceOutputs"]
-    try {
-      handler = this.getEnvActionHandler("getServiceOutputs", service.module.type)
-    } catch (err) {
-      return {}
-    }
-    return handler({ ctx: this, service, env: this.getEnvironment() })
-  }
-
-  async execInService<T extends Module>(service: Service<T>, command: string[]): Promise<ExecInServiceResult> {
-    const handler = this.getEnvActionHandler("execInService", service.module.type)
-    return handler({ ctx: this, service, command, env: this.getEnvironment() })
-  }
-
-  async getConfig(key: string[]): Promise<string> {
-    this.validateConfigKey(key)
-    // TODO: allow specifying which provider to use for configs
-    const handler = this.getEnvActionHandler("getConfig")
-    const value = await handler({ ctx: this, key, env: this.getEnvironment() })
-
-    if (value === null) {
-      throw new NotFoundError(`Could not find config key ${key}`, { key })
-    } else {
-      return value
-    }
-  }
-
-  async setConfig(key: string[], value: string) {
-    this.validateConfigKey(key)
-    const handler = this.getEnvActionHandler("setConfig")
-    return handler({ ctx: this, key, value, env: this.getEnvironment() })
-  }
-
-  async deleteConfig(key: string[]): Promise<DeleteConfigResult> {
-    this.validateConfigKey(key)
-    const handler = this.getEnvActionHandler("deleteConfig")
-    const res = await handler({ ctx: this, key, env: this.getEnvironment() })
-
-    if (!res.found) {
-      throw new NotFoundError(`Could not find config key ${key}`, { key })
-    } else {
-      return res
-    }
-  }
-
-  //endregion
 
   //===========================================================================
   //region Internal helpers
@@ -676,7 +552,7 @@ export class Garden {
   /**
    * Validates the specified config key, making sure it's properly formatted and matches defined keys.
    */
-  private validateConfigKey(key: string[]) {
+  public validateConfigKey(key: string[]) {
     try {
       validate(key, Joi.array().items(joiIdentifier()))
     } catch (err) {

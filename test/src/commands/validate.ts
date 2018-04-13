@@ -7,10 +7,10 @@ import { expectError } from "../../helpers"
 describe("commands.validate", () => {
   it("should successfully validate the hello-world project", async () => {
     const root = join(__dirname, "..", "..", "..", "examples", "hello-world")
-    const ctx = await Garden.factory(root, { plugins: defaultPlugins })
+    const garden = await Garden.factory(root, { plugins: defaultPlugins })
     const command = new ValidateCommand()
 
-    await command.action(ctx)
+    await command.action(garden.pluginContext)
   })
 
   it("should fail validating the bad-project project", async () => {
@@ -21,9 +21,9 @@ describe("commands.validate", () => {
 
   it("should fail validating the bad-module project", async () => {
     const root = join(__dirname, "data", "validate", "bad-module")
-    const ctx = await Garden.factory(root, { plugins: defaultPlugins })
+    const garden = await Garden.factory(root, { plugins: defaultPlugins })
     const command = new ValidateCommand()
 
-    await expectError(async () => await command.action(ctx), "configuration")
+    await expectError(async () => await command.action(garden.pluginContext), "configuration")
   })
 })

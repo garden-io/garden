@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../../garden"
 import { DeploymentError } from "../../exceptions"
 import { LogEntry } from "../../logger"
 import { LogSymbolType } from "../../logger/types"
+import { PluginContext } from "../../plugin-context"
 import { Environment } from "../../types/common"
 import {
   ServiceProtocol,
@@ -31,7 +31,7 @@ import { localIngressPort } from "./system-global"
 
 export async function checkDeploymentStatus(
   { ctx, service, resourceVersion, env }:
-    { ctx: Garden, service: ContainerService, resourceVersion?: number, env?: Environment },
+    { ctx: PluginContext, service: ContainerService, resourceVersion?: number, env?: Environment },
 ): Promise<ServiceStatus> {
   const type = service.config.daemon ? "daemonsets" : "deployments"
   const hostname = getServiceHostname(ctx, service)
@@ -179,7 +179,7 @@ export async function checkDeploymentStatus(
 
 export async function waitForDeployment(
   { ctx, service, logEntry, env }:
-    { ctx: Garden, service: ContainerService, logEntry?: LogEntry, env?: Environment },
+    { ctx: PluginContext, service: ContainerService, logEntry?: LogEntry, env?: Environment },
 ) {
   // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
   let loops = 0

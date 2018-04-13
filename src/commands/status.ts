@@ -9,30 +9,21 @@
 import Bluebird = require("bluebird")
 import { mapValues } from "lodash"
 import * as yaml from "js-yaml"
-import { Command, EnvironmentOption, ParameterValues } from "./base"
-import { Garden } from "../garden"
+import { PluginContext } from "../plugin-context"
+import {
+  EnvironmentStatusMap,
+} from "../types/plugin"
+import { Command } from "./base"
 import { Service } from "../types/service"
 import { highlightYaml } from "../util"
 
-export const options = {
-  env: new EnvironmentOption({
-    help: "The environment (and optionally namespace) to check",
-  }),
-}
-
-export type Opts = ParameterValues<typeof options>
-
-export class StatusCommand extends Command<typeof options> {
+export class StatusCommand extends Command {
   name = "status"
   alias = "s"
   help = "Outputs the status of your environment"
 
-  options = options
-
-  async action(ctx: Garden, _args, opts: Opts) {
-    opts.env && ctx.setEnvironment(opts.env)
-
-    const envStatus = await ctx.getEnvironmentStatus()
+  async action(ctx: PluginContext) {
+    const envStatus: EnvironmentStatusMap = await ctx.getEnvironmentStatus()
     const services = await ctx.getServices()
 
     const serviceStatus = await Bluebird.props(

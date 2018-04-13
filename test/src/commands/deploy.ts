@@ -35,7 +35,8 @@ describe("commands.deploy", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 
   it("should build and deploy all modules in a project", async () => {
-    const ctx = await Garden.factory(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
+    const garden = await Garden.factory(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
+    const ctx = garden.pluginContext
     const command = new DeployCommand()
 
     const result = await command.action(
@@ -43,7 +44,6 @@ describe("commands.deploy", () => {
         service: "",
       },
       {
-        env: "local",
         force: false,
         "force-build": true,
       },
@@ -60,7 +60,8 @@ describe("commands.deploy", () => {
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
-    const ctx = await Garden.factory(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
+    const garden = await Garden.factory(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
+    const ctx = garden.pluginContext
     const command = new DeployCommand()
 
     const result = await command.action(
@@ -69,7 +70,6 @@ describe("commands.deploy", () => {
         service: "service-b",
       },
       {
-        env: "local",
         force: false,
         "force-build": true,
       },

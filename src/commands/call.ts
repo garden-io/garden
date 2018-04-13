@@ -9,12 +9,12 @@
 import { resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
-import { Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
-import { Garden } from "../garden"
+import { Command, ParameterValues, StringParameter } from "./base"
 import { splitFirst } from "../util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
 import { pick } from "lodash"
+import { PluginContext } from "../plugin-context"
 
 export const callArgs = {
   serviceAndPath: new StringParameter({
@@ -23,25 +23,15 @@ export const callArgs = {
   }),
 }
 
-export const options = {
-  env: new EnvironmentOption({
-    help: "The environment (and optionally namespace) to call to",
-  }),
-}
-
 export type Args = ParameterValues<typeof callArgs>
-export type Opts = ParameterValues<typeof options>
 
 export class CallCommand extends Command<typeof callArgs> {
   name = "call"
   help = "Call a service endpoint"
 
   arguments = callArgs
-  options = options
 
-  async action(ctx: Garden, args: Args, opts: Opts) {
-    opts.env && ctx.setEnvironment(opts.env)
-
+  async action(ctx: PluginContext, args: Args) {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
     path = "/" + path
 

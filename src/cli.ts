@@ -17,6 +17,7 @@ import {
   ParameterValues,
   Parameter,
   StringParameter,
+  EnvironmentOption,
 } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
 import { InternalError, PluginError } from "./exceptions"
@@ -42,6 +43,7 @@ const GLOBAL_OPTIONS = {
     help: "override project root directory (defaults to working directory)",
     defaultValue: process.cwd(),
   }),
+  env: new EnvironmentOption(),
   verbose: new BooleanParameter({
     alias: "v",
     help: "verbose logging",
@@ -263,6 +265,7 @@ export class GardenCli {
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
+      const env = optsForAction.env
 
       // Update logger config
       if (argv.silent) {
@@ -277,8 +280,8 @@ export class GardenCli {
         )
       }
 
-      const ctx = await Garden.factory(root, { logger, plugins: defaultPlugins })
-      return command.action(ctx, argsForAction, optsForAction)
+      const garden = await Garden.factory(root, { env, logger, plugins: defaultPlugins })
+      return command.action(garden.pluginContext, argsForAction, optsForAction)
     }
 
     // Command specific positional args and options are set inside the builder function

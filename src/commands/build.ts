@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
-import { Garden } from "../garden"
 import { BuildTask } from "../tasks/build"
 import { values } from "lodash"
 import { TaskResults } from "../task-graph"
@@ -32,8 +32,8 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   arguments = buildArguments
   options = buildOptions
 
-  async action(ctx: Garden, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
-    await ctx.buildDir.clear()
+  async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
+    await ctx.clearBuilds()
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 
