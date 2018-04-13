@@ -15,7 +15,13 @@ import {
 import { GARDEN_GLOBAL_SYSTEM_NAMESPACE } from "./system-global"
 
 export async function namespaceReady(namespace: string) {
-  const ns = await apiGetOrNull(coreApi().namespaces, namespace)
+  /**
+   * This is an issue with kubernetes-client where it fetches all namespaces instead of the requested one.
+   * Is fixed in v4.0.0. See https://github.com/godaddy/kubernetes-client/issues/187 and
+   * https://github.com/godaddy/kubernetes-client/pull/190
+   */
+  const allNamespaces = await apiGetOrNull(coreApi().namespaces, namespace)
+  const ns = allNamespaces.items.find(n => n.metadata.name === namespace)
   return ns && ns.status.phase === "Active"
 }
 
