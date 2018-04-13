@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, EnvironmentOption, ParameterValues } from "./base"
-import { GardenContext } from "../context"
+import { PluginContext } from "../plugin-context"
+import { Command } from "./base"
 import { join } from "path"
 import { STATIC_DIR } from "../constants"
 import { spawnSync } from "child_process"
@@ -19,19 +19,11 @@ import { sleep } from "../util"
 const imgcatPath = join(__dirname, "..", "..", "bin", "imgcat")
 const bannerPath = join(STATIC_DIR, "garden-banner-1-half.png")
 
-export const options = {
-  env: new EnvironmentOption(),
-}
-
-export type Opts = ParameterValues<typeof options>
-
-export class DevCommand extends Command<Opts> {
+export class DevCommand extends Command {
   name = "dev"
   help = "Starts the garden development console"
 
-  options = options
-
-  async action(ctx: GardenContext, _args, opts: Opts) {
+  async action(ctx: PluginContext) {
     try {
       spawnSync(imgcatPath, [bannerPath], {
         stdio: "inherit",
@@ -43,8 +35,6 @@ export class DevCommand extends Command<Opts> {
 
     // console.log(chalk.bold(` garden - dev\n`))
     console.log(chalk.gray.italic(` Good afternoon, Jon! Let's get your environment wired up...\n`))
-
-    opts.env && ctx.setEnvironment(opts.env)
 
     await ctx.configureEnvironment()
 

@@ -6,9 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerService, ContainerServiceConfig } from "../container"
+import { DeployServiceParams } from "../../types/plugin"
+import {
+  ContainerModule,
+  ContainerService,
+  ContainerServiceConfig,
+} from "../container"
 import { toPairs, extend } from "lodash"
-import { ServiceContext } from "../../types/service"
+import {
+  ServiceContext,
+  ServiceStatus,
+} from "../../types/service"
+import {
+  createIngress,
+  getServiceHostname,
+} from "./ingress"
+import { apply } from "./kubectl"
+import { getAppNamespace } from "./namespace"
+import { createServices } from "./service"
+import {
+  checkDeploymentStatus,
+  waitForDeployment,
+} from "./status"
 
 const DEFAULT_CPU_REQUEST = 0.01
 const DEFAULT_CPU_LIMIT = 0.5
@@ -19,6 +38,33 @@ interface KubeEnvVar {
   name: string
   value?: string
   valueFrom?: { fieldRef: { fieldPath: string } }
+}
+
+export async function deployService(
+  { ctx, service, env, serviceContext, exposePorts = false, logEntry }: DeployServiceParams<ContainerModule>,
+): Promise<ServiceStatus> {
+  const namespace = getAppNamespace(ctx, env)
+
+  const deployment = await createDeployment(service, serviceContext, exposePorts)
+  await apply(deployment, { namespace })
+
+  // TODO: automatically clean up Services and Ingresses if they should no longer exist
+
+  const kubeservices = await createServices(service, exposePorts)
+
+  for (let kubeservice of kubeservices) {
+    await apply(kubeservice, { namespace })
+  }
+
+  const ingress = await createIngress(service, getServiceHostname(ctx, service))
+
+  if (ingress !== null) {
+    await apply(ingress, { namespace })
+  }
+
+  await waitForDeployment({ ctx, service, logEntry, env })
+
+  return checkDeploymentStatus({ ctx, service, env })
 }
 
 export async function createDeployment(

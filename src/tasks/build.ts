@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { PluginContext } from "../plugin-context"
 import { Task } from "../task-graph"
 import { Module } from "../types/module"
-import { GardenContext } from "../context"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 import { round } from "lodash"
@@ -17,7 +17,7 @@ import { BuildResult } from "../types/plugin"
 export class BuildTask<T extends Module> extends Task {
   type = "build"
 
-  constructor(private ctx: GardenContext, private module: T, private force: boolean) {
+  constructor(private ctx: PluginContext, private module: T, private force: boolean) {
     super()
   }
 

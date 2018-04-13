@@ -22,7 +22,6 @@ import * as Rsync from "rsync"
 import { GARDEN_DIR_NAME } from "./constants"
 import { execRsyncCmd } from "./util"
 import { Module } from "./types/module"
-import { GardenContext } from "./context"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
@@ -30,21 +29,19 @@ const buildDirRelPath = join(GARDEN_DIR_NAME, "build")
 
 export class BuildDir {
   buildDirPath: string
-  private ctx: GardenContext
 
-  constructor(ctx: GardenContext) {
-    this.ctx = ctx
-    this.buildDirPath = join(ctx.projectRoot, buildDirRelPath)
+  constructor(private projectRoot: string) {
+    this.buildDirPath = join(projectRoot, buildDirRelPath)
   }
 
-  // Synchronous, so it can run in GardenContext's constructor.
+  // Synchronous, so it can run in Garden's constructor.
   init() {
     ensureDirSync(this.buildDirPath)
   }
 
   async syncFromSrc<T extends Module>(module: T) {
     await this.sync(
-      resolve(this.ctx.projectRoot, module.path),
+      resolve(this.projectRoot, module.path),
       this.buildDirPath)
   }
 

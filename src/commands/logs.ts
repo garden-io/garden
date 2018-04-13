@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BooleanParameter, Command, EnvironmentOption, ParameterValues, StringParameter } from "./base"
-import { GardenContext } from "../context"
+import { PluginContext } from "../plugin-context"
+import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import chalk from "chalk"
-import { GetServiceLogsParams, ServiceLogEntry } from "../types/plugin"
+import { ServiceLogEntry } from "../types/plugin"
 import Bluebird = require("bluebird")
 import { values } from "lodash"
 import { Service } from "../types/service"
@@ -23,7 +23,6 @@ export const logsArgs = {
 }
 
 export const logsOpts = {
-  env: new EnvironmentOption(),
   tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s)", alias: "t" }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
@@ -39,9 +38,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   arguments = logsArgs
   options = logsOpts
 
-  async action(ctx: GardenContext, args: Args, opts: Opts) {
-    opts.env && ctx.setEnvironment(opts.env)
-    const env = ctx.getEnvironment()
+  async action(ctx: PluginContext, args: Args, opts: Opts) {
     const names = args.service ? args.service.split(",") : undefined
     const services = await ctx.getServices(names)
 
@@ -57,17 +54,9 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
     // NOTE: This will work differently when we have Elasticsearch set up for logging, but is
     //       quite servicable for now.
     await Bluebird.map(values(services), async (service: Service<any>) => {
-      const handler = ctx.getActionHandler("getServiceLogs", service.module.type, dummyLogStreamer)
-      await handler({ ctx, service, env, stream, tail: opts.tail })
+      await ctx.getServiceLogs(service, stream, opts.tail)
     })
 
     return result
   }
-}
-
-async function dummyLogStreamer({ ctx, service }: GetServiceLogsParams) {
-  ctx.log.warn({
-    section: service.name,
-    msg: chalk.yellow(`No handler for log retrieval available for module type ${service.module.type}`),
-  })
 }

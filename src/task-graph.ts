@@ -8,11 +8,11 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { GardenContext } from "./context"
 import { pick } from "lodash"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
 import { LogEntry } from "./logger"
+import { PluginContext } from "./plugin-context"
 
 class TaskDefinitionError extends Error { }
 class TaskGraphError extends Error { }
@@ -68,7 +68,7 @@ export class TaskGraph {
   private inProgress: TaskNodeMap
   private logEntryMap: LogEntryMap
 
-  constructor(private ctx: GardenContext, private concurrency: number = DEFAULT_CONCURRENCY) {
+  constructor(private ctx: PluginContext, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()

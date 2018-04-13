@@ -8,9 +8,9 @@
 
 import Bluebird = require("bluebird")
 import * as Joi from "joi"
+import { PluginContext } from "../plugin-context"
 import { Module } from "./module"
 import { joiPrimitive, PrimitiveMap, validate } from "./common"
-import { GardenContext } from "../context"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateStrings, TemplateOpts, TemplateStringContext } from "../template-string"
 
@@ -58,13 +58,13 @@ const serviceOutputsSchema = Joi.object().pattern(/.+/, joiPrimitive())
 
 export class Service<M extends Module> {
   constructor(
-    protected ctx: GardenContext, public module: M,
+    protected ctx: PluginContext, public module: M,
     public name: string, public config: M["services"][string],
   ) { }
 
   static async factory<S extends Service<M>, M extends Module>(
-    this: (new (ctx: GardenContext, module: M, name: string, config: S["config"]) => S),
-    ctx: GardenContext, module: M, name: string,
+    this: (new (ctx: PluginContext, module: M, name: string, config: S["config"]) => S),
+    ctx: PluginContext, module: M, name: string,
   ) {
     const config = module.services[name]
 

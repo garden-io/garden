@@ -6,8 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { Garden } from "../garden"
+import { PluginContext } from "../plugin-context"
 import { Module, TestSpec } from "./module"
-import { GardenContext } from "../context"
 import { Environment, Primitive, PrimitiveMap } from "./common"
 import { Nullable } from "../util"
 import { Service, ServiceContext, ServiceStatus } from "./service"
@@ -16,7 +17,7 @@ import { Stream } from "ts-stream"
 import { Moment } from "moment"
 
 export interface PluginActionParamsBase {
-  ctx: GardenContext
+  ctx: PluginContext
   logEntry?: LogEntry
 }
 
@@ -233,4 +234,4 @@ export interface Plugin<T extends Module> extends Partial<PluginActions<T>> {
   configKeys?: string[]
 }
 
-export type PluginFactory = (ctx: GardenContext) => Plugin<any>
+export type PluginFactory = (garden: Garden) => Plugin<any>

@@ -144,3 +144,18 @@ export class Kubectl {
     return ops.concat(args)
   }
 }
+
+export function kubectl(namespace?: string) {
+  return new Kubectl({ context: DEFAULT_CONTEXT, namespace })
+}
+
+export async function apply(obj: any, { force = false, namespace }: { force?: boolean, namespace?: string } = {}) {
+  const data = Buffer.from(JSON.stringify(obj))
+
+  let args = ["apply"]
+  force && args.push("--force")
+  args.push("-f")
+  args.push("-")
+
+  await kubectl(namespace).call(args, { data })
+}

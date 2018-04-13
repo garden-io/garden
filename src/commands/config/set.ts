@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, EnvironmentOption, ParameterValues, StringParameter } from "../base"
-import { GardenContext } from "../../context"
+import { PluginContext } from "../../plugin-context"
+import { Command, ParameterValues, StringParameter } from "../base"
 
 export const configSetArgs = {
   key: new StringParameter({
@@ -20,26 +20,17 @@ export const configSetArgs = {
   }),
 }
 
-export const configSetOpts = {
-  env: new EnvironmentOption({
-    help: "Set the environment (and optionally namespace) where the config should be stored",
-  }),
-}
-
 export type SetArgs = ParameterValues<typeof configSetArgs>
-export type SetOpts = ParameterValues<typeof configSetOpts>
 
 // TODO: allow reading key/value pairs from a file
 
-export class ConfigSetCommand extends Command<typeof configSetArgs, typeof configSetOpts> {
+export class ConfigSetCommand extends Command<typeof configSetArgs> {
   name = "set"
   help = "Set a configuration variable"
 
   arguments = configSetArgs
-  options = configSetOpts
 
-  async action(ctx: GardenContext, args: SetArgs, opts: SetOpts) {
-    opts.env && ctx.setEnvironment(opts.env)
+  async action(ctx: PluginContext, args: SetArgs) {
     await ctx.setConfig(args.key.split("."), args.value)
     ctx.log.info(`Set config key ${args.key}`)
     return { ok: true }

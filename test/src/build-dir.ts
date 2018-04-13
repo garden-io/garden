@@ -3,10 +3,11 @@ import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
 const nodetree = require("nodetree")
 import { values } from "lodash"
-import { defaultPlugins } from "../../src/plugins";
-import { GardenContext } from "../../src/context";
-import { BuildTask } from "../../src/tasks/build";
-import { makeTestContext } from "../helpers";
+import { defaultPlugins } from "../../src/plugins"
+import { BuildTask } from "../../src/tasks/build"
+import {
+  makeTestGarden,
+} from "../helpers"
 
 /*
   Module dependency diagram for test-project-build-products
@@ -20,47 +21,47 @@ import { makeTestContext } from "../helpers";
 
 const projectRoot = join(__dirname, "..", "data", "test-project-build-products")
 
-const makeContext = async () => {
-  return await makeTestContext(projectRoot, defaultPlugins)
+const makeGarden = async () => {
+  return await makeTestGarden(projectRoot, defaultPlugins)
 }
 
 describe("BuildDir", () => {
 
-  it("should have ensured the existence of the build dir when GardenContext was initialized", async () => {
-    const ctx = await makeContext()
-    const buildDirExists = await pathExists(ctx.buildDir.buildDirPath)
+  it("should have ensured the existence of the build dir when Garden was initialized", async () => {
+    const garden = await makeGarden()
+    const buildDirExists = await pathExists(garden.buildDir.buildDirPath)
     expect(buildDirExists).to.eql(true)
   })
 
   it("should clear the build dir when requested", async () => {
-    const ctx = await makeContext()
-    await ctx.buildDir.clear()
-    const nodeCount = await readdir(ctx.buildDir.buildDirPath)
+    const garden = await makeGarden()
+    await garden.buildDir.clear()
+    const nodeCount = await readdir(garden.buildDir.buildDirPath)
     expect(nodeCount).to.eql([])
   })
 
   it("should ensure that a module's build subdir exists before returning from buildPath", async () => {
-    const ctx = await makeContext()
-    await ctx.buildDir.clear()
-    const modules = await ctx.getModules()
+    const garden = await makeGarden()
+    await garden.buildDir.clear()
+    const modules = await garden.getModules()
     const moduleA = modules["module-a"]
-    const buildPath = await ctx.buildDir.buildPath(moduleA)
+    const buildPath = await garden.buildDir.buildPath(moduleA)
     expect(await pathExists(buildPath)).to.eql(true)
   })
 
   it("should sync sources to the build dir", async () => {
-    const ctx = await makeContext()
-    const modules = await ctx.getModules()
+    const garden = await makeGarden()
+    const modules = await garden.getModules()
     const moduleA = modules["module-a"]
-    await ctx.buildDir.syncFromSrc(moduleA)
-    const buildDirA = await ctx.buildDir.buildPath(moduleA)
+    await garden.buildDir.syncFromSrc(moduleA)
+    const buildDirA = await garden.buildDir.buildPath(moduleA)
 
     const copiedPaths = [
       join(buildDirA, "garden.yml"),
-      join(buildDirA, "some-dir", "some-file")
+      join(buildDirA, "some-dir", "some-file"),
     ]
 
-    const buildDirPrettyPrint = nodetree(ctx.buildDir.buildDirPath)
+    const buildDirPrettyPrint = nodetree(garden.buildDir.buildDirPath)
 
     for (const p of copiedPaths) {
       expect(await pathExists(p)).to.eql(true, buildDirPrettyPrint)
@@ -68,26 +69,26 @@ describe("BuildDir", () => {
   })
 
   it("should sync dependency products to their specified destinations", async () => {
-    const ctx = await makeContext()
+    const garden = await makeGarden()
     try {
-      await ctx.buildDir.clear()
-      const modules = await ctx.getModules()
+      await garden.clearBuilds()
+      const modules = await garden.getModules()
 
       for (const module of values(modules)) {
-        await ctx.addTask(new BuildTask(ctx, module, false))
+        await garden.addTask(new BuildTask(garden.pluginContext, module, false))
       }
 
-      await ctx.processTasks()
+      await garden.processTasks()
 
-      const buildDirD = await ctx.buildDir.buildPath(modules["module-d"])
-      const buildDirE = await ctx.buildDir.buildPath(modules["module-e"])
+      const buildDirD = await garden.buildDir.buildPath(modules["module-d"])
+      const buildDirE = await garden.buildDir.buildPath(modules["module-e"])
 
       // All these destinations should be populated now.
       const buildProductDestinations = [
-        join(buildDirD, 'a', 'a.txt'),
-        join(buildDirD, 'b', 'build', 'b1.txt'),
-        join(buildDirD, 'b', 'build', 'build_subdir', 'b2.txt'),
-        join(buildDirE, 'd', 'build', 'd.txt')
+        join(buildDirD, "a", "a.txt"),
+        join(buildDirD, "b", "build", "b1.txt"),
+        join(buildDirD, "b", "build", "build_subdir", "b2.txt"),
+        join(buildDirE, "d", "build", "d.txt"),
       ]
 
       for (const p of buildProductDestinations) {
@@ -95,10 +96,10 @@ describe("BuildDir", () => {
       }
 
       // This file was not requested by module-d's garden.yml's copy directive for module-b.
-      const notCopiedPath = join(buildDirD, 'B', 'build', 'unused.txt')
+      const notCopiedPath = join(buildDirD, "B", "build", "unused.txt")
       expect(await pathExists(notCopiedPath)).to.eql(false)
     } catch (e) {
-      const buildDirPrettyPrint = nodetree(ctx.buildDir.buildDirPath)
+      const buildDirPrettyPrint = nodetree(garden.buildDir.buildDirPath)
       console.log(buildDirPrettyPrint)
       throw e
     }

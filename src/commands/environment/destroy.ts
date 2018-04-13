@@ -7,24 +7,17 @@
  */
 
 import { every, reduce } from "lodash"
+import { PluginContext } from "../../plugin-context"
 
-import { Command, EnvironmentOption, ParameterValues } from "../base"
+import { Command } from "../base"
 import { EntryStyle } from "../../logger/types"
 import { EnvironmentStatus, EnvironmentStatusMap } from "../../types/plugin"
-import { GardenContext } from "../../context"
 import { LogEntry } from "../../logger"
 import { sleep } from "../../util"
 import { TimeoutError } from "../../exceptions"
 
 const WAIT_FOR_SHUTDOWN_TIMEOUT = 600
 
-export const options = {
-  env: new EnvironmentOption({
-    help: "Set the environment (and optionally namespace) to destroy",
-  }),
-}
-
-export type Opts = ParameterValues<typeof options>
 export type LogEntryMap = { [key: string]: LogEntry }
 
 const providersTerminated = (status: EnvironmentStatusMap): boolean => every(status, s => s.configured === false)
@@ -34,8 +27,7 @@ export class EnvironmentDestroyCommand extends Command {
   alias = "d"
   help = "Destroy environment"
 
-  async action(ctx: GardenContext, _args, opts: Opts) {
-    opts.env && ctx.setEnvironment(opts.env)
+  async action(ctx: PluginContext) {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "skull_and_crossbones", command: `Destroying ${name} environment` })
 
@@ -65,7 +57,7 @@ export class EnvironmentDestroyCommand extends Command {
     return result
   }
 
-  async waitForShutdown(ctx: GardenContext, name: string, logEntries: LogEntryMap) {
+  async waitForShutdown(ctx: PluginContext, name: string, logEntries: LogEntryMap) {
     const startTime = new Date().getTime()
     let result: EnvironmentStatusMap
 

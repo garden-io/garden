@@ -1,7 +1,11 @@
 import { expect } from "chai"
 import { resolve } from "path"
 import * as td from "testdouble"
-import { dataDir, makeTestContext, stubPluginAction } from "../../helpers"
+import {
+  dataDir,
+  makeTestGarden,
+  stubPluginAction,
+} from "../../helpers"
 import { DeployTask } from "../../../src/tasks/deploy"
 
 describe("DeployTask", () => {
@@ -13,7 +17,8 @@ describe("DeployTask", () => {
     process.env.TEST_VARIABLE = "banana"
     process.env.TEST_PROVIDER_TYPE = "test-plugin-b"
 
-    const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
+    const garden = await makeTestGarden(resolve(dataDir, "test-project-templated"))
+    const ctx = garden.pluginContext
     await ctx.setConfig(["project", "my", "variable"], "OK")
 
     const serviceA = await ctx.getService("service-a")
@@ -23,12 +28,12 @@ describe("DeployTask", () => {
     let actionParams: any = {}
 
     stubPluginAction(
-      ctx, "test-plugin-b", "getServiceStatus",
+      garden, "test-plugin-b", "getServiceStatus",
       async () => ({}),
     )
 
     stubPluginAction(
-      ctx, "test-plugin-b", "deployService",
+      garden, "test-plugin-b", "deployService",
       async (params) => { actionParams = params },
     )
 

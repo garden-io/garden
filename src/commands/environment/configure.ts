@@ -6,26 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, EnvironmentOption, ParameterValues } from "../base"
-import { GardenContext } from "../../context"
+import { PluginContext } from "../../plugin-context"
+import { EnvironmentStatusMap } from "../../types/plugin"
+import { Command } from "../base"
 
-export const options = {
-  env: new EnvironmentOption({
-    help: "Set the environment (and optionally namespace) to configure",
-  }),
-}
-
-export type Opts = ParameterValues<typeof options>
-
-export class EnvironmentConfigureCommand extends Command<typeof options> {
+export class EnvironmentConfigureCommand extends Command {
   name = "configure"
   alias = "config"
   help = "Configures your environment"
 
-  options = options
-
-  async action(ctx: GardenContext, _args, opts: Opts) {
-    opts.env && ctx.setEnvironment(opts.env)
+  async action(ctx: PluginContext): Promise<EnvironmentStatusMap> {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "gear", command: `Configuring ${name} environment` })
 

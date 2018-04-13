@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { PluginContext } from "../plugin-context"
 import { Command } from "./base"
-import { GardenContext } from "../context"
 
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors"
 
-  async action(ctx: GardenContext) {
+  async action(ctx: PluginContext) {
 
     ctx.log.header({ emoji: "heavy_check_mark", command: "validate" })
 

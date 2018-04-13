@@ -11,7 +11,7 @@ describe("commands.test", () => {
     const result = await command.action(
       ctx,
       { module: undefined },
-      { env: "local.test", group: undefined, force: true, "force-build": true },
+      { group: undefined, force: true, "force-build": true },
     )
 
     expect(isSubset(result, {
@@ -46,7 +46,7 @@ describe("commands.test", () => {
     const result = await command.action(
       ctx,
       { module: "module-a" },
-      { env: "local.test", group: undefined, force: true, "force-build": true },
+      { group: undefined, force: true, "force-build": true },
     )
 
     expect(isSubset(result, {

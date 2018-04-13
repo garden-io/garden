@@ -1,5 +1,5 @@
 import { join } from "path"
-import { GardenContext } from "../../../src/context"
+import { Garden } from "../../../src/garden"
 import { CallCommand } from "../../../src/commands/call"
 import { expect } from "chai"
 import { GetServiceStatusParams, Plugin } from "../../../src/types/plugin"
@@ -44,7 +44,8 @@ describe("commands.call", () => {
   })
 
   it("should find the endpoint for a service and call it with the specified path", async () => {
-    const ctx = await GardenContext.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const ctx = garden.pluginContext
     const command = new CallCommand()
 
     nock("http://service-a.test-project-b.local.app.garden:32000")
@@ -70,7 +71,8 @@ describe("commands.call", () => {
   })
 
   it("should error if service isn't running", async () => {
-    const ctx = await GardenContext.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const ctx = garden.pluginContext
     const command = new CallCommand()
 
     try {
@@ -92,7 +94,8 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no endpoints", async () => {
-    const ctx = await GardenContext.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const ctx = garden.pluginContext
     const command = new CallCommand()
 
     try {
@@ -114,7 +117,8 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no matching endpoints", async () => {
-    const ctx = await GardenContext.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const ctx = garden.pluginContext
     const command = new CallCommand()
 
     try {

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { PluginContext } from "../../plugin-context"
 import { ServiceStatus } from "../../types/service"
 import { join, relative, resolve } from "path"
 import * as escapeStringRegexp from "escape-string-regexp"
@@ -19,7 +20,6 @@ import {
   GetServiceStatusParams, ParseModuleParams,
   Plugin,
 } from "../../types/plugin"
-import { GardenContext } from "../../context"
 import { STATIC_DIR } from "../../constants"
 import { ContainerModule, ContainerService } from "../container"
 import { validate } from "../../types/common"
@@ -131,14 +131,13 @@ export class LocalGoogleCloudFunctionsProvider implements Plugin<GoogleCloudFunc
     }
   }
 
-  async getServiceLogs({ ctx, env, stream, tail }: GetServiceLogsParams<GoogleCloudFunctionsModule>) {
+  async getServiceLogs({ ctx, stream, tail }: GetServiceLogsParams<GoogleCloudFunctionsModule>) {
     const emulator = await this.getEmulatorService(ctx)
-    const handler = ctx.getActionHandler("getServiceLogs", "container")
     // TODO: filter to only relevant function logs
-    return handler({ ctx, service: emulator, env, stream, tail })
+    return ctx.getServiceLogs(emulator, stream, tail)
   }
 
-  private async getEmulatorService(ctx: GardenContext) {
+  private async getEmulatorService(ctx: PluginContext) {
     const module = await ctx.resolveModule<ContainerModule>(emulatorModulePath)
 
     if (!module) {
