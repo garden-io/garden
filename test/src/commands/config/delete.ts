@@ -8,7 +8,7 @@ describe("ConfigDeleteCommand", () => {
 
     await ctx.setConfig(["project", "mykey"], "myvalue")
 
-    await command.action(ctx, { key: "project.mykey" }, { env: undefined })
+    await command.action(ctx, { key: "project.mykey" })
 
     await expectError(
       async () => await ctx.getConfig(["project", "mykey"]),
@@ -21,7 +21,7 @@ describe("ConfigDeleteCommand", () => {
     const command = new ConfigDeleteCommand()
 
     await expectError(
-      async () => await command.action(ctx, { key: "bla.mykey" }, { env: undefined }),
+      async () => await command.action(ctx, { key: "bla.mykey" }),
       "parameter",
     )
   })
@@ -31,7 +31,7 @@ describe("ConfigDeleteCommand", () => {
     const command = new ConfigDeleteCommand()
 
     await expectError(
-      async () => await command.action(ctx, { key: "project.mykey" }, { env: undefined }),
+      async () => await command.action(ctx, { key: "project.mykey" }),
       "not-found",
     )
   })

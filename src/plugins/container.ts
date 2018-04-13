@@ -15,9 +15,10 @@ import { identifierRegex, validate } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
-import { BuildModuleParams, GetModuleBuildStatusParams, Plugin } from "../types/plugin"
+import { BuildModuleParams, GetModuleBuildStatusParams, Plugin, PushModuleParams } from "../types/plugin"
 import { Service } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
+import { splitFirst } from "../util"
 
 export interface ServiceEndpointSpec {
   paths?: string[]
@@ -127,33 +128,59 @@ export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleCo
     this.image = config.image
   }
 
-  async getImageId() {
-    return this.image || `${this.name}:${await this.getVersion()}`
-  }
-
-  async pullImage(ctx: PluginContext) {
-    const identifier = await this.getImageId()
-
-    if (!await this.imageExistsLocally()) {
-      ctx.log.info({ section: this.name, msg: `pulling image ${identifier}...` })
-      await this.dockerCli(`pull ${identifier}`)
+  async getLocalImageId() {
+    if (this.hasDockerfile()) {
+      const { versionString } = await this.getVersion()
+      return `${this.name}:${versionString}`
+    } else {
+      return this.image
     }
   }
 
+  async getRemoteImageId() {
+    // TODO: allow setting a default user/org prefix in the project/plugin config
+    if (this.image) {
+      let [imageName, version] = splitFirst(this.image, ":")
+
+      if (version) {
+        // we use the specified version in the image name, if specified
+        // (allows specifying version on source images, and also setting specific version name when pushing images)
+        return this.image
+      } else {
+        const { versionString } = await this.getVersion()
+        return `${imageName}:${versionString}`
+      }
+    } else {
+      return this.getLocalImageId()
+    }
+  }
+
+  async pullImage(ctx: PluginContext) {
+    const identifier = await this.getRemoteImageId()
+
+    ctx.log.info({ section: this.name, msg: `pulling image ${identifier}...` })
+    await this.dockerCli(`pull ${identifier}`)
+  }
+
   async imageExistsLocally() {
-    const identifier = await this.getImageId()
-    return (await this.dockerCli(`images ${identifier} -q`)).stdout.trim().length > 0
+    const identifier = await this.getLocalImageId()
+    const exists = (await this.dockerCli(`images ${identifier} -q`)).stdout.trim().length > 0
+    return exists ? identifier : null
   }
 
   async dockerCli(args) {
     // TODO: use dockerode instead of CLI
     return childProcess.exec("docker " + args, { cwd: await this.getBuildPath(), maxBuffer: 1024 * 1024 })
   }
+
+  hasDockerfile() {
+    return existsSync(join(this.path, "Dockerfile"))
+  }
 }
 
 // TODO: support remote registries and pushing
-export class ContainerModuleHandler implements Plugin<ContainerModule> {
-  name = "container-module"
+export class DockerModuleHandler implements Plugin<ContainerModule> {
+  name = "docker-module"
   supportedModuleTypes = ["container"]
 
   async parseModule({ ctx, config }: { ctx: PluginContext, config: ContainerModuleConfig }) {
@@ -162,9 +189,9 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
     const module = new ContainerModule(ctx, config)
 
     // make sure we can build the thing
-    if (!module.image && !existsSync(join(module.path, "Dockerfile"))) {
+    if (!module.image && !module.hasDockerfile()) {
       throw new ConfigurationError(
-        `Module ${config.name} neither specified base image nor provides Dockerfile`,
+        `Module ${config.name} neither specifies image nor provides Dockerfile`,
         {},
       )
     }
@@ -211,28 +238,28 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
     return module
   }
 
-  async getModuleBuildStatus({ ctx, module }: GetModuleBuildStatusParams<ContainerModule>) {
-    const ready = !!module.image ? true : await module.imageExistsLocally()
+  async getModuleBuildStatus({ module, logEntry }: GetModuleBuildStatusParams<ContainerModule>) {
+    const identifier = await module.imageExistsLocally()
 
-    if (ready) {
-      ctx.log.debug({
+    if (identifier) {
+      logEntry && logEntry.debug({
         section: module.name,
-        msg: `Image ${await module.getImageId()} already exists`,
+        msg: `Image ${identifier} already exists`,
         symbol: LogSymbolType.info,
       })
     }
 
-    return { ready }
+    return { ready: !!identifier }
   }
 
   async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
-    if (!!module.image) {
-      logEntry && logEntry.setState(`Fetching image ${module.image}...`)
+    if (!!module.image && !module.hasDockerfile()) {
+      logEntry && logEntry.setState(`Pulling image ${module.image}...`)
       await module.pullImage(ctx)
       return { fetched: true }
     }
 
-    const identifier = await module.getImageId()
+    const identifier = await module.getLocalImageId()
 
     // build doesn't exist, so we create it
     logEntry && logEntry.setState(`Building ${identifier}...`)
@@ -242,5 +269,29 @@ export class ContainerModuleHandler implements Plugin<ContainerModule> {
     await module.dockerCli(`build -t ${identifier} ${await module.getBuildPath()}`)
 
     return { fresh: true }
+  }
+
+  async pushModule({ module, logEntry }: PushModuleParams<ContainerModule>) {
+    if (!module.hasDockerfile()) {
+      logEntry && logEntry.setState({ msg: `Nothing to push` })
+      return { pushed: false }
+    }
+
+    const localId = await module.getLocalImageId()
+    const remoteId = await module.getRemoteImageId()
+
+    // build doesn't exist, so we create it
+    logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
+
+    if (localId !== remoteId) {
+      await module.dockerCli(`tag ${localId} ${remoteId}`)
+    }
+
+    // TODO: log error if it occurs
+    // TODO: stream output to log if at debug log level
+    // TODO: check if module already exists remotely?
+    await module.dockerCli(`push ${remoteId}`)
+
+    return { pushed: true }
   }
 }

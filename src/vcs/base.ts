@@ -8,9 +8,15 @@
 
 export const NEW_MODULE_VERSION = "0000000000"
 
+export interface TreeVersion {
+  versionString: string
+  latestCommit: string
+  dirtyTimestamp: number | null
+}
+
 export abstract class VcsHandler {
   constructor(protected projectRoot: string) { }
 
-  abstract async getTreeVersion(directories): Promise<string>
-  abstract async sortVersions(versions: string[]): Promise<string[]>
+  abstract async getTreeVersion(directories: string[]): Promise<TreeVersion>
+  abstract async sortVersions(versions: TreeVersion[]): Promise<TreeVersion[]>
 }

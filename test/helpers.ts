@@ -69,6 +69,7 @@ export const makeTestModule = (ctx, name = "test") => {
     type: "test",
     name,
     path: "bla",
+    allowPush: false,
     variables: {},
     build: { dependencies: [] },
     services: {

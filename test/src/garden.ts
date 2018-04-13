@@ -2,7 +2,11 @@ import { join } from "path"
 import { Garden } from "../../src/garden"
 import { expect } from "chai"
 import {
-  expectError, makeTestGarden, makeTestGardenA, makeTestModule, projectRootA,
+  expectError,
+  makeTestGarden,
+  makeTestGardenA,
+  makeTestModule,
+  projectRootA,
   TestPlugin,
 } from "../helpers"
 

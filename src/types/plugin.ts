@@ -15,6 +15,7 @@ import { Service, ServiceContext, ServiceStatus } from "./service"
 import { LogEntry } from "../logger"
 import { Stream } from "ts-stream"
 import { Moment } from "moment"
+import { TreeVersion } from "../vcs/base"
 
 export interface PluginActionParamsBase {
   ctx: PluginContext
@@ -33,6 +34,10 @@ export interface BuildModuleParams<T extends Module = Module> extends PluginActi
   module: T
 }
 
+export interface PushModuleParams<T extends Module = Module> extends PluginActionParamsBase {
+  module: T
+}
+
 export interface TestModuleParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
   testSpec: TestSpec,
@@ -41,7 +46,7 @@ export interface TestModuleParams<T extends Module = Module> extends PluginActio
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T,
-  version: string,
+  version: TreeVersion,
   env: Environment,
 }
 
@@ -108,6 +113,7 @@ export interface PluginActionParams<T extends Module = Module> {
   parseModule: ParseModuleParams<T>
   getModuleBuildStatus: GetModuleBuildStatusParams<T>
   buildModule: BuildModuleParams<T>
+  pushModule: PushModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>
 
@@ -133,8 +139,13 @@ export interface BuildResult {
   version?: string
 }
 
+export interface PushResult {
+  pushed: boolean
+  message?: string
+}
+
 export interface TestResult {
-  version: string
+  version: TreeVersion
   success: boolean
   startedAt: Moment | Date
   completedAt: Moment | Date
@@ -175,6 +186,7 @@ export interface PluginActionOutputs<T extends Module = Module> {
   parseModule: Promise<T>
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>
+  pushModule: Promise<PushResult>
   testModule: Promise<TestResult>
   getTestResult: Promise<TestResult | null>
 
@@ -205,6 +217,7 @@ class _PluginActionKeys implements Nullable<PluginActions<Module>> {
   parseModule = null
   getModuleBuildStatus = null
   buildModule = null
+  pushModule = null
   testModule = null
   getTestResult = null
 

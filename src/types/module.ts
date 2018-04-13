@@ -11,10 +11,11 @@ import { PluginContext } from "../plugin-context"
 import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
+import { extend } from "lodash"
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
-import { BuildResult, BuildStatus } from "./plugin"
+import { TreeVersion } from "../vcs/base"
 
 export interface BuildDependencyConfig {
   name: string,
@@ -40,6 +41,7 @@ export interface TestConfig {
 }
 
 export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
+  allowPush: boolean
   build: BuildConfig
   description?: string
   name: string
@@ -68,28 +70,22 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   @Memoize()
-  async getConfig(context?: TemplateStringContext): Promise<T> {
+  async getConfig(context?: TemplateStringContext): Promise<ModuleConfig> {
     // TODO: allow referencing other module configs (non-trivial, need to save for later)
     const templateContext = await this.ctx.getTemplateContext(context)
-    const config = this.config
+    const config = <T>extend({}, this.config)
 
-    return <T>{
-      build: await resolveTemplateStrings(config.build, templateContext),
-      description: config.description,
-      name: config.name,
-      path: config.path,
-      // service configs are resolved separately in the Service class
-      services: config.services,
-      test: await resolveTemplateStrings(config.test, templateContext),
-      type: config.type,
-      variables: await resolveTemplateStrings(config.variables, templateContext),
-    }
+    config.build = await resolveTemplateStrings(config.build, templateContext)
+    config.test = await resolveTemplateStrings(config.test, templateContext)
+    config.variables = await resolveTemplateStrings(config.variables, templateContext)
+
+    return config
   }
 
-  async getVersion() {
+  async getVersion(): Promise<TreeVersion> {
     const treeVersion = await this.ctx.vcs.getTreeVersion([this.path])
 
-    const versionChain = await Bluebird.map(
+    const versionChain: TreeVersion[] = await Bluebird.map(
       await this.getBuildDependencies(),
       async (m: Module) => await m.getVersion(),
     )
@@ -103,14 +99,6 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   async getBuildPath() {
     return await this.ctx.getModuleBuildPath(this)
-  }
-
-  async getBuildStatus(): Promise<BuildStatus> {
-    return this.ctx.getModuleBuildStatus(this)
-  }
-
-  async build(): Promise<BuildResult> {
-    return this.ctx.buildModule(this)
   }
 
   async getBuildDependencies(): Promise<Module[]> {
@@ -173,6 +161,8 @@ export const baseModuleSchema = Joi.object().keys({
   description: Joi.string(),
   variables: joiVariables(),
   services: baseServicesSchema,
+  allowPush: Joi.boolean()
+    .default(true, "Set to false to disable pushing this module to remote registries"),
   build: Joi.object().keys({
     command: Joi.string(),
     dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),

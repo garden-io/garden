@@ -107,8 +107,9 @@ export class Service<M extends Module> {
   }
 
   async prepareContext(): Promise<ServiceContext> {
+    const { versionString } = await this.module.getVersion()
     const envVars = {
-      GARDEN_VERSION: await this.module.getVersion(),
+      GARDEN_VERSION: versionString,
     }
     const dependencies = {}
 
@@ -118,7 +119,7 @@ export class Service<M extends Module> {
 
     for (const dep of await this.getDependencies()) {
       const depContext = dependencies[dep.name] = {
-        version: await dep.module.getVersion(),
+        version: versionString,
         outputs: {},
       }
 

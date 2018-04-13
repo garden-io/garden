@@ -71,6 +71,7 @@ export async function createDeployment(
   service: ContainerService, serviceContext: ServiceContext, exposePorts: boolean,
 ) {
   const config: ContainerServiceConfig = service.config
+  const { versionString } = await service.module.getVersion()
   // TODO: support specifying replica count
   const configuredReplicas = 1 // service.config.count[env.name] || 1
 
@@ -82,7 +83,7 @@ export async function createDeployment(
       name: "",
       annotations: {
         "garden.io/generated": "true",
-        "garden.io/version": await service.module.getVersion(),
+        "garden.io/version": versionString,
         // we can use this to avoid overriding the replica count if it has been manually scaled
         "garden.io/configured.replicas": configuredReplicas,
       },
@@ -125,7 +126,7 @@ export async function createDeployment(
   // expose some metadata to the container
   env.push({
     name: "GARDEN_VERSION",
-    value: await service.module.getVersion(),
+    value: versionString,
   })
 
   env.push({
@@ -146,7 +147,7 @@ export async function createDeployment(
   const container: any = {
     args: service.config.command || [],
     name: service.name,
-    image: await service.module.getImageId(),
+    image: await service.module.getLocalImageId(),
     env,
     ports: [],
     // TODO: make these configurable

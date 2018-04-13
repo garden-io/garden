@@ -99,11 +99,11 @@ export class LocalDockerSwarmProvider implements Plugin<ContainerModule> {
 
   async deployService({ ctx, service, serviceContext, env }: DeployServiceParams<ContainerModule>) {
     // TODO: split this method up and test
-    const version = await service.module.getVersion()
+    const { versionString } = await service.module.getVersion()
 
-    ctx.log.info({ section: service.name, msg: `Deploying version ${version}` })
+    ctx.log.info({ section: service.name, msg: `Deploying version ${versionString}` })
 
-    const identifier = await service.module.getImageId()
+    const identifier = await service.module.getLocalImageId()
     const ports = Object.values(service.config.ports).map(p => {
       const port: any = {
         Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",

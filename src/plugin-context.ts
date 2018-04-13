@@ -32,6 +32,8 @@ import {
   GetServiceLogsParams,
   PluginActionParams,
   PluginActions,
+  PushModuleParams,
+  PushResult,
   ServiceLogEntry,
   TestResult,
 } from "./types/plugin"
@@ -46,6 +48,7 @@ import {
   toPairs,
   values,
 } from "lodash"
+import { TreeVersion } from "./vcs/base"
 
 export type PluginContextGuard = {
   readonly [P in keyof PluginActionParams<any>]: (...args: any[]) => Promise<any>
@@ -70,10 +73,11 @@ export type WrappedFromGarden = Pick<Garden,
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   parseModule: <T extends Module>(config: T["_ConfigType"]) => Promise<T>
   getModuleBuildPath: <T extends Module>(module: T) => Promise<string>
-  getModuleBuildStatus: <T extends Module>(module: T) => Promise<BuildStatus>
+  getModuleBuildStatus: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildStatus>
   buildModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildResult>
+  pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
   testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
-  getTestResult: <T extends Module>(module: T, version: string, logEntry?: LogEntry) => Promise<TestResult | null>
+  getTestResult: <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => Promise<TestResult | null>
   getEnvironmentStatus: () => Promise<EnvironmentStatusMap>
   configureEnvironment: () => Promise<EnvironmentStatusMap>
   destroyEnvironment: () => Promise<EnvironmentStatusMap>
@@ -127,16 +131,21 @@ export function createPluginContext(garden: Garden): PluginContext {
       return await garden.buildDir.buildPath(module)
     },
 
-    getModuleBuildStatus: async <T extends Module>(module: T) => {
+    getModuleBuildStatus: async <T extends Module>(module: T, logEntry?: LogEntry) => {
       const defaultHandler = garden.actionHandlers["getModuleBuildStatus"]["generic"]
       const handler = garden.getActionHandler("getModuleBuildStatus", module.type, defaultHandler)
-      return handler({ ctx, module })
+      return handler({ ctx, module, logEntry })
     },
 
     buildModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
       await garden.buildDir.syncDependencyProducts(module)
       const defaultHandler = garden.actionHandlers["buildModule"]["generic"]
       const handler = garden.getActionHandler("buildModule", module.type, defaultHandler)
+      return handler({ ctx, module, logEntry })
+    },
+
+    pushModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
+      const handler = garden.getActionHandler("pushModule", module.type, dummyPushHandler)
       return handler({ ctx, module, logEntry })
     },
 
@@ -147,7 +156,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ctx, module, testSpec, env, logEntry })
     },
 
-    getTestResult: async <T extends Module>(module: T, version: string, logEntry?: LogEntry) => {
+    getTestResult: async <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => {
       const handler = garden.getEnvActionHandler("getTestResult", module.type, async () => null)
       const env = garden.getEnvironment()
       return handler({ ctx, module, version, env, logEntry })
@@ -262,4 +271,8 @@ const dummyLogStreamer = async ({ ctx, service }: GetServiceLogsParams) => {
     section: service.name,
     msg: chalk.yellow(`No handler for log retrieval available for module type ${service.module.type}`),
   })
+}
+
+const dummyPushHandler = async ({ module }: PushModuleParams) => {
+  return { pushed: false, message: chalk.yellow(`No push handler available for module type ${module.type}`) }
 }

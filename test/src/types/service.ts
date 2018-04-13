@@ -61,7 +61,7 @@ describe("Service", () => {
       const resolved = await serviceB.resolveConfig()
 
       expect(resolved.config).to.eql({
-        command: `echo ${await serviceA.module.getVersion()}`,
+        command: `echo ${(await serviceA.module.getVersion()).versionString}`,
         dependencies: ["service-a"],
       })
 

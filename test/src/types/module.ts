@@ -30,8 +30,8 @@ describe("Module", () => {
 
       expect(module.name).to.equal(config.module.name)
       expect(await module.getConfig()).to.eql({
+        allowPush: true,
         build: { command: "echo OK", dependencies: [] },
-        description: undefined,
         name: "module-a",
         path: modulePath,
         services:

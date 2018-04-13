@@ -7,14 +7,14 @@
  */
 
 import { exec } from "child-process-promise"
-import { NEW_MODULE_VERSION, VcsHandler } from "./base"
+import { NEW_MODULE_VERSION, TreeVersion, VcsHandler } from "./base"
 import { join } from "path"
 import { sortBy } from "lodash"
 import { existsSync, statSync } from "fs"
 import Bluebird = require("bluebird")
 
 export class GitHandler extends VcsHandler {
-  async getTreeVersion(directories) {
+  async getTreeVersion(directories: string[]) {
     let res
     let commitHash
 
@@ -55,31 +55,35 @@ export class GitHandler extends VcsHandler {
       }
     }
 
-    return latestDirty ? `${commitHash}-${latestDirty}` : commitHash
+    return {
+      versionString: latestDirty ? `${commitHash}-${latestDirty}` : commitHash,
+      latestCommit: commitHash,
+      dirtyTimestamp: latestDirty || null,
+    }
   }
 
-  async sortVersions(versions: string[]) {
+  async sortVersions(versions: TreeVersion[]) {
     let getPosition = async (version) => {
-      let [commitHash, dirtyTimestamp] = version.split("-")
+      let { latestCommit, dirtyTimestamp } = version
 
       if (dirtyTimestamp) {
         // any dirty versions will be sorted by latest timestamp
         return -parseInt(dirtyTimestamp, 10)
-      } else if (commitHash === NEW_MODULE_VERSION) {
+      } else if (latestCommit === NEW_MODULE_VERSION) {
         return 0
       } else {
         // clean versions are sorted by their commit distance from HEAD
-        return await this.getOffsetFromHead(commitHash)
+        return await this.getOffsetFromHead(latestCommit)
       }
     }
     let positions = {}
 
     await Bluebird.each(versions, async v => {
-      positions[v] = await getPosition(v)
+      positions[v.versionString] = await getPosition(v)
     })
 
     // TODO: surely there's a better way around this lodash quirk
-    return <string[]><any>sortBy(versions, v => positions[v])
+    return <TreeVersion[]><any>sortBy(versions, v => positions[v.versionString])
   }
 
   // private async getCurrentBranch() {

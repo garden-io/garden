@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModuleHandler } from "./container"
+import { DockerModuleHandler } from "./container"
 import { GoogleCloudFunctionsProvider } from "./google/google-cloud-functions"
 import { LocalGoogleCloudFunctionsProvider } from "./local/local-google-cloud-functions"
 import { KubernetesProvider } from "./kubernetes"
@@ -16,7 +16,7 @@ import { PluginFactory } from "../types/plugin"
 
 // TODO: these should be configured, either explicitly or as dependencies of other plugins
 export const defaultPlugins: PluginFactory[] = [
-  ContainerModuleHandler,
+  DockerModuleHandler,
   NpmPackageModuleHandler,
   KubernetesProvider,
   GoogleAppEngineProvider,

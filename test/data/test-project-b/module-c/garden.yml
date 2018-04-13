@@ -1,6 +1,7 @@
 module:
   name: module-c
   type: generic
+  allowPush: false
   services:
     service-c:
       endpoints:

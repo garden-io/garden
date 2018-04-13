@@ -134,10 +134,10 @@ async function getDefaultBackendService(ctx: PluginContext) {
 async function getDashboardService(ctx: PluginContext) {
   // TODO: implement raw kubernetes module load this module the same way as the ones above
   const module = new ContainerModule(ctx, {
-    version: "0",
     name: "garden-dashboard",
     type: "container",
     path: dashboardModulePath,
+    allowPush: false,
     services: {
       "kubernetes-dashboard": {
         daemon: false,

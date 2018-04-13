@@ -1,4 +1,4 @@
---require ts-node/register
+--require ts-node/register/type-check
 --watch-extensions ts,json,pegjs
 --reporter spec
 --timeout 5000

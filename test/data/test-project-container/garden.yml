@@ -5,3 +5,5 @@ project:
       providers:
         test:
           type: test-plugin
+        container:
+          type: docker-module
