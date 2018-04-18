@@ -2,7 +2,8 @@ import { join } from "path"
 import { expect } from "chai"
 import { Task, TaskGraph, TaskResults } from "../../src/task-graph"
 import { Garden } from "../../src/garden"
-import { defaultPlugins } from "../../src/plugins"
+
+const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
 describe("task-graph", () => {
   class TestTask extends Task {
@@ -29,12 +30,14 @@ describe("task-graph", () => {
     }
   }
 
-  describe("TaskGraph", async () => {
-    const projectRoot = join(__dirname, "..", "data", "test-project-empty")
-    const garden = await Garden.factory(projectRoot, { plugins: defaultPlugins })
-    const ctx = garden.pluginContext
+  describe("TaskGraph", () => {
+    async function getContext() {
+      const garden = await Garden.factory(projectRoot)
+      return garden.pluginContext
+    }
 
     it("should successfully process a single task without dependencies", async () => {
+      const ctx = await getContext()
       const graph = new TaskGraph(ctx)
       const task = new TestTask("a")
 
@@ -47,6 +50,7 @@ describe("task-graph", () => {
     })
 
     it("should process multiple tasks in dependency order", async () => {
+      const ctx = await getContext()
       const graph = new TaskGraph(ctx)
 
       const callbackResults = {}

@@ -1,9 +1,8 @@
+const nodetree = require("nodetree")
 import { join } from "path"
 import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
-const nodetree = require("nodetree")
 import { values } from "lodash"
-import { defaultPlugins } from "../../src/plugins"
 import { BuildTask } from "../../src/tasks/build"
 import {
   makeTestGarden,
@@ -22,7 +21,7 @@ import {
 const projectRoot = join(__dirname, "..", "data", "test-project-build-products")
 
 const makeGarden = async () => {
-  return await makeTestGarden(projectRoot, defaultPlugins)
+  return await makeTestGarden(projectRoot)
 }
 
 describe("BuildDir", () => {

@@ -113,8 +113,8 @@ export class Service<M extends Module> {
     }
     const dependencies = {}
 
-    for (const key in this.ctx.projectConfig.variables) {
-      envVars[key] = this.ctx.projectConfig.variables[key]
+    for (const key in this.ctx.config.variables) {
+      envVars[key] = this.ctx.config.variables[key]
     }
 
     for (const dep of await this.getDependencies()) {

@@ -18,7 +18,7 @@ import { extend } from "lodash"
 
 const CONFIG_FILENAME = "garden.yml"
 
-export interface Config {
+export interface GardenConfig {
   version: string
   dirname: string
   path: string
@@ -33,10 +33,9 @@ export const configSchema = Joi.object()
     project: projectSchema,
   })
   .optionalKeys(["module", "project"])
-  .options({ allowUnknown: true })
   .required()
 
-export async function loadConfig(projectRoot: string, path: string): Promise<Config> {
+export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig> {
   // TODO: nicer error messages when load/validation fails
   const absPath = join(path, CONFIG_FILENAME)
   let fileData
@@ -49,7 +48,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Con
   }
 
   try {
-    config = <Config>yaml.safeLoad(fileData) || {}
+    config = <GardenConfig>yaml.safeLoad(fileData) || {}
   } catch (err) {
     throw new ConfigurationError(`Could not parse ${CONFIG_FILENAME} in directory ${path} as valid YAML`, err)
   }
@@ -68,7 +67,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Con
     }
   }
 
-  const parsed = <Config>validate(config, configSchema, relative(projectRoot, absPath))
+  const parsed = <GardenConfig>validate(config, configSchema, relative(projectRoot, absPath))
 
   const project = parsed.project
   const module = parsed.module

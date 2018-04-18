@@ -80,7 +80,7 @@ export async function getGlobalSystemStatus(ctx: PluginContext, env: Environment
 }
 
 export async function configureGlobalSystem(
-  { ctx, env, logEntry }: ConfigureEnvironmentParams, status: EnvironmentStatus,
+  { ctx, config, env, logEntry }: ConfigureEnvironmentParams, status: EnvironmentStatus,
 ) {
   if (!status.detail.systemNamespaceReady) {
     logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating garden system namespace` })
@@ -99,6 +99,7 @@ export async function configureGlobalSystem(
 
     await deployService({
       ctx,
+      config,
       service: await getDefaultBackendService(ctx),
       serviceContext: { envVars: {}, dependencies: {} },
       env: gardenEnv,
@@ -106,6 +107,7 @@ export async function configureGlobalSystem(
     })
     await deployService({
       ctx,
+      config,
       service: await getIngressControllerService(ctx),
       serviceContext: { envVars: {}, dependencies: {} },
       env: gardenEnv,
@@ -116,7 +118,7 @@ export async function configureGlobalSystem(
 }
 
 function getSystemEnv(env: Environment): Environment {
-  return { name: env.name, namespace: GARDEN_GLOBAL_SYSTEM_NAMESPACE, config: { providers: {} } }
+  return { name: env.name, namespace: GARDEN_GLOBAL_SYSTEM_NAMESPACE, config: { providers: {}, variables: {} } }
 }
 
 async function getIngressControllerService(ctx: PluginContext) {

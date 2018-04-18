@@ -20,7 +20,7 @@ describe("Module", () => {
 
     it("should resolve template strings", async () => {
       process.env.TEST_VARIABLE = "banana"
-      process.env.TEST_PROVIDER_TYPE = "test-plugin"
+      // process.env.TEST_PROVIDER_TYPE = "test-plugin"
 
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
       const modulePath = resolve(ctx.projectRoot, "module-a")
@@ -37,7 +37,7 @@ describe("Module", () => {
         services:
           { "service-a": { command: "echo \${local.env.TEST_VARIABLE}", dependencies: [] } },
         test: { unit: { command: ["echo", "OK"], dependencies: [], variables: {} } },
-        type: "test",
+        type: "generic",
         variables: {},
       })
     })

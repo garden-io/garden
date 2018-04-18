@@ -8,57 +8,75 @@
 
 import { exec } from "child-process-promise"
 import {
+  BuildModuleParams,
   BuildResult,
   BuildStatus,
+  GetModuleBuildStatusParams,
   ParseModuleParams,
-  Plugin,
   TestModuleParams,
   TestResult,
 } from "../types/plugin"
-import { Module } from "../types/module"
+import {
+  Module,
+  ModuleConfig,
+} from "../types/module"
+import {
+  ServiceConfig,
+} from "../types/service"
 import { spawn } from "../util"
 
-export class GenericModuleHandler<T extends Module = Module> implements Plugin<T> {
-  name = "generic"
-  supportedModuleTypes = ["generic"]
+export const name = "generic"
 
-  async parseModule({ ctx, config }: ParseModuleParams<T>) {
-    return <T>new Module(ctx, config)
-  }
+// TODO: find a different way to solve type export issues
+let _serviceConfig: ServiceConfig
 
-  async getModuleBuildStatus({ module }: { module: T }): Promise<BuildStatus> {
-    // Each module handler should keep track of this for now. Defaults to return false if a build command is specified.
-    return { ready: !(await module.getConfig()).build.command }
-  }
+export const genericPlugin = {
+  moduleActions: {
+    generic: {
+      async parseModule({ ctx, moduleConfig }: ParseModuleParams): Promise<Module> {
+        return new Module(ctx, moduleConfig)
+      },
 
-  async buildModule({ module }: { module: T }): Promise<BuildResult> {
-    // By default we run the specified build command in the module root, if any.
-    // TODO: Keep track of which version has been built (needs local data store/cache).
-    const config = await module.getConfig()
+      async getModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
+        // Each module handler should keep track of this for now.
+        // Defaults to return false if a build command is specified.
+        return { ready: !(await module.getConfig()).build.command }
+      },
 
-    if (config.build.command) {
-      const buildPath = await module.getBuildPath()
-      const result = await exec(config.build.command, { cwd: buildPath })
+      async buildModule({ module }: BuildModuleParams): Promise<BuildResult> {
+        // By default we run the specified build command in the module root, if any.
+        // TODO: Keep track of which version has been built (needs local data store/cache).
+        const config: ModuleConfig = await module.getConfig()
 
-      return {
-        fresh: true,
-        buildLog: result.stdout,
-      }
-    } else {
-      return {}
-    }
-  }
+        if (config.build.command) {
+          const buildPath = await module.getBuildPath()
+          const result = await exec(config.build.command, { cwd: buildPath })
 
-  async testModule({ module, testSpec }: TestModuleParams<T>): Promise<TestResult> {
-    const startedAt = new Date()
-    const result = await spawn(testSpec.command[0], testSpec.command.slice(1), { cwd: module.path, ignoreError: true })
+          return {
+            fresh: true,
+            buildLog: result.stdout,
+          }
+        } else {
+          return {}
+        }
+      },
 
-    return {
-      version: await module.getVersion(),
-      success: result.code === 0,
-      startedAt,
-      completedAt: new Date(),
-      output: result.output,
-    }
-  }
+      async testModule({ module, testSpec }: TestModuleParams): Promise<TestResult> {
+        const startedAt = new Date()
+        const result = await spawn(
+          testSpec.command[0], testSpec.command.slice(1), { cwd: module.path, ignoreError: true },
+        )
+
+        return {
+          version: await module.getVersion(),
+          success: result.code === 0,
+          startedAt,
+          completedAt: new Date(),
+          output: result.output,
+        }
+      },
+    },
+  },
 }
+
+export const gardenPlugin = () => genericPlugin

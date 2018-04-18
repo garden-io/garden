@@ -15,7 +15,13 @@ import { identifierRegex, validate } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
-import { BuildModuleParams, GetModuleBuildStatusParams, Plugin, PushModuleParams } from "../types/plugin"
+import {
+  BuildModuleParams,
+  GetModuleBuildStatusParams,
+  GardenPlugin,
+  PushModuleParams,
+  ParseModuleParams,
+} from "../types/plugin"
 import { Service } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util"
@@ -178,120 +184,121 @@ export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleCo
   }
 }
 
-// TODO: support remote registries and pushing
-export class DockerModuleHandler implements Plugin<ContainerModule> {
-  name = "docker-module"
-  supportedModuleTypes = ["container"]
+// TODO: rename this plugin to docker
+export const gardenPlugin = (): GardenPlugin => ({
+  moduleActions: {
+    container: {
+      async parseModule({ ctx, moduleConfig }: ParseModuleParams<ContainerModule>) {
+        moduleConfig = validate(moduleConfig, containerSchema, `module ${moduleConfig.name}`)
 
-  async parseModule({ ctx, config }: { ctx: PluginContext, config: ContainerModuleConfig }) {
-    config = validate(config, containerSchema, `module ${config.name}`)
+        const module = new ContainerModule(ctx, moduleConfig)
 
-    const module = new ContainerModule(ctx, config)
-
-    // make sure we can build the thing
-    if (!module.image && !module.hasDockerfile()) {
-      throw new ConfigurationError(
-        `Module ${config.name} neither specifies image nor provides Dockerfile`,
-        {},
-      )
-    }
-
-    // validate services
-    for (const [name, service] of Object.entries(module.services)) {
-      // make sure ports are correctly configured
-      const definedPorts = Object.keys(service.ports)
-
-      for (const endpoint of service.endpoints) {
-        const endpointPort = endpoint.port
-
-        if (!service.ports[endpointPort]) {
+        // make sure we can build the thing
+        if (!module.image && !module.hasDockerfile()) {
           throw new ConfigurationError(
-            `Service ${name} does not define port ${endpointPort} defined in endpoint`,
-            { definedPorts, endpointPort },
+            `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
+            {},
           )
         }
-      }
 
-      if (service.healthCheck && service.healthCheck.httpGet) {
-        const healthCheckHttpPort = service.healthCheck.httpGet.port
+        // validate services
+        for (const [name, service] of Object.entries(module.services)) {
+          // make sure ports are correctly configured
+          const definedPorts = Object.keys(service.ports)
 
-        if (!service.ports[healthCheckHttpPort]) {
-          throw new ConfigurationError(
-            `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
-            { definedPorts, healthCheckHttpPort },
-          )
+          for (const endpoint of service.endpoints) {
+            const endpointPort = endpoint.port
+
+            if (!service.ports[endpointPort]) {
+              throw new ConfigurationError(
+                `Service ${name} does not define port ${endpointPort} defined in endpoint`,
+                { definedPorts, endpointPort },
+              )
+            }
+          }
+
+          if (service.healthCheck && service.healthCheck.httpGet) {
+            const healthCheckHttpPort = service.healthCheck.httpGet.port
+
+            if (!service.ports[healthCheckHttpPort]) {
+              throw new ConfigurationError(
+                `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
+                { definedPorts, healthCheckHttpPort },
+              )
+            }
+          }
+
+          if (service.healthCheck && service.healthCheck.tcpPort) {
+            const healthCheckTcpPort = service.healthCheck.tcpPort
+
+            if (!service.ports[healthCheckTcpPort]) {
+              throw new ConfigurationError(
+                `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
+                { definedPorts, healthCheckTcpPort },
+              )
+            }
+          }
         }
-      }
 
-      if (service.healthCheck && service.healthCheck.tcpPort) {
-        const healthCheckTcpPort = service.healthCheck.tcpPort
+        return module
+      },
 
-        if (!service.ports[healthCheckTcpPort]) {
-          throw new ConfigurationError(
-            `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
-            { definedPorts, healthCheckTcpPort },
-          )
+      async getModuleBuildStatus({ module, logEntry }: GetModuleBuildStatusParams<ContainerModule>) {
+        const identifier = await module.imageExistsLocally()
+
+        if (identifier) {
+          logEntry && logEntry.debug({
+            section: module.name,
+            msg: `Image ${identifier} already exists`,
+            symbol: LogSymbolType.info,
+          })
         }
-      }
-    }
 
-    return module
-  }
+        return { ready: !!identifier }
+      },
 
-  async getModuleBuildStatus({ module, logEntry }: GetModuleBuildStatusParams<ContainerModule>) {
-    const identifier = await module.imageExistsLocally()
+      async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
+        if (!!module.image && !module.hasDockerfile()) {
+          logEntry && logEntry.setState(`Pulling image ${module.image}...`)
+          await module.pullImage(ctx)
+          return { fetched: true }
+        }
 
-    if (identifier) {
-      logEntry && logEntry.debug({
-        section: module.name,
-        msg: `Image ${identifier} already exists`,
-        symbol: LogSymbolType.info,
-      })
-    }
+        const identifier = await module.getLocalImageId()
 
-    return { ready: !!identifier }
-  }
+        // build doesn't exist, so we create it
+        logEntry && logEntry.setState(`Building ${identifier}...`)
 
-  async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
-    if (!!module.image && !module.hasDockerfile()) {
-      logEntry && logEntry.setState(`Pulling image ${module.image}...`)
-      await module.pullImage(ctx)
-      return { fetched: true }
-    }
+        // TODO: log error if it occurs
+        // TODO: stream output to log if at debug log level
+        await module.dockerCli(`build -t ${identifier} ${await module.getBuildPath()}`)
 
-    const identifier = await module.getLocalImageId()
+        return { fresh: true }
+      },
 
-    // build doesn't exist, so we create it
-    logEntry && logEntry.setState(`Building ${identifier}...`)
+      async pushModule({ module, logEntry }: PushModuleParams<ContainerModule>) {
+        if (!module.hasDockerfile()) {
+          logEntry && logEntry.setState({ msg: `Nothing to push` })
+          return { pushed: false }
+        }
 
-    // TODO: log error if it occurs
-    // TODO: stream output to log if at debug log level
-    await module.dockerCli(`build -t ${identifier} ${await module.getBuildPath()}`)
+        const localId = await module.getLocalImageId()
+        const remoteId = await module.getRemoteImageId()
 
-    return { fresh: true }
-  }
+        // build doesn't exist, so we create it
+        logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
 
-  async pushModule({ module, logEntry }: PushModuleParams<ContainerModule>) {
-    if (!module.hasDockerfile()) {
-      logEntry && logEntry.setState({ msg: `Nothing to push` })
-      return { pushed: false }
-    }
+        if (localId !== remoteId) {
+          await module.dockerCli(`tag ${localId} ${remoteId}`)
+        }
 
-    const localId = await module.getLocalImageId()
-    const remoteId = await module.getRemoteImageId()
+        // TODO: log error if it occurs
+        // TODO: stream output to log if at debug log level
+        // TODO: check if module already exists remotely?
+        await module.dockerCli(`push ${remoteId}`)
 
-    // build doesn't exist, so we create it
-    logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
-
-    if (localId !== remoteId) {
-      await module.dockerCli(`tag ${localId} ${remoteId}`)
-    }
-
-    // TODO: log error if it occurs
-    // TODO: stream output to log if at debug log level
-    // TODO: check if module already exists remotely?
-    await module.dockerCli(`push ${remoteId}`)
-
-    return { pushed: true }
-  }
-}
+        return { pushed: true }
+      },
+    },
+  },
+})

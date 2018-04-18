@@ -3,5 +3,4 @@ project:
   environments:
     local:
       providers:
-        test:
-          type: test-plugin
+        test-plugin: {}

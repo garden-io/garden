@@ -2,37 +2,35 @@ import { expect } from "chai"
 import { join } from "path"
 import * as td from "testdouble"
 
-import { defaultPlugins } from "../../../../src/plugins"
 import {
-  DestroyEnvironmentParams,
   EnvironmentStatus,
-  GetEnvironmentStatusParams,
-  Plugin,
+  PluginFactory,
 } from "../../../../src/types/plugin"
 import { EnvironmentDestroyCommand } from "../../../../src/commands/environment/destroy"
 import { Garden } from "../../../../src/garden"
-import { Module } from "../../../../src/types/module"
 
-class TestProvider implements Plugin<Module> {
-  name = "test-plugin"
-  supportedModuleTypes = ["generic", "container"]
+const testProvider: PluginFactory = () => {
+  const name = "test-plugin"
 
-  testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
+  const testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
 
-  async destroyEnvironment({ ctx, env }: DestroyEnvironmentParams): Promise<void> {
-    this.testEnvStatuses[this.name] = {configured: false}
+  const destroyEnvironment = async () => {
+    testEnvStatuses[name] = { configured: false }
   }
 
-  async getEnvironmentStatus({ env }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
-    return this.testEnvStatuses[this.name]
+  const getEnvironmentStatus = async () => {
+    return testEnvStatuses[name]
+  }
+
+  return {
+    actions: {
+      destroyEnvironment,
+      getEnvironmentStatus,
+    },
   }
 }
 
-class TestProviderSlow extends TestProvider {
-  async destroyEnvironment({ ctx, env }: DestroyEnvironmentParams): Promise<void> {
-    this.testEnvStatuses[this.name] = {configured: true}
-  }
-}
+testProvider.pluginName = "test-plugin"
 
 describe("EnvironmentDestroyCommand", () => {
   afterEach(() => {
@@ -43,9 +41,7 @@ describe("EnvironmentDestroyCommand", () => {
   const command = new EnvironmentDestroyCommand()
 
   it("should destroy environment", async () => {
-    const garden = await Garden.factory(projectRootB, {
-      plugins: defaultPlugins.concat([() => new TestProvider()]),
-    })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
 
     const result = await command.action(garden.pluginContext)
 
@@ -53,9 +49,7 @@ describe("EnvironmentDestroyCommand", () => {
   })
 
   it("should wait until each provider is no longer configured", async () => {
-    const garden = await Garden.factory(projectRootB, {
-      plugins: defaultPlugins.concat([() => new TestProviderSlow()]),
-    })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
 
     td.replace(
       command,

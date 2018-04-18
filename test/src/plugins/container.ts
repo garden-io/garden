@@ -5,7 +5,7 @@ import { Garden } from "../../../src/garden"
 import { PluginContext } from "../../../src/plugin-context"
 import {
   ContainerModuleConfig,
-  DockerModuleHandler,
+  gardenPlugin,
 } from "../../../src/plugins/container"
 import {
   dataDir,
@@ -17,13 +17,14 @@ describe("container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
   const modulePath = resolve(dataDir, "test-project-container", "module-a")
 
-  const handler = new DockerModuleHandler()
+  const handler = gardenPlugin()
+  const parseModule = handler.moduleActions!.container!.parseModule!
 
   let garden: Garden
   let ctx: PluginContext
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, [() => new DockerModuleHandler()])
+    garden = await makeTestGarden(projectRoot, [gardenPlugin])
     ctx = garden.pluginContext
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
@@ -31,8 +32,8 @@ describe("container", () => {
 
   afterEach(() => td.reset())
 
-  async function getTestModule(config: ContainerModuleConfig) {
-    return handler.parseModule({ ctx, config })
+  async function getTestModule(moduleConfig: ContainerModuleConfig) {
+    return parseModule!({ ctx, config: {}, moduleConfig })
   }
 
   describe("ContainerModule", () => {
@@ -138,7 +139,7 @@ describe("container", () => {
   describe("DockerModuleHandler", () => {
     describe("parseModule", () => {
       it("should validate a container module", async () => {
-        const config: ContainerModuleConfig = {
+        const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
             command: "echo OK",
@@ -183,11 +184,11 @@ describe("container", () => {
           variables: {},
         }
 
-        await handler.parseModule({ ctx, config })
+        await parseModule({ ctx, config: {}, moduleConfig })
       })
 
       it("should fail with invalid port in endpoint spec", async () => {
-        const config: ContainerModuleConfig = {
+        const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
             command: "echo OK",
@@ -221,11 +222,14 @@ describe("container", () => {
           variables: {},
         }
 
-        await expectError(() => handler.parseModule({ ctx, config }), "configuration")
+        await expectError(
+          () => parseModule({ ctx, config: {}, moduleConfig }),
+          "configuration",
+        )
       })
 
       it("should fail with invalid port in httpGet healthcheck spec", async () => {
-        const config: ContainerModuleConfig = {
+        const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
             command: "echo OK",
@@ -260,11 +264,14 @@ describe("container", () => {
           variables: {},
         }
 
-        await expectError(() => handler.parseModule({ ctx, config }), "configuration")
+        await expectError(
+          () => parseModule({ ctx, config: {}, moduleConfig }),
+          "configuration",
+        )
       })
 
       it("should fail with invalid port in tcpPort healthcheck spec", async () => {
-        const config: ContainerModuleConfig = {
+        const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
             command: "echo OK",
@@ -296,7 +303,10 @@ describe("container", () => {
           variables: {},
         }
 
-        await expectError(() => handler.parseModule({ ctx, config }), "configuration")
+        await expectError(
+          () => parseModule({ ctx, config: {}, moduleConfig }),
+          "configuration",
+        )
       })
     })
 

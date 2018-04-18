@@ -6,53 +6,63 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { extend } from "lodash"
 import * as Joi from "joi"
-import { identifierRegex, joiIdentifier, joiPrimitive, Primitive } from "./common"
+import {
+  identifierRegex,
+  joiIdentifier,
+  joiVariables,
+  Primitive,
+} from "./common"
+
+export const defaultProviders = {
+  container: {},
+}
 
 export const defaultEnvironments = {
   local: {
     providers: {
-      generic: {
-        type: "generic",
-      },
-      containers: {
-        type: "kubernetes",
+      kubernetes: {
         context: "docker-for-desktop",
       },
     },
   },
 }
 
-export interface ProviderConfig {
-  type: string
-  name?: string
-}
+export interface ProviderConfig { }
 
 export interface EnvironmentConfig {
   configurationHandler?: string
   providers: { [key: string]: ProviderConfig }
+  variables: { [key: string]: Primitive }
 }
 
 export interface ProjectConfig {
   version: string
   name: string
   defaultEnvironment: string
+  global: EnvironmentConfig
   environments: { [key: string]: EnvironmentConfig }
-  variables: { [key: string]: Primitive }
 }
 
-export const providerConfigBase = Joi.object().keys({
-  type: Joi.string().required(),
-}).unknown(true)
+export const providerConfigBase = Joi.object().unknown(true)
+
+export const environmentSchema = Joi.object().keys({
+  configurationHandler: joiIdentifier(),
+  providers: Joi.object().pattern(identifierRegex, providerConfigBase),
+  variables: joiVariables(),
+})
+
+const defaultGlobal = {
+  providers: defaultProviders,
+  variables: {},
+}
 
 export const projectSchema = Joi.object().keys({
   version: Joi.string().default("0").only("0"),
   name: joiIdentifier().required(),
   defaultEnvironment: Joi.string().default("", "<first specified environment>"),
-  environments: Joi.object().pattern(identifierRegex, Joi.object().keys({
-    configurationHandler: joiIdentifier(),
-    providers: Joi.object().pattern(identifierRegex, providerConfigBase),
-  })).default(() => extend({}, defaultEnvironments), JSON.stringify(defaultEnvironments)),
-  variables: Joi.object().pattern(/[\w\d]+/i, joiPrimitive()).default(() => ({}), "{}"),
+  global: environmentSchema.default(() => defaultGlobal, JSON.stringify(defaultGlobal)),
+  environments: Joi.object()
+    .pattern(identifierRegex, environmentSchema)
+    .default(() => ({ ...defaultEnvironments }), JSON.stringify(defaultEnvironments)),
 }).required()

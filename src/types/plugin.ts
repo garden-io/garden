@@ -6,24 +6,69 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../garden"
+import * as Joi from "joi"
 import { PluginContext } from "../plugin-context"
 import { Module, TestSpec } from "./module"
-import { Environment, Primitive, PrimitiveMap } from "./common"
-import { Nullable } from "../util"
+import {
+  Environment,
+  joiIdentifier,
+  joiIdentifierMap,
+  Primitive,
+  PrimitiveMap,
+} from "./common"
 import { Service, ServiceContext, ServiceStatus } from "./service"
 import { LogEntry } from "../logger"
 import { Stream } from "ts-stream"
 import { Moment } from "moment"
 import { TreeVersion } from "../vcs/base"
+import { mapValues } from "lodash"
 
 export interface PluginActionParamsBase {
   ctx: PluginContext
+  config: object
   logEntry?: LogEntry
 }
 
 export interface ParseModuleParams<T extends Module = Module> extends PluginActionParamsBase {
-  config: T["_ConfigType"]
+  moduleConfig: T["_ConfigType"]
+}
+
+export interface GetEnvironmentStatusParams extends PluginActionParamsBase {
+  env: Environment,
+}
+
+export interface ConfigureEnvironmentParams extends PluginActionParamsBase {
+  env: Environment,
+}
+
+export interface DestroyEnvironmentParams extends PluginActionParamsBase {
+  env: Environment,
+}
+
+export interface GetConfigParams extends PluginActionParamsBase {
+  env: Environment,
+  key: string[]
+}
+
+export interface SetConfigParams extends PluginActionParamsBase {
+  env: Environment,
+  key: string[]
+  value: Primitive
+}
+
+export interface DeleteConfigParams extends PluginActionParamsBase {
+  env: Environment,
+  key: string[]
+}
+
+export interface PluginActionParams {
+  getEnvironmentStatus: GetEnvironmentStatusParams
+  configureEnvironment: ConfigureEnvironmentParams
+  destroyEnvironment: DestroyEnvironmentParams
+
+  getConfig: GetConfigParams
+  setConfig: SetConfigParams
+  deleteConfig: DeleteConfigParams
 }
 
 export interface GetModuleBuildStatusParams<T extends Module = Module> extends PluginActionParamsBase {
@@ -47,18 +92,6 @@ export interface TestModuleParams<T extends Module = Module> extends PluginActio
 export interface GetTestResultParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T,
   version: TreeVersion,
-  env: Environment,
-}
-
-export interface GetEnvironmentStatusParams extends PluginActionParamsBase {
-  env: Environment,
-}
-
-export interface ConfigureEnvironmentParams extends PluginActionParamsBase {
-  env: Environment,
-}
-
-export interface DestroyEnvironmentParams extends PluginActionParamsBase {
   env: Environment,
 }
 
@@ -93,23 +126,7 @@ export interface GetServiceLogsParams<T extends Module = Module> extends PluginA
   startTime?: Date,
 }
 
-export interface GetConfigParams extends PluginActionParamsBase {
-  env: Environment,
-  key: string[]
-}
-
-export interface SetConfigParams extends PluginActionParamsBase {
-  env: Environment,
-  key: string[]
-  value: Primitive
-}
-
-export interface DeleteConfigParams extends PluginActionParamsBase {
-  env: Environment,
-  key: string[]
-}
-
-export interface PluginActionParams<T extends Module = Module> {
+export interface ModuleActionParams<T extends Module = Module> {
   parseModule: ParseModuleParams<T>
   getModuleBuildStatus: GetModuleBuildStatusParams<T>
   buildModule: BuildModuleParams<T>
@@ -117,19 +134,11 @@ export interface PluginActionParams<T extends Module = Module> {
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>
 
-  getEnvironmentStatus: GetEnvironmentStatusParams
-  configureEnvironment: ConfigureEnvironmentParams
-  destroyEnvironment: DestroyEnvironmentParams
-
   getServiceStatus: GetServiceStatusParams<T>
   deployService: DeployServiceParams<T>
   getServiceOutputs: GetServiceOutputsParams<T>
   execInService: ExecInServiceParams<T>
   getServiceLogs: GetServiceLogsParams<T>
-
-  getConfig: GetConfigParams
-  setConfig: SetConfigParams
-  deleteConfig: DeleteConfigParams
 }
 
 export interface BuildResult {
@@ -182,7 +191,17 @@ export interface DeleteConfigResult {
   found: boolean
 }
 
-export interface PluginActionOutputs<T extends Module = Module> {
+export interface PluginActionOutputs {
+  getEnvironmentStatus: Promise<EnvironmentStatus>
+  configureEnvironment: Promise<void>
+  destroyEnvironment: Promise<void>
+
+  getConfig: Promise<string | null>
+  setConfig: Promise<void>
+  deleteConfig: Promise<DeleteConfigResult>
+}
+
+export interface ModuleActionOutputs<T extends Module = Module> {
   parseModule: Promise<T>
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>
@@ -190,61 +209,77 @@ export interface PluginActionOutputs<T extends Module = Module> {
   testModule: Promise<TestResult>
   getTestResult: Promise<TestResult | null>
 
-  getEnvironmentStatus: Promise<EnvironmentStatus>
-  configureEnvironment: Promise<void>
-  destroyEnvironment: Promise<void>
-
   getServiceStatus: Promise<ServiceStatus>
   deployService: Promise<any>   // TODO: specify
   getServiceOutputs: Promise<PrimitiveMap>
   execInService: Promise<ExecInServiceResult>
   getServiceLogs: Promise<void>
-
-  getConfig: Promise<string | null>
-  setConfig: Promise<void>
-  deleteConfig: Promise<DeleteConfigResult>
 }
 
-export type PluginActions<T extends Module> = {
-  [P in keyof PluginActionParams<T>]: (params: PluginActionParams<T>[P]) => PluginActionOutputs<T>[P]
+export type PluginActions = {
+  [P in keyof PluginActionParams]: (params: PluginActionParams[P]) => PluginActionOutputs[P]
 }
 
-export type PluginActionName = keyof PluginActions<any>
-
-// A little convoluted, but serves the purpose of making sure we don't forget to include actions
-// in the `pluginActionNames` array
-class _PluginActionKeys implements Nullable<PluginActions<Module>> {
-  parseModule = null
-  getModuleBuildStatus = null
-  buildModule = null
-  pushModule = null
-  testModule = null
-  getTestResult = null
-
-  getEnvironmentStatus = null
-  configureEnvironment = null
-  destroyEnvironment = null
-  getServiceStatus = null
-  deployService = null
-  getServiceOutputs = null
-  execInService = null
-  getServiceLogs = null
-
-  getConfig = null
-  setConfig = null
-  deleteConfig = null
+export type ModuleActions<T extends Module> = {
+  [P in keyof ModuleActionParams<T>]: (params: ModuleActionParams<T>[P]) => ModuleActionOutputs<T>[P]
 }
 
-export const pluginActionNames: PluginActionName[] =
-  <PluginActionName[]>Object.keys(new _PluginActionKeys())
+export type PluginActionName = keyof PluginActions
+export type ModuleActionName = keyof ModuleActions<any>
 
-export interface Plugin<T extends Module> extends Partial<PluginActions<T>> {
-  name: string
+interface PluginActionDescription {
+  description?: string
+}
 
-  // Specify which module types are applicable to the module actions
-  supportedModuleTypes: string[]
+const pluginActionDescriptions: {[P in PluginActionName]: PluginActionDescription } = {
+  getEnvironmentStatus: {},
+  configureEnvironment: {},
+  destroyEnvironment: {},
 
+  getConfig: {},
+  setConfig: {},
+  deleteConfig: {},
+}
+
+const moduleActionDescriptions: {[P in ModuleActionName]: PluginActionDescription } = {
+  parseModule: {},
+  getModuleBuildStatus: {},
+  buildModule: {},
+  pushModule: {},
+  testModule: {},
+  getTestResult: {},
+
+  getServiceStatus: {},
+  deployService: {},
+  getServiceOutputs: {},
+  execInService: {},
+  getServiceLogs: {},
+}
+
+export const pluginActionNames: PluginActionName[] = <PluginActionName[]>Object.keys(pluginActionDescriptions)
+export const moduleActionNames: ModuleActionName[] = <ModuleActionName[]>Object.keys(moduleActionDescriptions)
+
+export interface GardenPlugin {
   configKeys?: string[]
+
+  actions?: Partial<PluginActions>
+  moduleActions?: { [moduleType: string]: Partial<ModuleActions<any>> }
 }
 
-export type PluginFactory = (garden: Garden) => Plugin<any>
+export interface PluginFactory {
+  ({ garden: Garden, config: object }): GardenPlugin
+  pluginName?: string
+}
+export type RegisterPluginParam = string | PluginFactory
+
+export const pluginSchema = Joi.object().keys({
+  actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func())),
+  moduleActions: joiIdentifierMap(
+    Joi.object().keys(mapValues(moduleActionDescriptions, () => Joi.func())),
+  ),
+})
+
+export const pluginModuleSchema = Joi.object().keys({
+  name: joiIdentifier(),
+  gardenPlugin: Joi.func().required(),
+}).unknown(true)

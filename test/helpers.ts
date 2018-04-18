@@ -1,10 +1,14 @@
 import * as td from "testdouble"
 import { resolve } from "path"
-import { PluginContext } from "../src/plugin-context"
 import {
   DeleteConfigParams,
-  GetConfigParams, ParseModuleParams, Plugin, PluginActions, PluginFactory,
+  GetConfigParams,
+  ParseModuleParams,
+  GardenPlugin,
+  PluginActions,
+  PluginFactory,
   SetConfigParams,
+  ModuleActions,
 } from "../src/types/plugin"
 import { Garden } from "../src/garden"
 import { Module } from "../src/types/module"
@@ -22,47 +26,53 @@ class TestModule extends Module {
   type = "test"
 }
 
-export class TestPlugin implements Plugin<Module> {
-  name = "test-plugin"
-  supportedModuleTypes = ["generic"]
+export const testPlugin: PluginFactory = (): GardenPlugin => {
+  const _config = {}
 
-  private _config: object
+  return {
+    actions: {
+      async configureEnvironment() { },
 
-  constructor() {
-    this._config = {}
-  }
+      async setConfig({ key, value }: SetConfigParams) {
+        _config[key.join(".")] = value
+      },
 
-  async parseModule({ ctx, config }: ParseModuleParams) {
-    return new Module(ctx, config)
-  }
+      async getConfig({ key }: GetConfigParams) {
+        return _config[key.join(".")] || null
+      },
 
-  async configureEnvironment() { }
-  async getServiceStatus() { return {} }
-  async deployService() { return {} }
+      async deleteConfig({ key }: DeleteConfigParams) {
+        const k = key.join(".")
+        if (_config[k]) {
+          delete _config[k]
+          return { found: true }
+        } else {
+          return { found: false }
+        }
+      },
+    },
+    moduleActions: {
+      generic: {
+        async parseModule({ ctx, moduleConfig }: ParseModuleParams) {
+          return new Module(ctx, moduleConfig)
+        },
 
-  async setConfig({ key, value }: SetConfigParams) {
-    this._config[key.join(".")] = value
-  }
-
-  async getConfig({ key }: GetConfigParams) {
-    return this._config[key.join(".")] || null
-  }
-
-  async deleteConfig({ key }: DeleteConfigParams) {
-    const k = key.join(".")
-    if (this._config[k]) {
-      delete this._config[k]
-      return { found: true }
-    } else {
-      return { found: false }
-    }
+        async getServiceStatus() { return {} },
+        async deployService() { return {} },
+      },
+    },
   }
 }
+testPlugin.pluginName = "test-plugin"
 
-class TestPluginB extends TestPlugin {
-  name = "test-plugin-b"
-  supportedModuleTypes = ["test"]
+export const testPluginB: PluginFactory = (params) => {
+  const plugin = testPlugin(params)
+  plugin.moduleActions = {
+    test: plugin.moduleActions!.generic,
+  }
+  return plugin
 }
+testPluginB.pluginName = "test-plugin-b"
 
 export const makeTestModule = (ctx, name = "test") => {
   return new TestModule(ctx, {
@@ -81,8 +91,8 @@ export const makeTestModule = (ctx, name = "test") => {
 
 export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
   const testPlugins: PluginFactory[] = [
-    (_ctx) => new TestPlugin(),
-    (_ctx) => new TestPluginB(),
+    testPlugin,
+    testPluginB,
   ]
   const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
 
@@ -103,10 +113,16 @@ export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
   return garden.pluginContext
 }
 
-export function stubPluginAction<T extends keyof PluginActions<any>> (
-  garden: Garden, pluginName: string, type: T, handler?: PluginActions<any>[T],
+export function stubAction<T extends keyof PluginActions> (
+  garden: Garden, pluginName: string, type: T, handler?: PluginActions[T],
 ) {
   return td.replace(garden["actionHandlers"][type], pluginName, handler)
+}
+
+export function stubModuleAction<T extends keyof ModuleActions<any>> (
+  garden: Garden, moduleType: string, pluginName: string, type: T, handler?: ModuleActions<any>[T],
+) {
+  return td.replace(garden["moduleActionHandlers"][moduleType][type], pluginName, handler)
 }
 
 export async function expectError(fn: Function, typeOrCallback: string | ((err: any) => void)) {
@@ -119,14 +135,16 @@ export async function expectError(fn: Function, typeOrCallback: string | ((err: 
       if (!err.type) {
         throw new Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
       }
-      expect(err.type).to.equal(typeOrCallback)
+      if (err.type !== typeOrCallback) {
+        throw new Error(`Expected ${typeOrCallback} error, got: ${err}`)
+      }
     }
     return
   }
 
   if (typeof typeOrCallback === "string") {
-    throw new Error(`Expected ${typeOrCallback} error`)
+    throw new Error(`Expected ${typeOrCallback} error (got no error)`)
   } else {
-    throw new Error(`Expected error`)
+    throw new Error(`Expected error (got no error)`)
   }
 }
