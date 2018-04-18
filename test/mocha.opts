@@ -1,5 +1,6 @@
 --require ts-node/register/type-check
---watch-extensions ts,json,pegjs
+--watch-dirs test/,src/
+--watch-extensions ts,json,pegjs,yml
 --reporter spec
 --timeout 5000
 test/setup.ts
