@@ -7,10 +7,8 @@
  */
 
 import { PluginContext } from "../plugin-context"
-import { Task } from "../task-graph"
 import { Module, TestSpec } from "../types/module"
 import { BuildTask } from "./build"
-import { TestResult } from "../types/plugin"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin"
 import { Task } from "../types/task"

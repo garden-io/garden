@@ -6,49 +6,50 @@ import { TaskGraph, TaskResults } from "../../src/task-graph"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
-describe("task-graph", () => {
-  class TestTask extends Task {
-    type = "test"
-    name: string
-    id: string
+class TestTask extends Task {
+  type = "test"
+  name: string
+  id: string
 
-    constructor(
-      name: string,
-      dependencies?: Task[],
-      private callback?: (name: string, result: any) => Promise<void>,
-      id: string = "",
-    ){
-      super()
-      this.name = name
-      this.id = id
+  constructor(
+    name: string,
+    dependencies?: Task[],
+    private callback?: (name: string, result: any) => Promise<void>,
+    id: string = "",
+  ) {
+    super()
+    this.name = name
+    this.id = id
 
-      if (dependencies) {
-        this.dependencies = dependencies
-      }
-    }
-
-    getName() {
-      return this.name
-    }
-
-    getBaseKey(): string {
-      return this.name
-    }
-
-    getKey(): string {
-      return this.id ? `${this.name}.${this.id}` : this.name
-    }
-
-    async process(dependencyResults: TaskResults) {
-      const result = { result: "result-" + this.getKey(), dependencyResults }
-
-      if (this.callback) {
-        await this.callback(this.getKey(), result)
-      }
-
-      return result
+    if (dependencies) {
+      this.dependencies = dependencies
     }
   }
+
+  getName() {
+    return this.name
+  }
+
+  getBaseKey(): string {
+    return this.name
+  }
+
+  getKey(): string {
+    return this.id ? `${this.name}.${this.id}` : this.name
+  }
+
+  async process(dependencyResults: TaskResults) {
+    const result = { result: "result-" + this.getKey(), dependencyResults }
+
+    if (this.callback) {
+      await this.callback(this.getKey(), result)
+    }
+
+    return result
+  }
+}
+
+describe("task-graph", () => {
 
   describe("TaskGraph", () => {
     async function getContext() {
@@ -131,12 +132,13 @@ describe("task-graph", () => {
       expect(resultOrder).to.eql(["a", "b", "c", "d"])
     })
 
-    it(
+    it.skip(
       "should process a task as an inheritor of an existing, in-progress task when they have the same base key",
       async () =>
     {
       const ctx = await getContext()
       const graph = new TaskGraph(ctx)
+
       let callbackResults = {}
       let resultOrder: string[] = []
 

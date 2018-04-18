@@ -1,9 +1,16 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { map as bluebirdMap } from "bluebird"
 import { Client } from "fb-watchman"
 import { keyBy } from "lodash"
 import { resolve } from "path"
 import { Module } from "./types/module"
-import { GardenContext } from "./context"
 
 export type CapabilityOptions = { required?: string[], optional?: string[] }
 export type CapabilityResponse = { error: Error, response: { capabilities: { string: boolean } } }
@@ -22,12 +29,10 @@ export type SubscriptionResponse = {
 }
 
 export class FSWatcher {
-  readonly ctx: GardenContext
   private readonly client
   private capabilityCheckComplete: boolean
 
-  constructor(ctx: GardenContext) {
-    this.ctx = ctx
+  constructor(private projectRoot: string) {
     this.client = new Client()
     this.capabilityCheckComplete = false
   }
@@ -53,6 +58,7 @@ export class FSWatcher {
     })
   }
 
+  // WIP
   async watchModules(modules: Module[], subscriptionPrefix: string,
     changeHandler: (Module, SubscriptionResponse) => Promise<void>) {
     if (!this.capabilityCheckComplete) {
@@ -63,10 +69,17 @@ export class FSWatcher {
 
     await bluebirdMap(modules || [], async (module) => {
       const subscriptionKey = FSWatcher.subscriptionKey(subscriptionPrefix, module)
-      const modulePath = resolve(this.ctx.projectRoot, module.path)
+      const modulePath = resolve(this.projectRoot, module.path)
+
       const result = await this.command(["watch-project", modulePath])
 
-      const subscriptionRequest = {}
+      // console.log("watching", modulePath)
+
+      const subscriptionRequest = {
+        // expression: ["anyof",
+        //   ["dirname", modulePath, ["depth", "ge", 0]]
+        // ]
+      }
 
       await this.command([
         "subscribe",
@@ -76,7 +89,7 @@ export class FSWatcher {
     })
 
     this.on("subscription", async (response) => {
-      console.log("file changed:", response)
+      // console.log("file changed:", response)
       const changedModule = modulesBySubscriptionKey[response.subscription]
       if (!changedModule) {
         console.log("no module found for changed file, skipping auto-rebuild")
