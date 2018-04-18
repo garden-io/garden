@@ -10,7 +10,6 @@ import { LogEntry } from "../logger"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
 import { values } from "lodash"
-import { Service } from "../types/service"
 import { Task } from "../types/task"
 import {
   Service,

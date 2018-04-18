@@ -1,15 +1,23 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import { keys, values } from "lodash"
 import { Command } from "./base"
 import { Module } from "../types/module"
-import { GardenContext } from "../context"
 import { FSWatcher } from "../fs-watcher"
+import { PluginContext } from "../plugin-context"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { registerCleanupFunction, sleep } from "../util"
 
 export type AutoReloadDependants = { [key: string]: Set<Module> }
 
-async function registerAutoReloadWatches(ctx: GardenContext): Promise<FSWatcher | null> {
+async function registerAutoReloadWatches(ctx: PluginContext): Promise<FSWatcher | null> {
   const allModules = values(await ctx.getModules())
   const modules = allModules.filter((m) => !m.skipAutoReload)
 
@@ -25,7 +33,7 @@ async function registerAutoReloadWatches(ctx: GardenContext): Promise<FSWatcher 
 
   const autoReloadDependants = await computeAutoReloadDependants(modules)
 
-  const watcher = new FSWatcher(ctx)
+  const watcher = new FSWatcher(ctx.projectRoot)
   watcher.watchModules(modules, "addTasksForAutoReload/",
     async (changedModule, _) => {
       ctx.log.info({ msg: `files changed for module ${changedModule.name}` })
@@ -50,7 +58,7 @@ export async function computeAutoReloadDependants(modules: Module[]):
   return dependants
 }
 
-export async function addTasksForAutoReload(ctx: GardenContext, module: Module, dependants: AutoReloadDependants) {
+export async function addTasksForAutoReload(ctx: PluginContext, module: Module, dependants: AutoReloadDependants) {
   const serviceNames = keys(module.services || {})
 
   if (serviceNames.length === 0) {
@@ -74,7 +82,7 @@ export class AutoReloadCommand extends Command {
   name = "autoreload"
   help = "Auto-reload modules when sources change"
 
-  async action(ctx: GardenContext): Promise<void> {
+  async action(ctx: PluginContext): Promise<void> {
     const watcher = await registerAutoReloadWatches(ctx)
 
     if (!watcher) {

@@ -9,7 +9,6 @@
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { pick } from "lodash"
-import { GardenContext } from "./context"
 import { Task, TaskDefinitionError } from "./types/task"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
@@ -48,16 +47,22 @@ export class TaskGraph {
   private inProgress: TaskNodeMap
   private logEntryMap: LogEntryMap
 
+  private opQueue: OperationQueue
+
   constructor(private ctx: PluginContext, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
+    this.opQueue = new OperationQueue(this)
     this.logEntryMap = {}
   }
 
-  async addTask(task: Task) {
-    // TODO: Detect circular dependencies.
+  addTask(task: Task): Promise<any> {
+    return this.opQueue.request({ type: "addTask", task })
+  }
 
+  async addTaskInternal(task: Task) {
+    // TODO: Detect circular dependencies.
     const predecessor = this.getPredecessor(task)
     let node = this.getNode(task)
 
@@ -96,10 +101,15 @@ export class TaskGraph {
     return existing || new TaskNode(task)
   }
 
+  processTasks(): Promise<TaskResults> {
+    return this.opQueue.request({ type: "processTasks" })
+  }
+
   /*
     Process the graph until it's complete
    */
-  async processTasks(): Promise<TaskResults> {
+  async processTasksInternal(): Promise<TaskResults> {
+
     const _this = this
     let results: TaskResults = {}
 
@@ -182,7 +192,7 @@ export class TaskGraph {
     const nodeDependencies = node.getDependencies()
     for (const d of nodeDependencies) {
       const dependant = this.getPredecessor(d.task) || d
-      await this.addTask(dependant.task)
+      await this.addTaskInternal(dependant.task)
       dependant.addDependant(node)
     }
   }
@@ -348,4 +358,82 @@ class TaskNode {
   async process(dependencyResults: TaskResults) {
     return await this.task.process(dependencyResults)
   }
+}
+
+// TODO: Add more typing to this class.
+
+/*
+  Used by TaskGraph to prevent race conditions e.g. when calling addTask or
+  processTasks.
+*/
+class OperationQueue {
+  queue: object[]
+  draining: boolean
+
+  constructor(private taskGraph: TaskGraph) {
+    this.queue = []
+    this.draining = false
+  }
+
+  request(opRequest): Promise<any> {
+    let findFn
+
+    switch (opRequest.type) {
+
+      case "addTask":
+        findFn = (o) => o.type === "addTask" && o.task.getBaseKey() === opRequest.task.getBaseKey()
+        break
+
+      case "processTasks":
+        findFn = (o) => o.type === "processTasks"
+        break
+    }
+
+    const existingOp = this.queue.find(findFn)
+
+    const prom = new Promise((resolver) => {
+      if (existingOp) {
+        existingOp["resolvers"].push(resolver)
+      } else {
+        this.queue.push({ ...opRequest, resolvers: [resolver] })
+      }
+    })
+
+    if (!this.draining) {
+      this.process()
+    }
+
+    return prom
+  }
+
+  async process() {
+    this.draining = true
+    const op = this.queue.shift()
+
+    if (!op) {
+      this.draining = false
+      return
+    }
+
+    switch (op["type"]) {
+
+      case "addTask":
+        const task = op["task"]
+        await this.taskGraph.addTaskInternal(task)
+        for (const resolver of op["resolvers"]) {
+          resolver()
+        }
+        break
+
+      case "processTasks":
+        const results = await this.taskGraph.processTasksInternal()
+        for (const resolver of op["resolvers"]) {
+          resolver(results)
+        }
+        break
+    }
+
+    this.process()
+  }
+
 }

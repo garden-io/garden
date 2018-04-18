@@ -7,12 +7,12 @@
  */
 
 import chalk from "chalk"
-import { Task } from "../task-graph"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { PushResult } from "../types/plugin"
+import { Task } from "../types/task"
 
 export class PushTask<T extends Module<any>> extends Task {
   type = "push"
@@ -31,7 +31,7 @@ export class PushTask<T extends Module<any>> extends Task {
     return [new BuildTask(this.ctx, this.module, this.forceBuild)]
   }
 
-  getKey() {
+  getName() {
     // TODO: Include version in the task key (may need to make this method async).
     return this.module.name
   }

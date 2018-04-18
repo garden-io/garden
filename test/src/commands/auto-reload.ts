@@ -2,18 +2,14 @@ import * as Bluebird from "bluebird"
 import { expect } from "chai"
 import { join } from "path"
 import { pathExists, remove, writeFile } from "fs-extra"
-import { differenceWith, entries, isEqual, values, mapValues } from "lodash"
-import { defaultPlugins } from "../../../src/plugins"
-import {  ServiceStatus } from "../../../src/types/service"
+import { merge, sortedUniq, values } from "lodash"
 import { FSWatcher } from "../../../src/fs-watcher"
 import {
   addTasksForAutoReload,
   computeAutoReloadDependants,
 } from "../../../src/commands/auto-reload"
-import { GardenContext } from "../../../src/context"
-import { Module } from "../../../src/types/module"
-import { DeployServiceParams, GetServiceStatusParams, Plugin } from "../../../src/types/plugin"
-import { ServiceState } from "../../../src/types/service"
+import { makeTestGarden } from "../../helpers"
+import { Garden } from "../../../src/garden"
 
 /*
 
@@ -35,78 +31,53 @@ import { ServiceState } from "../../../src/types/service"
 
  */
 
-class TestProvider implements Plugin<Module> {
-  name = "test-plugin"
-  supportedModuleTypes = ["generic", "container"]
-
-  testStatuses: { [key: string]: ServiceStatus } = {}
-
-  async getServiceStatus({ service }: GetServiceStatusParams): Promise<ServiceStatus> {
-    return this.testStatuses[service.name] || {}
-  }
-
-  async deployService({ service }: DeployServiceParams) {
-    const newStatus = {
-      version: "1",
-      state: <ServiceState>"ready",
-    }
-
-    this.testStatuses[service.name] = newStatus
-
-    return newStatus
-  }
-}
-
 const projectRoot = join(__dirname, "data", "auto-reload-project")
 
-async function makeContext() {
-  // return await makeTestContext(projectRoot, defaultPlugins.concat([() => new TestProvider()]))
-  return await GardenContext.factory(projectRoot, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
+const makeGarden = async () => {
+  return await makeTestGarden(projectRoot)
 }
 
-async function changeSource(ctx: GardenContext, moduleName: string) {
+async function changeSource(garden: Garden, moduleName: string) {
+  await writeFile(join(projectRoot, moduleName, "bar"), "bar")
+  console.log("wrote", join(projectRoot, moduleName, "bar"))
 }
 
 async function resetSources(ctx) {
   const dirNames = ["module-a", "module-b", "module-c", "module-d", "module-e", "module-f"]
 
-  const defaultContents = {
-    "module-a": "a",
-    "module-b": "b",
-    "module-c": "c",
-    "module-d": "d",
-    "module-e": "e",
-    "module-f": "f",
-  }
-
-  Bluebird.each(dirNames, async (dirName) => {
+  await Bluebird.each(dirNames, async (dirName) => {
     const dirPath = join(projectRoot, dirName)
 
     await writeFile(join(dirPath, "foo"), "foo")
 
     const barPath = join(dirPath, "bar")
+    console.log("barPath", barPath)
     if (await pathExists(barPath)) {
       await remove(barPath)
     }
   })
 }
 
-async function watch(watcher: FSWatcher, moduleNames: string[], changeHandler?: (changedModule, taskResults, response) => void) {
-  const ctx = watcher.ctx
-  const allModules = values(await ctx.getModules())
-  const modules = allModules.filter((m) => !m.skipAutoReload)
+async function watch(
+  watcher: FSWatcher, garden: Garden, moduleNames: string[],
+  changeHandler?: (changedModule, taskResults, response) => void,
+) {
+  console.log("start of watch")
+  const modules = values(await garden.getModules(moduleNames))
   const autoReloadDependants = await computeAutoReloadDependants(modules)
 
   await watcher.watchModules(modules, "testAutoReload", async (changedModule, response) => {
-    ctx.log.info({ msg: `files changed for module ${changedModule.name}` })
+    console.log(`files changed for module ${changedModule.name}`)
 
-    await addTasksForAutoReload(ctx, changedModule, autoReloadDependants)
-    const taskResults = await ctx.processTasks()
+    await addTasksForAutoReload(garden.pluginContext, changedModule, autoReloadDependants)
+    const taskResults = await garden.processTasks()
 
     if (changeHandler) {
       changeHandler(changedModule, taskResults, response)
     }
   })
+
+  console.log("end of watch")
 }
 
 // async function testAutoReload(ctx: GardenContext, moduleName: string) {
@@ -119,48 +90,71 @@ async function watch(watcher: FSWatcher, moduleNames: string[], changeHandler?: 
 //   return await ctx.processTasks()
 // }
 
+const setup = async () => {
+  const garden = await makeGarden()
+  // await resetSources(garden)
+  const autoReloadDependants = await computeAutoReloadDependants(values(await garden.getModules()))
+  const watcher = new FSWatcher(garden.projectRoot)
+
+  return { autoReloadDependants, garden, watcher }
+}
+
 describe("commands.autoreload", () => {
 
-  it("should re-deploy a module and its dependant modules when its sources change", async () => {
-    const ctx = await makeContext()
+  // WIP
+  it.skip("should re-deploy a module and its dependant modules when its sources change", async () => {
+    const { autoReloadDependants, garden, watcher } = await setup()
 
-    await resetSources(ctx)
+    let entryModuleNames: string[] = []
+    let reloadResults = {}
 
-    const watcher = new FSWatcher(ctx)
-    let entryModuleNames = new Set()
-
-    const changeHandler = (changedModule, taskResults, response) => {
-      entryModuleNames.add(changedModule.name)
-      console.log("module changed:", changedModule.name, "entryModuleNames:", [...entryModuleNames], "response:", response)
+    const changeHandler = async (changedModule, taskResults, response) => {
+      // watchCounter = watchCounter + 1
+      entryModuleNames.push(changedModule.name)
+      // console.log("module changed:", changedModule.name, "entryModuleNames:", [...entryModuleNames])
+      console.log("module changed:", changedModule.name, "entryModuleNames:", [...entryModuleNames], "response", response.files.map(f => f.name))
+      await addTasksForAutoReload(garden.pluginContext, changedModule, autoReloadDependants)
+      merge(reloadResults, taskResults)
     }
 
-    await watch(watcher, ["module-a", "module-b"], changeHandler)
-    await changeSource(ctx, "module-a")
-    await changeSource(ctx, "module-b")
+    await watch(watcher, garden, ["module-a"], changeHandler)
 
-    // watcher.end()
-
-    // const result = await testAutoReload(ctx, "module-a")
-    //
-    // const expectedResult = {
-    //   "build.module-a": { fresh: true, buildLog: "A\n" },
-    //
-    //   "build.module-b": { fresh: true, buildLog: "B\n" },
-    //   "deploy.service-b": { version: "1", state: "ready" },
-    //
-    //   "build.module-c": { fresh: true, buildLog: "C\n" },
-    //   "deploy.service-c": { version: "1", state: "ready" },
-    //
-    //   "build.module-d": { fresh: true, buildLog: "D\n" },
-    //   "deploy.service-d": { version: "1", state: "ready" },
-    //
-    //   "build.module-e": { fresh: true, buildLog: "E\n" },
-    //   "deploy.service-e": { version: "1", state: "ready" },
+    // for (const module of values(await garden.getModules())) {
+    //   await addTasksForAutoReload(garden.pluginContext, module, autoReloadDependants)
     // }
     //
-    // expect(result).to.eql(expectedResult)
+    // const results = await garden.processTasks()
+    // console.log("results", results)
+
+    await changeSource(garden, "module-a")
+    // await changeSource(garden, "module-b")
+    // await changeSource(garden, "module-f")
+
+    // console.log("start of sleep")
+    // await sleep(2000)
+    // console.log("end of sleep")
+
+    watcher.end()
+
+    expect(sortedUniq(entryModuleNames))
+      .to.eql(["module-a", "module-b"])
+
+    const expectedResult = {
+      "build.module-a": { fresh: true, buildLog: "A\n" },
+
+      "build.module-b": { fresh: true, buildLog: "B\n" },
+      "deploy.service-b": { version: "1", state: "ready" },
+
+      "build.module-c": { fresh: true, buildLog: "C\n" },
+      "deploy.service-c": { version: "1", state: "ready" },
+
+      "build.module-d": { fresh: true, buildLog: "D\n" },
+      "deploy.service-d": { version: "1", state: "ready" },
+
+      "build.module-e": { fresh: true, buildLog: "E\n" },
+      "deploy.service-e": { version: "1", state: "ready" },
+    }
+
+    expect(reloadResults).to.eql(expectedResult)
   })
-
 })
-
-
