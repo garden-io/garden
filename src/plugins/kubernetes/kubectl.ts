@@ -26,9 +26,6 @@ export interface KubectlOutput {
   stderr?: string,
 }
 
-// TODO: get rid of this and always configure context
-export const DEFAULT_CONTEXT = "docker-for-desktop"
-
 export const KUBECTL_DEFAULT_TIMEOUT = 600
 
 export class Kubectl {
@@ -37,7 +34,7 @@ export class Kubectl {
   public configPath?: string
 
   // TODO: namespace should always be required
-  constructor({ context, namespace, configPath }: { context?: string, namespace?: string, configPath?: string }) {
+  constructor({ context, namespace, configPath }: { context: string, namespace?: string, configPath?: string }) {
     this.context = context
     this.namespace = namespace
     this.configPath = configPath
@@ -148,12 +145,12 @@ export class Kubectl {
   }
 }
 
-export function kubectl(namespace?: string) {
-  return new Kubectl({ context: DEFAULT_CONTEXT, namespace })
+export function kubectl(context: string, namespace?: string) {
+  return new Kubectl({ context, namespace })
 }
 
 export async function apply(
-  obj: any,
+  context: string, obj: any,
   { dryRun = false, force = false, namespace }: { dryRun?: boolean, force?: boolean, namespace?: string } = {},
 ) {
   const data = Buffer.from(JSON.stringify(obj))
@@ -165,7 +162,7 @@ export async function apply(
   args.push("-f")
   args.push("-")
 
-  const result = await kubectl(namespace).call(args, { data })
+  const result = await kubectl(context, namespace).call(args, { data })
 
   try {
     return JSON.parse(result.output)

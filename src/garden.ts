@@ -364,6 +364,11 @@ export class Garden {
 
     this.loadedPlugins[pluginName] = plugin
 
+    // allow plugins to override their own config (that gets passed to action handlers)
+    if (plugin.config) {
+      this.config.providers[pluginName] = config
+    }
+
     const actions = plugin.actions || {}
 
     for (const actionType of pluginActionNames) {

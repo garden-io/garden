@@ -17,6 +17,7 @@ import {
   ServiceContext,
   ServiceStatus,
 } from "../../types/service"
+import { getContext } from "./actions"
 import {
   createIngress,
   getServiceHostname,
@@ -45,21 +46,22 @@ export async function deployService(
 ): Promise<ServiceStatus> {
   const namespace = getAppNamespace(ctx, env)
 
+  const context = getContext(env)
   const deployment = await createDeployment(service, serviceContext)
-  await apply(deployment, { namespace })
+  await apply(context, deployment, { namespace })
 
   // TODO: automatically clean up Services and Ingresses if they should no longer exist
 
   const kubeservices = await createServices(service)
 
   for (let kubeservice of kubeservices) {
-    await apply(kubeservice, { namespace })
+    await apply(context, kubeservice, { namespace })
   }
 
   const ingress = await createIngress(service, getServiceHostname(ctx, service))
 
   if (ingress !== null) {
-    await apply(ingress, { namespace })
+    await apply(context, ingress, { namespace })
   }
 
   await waitForDeployment({ ctx, service, logEntry, env })

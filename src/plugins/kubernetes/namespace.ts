@@ -17,19 +17,19 @@ import {
   isSystemGarden,
 } from "./system"
 
-export async function namespaceReady(namespace: string) {
+export async function namespaceReady(context: string, namespace: string) {
   /**
    * This is an issue with kubernetes-client where it fetches all namespaces instead of the requested one.
    * Is fixed in v4.0.0. See https://github.com/godaddy/kubernetes-client/issues/187 and
    * https://github.com/godaddy/kubernetes-client/pull/190
    */
-  const allNamespaces = await apiGetOrNull(coreApi().namespaces, namespace)
+  const allNamespaces = await apiGetOrNull(coreApi(context).namespaces, namespace)
   const ns = allNamespaces.items.find(n => n.metadata.name === namespace)
   return ns && ns.status.phase === "Active"
 }
 
-export async function createNamespace(namespace: string) {
-  await coreApi().namespaces.post({
+export async function createNamespace(context: string, namespace: string) {
+  await coreApi(context).namespaces.post({
     body: {
       apiVersion: "v1",
       kind: "Namespace",

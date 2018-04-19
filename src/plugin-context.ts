@@ -141,10 +141,6 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ctx, config, moduleConfig })
     },
 
-    getModuleBuildPath: async <T extends Module>(module: T) => {
-      return await garden.buildDir.buildPath(module)
-    },
-
     getModuleBuildStatus: async <T extends Module>(module: T, logEntry?: LogEntry) => {
       const defaultHandler = garden.getModuleActionHandler("getModuleBuildStatus", "generic")
       const handler = garden.getModuleActionHandler("getModuleBuildStatus", module.type, defaultHandler)
@@ -274,6 +270,10 @@ export function createPluginContext(garden: Garden): PluginContext {
       } else {
         return res
       }
+    },
+
+    getModuleBuildPath: async <T extends Module>(module: T) => {
+      return await garden.buildDir.buildPath(module)
     },
 
     getStatus: async () => {

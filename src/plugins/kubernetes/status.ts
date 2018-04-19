@@ -20,6 +20,7 @@ import {
   ContainerService,
   ServiceEndpointSpec,
 } from "../container"
+import { getContext } from "./actions"
 import {
   coreApi,
   extensionsApi,
@@ -33,6 +34,7 @@ export async function checkDeploymentStatus(
   { ctx, service, resourceVersion, env }:
     { ctx: PluginContext, service: ContainerService, resourceVersion?: number, env: Environment },
 ): Promise<ServiceStatus> {
+  const context = getContext(env)
   const type = service.config.daemon ? "daemonsets" : "deployments"
   const hostname = getServiceHostname(ctx, service)
   const namespace = getAppNamespace(ctx, env)
@@ -60,7 +62,7 @@ export async function checkDeploymentStatus(
   let status
 
   try {
-    statusRes = await extensionsApi(namespace).namespaces[type](service.name).get()
+    statusRes = await extensionsApi(context, namespace).namespaces[type](service.name).get()
   } catch (err) {
     if (err.code === 404) {
       // service is not running
@@ -80,7 +82,7 @@ export async function checkDeploymentStatus(
 
   // TODO: try to come up with something more efficient. may need to wait for newer k8s version.
   // note: the resourceVersion parameter does not appear to work...
-  const eventsRes = await coreApi(namespace).namespaces.events.get()
+  const eventsRes = await coreApi(context, namespace).namespaces.events.get()
 
   // const eventsRes = await this.kubeApi(
   //   "GET",

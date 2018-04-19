@@ -259,6 +259,7 @@ export const pluginActionNames: PluginActionName[] = <PluginActionName[]>Object.
 export const moduleActionNames: ModuleActionName[] = <ModuleActionName[]>Object.keys(moduleActionDescriptions)
 
 export interface GardenPlugin {
+  config?: object
   configKeys?: string[]
 
   actions?: Partial<PluginActions>
@@ -272,6 +273,7 @@ export interface PluginFactory {
 export type RegisterPluginParam = string | PluginFactory
 
 export const pluginSchema = Joi.object().keys({
+  config: Joi.object(),
   actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func())),
   moduleActions: joiIdentifierMap(
     Joi.object().keys(mapValues(moduleActionDescriptions, () => Joi.func())),

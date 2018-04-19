@@ -28,6 +28,7 @@ import {
   ServiceConfig,
   ServiceStatus,
 } from "../../types/service"
+import { getContext } from "./actions"
 import {
   apply,
 } from "./kubectl"
@@ -71,12 +72,13 @@ export const kubernetesSpecHandlers = {
   getServiceStatus: async (
     { ctx, env, service }: GetServiceStatusParams<KubernetesSpecsModule>,
   ): Promise<ServiceStatus> => {
+    const context = getContext(env)
     const namespace = getAppNamespace(ctx, env)
     const currentVersion = await service.module.getVersion()
 
     const dryRunOutputs = await Bluebird.map(
       service.config.specs,
-      (spec) => apply(spec, { dryRun: true, namespace }),
+      (spec) => apply(context, spec, { dryRun: true, namespace }),
     )
 
     for (const dryRunOutput of dryRunOutputs) {
@@ -93,6 +95,7 @@ export const kubernetesSpecHandlers = {
   },
 
   deployService: async ({ ctx, env, service }: DeployServiceParams<KubernetesSpecsModule>) => {
+    const context = getContext(env)
     const namespace = getAppNamespace(ctx, env)
     const currentVersion = await service.module.getVersion()
 
@@ -108,7 +111,7 @@ export const kubernetesSpecHandlers = {
         annotatedSpec.metadata.annotations[GARDEN_ANNOTATION_KEYS_VERSION] = currentVersion.versionString
       }
 
-      await apply(annotatedSpec, { namespace })
+      await apply(context, annotatedSpec, { namespace })
     })
   },
 }
