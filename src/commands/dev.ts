@@ -12,8 +12,6 @@ import { join } from "path"
 import { STATIC_DIR } from "../constants"
 import { spawnSync } from "child_process"
 import chalk from "chalk"
-import { deployServices } from "./deploy"
-import { values } from "lodash"
 import { sleep } from "../util"
 
 const imgcatPath = join(__dirname, "..", "..", "bin", "imgcat")
@@ -37,10 +35,7 @@ export class DevCommand extends Command {
     console.log(chalk.gray.italic(` Good afternoon, Jon! Let's get your environment wired up...\n`))
 
     await ctx.configureEnvironment()
-
-    const services = values(await ctx.getServices())
-
-    await deployServices(ctx, services, false, false)
+    await ctx.deployServices({})
 
     ctx.log.info({ msg: "" })
     const watchEntry = ctx.log.info({ emoji: "koala", msg: `Waiting for code changes...` })
