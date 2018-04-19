@@ -507,6 +507,10 @@ export class Garden {
     const modulePaths: string[] = []
 
     for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
+      if (!item) {
+        continue
+      }
+
       const parsedPath = parse(item.path)
 
       if (parsedPath.base !== MODULE_CONFIG_FILENAME) {

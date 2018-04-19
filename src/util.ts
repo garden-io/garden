@@ -119,6 +119,7 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
     })
     .on("end", () => {
       done = true
+      resolver()
     })
 
   // a nice little trick to turn the stream into an async generator
