@@ -1,7 +1,0 @@
-module:
-  description: Kubernetes dashboard configuration
-  name: k8s-dashboard
-  type: kubernetes-raw
-  services:
-    kubernetes-dashboard:
-      specs: [dashboard.yml]

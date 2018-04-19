@@ -23,6 +23,7 @@ import {
   testModule,
 } from "./actions"
 import { deployService } from "./deployment"
+import { kubernetesSpecHandlers } from "./specs-module"
 
 export const name = "kubernetes"
 
@@ -46,6 +47,7 @@ export function gardenPlugin(): GardenPlugin {
         getTestResult,
         getServiceLogs,
       },
+      "kubernetes-specs": kubernetesSpecHandlers,
     },
   }
 }

@@ -46,9 +46,9 @@ import {
   checkDeploymentStatus,
 } from "./status"
 import {
-  configureGlobalSystem,
-  getGlobalSystemStatus,
-} from "./system-global"
+  getSystemGarden,
+  isSystemGarden,
+} from "./system"
 
 export async function getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusParams) {
   try {
@@ -62,13 +62,17 @@ export async function getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusPar
     throw err
   }
 
-  const globalSystemStatus = await getGlobalSystemStatus(ctx, env)
-
-  const statusDetail = {
-    systemNamespaceReady: false,
+  const statusDetail: { [key: string]: boolean } = {
     namespaceReady: false,
     metadataNamespaceReady: false,
-    ...globalSystemStatus,
+  }
+
+  if (!isSystemGarden(ctx)) {
+    const sysGarden = await getSystemGarden(env)
+    const sysStatus = await sysGarden.pluginContext.getStatus()
+
+    statusDetail.systemReady = sysStatus.providers.kubernetes.configured &&
+      every(values(sysStatus.services).map(s => s.state === "ready"))
   }
 
   const metadataNamespace = getMetadataNamespace(ctx)
@@ -92,16 +96,24 @@ export async function getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusPar
   }
 }
 
-export async function configureEnvironment(params: ConfigureEnvironmentParams) {
+export async function configureEnvironment({ ctx, config, env, logEntry }: ConfigureEnvironmentParams) {
   // TODO: use Helm 3 when it's released instead of this custom/manual stuff
-  const { ctx, config, env, logEntry } = params
   const status = await getEnvironmentStatus({ ctx, config, env })
 
   if (status.configured) {
     return
   }
 
-  await configureGlobalSystem(params, status)
+  if (isSystemGarden(ctx)) {
+    const sysGarden = await getSystemGarden(env)
+    await configureEnvironment({
+      ctx: sysGarden.pluginContext,
+      env: sysGarden.getEnvironment(),
+      config: {},
+      logEntry,
+    })
+    await sysGarden.pluginContext.deployServices({ logEntry })
+  }
 
   if (!status.detail.namespaceReady) {
     const ns = getAppNamespace(ctx, env)
@@ -117,10 +129,10 @@ export async function configureEnvironment(params: ConfigureEnvironmentParams) {
 }
 
 export async function getServiceStatus(
-  { ctx, service }: GetServiceStatusParams<ContainerModule>,
+  { ctx, env, service }: GetServiceStatusParams<ContainerModule>,
 ): Promise<ServiceStatus> {
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-  return await checkDeploymentStatus({ ctx, service })
+  return await checkDeploymentStatus({ ctx, env, service })
 }
 
 export async function destroyEnvironment({ ctx, env }: DestroyEnvironmentParams) {
@@ -178,7 +190,9 @@ export async function execInService({ ctx, config, service, env, command }: Exec
   return { code: res.code, output: res.output }
 }
 
-export async function testModule({ ctx, module, testSpec }: TestModuleParams<ContainerModule>): Promise<TestResult> {
+export async function testModule(
+  { ctx, env, module, testSpec }: TestModuleParams<ContainerModule>,
+): Promise<TestResult> {
   // TODO: include a service context here
   const baseEnv = {}
   const envVars: {} = extend({}, baseEnv, testSpec.variables)
@@ -207,7 +221,7 @@ export async function testModule({ ctx, module, testSpec }: TestModuleParams<Con
   const startedAt = new Date()
 
   const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
-  const res = await kubectl(getAppNamespace(ctx)).tty(kubecmd, { ignoreError: true, timeout })
+  const res = await kubectl(getAppNamespace(ctx, env)).tty(kubecmd, { ignoreError: true, timeout })
 
   const testResult: TestResult = {
     version,
@@ -246,7 +260,7 @@ export async function getTestResult({ ctx, module, version }: GetTestResultParam
   return res && <TestResult>deserializeKeys(res.data)
 }
 
-export async function getServiceLogs({ ctx, service, stream, tail }: GetServiceLogsParams<ContainerModule>) {
+export async function getServiceLogs({ ctx, env, service, stream, tail }: GetServiceLogsParams<ContainerModule>) {
   const resourceType = service.config.daemon ? "daemonset" : "deployment"
 
   const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
@@ -255,7 +269,7 @@ export async function getServiceLogs({ ctx, service, stream, tail }: GetServiceL
     kubectlArgs.push("--follow")
   }
 
-  const proc = kubectl(getAppNamespace(ctx)).spawn(kubectlArgs)
+  const proc = kubectl(getAppNamespace(ctx, env)).spawn(kubectlArgs)
 
   proc.stdout
     .pipe(split())

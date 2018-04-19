@@ -8,7 +8,7 @@
 
 import { ContainerService } from "../container"
 
-export async function createServices(service: ContainerService, exposePorts: boolean) {
+export async function createServices(service: ContainerService) {
   const services: any = []
   const { versionString } = await service.module.getVersion()
 
@@ -52,18 +52,16 @@ export async function createServices(service: ContainerService, exposePorts: boo
 
   // optionally add a NodePort service for externally open ports, if applicable
   // TODO: explore nicer ways to do this
-  if (exposePorts) {
-    const exposedPorts = ports.filter(([_, portSpec]) => portSpec.nodePort)
+  const exposedPorts = ports.filter(([_, portSpec]) => portSpec.nodePort)
 
-    if (exposedPorts.length > 0) {
-      addService(service.name + "-nodeport", "NodePort", exposedPorts.map(([portName, portSpec]) => ({
-        // TODO: do the parsing and defaults when loading the yaml
-        name: portName,
-        protocol: portSpec.protocol,
-        port: portSpec.containerPort,
-        nodePort: portSpec.nodePort,
-      })))
-    }
+  if (exposedPorts.length > 0) {
+    addService(service.name + "-nodeport", "NodePort", exposedPorts.map(([portName, portSpec]) => ({
+      // TODO: do the parsing and defaults when loading the yaml
+      name: portName,
+      protocol: portSpec.protocol,
+      port: portSpec.containerPort,
+      nodePort: portSpec.nodePort,
+    })))
   }
 
   return services

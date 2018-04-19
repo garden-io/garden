@@ -12,7 +12,10 @@ import {
   apiGetOrNull,
   coreApi,
 } from "./api"
-import { GARDEN_GLOBAL_SYSTEM_NAMESPACE } from "./system-global"
+import {
+  GARDEN_SYSTEM_NAMESPACE,
+  isSystemGarden,
+} from "./system"
 
 export async function namespaceReady(namespace: string) {
   /**
@@ -40,15 +43,21 @@ export async function createNamespace(namespace: string) {
   })
 }
 
-export function getAppNamespace(ctx: PluginContext, env?: Environment) {
-  const currentEnv = env || ctx.getEnvironment()
-  if (currentEnv.namespace === GARDEN_GLOBAL_SYSTEM_NAMESPACE) {
-    return currentEnv.namespace
+export function getAppNamespace(ctx: PluginContext, env: Environment) {
+  if (isSystemGarden(ctx)) {
+    return GARDEN_SYSTEM_NAMESPACE
   }
+
+  const currentEnv = env || ctx.getEnvironment()
+
   return `garden--${ctx.projectName}--${currentEnv.namespace}`
 }
 
 export function getMetadataNamespace(ctx: PluginContext) {
+  if (isSystemGarden(ctx)) {
+    return GARDEN_SYSTEM_NAMESPACE + "--metadata"
+  }
+
   const env = ctx.getEnvironment()
   return `garden-metadata--${ctx.projectName}--${env.namespace}`
 }

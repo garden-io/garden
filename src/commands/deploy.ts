@@ -8,9 +8,6 @@
 
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
-import { DeployTask } from "../tasks/deploy"
-import { values } from "lodash"
-import { Service } from "../types/service"
 import chalk from "chalk"
 import { TaskResults } from "../task-graph"
 

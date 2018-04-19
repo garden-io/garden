@@ -28,11 +28,9 @@ export const defaultEnvironments = {
   },
 }
 
-export interface ProviderConfig { }
-
 export interface EnvironmentConfig {
   configurationHandler?: string
-  providers: { [key: string]: ProviderConfig }
+  providers: { [key: string]: any }  // further validated by each plugin
   variables: { [key: string]: Primitive }
 }
 

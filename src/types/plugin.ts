@@ -104,7 +104,6 @@ export interface DeployServiceParams<T extends Module = Module> extends PluginAc
   service: Service<T>,
   serviceContext: ServiceContext,
   env: Environment,
-  exposePorts?: boolean,
 }
 
 export interface GetServiceOutputsParams<T extends Module = Module> extends PluginActionParamsBase {
