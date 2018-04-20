@@ -61,7 +61,6 @@ export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
   name: string
   path: string
   services: { [name: string]: T }
-  skipAutoReload?: boolean
   test: TestConfig
   type: string
   variables: PrimitiveMap
@@ -72,7 +71,6 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   public type: string
   public path: string
   public services: T["services"]
-  public skipAutoReload: boolean
 
   private _buildDependencies: Module[]
 
@@ -83,7 +81,6 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     this.type = config.type
     this.path = config.path
     this.services = config.services
-    this.skipAutoReload = config.skipAutoReload || false
   }
 
   @Memoize()

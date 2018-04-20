@@ -82,7 +82,6 @@ async function watch(
 
 // async function testAutoReload(ctx: GardenContext, moduleName: string) {
 //   const modules = values(await ctx.getModules())
-//     .filter(m => !m.skipAutoReload)
 //   const autoReloadDependants = await computeAutoReloadDependants(modules)
 //   const entryModule = modules.find(m => m.name === moduleName) as Module
 //

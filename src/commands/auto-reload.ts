@@ -18,14 +18,11 @@ import { registerCleanupFunction, sleep } from "../util"
 export type AutoReloadDependants = { [key: string]: Set<Module> }
 
 async function registerAutoReloadWatches(ctx: PluginContext): Promise<FSWatcher | null> {
-  const allModules = values(await ctx.getModules())
-  const modules = allModules.filter((m) => !m.skipAutoReload)
+  const modules = values(await ctx.getModules())
 
   if (modules.length === 0) {
-    if (allModules.length === 0) {
+    if (modules.length === 0) {
       ctx.log.info({ msg: "No modules found in project." })
-    } else {
-      ctx.log.info({ msg: "All modules in project have skipAutoReload = true." })
     }
     ctx.log.info({ msg: "Aborting..." })
     return null
@@ -50,7 +47,7 @@ export async function computeAutoReloadDependants(modules: Module[]):
 
   for (const module of modules) {
     const deps = await module.getBuildDependencies()
-    for (const dep of deps.filter(d => !d.skipAutoReload)) {
+    for (const dep of deps) {
       dependants[dep.name] = (dependants[dep.name] || new Set()).add(module)
     }
   }
