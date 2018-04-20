@@ -85,7 +85,11 @@ import {
   getTemplateContext,
   resolveTemplateStrings,
 } from "./template-string"
-import { loadConfig } from "./types/config"
+import {
+  configSchema,
+  GardenConfig,
+  loadConfig,
+} from "./types/config"
 
 export interface ModuleMap<T extends Module> {
   [key: string]: T
@@ -116,6 +120,7 @@ export type ModuleActionMap = {
 }
 
 export interface ContextOpts {
+  config?: object,
   env?: string,
   logger?: RootLogNode,
   plugins?: RegisterPluginParam[],
@@ -185,36 +190,49 @@ export class Garden {
     }
   }
 
-  static async factory(projectRoot: string, { env, logger, plugins = [] }: ContextOpts = {}) {
+  static async factory(projectRoot: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
     // const localConfig = new LocalConfig(projectRoot)
-    const templateContext = await getTemplateContext()
-    const config = await resolveTemplateStrings(await loadConfig(projectRoot, projectRoot), templateContext)
+    let parsedConfig: GardenConfig
 
-    if (!config.project) {
-      throw new ConfigurationError(`Path ${projectRoot} does not contain a project configuration`, {
-        projectRoot,
-        config,
-      })
+    if (config) {
+      parsedConfig = <GardenConfig>validate(config, configSchema, "root configuration")
+
+      if (!parsedConfig.project) {
+        throw new ConfigurationError(`Supplied config does not contain a project configuration`, {
+          projectRoot,
+          config,
+        })
+      }
+    } else {
+      const templateContext = await getTemplateContext()
+      parsedConfig = await resolveTemplateStrings(await loadConfig(projectRoot, projectRoot), templateContext)
+
+      if (!parsedConfig.project) {
+        throw new ConfigurationError(`Path ${projectRoot} does not contain a project configuration`, {
+          projectRoot,
+          config,
+        })
+      }
     }
 
     if (!env) {
-      env = config.project.defaultEnvironment
+      env = parsedConfig.project.defaultEnvironment
     }
 
-    const projectName = config.project.name
-    const globalConfig = config.project.global || {}
+    const projectName = parsedConfig.project.name
+    const globalConfig = parsedConfig.project.global || {}
 
     const parts = env.split(".")
     const environment = parts[0]
     const namespace = parts.slice(1).join(".") || DEFAULT_NAMESPACE
 
-    const envConfig = config.project.environments[environment]
+    const envConfig = parsedConfig.project.environments[environment]
 
     if (!envConfig) {
       throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
         projectName,
         env,
-        definedEnvironments: Object.keys(config.project.environments),
+        definedEnvironments: Object.keys(parsedConfig.project.environments),
       })
     }
 
@@ -228,7 +246,7 @@ export class Garden {
 
     if (namespace.startsWith("garden-")) {
       throw new ParameterError(`Namespace cannot start with "garden-"`, {
-        name,
+        environment,
         namespace,
       })
     }
@@ -345,6 +363,11 @@ export class Garden {
     plugin = validate(plugin, pluginSchema, `plugin "${pluginName}"`)
 
     this.loadedPlugins[pluginName] = plugin
+
+    // allow plugins to override their own config (that gets passed to action handlers)
+    if (plugin.config) {
+      this.config.providers[pluginName] = config
+    }
 
     const actions = plugin.actions || {}
 
@@ -507,6 +530,10 @@ export class Garden {
     const modulePaths: string[] = []
 
     for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
+      if (!item) {
+        continue
+      }
+
       const parsedPath = parse(item.path)
 
       if (parsedPath.base !== MODULE_CONFIG_FILENAME) {

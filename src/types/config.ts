@@ -28,6 +28,7 @@ export interface GardenConfig {
 
 export const configSchema = Joi.object()
   .keys({
+    // TODO: should this be called apiVersion?
     version: Joi.string().default("0").only("0"),
     module: baseModuleSchema,
     project: projectSchema,

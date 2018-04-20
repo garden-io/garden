@@ -32,23 +32,22 @@ export class BuildTask<T extends Module> extends Task {
   }
 
   async process(): Promise<BuildResult> {
+    if (!this.force && (await this.ctx.getModuleBuildStatus(this.module)).ready) {
+      return { fresh: false }
+    }
+
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",
       entryStyle: EntryStyle.activity,
     })
 
-    if (this.force || !(await this.ctx.getModuleBuildStatus(this.module, entry)).ready) {
-      const startTime = new Date().getTime()
-      const result = await this.ctx.buildModule(this.module, entry)
-      const buildTime = (new Date().getTime()) - startTime
+    const startTime = new Date().getTime()
+    const result = await this.ctx.buildModule(this.module, entry)
+    const buildTime = (new Date().getTime()) - startTime
 
-      entry.setSuccess({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
+    entry.setSuccess({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
 
-      return result
-    } else {
-      entry.setSuccess("Already built")
-      return { fresh: false }
-    }
+    return result
   }
 }

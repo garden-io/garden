@@ -7,6 +7,7 @@
  */
 
 import Bluebird = require("bluebird")
+import { readFile } from "fs-extra"
 import * as pty from "node-pty"
 import * as exitHook from "async-exit-hook"
 import * as ignore from "ignore/ignore"
@@ -119,6 +120,7 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
     })
     .on("end", () => {
       done = true
+      resolver()
     })
 
   // a nice little trick to turn the stream into an async generator
@@ -373,4 +375,9 @@ export function highlightYaml(s: string) {
       string: chalk.white,
     },
   })
+}
+
+export async function loadYamlFile(path: string): Promise<any> {
+  const fileData = await readFile(path)
+  return yaml.safeLoad(fileData.toString())
 }

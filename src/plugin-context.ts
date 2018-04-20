@@ -16,6 +16,7 @@ import {
   LogEntry,
 } from "./logger"
 import { EntryStyle } from "./logger/types"
+import { DeployTask } from "./tasks/deploy"
 import {
   PrimitiveMap,
 } from "./types/common"
@@ -53,6 +54,11 @@ import { TreeVersion } from "./vcs/base"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
+}
+
+export interface ContextStatus {
+  providers: EnvironmentStatusMap
+  services: { [name: string]: ServiceStatus }
 }
 
 export type WrappedFromGarden = Pick<Garden,
@@ -94,6 +100,11 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getConfig: (key: string[]) => Promise<string>
   setConfig: (key: string[], value: string) => Promise<void>
   deleteConfig: (key: string[]) => Promise<DeleteConfigResult>
+
+  getStatus: () => Promise<ContextStatus>
+  deployServices: (
+    params: { names?: string[], force?: boolean, forceBuild?: boolean, logEntry?: LogEntry },
+  ) => Promise<any>
 }
 
 export function createPluginContext(garden: Garden): PluginContext {
@@ -128,10 +139,6 @@ export function createPluginContext(garden: Garden): PluginContext {
     parseModule: async <T extends Module>(moduleConfig: T["_ConfigType"]) => {
       const handler = garden.getModuleActionHandler("parseModule", moduleConfig.type)
       return handler({ ctx, config, moduleConfig })
-    },
-
-    getModuleBuildPath: async <T extends Module>(module: T) => {
-      return await garden.buildDir.buildPath(module)
     },
 
     getModuleBuildStatus: async <T extends Module>(module: T, logEntry?: LogEntry) => {
@@ -263,6 +270,35 @@ export function createPluginContext(garden: Garden): PluginContext {
       } else {
         return res
       }
+    },
+
+    getModuleBuildPath: async <T extends Module>(module: T) => {
+      return await garden.buildDir.buildPath(module)
+    },
+
+    getStatus: async () => {
+      const envStatus: EnvironmentStatusMap = await ctx.getEnvironmentStatus()
+      const services = await ctx.getServices()
+
+      const serviceStatus = await Bluebird.props(
+        mapValues(services, (service: Service<any>) => ctx.getServiceStatus(service)),
+      )
+
+      return {
+        providers: envStatus,
+        services: serviceStatus,
+      }
+    },
+
+    deployServices: async ({ names, force = false, forceBuild = false, logEntry }) => {
+      const services = await ctx.getServices(names)
+
+      for (const service of values(services)) {
+        const task = new DeployTask(ctx, service, force, forceBuild, logEntry)
+        await ctx.addTask(task)
+      }
+
+      return ctx.processTasks()
     },
   }
 

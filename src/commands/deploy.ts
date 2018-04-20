@@ -8,9 +8,6 @@
 
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
-import { DeployTask } from "../tasks/deploy"
-import { values } from "lodash"
-import { Service } from "../types/service"
 import chalk from "chalk"
 import { TaskResults } from "../task-graph"
 
@@ -40,27 +37,16 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     ctx.log.header({ emoji: "rocket", command: "Deploy" })
 
     const names = args.service ? args.service.split(",") : undefined
-    const services = await ctx.getServices(names)
 
-    const result = await deployServices(ctx, values(services), !!opts.force, !!opts["force-build"])
+    const result = await ctx.deployServices({
+      names,
+      force: !!opts.force,
+      forceBuild: !!opts["force-build"],
+    })
 
     ctx.log.info("")
     ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green("Done!\n") })
 
     return result
   }
-}
-
-export async function deployServices(
-  ctx: PluginContext,
-  services: Service<any>[],
-  force: boolean,
-  forceBuild: boolean,
-) {
-  for (const service of services) {
-    const task = new DeployTask(ctx, service, force, forceBuild)
-    await ctx.addTask(task)
-  }
-
-  return await ctx.processTasks()
 }

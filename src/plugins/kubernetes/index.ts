@@ -6,6 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Joi from "joi"
+import { validate } from "../../types/common"
 import { GardenPlugin } from "../../types/plugin"
 
 import {
@@ -23,11 +25,20 @@ import {
   testModule,
 } from "./actions"
 import { deployService } from "./deployment"
+import { kubernetesSpecHandlers } from "./specs-module"
 
 export const name = "kubernetes"
 
-export function gardenPlugin(): GardenPlugin {
+const configSchema = Joi.object().keys({
+  context: Joi.string(),
+  _system: Joi.any(),
+})
+
+export function gardenPlugin({ config }): GardenPlugin {
+  config = validate(config, configSchema, "kubernetes provider config")
+
   return {
+    config,
     actions: {
       getEnvironmentStatus,
       configureEnvironment,
@@ -46,6 +57,7 @@ export function gardenPlugin(): GardenPlugin {
         getTestResult,
         getServiceLogs,
       },
+      "kubernetes-specs": kubernetesSpecHandlers,
     },
   }
 }

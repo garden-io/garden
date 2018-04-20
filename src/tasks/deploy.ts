@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { LogEntry } from "../logger"
 import { PluginContext } from "../plugin-context"
 import { Task } from "../task-graph"
 import { BuildTask } from "./build"
@@ -24,7 +25,8 @@ export class DeployTask<T extends Service<any>> extends Task {
     private ctx: PluginContext,
     private service: T,
     private force: boolean,
-    private forceBuild: boolean) {
+    private forceBuild: boolean,
+    private logEntry?: LogEntry) {
     super()
   }
 
@@ -45,7 +47,7 @@ export class DeployTask<T extends Service<any>> extends Task {
   }
 
   async process(): Promise<ServiceStatus> {
-    const entry = this.ctx.log.info({
+    const entry = (this.logEntry || this.ctx.log).info({
       section: this.service.name,
       msg: "Checking status",
       entryStyle: EntryStyle.activity,
@@ -59,8 +61,6 @@ export class DeployTask<T extends Service<any>> extends Task {
     const { versionString } = await this.service.module.getVersion()
     const status = await this.ctx.getServiceStatus(service)
 
-    entry.setState({ section: this.service.name, msg: "Deploying" })
-
     if (
       !this.force &&
       versionString === status.version &&
@@ -73,6 +73,8 @@ export class DeployTask<T extends Service<any>> extends Task {
       })
       return status
     }
+
+    entry.setState({ section: this.service.name, msg: "Deploying" })
 
     const result = await this.ctx.deployService(service, serviceContext, entry)
 
