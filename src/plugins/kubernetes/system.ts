@@ -9,8 +9,7 @@
 import { join } from "path"
 import { STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
-import { PluginContext } from "../../plugin-context"
-import { Environment } from "../../types/common"
+import { KubernetesProvider } from "./index"
 
 export const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 export const localIngressPort = 32000
@@ -18,13 +17,11 @@ export const localIngressPort = 32000
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
 const systemSymbol = Symbol()
 
-export function isSystemGarden(ctx: PluginContext): boolean {
-  return ctx.config.providers.kubernetes!._system === systemSymbol
+export function isSystemGarden(provider: KubernetesProvider): boolean {
+  return provider.config._system === systemSymbol
 }
 
-export async function getSystemGarden(appEnv: Environment): Promise<Garden> {
-  const context = appEnv.config.providers.kubernetes!.context
-
+export async function getSystemGarden(provider: KubernetesProvider): Promise<Garden> {
   return Garden.factory(systemProjectPath, {
     env: "default",
     config: {
@@ -35,8 +32,8 @@ export async function getSystemGarden(appEnv: Environment): Promise<Garden> {
         environments: {
           default: {
             providers: {
-              kubernetes: {
-                context,
+              "local-kubernetes": {
+                context: provider.config.context,
                 _system: systemSymbol,
               },
             },

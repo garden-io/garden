@@ -49,7 +49,9 @@ export const gardenPlugin = (): GardenPlugin => ({
 
       getServiceStatus,
 
-      async deployService({ ctx, config, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>) {
+      async deployService(
+        { ctx, provider, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>,
+      ) {
         const containerFunctionPath = resolve(
           "/functions",
           relative(ctx.projectRoot, service.module.path),
@@ -77,7 +79,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           })
         }
 
-        return getServiceStatus({ ctx, config, service, env })
+        return getServiceStatus({ ctx, provider, service, env })
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
@@ -104,8 +106,8 @@ async function getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
   return { configured: status.state === "ready" }
 }
 
-async function configureEnvironment({ ctx, config, env, logEntry }: ConfigureEnvironmentParams) {
-  const status = await getEnvironmentStatus({ ctx, config, env })
+async function configureEnvironment({ ctx, provider, env, logEntry }: ConfigureEnvironmentParams) {
+  const status = await getEnvironmentStatus({ ctx, provider, env })
 
   // TODO: This check should happen ahead of calling this handler
   if (status.configured) {

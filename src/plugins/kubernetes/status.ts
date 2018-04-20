@@ -20,7 +20,6 @@ import {
   ContainerService,
   ServiceEndpointSpec,
 } from "../container"
-import { getContext } from "./actions"
 import {
   coreApi,
   extensionsApi,
@@ -31,13 +30,13 @@ import { getAppNamespace } from "./namespace"
 import { localIngressPort } from "./system"
 
 export async function checkDeploymentStatus(
-  { ctx, service, resourceVersion, env }:
-    { ctx: PluginContext, service: ContainerService, resourceVersion?: number, env: Environment },
+  { ctx, provider, service, resourceVersion }:
+    { ctx: PluginContext, provider: any, service: ContainerService, resourceVersion?: number },
 ): Promise<ServiceStatus> {
-  const context = getContext(env)
+  const context = provider.context
   const type = service.config.daemon ? "daemonsets" : "deployments"
-  const hostname = getServiceHostname(ctx, service)
-  const namespace = getAppNamespace(ctx, env)
+  const hostname = getServiceHostname(ctx, provider, service)
+  const namespace = getAppNamespace(ctx, provider)
 
   const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
     // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
@@ -180,8 +179,8 @@ export async function checkDeploymentStatus(
 }
 
 export async function waitForDeployment(
-  { ctx, service, logEntry, env }:
-    { ctx: PluginContext, service: ContainerService, logEntry?: LogEntry, env: Environment },
+  { ctx, provider, service, logEntry }:
+    { ctx: PluginContext, provider: any, service: ContainerService, logEntry?: LogEntry, env: Environment },
 ) {
   // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
   let loops = 0
@@ -189,8 +188,9 @@ export async function waitForDeployment(
   let lastMessage
   let lastDetailMessage
   const startTime = new Date().getTime()
+  const log = logEntry || ctx.log
 
-  logEntry && ctx.log.verbose({
+  log.verbose({
     symbol: LogSymbolType.info,
     section: service.name,
     msg: `Waiting for service to be ready...`,
@@ -199,7 +199,7 @@ export async function waitForDeployment(
   while (true) {
     await sleep(2000 + 1000 * loops)
 
-    const status = await checkDeploymentStatus({ ctx, service, resourceVersion, env })
+    const status = await checkDeploymentStatus({ ctx, provider, service, resourceVersion })
 
     if (status.lastError) {
       throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
@@ -210,7 +210,7 @@ export async function waitForDeployment(
 
     if (status.detail.lastMessage && (!lastDetailMessage || status.detail.lastMessage !== lastDetailMessage)) {
       lastDetailMessage = status.detail.lastMessage
-      logEntry && ctx.log.verbose({
+      log.verbose({
         symbol: LogSymbolType.info,
         section: service.name,
         msg: status.detail.lastMessage,
@@ -219,7 +219,7 @@ export async function waitForDeployment(
 
     if (status.lastMessage && (!lastMessage && status.lastMessage !== lastMessage)) {
       lastMessage = status.lastMessage
-      logEntry && ctx.log.verbose({
+      log.verbose({
         symbol: LogSymbolType.info,
         section: service.name,
         msg: status.lastMessage,
@@ -239,5 +239,5 @@ export async function waitForDeployment(
     }
   }
 
-  logEntry && ctx.log.verbose({ symbol: LogSymbolType.info, section: service.name, msg: `Service deployed` })
+  log.verbose({ symbol: LogSymbolType.info, section: service.name, msg: `Service deployed` })
 }

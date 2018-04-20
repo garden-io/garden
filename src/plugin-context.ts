@@ -38,6 +38,7 @@ import {
   ServiceLogEntry,
   TestResult,
   ModuleActions,
+  PluginActionParamsBase,
 } from "./types/plugin"
 import {
   Service,
@@ -112,13 +113,27 @@ export function createPluginContext(garden: Garden): PluginContext {
     return f.bind(garden)
   }
 
-  const config = { ...garden.config }
+  const projectConfig = { ...garden.config }
+
+  // TODO: find a nicer way to do this (like a type-safe wrapper function)
+  function commonParams(handler): PluginActionParamsBase {
+    const providerName = handler["pluginName"]
+    const providerConfig = projectConfig.providers[handler["pluginName"]]
+
+    return {
+      ctx,
+      provider: {
+        name: providerName,
+        config: providerConfig,
+      },
+    }
+  }
 
   const ctx: PluginContext = {
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
     log: garden.log,
-    config,
+    config: projectConfig,
     vcs: garden.vcs,
 
     // TODO: maybe we should move some of these here
@@ -138,44 +153,44 @@ export function createPluginContext(garden: Garden): PluginContext {
 
     parseModule: async <T extends Module>(moduleConfig: T["_ConfigType"]) => {
       const handler = garden.getModuleActionHandler("parseModule", moduleConfig.type)
-      return handler({ ctx, config, moduleConfig })
+      return handler({ ...commonParams(handler), moduleConfig })
     },
 
     getModuleBuildStatus: async <T extends Module>(module: T, logEntry?: LogEntry) => {
       const defaultHandler = garden.getModuleActionHandler("getModuleBuildStatus", "generic")
       const handler = garden.getModuleActionHandler("getModuleBuildStatus", module.type, defaultHandler)
-      return handler({ ctx, config, module, logEntry })
+      return handler({ ...commonParams(handler), module, logEntry })
     },
 
     buildModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
       await garden.buildDir.syncDependencyProducts(module)
       const defaultHandler = garden.getModuleActionHandler("buildModule", "generic")
       const handler = garden.getModuleActionHandler("buildModule", module.type, defaultHandler)
-      return handler({ ctx, config, module, logEntry })
+      return handler({ ...commonParams(handler), module, logEntry })
     },
 
     pushModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
       const handler = garden.getModuleActionHandler("pushModule", module.type, dummyPushHandler)
-      return handler({ ctx, config, module, logEntry })
+      return handler({ ...commonParams(handler), module, logEntry })
     },
 
     testModule: async <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => {
       const defaultHandler = garden.getModuleActionHandler("testModule", "generic")
       const handler = garden.getModuleActionHandler("testModule", module.type, defaultHandler)
       const env = garden.getEnvironment()
-      return handler({ ctx, config, module, testSpec, env, logEntry })
+      return handler({ ...commonParams(handler), module, testSpec, env, logEntry })
     },
 
     getTestResult: async <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => {
       const handler = garden.getModuleActionHandler("getTestResult", module.type, async () => null)
       const env = garden.getEnvironment()
-      return handler({ ctx, config, module, version, env, logEntry })
+      return handler({ ...commonParams(handler), module, version, env, logEntry })
     },
 
     getEnvironmentStatus: async () => {
       const handlers = garden.getActionHandlers("getEnvironmentStatus")
       const env = garden.getEnvironment()
-      return Bluebird.props(mapValues(handlers, h => h({ ctx, config, env })))
+      return Bluebird.props(mapValues(handlers, h => h({ ...commonParams(h), env })))
     },
 
     configureEnvironment: async () => {
@@ -189,7 +204,7 @@ export function createPluginContext(garden: Garden): PluginContext {
           msg: "Configuring...",
         })
 
-        await handler({ ctx, config, env, logEntry })
+        await handler({ ...commonParams(handler), env, logEntry })
 
         logEntry.setSuccess("Configured")
       })
@@ -199,13 +214,13 @@ export function createPluginContext(garden: Garden): PluginContext {
     destroyEnvironment: async () => {
       const handlers = garden.getActionHandlers("destroyEnvironment")
       const env = garden.getEnvironment()
-      await Bluebird.each(values(handlers), h => h({ ctx, config, env }))
+      await Bluebird.each(values(handlers), h => h({ ...commonParams(h), env }))
       return ctx.getEnvironmentStatus()
     },
 
     getServiceStatus: async <T extends Module>(service: Service<T>) => {
       const handler = garden.getModuleActionHandler("getServiceStatus", service.module.type)
-      return handler({ ctx, config, service, env: garden.getEnvironment() })
+      return handler({ ...commonParams(handler), service, env: garden.getEnvironment() })
     },
 
     deployService: async <T extends Module>(
@@ -217,7 +232,7 @@ export function createPluginContext(garden: Garden): PluginContext {
         serviceContext = { envVars: {}, dependencies: {} }
       }
 
-      return handler({ ctx, config, service, serviceContext, env: garden.getEnvironment(), logEntry })
+      return handler({ ...commonParams(handler), service, serviceContext, env: garden.getEnvironment(), logEntry })
     },
 
     getServiceOutputs: async <T extends Module>(service: Service<T>) => {
@@ -228,24 +243,24 @@ export function createPluginContext(garden: Garden): PluginContext {
       } catch (err) {
         return {}
       }
-      return handler({ ctx, config, service, env: garden.getEnvironment() })
+      return handler({ ...commonParams(handler), service, env: garden.getEnvironment() })
     },
 
     execInService: async <T extends Module>(service: Service<T>, command: string[]) => {
       const handler = garden.getModuleActionHandler("execInService", service.module.type)
-      return handler({ ctx, config, service, command, env: garden.getEnvironment() })
+      return handler({ ...commonParams(handler), service, command, env: garden.getEnvironment() })
     },
 
     getServiceLogs: async <T extends Module>(service: Service<T>, stream: Stream<ServiceLogEntry>, tail?: boolean) => {
       const handler = garden.getModuleActionHandler("getServiceLogs", service.module.type, dummyLogStreamer)
-      return handler({ ctx, config, service, stream, tail, env: garden.getEnvironment() })
+      return handler({ ...commonParams(handler), service, stream, tail, env: garden.getEnvironment() })
     },
 
     getConfig: async (key: string[]) => {
       garden.validateConfigKey(key)
       // TODO: allow specifying which provider to use for configs
       const handler = garden.getActionHandler("getConfig")
-      const value = await handler({ ctx, config, key, env: garden.getEnvironment() })
+      const value = await handler({ ...commonParams(handler), key, env: garden.getEnvironment() })
 
       if (value === null) {
         throw new NotFoundError(`Could not find config key ${key}`, { key })
@@ -257,13 +272,13 @@ export function createPluginContext(garden: Garden): PluginContext {
     setConfig: async (key: string[], value: string) => {
       garden.validateConfigKey(key)
       const handler = garden.getActionHandler("setConfig")
-      return handler({ ctx, config, key, value, env: garden.getEnvironment() })
+      return handler({ ...commonParams(handler), key, value, env: garden.getEnvironment() })
     },
 
     deleteConfig: async (key: string[]) => {
       garden.validateConfigKey(key)
       const handler = garden.getActionHandler("deleteConfig")
-      const res = await handler({ ctx, config, key, env: garden.getEnvironment() })
+      const res = await handler({ ...commonParams(handler), key, env: garden.getEnvironment() })
 
       if (!res.found) {
         throw new NotFoundError(`Could not find config key ${key}`, { key })

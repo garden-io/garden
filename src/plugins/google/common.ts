@@ -92,6 +92,6 @@ export function gcloud(project?: string, account?: string) {
 export function getProject<T extends GoogleCloudModule>(providerName: string, service: Service<T>, env: Environment) {
   // TODO: this is very contrived - we should rethink this a bit and pass
   // provider configuration when calling the plugin
-  const providerConfig = env.config.providers[providerName]
-  return service.config.project || providerConfig["default-project"] || null
+  const provider = env.config.providers[providerName]
+  return service.config.project || provider["default-project"] || null
 }

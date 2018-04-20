@@ -3,6 +3,9 @@ module:
   type: container
   services:
     google-cloud-functions:
+      endpoints:
+        - paths: [/]
+          port: http
       ports:
         http:
           protocol: TCP

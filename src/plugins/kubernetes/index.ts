@@ -8,7 +8,10 @@
 
 import * as Joi from "joi"
 import { validate } from "../../types/common"
-import { GardenPlugin } from "../../types/plugin"
+import {
+  GardenPlugin,
+  Provider,
+} from "../../types/plugin"
 
 import {
   configureEnvironment,
@@ -29,12 +32,25 @@ import { kubernetesSpecHandlers } from "./specs-module"
 
 export const name = "kubernetes"
 
+export interface KubernetesConfig {
+  context: string
+  ingressHostname: string
+  ingressClass: string
+  forceSsl: boolean
+  _system?: Symbol
+}
+
+export interface KubernetesProvider extends Provider<KubernetesConfig> { }
+
 const configSchema = Joi.object().keys({
-  context: Joi.string(),
+  context: Joi.string().required(),
+  ingressHostname: Joi.string().hostname().required(),
+  ingressClass: Joi.string(),
+  forceSsl: Joi.boolean().default(true),
   _system: Joi.any(),
 })
 
-export function gardenPlugin({ config }): GardenPlugin {
+export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPlugin {
   config = validate(config, configSchema, "kubernetes provider config")
 
   return {

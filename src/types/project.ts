@@ -21,7 +21,7 @@ export const defaultProviders = {
 export const defaultEnvironments = {
   local: {
     providers: {
-      kubernetes: {
+      "local-kubernetes": {
         context: "docker-for-desktop",
       },
     },
