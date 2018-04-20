@@ -168,4 +168,4 @@ export const baseModuleSchema = Joi.object().keys({
     dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),
   }).default(() => ({ dependencies: [] }), "{}"),
   test: Joi.object().pattern(/[\w\d]+/i, baseTestSpecSchema).default(() => ({}), "{}"),
-}).required()
+}).required().unknown(true)
