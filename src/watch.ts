@@ -9,8 +9,57 @@
 import { map as bluebirdMap } from "bluebird"
 import { Client } from "fb-watchman"
 import { keyBy } from "lodash"
-import { resolve } from "path"
 import { Module } from "./types/module"
+import { PluginContext } from "./plugin-context"
+
+export type AutoReloadDependants = { [key: string]: Set<Module> }
+
+export interface OnChangeHandler {
+  (ctx: PluginContext, module: Module): Promise<void>
+}
+
+export async function watchModules(
+  ctx: PluginContext, modules: Module[], onChange: OnChangeHandler,
+): Promise<FSWatcher> {
+  const autoReloadDependants = await computeAutoReloadDependants(modules)
+
+  async function handleChanges(module: Module) {
+    await onChange(ctx, module)
+
+    const dependantsForModule = autoReloadDependants[module.name]
+    if (!dependantsForModule) {
+      return
+    }
+
+    for (const dependant of dependantsForModule) {
+      await handleChanges(dependant)
+    }
+  }
+
+  const watcher = new FSWatcher()
+  await watcher.watchModules(modules, "addTasksForAutoReload/",
+    async (changedModule) => {
+      ctx.log.info({ msg: `files changed for module ${changedModule.name}` })
+      await handleChanges(changedModule)
+      await ctx.processTasks()
+    })
+
+  return watcher
+}
+
+export async function computeAutoReloadDependants(modules: Module[]):
+  Promise<AutoReloadDependants> {
+  let dependants = {}
+
+  for (const module of modules) {
+    const deps = await module.getBuildDependencies()
+    for (const dep of deps) {
+      dependants[dep.name] = (dependants[dep.name] || new Set()).add(module)
+    }
+  }
+
+  return dependants
+}
 
 export type CapabilityOptions = { required?: string[], optional?: string[] }
 export type CapabilityResponse = { error: Error, response: { capabilities: { string: boolean } } }
@@ -32,7 +81,7 @@ export class FSWatcher {
   private readonly client
   private capabilityCheckComplete: boolean
 
-  constructor(private projectRoot: string) {
+  constructor() {
     this.client = new Client()
     this.capabilityCheckComplete = false
   }
@@ -59,8 +108,10 @@ export class FSWatcher {
   }
 
   // WIP
-  async watchModules(modules: Module[], subscriptionPrefix: string,
-    changeHandler: (Module, SubscriptionResponse) => Promise<void>) {
+  async watchModules(
+    modules: Module[], subscriptionPrefix: string,
+    changeHandler: (module: Module, response: SubscriptionResponse) => Promise<void>,
+  ) {
     if (!this.capabilityCheckComplete) {
       await this.capabilityCheck({ optional: [], required: ["relative_root"] })
     }
@@ -69,9 +120,8 @@ export class FSWatcher {
 
     await bluebirdMap(modules || [], async (module) => {
       const subscriptionKey = FSWatcher.subscriptionKey(subscriptionPrefix, module)
-      const modulePath = resolve(this.projectRoot, module.path)
 
-      const result = await this.command(["watch-project", modulePath])
+      const result = await this.command(["watch-project", module.path])
 
       // console.log("watching", modulePath)
 
@@ -128,5 +178,4 @@ export class FSWatcher {
   private static subscriptionKey(prefix: string, module: Module) {
     return `${prefix}${module.name}Subscription`
   }
-
 }

@@ -54,6 +54,7 @@ describe("commands.deploy", () => {
   const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
+  // TODO: Test with --watch flag
 
   it("should build and deploy all modules in a project", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
@@ -65,6 +66,7 @@ describe("commands.deploy", () => {
         service: "",
       },
       {
+        watch: false,
         force: false,
         "force-build": true,
       },
@@ -91,6 +93,7 @@ describe("commands.deploy", () => {
         service: "service-b",
       },
       {
+        watch: false,
         force: false,
         "force-build": true,
       },
