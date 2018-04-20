@@ -3,11 +3,10 @@ import { expect } from "chai"
 import { join } from "path"
 import { pathExists, remove, writeFile } from "fs-extra"
 import { merge, sortedUniq, values } from "lodash"
-import { FSWatcher } from "../../../src/fs-watcher"
+import { FSWatcher } from "../../../src/watch"
 import {
-  addTasksForAutoReload,
   computeAutoReloadDependants,
-} from "../../../src/commands/auto-reload"
+} from "../../../src/watch"
 import { makeTestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
 
@@ -64,12 +63,12 @@ async function watch(
 ) {
   console.log("start of watch")
   const modules = values(await garden.getModules(moduleNames))
-  const autoReloadDependants = await computeAutoReloadDependants(modules)
+  // const autoReloadDependants = await computeAutoReloadDependants(modules)
 
   await watcher.watchModules(modules, "testAutoReload", async (changedModule, response) => {
     console.log(`files changed for module ${changedModule.name}`)
 
-    await addTasksForAutoReload(garden.pluginContext, changedModule, autoReloadDependants)
+    // await addTasksForAutoReload(garden.pluginContext, changedModule, autoReloadDependants)
     const taskResults = await garden.processTasks()
 
     if (changeHandler) {
@@ -93,7 +92,7 @@ const setup = async () => {
   const garden = await makeGarden()
   // await resetSources(garden)
   const autoReloadDependants = await computeAutoReloadDependants(values(await garden.getModules()))
-  const watcher = new FSWatcher(garden.projectRoot)
+  const watcher = new FSWatcher()
 
   return { autoReloadDependants, garden, watcher }
 }
@@ -112,7 +111,7 @@ describe("commands.autoreload", () => {
       entryModuleNames.push(changedModule.name)
       // console.log("module changed:", changedModule.name, "entryModuleNames:", [...entryModuleNames])
       console.log("module changed:", changedModule.name, "entryModuleNames:", [...entryModuleNames], "response", response.files.map(f => f.name))
-      await addTasksForAutoReload(garden.pluginContext, changedModule, autoReloadDependants)
+      // await addTasksForAutoReload(garden.pluginContext, changedModule, autoReloadDependants)
       merge(reloadResults, taskResults)
     }
 
