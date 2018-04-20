@@ -12,23 +12,22 @@ describe("loadConfig", () => {
     const parsed = await loadConfig(projectPathA, projectPathA)
 
     expect(parsed.project).to.eql({
-      name: "build-test-project",
+      version: "0",
+      name: "test-project-a",
+      defaultEnvironment: "local",
+      global: {
+        variables: { some: "variable" },
+      },
       environments: {
         local: {
           providers: {
-            test: {
-              type: "test-plugin",
-            },
-            "test-b": {
-              type: "test-plugin-b",
-            },
+            "test-plugin": {},
+            "test-plugin-b": {},
           },
+          variables: {},
         },
-        other: {},
+        other: { variables: {} },
       },
-      variables: { some: "variable" },
-      version: "0",
-      defaultEnvironment: "local",
     })
   })
 

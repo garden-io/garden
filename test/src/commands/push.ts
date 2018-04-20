@@ -4,10 +4,7 @@ import { expect } from "chai"
 import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
 import {
-  BuildModuleParams, BuildResult,
-  GetModuleBuildStatusParams,
-  Plugin,
-  PushModuleParams,
+  PluginFactory,
 } from "../../../src/types/plugin"
 import { Module } from "../../../src/types/module"
 import { PushCommand } from "../../../src/commands/push"
@@ -18,38 +15,60 @@ import {
 
 const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
 
-class TestProvider implements Plugin<Module> {
-  name = "test-plugin"
-  supportedModuleTypes = ["generic"]
+const getModuleBuildStatus = async () => {
+  return { ready: true }
+}
 
-  async getModuleBuildStatus({ module }: GetModuleBuildStatusParams) {
-    return { ready: true }
-  }
+const buildModule = async () => {
+  return { fresh: true }
+}
 
-  async buildModule({ module }: BuildModuleParams): Promise<BuildResult> {
-    return { fresh: true }
-  }
+const pushModule = async () => {
+  return { pushed: true }
+}
 
-  async pushModule({ module }: PushModuleParams) {
-    return { pushed: true }
+const testProvider: PluginFactory = () => {
+  return {
+    moduleActions: {
+      generic: {
+        getModuleBuildStatus,
+        buildModule,
+        pushModule,
+      },
+    },
   }
 }
 
-class TestProviderB implements Plugin<Module> {
-  name = "test-plugin"
-  supportedModuleTypes = ["generic"]
+testProvider.pluginName = "test-plugin"
 
-  async getModuleBuildStatus({ module }: GetModuleBuildStatusParams) {
-    return { ready: true }
-  }
-
-  async buildModule({ module }: BuildModuleParams): Promise<BuildResult> {
-    return { fresh: true }
+const testProviderB: PluginFactory = () => {
+  return {
+    moduleActions: {
+      generic: {
+        getModuleBuildStatus,
+        buildModule,
+      },
+    },
   }
 }
+
+testProviderB.pluginName = "test-plugin-b"
+
+const testProviderNoPush: PluginFactory = () => {
+  return {
+    moduleActions: {
+      generic: {
+        getModuleBuildStatus,
+        buildModule,
+      },
+    },
+  }
+}
+
+testProviderNoPush.pluginName = "test-plugin"
 
 async function getTestContext() {
-  const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+  const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
   return garden.pluginContext
 }
 
@@ -159,7 +178,7 @@ describe("PushCommand", () => {
   })
 
   it("should fail gracefully if module does not have a provider for push", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProviderB()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProviderNoPush, testProviderB] })
     const ctx = garden.pluginContext
 
     const command = new PushCommand()

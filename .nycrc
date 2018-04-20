@@ -1,6 +1,10 @@
 {
   "check-coverage": true,
   "per-file": true,
+  "lines": 0,
+  "statements": 0,
+  "functions": 0,
+  "branches": 0,
   "reporter": [
     "html",
     "text"

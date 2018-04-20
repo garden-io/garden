@@ -3,7 +3,5 @@ project:
   environments:
     local:
       providers:
-        test:
-          type: test-plugin
-        container:
-          type: docker-module
+        test-plugin: {}
+        container: {}

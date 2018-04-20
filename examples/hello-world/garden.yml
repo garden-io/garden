@@ -1,19 +1,19 @@
 project:
   name: hello-world
+  global:
+    providers:
+      container: {}
+      npm-package: {}
+    variables:
+      my-variable: hello-variable
   environments:
     local:
       providers:
-        docker:
-          type: kubernetes
+        kubernetes:
           context: docker-for-desktop
-        gcf:
-          type: local-google-cloud-functions
+        local-google-cloud-functions: {}
     dev:
       providers:
-        docker:
-          type: google-app-engine
-        gcf:
-          type: google-cloud-functions
+        google-app-engine: {}
+        google-cloud-functions:
           default-project: garden-hello-world
-  variables:
-    my-variable: hello-variable

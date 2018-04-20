@@ -1,6 +1,6 @@
 module:
   name: module-a
-  type: test
+  type: generic
   services:
     service-a:
       command: echo ${local.env.TEST_VARIABLE}

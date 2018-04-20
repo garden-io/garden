@@ -6,20 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DockerModuleHandler } from "./container"
-import { GoogleCloudFunctionsProvider } from "./google/google-cloud-functions"
-import { LocalGoogleCloudFunctionsProvider } from "./local/local-google-cloud-functions"
-import { KubernetesProvider } from "./kubernetes"
-import { NpmPackageModuleHandler } from "./npm-package"
-import { GoogleAppEngineProvider } from "./google/google-app-engine"
-import { PluginFactory } from "../types/plugin"
-
+import { resolve } from "path"
 // TODO: these should be configured, either explicitly or as dependencies of other plugins
-export const defaultPlugins: PluginFactory[] = [
-  DockerModuleHandler,
-  NpmPackageModuleHandler,
-  KubernetesProvider,
-  GoogleAppEngineProvider,
-  GoogleCloudFunctionsProvider,
-  LocalGoogleCloudFunctionsProvider,
-].map(pluginClass => (_ctx) => new pluginClass())
+import { RegisterPluginParam } from "../types/plugin"
+
+// These plugins are always registered
+export const builtinPlugins: RegisterPluginParam[] = [
+  "./generic",
+  "./container",
+  "./google/google-cloud-functions",
+  "./local/local-google-cloud-functions",
+  "./kubernetes",
+  "./npm-package",
+  "./google/google-app-engine",
+].map(p => resolve(__dirname, p))
+
+// These plugins are always loaded
+export const fixedPlugins = [
+  "generic",
+]

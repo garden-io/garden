@@ -12,21 +12,24 @@ import {
   apiGetOrNull,
   coreApi,
 } from "./api"
-import { GARDEN_GLOBAL_SYSTEM_NAMESPACE } from "./system-global"
+import {
+  GARDEN_SYSTEM_NAMESPACE,
+  isSystemGarden,
+} from "./system"
 
-export async function namespaceReady(namespace: string) {
+export async function namespaceReady(context: string, namespace: string) {
   /**
    * This is an issue with kubernetes-client where it fetches all namespaces instead of the requested one.
    * Is fixed in v4.0.0. See https://github.com/godaddy/kubernetes-client/issues/187 and
    * https://github.com/godaddy/kubernetes-client/pull/190
    */
-  const allNamespaces = await apiGetOrNull(coreApi().namespaces, namespace)
+  const allNamespaces = await apiGetOrNull(coreApi(context).namespaces, namespace)
   const ns = allNamespaces.items.find(n => n.metadata.name === namespace)
   return ns && ns.status.phase === "Active"
 }
 
-export async function createNamespace(namespace: string) {
-  await coreApi().namespaces.post({
+export async function createNamespace(context: string, namespace: string) {
+  await coreApi(context).namespaces.post({
     body: {
       apiVersion: "v1",
       kind: "Namespace",
@@ -40,15 +43,21 @@ export async function createNamespace(namespace: string) {
   })
 }
 
-export function getAppNamespace(ctx: PluginContext, env?: Environment) {
-  const currentEnv = env || ctx.getEnvironment()
-  if (currentEnv.namespace === GARDEN_GLOBAL_SYSTEM_NAMESPACE) {
-    return currentEnv.namespace
+export function getAppNamespace(ctx: PluginContext, env: Environment) {
+  if (isSystemGarden(ctx)) {
+    return GARDEN_SYSTEM_NAMESPACE
   }
+
+  const currentEnv = env || ctx.getEnvironment()
+
   return `garden--${ctx.projectName}--${currentEnv.namespace}`
 }
 
 export function getMetadataNamespace(ctx: PluginContext) {
+  if (isSystemGarden(ctx)) {
+    return GARDEN_SYSTEM_NAMESPACE + "--metadata"
+  }
+
   const env = ctx.getEnvironment()
   return `garden-metadata--${ctx.projectName}--${env.namespace}`
 }

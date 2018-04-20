@@ -17,6 +17,7 @@ import {
   ServiceContext,
   ServiceStatus,
 } from "../../types/service"
+import { getContext } from "./actions"
 import {
   createIngress,
   getServiceHostname,
@@ -41,25 +42,26 @@ interface KubeEnvVar {
 }
 
 export async function deployService(
-  { ctx, service, env, serviceContext, exposePorts = false, logEntry }: DeployServiceParams<ContainerModule>,
+  { ctx, service, env, serviceContext, logEntry }: DeployServiceParams<ContainerModule>,
 ): Promise<ServiceStatus> {
   const namespace = getAppNamespace(ctx, env)
 
-  const deployment = await createDeployment(service, serviceContext, exposePorts)
-  await apply(deployment, { namespace })
+  const context = getContext(env)
+  const deployment = await createDeployment(service, serviceContext)
+  await apply(context, deployment, { namespace })
 
   // TODO: automatically clean up Services and Ingresses if they should no longer exist
 
-  const kubeservices = await createServices(service, exposePorts)
+  const kubeservices = await createServices(service)
 
   for (let kubeservice of kubeservices) {
-    await apply(kubeservice, { namespace })
+    await apply(context, kubeservice, { namespace })
   }
 
   const ingress = await createIngress(service, getServiceHostname(ctx, service))
 
   if (ingress !== null) {
-    await apply(ingress, { namespace })
+    await apply(context, ingress, { namespace })
   }
 
   await waitForDeployment({ ctx, service, logEntry, env })
@@ -67,9 +69,7 @@ export async function deployService(
   return checkDeploymentStatus({ ctx, service, env })
 }
 
-export async function createDeployment(
-  service: ContainerService, serviceContext: ServiceContext, exposePorts: boolean,
-) {
+export async function createDeployment(service: ContainerService, serviceContext: ServiceContext) {
   const config: ContainerServiceConfig = service.config
   const { versionString } = await service.module.getVersion()
   // TODO: support specifying replica count
@@ -275,17 +275,15 @@ export async function createDeployment(
       type: "RollingUpdate",
     }
 
-    if (exposePorts) {
-      for (const port of ports.filter(p => p.hostPort)) {
-        // For daemons we can expose host ports directly on the Pod, as opposed to only via the Service resource.
-        // This allows us to choose any port.
-        // TODO: validate that conflicting ports are not defined.
-        container.ports.push({
-          protocol: port.protocol,
-          containerPort: port.containerPort,
-          hostPort: port.hostPort,
-        })
-      }
+    for (const port of ports.filter(p => p.hostPort)) {
+      // For daemons we can expose host ports directly on the Pod, as opposed to only via the Service resource.
+      // This allows us to choose any port.
+      // TODO: validate that conflicting ports are not defined.
+      container.ports.push({
+        protocol: port.protocol,
+        containerPort: port.containerPort,
+        hostPort: port.hostPort,
+      })
     }
 
   } else {

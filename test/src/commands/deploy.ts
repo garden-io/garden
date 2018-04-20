@@ -2,32 +2,53 @@ import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
-import { DeployServiceParams, GetServiceStatusParams, Plugin } from "../../../src/types/plugin"
-import { Module } from "../../../src/types/module"
+import {
+  DeployServiceParams,
+  GetServiceStatusParams,
+  PluginFactory,
+} from "../../../src/types/plugin"
 import { ServiceState, ServiceStatus } from "../../../src/types/service"
-import { defaultPlugins } from "../../../src/plugins"
 
-class TestProvider implements Plugin<Module> {
-  name = "test-plugin"
-  supportedModuleTypes = ["generic", "container"]
-
-  testStatuses: { [key: string]: ServiceStatus } = {}
-
-  async getServiceStatus({ service }: GetServiceStatusParams): Promise<ServiceStatus> {
-    return this.testStatuses[service.name] || {}
+const testProvider: PluginFactory = () => {
+  const testStatuses: { [key: string]: ServiceStatus } = {
+    "service-a": {
+      state: "ready",
+      endpoints: [{
+        protocol: "http",
+        hostname: "service-a.test-project-b.local.app.garden",
+        paths: ["/path-a"],
+        url: "http://service-a.test-project-b.local.app.garden:32000",
+      }],
+    },
+    "service-c": {
+      state: "ready",
+    },
   }
 
-  async deployService({ service }: DeployServiceParams) {
+  const getServiceStatus = async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
+    return testStatuses[service.name] || {}
+  }
+
+  const deployService = async ({ service }: DeployServiceParams) => {
     const newStatus = {
       version: "1",
       state: <ServiceState>"ready",
     }
 
-    this.testStatuses[service.name] = newStatus
+    testStatuses[service.name] = newStatus
 
     return newStatus
   }
+
+  return {
+    moduleActions: {
+      generic: { deployService, getServiceStatus },
+      container: { deployService, getServiceStatus },
+    },
+  }
 }
+
+testProvider.pluginName = "test-plugin"
 
 describe("commands.deploy", () => {
   const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
@@ -35,7 +56,7 @@ describe("commands.deploy", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 
   it("should build and deploy all modules in a project", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const ctx = garden.pluginContext
     const command = new DeployCommand()
 
@@ -60,7 +81,7 @@ describe("commands.deploy", () => {
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: defaultPlugins.concat([() => new TestProvider()]) })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const ctx = garden.pluginContext
     const command = new DeployCommand()
 

@@ -22,3 +22,5 @@ module:
         httpGet:
           path: /healthz
           port: http
+      dependencies:
+        - default-backend

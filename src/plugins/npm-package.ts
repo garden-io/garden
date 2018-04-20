@@ -6,13 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GenericModuleHandler } from "./generic"
+import { ModuleConfig } from "../types/module"
+import { GardenPlugin } from "../types/plugin"
+import { ServiceConfig } from "../types/service"
+import {
+  genericPlugin,
+} from "./generic"
 
-export class NpmPackageModuleHandler extends GenericModuleHandler {
-  name = "npm-package-module"
-  supportedModuleTypes = ["npm-package"]
+let _moduleConfig: ModuleConfig
+let _serviceConfig: ServiceConfig
 
-  // TODO: check package.json
-  // parseModule(module: Module) {
-  // }
-}
+export const gardenPlugin = (): GardenPlugin => ({
+  moduleActions: {
+    "npm-package": genericPlugin.moduleActions.generic,
+  },
+})

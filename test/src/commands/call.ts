@@ -2,16 +2,12 @@ import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { CallCommand } from "../../../src/commands/call"
 import { expect } from "chai"
-import { GetServiceStatusParams, Plugin } from "../../../src/types/plugin"
-import { Module } from "../../../src/types/module"
+import { GetServiceStatusParams, PluginFactory } from "../../../src/types/plugin"
 import { ServiceStatus } from "../../../src/types/service"
 import nock = require("nock")
 
-class TestProvider implements Plugin<Module> {
-  name = "test-plugin"
-  supportedModuleTypes = ["generic", "container"]
-
-  testStatuses: { [key: string]: ServiceStatus } = {
+const testProvider: PluginFactory = () => {
+  const testStatuses: { [key: string]: ServiceStatus } = {
     "service-a": {
       state: "ready",
       endpoints: [{
@@ -26,10 +22,19 @@ class TestProvider implements Plugin<Module> {
     },
   }
 
-  async getServiceStatus({ service }: GetServiceStatusParams): Promise<ServiceStatus> {
-    return this.testStatuses[service.name] || {}
+  const getServiceStatus = async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
+    return testStatuses[service.name] || {}
+  }
+
+  return {
+    moduleActions: {
+      generic: { getServiceStatus },
+      container: { getServiceStatus },
+    },
   }
 }
+
+testProvider.pluginName = "test-plugin"
 
 describe("commands.call", () => {
   const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
@@ -44,7 +49,7 @@ describe("commands.call", () => {
   })
 
   it("should find the endpoint for a service and call it with the specified path", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const ctx = garden.pluginContext
     const command = new CallCommand()
 
@@ -68,7 +73,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service isn't running", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const ctx = garden.pluginContext
     const command = new CallCommand()
 
@@ -88,7 +93,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no endpoints", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const ctx = garden.pluginContext
     const command = new CallCommand()
 
@@ -108,7 +113,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no matching endpoints", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [() => new TestProvider()] })
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const ctx = garden.pluginContext
     const command = new CallCommand()
 

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { JoiObject } from "joi"
 import * as Joi from "joi"
 import * as uuid from "uuid"
 import { EnvironmentConfig } from "./project"
@@ -27,6 +28,8 @@ export const joiIdentifier = () => Joi
     "may contain lowercase letters, numbers and dashes, must start with a letter, " +
     "cannot contain consecutive dashes and cannot end with a dash",
 )
+
+export const joiIdentifierMap = (valueSchema: JoiObject) => Joi.object().pattern(identifierRegex, valueSchema)
 
 export const joiVariables = () => Joi
   .object().pattern(/[\w\d]+/i, joiPrimitive())

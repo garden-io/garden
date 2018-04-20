@@ -4,7 +4,7 @@ import * as td from "testdouble"
 import {
   dataDir,
   makeTestGarden,
-  stubPluginAction,
+  stubModuleAction,
 } from "../../helpers"
 import { DeployTask } from "../../../src/tasks/deploy"
 
@@ -15,7 +15,6 @@ describe("DeployTask", () => {
 
   it("should fully resolve templated strings on the service before deploying", async () => {
     process.env.TEST_VARIABLE = "banana"
-    process.env.TEST_PROVIDER_TYPE = "test-plugin-b"
 
     const garden = await makeTestGarden(resolve(dataDir, "test-project-templated"))
     const ctx = garden.pluginContext
@@ -27,13 +26,13 @@ describe("DeployTask", () => {
     const task = new DeployTask(ctx, serviceB, false, false)
     let actionParams: any = {}
 
-    stubPluginAction(
-      garden, "test-plugin-b", "getServiceStatus",
+    stubModuleAction(
+      garden, "generic", "test-plugin", "getServiceStatus",
       async () => ({}),
     )
 
-    stubPluginAction(
-      garden, "test-plugin-b", "deployService",
+    stubModuleAction(
+      garden, "generic", "test-plugin", "deployService",
       async (params) => { actionParams = params },
     )
 

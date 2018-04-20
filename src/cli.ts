@@ -29,7 +29,6 @@ import { BuildCommand } from "./commands/build"
 import { EnvironmentCommand } from "./commands/environment/index"
 import { DeployCommand } from "./commands/deploy"
 import { CallCommand } from "./commands/call"
-import { defaultPlugins } from "./plugins"
 import { TestCommand } from "./commands/test"
 import { DevCommand } from "./commands/dev"
 import { LogsCommand } from "./commands/logs"
@@ -282,7 +281,7 @@ export class GardenCli {
         )
       }
 
-      const garden = await Garden.factory(root, { env, logger, plugins: defaultPlugins })
+      const garden = await Garden.factory(root, { env, logger })
       return command.action(garden.pluginContext, argsForAction, optsForAction)
     }
 

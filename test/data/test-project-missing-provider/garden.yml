@@ -3,7 +3,5 @@ project:
   environments:
     test:
       providers:
-        test:
-          type: test-plugin
-        test-b:
-          type: test-plugin-b
+        test-plugin: {}
+        test-plugin-b: {}

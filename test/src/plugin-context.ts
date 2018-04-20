@@ -2,7 +2,7 @@ import { expect } from "chai"
 import {
   expectError,
   makeTestContextA,
-} from "./helpers"
+} from "../helpers"
 
 describe("PluginContext", () => {
   describe("setConfig", () => {

@@ -8,16 +8,14 @@
 
 import * as K8s from "kubernetes-client"
 
-import { DEFAULT_CONTEXT } from "./kubectl"
-
 const cachedParams = {}
 
-function getParams(namespace?: string) {
+function getParams(context: string, namespace?: string) {
   let params = cachedParams[namespace || ""]
 
   if (!params) {
     const config = K8s.config.loadKubeconfig()
-    params = <any>K8s.config.fromKubeconfig(config, DEFAULT_CONTEXT)
+    params = <any>K8s.config.fromKubeconfig(config, context)
 
     params.promises = true
     params.namespace = namespace
@@ -28,12 +26,12 @@ function getParams(namespace?: string) {
   return params
 }
 
-export function coreApi(namespace?: string): any {
-  return new K8s.Core(getParams(namespace))
+export function coreApi(context: string, namespace?: string): any {
+  return new K8s.Core(getParams(context, namespace))
 }
 
-export function extensionsApi(namespace?: string): any {
-  return new K8s.Extensions(getParams(namespace))
+export function extensionsApi(context: string, namespace?: string): any {
+  return new K8s.Extensions(getParams(context, namespace))
 }
 
 export async function apiPostOrPut(api: any, name: string, body: object) {
