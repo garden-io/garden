@@ -203,7 +203,7 @@ export async function execInService({ ctx, config, service, env, command }: Exec
 }
 
 export async function testModule(
-  { ctx, env, module, testSpec }: TestModuleParams<ContainerModule>,
+  { ctx, env, module, testName, testSpec }: TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   // TODO: include a service context here
   const context = getContext(env)
@@ -237,6 +237,8 @@ export async function testModule(
   const res = await kubectl(context, getAppNamespace(ctx, env)).tty(kubecmd, { ignoreError: true, timeout })
 
   const testResult: TestResult = {
+    moduleName: module.name,
+    testName,
     version,
     success: res.code === 0,
     startedAt,
@@ -245,7 +247,7 @@ export async function testModule(
   }
 
   const ns = getMetadataNamespace(ctx)
-  const resultKey = `test-result--${module.name}--${version.versionString}`
+  const resultKey = getTestResultKey(module, testName, version)
   const body = {
     body: {
       apiVersion: "v1",
@@ -266,10 +268,10 @@ export async function testModule(
   return testResult
 }
 
-export async function getTestResult({ ctx, env, module, version }: GetTestResultParams<ContainerModule>) {
+export async function getTestResult({ ctx, env, module, testName, version }: GetTestResultParams<ContainerModule>) {
   const context = getContext(env)
   const ns = getMetadataNamespace(ctx)
-  const resultKey = getTestResultKey(module, version)
+  const resultKey = getTestResultKey(module, testName, version)
   const res = await apiGetOrNull(coreApi(context, ns).namespaces.configmaps, resultKey)
   return res && <TestResult>deserializeKeys(res.data)
 }
@@ -352,6 +354,6 @@ export async function deleteConfig({ ctx, env, key }: DeleteConfigParams) {
   return { found: true }
 }
 
-function getTestResultKey(module: ContainerModule, version: TreeVersion) {
-  return `test-result--${module.name}--${version.versionString}`
+function getTestResultKey(module: ContainerModule, testName: string, version: TreeVersion) {
+  return `test-result--${module.name}--${testName}--${version.versionString}`
 }

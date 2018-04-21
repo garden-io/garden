@@ -85,14 +85,16 @@ export interface PushModuleParams<T extends Module = Module> extends PluginActio
 
 export interface TestModuleParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
-  testSpec: TestSpec,
-  env: Environment,
+  testName: string
+  testSpec: TestSpec
+  env: Environment
 }
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginActionParamsBase {
-  module: T,
-  version: TreeVersion,
-  env: Environment,
+  module: T
+  testName: string
+  version: TreeVersion
+  env: Environment
 }
 
 export interface GetServiceStatusParams<T extends Module = Module> extends PluginActionParamsBase {
@@ -153,6 +155,8 @@ export interface PushResult {
 }
 
 export interface TestResult {
+  moduleName: string
+  testName: string
   version: TreeVersion
   success: boolean
   startedAt: Moment | Date

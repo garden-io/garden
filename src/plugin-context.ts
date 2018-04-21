@@ -83,8 +83,12 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getModuleBuildStatus: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildStatus>
   buildModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildResult>
   pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
-  testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
-  getTestResult: <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => Promise<TestResult | null>
+  testModule: <T extends Module>(
+    module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry,
+  ) => Promise<TestResult>
+  getTestResult: <T extends Module>(
+    module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
+  ) => Promise<TestResult | null>
   getEnvironmentStatus: () => Promise<EnvironmentStatusMap>
   configureEnvironment: () => Promise<EnvironmentStatusMap>
   destroyEnvironment: () => Promise<EnvironmentStatusMap>
@@ -159,17 +163,19 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ctx, config, module, logEntry })
     },
 
-    testModule: async <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => {
+    testModule: async <T extends Module>(module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry) => {
       const defaultHandler = garden.getModuleActionHandler("testModule", "generic")
       const handler = garden.getModuleActionHandler("testModule", module.type, defaultHandler)
       const env = garden.getEnvironment()
-      return handler({ ctx, config, module, testSpec, env, logEntry })
+      return handler({ ctx, config, module, testName, testSpec, env, logEntry })
     },
 
-    getTestResult: async <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => {
+    getTestResult: async <T extends Module>(
+      module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
+    ) => {
       const handler = garden.getModuleActionHandler("getTestResult", module.type, async () => null)
       const env = garden.getEnvironment()
-      return handler({ ctx, config, module, version, env, logEntry })
+      return handler({ ctx, config, module, testName, version, env, logEntry })
     },
 
     getEnvironmentStatus: async () => {
