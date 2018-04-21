@@ -45,6 +45,10 @@ export class DeployTask<T extends Service<any>> extends Task {
     return this.service.name
   }
 
+  getDescription() {
+    return `deploying service ${this.service.name} (from module ${this.service.module.name})`
+  }
+
   async process(): Promise<ServiceStatus> {
     const entry = (this.logEntry || this.ctx.log).info({
       section: this.service.name,

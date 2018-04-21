@@ -2,7 +2,11 @@ import { join } from "path"
 import { expect } from "chai"
 import { Garden } from "../../src/garden"
 import { Task } from "../../src/types/task"
-import { TaskGraph, TaskResults } from "../../src/task-graph"
+import {
+  TaskGraph,
+  TaskResult,
+  TaskResults,
+} from "../../src/task-graph"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
@@ -38,11 +42,15 @@ class TestTask extends Task {
     return this.id ? `${this.name}.${this.id}` : this.name
   }
 
+  getDescription() {
+    return this.getKey()
+  }
+
   async process(dependencyResults: TaskResults) {
     const result = { result: "result-" + this.getKey(), dependencyResults }
 
     if (this.callback) {
-      await this.callback(this.getKey(), result)
+      await this.callback(this.getKey(), result.result)
     }
 
     return result
@@ -65,9 +73,19 @@ describe("task-graph", () => {
       await graph.addTask(task)
       const results = await graph.processTasks()
 
-      expect(results).to.eql({
-        a: { result: "result-a", dependencyResults: {} },
-      })
+      const expected: TaskResults = {
+        a: {
+          type: "test",
+          description: "a",
+          output: {
+            result: "result-a",
+            dependencyResults: {},
+          },
+          dependencyResults: {},
+        },
+      }
+
+      expect(results).to.eql(expected)
     })
 
     it("should process multiple tasks in dependency order", async () => {
@@ -100,36 +118,64 @@ describe("task-graph", () => {
 
       const results = await graph.processTasks()
 
-      const resultA = { result: "result-a", dependencyResults: {} }
-      const resultB = {
-        result: "result-b",
-        dependencyResults: { a: resultA },
+      const resultA: TaskResult = {
+        type: "test",
+        description: "a",
+        output: {
+          result: "result-a",
+          dependencyResults: {},
+        },
+        dependencyResults: {},
       }
-      const resultC = {
-        result: "result-c",
-        dependencyResults: { b: resultB },
-      }
-
-      expect(results).to.eql(callbackResults)
-      expect(results).to.eql({
-        a: resultA,
-        b: {
+      const resultB: TaskResult = {
+        type: "test",
+        description: "b",
+        output: {
           result: "result-b",
           dependencyResults: { a: resultA },
         },
-        c: {
+        dependencyResults: { a: resultA },
+      }
+      const resultC: TaskResult = {
+        type: "test",
+        description: "c",
+        output: {
           result: "result-c",
           dependencyResults: { b: resultB },
         },
+        dependencyResults: { b: resultB },
+      }
+
+      const expected: TaskResults = {
+        a: resultA,
+        b: resultB,
+        c: resultC,
         d: {
-          result: "result-d",
+          type: "test",
+          description: "d",
+          output: {
+            result: "result-d",
+            dependencyResults: {
+              b: resultB,
+              c: resultC,
+            },
+          },
           dependencyResults: {
             b: resultB,
             c: resultC,
           },
         },
-      })
+      }
+
+      expect(results).to.eql(expected)
       expect(resultOrder).to.eql(["a", "b", "c", "d"])
+
+      expect(callbackResults).to.eql({
+        a: "result-a",
+        b: "result-b",
+        c: "result-c",
+        d: "result-d",
+      })
     })
 
     it.skip(
@@ -205,24 +251,24 @@ describe("task-graph", () => {
       ])
 
       const resultDependencyA = {
-        result: "result-dependencyA",
+        output: "result-dependencyA",
         dependencyResults: {},
       }
 
       const resultDependencyB = {
-        result: "result-dependencyB",
+        output: "result-dependencyB",
         dependencyResults: {},
       }
 
       const resultSharedName = {
-        result: "result-sharedName.2",
+        output: "result-sharedName.2",
         dependencyResults: {dependencyA: resultDependencyA, dependencyB: resultDependencyB},
       }
 
       expect(results).to.eql({
-        dependencyA: { result: "result-dependencyA", dependencyResults: {} },
-        dependencyB: { result: "result-dependencyB", dependencyResults: {} },
-        sharedName: { result: "result-sharedName.2",
+        dependencyA: { output: "result-dependencyA", dependencyResults: {} },
+        dependencyB: { output: "result-dependencyB", dependencyResults: {} },
+        sharedName: { output: "result-sharedName.2",
           dependencyResults: { dependencyA: resultDependencyA, dependencyB: resultDependencyB } },
         dependantA:
         { result: "result-dependantA",

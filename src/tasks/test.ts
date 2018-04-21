@@ -15,6 +15,12 @@ import { Task } from "../types/task"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
 
+class TestError extends Error {
+  toString() {
+    return this.message
+  }
+}
+
 export class TestTask<T extends Module> extends Task {
   type = "test"
 
@@ -79,7 +85,8 @@ export class TestTask<T extends Module> extends Task {
     if (result.success) {
       entry.setSuccess({ msg: chalk.green(`Success`), append: true })
     } else {
-      entry.error({ msg: chalk.red(`Failed!`), append: true })
+      entry.setError({ msg: chalk.red(`Failed!`), append: true })
+      throw new TestError(result.output)
     }
 
     return result

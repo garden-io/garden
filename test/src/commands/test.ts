@@ -1,5 +1,8 @@
 import { expect } from "chai"
-import { makeTestContextA } from "../../helpers"
+import {
+  makeTestContextA,
+  taskResultOutputs
+} from "../../helpers"
 import { TestCommand } from "../../../src/commands/test"
 import * as isSubset from "is-subset"
 
@@ -11,10 +14,10 @@ describe("commands.test", () => {
     const result = await command.action(
       ctx,
       { module: undefined },
-      { group: undefined, force: true, "force-build": true },
+      { group: undefined, force: true, "force-build": true, watch: false },
     )
 
-    expect(isSubset(result, {
+    expect(isSubset(taskResultOutputs(result), {
       "build.module-a": {
         fresh: true,
         buildLog: "A\n",
@@ -46,10 +49,10 @@ describe("commands.test", () => {
     const result = await command.action(
       ctx,
       { module: "module-a" },
-      { group: undefined, force: true, "force-build": true },
+      { group: undefined, force: true, "force-build": true, watch: false },
     )
 
-    expect(isSubset(result, {
+    expect(isSubset(taskResultOutputs(result), {
       "build.module-a": {
         fresh: true,
         buildLog: "A\n",

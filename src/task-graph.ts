@@ -17,12 +17,20 @@ import { PluginContext } from "./plugin-context"
 
 class TaskGraphError extends Error { }
 
+export interface TaskResult {
+  type: string
+  description: string
+  output?: any
+  dependencyResults?: TaskResults
+  error?: any
+}
+
 /*
   When multiple tasks with the same baseKey are completed during a call to processTasks,
   the result from the last processed is used (hence only one key-value pair here per baseKey).
  */
 export interface TaskResults {
-  [baseKey: string]: any
+  [baseKey: string]: TaskResult
 }
 
 interface LogEntryMap { [key: string]: LogEntry }
@@ -111,7 +119,7 @@ export class TaskGraph {
   async processTasksInternal(): Promise<TaskResults> {
 
     const _this = this
-    let results: TaskResults = {}
+    const results: TaskResults = {}
 
     const loop = async () => {
       if (_this.index.length === 0) {
@@ -129,7 +137,9 @@ export class TaskGraph {
       this.initLogging()
 
       return Bluebird.map(batch, async (node: TaskNode) => {
+        const type = node.getType()
         const baseKey = node.getBaseKey()
+        const description = node.getDescription()
 
         try {
           this.logTask(node)
@@ -137,9 +147,14 @@ export class TaskGraph {
 
           const dependencyBaseKeys = (await node.task.getDependencies())
             .map(task => task.getBaseKey())
+
           const dependencyResults = pick(results, dependencyBaseKeys)
 
-          results[baseKey] = await node.process(dependencyResults)
+          try {
+            results[baseKey] = await node.process(dependencyResults)
+          } catch (error) {
+            results[baseKey] = { type, description, error }
+          }
         } finally {
           this.completeTask(node)
         }
@@ -346,6 +361,14 @@ class TaskNode {
     return getIndexKey(this.task)
   }
 
+  getDescription() {
+    return this.task.getDescription()
+  }
+
+  getType() {
+    return this.task.type
+  }
+
   // For testing/debugging purposes
   inspect(): object {
     return {
@@ -356,7 +379,14 @@ class TaskNode {
   }
 
   async process(dependencyResults: TaskResults) {
-    return await this.task.process(dependencyResults)
+    const output = await this.task.process(dependencyResults)
+
+    return {
+      type: this.getType(),
+      description: this.getDescription(),
+      output,
+      dependencyResults,
+    }
   }
 }
 

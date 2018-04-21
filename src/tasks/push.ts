@@ -36,6 +36,10 @@ export class PushTask<T extends Module<any>> extends Task {
     return this.module.name
   }
 
+  getDescription() {
+    return `pushing module ${this.module.name}`
+  }
+
   async process(): Promise<PushResult> {
     if (!(await this.module.getConfig()).allowPush) {
       this.ctx.log.info({

@@ -30,6 +30,10 @@ export class BuildTask<T extends Module> extends Task {
     return this.module.name
   }
 
+  getDescription() {
+    return `building ${this.module.name}`
+  }
+
   async process(): Promise<BuildResult> {
     if (!this.force && (await this.ctx.getModuleBuildStatus(this.module)).ready) {
       // this is necessary in case other modules depend on files from this one
