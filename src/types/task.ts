@@ -36,6 +36,8 @@ export abstract class Task {
     return `${this.getBaseKey()}.${this.id}`
   }
 
+  abstract getDescription(): string
+
   abstract async process(dependencyResults: TaskResults): Promise<any>
 }
 

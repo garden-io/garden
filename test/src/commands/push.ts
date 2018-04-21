@@ -11,6 +11,7 @@ import { PushCommand } from "../../../src/commands/push"
 import { TreeVersion } from "../../../src/vcs/base"
 import {
   expectError,
+  taskResultOutputs,
 } from "../../helpers"
 
 const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
@@ -103,7 +104,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: false },
       "build.module-b": { fresh: false },
       "push.module-a": { pushed: true },
@@ -127,7 +128,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: true },
       "build.module-b": { fresh: true },
       "push.module-a": { pushed: true },
@@ -151,7 +152,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: false },
       "push.module-a": { pushed: true },
     })
@@ -172,7 +173,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "push.module-c": { pushed: false },
     })
   })
@@ -194,7 +195,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: false },
       "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type generic") },
     })
@@ -247,7 +248,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: true },
       "push.module-a": { pushed: true },
     })

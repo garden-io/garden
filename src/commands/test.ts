@@ -8,9 +8,8 @@
 
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
-import { values, padEnd } from "lodash"
+import { values } from "lodash"
 import { TestTask } from "../tasks/test"
-import { splitFirst } from "../util"
 import chalk from "chalk"
 import { TaskResults } from "../task-graph"
 
@@ -28,6 +27,7 @@ export const testOpts = {
   }),
   force: new BooleanParameter({ help: "Force re-test of module(s)", alias: "f" }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)" }),
+  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-test", alias: "w" }),
 }
 
 export type Args = ParameterValues<typeof testArgs>
@@ -42,7 +42,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<TaskResults> {
     const names = args.module ? args.module.split(",") : undefined
-    const modules = await ctx.getModules(names)
+    const modules = values(await ctx.getModules(names))
 
     ctx.log.header({
       emoji: "thermometer",
@@ -51,7 +51,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
 
     await ctx.configureEnvironment()
 
-    for (const module of values(modules)) {
+    const results = await ctx.processModules(modules, opts.watch, async (module) => {
       const config = await module.getConfig()
 
       for (const testName of Object.keys(config.test)) {
@@ -62,33 +62,9 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
         const task = new TestTask(ctx, module, testName, testSpec, opts.force, opts["force-build"])
         await ctx.addTask(task)
       }
-    }
+    })
 
-    const results = await ctx.processTasks()
-    let failed = 0
-
-    for (const key in results) {
-      // TODO: this is brittle, we should have a more verbose data structure coming out of the TaskGraph
-      const [type, taskKey] = splitFirst(key, ".")
-
-      if (type !== "test") {
-        continue
-      }
-
-      const result = results[key]
-
-      if (!result.success) {
-        const [moduleName, testType] = splitFirst(taskKey, ".")
-        const divider = padEnd("—", 80)
-
-        ctx.log.error(`${testType} tests for ${moduleName} failed. Here is the output:`)
-        ctx.log.error(divider)
-        ctx.log.error(result.output)
-        ctx.log.error(divider + "\n")
-
-        failed++
-      }
-    }
+    const failed = values(results).filter(r => !!r.error).length
 
     if (failed) {
       ctx.log.error({ emoji: "warning", msg: `${failed} tests runs failed! See log output above.\n` })

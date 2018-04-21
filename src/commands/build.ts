@@ -20,6 +20,7 @@ export const buildArguments = {
 
 export const buildOptions = {
   force: new BooleanParameter({ help: "Force rebuild of module(s)" }),
+  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-build", alias: "w" }),
 }
 
 export type BuildArguments = ParameterValues<typeof buildArguments>
@@ -35,14 +36,12 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
     await ctx.clearBuilds()
     const names = args.module ? args.module.split(",") : undefined
-    const modules = await ctx.getModules(names)
-
-    for (const module of values(modules)) {
-      await ctx.addTask(new BuildTask(ctx, module, opts.force))
-    }
+    const modules = values(await ctx.getModules(names))
 
     ctx.log.header({ emoji: "hammer", command: "build" })
 
-    return await ctx.processTasks()
+    return await ctx.processModules(modules, opts.watch, async (module) => {
+      await ctx.addTask(new BuildTask(ctx, module, opts.force))
+    })
   }
 }

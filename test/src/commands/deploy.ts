@@ -8,6 +8,7 @@ import {
   PluginFactory,
 } from "../../../src/types/plugin"
 import { ServiceState, ServiceStatus } from "../../../src/types/service"
+import { taskResultOutputs } from "../../helpers"
 
 const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
@@ -72,7 +73,7 @@ describe("commands.deploy", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A\n" },
       "build.module-b": { fresh: true, buildLog: "B\n" },
       "build.module-c": {},
@@ -99,7 +100,7 @@ describe("commands.deploy", () => {
       },
     )
 
-    expect(result).to.eql({
+    expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A\n" },
       "build.module-b": { fresh: true, buildLog: "B\n" },
       "deploy.service-a": { version: "1", state: "ready" },

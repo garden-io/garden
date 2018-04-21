@@ -1,5 +1,6 @@
 import * as td from "testdouble"
 import { resolve } from "path"
+import { TaskResults } from "../src/task-graph"
 import {
   DeleteConfigParams,
   GetConfigParams,
@@ -13,6 +14,7 @@ import {
 import { Garden } from "../src/garden"
 import { Module } from "../src/types/module"
 import { expect } from "chai"
+import { mapValues } from "lodash"
 
 export const dataDir = resolve(__dirname, "data")
 
@@ -155,4 +157,8 @@ export async function expectError(fn: Function, typeOrCallback: string | ((err: 
   } else {
     throw new Error(`Expected error (got no error)`)
   }
+}
+
+export function taskResultOutputs(results: TaskResults) {
+  return mapValues(results, r => r.output)
 }
