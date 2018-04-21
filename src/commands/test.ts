@@ -54,12 +54,12 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
     for (const module of values(modules)) {
       const config = await module.getConfig()
 
-      for (const testGroup of Object.keys(config.test)) {
-        if (opts.group && testGroup !== opts.group) {
+      for (const testName of Object.keys(config.test)) {
+        if (opts.group && testName !== opts.group) {
           continue
         }
-        const testSpec = config.test[testGroup]
-        const task = new TestTask(ctx, module, testGroup, testSpec, opts.force, opts["force-build"])
+        const testSpec = config.test[testName]
+        const task = new TestTask(ctx, module, testName, testSpec, opts.force, opts["force-build"])
         await ctx.addTask(task)
       }
     }

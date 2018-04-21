@@ -20,7 +20,7 @@ export class TestTask<T extends Module> extends Task {
 
   constructor(
     private ctx: PluginContext,
-    private module: T, private testType: string, private testSpec: TestSpec,
+    private module: T, private testName: string, private testSpec: TestSpec,
     private force: boolean, private forceBuild: boolean,
   ) {
     super()
@@ -37,7 +37,7 @@ export class TestTask<T extends Module> extends Task {
 
     const services = await this.ctx.getServices(this.testSpec.dependencies)
 
-    for (const serviceName in services) {
+    for (const serviceName of Object.keys(services)) {
       const service = services[serviceName]
       deps.push(new DeployTask(this.ctx, service, false, this.forceBuild))
     }
@@ -46,29 +46,35 @@ export class TestTask<T extends Module> extends Task {
   }
 
   getName() {
-    return `${this.module.name}.${this.testType}`
+    return `${this.module.name}.${this.testName}`
+  }
+
+  getDescription() {
+    return `running ${this.testName} tests in module ${this.module.name}`
   }
 
   async process(): Promise<TestResult> {
-    // find out if module has already been tested
-    const testResult = await this.getTestResult()
+    if (!this.force) {
+      // find out if module has already been tested
+      const testResult = await this.getTestResult()
 
-    if (testResult && testResult.success) {
-      const passedEntry = this.ctx.log.info({
-        section: this.module.name,
-        msg: `${this.testType} tests`,
-      })
-      passedEntry.setSuccess({ msg: chalk.green("Already passed"), append: true })
-      return testResult
+      if (testResult && testResult.success) {
+        const passedEntry = this.ctx.log.info({
+          section: this.module.name,
+          msg: `${this.testName} tests`,
+        })
+        passedEntry.setSuccess({ msg: chalk.green("Already passed"), append: true })
+        return testResult
+      }
     }
 
     const entry = this.ctx.log.info({
       section: this.module.name,
-      msg: `Running ${this.testType} tests`,
+      msg: `Running ${this.testName} tests`,
       entryStyle: EntryStyle.activity,
     })
 
-    const result = await this.ctx.testModule(this.module, this.testSpec)
+    const result = await this.ctx.testModule(this.module, this.testName, this.testSpec)
 
     if (result.success) {
       entry.setSuccess({ msg: chalk.green(`Success`), append: true })
@@ -84,7 +90,7 @@ export class TestTask<T extends Module> extends Task {
       return null
     }
 
-    const testResult = await this.ctx.getTestResult(this.module, await this.module.getVersion())
+    const testResult = await this.ctx.getTestResult(this.module, this.testName, await this.module.getVersion())
     return testResult && testResult.success && testResult
   }
 }

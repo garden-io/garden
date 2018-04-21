@@ -87,8 +87,12 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
     module: T, buildContext: PrimitiveMap, logEntry?: LogEntry,
   ) => Promise<BuildResult>
   pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
-  testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
-  getTestResult: <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => Promise<TestResult | null>
+  testModule: <T extends Module>(
+    module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry,
+  ) => Promise<TestResult>
+  getTestResult: <T extends Module>(
+    module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
+  ) => Promise<TestResult | null>
   getEnvironmentStatus: () => Promise<EnvironmentStatusMap>
   configureEnvironment: () => Promise<EnvironmentStatusMap>
   destroyEnvironment: () => Promise<EnvironmentStatusMap>
@@ -183,17 +187,19 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ...commonParams(handler), module, logEntry })
     },
 
-    testModule: async <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => {
+    testModule: async <T extends Module>(module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry) => {
       const defaultHandler = garden.getModuleActionHandler("testModule", "generic")
       const handler = garden.getModuleActionHandler("testModule", module.type, defaultHandler)
       const env = garden.getEnvironment()
-      return handler({ ...commonParams(handler), module, testSpec, env, logEntry })
+      return handler({ ...commonParams(handler), module, testName, testSpec, env, logEntry })
     },
 
-    getTestResult: async <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => {
+    getTestResult: async <T extends Module>(
+      module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
+    ) => {
       const handler = garden.getModuleActionHandler("getTestResult", module.type, async () => null)
       const env = garden.getEnvironment()
-      return handler({ ...commonParams(handler), module, version, env, logEntry })
+      return handler({ ...commonParams(handler), module, testName, version, env, logEntry })
     },
 
     getEnvironmentStatus: async () => {

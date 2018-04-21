@@ -169,7 +169,7 @@ export async function execInService(
 }
 
 export async function testModule(
-  { ctx, provider, module, testSpec }: TestModuleParams<ContainerModule>,
+  { ctx, provider, module, testName, testSpec }: TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   // TODO: include a service context here
   const context = provider.config.context
@@ -203,6 +203,8 @@ export async function testModule(
   const res = await kubectl(context, getAppNamespace(ctx, provider)).tty(kubecmd, { ignoreError: true, timeout })
 
   const testResult: TestResult = {
+    moduleName: module.name,
+    testName,
     version,
     success: res.code === 0,
     startedAt,
@@ -211,7 +213,7 @@ export async function testModule(
   }
 
   const ns = getMetadataNamespace(ctx, provider)
-  const resultKey = `test-result--${module.name}--${version.versionString}`
+  const resultKey = getTestResultKey(module, testName, version)
   const body = {
     body: {
       apiVersion: "v1",
@@ -233,11 +235,11 @@ export async function testModule(
 }
 
 export async function getTestResult(
-  { ctx, provider, module, version }: GetTestResultParams<ContainerModule>,
+  { ctx, provider, module, testName, version }: GetTestResultParams<ContainerModule>,
 ) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
-  const resultKey = getTestResultKey(module, version)
+  const resultKey = getTestResultKey(module, testName, version)
   const res = await apiGetOrNull(coreApi(context, ns).namespaces.configmaps, resultKey)
   return res && <TestResult>deserializeKeys(res.data)
 }
@@ -322,6 +324,6 @@ export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
   return { found: true }
 }
 
-function getTestResultKey(module: ContainerModule, version: TreeVersion) {
-  return `test-result--${module.name}--${version.versionString}`
+function getTestResultKey(module: ContainerModule, testName: string, version: TreeVersion) {
+  return `test-result--${module.name}--${testName}--${version.versionString}`
 }
