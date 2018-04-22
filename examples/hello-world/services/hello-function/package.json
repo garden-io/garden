@@ -8,5 +8,7 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {}
+  "dependencies": {
+    "hello-npm-package": "file:libraries/hello-npm-package"
+  }
 }

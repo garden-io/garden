@@ -8,3 +8,9 @@ module:
   test:
     unit:
       command: [npm, test]
+  build:
+    dependencies:
+      - name: hello-npm-package
+        copy:
+          - source: "*"
+            target: libraries/hello-npm-package/
