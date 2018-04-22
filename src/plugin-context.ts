@@ -103,6 +103,7 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   setConfig: (key: string[], value: string) => Promise<void>
   deleteConfig: (key: string[]) => Promise<DeleteConfigResult>
 
+  stageBuild: <T extends Module>(module: T) => Promise<void>
   getStatus: () => Promise<ContextStatus>
   deployServices: (
     params: { names?: string[], force?: boolean, forceBuild?: boolean, logEntry?: LogEntry },
@@ -169,6 +170,10 @@ export function createPluginContext(garden: Garden): PluginContext {
       const defaultHandler = garden.getModuleActionHandler("buildModule", "generic")
       const handler = garden.getModuleActionHandler("buildModule", module.type, defaultHandler)
       return handler({ ...commonParams(handler), module, logEntry })
+    },
+
+    stageBuild: async <T extends Module>(module: T) => {
+      await garden.buildDir.syncDependencyProducts(ctx, module)
     },
 
     pushModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
