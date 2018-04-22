@@ -6,10 +6,11 @@ module:
     dependencies:
       - name: module-a
         copy:
-          - a.txt
-        copyDestination: a
+          - source: a.txt
+            target: a
       - name: module-b
         copy:
-          - build/b1.txt
-          - build/build_subdir
-        copyDestination: b
+          - source: build/b1.txt
+            target: b
+          - source: build/build_subdir
+            target: b

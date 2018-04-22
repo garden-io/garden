@@ -21,7 +21,10 @@ import {
 import * as Rsync from "rsync"
 import { GARDEN_DIR_NAME } from "./constants"
 import { execRsyncCmd } from "./util"
-import { Module } from "./types/module"
+import {
+  BuildCopySpec,
+  Module,
+} from "./types/module"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
@@ -56,11 +59,9 @@ export class BuildDir {
       }
 
       // Sync to the module's top-level dir by default.
-      const destinationDir = depConfig.copyDestination || ""
-
-      return bluebirdMap(depConfig.copy, (relSourcePath) => {
-        const sourcePath = resolve(this.buildDirPath, depConfig.name, relSourcePath)
-        const destinationPath = dirname(resolve(buildPath, destinationDir, relSourcePath)) + sep
+      return bluebirdMap(depConfig.copy, (copy: BuildCopySpec) => {
+        const sourcePath = resolve(this.buildDirPath, depConfig.name, copy.source)
+        const destinationPath = dirname(resolve(buildPath, copy.target, copy.source)) + sep
         return this.sync(sourcePath, destinationPath)
       })
     })

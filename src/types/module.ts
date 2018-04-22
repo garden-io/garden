@@ -17,10 +17,21 @@ import { resolveTemplateStrings, TemplateStringContext } from "../template-strin
 import { Memoize } from "typescript-memoize"
 import { TreeVersion } from "../vcs/base"
 
+export interface BuildCopySpec {
+  source: string
+  target: string
+}
+
+// TODO: allow : delimited string (e.g. some.file:some-dir/)
+const copySchema = Joi.object().keys({
+  // TODO: allow array of strings here
+  source: Joi.string().required(),
+  target: Joi.string().default(""),
+})
+
 export interface BuildDependencyConfig {
-  name: string,
-  copy?: string[],
-  copyDestination?: string // TODO: if we stick with this format, make mandatory if copy is provided
+  name: string
+  copy: BuildCopySpec[]
 }
 
 export interface BuildConfig {
@@ -151,8 +162,7 @@ export const baseTestSpecSchema = Joi.object().keys({
 
 export const baseDependencySchema = Joi.object().keys({
   name: joiIdentifier().required(),
-  copy: Joi.array(),
-  copyDestination: Joi.string(),
+  copy: Joi.array().items(copySchema).default(() => [], "[]"),
 })
 
 export const baseModuleSchema = Joi.object().keys({
