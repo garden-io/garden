@@ -8,7 +8,12 @@
 
 import { identifierRegex, validate } from "../../types/common"
 import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
-import { ServiceConfig, ServiceState, ServiceStatus } from "../../types/service"
+import {
+  ServiceConfig,
+  ServiceState,
+  ServiceStatus,
+  Service,
+} from "../../types/service"
 import {
   resolve,
 } from "path"
@@ -47,6 +52,7 @@ export const gcfServicesSchema = Joi.object()
   .default(() => ({}), "{}")
 
 export class GoogleCloudFunctionsModule extends Module<GoogleCloudFunctionsModuleConfig> { }
+export class GoogleCloudFunctionsService extends Service<GoogleCloudFunctionsModule> { }
 
 const pluginName = "google-cloud-functions"
 
