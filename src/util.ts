@@ -343,6 +343,10 @@ export function deserializeKeys(o: object) {
   return mapValues(o, deserializeObject)
 }
 
+export const enumToArray = Enum => (
+  Object.values(Enum).filter(k => typeof k === "string") as string[]
+)
+
 export function highlightYaml(s: string) {
   return highlight(s, {
     language: "yaml",
