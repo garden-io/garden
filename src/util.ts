@@ -18,7 +18,10 @@ import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 import { getLogger } from "./logger"
-import { TimeoutError } from "./exceptions"
+import {
+  TimeoutError,
+  GardenError,
+} from "./exceptions"
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
@@ -42,6 +45,10 @@ export function shutdown(code) {
   }
 }
 
+export class RsyncError extends GardenError {
+  type = "rsync"
+}
+
 export type RsyncStdIOCallback = () => void
 
 export type RsyncErrorCallback = (error: Error, code: string, cmd: string) => void
@@ -63,7 +70,11 @@ export function execRsyncCmd(rsyncCmd: RsyncCommand, stdoutHandler?: RsyncStdIOC
       if (!error) {
         resolve()
       } else {
-        reject({ error, code, cmd })
+        reject(new RsyncError(`Unable to sync files`, {
+          error,
+          code,
+          cmd,
+        }))
       }
     }, stdoutHandler, stderrHandler)
   })
