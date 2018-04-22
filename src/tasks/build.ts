@@ -45,7 +45,7 @@ export class BuildTask<T extends Module> extends Task {
     })
 
     const startTime = new Date().getTime()
-    const result = await this.ctx.buildModule(this.module, entry)
+    const result = await this.ctx.buildModule(this.module, {}, entry)
     const buildTime = (new Date().getTime()) - startTime
 
     entry.setSuccess({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })

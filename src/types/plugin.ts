@@ -85,6 +85,7 @@ export interface GetModuleBuildStatusParams<T extends Module = Module> extends P
 
 export interface BuildModuleParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
+  buildContext: PrimitiveMap
 }
 
 export interface PushModuleParams<T extends Module = Module> extends PluginActionParamsBase {
@@ -153,6 +154,7 @@ export interface BuildResult {
   fetched?: boolean
   fresh?: boolean
   version?: string
+  details?: any
 }
 
 export interface PushResult {

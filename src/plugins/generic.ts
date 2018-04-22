@@ -24,6 +24,7 @@ import {
   ServiceConfig,
 } from "../types/service"
 import { spawn } from "../util"
+import { mapValues } from "lodash"
 
 export const name = "generic"
 
@@ -43,14 +44,19 @@ export const genericPlugin = {
         return { ready: !(await module.getConfig()).build.command }
       },
 
-      async buildModule({ module }: BuildModuleParams): Promise<BuildResult> {
+      async buildModule({ module, buildContext }: BuildModuleParams): Promise<BuildResult> {
         // By default we run the specified build command in the module root, if any.
         // TODO: Keep track of which version has been built (needs local data store/cache).
         const config: ModuleConfig = await module.getConfig()
 
+        const contextEnv = mapValues(buildContext, v => v + "")
+
         if (config.build.command) {
           const buildPath = await module.getBuildPath()
-          const result = await exec(config.build.command, { cwd: buildPath })
+          const result = await exec(config.build.command, {
+            cwd: buildPath,
+            env: { ...process.env, contextEnv },
+          })
 
           return {
             fresh: true,

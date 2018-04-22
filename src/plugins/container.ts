@@ -33,8 +33,10 @@ export interface ServiceEndpointSpec {
   port: string
 }
 
+export type ServicePortProtocol = "TCP" | "UDP"
+
 export interface ServicePortSpec {
-  protocol: "TCP" | "UDP"
+  protocol: ServicePortProtocol
   containerPort: number
   hostPort?: number
   nodePort?: number
@@ -257,8 +259,14 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { ready: !!identifier }
       },
 
-      async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
-        if (!!module.image && !module.hasDockerfile()) {
+      async buildModule({ ctx, module, buildContext, logEntry }: BuildModuleParams<ContainerModule>) {
+        const buildPath = await module.getBuildPath()
+        const dockerfilePath = join(buildPath, "Dockerfile")
+
+        if (!!module.image && !existsSync(dockerfilePath)) {
+          if (await module.imageExistsLocally()) {
+            return { fresh: false }
+          }
           logEntry && logEntry.setState(`Pulling image ${module.image}...`)
           await module.pullImage(ctx)
           return { fetched: true }
@@ -269,11 +277,16 @@ export const gardenPlugin = (): GardenPlugin => ({
         // build doesn't exist, so we create it
         logEntry && logEntry.setState(`Building ${identifier}...`)
 
+        const buildArgs = Object.entries(buildContext).map(([key, value]) => {
+          // TODO: may need to escape this
+          return `--build-arg ${key}=${value}`
+        }).join(" ")
+
         // TODO: log error if it occurs
         // TODO: stream output to log if at debug log level
-        await module.dockerCli(`build -t ${identifier} ${await module.getBuildPath()}`)
+        await module.dockerCli(`build ${buildArgs} -t ${identifier} ${buildPath}`)
 
-        return { fresh: true }
+        return { fresh: true, details: { identifier } }
       },
 
       async pushModule({ module, logEntry }: PushModuleParams<ContainerModule>) {
