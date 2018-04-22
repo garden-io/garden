@@ -7,10 +7,10 @@ module:
       - name: module-a
         copy:
           - source: a.txt
-            target: a
+            target: a/
       - name: module-b
         copy:
           - source: build/b1.txt
-            target: b
-          - source: build/build_subdir
-            target: b
+            target: b/build/
+          - source: build/build_subdir/
+            target: b/build_subdir

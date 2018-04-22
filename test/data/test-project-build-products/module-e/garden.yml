@@ -7,4 +7,4 @@ module:
       - name: module-d
         copy:
           - source: build/d.txt
-            target: d
+            target: d/build/

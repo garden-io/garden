@@ -25,8 +25,8 @@ export interface BuildCopySpec {
 // TODO: allow : delimited string (e.g. some.file:some-dir/)
 const copySchema = Joi.object().keys({
   // TODO: allow array of strings here
-  source: Joi.string().required(),
-  target: Joi.string().default(""),
+  source: Joi.string().uri(<any>{ relativeOnly: true }).required(),
+  target: Joi.string().uri(<any>{ relativeOnly: true }).default(""),
 })
 
 export interface BuildDependencyConfig {
