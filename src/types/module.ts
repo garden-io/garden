@@ -11,7 +11,10 @@ import { PluginContext } from "../plugin-context"
 import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
-import { extend } from "lodash"
+import {
+  extend,
+  set,
+} from "lodash"
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
@@ -91,6 +94,10 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     config.variables = await resolveTemplateStrings(config.variables, templateContext)
 
     return config
+  }
+
+  updateConfig(key: string, value: any) {
+    set(this.config, key, value)
   }
 
   async getVersion(): Promise<TreeVersion> {

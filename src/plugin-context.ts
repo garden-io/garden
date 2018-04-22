@@ -72,6 +72,7 @@ export type WrappedFromGarden = Pick<Garden,
   "getEnvironment" |
   "resolveModule" |
   "getModules" |
+  "getModule" |
   "getServices" |
   "getService" |
   "getTemplateContext" |
@@ -140,6 +141,7 @@ export function createPluginContext(garden: Garden): PluginContext {
     clearBuilds: wrap(garden.clearBuilds),
     getEnvironment: wrap(garden.getEnvironment),
     getModules: wrap(garden.getModules),
+    getModule: wrap(garden.getModule),
     getServices: wrap(garden.getServices),
     getService: wrap(garden.getService),
     getTemplateContext: wrap(garden.getTemplateContext),
