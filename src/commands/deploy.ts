@@ -38,6 +38,9 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
 
     const names = args.service ? args.service.split(",") : undefined
 
+    // TODO: make this a task
+    await ctx.configureEnvironment()
+
     const result = await ctx.deployServices({
       names,
       force: !!opts.force,

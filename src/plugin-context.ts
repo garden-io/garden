@@ -197,14 +197,22 @@ export function createPluginContext(garden: Garden): PluginContext {
       const handlers = garden.getActionHandlers("configureEnvironment")
       const env = garden.getEnvironment()
 
+      const statuses = await ctx.getEnvironmentStatus()
+
       await Bluebird.each(toPairs(handlers), async ([name, handler]) => {
+        const status = statuses[name] || { configured: false }
+
+        if (status.configured) {
+          return
+        }
+
         const logEntry = garden.log.info({
           entryStyle: EntryStyle.activity,
           section: name,
           msg: "Configuring...",
         })
 
-        await handler({ ...commonParams(handler), env, logEntry })
+        await handler({ ...commonParams(handler), status, env, logEntry })
 
         logEntry.setSuccess("Configured")
       })

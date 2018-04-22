@@ -87,15 +87,8 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
 }
 
 export async function configureEnvironment(
-  { ctx, provider, env, logEntry }: ConfigureEnvironmentParams,
+  { ctx, provider, status, logEntry }: ConfigureEnvironmentParams,
 ) {
-  // TODO: use Helm 3 when it's released instead of this custom/manual stuff
-  const status = await getEnvironmentStatus({ ctx, provider, env, logEntry })
-
-  if (status.configured) {
-    return
-  }
-
   const context = provider.config.context
 
   if (!status.detail.namespaceReady) {

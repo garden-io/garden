@@ -56,9 +56,7 @@ export async function getEnvironmentStatus() {
   return output
 }
 
-export async function configureEnvironment({ ctx }: ConfigureEnvironmentParams) {
-  const status = await getEnvironmentStatus()
-
+export async function configureEnvironment({ ctx, status }: ConfigureEnvironmentParams) {
   if (!status.detail.sdkInstalled) {
     throw new ConfigurationError(
       "Google Cloud SDK is not installed. " +

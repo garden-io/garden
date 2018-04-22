@@ -106,14 +106,7 @@ async function getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
   return { configured: status.state === "ready" }
 }
 
-async function configureEnvironment({ ctx, provider, env, logEntry }: ConfigureEnvironmentParams) {
-  const status = await getEnvironmentStatus({ ctx, provider, env })
-
-  // TODO: This check should happen ahead of calling this handler
-  if (status.configured) {
-    return
-  }
-
+async function configureEnvironment({ ctx, logEntry }: ConfigureEnvironmentParams) {
   const service = await getEmulatorService(ctx)
 
   // We mount the project root into the container, so we can exec deploy any function in there later.
