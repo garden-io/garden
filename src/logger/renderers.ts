@@ -10,7 +10,7 @@ import * as logSymbols from "log-symbols"
 import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
 import chalk from "chalk"
-import { curryRight, flow, padEnd, padStart } from "lodash"
+import { curryRight, flow, isArray, padEnd, padStart } from "lodash"
 import hasAnsi = require("has-ansi")
 
 import { duration } from "./util"
@@ -30,7 +30,7 @@ const truncate = (s: string) => s.length > sectionPrefixWidth
   : s
 const sectionStyle = (s: string) => chalk.cyan.italic(padEnd(truncate(s), sectionPrefixWidth))
 const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
-const errorStyle = (s: string) => hasAnsi(s) ? s : chalk.red(s)
+const errorStyle = chalk.red
 
 /*** RENDER HELPERS ***/
 function insertVal(out: string[], idx: number, toRender: Function | string, renderArgs: any[]): string[] {
@@ -88,9 +88,14 @@ export function renderSymbol(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { entryStyle, msg } = entry.opts
+  const { entryStyle, msg, notOriginatedFromLogger } = entry.opts
+
+  if (notOriginatedFromLogger) {
+    return isArray(msg) ? msg.join(" ") : msg || ""
+  }
+
   const styleFn = entryStyle === EntryStyle.error ? errorStyle : msgStyle
-  if (msg && msg instanceof Array) {
+  if (isArray(msg)) {
     return msg.map(styleFn).join(chalk.gray(" → "))
   }
   return msg ? styleFn(msg) : ""
