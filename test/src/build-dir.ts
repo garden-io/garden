@@ -86,7 +86,7 @@ describe("BuildDir", () => {
       const buildProductDestinations = [
         join(buildDirD, "a", "a.txt"),
         join(buildDirD, "b", "build", "b1.txt"),
-        join(buildDirD, "b", "build", "build_subdir", "b2.txt"),
+        join(buildDirD, "b", "build_subdir", "b2.txt"),
         join(buildDirE, "d", "build", "d.txt"),
       ]
 

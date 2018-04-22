@@ -72,6 +72,7 @@ export type WrappedFromGarden = Pick<Garden,
   "getEnvironment" |
   "resolveModule" |
   "getModules" |
+  "getModule" |
   "getServices" |
   "getService" |
   "getTemplateContext" |
@@ -82,7 +83,9 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   parseModule: <T extends Module>(moduleConfig: T["_ConfigType"]) => Promise<T>
   getModuleBuildPath: <T extends Module>(module: T) => Promise<string>
   getModuleBuildStatus: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildStatus>
-  buildModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<BuildResult>
+  buildModule: <T extends Module>(
+    module: T, buildContext: PrimitiveMap, logEntry?: LogEntry,
+  ) => Promise<BuildResult>
   pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
   testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
   getTestResult: <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => Promise<TestResult | null>
@@ -102,6 +105,7 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   setConfig: (key: string[], value: string) => Promise<void>
   deleteConfig: (key: string[]) => Promise<DeleteConfigResult>
 
+  stageBuild: <T extends Module>(module: T) => Promise<void>
   getStatus: () => Promise<ContextStatus>
   deployServices: (
     params: { names?: string[], force?: boolean, forceBuild?: boolean, logEntry?: LogEntry },
@@ -140,6 +144,7 @@ export function createPluginContext(garden: Garden): PluginContext {
     clearBuilds: wrap(garden.clearBuilds),
     getEnvironment: wrap(garden.getEnvironment),
     getModules: wrap(garden.getModules),
+    getModule: wrap(garden.getModule),
     getServices: wrap(garden.getServices),
     getService: wrap(garden.getService),
     getTemplateContext: wrap(garden.getTemplateContext),
@@ -162,11 +167,15 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ...commonParams(handler), module, logEntry })
     },
 
-    buildModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {
-      await garden.buildDir.syncDependencyProducts(module)
+    buildModule: async <T extends Module>(module: T, buildContext: PrimitiveMap, logEntry?: LogEntry) => {
+      await ctx.stageBuild(module)
       const defaultHandler = garden.getModuleActionHandler("buildModule", "generic")
       const handler = garden.getModuleActionHandler("buildModule", module.type, defaultHandler)
-      return handler({ ...commonParams(handler), module, logEntry })
+      return handler({ ...commonParams(handler), module, buildContext, logEntry })
+    },
+
+    stageBuild: async <T extends Module>(module: T) => {
+      await garden.buildDir.syncDependencyProducts(ctx, module)
     },
 
     pushModule: async <T extends Module>(module: T, logEntry?: LogEntry) => {

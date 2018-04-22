@@ -372,10 +372,10 @@ describe("container", () => {
           variables: {},
         }))
 
-        td.when(module.hasDockerfile()).thenReturn(false)
+        td.when(module.getBuildPath()).thenResolve("/tmp/jaoigjwaeoigjweaoglwaeghe")
         td.when(module.pullImage(ctx)).thenResolve(null)
 
-        const result = await ctx.buildModule(module)
+        const result = await ctx.buildModule(module, {})
 
         expect(result).to.eql({ fetched: true })
       })
@@ -395,15 +395,17 @@ describe("container", () => {
           variables: {},
         }))
 
-        td.when(module.hasDockerfile()).thenReturn(true)
         td.when(module.getLocalImageId()).thenResolve("some/image")
-        td.when(module.getBuildPath()).thenResolve("/tmp/something")
+        td.when(module.getBuildPath()).thenResolve(modulePath)
 
-        const result = await ctx.buildModule(module)
+        const result = await ctx.buildModule(module, {})
 
-        expect(result).to.eql({ fresh: true })
+        expect(result).to.eql({
+          fresh: true,
+          details: { identifier: "some/image" },
+        })
 
-        td.verify(module.dockerCli("build -t some/image /tmp/something"))
+        td.verify(module.dockerCli("build  -t some/image " + modulePath))
       })
     })
 

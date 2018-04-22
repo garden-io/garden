@@ -149,7 +149,6 @@ export class Garden {
     private readonly environment: string,
     private readonly namespace: string,
     public readonly config: EnvironmentConfig,
-    plugins: RegisterPluginParam[],
     logger?: RootLogNode,
   ) {
     this.modulesScanned = false
@@ -173,21 +172,6 @@ export class Garden {
 
     this.pluginContext = createPluginContext(this)
     this.taskGraph = new TaskGraph(this.pluginContext)
-
-    // Register plugins
-    for (const plugin of builtinPlugins.concat(plugins)) {
-      this.registerPlugin(plugin)
-    }
-
-    for (const plugin of fixedPlugins) {
-      this.loadPlugin(plugin, {})
-    }
-
-    // Load configured plugins
-    // Validate configuration
-    for (const [providerName, provider] of Object.entries(config.providers)) {
-      this.loadPlugin(providerName, provider)
-    }
   }
 
   static async factory(projectRoot: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
@@ -254,7 +238,24 @@ export class Garden {
     // Resolve the project configuration based on selected environment
     const projectConfig = merge({}, globalConfig, envConfig)
 
-    return new Garden(projectRoot, projectName, environment, namespace, projectConfig, plugins, logger)
+    const garden = new Garden(projectRoot, projectName, environment, namespace, projectConfig, logger)
+
+    // Register plugins
+    for (const plugin of builtinPlugins.concat(plugins)) {
+      garden.registerPlugin(plugin)
+    }
+
+    for (const plugin of fixedPlugins) {
+      await garden.loadPlugin(plugin, {})
+    }
+
+    // Load configured plugins
+    // Validate configuration
+    for (const [providerName, provider] of Object.entries(projectConfig.providers)) {
+      await garden.loadPlugin(providerName, provider)
+    }
+
+    return garden
   }
 
   getEnvironment(): Environment {
@@ -336,7 +337,7 @@ export class Garden {
     this.registeredPlugins[name] = factory
   }
 
-  private loadPlugin(pluginName: string, config: object) {
+  private async loadPlugin(pluginName: string, config: object) {
     const factory = this.registeredPlugins[pluginName]
 
     if (!factory) {
@@ -367,6 +368,19 @@ export class Garden {
     // allow plugins to override their own config (that gets passed to action handlers)
     if (plugin.config) {
       this.config.providers[pluginName] = plugin.config
+    }
+
+    for (const modulePath of plugin.modules || []) {
+      const module = await this.resolveModule(modulePath)
+      if (!module) {
+        throw new PluginError(`Could not load module "${modulePath}" specified in plugin "${pluginName}"`, {
+          pluginName,
+          modulePath,
+        })
+      }
+      module.name = `${pluginName}.${module.name}`
+      module.updateConfig("name", module.name)
+      await this.addModule(module)
     }
 
     const actions = plugin.actions || {}
@@ -470,6 +484,13 @@ export class Garden {
     }
 
     return output
+  }
+
+  /**
+   * Returns the module with the specified name. Throws error if it doesn't exist.
+   */
+  async getModule(name: string, noScan?: boolean): Promise<Module<any>> {
+    return (await this.getModules([name], noScan))[name]
   }
 
   /*

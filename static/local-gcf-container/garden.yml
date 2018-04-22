@@ -1,14 +1,3 @@
 module:
-  description: Container for running Google Cloud Functions emulator
+  description: Base container for running Google Cloud Functions emulator
   type: container
-  services:
-    google-cloud-functions:
-      endpoints:
-        - paths: [/]
-          port: http
-      ports:
-        http:
-          protocol: TCP
-          containerPort: 8010
-      healthCheck:
-        tcpPort: http

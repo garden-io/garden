@@ -11,4 +11,4 @@ export GARDEN_LOGGER_TYPE=basic
 
 cd ${garden_root}/examples/hello-world
 
-${garden_bin} build
+${garden_bin} build --force

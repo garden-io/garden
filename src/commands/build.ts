@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { BuildTask } from "../tasks/build"
@@ -44,6 +45,11 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
 
     ctx.log.header({ emoji: "hammer", command: "build" })
 
-    return await ctx.processTasks()
+    const result = await ctx.processTasks()
+
+    ctx.log.info("")
+    ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green("Done!\n") })
+
+    return result
   }
 }

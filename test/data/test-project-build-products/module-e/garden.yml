@@ -6,5 +6,5 @@ module:
     dependencies:
       - name: module-d
         copy:
-          - "build/d.txt"
-        copyDestination: d
+          - source: build/d.txt
+            target: d/build/

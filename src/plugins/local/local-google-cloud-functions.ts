@@ -8,34 +8,47 @@
 
 import { PluginContext } from "../../plugin-context"
 import { ServiceStatus } from "../../types/service"
-import { join, relative, resolve } from "path"
-import * as escapeStringRegexp from "escape-string-regexp"
-import { DeploymentError, PluginError } from "../../exceptions"
+import { join } from "path"
 import {
-  gcfServicesSchema, GoogleCloudFunctionsModule,
+  gcfServicesSchema,
+  GoogleCloudFunctionsModule,
+  GoogleCloudFunctionsService,
 } from "../google/google-cloud-functions"
 import {
-  ConfigureEnvironmentParams,
-  DeployServiceParams, GetEnvironmentStatusParams, GetServiceLogsParams, GetServiceOutputsParams,
-  GetServiceStatusParams, ParseModuleParams,
+  DeployServiceParams,
+  GetServiceLogsParams,
+  GetServiceOutputsParams,
+  GetServiceStatusParams,
+  ParseModuleParams,
   GardenPlugin,
+  BuildModuleParams,
+  GetModuleBuildStatusParams,
 } from "../../types/plugin"
 import { STATIC_DIR } from "../../constants"
-import { ContainerModule, ContainerService } from "../container"
+import {
+  ContainerModule,
+  ContainerModuleConfig,
+  ContainerService,
+  ServicePortProtocol,
+} from "../container"
 import { validate } from "../../types/common"
+import { mapValues } from "lodash"
 
-const emulatorModulePath = join(STATIC_DIR, "local-gcf-container")
+const baseContainerName = "local-google-cloud-functions.local-gcf-container"
+const emulatorBaseModulePath = join(STATIC_DIR, "local-gcf-container")
 const emulatorPort = 8010
-const emulatorServiceName = "google-cloud-functions"
 
 export const gardenPlugin = (): GardenPlugin => ({
-  actions: {
-    getEnvironmentStatus,
-    configureEnvironment,
-  },
+  modules: [emulatorBaseModulePath],
+
   moduleActions: {
     "google-cloud-function": {
       async parseModule({ ctx, moduleConfig }: ParseModuleParams<GoogleCloudFunctionsModule>) {
+        moduleConfig.build.dependencies.push({
+          name: baseContainerName,
+          copy: [],
+        })
+
         const module = new GoogleCloudFunctionsModule(ctx, moduleConfig)
 
         // TODO: check that each function exists at the specified path
@@ -47,111 +60,88 @@ export const gardenPlugin = (): GardenPlugin => ({
         return module
       },
 
-      getServiceStatus,
-
-      async deployService(
-        { ctx, provider, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>,
-      ) {
-        const containerFunctionPath = resolve(
-          "/functions",
-          relative(ctx.projectRoot, service.module.path),
-          service.config.path,
-        )
-
-        const emulator = await getEmulatorService(ctx)
-        const result = await ctx.execInService(
-          emulator,
-          [
-            "functions-emulator", "deploy",
-            "--trigger-http",
-            "--project", "local",
-            "--region", "local",
-            "--local-path", containerFunctionPath,
-            "--entry-point", service.config.entrypoint || service.name,
-            service.config.function,
-          ],
-        )
-
-        if (result.code !== 0) {
-          throw new DeploymentError(`Deploying function ${service.name} failed: ${result.output}`, {
-            serviceName: service.name,
-            error: result.stderr,
-          })
-        }
-
-        return getServiceStatus({ ctx, provider, service, env })
+      async getModuleBuildStatus({ ctx, module }: GetModuleBuildStatusParams<GoogleCloudFunctionsModule>) {
+        const emulator = await getEmulatorModule(ctx, module)
+        return ctx.getModuleBuildStatus(emulator)
       },
 
-      async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
-        const emulator = await getEmulatorService(ctx)
+      async buildModule({ ctx, module, logEntry }: BuildModuleParams<GoogleCloudFunctionsModule>) {
+        const baseModule = <ContainerModule>await ctx.getModule(baseContainerName)
+        const emulator = await getEmulatorModule(ctx, module)
+        const baseImageName = (await baseModule.getLocalImageId())!
+        return ctx.buildModule(emulator, { baseImageName }, logEntry)
+      },
 
+      async getServiceStatus(
+        { ctx, service }: GetServiceStatusParams<GoogleCloudFunctionsModule>,
+      ): Promise<ServiceStatus> {
+        const emulator = await getEmulatorService(ctx, service)
+        return ctx.getServiceStatus(emulator)
+      },
+
+      async deployService({ ctx, service }: DeployServiceParams<GoogleCloudFunctionsModule>) {
+        const emulatorService = await getEmulatorService(ctx, service)
+        return ctx.deployService(emulatorService)
+      },
+
+      async getServiceOutputs({ service }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
         return {
-          endpoint: `http://${emulator.name}:${emulatorPort}/local/local/${service.config.function}`,
+          endpoint: `http://${service.name}:${emulatorPort}/local/local/${service.config.entrypoint || service.name}`,
         }
       },
 
-      async getServiceLogs({ ctx, stream, tail }: GetServiceLogsParams<GoogleCloudFunctionsModule>) {
-        const emulator = await getEmulatorService(ctx)
-        // TODO: filter to only relevant function logs
+      async getServiceLogs({ ctx, service, stream, tail }: GetServiceLogsParams<GoogleCloudFunctionsModule>) {
+        const emulator = await getEmulatorService(ctx, service)
         return ctx.getServiceLogs(emulator, stream, tail)
       },
     },
   },
 })
 
-async function getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
-  // Check if functions emulator container is running
-  const status = await ctx.getServiceStatus(await getEmulatorService(ctx))
+async function getEmulatorModule(ctx: PluginContext, module: GoogleCloudFunctionsModule) {
+  const services = mapValues(module.services, (s, name) => {
+    const functionEntrypoint = s.entrypoint || name
 
-  return { configured: status.state === "ready" }
+    return {
+      command: ["/app/start.sh", functionEntrypoint],
+      daemon: false,
+      dependencies: s.dependencies,
+      endpoints: [{
+        port: "http",
+      }],
+      healthCheck: { tcpPort: "http" },
+      ports: {
+        http: { protocol: <ServicePortProtocol>"TCP", containerPort: 8010 },
+      },
+      volumes: [],
+    }
+  })
+
+  const config = await module.getConfig()
+  const version = await module.getVersion()
+
+  return new ContainerModule(ctx, <ContainerModuleConfig>{
+    allowPush: true,
+    build: {
+      dependencies: config.build.dependencies.concat([{
+        name: baseContainerName,
+        copy: [{
+          source: "child/Dockerfile",
+          target: "Dockerfile",
+        }],
+      }]),
+    },
+    image: `${module.name}:${version.versionString}`,
+    name: module.name,
+    path: module.path,
+    services,
+    test: config.test,
+    type: "container",
+    variables: config.variables,
+  })
 }
 
-async function configureEnvironment({ ctx, logEntry }: ConfigureEnvironmentParams) {
-  const service = await getEmulatorService(ctx)
-
-  // We mount the project root into the container, so we can exec deploy any function in there later.
-  service.config.volumes = [{
-    name: "functions",
-    containerPath: "/functions",
-    hostPath: ctx.projectRoot,
-  }]
-
-  // TODO: Publish this container separately from the project instead of building it here
-  await ctx.buildModule(service.module)
-  await ctx.deployService(service, undefined, logEntry)
-}
-
-async function getServiceStatus(
-  { ctx, service }: GetServiceStatusParams<GoogleCloudFunctionsModule>,
-): Promise<ServiceStatus> {
-  const emulator = await getEmulatorService(ctx)
-  const emulatorStatus = await ctx.getServiceStatus(emulator)
-
-  if (emulatorStatus !== "ready") {
-    return { state: "stopped" }
-  }
-
-  const result = await ctx.execInService(emulator, ["functions-emulator", "list"])
-
-  // Regex fun. Yay.
-  // TODO: Submit issue/PR to @google-cloud/functions-emulator to get machine-readable output
-  if (result.output.match(new RegExp(`READY\\s+│\\s+${escapeStringRegexp(service.name)}\\s+│`, "g"))) {
-    // For now we don't have a way to track which version is developed.
-    // We most likely need to keep track of that on our side.
-    return { state: "ready" }
-  } else {
-    return {}
-  }
-}
-
-async function getEmulatorService(ctx: PluginContext) {
-  const module = await ctx.resolveModule<ContainerModule>(emulatorModulePath)
-
-  if (!module) {
-    throw new PluginError(`Could not find Google Cloud Function emulator module`, {
-      emulatorModulePath,
-    })
-  }
-
-  return ContainerService.factory(ctx, module, emulatorServiceName)
+async function getEmulatorService(ctx: PluginContext, service: GoogleCloudFunctionsService) {
+  const emulatorModule = await getEmulatorModule(ctx, service.module)
+  return ContainerService.factory(ctx, emulatorModule, service.name)
 }

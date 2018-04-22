@@ -85,6 +85,7 @@ export interface GetModuleBuildStatusParams<T extends Module = Module> extends P
 
 export interface BuildModuleParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
+  buildContext: PrimitiveMap
 }
 
 export interface PushModuleParams<T extends Module = Module> extends PluginActionParamsBase {
@@ -153,6 +154,7 @@ export interface BuildResult {
   fetched?: boolean
   fresh?: boolean
   version?: string
+  details?: any
 }
 
 export interface PushResult {
@@ -270,6 +272,8 @@ export interface GardenPlugin {
   config?: object
   configKeys?: string[]
 
+  modules?: string[]
+
   actions?: Partial<PluginActions>
   moduleActions?: { [moduleType: string]: Partial<ModuleActions<any>> }
 }
@@ -282,6 +286,7 @@ export type RegisterPluginParam = string | PluginFactory
 
 export const pluginSchema = Joi.object().keys({
   config: Joi.object(),
+  modules: Joi.array().items(Joi.string()),
   actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func())),
   moduleActions: joiIdentifierMap(
     Joi.object().keys(mapValues(moduleActionDescriptions, () => Joi.func())),

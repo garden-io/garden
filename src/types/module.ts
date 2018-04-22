@@ -11,16 +11,30 @@ import { PluginContext } from "../plugin-context"
 import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
-import { extend } from "lodash"
+import {
+  extend,
+  set,
+} from "lodash"
 import { ServiceConfig } from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
 import { TreeVersion } from "../vcs/base"
 
+export interface BuildCopySpec {
+  source: string
+  target: string
+}
+
+// TODO: allow : delimited string (e.g. some.file:some-dir/)
+const copySchema = Joi.object().keys({
+  // TODO: allow array of strings here
+  source: Joi.string().uri(<any>{ relativeOnly: true }).required(),
+  target: Joi.string().uri(<any>{ relativeOnly: true }).default(""),
+})
+
 export interface BuildDependencyConfig {
-  name: string,
-  copy?: string[],
-  copyDestination?: string // TODO: if we stick with this format, make mandatory if copy is provided
+  name: string
+  copy: BuildCopySpec[]
 }
 
 export interface BuildConfig {
@@ -80,6 +94,10 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     config.variables = await resolveTemplateStrings(config.variables, templateContext)
 
     return config
+  }
+
+  updateConfig(key: string, value: any) {
+    set(this.config, key, value)
   }
 
   async getVersion(): Promise<TreeVersion> {
@@ -151,8 +169,7 @@ export const baseTestSpecSchema = Joi.object().keys({
 
 export const baseDependencySchema = Joi.object().keys({
   name: joiIdentifier().required(),
-  copy: Joi.array(),
-  copyDestination: Joi.string(),
+  copy: Joi.array().items(copySchema).default(() => [], "[]"),
 })
 
 export const baseModuleSchema = Joi.object().keys({
