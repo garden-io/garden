@@ -11,8 +11,11 @@ import { exec } from "child-process-promise"
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import {
-  DeployServiceParams, ExecInServiceParams, GetServiceOutputsParams, GetServiceStatusParams,
+  ExecInServiceParams,
+  GetServiceOutputsParams,
+  GetServiceStatusParams,
   GardenPlugin,
+  DeployServiceParams,
 } from "../../types/plugin"
 import { ContainerModule } from "../container"
 import {
@@ -230,11 +233,7 @@ async function getEnvironmentStatus() {
 }
 
 async function configureEnvironment() {
-  const status = await getEnvironmentStatus()
-
-  if (!status.configured) {
-    await getDocker().swarmInit({})
-  }
+  await getDocker().swarmInit({})
 }
 
 async function getServiceStatus({ ctx, service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {

@@ -47,25 +47,26 @@ export async function getLocalEnvironmentStatus(
 }
 
 async function configureLocalEnvironment(
-  { ctx, provider, env, logEntry }: ConfigureEnvironmentParams,
+  { ctx, provider, env, status, logEntry }: ConfigureEnvironmentParams,
 ) {
-  const status = await getLocalEnvironmentStatus({ ctx, provider, env, logEntry })
-
-  if (status.configured) {
-    return
-  }
-
-  await configureEnvironment({ ctx, provider, env, logEntry })
+  await configureEnvironment({ ctx, provider, env, status, logEntry })
 
   if (!isSystemGarden(provider)) {
     const sysGarden = await getSystemGarden(provider)
+    const sysProvider = {
+      name: provider.name,
+      config: sysGarden.config.providers[provider.name],
+    }
+    const sysStatus = await getEnvironmentStatus({
+      ctx: sysGarden.pluginContext,
+      provider: sysProvider,
+      env,
+    })
     await configureEnvironment({
       ctx: sysGarden.pluginContext,
       env: sysGarden.getEnvironment(),
-      provider: {
-        name: provider.name,
-        config: sysGarden.config.providers[provider.name],
-      },
+      provider: sysProvider,
+      status: sysStatus,
       logEntry,
     })
     await sysGarden.pluginContext.deployServices({ logEntry })

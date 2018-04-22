@@ -36,7 +36,6 @@ it's pretty straightforward, promise :)
 
 To spin it up, `cd` to any of the directories under `examples/` and run:
 
-    garden env configure
     garden deploy
     
 If you've deployed the `hello-world` project, you can try querying the `/hello` endpoint:
