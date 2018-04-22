@@ -23,17 +23,21 @@ import {
   LogEntryOpts,
   LogSymbolType,
 } from "./types"
-import { FancyConsoleWriter, Writer } from "./writers"
+import { FancyConsoleWriter, Writer, BasicConsoleWriter } from "./writers"
 import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
 const DEFAULT_CONFIGS: {[key in LoggerType]: LoggerConfig} = {
-  [LoggerType.development]: {
+  [LoggerType.fancy]: {
     level: LogLevel.info,
     writers: [new FancyConsoleWriter()],
   },
-  [LoggerType.test]: {
-    level: LogLevel.error,
+  [LoggerType.basic]: {
+    level: LogLevel.info,
+    writers: [new BasicConsoleWriter()],
+  },
+  [LoggerType.quiet]: {
+    level: LogLevel.info,
   },
 }
 
@@ -50,7 +54,7 @@ export interface LogEntryConstructor {
 }
 
 let loggerInstance: RootLogNode
-let defaultLoggerType: LoggerType = LoggerType.development
+let defaultLoggerType: LoggerType = LoggerType.fancy
 let defaultLoggerConfig: LoggerConfig = DEFAULT_CONFIGS[defaultLoggerType]
 
 function createLogEntry(level: LogLevel, opts: LogEntryOpts, parent: LogNode) {
@@ -208,8 +212,8 @@ export class LogEntry extends LogNode {
     return this
   }
 
-  public originIsNotLogger(): boolean {
-    return !!this.opts.originIsNotLogger
+  public notOriginatedFromLogger(): boolean {
+    return !!this.opts.notOriginatedFromLogger
   }
 
   public stop() {
@@ -244,7 +248,7 @@ export class RootLogNode extends LogNode {
   }
 
   public getLogEntries(): LogEntry[] {
-    return getChildNodes(<any>this).filter(entry => !entry.originIsNotLogger())
+    return getChildNodes(<any>this).filter(entry => !entry.notOriginatedFromLogger())
   }
 
   public header(
@@ -278,9 +282,9 @@ export class RootLogNode extends LogNode {
 
 }
 
-export function getLogger(config: LoggerConfig = defaultLoggerConfig) {
+export function getLogger(config?: LoggerConfig) {
   if (!loggerInstance) {
-    loggerInstance = new RootLogNode(config)
+    loggerInstance = new RootLogNode(config || defaultLoggerConfig)
   }
 
   return loggerInstance

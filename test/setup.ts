@@ -3,5 +3,5 @@ import { setDefaultLoggerType } from "../src/logger"
 
 // Global before hooks
 before(() => {
-  setDefaultLoggerType(LoggerType.test)
+  setDefaultLoggerType(LoggerType.quiet)
 })

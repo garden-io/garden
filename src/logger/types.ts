@@ -23,8 +23,9 @@ export enum LogLevel {
 }
 
 export enum LoggerType {
-  development = "development",
-  test = "test",
+  basic = "basic",
+  fancy = "fancy",
+  quiet = "quiet",
 }
 
 // Defines entry style and format (only one available style at the moment)
@@ -62,7 +63,7 @@ export interface LogEntryOpts {
   symbol?: LogSymbolType
   entryStyle?: EntryStyle
   append?: boolean
-  originIsNotLogger?: boolean
+  notOriginatedFromLogger?: boolean
   showDuration?: boolean
   error?: GardenError | Error
 }

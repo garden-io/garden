@@ -7,7 +7,7 @@ garden_bin=${garden_root}/build/src/bin/garden.js
 
 chmod +x ${garden_bin}
 
-export GARDEN_LOGGER_TYPE=test
+export GARDEN_LOGGER_TYPE=basic
 
 cd ${garden_root}/examples/hello-world
 
