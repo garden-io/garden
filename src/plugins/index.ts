@@ -17,6 +17,7 @@ export const builtinPlugins: RegisterPluginParam[] = [
   "./google/google-cloud-functions",
   "./local/local-google-cloud-functions",
   "./kubernetes",
+  "./kubernetes/local",
   "./npm-package",
   "./google/google-app-engine",
 ].map(p => resolve(__dirname, p))

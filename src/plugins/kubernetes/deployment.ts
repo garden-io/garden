@@ -17,10 +17,8 @@ import {
   ServiceContext,
   ServiceStatus,
 } from "../../types/service"
-import { getContext } from "./actions"
 import {
   createIngress,
-  getServiceHostname,
 } from "./ingress"
 import { apply } from "./kubectl"
 import { getAppNamespace } from "./namespace"
@@ -42,11 +40,11 @@ interface KubeEnvVar {
 }
 
 export async function deployService(
-  { ctx, service, env, serviceContext, logEntry }: DeployServiceParams<ContainerModule>,
+  { ctx, provider, service, env, serviceContext, logEntry }: DeployServiceParams<ContainerModule>,
 ): Promise<ServiceStatus> {
-  const namespace = getAppNamespace(ctx, env)
+  const namespace = getAppNamespace(ctx, provider)
 
-  const context = getContext(env)
+  const context = provider.config.context
   const deployment = await createDeployment(service, serviceContext)
   await apply(context, deployment, { namespace })
 
@@ -58,15 +56,15 @@ export async function deployService(
     await apply(context, kubeservice, { namespace })
   }
 
-  const ingress = await createIngress(service, getServiceHostname(ctx, service))
+  const ingress = await createIngress(ctx, provider, service)
 
   if (ingress !== null) {
     await apply(context, ingress, { namespace })
   }
 
-  await waitForDeployment({ ctx, service, logEntry, env })
+  await waitForDeployment({ ctx, provider, service, logEntry, env })
 
-  return checkDeploymentStatus({ ctx, service, env })
+  return checkDeploymentStatus({ ctx, provider, service })
 }
 
 export async function createDeployment(service: ContainerService, serviceContext: ServiceContext) {

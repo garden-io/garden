@@ -7,11 +7,11 @@
  */
 
 import { PluginContext } from "../../plugin-context"
-import { Environment } from "../../types/common"
 import {
   apiGetOrNull,
   coreApi,
 } from "./api"
+import { KubernetesProvider } from "./index"
 import {
   GARDEN_SYSTEM_NAMESPACE,
   isSystemGarden,
@@ -43,18 +43,18 @@ export async function createNamespace(context: string, namespace: string) {
   })
 }
 
-export function getAppNamespace(ctx: PluginContext, env: Environment) {
-  if (isSystemGarden(ctx)) {
+export function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
+  if (isSystemGarden(provider)) {
     return GARDEN_SYSTEM_NAMESPACE
   }
 
-  const currentEnv = env || ctx.getEnvironment()
+  const currentEnv = ctx.getEnvironment()
 
   return `garden--${ctx.projectName}--${currentEnv.namespace}`
 }
 
-export function getMetadataNamespace(ctx: PluginContext) {
-  if (isSystemGarden(ctx)) {
+export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesProvider) {
+  if (isSystemGarden(provider)) {
     return GARDEN_SYSTEM_NAMESPACE + "--metadata"
   }
 

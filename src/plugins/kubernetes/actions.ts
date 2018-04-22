@@ -7,7 +7,6 @@
  */
 
 import { DeploymentError, NotFoundError } from "../../exceptions"
-import { Environment } from "../../types/common"
 import {
   ConfigureEnvironmentParams, DeleteConfigParams,
   DestroyEnvironmentParams,
@@ -46,18 +45,9 @@ import { EntryStyle } from "../../logger/types"
 import {
   checkDeploymentStatus,
 } from "./status"
-import {
-  getSystemGarden,
-  isSystemGarden,
-} from "./system"
 
-export function getContext(env: Environment) {
-  // TODO: would be nicer to extract and pass the providerConfig implicitly to handler functions
-  return env.config.providers.kubernetes!.context
-}
-
-export async function getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusParams) {
-  const context = getContext(env)
+export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStatusParams) {
+  const context = provider.config.context
 
   try {
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
@@ -75,19 +65,11 @@ export async function getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusPar
     metadataNamespaceReady: false,
   }
 
-  if (!isSystemGarden(ctx)) {
-    const sysGarden = await getSystemGarden(env)
-    const sysStatus = await sysGarden.pluginContext.getStatus()
-
-    statusDetail.systemReady = sysStatus.providers.kubernetes.configured &&
-      every(values(sysStatus.services).map(s => s.state === "ready"))
-  }
-
-  const metadataNamespace = getMetadataNamespace(ctx)
+  const metadataNamespace = getMetadataNamespace(ctx, provider)
   const namespacesStatus = await coreApi(context).namespaces().get()
 
   for (const n of namespacesStatus.items) {
-    if (n.metadata.name === getAppNamespace(ctx, env) && n.status.phase === "Active") {
+    if (n.metadata.name === getAppNamespace(ctx, provider) && n.status.phase === "Active") {
       statusDetail.namespaceReady = true
     }
 
@@ -104,50 +86,39 @@ export async function getEnvironmentStatus({ ctx, env }: GetEnvironmentStatusPar
   }
 }
 
-export async function configureEnvironment({ ctx, config, env, logEntry }: ConfigureEnvironmentParams) {
+export async function configureEnvironment(
+  { ctx, provider, env, logEntry }: ConfigureEnvironmentParams,
+) {
   // TODO: use Helm 3 when it's released instead of this custom/manual stuff
-  const status = await getEnvironmentStatus({ ctx, config, env })
+  const status = await getEnvironmentStatus({ ctx, provider, env, logEntry })
 
   if (status.configured) {
     return
   }
 
-  const context = getContext(env)
-
-  if (isSystemGarden(ctx)) {
-    const sysGarden = await getSystemGarden(env)
-    await configureEnvironment({
-      ctx: sysGarden.pluginContext,
-      env: sysGarden.getEnvironment(),
-      config: {},
-      logEntry,
-    })
-    await sysGarden.pluginContext.deployServices({ logEntry })
-  }
+  const context = provider.config.context
 
   if (!status.detail.namespaceReady) {
-    const ns = getAppNamespace(ctx, env)
+    const ns = getAppNamespace(ctx, provider)
     logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
     await createNamespace(context, ns)
   }
 
   if (!status.detail.metadataNamespaceReady) {
-    const ns = getMetadataNamespace(ctx)
+    const ns = getMetadataNamespace(ctx, provider)
     logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
     await createNamespace(context, ns)
   }
 }
 
-export async function getServiceStatus(
-  { ctx, env, service }: GetServiceStatusParams<ContainerModule>,
-): Promise<ServiceStatus> {
+export async function getServiceStatus(params: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-  return await checkDeploymentStatus({ ctx, env, service })
+  return await checkDeploymentStatus(params)
 }
 
-export async function destroyEnvironment({ ctx, env }: DestroyEnvironmentParams) {
-  const context = getContext(env)
-  const namespace = getAppNamespace(ctx, env)
+export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentParams) {
+  const context = provider.config.context
+  const namespace = getAppNamespace(ctx, provider)
   const entry = ctx.log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace}`,
@@ -168,10 +139,12 @@ export async function getServiceOutputs({ service }: GetServiceOutputsParams<Con
   }
 }
 
-export async function execInService({ ctx, config, service, env, command }: ExecInServiceParams<ContainerModule>) {
-  const context = getContext(env)
-  const status = await getServiceStatus({ ctx, config, service, env })
-  const namespace = getAppNamespace(ctx, env)
+export async function execInService(
+  { ctx, provider, service, env, command }: ExecInServiceParams<ContainerModule>,
+) {
+  const context = provider.config.context
+  const status = await getServiceStatus({ ctx, provider, service, env })
+  const namespace = getAppNamespace(ctx, provider)
 
   // TODO: this check should probably live outside of the plugin
   if (!status.state || status.state !== "ready") {
@@ -203,10 +176,10 @@ export async function execInService({ ctx, config, service, env, command }: Exec
 }
 
 export async function testModule(
-  { ctx, env, module, testSpec }: TestModuleParams<ContainerModule>,
+  { ctx, provider, module, testSpec }: TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   // TODO: include a service context here
-  const context = getContext(env)
+  const context = provider.config.context
   const baseEnv = {}
   const envVars: {} = extend({}, baseEnv, testSpec.variables)
   const envArgs = map(envVars, (v: string, k: string) => `--env=${k}=${v}`)
@@ -234,7 +207,7 @@ export async function testModule(
   const startedAt = new Date()
 
   const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
-  const res = await kubectl(context, getAppNamespace(ctx, env)).tty(kubecmd, { ignoreError: true, timeout })
+  const res = await kubectl(context, getAppNamespace(ctx, provider)).tty(kubecmd, { ignoreError: true, timeout })
 
   const testResult: TestResult = {
     version,
@@ -244,7 +217,7 @@ export async function testModule(
     output: res.output,
   }
 
-  const ns = getMetadataNamespace(ctx)
+  const ns = getMetadataNamespace(ctx, provider)
   const resultKey = `test-result--${module.name}--${version.versionString}`
   const body = {
     body: {
@@ -266,16 +239,20 @@ export async function testModule(
   return testResult
 }
 
-export async function getTestResult({ ctx, env, module, version }: GetTestResultParams<ContainerModule>) {
-  const context = getContext(env)
-  const ns = getMetadataNamespace(ctx)
+export async function getTestResult(
+  { ctx, provider, module, version }: GetTestResultParams<ContainerModule>,
+) {
+  const context = provider.config.context
+  const ns = getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, version)
   const res = await apiGetOrNull(coreApi(context, ns).namespaces.configmaps, resultKey)
   return res && <TestResult>deserializeKeys(res.data)
 }
 
-export async function getServiceLogs({ ctx, env, service, stream, tail }: GetServiceLogsParams<ContainerModule>) {
-  const context = getContext(env)
+export async function getServiceLogs(
+  { ctx, provider, service, stream, tail }: GetServiceLogsParams<ContainerModule>,
+) {
+  const context = provider.config.context
   const resourceType = service.config.daemon ? "daemonset" : "deployment"
 
   const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
@@ -284,7 +261,7 @@ export async function getServiceLogs({ ctx, env, service, stream, tail }: GetSer
     kubectlArgs.push("--follow")
   }
 
-  const proc = kubectl(context, getAppNamespace(ctx, env)).spawn(kubectlArgs)
+  const proc = kubectl(context, getAppNamespace(ctx, provider)).spawn(kubectlArgs)
 
   proc.stdout
     .pipe(split())
@@ -308,17 +285,17 @@ export async function getServiceLogs({ ctx, env, service, stream, tail }: GetSer
   })
 }
 
-export async function getConfig({ ctx, env, key }: GetConfigParams) {
-  const context = getContext(env)
-  const ns = getMetadataNamespace(ctx)
+export async function getConfig({ ctx, provider, key }: GetConfigParams) {
+  const context = provider.config.context
+  const ns = getMetadataNamespace(ctx, provider)
   const res = await apiGetOrNull(coreApi(context, ns).namespaces.secrets, key.join("."))
   return res && Buffer.from(res.data.value, "base64").toString()
 }
 
-export async function setConfig({ ctx, env, key, value }: SetConfigParams) {
+export async function setConfig({ ctx, provider, key, value }: SetConfigParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
-  const context = getContext(env)
-  const ns = getMetadataNamespace(ctx)
+  const context = provider.config.context
+  const ns = getMetadataNamespace(ctx, provider)
   const body = {
     body: {
       apiVersion: "v1",
@@ -337,9 +314,9 @@ export async function setConfig({ ctx, env, key, value }: SetConfigParams) {
   await apiPostOrPut(coreApi(context, ns).namespaces.secrets, key.join("."), body)
 }
 
-export async function deleteConfig({ ctx, env, key }: DeleteConfigParams) {
-  const context = getContext(env)
-  const ns = getMetadataNamespace(ctx)
+export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
+  const context = provider.config.context
+  const ns = getMetadataNamespace(ctx, provider)
   try {
     await coreApi(context, ns).namespaces.secrets(key.join(".")).delete()
   } catch (err) {

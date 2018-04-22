@@ -28,7 +28,6 @@ import {
   ServiceConfig,
   ServiceStatus,
 } from "../../types/service"
-import { getContext } from "./actions"
 import {
   apply,
 } from "./kubectl"
@@ -70,10 +69,10 @@ export const kubernetesSpecHandlers = {
   },
 
   getServiceStatus: async (
-    { ctx, env, service }: GetServiceStatusParams<KubernetesSpecsModule>,
+    { ctx, provider, service }: GetServiceStatusParams<KubernetesSpecsModule>,
   ): Promise<ServiceStatus> => {
-    const context = getContext(env)
-    const namespace = getAppNamespace(ctx, env)
+    const context = provider.config.context
+    const namespace = getAppNamespace(ctx, provider)
     const currentVersion = await service.module.getVersion()
 
     const dryRunOutputs = await Bluebird.map(
@@ -94,9 +93,9 @@ export const kubernetesSpecHandlers = {
     return { state: "ready" }
   },
 
-  deployService: async ({ ctx, env, service }: DeployServiceParams<KubernetesSpecsModule>) => {
-    const context = getContext(env)
-    const namespace = getAppNamespace(ctx, env)
+  deployService: async ({ ctx, provider, service }: DeployServiceParams<KubernetesSpecsModule>) => {
+    const context = provider.config.context
+    const namespace = getAppNamespace(ctx, provider)
     const currentVersion = await service.module.getVersion()
 
     return Bluebird.each(service.config.specs, async (spec) => {

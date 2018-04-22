@@ -36,7 +36,9 @@ export const gardenPlugin = (): GardenPlugin => ({
     container: {
       getServiceStatus,
 
-      async deployService({ ctx, config, service, serviceContext, env }: DeployServiceParams<ContainerModule>) {
+      async deployService(
+        { ctx, provider, service, serviceContext, env }: DeployServiceParams<ContainerModule>,
+      ) {
         // TODO: split this method up and test
         const { versionString } = await service.module.getVersion()
 
@@ -107,7 +109,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         }
 
         const docker = getDocker()
-        const serviceStatus = await getServiceStatus({ ctx, config, service, env })
+        const serviceStatus = await getServiceStatus({ ctx, provider, service, env })
         let swarmServiceStatus
         let serviceId
 
@@ -163,7 +165,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           msg: `Ready`,
         })
 
-        return getServiceStatus({ ctx, config, service, env })
+        return getServiceStatus({ ctx, provider, service, env })
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<ContainerModule>) {
@@ -172,8 +174,10 @@ export const gardenPlugin = (): GardenPlugin => ({
         }
       },
 
-      async execInService({ ctx, config, env, service, command }: ExecInServiceParams<ContainerModule>) {
-        const status = await getServiceStatus({ ctx, config, service, env })
+      async execInService(
+        { ctx, provider, env, service, command }: ExecInServiceParams<ContainerModule>,
+      ) {
+        const status = await getServiceStatus({ ctx, provider, service, env })
 
         if (!status.state || status.state !== "ready") {
           throw new DeploymentError(`Service ${service.name} is not running`, {

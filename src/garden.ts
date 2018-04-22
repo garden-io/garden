@@ -185,8 +185,8 @@ export class Garden {
 
     // Load configured plugins
     // Validate configuration
-    for (const [providerName, providerConfig] of Object.entries(config.providers)) {
-      this.loadPlugin(providerName, providerConfig)
+    for (const [providerName, provider] of Object.entries(config.providers)) {
+      this.loadPlugin(providerName, provider)
     }
   }
 
@@ -366,7 +366,7 @@ export class Garden {
 
     // allow plugins to override their own config (that gets passed to action handlers)
     if (plugin.config) {
-      this.config.providers[pluginName] = config
+      this.config.providers[pluginName] = plugin.config
     }
 
     const actions = plugin.actions || {}

@@ -1,13 +1,7 @@
 project:
   name: multi-container
   environments:
-    local:
-      providers:
-        docker:
-          type: kubernetes
-          context: docker-for-desktop
     dev:
       providers:
-        docker:
-          type: kubernetes
+        kubernetes:
           context: my-dev-context

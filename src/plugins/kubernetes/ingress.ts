@@ -8,8 +8,10 @@
 
 import { PluginContext } from "../../plugin-context"
 import { ContainerService } from "../container"
+import { KubernetesProvider } from "./index"
 
-export async function createIngress(service: ContainerService, externalHostname: string) {
+export async function createIngress(ctx: PluginContext, provider: KubernetesProvider, service: ContainerService) {
+  // FIXME: ingresses don't get updated when deployment is already running (rethink status check)
   if (service.config.endpoints.length === 0) {
     return null
   }
@@ -18,7 +20,7 @@ export async function createIngress(service: ContainerService, externalHostname:
     const rule: any = {}
 
     // TODO: support separate hostnames per endpoint
-    rule.host = externalHostname
+    rule.host = getServiceHostname(ctx, provider, service)
 
     const backend = {
       serviceName: service.name,
@@ -36,19 +38,24 @@ export async function createIngress(service: ContainerService, externalHostname:
   })
 
   const { versionString } = await service.module.getVersion()
+  const ingressClass = provider.config.ingressClass
+
+  const annotations = {
+    "garden.io/generated": "true",
+    "garden.io/version": versionString,
+    "ingress.kubernetes.io/force-ssl-redirect": provider.config.forceSsl,
+  }
+
+  if (ingressClass) {
+    annotations["kubernetes.io/ingress.class"] = ingressClass
+  }
 
   return {
     apiVersion: "extensions/v1beta1",
     kind: "Ingress",
     metadata: {
       name: service.name,
-      annotations: {
-        "garden.io/generated": "true",
-        "garden.io/version": versionString,
-        "kubernetes.io/ingress.class": "nginx",
-        // TODO: allow overriding this (should only be applied to localhost deployments)
-        "ingress.kubernetes.io/force-ssl-redirect": "false",
-      },
+      annotations,
     },
     spec: {
       rules,
@@ -56,11 +63,8 @@ export async function createIngress(service: ContainerService, externalHostname:
   }
 }
 
-export function getProjectHostname() {
-  // TODO: make configurable
-  return "local.app.garden"
-}
+export function getServiceHostname(ctx: PluginContext, provider: KubernetesProvider, service: ContainerService) {
+  const baseHostname = provider.config.ingressHostname
 
-export function getServiceHostname(ctx: PluginContext, service: ContainerService) {
-  return `${service.name}.${ctx.projectName}.${getProjectHostname()}`
+  return `${service.name}.${ctx.projectName}.${baseHostname}`
 }

@@ -23,9 +23,16 @@ import { Moment } from "moment"
 import { TreeVersion } from "../vcs/base"
 import { mapValues } from "lodash"
 
+// TODO: split this module up
+
+export interface Provider<T extends object = any> {
+  name: string
+  config: T
+}
+
 export interface PluginActionParamsBase {
   ctx: PluginContext
-  config: object
+  provider: Provider
   logEntry?: LogEntry
 }
 

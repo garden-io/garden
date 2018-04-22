@@ -70,7 +70,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       },
 
       async deployService(
-        { ctx, config, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>,
+        { ctx, provider, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>,
       ) {
         // TODO: provide env vars somehow to function
         const project = getProject(pluginName, service, env)
@@ -86,7 +86,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           "--trigger-http",
         ])
 
-        return getServiceStatus({ ctx, config, service, env })
+        return getServiceStatus({ ctx, provider, service, env })
       },
 
       async getServiceOutputs({ service, env }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
