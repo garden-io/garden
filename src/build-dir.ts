@@ -77,11 +77,10 @@ export class BuildDir {
   }
 
   private async sync(sourcePath: string, destinationPath: string): Promise<void> {
-
     await ensureDir(destinationPath)
 
     const syncCmd = new Rsync()
-      .flags(["a"])
+      .flags(["r", "p", "t", "g", "o"])
       .source(sourcePath)
       .destination(destinationPath)
 
