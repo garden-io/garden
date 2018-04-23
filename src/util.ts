@@ -14,9 +14,11 @@ import * as ignore from "ignore/ignore"
 import * as klaw from "klaw"
 import * as yaml from "js-yaml"
 import * as Cryo from "cryo"
+import * as inquirer from "inquirer"
 import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
+import { getLogger, RootLogNode } from "./logger"
 import {
   TimeoutError,
   GardenError,
@@ -25,6 +27,7 @@ import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
+import { FancyConsoleWriter } from "./logger/writers"
 
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
@@ -292,6 +295,16 @@ export function spawnPty(
       }
     })
   })
+}
+
+export async function prompt(config: inquirer.Question, logger?: RootLogNode): Promise<object> {
+  const _logger = logger || getLogger()
+  const fancyWriter = _logger.writers.find(w => w instanceof FancyConsoleWriter) as (FancyConsoleWriter | undefined)
+  // Remove when https://github.com/garden-io/garden/issues/79 is solved
+  if (fancyWriter) {
+    fancyWriter.stopAndPersist(_logger)
+  }
+  return inquirer.prompt(config)
 }
 
 export function dumpYaml(yamlPath, data) {

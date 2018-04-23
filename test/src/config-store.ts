@@ -1,14 +1,28 @@
 import * as tmp from "tmp-promise"
-import { LocalConfig } from "../../src/local-config"
+import { ConfigStore } from "../../src/config-store"
 import { expect } from "chai"
+import { resolve } from "path"
 
-describe("LocalConfig", () => {
-  let config: LocalConfig
+type GenericConfig = {}
+
+class GenericConfigStore extends ConfigStore<GenericConfig> {
+
+  setConfigPath(projectPath): string {
+    return resolve(projectPath, ".garden", "local-config.yml")
+  }
+
+  validate(config): GenericConfig {
+    return config
+  }
+}
+
+describe("ConfigStore", () => {
+  let config: ConfigStore
   let tmpDir
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
-    config = new LocalConfig(tmpDir.path)
+    config = new GenericConfigStore(tmpDir.path)
   })
 
   after(async () => {
@@ -33,6 +47,14 @@ describe("LocalConfig", () => {
       expect(await config.get()).to.eql({ nested: { a: { aa: "value-a"}, b: { bb: "value-bbb" }}})
     })
 
+    it("should optionally set multiple key-value pairs", async () => {
+      await config.set([
+        {keyPath: ["a", "aa"], value: "value-a"},
+        {keyPath: ["b", "bb"], value: "value-b"},
+      ])
+      expect(await config.get()).to.eql({ a: { aa: "value-a"}, b: { bb: "value-b" }})
+    })
+
     it("should throw if setting a nested key on a non-object", async () => {
       await config.set(["key"], "value")
 
@@ -45,6 +67,7 @@ describe("LocalConfig", () => {
 
       throw new Error("Expected error")
     })
+
   })
 
   describe("get", () => {
@@ -82,6 +105,38 @@ describe("LocalConfig", () => {
       await config.set(["key"], "value")
       await config.clear()
       expect(await config.get()).to.eql({})
+    })
+  })
+
+  describe("delete", () => {
+    it("should delete the specified key from the configuration", async () => {
+      await config.set([
+        {keyPath: ["a", "aa"], value: "value-a"},
+        {keyPath: ["b", "bb"], value: "value-b"},
+      ])
+      await config.delete(["a", "aa"])
+
+      expect(await config.get(["b", "bb"])).to.eql("value-b")
+
+      let res
+      try {
+        res = await config.get(["a", "aa"])
+      } catch (err) {
+        expect(err.type).to.equal("local-config")
+        return
+      }
+      throw new Error("Expected error, got " + res)
+    })
+
+    it("should throw if key is not found", async () => {
+      let res
+      try {
+        res = await config.delete(["key"])
+      } catch (err) {
+        expect(err.type).to.equal("local-config")
+        return
+      }
+      throw new Error("Expected error, got " + res)
     })
   })
 })

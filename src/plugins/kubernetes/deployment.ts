@@ -42,7 +42,7 @@ interface KubeEnvVar {
 export async function deployService(
   { ctx, provider, service, env, serviceContext, logEntry }: DeployServiceParams<ContainerModule>,
 ): Promise<ServiceStatus> {
-  const namespace = getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, provider)
 
   const context = provider.config.context
   const deployment = await createDeployment(service, serviceContext)

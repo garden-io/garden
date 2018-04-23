@@ -35,7 +35,8 @@ import { LogLevel } from "./logger/types"
 import { ConfigCommand } from "./commands/config"
 import { StatusCommand } from "./commands/status"
 import { PushCommand } from "./commands/push"
-import { enumToArray } from "./types/common"
+import { LoginCommand } from "./commands/login"
+import { LogoutCommand } from "./commands/logout"
 
 const GLOBAL_OPTIONS = {
   root: new StringParameter({
@@ -223,6 +224,8 @@ export class GardenCli {
       new ValidateCommand(),
       new StatusCommand(),
       new PushCommand(),
+      new LoginCommand(),
+      new LogoutCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 

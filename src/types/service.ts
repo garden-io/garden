@@ -126,7 +126,7 @@ export class Service<M extends Module> {
       const outputs = await this.ctx.getServiceOutputs(dep)
       const serviceEnvName = dep.getEnvVarName()
 
-      validate(outputs, serviceOutputsSchema, `outputs for service ${dep.name}`)
+      validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
 
       for (const [key, value] of Object.entries(outputs)) {
         const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${key}`.toUpperCase()

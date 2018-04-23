@@ -54,7 +54,9 @@ export const gardenPlugin = (): GardenPlugin => ({
         // TODO: check that each function exists at the specified path
 
         module.services = validate(
-          moduleConfig.services, gcfServicesSchema, `services in module ${moduleConfig.name}`,
+          moduleConfig.services,
+          gcfServicesSchema,
+          { context: `services in module ${moduleConfig.name}` },
         )
 
         return module

@@ -16,8 +16,16 @@ export abstract class GardenError extends Error {
   }
 }
 
+export class AuthenticationError extends GardenError {
+  type = "authentication"
+}
+
 export class ConfigurationError extends GardenError {
   type = "configuration"
+}
+
+export class LocalConfigError extends GardenError {
+  type = "local-config"
 }
 
 export class ValidationError extends GardenError {

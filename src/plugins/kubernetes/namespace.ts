@@ -16,6 +16,8 @@ import {
   GARDEN_SYSTEM_NAMESPACE,
   isSystemGarden,
 } from "./system"
+import { name as providerName } from "./index"
+import { AuthenticationError } from "../../exceptions"
 
 export async function namespaceReady(context: string, namespace: string) {
   /**
@@ -43,14 +45,23 @@ export async function createNamespace(context: string, namespace: string) {
   })
 }
 
-export function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
+export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
   if (isSystemGarden(provider)) {
     return GARDEN_SYSTEM_NAMESPACE
   }
 
-  const currentEnv = ctx.getEnvironment()
+  const localConfig = await ctx.localConfigStore.get()
+  const k8sConfig = localConfig.kubernetes || {}
+  const { username, ["previous-usernames"]: previousUsernames } = k8sConfig
 
-  return `garden--${ctx.projectName}--${currentEnv.namespace}`
+  if (!username) {
+    throw new AuthenticationError(
+      `User not logged into provider ${providerName}. Please run garden login.`,
+      { previousUsernames, provider: providerName },
+    )
+  }
+
+  return `garden--${username}--${ctx.projectName}`
 }
 
 export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesProvider) {
@@ -60,4 +71,11 @@ export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesPro
 
   const env = ctx.getEnvironment()
   return `garden-metadata--${ctx.projectName}--${env.namespace}`
+}
+
+export async function getAllAppNamespaces(context: string): Promise<string[]> {
+  const allNamespaces = await coreApi(context).namespaces.get()
+  return allNamespaces.items
+    .map(n => n.metadata.name)
+    .filter(n => n.startsWith("garden--"))
 }

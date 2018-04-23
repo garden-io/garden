@@ -77,6 +77,10 @@ export interface PluginActionParams {
   getConfig: GetConfigParams
   setConfig: SetConfigParams
   deleteConfig: DeleteConfigParams
+
+  getLoginStatus: PluginActionParamsBase
+  login: PluginActionParamsBase
+  logout: PluginActionParamsBase
 }
 
 export interface GetModuleBuildStatusParams<T extends Module = Module> extends PluginActionParamsBase {
@@ -204,6 +208,14 @@ export interface DeleteConfigResult {
   found: boolean
 }
 
+export interface LoginStatus {
+  loggedIn: boolean
+}
+
+export interface LoginStatusMap {
+  [key: string]: LoginStatus,
+}
+
 export interface PluginActionOutputs {
   getEnvironmentStatus: Promise<EnvironmentStatus>
   configureEnvironment: Promise<void>
@@ -212,6 +224,10 @@ export interface PluginActionOutputs {
   getConfig: Promise<string | null>
   setConfig: Promise<void>
   deleteConfig: Promise<DeleteConfigResult>
+
+  getLoginStatus: Promise<LoginStatus>
+  login: Promise<LoginStatus>
+  logout: Promise<LoginStatus>
 }
 
 export interface ModuleActionOutputs<T extends Module = Module> {
@@ -252,6 +268,10 @@ const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDescripti
   getConfig: {},
   setConfig: {},
   deleteConfig: {},
+
+  getLoginStatus: {},
+  login: {},
+  logout: {},
 }
 
 const moduleActionDescriptions: { [P in ModuleActionName]: PluginActionDescription } = {
