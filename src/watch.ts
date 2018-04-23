@@ -9,6 +9,7 @@
 import { map as bluebirdMap } from "bluebird"
 import { Client } from "fb-watchman"
 import { keyBy } from "lodash"
+import { relative, resolve } from "path"
 import { Module } from "./types/module"
 import { PluginContext } from "./plugin-context"
 
@@ -36,7 +37,7 @@ export async function watchModules(
     }
   }
 
-  const watcher = new FSWatcher()
+  const watcher = new FSWatcher(ctx.projectRoot)
   await watcher.watchModules(modules, "addTasksForAutoReload/",
     async (changedModule) => {
       ctx.log.info({ msg: `files changed for module ${changedModule.name}` })
@@ -81,7 +82,7 @@ export class FSWatcher {
   private readonly client
   private capabilityCheckComplete: boolean
 
-  constructor() {
+  constructor(private projectRoot: string) {
     this.client = new Client()
     this.capabilityCheckComplete = false
   }
@@ -120,15 +121,13 @@ export class FSWatcher {
 
     await bluebirdMap(modules || [], async (module) => {
       const subscriptionKey = FSWatcher.subscriptionKey(subscriptionPrefix, module)
+      const modulePath = resolve(this.projectRoot, module.path)
 
-      const result = await this.command(["watch-project", module.path])
-
-      // console.log("watching", modulePath)
+      const result = await this.command(["watch-project", modulePath])
+      const relModulePath = relative(result.watch, modulePath)
 
       const subscriptionRequest = {
-        // expression: ["anyof",
-        //   ["dirname", modulePath, ["depth", "ge", 0]]
-        // ]
+        expression: ["dirname", relModulePath, ["depth", "ge", 0]]
       }
 
       await this.command([
@@ -139,7 +138,6 @@ export class FSWatcher {
     })
 
     this.on("subscription", async (response) => {
-      // console.log("file changed:", response)
       const changedModule = modulesBySubscriptionKey[response.subscription]
       if (!changedModule) {
         console.log("no module found for changed file, skipping auto-rebuild")

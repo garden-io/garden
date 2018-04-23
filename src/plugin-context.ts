@@ -391,7 +391,7 @@ export function createPluginContext(garden: Garden): PluginContext {
         }
       }
 
-      const watcher = new FSWatcher()
+      const watcher = new FSWatcher(ctx.projectRoot)
 
       // TODO: should the prefix here be different or set explicitly per run?
       await watcher.watchModules(modules, "addTasksForAutoReload/",
