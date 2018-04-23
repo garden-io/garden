@@ -40,7 +40,7 @@ export async function watchModules(
   const watcher = new FSWatcher(ctx.projectRoot)
   await watcher.watchModules(modules, "addTasksForAutoReload/",
     async (changedModule) => {
-      ctx.log.info({ msg: `files changed for module ${changedModule.name}` })
+      ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
       await handleChanges(changedModule)
       await ctx.processTasks()
     })

@@ -44,6 +44,8 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
       return {}
     }
 
+    ctx.log.header({ emoji: "rocket", command: "Deploy" })
+
     // TODO: make this a task
     await ctx.configureEnvironment()
 
@@ -51,15 +53,18 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     const force = opts.force
     const forceBuild = opts["force-build"]
 
-    ctx.log.header({ emoji: "rocket", command: "Deploy" })
-
     const modules = Array.from(new Set(values(services).map(s => s.module)))
 
-    return ctx.processModules(modules, watch, async (module) => {
+    const result = ctx.processModules(modules, watch, async (module) => {
       const servicesToDeploy = values(await module.getServices()).filter(s => !!services[s.name])
       for (const service of servicesToDeploy) {
         await ctx.addTask(new DeployTask(ctx, service, force, forceBuild))
       }
     })
+
+    ctx.log.info("")
+    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+
+    return result
   }
 }

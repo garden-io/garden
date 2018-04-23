@@ -48,7 +48,6 @@ export class AutoReloadCommand extends Command {
     })
 
     registerCleanupFunction("clearAutoReloadWatches", () => {
-      ctx.log.info({ msg: "Clearing autoreload watches" })
       watcher.end()
     })
 

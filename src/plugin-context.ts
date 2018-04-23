@@ -396,14 +396,14 @@ export function createPluginContext(garden: Garden): PluginContext {
       // TODO: should the prefix here be different or set explicitly per run?
       await watcher.watchModules(modules, "addTasksForAutoReload/",
         async (changedModule) => {
-          ctx.log.info({ msg: `files changed for module ${changedModule.name}` })
+          ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
           await handleChanges(changedModule)
           logErrors(await ctx.processTasks())
         })
 
       registerCleanupFunction("clearAutoReloadWatches", () => {
-        ctx.log.info({ msg: "Clearing autoreload watches" })
         watcher.end()
+        ctx.log.info({ msg: "\nDone!" })
       })
 
       while (true) {

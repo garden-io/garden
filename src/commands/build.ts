@@ -41,8 +41,13 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
 
     ctx.log.header({ emoji: "hammer", command: "build" })
 
-    return await ctx.processModules(modules, opts.watch, async (module) => {
+    const result = await ctx.processModules(modules, opts.watch, async (module) => {
       await ctx.addTask(new BuildTask(ctx, module, opts.force))
     })
+
+    ctx.log.info("")
+    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+
+    return result
   }
 }
