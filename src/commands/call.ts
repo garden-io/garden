@@ -9,6 +9,7 @@
 import { resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
+import { isObject } from "util"
 import { Command, ParameterValues, StringParameter } from "./base"
 import { splitFirst } from "../util"
 import { ParameterError, RuntimeError } from "../exceptions"
@@ -113,7 +114,9 @@ export class CallCommand extends Command<typeof callArgs> {
       ctx.log.info(chalk.red(`\n${res.status} ${res.statusText}\n`))
     }
 
-    res.data && ctx.log.info(chalk.white(res.data))
+    const resStr = isObject(res.data) ? JSON.stringify(res.data, null, 2) : res.data
+
+    res.data && ctx.log.info(chalk.white(resStr))
 
     return {
       serviceName,
