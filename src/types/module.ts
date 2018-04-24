@@ -11,7 +11,14 @@ import { ServiceMap } from "../garden"
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
 import { TestTask } from "../tasks/test"
-import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
+import {
+  identifierRegex,
+  joiIdentifier,
+  joiPrimitive,
+  joiVariables,
+  PrimitiveMap,
+  validate,
+} from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
 import {
@@ -21,6 +28,7 @@ import {
   values,
 } from "lodash"
 import {
+  RuntimeContext,
   Service,
   ServiceConfig,
 } from "./service"
@@ -50,6 +58,8 @@ export interface BuildConfig {
   command?: string,
   dependencies: BuildDependencyConfig[],
 }
+
+const serviceOutputsSchema = Joi.object().pattern(/.+/, joiPrimitive())
 
 export interface TestSpec {
   command: string[]
@@ -184,6 +194,39 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     }
 
     return tasks
+  }
+
+  async prepareRuntimeContext(dependencies: Service<any>[]): Promise<RuntimeContext> {
+    const { versionString } = await this.getVersion()
+    const envVars = {
+      GARDEN_VERSION: versionString,
+    }
+    const deps = {}
+
+    for (const key in this.ctx.config.variables) {
+      envVars[key] = this.ctx.config.variables[key]
+    }
+
+    for (const dep of dependencies) {
+      const depContext = deps[dep.name] = {
+        version: versionString,
+        outputs: {},
+      }
+
+      const outputs = await this.ctx.getServiceOutputs(dep)
+      const serviceEnvName = dep.getEnvVarName()
+
+      validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
+
+      for (const [key, value] of Object.entries(outputs)) {
+        const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${key}`.toUpperCase()
+
+        envVars[envVarName] = value
+        depContext.outputs[key] = value
+      }
+    }
+
+    return { envVars, dependencies: deps }
   }
 }
 

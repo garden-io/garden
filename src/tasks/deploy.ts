@@ -57,8 +57,9 @@ export class DeployTask<T extends Service<any>> extends Task {
     })
 
     // we resolve the config again because context may have changed after dependencies are deployed
-    const serviceContext = await this.service.prepareContext()
-    const service = await this.service.resolveConfig(serviceContext)
+    const dependencies = await this.service.getDependencies()
+    const runtimeContext = await this.service.module.prepareRuntimeContext(dependencies)
+    const service = await this.service.resolveConfig(runtimeContext)
 
     // TODO: get version from build task results
     const { versionString } = await this.service.module.getVersion()
@@ -79,7 +80,7 @@ export class DeployTask<T extends Service<any>> extends Task {
 
     entry.setState({ section: this.service.name, msg: "Deploying" })
 
-    const result = await this.ctx.deployService(service, serviceContext, entry)
+    const result = await this.ctx.deployService(service, runtimeContext, entry)
 
     entry.setSuccess({ msg: chalk.green(`Ready`), append: true })
 
