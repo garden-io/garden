@@ -44,7 +44,7 @@ import {
 } from "./types/plugin"
 import {
   Service,
-  ServiceContext,
+  RuntimeContext,
   ServiceStatus,
 } from "./types/service"
 import Bluebird = require("bluebird")
@@ -100,7 +100,7 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   ) => Promise<BuildResult>
   pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
   testModule: <T extends Module>(
-    module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry,
+    module: T, testName: string, testSpec: TestSpec, runtimeContext: RuntimeContext, logEntry?: LogEntry,
   ) => Promise<TestResult>
   getTestResult: <T extends Module>(
     module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
@@ -110,7 +110,7 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   destroyEnvironment: () => Promise<EnvironmentStatusMap>
   getServiceStatus: <T extends Module>(service: Service<T>) => Promise<ServiceStatus>
   deployService: <T extends Module>(
-    service: Service<T>, serviceContext?: ServiceContext, logEntry?: LogEntry,
+    service: Service<T>, runtimeContext?: RuntimeContext, logEntry?: LogEntry,
   ) => Promise<ServiceStatus>
   getServiceOutputs: <T extends Module>(service: Service<T>) => Promise<PrimitiveMap>
   execInService: <T extends Module>(service: Service<T>, command: string[]) => Promise<ExecInServiceResult>
@@ -206,11 +206,13 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ...commonParams(handler), module, logEntry })
     },
 
-    testModule: async <T extends Module>(module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry) => {
+    testModule: async <T extends Module>(
+      module: T, testName: string, testSpec: TestSpec, runtimeContext: RuntimeContext, logEntry?: LogEntry,
+    ) => {
       const defaultHandler = garden.getModuleActionHandler("testModule", "generic")
       const handler = garden.getModuleActionHandler("testModule", module.type, defaultHandler)
       const env = garden.getEnvironment()
-      return handler({ ...commonParams(handler), module, testName, testSpec, env, logEntry })
+      return handler({ ...commonParams(handler), module, testName, testSpec, runtimeContext, env, logEntry })
     },
 
     getTestResult: async <T extends Module>(
@@ -266,15 +268,15 @@ export function createPluginContext(garden: Garden): PluginContext {
     },
 
     deployService: async <T extends Module>(
-      service: Service<T>, serviceContext?: ServiceContext, logEntry?: LogEntry,
+      service: Service<T>, runtimeContext?: RuntimeContext, logEntry?: LogEntry,
     ) => {
       const handler = garden.getModuleActionHandler("deployService", service.module.type)
 
-      if (!serviceContext) {
-        serviceContext = { envVars: {}, dependencies: {} }
+      if (!runtimeContext) {
+        runtimeContext = { envVars: {}, dependencies: {} }
       }
 
-      return handler({ ...commonParams(handler), service, serviceContext, env: garden.getEnvironment(), logEntry })
+      return handler({ ...commonParams(handler), service, runtimeContext, env: garden.getEnvironment(), logEntry })
     },
 
     getServiceOutputs: async <T extends Module>(service: Service<T>) => {

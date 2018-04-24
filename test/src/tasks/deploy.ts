@@ -44,7 +44,7 @@ describe("DeployTask", () => {
       command: `echo ${versionString}`,
       dependencies: ["service-a"],
     })
-    expect(actionParams.serviceContext.dependencies).to.eql({
+    expect(actionParams.runtimeContext.dependencies).to.eql({
       "service-a": {
         outputs: {},
         version: versionString,

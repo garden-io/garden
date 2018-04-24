@@ -14,7 +14,7 @@ import {
 } from "../container"
 import { toPairs, extend } from "lodash"
 import {
-  ServiceContext,
+  RuntimeContext,
   ServiceStatus,
 } from "../../types/service"
 import {
@@ -40,12 +40,12 @@ interface KubeEnvVar {
 }
 
 export async function deployService(
-  { ctx, provider, service, env, serviceContext, logEntry }: DeployServiceParams<ContainerModule>,
+  { ctx, provider, service, env, runtimeContext, logEntry }: DeployServiceParams<ContainerModule>,
 ): Promise<ServiceStatus> {
   const namespace = await getAppNamespace(ctx, provider)
 
   const context = provider.config.context
-  const deployment = await createDeployment(service, serviceContext)
+  const deployment = await createDeployment(service, runtimeContext)
   await apply(context, deployment, { namespace })
 
   // TODO: automatically clean up Services and Ingresses if they should no longer exist
@@ -67,7 +67,7 @@ export async function deployService(
   return checkDeploymentStatus({ ctx, provider, service })
 }
 
-export async function createDeployment(service: ContainerService, serviceContext: ServiceContext) {
+export async function createDeployment(service: ContainerService, runtimeContext: RuntimeContext) {
   const config: ContainerServiceConfig = service.config
   const { versionString } = await service.module.getVersion()
   // TODO: support specifying replica count
@@ -111,7 +111,7 @@ export async function createDeployment(service: ContainerService, serviceContext
     },
   }
 
-  const envVars = extend({}, serviceContext.envVars)
+  const envVars = extend({}, runtimeContext.envVars)
 
   const labels = {
     // tier: service.tier,

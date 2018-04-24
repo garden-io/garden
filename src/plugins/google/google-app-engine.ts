@@ -51,7 +51,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return {}
       },
 
-      async deployService({ ctx, service, serviceContext, env }: DeployServiceParams<GoogleAppEngineModule>) {
+      async deployService({ ctx, service, runtimeContext, env }: DeployServiceParams<GoogleAppEngineModule>) {
         ctx.log.info({
           section: service.name,
           msg: `Deploying app...`,
@@ -63,7 +63,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const appYaml: any = {
           runtime: "custom",
           env: "flex",
-          env_variables: serviceContext.envVars,
+          env_variables: runtimeContext.envVars,
         }
 
         if (config.healthCheck) {

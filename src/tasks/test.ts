@@ -14,6 +14,7 @@ import { TestResult } from "../types/plugin"
 import { Task } from "../types/task"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
+import { values } from "lodash"
 
 class TestError extends Error {
   toString() {
@@ -80,7 +81,10 @@ export class TestTask<T extends Module> extends Task {
       entryStyle: EntryStyle.activity,
     })
 
-    const result = await this.ctx.testModule(this.module, this.testName, this.testSpec)
+    const dependencies = values(await this.ctx.getServices(this.testSpec.dependencies))
+    const runtimeContext = await this.module.prepareRuntimeContext(dependencies)
+
+    const result = await this.ctx.testModule(this.module, this.testName, this.testSpec, runtimeContext)
 
     if (result.success) {
       entry.setSuccess({ msg: chalk.green(`Success`), append: true })
