@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { BuildTask } from "../tasks/build"
@@ -21,6 +20,7 @@ export const buildArguments = {
 
 export const buildOptions = {
   force: new BooleanParameter({ help: "Force rebuild of module(s)" }),
+  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-build", alias: "w" }),
 }
 
 export type BuildArguments = ParameterValues<typeof buildArguments>
@@ -36,19 +36,16 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
     await ctx.clearBuilds()
     const names = args.module ? args.module.split(",") : undefined
-    const modules = await ctx.getModules(names)
-
-    for (const module of values(modules)) {
-      const task = new BuildTask(ctx, module, opts.force)
-      await ctx.addTask(task)
-    }
+    const modules = values(await ctx.getModules(names))
 
     ctx.log.header({ emoji: "hammer", command: "build" })
 
-    const result = await ctx.processTasks()
+    const result = await ctx.processModules(modules, opts.watch, async (module) => {
+      await ctx.addTask(new BuildTask(ctx, module, opts.force))
+    })
 
     ctx.log.info("")
-    ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green("Done!\n") })
+    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
 
     return result
   }

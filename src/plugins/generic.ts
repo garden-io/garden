@@ -67,13 +67,15 @@ export const genericPlugin = {
         }
       },
 
-      async testModule({ module, testSpec }: TestModuleParams): Promise<TestResult> {
+      async testModule({ module, testName, testSpec }: TestModuleParams): Promise<TestResult> {
         const startedAt = new Date()
         const result = await spawn(
           testSpec.command[0], testSpec.command.slice(1), { cwd: module.path, ignoreError: true },
         )
 
         return {
+          moduleName: module.name,
+          testName,
           version: await module.getVersion(),
           success: result.code === 0,
           startedAt,

@@ -1,5 +1,6 @@
 import * as td from "testdouble"
 import { resolve } from "path"
+import { TaskResults } from "../src/task-graph"
 import {
   DeleteConfigParams,
   GetConfigParams,
@@ -13,11 +14,20 @@ import {
 import { Garden } from "../src/garden"
 import { Module } from "../src/types/module"
 import { expect } from "chai"
+import { mapValues } from "lodash"
 
 export const dataDir = resolve(__dirname, "data")
 
 export function getDataDir(name: string) {
   return resolve(dataDir, name)
+}
+
+export async function profileBlock(description: string, block: () => Promise<any>) {
+  const startTime = new Date().getTime()
+  const result = await block()
+  const executionTime = (new Date().getTime()) - startTime
+  console.log(description, "took", executionTime, "ms")
+  return result
 }
 
 export const projectRootA = getDataDir("test-project-a")
@@ -147,4 +157,8 @@ export async function expectError(fn: Function, typeOrCallback: string | ((err: 
   } else {
     throw new Error(`Expected error (got no error)`)
   }
+}
+
+export function taskResultOutputs(results: TaskResults) {
+  return mapValues(results, r => r.output)
 }

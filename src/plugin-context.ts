@@ -16,6 +16,7 @@ import {
   LogEntry,
 } from "./logger"
 import { EntryStyle } from "./logger/types"
+import { TaskResults } from "./task-graph"
 import { DeployTask } from "./tasks/deploy"
 import {
   PrimitiveMap,
@@ -50,8 +51,17 @@ import {
   mapValues,
   toPairs,
   values,
+  padEnd,
 } from "lodash"
+import {
+  registerCleanupFunction,
+  sleep,
+} from "./util"
 import { TreeVersion } from "./vcs/base"
+import {
+  computeAutoReloadDependants,
+  FSWatcher,
+} from "./watch"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -87,8 +97,12 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
     module: T, buildContext: PrimitiveMap, logEntry?: LogEntry,
   ) => Promise<BuildResult>
   pushModule: <T extends Module>(module: T, logEntry?: LogEntry) => Promise<PushResult>
-  testModule: <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => Promise<TestResult>
-  getTestResult: <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => Promise<TestResult | null>
+  testModule: <T extends Module>(
+    module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry,
+  ) => Promise<TestResult>
+  getTestResult: <T extends Module>(
+    module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
+  ) => Promise<TestResult | null>
   getEnvironmentStatus: () => Promise<EnvironmentStatusMap>
   configureEnvironment: () => Promise<EnvironmentStatusMap>
   destroyEnvironment: () => Promise<EnvironmentStatusMap>
@@ -110,6 +124,9 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   deployServices: (
     params: { names?: string[], force?: boolean, forceBuild?: boolean, logEntry?: LogEntry },
   ) => Promise<any>
+  processModules: (
+    modules: Module[], watch: boolean, process: (module: Module) => Promise<any>,
+  ) => Promise<TaskResults>
 }
 
 export function createPluginContext(garden: Garden): PluginContext {
@@ -183,17 +200,19 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ...commonParams(handler), module, logEntry })
     },
 
-    testModule: async <T extends Module>(module: T, testSpec: TestSpec, logEntry?: LogEntry) => {
+    testModule: async <T extends Module>(module: T, testName: string, testSpec: TestSpec, logEntry?: LogEntry) => {
       const defaultHandler = garden.getModuleActionHandler("testModule", "generic")
       const handler = garden.getModuleActionHandler("testModule", module.type, defaultHandler)
       const env = garden.getEnvironment()
-      return handler({ ...commonParams(handler), module, testSpec, env, logEntry })
+      return handler({ ...commonParams(handler), module, testName, testSpec, env, logEntry })
     },
 
-    getTestResult: async <T extends Module>(module: T, version: TreeVersion, logEntry?: LogEntry) => {
+    getTestResult: async <T extends Module>(
+      module: T, testName: string, version: TreeVersion, logEntry?: LogEntry,
+    ) => {
       const handler = garden.getModuleActionHandler("getTestResult", module.type, async () => null)
       const env = garden.getEnvironment()
-      return handler({ ...commonParams(handler), module, version, env, logEntry })
+      return handler({ ...commonParams(handler), module, testName, version, env, logEntry })
     },
 
     getEnvironmentStatus: async () => {
@@ -331,6 +350,65 @@ export function createPluginContext(garden: Garden): PluginContext {
       }
 
       return ctx.processTasks()
+    },
+
+    processModules: async (modules: Module[], watch: boolean, process: (module: Module) => Promise<any>) => {
+      // TODO: log errors as they happen, instead of after processing all tasks
+      const logErrors = (taskResults: TaskResults) => {
+        for (const result of values(taskResults).filter(r => !!r.error)) {
+          const divider = padEnd("", 80, "—")
+
+          ctx.log.error(`\nFailed ${result.description}. Here is the output:`)
+          ctx.log.error(divider)
+          ctx.log.error(result.error + "")
+          ctx.log.error(divider + "\n")
+        }
+      }
+
+      for (const module of modules) {
+        await process(module)
+      }
+
+      const results = await ctx.processTasks()
+      logErrors(results)
+
+      if (!watch) {
+        return results
+      }
+
+      const autoReloadDependants = await computeAutoReloadDependants(modules)
+
+      async function handleChanges(module: Module) {
+        await process(module)
+
+        const dependantsForModule = autoReloadDependants[module.name]
+        if (!dependantsForModule) {
+          return
+        }
+
+        for (const dependant of dependantsForModule) {
+          await handleChanges(dependant)
+        }
+      }
+
+      const watcher = new FSWatcher(ctx.projectRoot)
+
+      // TODO: should the prefix here be different or set explicitly per run?
+      await watcher.watchModules(modules, "addTasksForAutoReload/",
+        async (changedModule) => {
+          ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
+          await handleChanges(changedModule)
+          logErrors(await ctx.processTasks())
+        })
+
+      registerCleanupFunction("clearAutoReloadWatches", () => {
+        watcher.end()
+        ctx.log.info({ msg: "\nDone!" })
+      })
+
+      while (true) {
+        await sleep(1000)
+      }
     },
   }
 

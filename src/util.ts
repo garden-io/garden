@@ -17,7 +17,6 @@ import * as Cryo from "cryo"
 import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
-import { getLogger } from "./logger"
 import {
   TimeoutError,
   GardenError,
@@ -32,17 +31,13 @@ import chalk from "chalk"
 
 export type HookCallback = (callback?: () => void) => void
 
-const exitHooks: HookCallback[] = []
+const exitHookNames: string[] = [] // For debugging/testing/inspection purposes
 
 export type Nullable<T> = { [P in keyof T]: T[P] | null }
 
 export function shutdown(code) {
-  if (exitHooks.length > 1) {
-    const signal = code === 0 ? "beforeExit" : "exitWithError"
-    process.emit(<NodeJS.Signals>signal)
-  } else {
-    process.exit(code)
-  }
+  // This is a good place to log exitHookNames if needed.
+  process.exit(code)
 }
 
 export class RsyncError extends GardenError {
@@ -82,37 +77,8 @@ export function execRsyncCmd(rsyncCmd: RsyncCommand, stdoutHandler?: RsyncStdIOC
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {
-  // NOTE: this currently does not work on SIGINT in ts-node due to a bug
-  // (see https://github.com/TypeStrong/ts-node/pull/458)
-
-  const log = getLogger()
-
-  if (exitHooks.length === 0) {
-    exitHook.hookEvent("exitWithError", 1)
-
-    const firstHook = () => {
-      log.debug({ section: "cleanup", msg: "Starting cleanup..." })
-    }
-
-    exitHook(firstHook)
-    exitHooks.push(firstHook)
-  }
-
-  const hook = (callback) => {
-    if (func.length === 0) {
-      log.debug({ section: "cleanup", msg: name })
-      func()
-    } else {
-      log.debug({ section: "cleanup", msg: `Starting ${name}` })
-      func(() => {
-        log.debug({ section: "cleanup", msg: `Completed ${name}` })
-        callback()
-      })
-    }
-  }
-
-  exitHook(hook)
-  exitHooks.push(hook)
+  exitHookNames.push(name)
+  exitHook(func)
 }
 
 export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIterableIterator<klaw.Item> {

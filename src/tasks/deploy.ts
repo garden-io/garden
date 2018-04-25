@@ -8,9 +8,9 @@
 
 import { LogEntry } from "../logger"
 import { PluginContext } from "../plugin-context"
-import { Task } from "../task-graph"
 import { BuildTask } from "./build"
 import { values } from "lodash"
+import { Task } from "../types/task"
 import {
   Service,
   ServiceStatus,
@@ -41,9 +41,12 @@ export class DeployTask<T extends Service<any>> extends Task {
     return deps
   }
 
-  getKey() {
-    // TODO: Include version in the task key (may need to make this method async).
+  protected getName() {
     return this.service.name
+  }
+
+  getDescription() {
+    return `deploying service ${this.service.name} (from module ${this.service.module.name})`
   }
 
   async process(): Promise<ServiceStatus> {

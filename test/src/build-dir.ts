@@ -4,18 +4,16 @@ import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
 import { values } from "lodash"
 import { BuildTask } from "../../src/tasks/build"
-import {
-  makeTestGarden,
-} from "../helpers"
+import { makeTestGarden } from "../helpers"
 
 /*
   Module dependency diagram for test-project-build-products
 
-  a   b
-   \ /
-    d    c
-      \ /
-       e
+    a   b
+     \ /
+      d    c
+        \ /
+         e
  */
 
 const projectRoot = join(__dirname, "..", "data", "test-project-build-products")

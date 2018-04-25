@@ -7,14 +7,18 @@
  */
 
 import { PluginContext } from "../plugin-context"
+import { BuildTask } from "../tasks/build"
+import { Task } from "../types/task"
 import { Command } from "./base"
 import { join } from "path"
 import { STATIC_DIR } from "../constants"
 import { spawnSync } from "child_process"
 import chalk from "chalk"
-import { sleep } from "../util"
+import Bluebird = require("bluebird")
+import { values } from "lodash"
+import moment = require("moment")
 
-const imgcatPath = join(__dirname, "..", "..", "bin", "imgcat")
+const imgcatPath = join(STATIC_DIR, "imgcat")
 const bannerPath = join(STATIC_DIR, "garden-banner-1-half.png")
 
 export class DevCommand extends Command {
@@ -26,24 +30,48 @@ export class DevCommand extends Command {
       spawnSync(imgcatPath, [bannerPath], {
         stdio: "inherit",
       })
-      console.log()
     } catch (_) {
       // the above fails for terminals other than iTerm2. just ignore the error and move on.
     }
 
-    // console.log(chalk.bold(` garden - dev\n`))
-    console.log(chalk.gray.italic(` Good afternoon, Jon! Let's get your environment wired up...\n`))
+    ctx.log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
     await ctx.configureEnvironment()
-    await ctx.deployServices({})
 
-    ctx.log.info({ msg: "" })
-    const watchEntry = ctx.log.info({ emoji: "koala", msg: `Waiting for code changes...` })
+    const modules = values(await ctx.getModules())
 
-    while (true) {
-      // TODO: actually do stuff
-      await sleep(10000)
-      watchEntry.setState({ emoji: "koala", msg: `Waiting for code changes...` })
+    if (modules.length === 0) {
+      if (modules.length === 0) {
+        ctx.log.info({ msg: "No modules found in project." })
+      }
+      ctx.log.info({ msg: "Aborting..." })
+      return
     }
+
+    await ctx.processModules(modules, true, async (module) => {
+      const testTasks: Task[] = await module.getTestTasks({})
+      const deployTasks = await module.getDeployTasks({})
+      const tasks = testTasks.concat(deployTasks)
+
+      if (tasks.length === 0) {
+        await ctx.addTask(new BuildTask(ctx, module, false))
+      } else {
+        await Bluebird.map(tasks, ctx.addTask)
+      }
+    })
+  }
+}
+
+function getGreetingTime() {
+  const m = moment()
+
+  const currentHour = parseFloat(m.format("HH"))
+
+  if (currentHour >= 17) {
+    return "evening"
+  } else if (currentHour >= 12) {
+    return "afternoon"
+  } else {
+    return "morning"
   }
 }
