@@ -27,7 +27,7 @@ import { FancyConsoleWriter, Writer, BasicConsoleWriter } from "./writers"
 import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
-const DEFAULT_CONFIGS: {[key in LoggerType]: LoggerConfig} = {
+const DEFAULT_CONFIGS: { [key in LoggerType]: LoggerConfig } = {
   [LoggerType.fancy]: {
     level: LogLevel.info,
     writers: [new FancyConsoleWriter()],

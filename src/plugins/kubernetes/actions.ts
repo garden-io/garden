@@ -22,7 +22,7 @@ import { TreeVersion } from "../../vcs/base"
 import {
   ContainerModule,
 } from "../container"
-import { values, every, map, extend } from "lodash"
+import { values, every } from "lodash"
 import { deserializeKeys, serializeKeys, splitFirst } from "../../util"
 import { ServiceStatus } from "../../types/service"
 import {
@@ -174,8 +174,8 @@ export async function testModule(
   // TODO: include a service context here
   const context = provider.config.context
   const baseEnv = {}
-  const envVars: {} = extend({}, baseEnv, testSpec.variables)
-  const envArgs = map(envVars, (v: string, k: string) => `--env=${k}=${v}`)
+  const envVars = { ...baseEnv, ...testSpec.variables }
+  const envArgs = Object.entries(envVars).map(([v, k]) => `--env=${k}=${v}`)
 
   // TODO: use the runModule() method
   const testCommandStr = testSpec.command.join(" ")

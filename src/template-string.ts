@@ -34,7 +34,7 @@ function getParser() {
     } catch (_err) {
       // fallback for when running with ts-node or mocha
       const peg = require("pegjs")
-      const pegFilePath = resolve(__dirname, "template-string.pegjs")
+      const pegFilePath = resolve(__dirname, "template-string-parser.pegjs")
       const grammar = readFileSync(pegFilePath)
       _parser = peg.generate(grammar.toString(), { trace: false })
     }
