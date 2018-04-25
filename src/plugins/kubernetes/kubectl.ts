@@ -80,7 +80,8 @@ export class Kubectl {
       let _timeout
 
       const _reject = (msg: string) => {
-        const details = extend({ args, preparedArgs, msg, data: data.toString() }, <any>out)
+        const dataStr = data ? data.toString() : null
+        const details = extend({ args, preparedArgs, msg, data: dataStr }, <any>out)
         const err = new RuntimeError(`Failed running 'kubectl ${args.join(" ")}'`, details)
         reject(err)
       }

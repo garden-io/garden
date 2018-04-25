@@ -240,7 +240,7 @@ interface PluginActionDescription {
   description?: string
 }
 
-const pluginActionDescriptions: {[P in PluginActionName]: PluginActionDescription } = {
+const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDescription } = {
   getEnvironmentStatus: {},
   configureEnvironment: {},
   destroyEnvironment: {},
@@ -250,7 +250,7 @@ const pluginActionDescriptions: {[P in PluginActionName]: PluginActionDescriptio
   deleteConfig: {},
 }
 
-const moduleActionDescriptions: {[P in ModuleActionName]: PluginActionDescription } = {
+const moduleActionDescriptions: { [P in ModuleActionName]: PluginActionDescription } = {
   parseModule: {},
   getModuleBuildStatus: {},
   buildModule: {},

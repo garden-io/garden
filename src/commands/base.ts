@@ -114,7 +114,7 @@ export class EnvironmentOption extends StringParameter {
 }
 
 export type Parameters = { [key: string]: Parameter<any> }
-export type ParameterValues<T extends Parameters> = {[P in keyof T]: T["_valueType"]}
+export type ParameterValues<T extends Parameters> = { [P in keyof T]: T["_valueType"] }
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
