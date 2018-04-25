@@ -28,6 +28,7 @@ import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 import { FancyConsoleWriter } from "./logger/writers"
+import hasAnsi = require("has-ansi")
 
 // shim to allow async generator functions
 (<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
@@ -36,6 +37,7 @@ export type HookCallback = (callback?: () => void) => void
 
 const exitHookNames: string[] = [] // For debugging/testing/inspection purposes
 
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 export type Nullable<T> = { [P in keyof T]: T[P] | null }
 
 export function shutdown(code) {
@@ -241,12 +243,14 @@ export function spawnPty(
   }
 
   proc.on("data", (output) => {
+    const str = output.toString()
+
     if (bufferOutput) {
-      result.output += output.toString()
+      result.output += str
     }
 
     if (!silent) {
-      process.stdout.write(output)
+      process.stdout.write(hasAnsi(str) ? str : chalk.white(str))
     }
   })
 

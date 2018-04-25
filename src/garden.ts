@@ -31,6 +31,7 @@ import {
 } from "./plugins"
 import {
   Module,
+  ModuleConfig,
   ModuleConfigType,
 } from "./types/module"
 import {
@@ -98,8 +99,8 @@ export interface ModuleMap<T extends Module> {
   [key: string]: T
 }
 
-export interface ServiceMap {
-  [key: string]: Service<any>
+export interface ServiceMap<T extends Module = Module> {
+  [key: string]: Service<T>
 }
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
@@ -123,7 +124,7 @@ export type ModuleActionMap = {
 }
 
 export interface ContextOpts {
-  config?: object,
+  config?: GardenConfig,
   env?: string,
   logger?: RootLogNode,
   plugins?: RegisterPluginParam[],
@@ -193,8 +194,9 @@ export class Garden {
         })
       }
     } else {
+      config = await loadConfig(projectRoot, projectRoot)
       const templateContext = await getTemplateContext()
-      parsedConfig = await resolveTemplateStrings(await loadConfig(projectRoot, projectRoot), templateContext)
+      parsedConfig = await resolveTemplateStrings(config, templateContext)
 
       if (!parsedConfig.project) {
         throw new ConfigurationError(`Path ${projectRoot} does not contain a project configuration`, {
@@ -498,7 +500,7 @@ export class Garden {
   /**
    * Returns the module with the specified name. Throws error if it doesn't exist.
    */
-  async getModule(name: string, noScan?: boolean): Promise<Module<any>> {
+  async getModule(name: string, noScan?: boolean): Promise<Module<ModuleConfig>> {
     return (await this.getModules([name], noScan))[name]
   }
 
@@ -542,7 +544,7 @@ export class Garden {
   /**
    * Returns the service with the specified name. Throws error if it doesn't exist.
    */
-  async getService(name: string, noScan?: boolean): Promise<Service<any>> {
+  async getService(name: string, noScan?: boolean): Promise<Service<Module>> {
     return (await this.getServices([name], noScan))[name]
   }
 

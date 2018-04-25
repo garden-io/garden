@@ -29,6 +29,7 @@ import {
   getLoginStatus,
   login,
   logout,
+  runModule,
 } from "./actions"
 import { deployService } from "./deployment"
 import { kubernetesSpecHandlers } from "./specs-module"
@@ -75,6 +76,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
         deployService,
         getServiceOutputs,
         execInService,
+        runModule,
         testModule,
         getTestResult,
         getServiceLogs,

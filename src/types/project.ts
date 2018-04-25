@@ -35,7 +35,6 @@ export interface EnvironmentConfig {
 }
 
 export interface ProjectConfig {
-  version: string
   name: string
   defaultEnvironment: string
   global: EnvironmentConfig
@@ -56,7 +55,6 @@ const defaultGlobal = {
 }
 
 export const projectSchema = Joi.object().keys({
-  version: Joi.string().default("0").only("0"),
   name: joiIdentifier().required(),
   defaultEnvironment: Joi.string().default("", "<first specified environment>"),
   global: environmentSchema.default(() => defaultGlobal, JSON.stringify(defaultGlobal)),
