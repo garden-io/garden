@@ -55,7 +55,14 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
   } catch (err) {
     // TODO: catch error properly
     if (err.output) {
-      throw new DeploymentError(err.output, { output: err.output })
+      throw new DeploymentError(
+        `Unable to connect to Kubernetes cluster. ` +
+        `Please make sure it is running, reachable and that you have the right context configured.`,
+        {
+          context,
+          kubectlOutput: err.output,
+        },
+      )
     }
     throw err
   }
