@@ -19,7 +19,7 @@ nvm install 9.4
 nvm alias default 9.4
 
 # install/update global packages
-npm install -g tslint typescript-formatter
+npm install -g gulp-cli@4.0.0
 gem install copyright-header
 
 # install CircleCI CLI
