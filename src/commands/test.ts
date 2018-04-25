@@ -9,9 +9,9 @@
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { values } from "lodash"
-import { TestTask } from "../tasks/test"
 import chalk from "chalk"
 import { TaskResults } from "../task-graph"
+import Bluebird = require("bluebird")
 
 export const testArgs = {
   module: new StringParameter({
@@ -51,23 +51,19 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
 
     await ctx.configureEnvironment()
 
-    const results = await ctx.processModules(modules, opts.watch, async (module) => {
-      const config = await module.getConfig()
+    const group = opts.group
+    const force = opts.force
+    const forceBuild = opts["force-build"]
 
-      for (const testName of Object.keys(config.test)) {
-        if (opts.group && testName !== opts.group) {
-          continue
-        }
-        const testSpec = config.test[testName]
-        const task = new TestTask(ctx, module, testName, testSpec, opts.force, opts["force-build"])
-        await ctx.addTask(task)
-      }
+    const results = await ctx.processModules(modules, opts.watch, async (module) => {
+      const tasks = await module.getTestTasks({ group, force, forceBuild })
+      await Bluebird.map(tasks, ctx.addTask)
     })
 
     const failed = values(results).filter(r => !!r.error).length
 
     if (failed) {
-      ctx.log.error({ emoji: "warning", msg: `${failed} tests runs failed! See log output above.\n` })
+      ctx.log.error({ emoji: "warning", msg: `${failed} test runs failed! See log output above.\n` })
     } else {
       ctx.log.info("")
       ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green(` All tests passing!\n`) })

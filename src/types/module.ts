@@ -9,6 +9,8 @@
 import * as Joi from "joi"
 import { ServiceMap } from "../garden"
 import { PluginContext } from "../plugin-context"
+import { DeployTask } from "../tasks/deploy"
+import { TestTask } from "../tasks/test"
 import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
@@ -16,8 +18,12 @@ import {
   extend,
   keys,
   set,
+  values,
 } from "lodash"
-import { ServiceConfig } from "./service"
+import {
+  Service,
+  ServiceConfig,
+} from "./service"
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
 import { TreeVersion } from "../vcs/base"
@@ -66,6 +72,10 @@ export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
   test: TestConfig
   type: string
   variables: PrimitiveMap
+}
+
+interface ModuleConstructor<T extends ModuleConfig = ModuleConfig> {
+  new (ctx: PluginContext, config: T): Module<T>
 }
 
 export class Module<T extends ModuleConfig = ModuleConfig> {
@@ -152,6 +162,32 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   async getServices(): Promise<ServiceMap> {
     const serviceNames = keys(this.services || {})
     return this.ctx.getServices(serviceNames)
+  }
+
+  async getDeployTasks(
+    { force = false, forceBuild = false }: { force?: boolean, forceBuild?: boolean },
+  ): Promise<DeployTask<Service<Module<T>>>[]> {
+    const services = await this.getServices()
+    const module = this
+
+    return values(services).map(s => new DeployTask(module.ctx, s, force, forceBuild))
+  }
+
+  async getTestTasks(
+    { group, force = false, forceBuild = false }: { group?: string, force?: boolean, forceBuild?: boolean },
+  ) {
+    const tasks: TestTask<Module<T>>[] = []
+    const config = await this.getConfig()
+
+    for (const testName of Object.keys(config.test)) {
+      if (group && testName !== group) {
+        continue
+      }
+      const testSpec = config.test[testName]
+      tasks.push(new TestTask<Module<T>>(this.ctx, this, testName, testSpec, force, forceBuild))
+    }
+
+    return tasks
   }
 }
 
