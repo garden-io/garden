@@ -17,7 +17,6 @@ import * as Cryo from "cryo"
 import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
-import { getLogger } from "./logger"
 import {
   TimeoutError,
   GardenError,

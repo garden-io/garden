@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { BuildTask } from "../tasks/build"

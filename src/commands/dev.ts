@@ -67,9 +67,9 @@ function getGreetingTime() {
 
   const currentHour = parseFloat(m.format("HH"))
 
-  if ( currentHour >= 17 ) {
+  if (currentHour >= 17) {
     return "evening"
-  } else if ( currentHour >= 12 ) {
+  } else if (currentHour >= 12) {
     return "afternoon"
   } else {
     return "morning"

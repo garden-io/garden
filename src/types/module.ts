@@ -74,10 +74,6 @@ export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
   variables: PrimitiveMap
 }
 
-interface ModuleConstructor<T extends ModuleConfig = ModuleConfig> {
-  new (ctx: PluginContext, config: T): Module<T>
-}
-
 export class Module<T extends ModuleConfig = ModuleConfig> {
   public name: string
   public type: string

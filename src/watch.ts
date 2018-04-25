@@ -19,35 +19,6 @@ export interface OnChangeHandler {
   (ctx: PluginContext, module: Module): Promise<void>
 }
 
-export async function watchModules(
-  ctx: PluginContext, modules: Module[], onChange: OnChangeHandler,
-): Promise<FSWatcher> {
-  const autoReloadDependants = await computeAutoReloadDependants(modules)
-
-  async function handleChanges(module: Module) {
-    await onChange(ctx, module)
-
-    const dependantsForModule = autoReloadDependants[module.name]
-    if (!dependantsForModule) {
-      return
-    }
-
-    for (const dependant of dependantsForModule) {
-      await handleChanges(dependant)
-    }
-  }
-
-  const watcher = new FSWatcher(ctx.projectRoot)
-  await watcher.watchModules(modules, "addTasksForAutoReload/",
-    async (changedModule) => {
-      ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
-      await handleChanges(changedModule)
-      await ctx.processTasks()
-    })
-
-  return watcher
-}
-
 export async function computeAutoReloadDependants(modules: Module[]):
   Promise<AutoReloadDependants> {
   let dependants = {}
@@ -127,7 +98,7 @@ export class FSWatcher {
       const relModulePath = relative(result.watch, modulePath)
 
       const subscriptionRequest = {
-        expression: ["dirname", relModulePath, ["depth", "ge", 0]]
+        expression: ["dirname", relModulePath, ["depth", "ge", 0]],
       }
 
       await this.command([
