@@ -81,7 +81,7 @@ const configSchema = Joi.object().keys({
 })
 
 export function gardenPlugin({ config }): GardenPlugin {
-  config = validate(config, configSchema, "kubernetes provider config")
+  config = validate(config, configSchema, { context: "kubernetes provider config" })
 
   const k8sConfig = {
     context: config.context,

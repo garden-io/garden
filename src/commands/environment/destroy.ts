@@ -37,7 +37,7 @@ export class EnvironmentDestroyCommand extends Command {
     result = await ctx.destroyEnvironment()
 
     if (!providersTerminated(result)) {
-      ctx.log.info("\nWaiting for providers to terminate")
+      ctx.log.info("Waiting for providers to terminate")
       logEntries = reduce(result, (acc: LogEntryMap, status: EnvironmentStatus, provider: string) => {
         if (status.configured) {
           acc[provider] = ctx.log.info({

@@ -90,6 +90,9 @@ import {
   loadConfig,
 } from "./types/config"
 import { Task } from "./types/task"
+import {
+  LocalConfigStore,
+} from "./config-store"
 
 export interface ModuleMap<T extends Module> {
   [key: string]: T
@@ -149,6 +152,7 @@ export class Garden {
     private readonly environment: string,
     private readonly namespace: string,
     public readonly config: EnvironmentConfig,
+    public readonly localConfigStore: LocalConfigStore,
     logger?: RootLogNode,
   ) {
     this.modulesScanned = false
@@ -175,11 +179,12 @@ export class Garden {
   }
 
   static async factory(projectRoot: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
-    // const localConfig = new LocalConfig(projectRoot)
     let parsedConfig: GardenConfig
 
+    const localConfigStore = new LocalConfigStore(projectRoot)
+
     if (config) {
-      parsedConfig = <GardenConfig>validate(config, configSchema, "root configuration")
+      parsedConfig = <GardenConfig>validate(config, configSchema, { context: "root configuration" })
 
       if (!parsedConfig.project) {
         throw new ConfigurationError(`Supplied config does not contain a project configuration`, {
@@ -238,7 +243,7 @@ export class Garden {
     // Resolve the project configuration based on selected environment
     const projectConfig = merge({}, globalConfig, envConfig)
 
-    const garden = new Garden(projectRoot, projectName, environment, namespace, projectConfig, logger)
+    const garden = new Garden(projectRoot, projectName, environment, namespace, projectConfig, localConfigStore, logger)
 
     // Register plugins
     for (const plugin of builtinPlugins.concat(plugins)) {
@@ -307,7 +312,11 @@ export class Garden {
       }
 
       try {
-        pluginModule = validate(pluginModule, pluginModuleSchema, `plugin module "${moduleNameOrLocation}"`)
+        pluginModule = validate(
+          pluginModule,
+          pluginModuleSchema,
+          { context: `plugin module "${moduleNameOrLocation}"` },
+        )
 
         if (pluginModule.name) {
           name = pluginModule.name
@@ -320,7 +329,7 @@ export class Garden {
           }
         }
 
-        validate(name, joiIdentifier(), `name of plugin "${moduleNameOrLocation}"`)
+        validate(name, joiIdentifier(), { context: `name of plugin "${moduleNameOrLocation}"` })
       } catch (err) {
         throw new PluginError(`Unable to load plugin: ${err}`, {
           moduleNameOrLocation,
@@ -361,7 +370,7 @@ export class Garden {
       })
     }
 
-    plugin = validate(plugin, pluginSchema, `plugin "${pluginName}"`)
+    plugin = validate(plugin, pluginSchema, { context: `plugin "${pluginName}"` })
 
     this.loadedPlugins[pluginName] = plugin
 

@@ -40,6 +40,7 @@ import {
   TestResult,
   ModuleActions,
   PluginActionParamsBase,
+  LoginStatusMap,
 } from "./types/plugin"
 import {
   Service,
@@ -77,6 +78,7 @@ export type WrappedFromGarden = Pick<Garden,
   "projectRoot" |
   "log" |
   "config" |
+  "localConfigStore" |
   "vcs" |
   "clearBuilds" |
   "getEnvironment" |
@@ -118,6 +120,9 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getConfig: (key: string[]) => Promise<string>
   setConfig: (key: string[], value: string) => Promise<void>
   deleteConfig: (key: string[]) => Promise<DeleteConfigResult>
+  getLoginStatus: () => Promise<LoginStatusMap>
+  login: () => Promise<LoginStatusMap>
+  logout: () => Promise<LoginStatusMap>
 
   stageBuild: <T extends Module>(module: T) => Promise<void>
   getStatus: () => Promise<ContextStatus>
@@ -155,6 +160,7 @@ export function createPluginContext(garden: Garden): PluginContext {
     projectRoot: garden.projectRoot,
     log: garden.log,
     config: projectConfig,
+    localConfigStore: garden.localConfigStore,
     vcs: garden.vcs,
 
     // TODO: maybe we should move some of these here
@@ -321,6 +327,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       } else {
         return res
       }
+
     },
 
     getModuleBuildPath: async <T extends Module>(module: T) => {
@@ -410,6 +417,24 @@ export function createPluginContext(garden: Garden): PluginContext {
         await sleep(1000)
       }
     },
+
+    getLoginStatus: async () => {
+      const handlers = garden.getActionHandlers("getLoginStatus")
+      return Bluebird.props(mapValues(handlers, h => h({ ...commonParams(h) })))
+    },
+
+    login: async () => {
+      const handlers = garden.getActionHandlers("login")
+      await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
+      return ctx.getLoginStatus()
+    },
+
+    logout: async () => {
+      const handlers = garden.getActionHandlers("logout")
+      await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
+      return ctx.getLoginStatus()
+    },
+
   }
 
   return ctx

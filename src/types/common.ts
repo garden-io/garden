@@ -10,13 +10,17 @@ import { JoiObject } from "joi"
 import * as Joi from "joi"
 import * as uuid from "uuid"
 import { EnvironmentConfig } from "./project"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 
 export type Primitive = string | number | boolean
 
 export interface PrimitiveMap { [key: string]: Primitive }
 export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap }
+
+export const enumToArray = Enum => (
+  Object.values(Enum).filter(k => typeof k === "string") as string[]
+)
 
 export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.string(), Joi.boolean())
 
@@ -59,7 +63,16 @@ const joiOptions = {
   },
 }
 
-export function validate<T>(value: T, schema: Joi.Schema, context?: string): T {
+export interface ValidateOptions {
+  context?: string
+  ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+}
+
+export function validate<T>(
+  value: T,
+  schema: Joi.Schema,
+  { context = "", ErrorClass = ConfigurationError }: ValidateOptions = {},
+): T {
   const result = schema.validate(value, joiOptions)
   const error = result.error
 
@@ -101,7 +114,7 @@ export function validate<T>(value: T, schema: Joi.Schema, context?: string): T {
     const msgPrefix = context ? `Error validating ${context}` : "Validation error"
     const errorDescription = errorDetails.map(e => e.message).join(", ")
 
-    throw new ConfigurationError(`${msgPrefix}: ${errorDescription}`, {
+    throw new ErrorClass(`${msgPrefix}: ${errorDescription}`, {
       value,
       context,
       errorDescription,

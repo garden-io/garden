@@ -60,7 +60,9 @@ const specsServicesSchema = joiIdentifierMap(baseServiceSchema.keys({
 export const kubernetesSpecHandlers = {
   parseModule: async ({ ctx, moduleConfig }: ParseModuleParams): Promise<KubernetesSpecsModule> => {
     moduleConfig.services = validate(
-      moduleConfig.services, specsServicesSchema, `${moduleConfig.name} services`,
+      moduleConfig.services,
+      specsServicesSchema,
+      { context: `${moduleConfig.name} services` },
     )
 
     // TODO: check that each spec namespace is the same as on the project, if specified
@@ -72,7 +74,7 @@ export const kubernetesSpecHandlers = {
     { ctx, provider, service }: GetServiceStatusParams<KubernetesSpecsModule>,
   ): Promise<ServiceStatus> => {
     const context = provider.config.context
-    const namespace = getAppNamespace(ctx, provider)
+    const namespace = await getAppNamespace(ctx, provider)
     const currentVersion = await service.module.getVersion()
 
     const dryRunOutputs = await Bluebird.map(
@@ -95,7 +97,7 @@ export const kubernetesSpecHandlers = {
 
   deployService: async ({ ctx, provider, service }: DeployServiceParams<KubernetesSpecsModule>) => {
     const context = provider.config.context
-    const namespace = getAppNamespace(ctx, provider)
+    const namespace = await getAppNamespace(ctx, provider)
     const currentVersion = await service.module.getVersion()
 
     return Bluebird.each(service.config.specs, async (spec) => {

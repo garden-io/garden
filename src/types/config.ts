@@ -68,7 +68,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     }
   }
 
-  const parsed = <GardenConfig>validate(config, configSchema, relative(projectRoot, absPath))
+  const parsed = <GardenConfig>validate(config, configSchema, { context: relative(projectRoot, absPath) })
 
   const project = parsed.project
   const module = parsed.module

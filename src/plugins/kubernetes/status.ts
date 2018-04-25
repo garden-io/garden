@@ -36,7 +36,7 @@ export async function checkDeploymentStatus(
   const context = provider.context
   const type = service.config.daemon ? "daemonsets" : "deployments"
   const hostname = getServiceHostname(ctx, provider, service)
-  const namespace = getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, provider)
 
   const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
     // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level

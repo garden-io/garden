@@ -26,6 +26,9 @@ import {
   getTestResult,
   setConfig,
   testModule,
+  getLoginStatus,
+  login,
+  logout,
 } from "./actions"
 import { deployService } from "./deployment"
 import { kubernetesSpecHandlers } from "./specs-module"
@@ -51,7 +54,7 @@ const configSchema = Joi.object().keys({
 })
 
 export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPlugin {
-  config = validate(config, configSchema, "kubernetes provider config")
+  config = validate(config, configSchema, { context: "kubernetes provider config" })
 
   return {
     config,
@@ -62,6 +65,9 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
       getConfig,
       setConfig,
       deleteConfig,
+      getLoginStatus,
+      login,
+      logout,
     },
     moduleActions: {
       container: {

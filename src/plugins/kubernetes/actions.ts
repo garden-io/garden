@@ -6,6 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as inquirer from "inquirer"
+import * as Joi from "joi"
+
 import { DeploymentError, NotFoundError } from "../../exceptions"
 import {
   ConfigureEnvironmentParams, DeleteConfigParams,
@@ -15,6 +18,8 @@ import {
   GetServiceLogsParams,
   GetServiceOutputsParams,
   GetServiceStatusParams, GetTestResultParams,
+  LoginStatus,
+  PluginActionParamsBase,
   SetConfigParams,
   TestModuleParams, TestResult,
 } from "../../types/plugin"
@@ -22,9 +27,10 @@ import { TreeVersion } from "../../vcs/base"
 import {
   ContainerModule,
 } from "../container"
-import { values, every } from "lodash"
-import { deserializeKeys, serializeKeys, splitFirst } from "../../util"
+import { values, every, uniq } from "lodash"
+import { deserializeKeys, prompt, serializeKeys, splitFirst } from "../../util"
 import { ServiceStatus } from "../../types/service"
+import { joiIdentifier } from "../../types/common"
 import {
   apiGetOrNull,
   apiPostOrPut,
@@ -34,6 +40,7 @@ import {
   createNamespace,
   getAppNamespace,
   getMetadataNamespace,
+  getAllAppNamespaces,
 } from "./namespace"
 import {
   kubectl,
@@ -41,10 +48,14 @@ import {
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 import * as split from "split"
 import moment = require("moment")
-import { EntryStyle } from "../../logger/types"
+import { EntryStyle, LogSymbolType } from "../../logger/types"
 import {
   checkDeploymentStatus,
 } from "./status"
+
+import { name as providerName } from "./index"
+
+const MAX_STORED_USERNAMES = 5
 
 export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStatusParams) {
   const context = provider.config.context
@@ -74,9 +85,10 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
 
   const metadataNamespace = getMetadataNamespace(ctx, provider)
   const namespacesStatus = await coreApi(context).namespaces().get()
+  const namespace = await getAppNamespace(ctx, provider)
 
   for (const n of namespacesStatus.items) {
-    if (n.metadata.name === getAppNamespace(ctx, provider) && n.status.phase === "Active") {
+    if (n.metadata.name === namespace && n.status.phase === "Active") {
       statusDetail.namespaceReady = true
     }
 
@@ -99,7 +111,7 @@ export async function configureEnvironment(
   const context = provider.config.context
 
   if (!status.detail.namespaceReady) {
-    const ns = getAppNamespace(ctx, provider)
+    const ns = await getAppNamespace(ctx, provider)
     logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
     await createNamespace(context, ns)
   }
@@ -118,7 +130,7 @@ export async function getServiceStatus(params: GetServiceStatusParams<ContainerM
 
 export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentParams) {
   const context = provider.config.context
-  const namespace = getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, provider)
   const entry = ctx.log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace}`,
@@ -129,7 +141,8 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
     entry.setSuccess("Finished")
   } catch (err) {
     entry.setError(err.message)
-    throw new NotFoundError(err, { namespace })
+    const availableNamespaces = getAllAppNamespaces(context)
+    throw new NotFoundError(err, { namespace, availableNamespaces })
   }
 }
 
@@ -144,7 +157,7 @@ export async function execInService(
 ) {
   const context = provider.config.context
   const status = await getServiceStatus({ ctx, provider, service, env })
-  const namespace = getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, provider)
 
   // TODO: this check should probably live outside of the plugin
   if (!status.state || status.state !== "ready") {
@@ -207,7 +220,7 @@ export async function testModule(
   const startedAt = new Date()
 
   const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
-  const res = await kubectl(context, getAppNamespace(ctx, provider)).tty(kubecmd, { ignoreError: true, timeout })
+  const res = await kubectl(context, await getAppNamespace(ctx, provider)).tty(kubecmd, { ignoreError: true, timeout })
 
   const testResult: TestResult = {
     moduleName: module.name,
@@ -263,7 +276,8 @@ export async function getServiceLogs(
     kubectlArgs.push("--follow")
   }
 
-  const proc = kubectl(context, getAppNamespace(ctx, provider)).spawn(kubectlArgs)
+  const namespace = await getAppNamespace(ctx, provider)
+  const proc = kubectl(context, namespace).spawn(kubectlArgs)
 
   proc.stdout
     .pipe(split())
@@ -329,6 +343,96 @@ export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
     }
   }
   return { found: true }
+}
+
+export async function getLoginStatus({ ctx }: PluginActionParamsBase): Promise<LoginStatus> {
+  const localConfig = await ctx.localConfigStore.get()
+  let currentUsername
+  if (localConfig.kubernetes) {
+    currentUsername = localConfig.kubernetes.username
+  }
+  return { loggedIn: !!currentUsername }
+}
+
+export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatus> {
+  const entry = ctx.log.info({ section: "kubernetes", msg: "Logging in..." })
+  const localConfig = await ctx.localConfigStore.get()
+
+  let currentUsername
+  let prevUsernames: Array<string> = []
+
+  if (localConfig.kubernetes) {
+    currentUsername = localConfig.kubernetes.username
+    prevUsernames = localConfig.kubernetes["previous-usernames"] || []
+  }
+
+  if (currentUsername) {
+    entry.setDone({
+      symbol: LogSymbolType.info,
+      msg: `Already logged in as user ${currentUsername}`,
+    })
+
+    return { loggedIn: true }
+  }
+
+  const promptName = "username"
+  const newUserOption = "Add new user"
+  type Ans = { [promptName]: string }
+  let ans: Ans
+
+  const inputPrompt = async () => {
+    return prompt({
+      name: promptName,
+      message: "Enter username",
+      validate: input => {
+        try {
+          Joi.attempt(input.trim(), joiIdentifier())
+        } catch (err) {
+          return `Invalid username, please try again\nError: ${err.message}`
+        }
+        return true
+      },
+    })
+  }
+  const choicesPrompt = async () => {
+    return prompt({
+      name: promptName,
+      type: "list",
+      message: "Log in as...",
+      choices: [...prevUsernames, new inquirer.Separator(), newUserOption],
+    })
+  }
+  if (prevUsernames.length > 0) {
+    ans = await choicesPrompt() as Ans
+    if (ans.username === newUserOption) {
+      ans = await inputPrompt() as Ans
+    }
+  } else {
+    ans = await inputPrompt() as Ans
+  }
+
+  const username = ans.username.trim()
+  const newPrevUsernams = uniq([...prevUsernames, username].slice(-MAX_STORED_USERNAMES))
+
+  await ctx.localConfigStore.set([
+    { keyPath: [providerName, "username"], value: username },
+    { keyPath: [providerName, "previous-usernames"], value: newPrevUsernams },
+  ])
+
+  return { loggedIn: true }
+}
+
+export async function logout({ ctx }: PluginActionParamsBase): Promise<LoginStatus> {
+  const entry = ctx.log.info({ section: "kubernetes", msg: "Logging out..." })
+  const localConfig = await ctx.localConfigStore.get()
+  const k8sConfig = localConfig.kubernetes || {}
+  if (k8sConfig.username) {
+    await ctx.localConfigStore.delete([providerName, "username"])
+    entry.setSuccess("Logged out")
+  } else {
+    entry.setSuccess("Already logged out")
+  }
+  return { loggedIn: false }
 }
 
 function getTestResultKey(module: ContainerModule, testName: string, version: TreeVersion) {

@@ -165,6 +165,7 @@ export class FancyConsoleWriter extends Writer {
   private formattedEntries: string[]
   private logUpdate: any
   private intervalID: number | null
+  public persistedAtIdx: number
 
   public level: LogLevel
 
@@ -173,6 +174,7 @@ export class FancyConsoleWriter extends Writer {
     this.intervalID = null
     this.formattedEntries = [] // Entries are cached on format
     this.spinners = [] // Each entry has it's own spinner
+    this.persistedAtIdx = 0
   }
 
   private initLogUpdate(rootLogNode: RootLogNode): any {
@@ -182,18 +184,17 @@ export class FancyConsoleWriter extends Writer {
       write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
     }
     const makeOpts = msg => ({
-      // Remove trailing new line from console writes since Logger already handles it
-      msg: typeof msg === "string" ? msg.replace(/\n$/, "") : msg,
+      msg,
       notOriginatedFromLogger: true,
     })
-    /*
-      NOTE: On every write, log-update library calls the cli-cursor library to hide the cursor
-      which the cli-cursor library does via stderr write. This causes an infinite loop as
-      the stderr writes are intercepted and funneled back to the Logger.
-      Therefore we manually toggle the cursor using the custom stream from above.
-
-      log-update types are missing the `opts?: {showCursor?: boolean}` parameter
-    */
+    /**
+     * NOTE: On every write, log-update library calls the cli-cursor library to hide the cursor
+     * which the cli-cursor library does via stderr write. This causes an infinite loop as
+     * the stderr writes are intercepted and funneled back to the Logger.
+     * Therefore we manually toggle the cursor using the custom stream from above.
+     *
+     * log-update types are missing the `opts?: {showCursor?: boolean}` parameter
+     */
     const customLogUpdate = (<any>logUpdate.create)(<any>stream, { showCursor: true })
     cliCursor.hide(stream)
 
@@ -241,7 +242,7 @@ export class FancyConsoleWriter extends Writer {
   private updateStream(rootLogNode: RootLogNode): void {
     const out = this.render(rootLogNode)
     if (out) {
-      this.logUpdate(out.join("\n"))
+      this.logUpdate(out.join(""))
     }
   }
 
@@ -254,13 +255,19 @@ export class FancyConsoleWriter extends Writer {
     const level = this.level || rootLogNode.level
     const entries = <any>getChildNodes(rootLogNode)
 
-    /*
-      This is a bit ugly for performance sake.
-      Rather than just creating a new string with an updated spinner frame in each render cycle
-      we instead cache the formatted string and splice the updated frame into it.
-    */
-    const out = entries.reduce((acc: string[], entry: LogEntry, idx: number): string[] => {
+    /**
+     * This is a bit ugly for performance sake.
+     * Rather than just creating a new string with an updated spinner frame in each render cycle
+     * we instead cache the formatted string and splice the updated frame into it.
+     */
+    const out = entries.slice(this.persistedAtIdx).reduce((acc: string[], entry: LogEntry, idx: number): string[] => {
       let spinnerFrame = ""
+
+      if (entry.notOriginatedFromLogger()) {
+        acc.push(renderMsg(entry))
+        return acc
+      }
+
       if (entry.status === EntryStatus.ACTIVE) {
         hasActiveEntries = true
         spinnerFrame = this.readOrSetSpinner(idx)
@@ -271,7 +278,7 @@ export class FancyConsoleWriter extends Writer {
         const withSpinner = spinnerFrame
           ? `${formatted.slice(0, startPos)}${spinnerStyle(spinnerFrame)} ${formatted.slice(startPos)}`
           : formatted
-        acc.push(withSpinner)
+        acc.push(withSpinner + "\n")
       }
       return acc
     }, [])
@@ -300,6 +307,16 @@ export class FancyConsoleWriter extends Writer {
   public stop(): void {
     this.stopLoop()
     this.logUpdate && this.logUpdate.cleanUp()
+    this.logUpdate = null
+  }
+
+  /**
+   * Escape hatch for reclaiming the stream, e.g. when reading stdin.
+   * Logger will then continue afterwards but won't be able to update the previous content
+   */
+  public stopAndPersist(rootLogNode: RootLogNode): void {
+    this.stop()
+    this.persistedAtIdx = rootLogNode.children.length
   }
 
 }

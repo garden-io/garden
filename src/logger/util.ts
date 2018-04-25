@@ -65,12 +65,14 @@ interface StreamWriteExtraParam {
   noIntercept?: boolean
 }
 
-// Intercepts the write method of a WriteableStream and calls the provided callback on the
-// string to write (or optionally applies the string to the write method)
-// Returns a function which sets the write back to default.
-//
-// Used e.g. by FancyLogger so that writes from other sources can be intercepted
-// and pushed to the log stack.
+/**
+ * Intercepts the write method of a WriteableStream and calls the provided callback on the
+ * string to write (or optionally applies the string to the write method)
+ * Returns a function which sets the write back to default.
+ *
+ * Used e.g. by FancyLogger so that writes from other sources can be intercepted
+ * and pushed to the log stack.
+ */
 export function interceptStream(stream: NodeJS.WritableStream, callback: Function) {
   const prevWrite = stream.write
 

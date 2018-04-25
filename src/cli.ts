@@ -8,10 +8,9 @@
 
 import * as sywac from "sywac"
 import chalk from "chalk"
-import { shutdown } from "./util"
+import { enumToArray, shutdown } from "./util"
 import { merge, intersection, reduce } from "lodash"
 import {
-  BooleanParameter,
   Command,
   ChoicesParameter,
   ParameterValues,
@@ -36,6 +35,8 @@ import { LogLevel } from "./logger/types"
 import { ConfigCommand } from "./commands/config"
 import { StatusCommand } from "./commands/status"
 import { PushCommand } from "./commands/push"
+import { LoginCommand } from "./commands/login"
+import { LogoutCommand } from "./commands/logout"
 
 const GLOBAL_OPTIONS = {
   root: new StringParameter({
@@ -44,14 +45,11 @@ const GLOBAL_OPTIONS = {
     defaultValue: process.cwd(),
   }),
   env: new EnvironmentOption(),
-  verbose: new BooleanParameter({
-    alias: "v",
-    help: "verbose logging",
-    overrides: ["silent"],
-  }),
-  silent: new BooleanParameter({
-    alias: "s",
-    help: "silence logger",
+  loglevel: new ChoicesParameter({
+    alias: "log",
+    choices: enumToArray(LogLevel),
+    help: "set logger level",
+    defaultValue: LogLevel[LogLevel.info],
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
@@ -226,6 +224,8 @@ export class GardenCli {
       new ValidateCommand(),
       new StatusCommand(),
       new PushCommand(),
+      new LoginCommand(),
+      new LogoutCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
@@ -262,6 +262,7 @@ export class GardenCli {
 
     const action = async argv => {
       const logger = this.logger
+
       // Sywac returns positional args and options in a single object which we separate into args and opts
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
@@ -269,12 +270,9 @@ export class GardenCli {
       const env = optsForAction.env
 
       // Update logger config
-      if (argv.silent) {
-        logger.level = LogLevel.silent
-        logger.writers = []
-      } else {
-        const level = argv.verbose ? LogLevel.verbose : logger.level
-        logger.level = level
+      const level = LogLevel[<string>argv.loglevel]
+      logger.level = level
+      if (level !== LogLevel.silent) {
         logger.writers.push(
           new FileWriter({ level, root }),
           new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),

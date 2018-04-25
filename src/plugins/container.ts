@@ -191,7 +191,7 @@ export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
     container: {
       async parseModule({ ctx, moduleConfig }: ParseModuleParams<ContainerModule>) {
-        moduleConfig = validate(moduleConfig, containerSchema, `module ${moduleConfig.name}`)
+        moduleConfig = validate(moduleConfig, containerSchema, { context: `module ${moduleConfig.name}` })
 
         const module = new ContainerModule(ctx, moduleConfig)
 
