@@ -13,7 +13,7 @@ import { EnvironmentDestroyCommand } from "./destroy"
 export class EnvironmentCommand extends Command {
   name = "environment"
   alias = "env"
-  help = "Outputs the status of your environment"
+  help = "Manage your runtime environment(s)"
 
   subCommands = [
     new EnvironmentConfigureCommand(),

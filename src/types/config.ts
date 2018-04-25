@@ -22,14 +22,16 @@ export interface GardenConfig {
   version: string
   dirname: string
   path: string
-  module: ModuleConfig
-  project: ProjectConfig
+  module?: ModuleConfig
+  project?: ProjectConfig
 }
 
 export const configSchema = Joi.object()
   .keys({
     // TODO: should this be called apiVersion?
     version: Joi.string().default("0").only("0"),
+    dirname: Joi.string(),
+    path: Joi.string(),
     module: baseModuleSchema,
     project: projectSchema,
   })

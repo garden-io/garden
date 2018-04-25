@@ -25,6 +25,7 @@ export const enumToArray = Enum => (
 export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.string(), Joi.boolean())
 
 export const identifierRegex = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
+export const envVarRegex = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
 export const joiIdentifier = () => Joi
   .string().regex(identifierRegex)
@@ -37,6 +38,14 @@ export const joiIdentifierMap = (valueSchema: JoiObject) => Joi.object().pattern
 
 export const joiVariables = () => Joi
   .object().pattern(/[\w\d]+/i, joiPrimitive())
+  .default(() => ({}), "{}")
+
+export const joiEnvVarName = () => Joi
+  .string().regex(envVarRegex)
+  .description("may contain letters and numbers, cannot start with a number")
+
+export const joiEnvVars = () => Joi
+  .object().pattern(envVarRegex, joiPrimitive())
   .default(() => ({}), "{}")
 
 export interface Environment {

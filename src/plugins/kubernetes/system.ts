@@ -26,8 +26,16 @@ export async function getSystemGarden(provider: KubernetesProvider): Promise<Gar
     env: "default",
     config: {
       version: "0",
+      dirname: "system",
+      path: systemProjectPath,
       project: {
         name: "garden-system",
+        global: {
+          providers: {
+            container: {},
+          },
+          variables: {},
+        },
         defaultEnvironment: "default",
         environments: {
           default: {
@@ -37,6 +45,7 @@ export async function getSystemGarden(provider: KubernetesProvider): Promise<Gar
                 _system: systemSymbol,
               },
             },
+            variables: {},
           },
         },
       },

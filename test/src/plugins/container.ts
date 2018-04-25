@@ -7,6 +7,7 @@ import {
   ContainerModuleConfig,
   gardenPlugin,
 } from "../../../src/plugins/container"
+import { Environment } from "../../../src/types/common"
 import {
   dataDir,
   expectError,
@@ -22,10 +23,12 @@ describe("container", () => {
 
   let garden: Garden
   let ctx: PluginContext
+  let env: Environment
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, [gardenPlugin])
     ctx = garden.pluginContext
+    env = garden.getEnvironment()
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
   })
@@ -35,7 +38,7 @@ describe("container", () => {
   const provider = { name: "container", config: {} }
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-    return parseModule!({ ctx, provider, moduleConfig })
+    return parseModule!({ ctx, env, provider, moduleConfig })
   }
 
   describe("ContainerModule", () => {
@@ -186,7 +189,7 @@ describe("container", () => {
           variables: {},
         }
 
-        await parseModule({ ctx, provider, moduleConfig })
+        await parseModule({ ctx, env, provider, moduleConfig })
       })
 
       it("should fail with invalid port in endpoint spec", async () => {
@@ -225,7 +228,7 @@ describe("container", () => {
         }
 
         await expectError(
-          () => parseModule({ ctx, provider, moduleConfig }),
+          () => parseModule({ ctx, env, provider, moduleConfig }),
           "configuration",
         )
       })
@@ -267,7 +270,7 @@ describe("container", () => {
         }
 
         await expectError(
-          () => parseModule({ ctx, provider, moduleConfig }),
+          () => parseModule({ ctx, env, provider, moduleConfig }),
           "configuration",
         )
       })
@@ -306,7 +309,7 @@ describe("container", () => {
         }
 
         await expectError(
-          () => parseModule({ ctx, provider, moduleConfig }),
+          () => parseModule({ ctx, env, provider, moduleConfig }),
           "configuration",
         )
       })

@@ -6,11 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { ChildProcess, spawn } from "child_process"
 import { extend } from "lodash"
 import { spawnPty } from "../../util"
 import { RuntimeError } from "../../exceptions"
 import { getLogger } from "../../logger"
+import hasAnsi = require("has-ansi")
 
 export interface KubectlParams {
   data?: Buffer,
@@ -58,7 +60,8 @@ export class Kubectl {
 
     proc.stdout.on("data", (s) => {
       if (!silent) {
-        logger.info(s.toString())
+        const str = s.toString()
+        logger.info(hasAnsi(str) ? str : chalk.white(str))
       }
       out.output += s
       out.stdout! += s
@@ -66,7 +69,8 @@ export class Kubectl {
 
     proc.stderr.on("data", (s) => {
       if (!silent) {
-        logger.error(s.toString())
+        const str = s.toString()
+        logger.info(hasAnsi(str) ? str : chalk.white(str))
       }
       out.output += s
       out.stderr! += s
@@ -116,11 +120,8 @@ export class Kubectl {
     return JSON.parse(result.output)
   }
 
-  async tty(
-    args: string[],
-    { silent = true, ignoreError = false, timeout = KUBECTL_DEFAULT_TIMEOUT } = {},
-  ): Promise<KubectlOutput> {
-    return spawnPty("kubectl", this.prepareArgs(args), { silent, ignoreError, timeout })
+  async tty(args: string[], opts: KubectlParams = {}): Promise<KubectlOutput> {
+    return spawnPty("kubectl", this.prepareArgs(args), opts)
   }
 
   spawn(args: string[]): ChildProcess {

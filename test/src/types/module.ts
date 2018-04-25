@@ -12,9 +12,9 @@ describe("Module", () => {
     it("should create a module instance with the given config", async () => {
       const ctx = await makeTestContextA()
       const config = await loadConfig(ctx.projectRoot, modulePathA)
-      const module = new Module(ctx, config.module)
+      const module = new Module(ctx, config.module!)
 
-      expect(module.name).to.equal(config.module.name)
+      expect(module.name).to.equal(config.module!.name)
       expect(omitUndefined(await module.getConfig())).to.eql(config.module)
     })
 
@@ -26,9 +26,9 @@ describe("Module", () => {
       const modulePath = resolve(ctx.projectRoot, "module-a")
 
       const config = await loadConfig(ctx.projectRoot, modulePath)
-      const module = new Module(ctx, config.module)
+      const module = new Module(ctx, config.module!)
 
-      expect(module.name).to.equal(config.module.name)
+      expect(module.name).to.equal(config.module!.name)
       expect(await module.getConfig()).to.eql({
         allowPush: true,
         build: { command: "echo OK", dependencies: [] },

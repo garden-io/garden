@@ -4,6 +4,7 @@ import { expect } from "chai"
 import {
   dataDir,
   expectError,
+  makeTestContextA,
   makeTestGarden,
   makeTestGardenA,
   makeTestModule,
@@ -196,17 +197,17 @@ describe("Garden", () => {
 
   describe("getService", () => {
     it("should return the specified service", async () => {
-      const ctx = await makeTestGardenA()
-      const service = await ctx.getService("service-b")
+      const garden = await makeTestGardenA()
+      const service = await garden.getService("service-b")
 
       expect(service.name).to.equal("service-b")
     })
 
     it("should throw if service is missing", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
       try {
-        await ctx.getServices(["bla"])
+        await garden.getServices(["bla"])
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -220,36 +221,37 @@ describe("Garden", () => {
     // TODO: assert that gitignore in project root is respected
 
     it("should scan the project root for modules and add to the context", async () => {
-      const ctx = await makeTestGardenA()
-      await ctx.scanModules()
+      const garden = await makeTestGardenA()
+      await garden.scanModules()
 
-      const modules = await ctx.getModules(undefined, true)
+      const modules = await garden.getModules(undefined, true)
       expect(Object.keys(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
   })
 
   describe("addModule", () => {
     it("should add the given module and its services to the context", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const testModule = makeTestModule(ctx)
-      await ctx.addModule(testModule)
+      const testModule = makeTestModule(garden.pluginContext)
+      await garden.addModule(testModule)
 
-      const modules = await ctx.getModules(undefined, true)
+      const modules = await garden.getModules(undefined, true)
       expect(Object.keys(modules)).to.eql(["test"])
 
-      const services = await ctx.getServices(undefined, true)
+      const services = await garden.getServices(undefined, true)
       expect(Object.keys(services)).to.eql(["testService"])
     })
 
     it("should throw when adding module twice without force parameter", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
+      const ctx = garden.pluginContext
 
       const testModule = makeTestModule(ctx)
-      await ctx.addModule(testModule)
+      await garden.addModule(testModule)
 
       try {
-        await ctx.addModule(testModule)
+        await garden.addModule(testModule)
       } catch (err) {
         expect(err.type).to.equal("configuration")
         return
@@ -259,25 +261,27 @@ describe("Garden", () => {
     })
 
     it("should allow adding module multiple times with force parameter", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
+      const ctx = garden.pluginContext
 
       const testModule = makeTestModule(ctx)
-      await ctx.addModule(testModule)
-      await ctx.addModule(testModule, true)
+      await garden.addModule(testModule)
+      await garden.addModule(testModule, true)
 
-      const modules = await ctx.getModules(undefined, true)
+      const modules = await garden.getModules(undefined, true)
       expect(Object.keys(modules)).to.eql(["test"])
     })
 
     it("should throw if a service is added twice without force parameter", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
+      const ctx = garden.pluginContext
 
       const testModule = makeTestModule(ctx)
-      const testModuleB = makeTestModule(ctx, "test-b")
-      await ctx.addModule(testModule)
+      const testModuleB = makeTestModule(ctx, { name: "test-b" })
+      await garden.addModule(testModule)
 
       try {
-        await ctx.addModule(testModuleB)
+        await garden.addModule(testModuleB)
       } catch (err) {
         expect(err.type).to.equal("configuration")
         return
@@ -287,12 +291,13 @@ describe("Garden", () => {
     })
 
     it("should allow adding service multiple times with force parameter", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
+      const ctx = garden.pluginContext
 
       const testModule = makeTestModule(ctx)
-      const testModuleB = makeTestModule(ctx, "test-b")
-      await ctx.addModule(testModule)
-      await ctx.addModule(testModuleB, true)
+      const testModuleB = makeTestModule(ctx, { name: "test-b" })
+      await garden.addModule(testModule)
+      await garden.addModule(testModuleB, true)
 
       const services = await ctx.getServices(undefined, true)
       expect(Object.keys(services)).to.eql(["testService"])
@@ -301,18 +306,18 @@ describe("Garden", () => {
 
   describe("resolveModule", () => {
     it("should return named module", async () => {
-      const ctx = await makeTestGardenA()
-      await ctx.scanModules()
+      const garden = await makeTestGardenA()
+      await garden.scanModules()
 
-      const module = await ctx.resolveModule("module-a")
+      const module = await garden.resolveModule("module-a")
       expect(module!.name).to.equal("module-a")
     })
 
     it("should throw if named module is requested and not available", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
       try {
-        await ctx.resolveModule("module-a")
+        await garden.resolveModule("module-a")
       } catch (err) {
         expect(err.type).to.equal("configuration")
         return
@@ -322,17 +327,17 @@ describe("Garden", () => {
     })
 
     it("should resolve module by absolute path", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
       const path = join(projectRootA, "module-a")
 
-      const module = await ctx.resolveModule(path)
+      const module = await garden.resolveModule(path)
       expect(module!.name).to.equal("module-a")
     })
 
     it("should resolve module by relative path to project root", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const module = await ctx.resolveModule("./module-a")
+      const module = await garden.resolveModule("./module-a")
       expect(module!.name).to.equal("module-a")
     })
   })

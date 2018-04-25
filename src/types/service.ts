@@ -53,7 +53,7 @@ export type RuntimeContext = {
   },
 }
 
-export class Service<M extends Module> {
+export class Service<M extends Module = Module> {
   constructor(
     protected ctx: PluginContext, public module: M,
     public name: string, public config: M["services"][string],

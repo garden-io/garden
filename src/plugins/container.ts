@@ -21,6 +21,7 @@ import {
   GardenPlugin,
   PushModuleParams,
   ParseModuleParams,
+  RunServiceParams,
 } from "../types/plugin"
 import { Service } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
@@ -311,6 +312,18 @@ export const gardenPlugin = (): GardenPlugin => ({
         await module.dockerCli(`push ${remoteId}`)
 
         return { pushed: true }
+      },
+
+      async runService(
+        { ctx, service, interactive, runtimeContext, timeout }: RunServiceParams<ContainerModule>,
+      ) {
+        return ctx.runModule({
+          module: service.module,
+          command: service.config.command || [],
+          interactive,
+          runtimeContext,
+          timeout,
+        })
       },
     },
   },

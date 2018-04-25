@@ -8,6 +8,7 @@
 
 import * as sywac from "sywac"
 import chalk from "chalk"
+import { RunCommand } from "./commands/run"
 import { enumToArray, shutdown } from "./util"
 import { merge, intersection, reduce } from "lodash"
 import {
@@ -220,17 +221,18 @@ export class GardenCli {
     const commands = [
       new BuildCommand(),
       new CallCommand(),
+      new ConfigCommand(),
       new DeployCommand(),
       new DevCommand(),
       new EnvironmentCommand(),
-      new LogsCommand(),
-      new TestCommand(),
-      new ConfigCommand(),
-      new ValidateCommand(),
-      new StatusCommand(),
-      new PushCommand(),
       new LoginCommand(),
       new LogoutCommand(),
+      new LogsCommand(),
+      new PushCommand(),
+      new RunCommand(),
+      new StatusCommand(),
+      new TestCommand(),
+      new ValidateCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
