@@ -4,7 +4,7 @@ import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
 import { values } from "lodash"
 import { BuildTask } from "../../src/tasks/build"
-import { makeTestGarden, } from "../helpers"
+import { makeTestGarden } from "../helpers"
 
 /*
   Module dependency diagram for test-project-build-products

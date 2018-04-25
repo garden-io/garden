@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import {
   makeTestContextA,
-  taskResultOutputs
+  taskResultOutputs,
 } from "../../helpers"
 import { TestCommand } from "../../../src/commands/test"
 import * as isSubset from "is-subset"

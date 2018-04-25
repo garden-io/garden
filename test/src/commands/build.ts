@@ -2,7 +2,7 @@ import { BuildCommand } from "../../../src/commands/build"
 import { expect } from "chai"
 import {
   makeTestContextA,
-  taskResultOutputs
+  taskResultOutputs,
 } from "../../helpers"
 
 describe("commands.build", () => {
