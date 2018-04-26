@@ -14,7 +14,7 @@ import * as winston from "winston"
 import chalk from "chalk"
 const stripAnsi = require("strip-ansi")
 
-import { getChildNodes, interceptStream } from "./util"
+import { getChildEntries, interceptStream } from "./util"
 import {
   EntryStatus,
   LogLevel,
@@ -253,7 +253,7 @@ export class FancyConsoleWriter extends Writer {
   public render(rootLogNode: RootLogNode): string[] | null {
     let hasActiveEntries = false
     const level = this.level || rootLogNode.level
-    const entries = <any>getChildNodes(rootLogNode)
+    const entries = getChildEntries(rootLogNode)
 
     /**
      * This is a bit ugly for performance sake.

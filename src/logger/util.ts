@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten } from "lodash"
-
 import { LogEntryOpts } from "./types"
+import { LogEntry, LogNode } from "."
 
 export interface Node {
   children: any[]
@@ -16,33 +15,43 @@ export interface Node {
 
 export type LogOptsResolvers = { [K in keyof LogEntryOpts]?: Function }
 
-// TODO Tail call optimization?
-export function getNodeListFromTree<T extends Node>(node: T): T[] {
-  let arr: T[] = []
-  arr.push(node)
-  if (node.children.length === 0) {
-    return arr
-  }
-  return arr.concat(flatten(node.children.map(child => getNodeListFromTree(child))))
-}
+export type ProcessNode<T extends Node = Node> = (node: T) => boolean
 
-export function getChildNodes<T extends Node>(node: T): T[] {
-  return getNodeListFromTree(node).slice(1)
-}
-
-export function traverseTree<T extends Node>(root: T, visitNode: Function): void {
-  let stack: any[] = []
-  stack.push(root)
-
-  while (stack.length !== 0) {
-    const node = stack.pop()
-    visitNode(node)
-    if (node.children.length !== 0) {
-      for (let i = node.children.length - 1; i >= 0; i--) {
-        stack.push(node.children[i])
-      }
+// Assumes root node can be of different type than child nodes
+function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: ProcessNode<U>) {
+  const children = node.children
+  for (let idx = 0; idx < children.length; idx++) {
+    const proceed = cb(children[idx])
+    if (!proceed) {
+      return
     }
+    traverseChildren(children[idx], cb)
   }
+}
+
+export function getChildNodes<T extends Node, U extends Node = T>(node: T | U): U[] {
+  let array: U[] = []
+  traverseChildren<T, U>(node, child => {
+    array.push(child)
+    return true
+  })
+  return array
+}
+
+export function getChildEntries(node: LogNode): LogEntry[] {
+  return getChildNodes<LogNode, LogEntry>(node)
+}
+
+export function findLogEntry(node: LogNode, predicate: ProcessNode<LogEntry>): LogEntry | void {
+  let found
+  traverseChildren<LogNode, LogEntry>(node, entry => {
+    if (predicate(entry)) {
+      found = entry
+      return false
+    }
+    return true
+  })
+  return found
 }
 
 function mergeWithResolvers(objA: any, objB: any, resolvers: any = {}) {

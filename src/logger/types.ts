@@ -66,4 +66,5 @@ export interface LogEntryOpts {
   notOriginatedFromLogger?: boolean
   showDuration?: boolean
   error?: GardenError | Error
+  id?: string
 }

@@ -12,7 +12,8 @@ import chalk from "chalk"
 import { combine } from "./renderers"
 import {
   duration,
-  getChildNodes,
+  findLogEntry,
+  getChildEntries,
   mergeLogOpts,
 } from "./util"
 import {
@@ -122,6 +123,14 @@ export abstract class LogNode {
     return this.addNode(LogLevel.error, { ...makeLogOpts(entryVal), entryStyle: EntryStyle.error })
   }
 
+  public findById(id: string): LogEntry | void {
+    return findLogEntry(this, entry => entry.opts.id === id)
+  }
+
+  public filterBySection(section: string): LogEntry[] {
+    return getChildEntries(this).filter(entry => entry.opts.section === section)
+  }
+
 }
 
 export class LogEntry extends LogNode {
@@ -173,7 +182,7 @@ export class LogEntry extends LogNode {
   //  Update node and child nodes
   private deepSetState(opts: LogEntryOpts, status: EntryStatus): void {
     this.setOwnState(opts, status)
-    getChildNodes(this).forEach(entry => {
+    getChildEntries(this).forEach(entry => {
       if (entry.status === EntryStatus.ACTIVE) {
         entry.setOwnState({}, EntryStatus.DONE)
       }
@@ -248,7 +257,7 @@ export class RootLogNode extends LogNode {
   }
 
   public getLogEntries(): LogEntry[] {
-    return getChildNodes(<any>this).filter(entry => !entry.notOriginatedFromLogger())
+    return getChildEntries(this).filter(entry => !entry.notOriginatedFromLogger())
   }
 
   public header(
