@@ -24,11 +24,11 @@ import {
   LogEntryOpts,
   LogSymbolType,
 } from "./types"
-import { FancyConsoleWriter, Writer, BasicConsoleWriter } from "./writers"
+import { BasicConsoleWriter, FancyConsoleWriter, Writer } from "./writers"
 import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
-const DEFAULT_CONFIGS: { [key in LoggerType]: LoggerConfig } = {
+const CONFIG_TYPES: { [key in LoggerType]: LoggerConfig } = {
   [LoggerType.fancy]: {
     level: LogLevel.info,
     writers: [new FancyConsoleWriter()],
@@ -52,19 +52,25 @@ export interface LogEntryConstructor {
   opts: LogEntryOpts
   depth: number
   root: RootLogNode
+  parentEntry?: LogEntry
 }
 
 let loggerInstance: RootLogNode
-let defaultLoggerType: LoggerType = LoggerType.fancy
-let defaultLoggerConfig: LoggerConfig = DEFAULT_CONFIGS[defaultLoggerType]
+let loggerType: LoggerType = LoggerType.fancy
+let loggerConfig: LoggerConfig = CONFIG_TYPES[loggerType]
 
-function createLogEntry(level: LogLevel, opts: LogEntryOpts, parent: LogNode) {
-  const { depth, root } = parent
+function createLogEntry(level: LogLevel, opts: LogEntryOpts, parentNode: LogNode) {
+  const { depth, root } = parentNode
+  let parentEntry
+  if (parentNode.depth > ROOT_DEPTH) {
+    parentEntry = parentNode
+  }
   const params = {
     depth: depth + 1,
     root,
     level,
     opts,
+    parentEntry,
   }
   return new LogEntry(params)
 }
@@ -140,11 +146,13 @@ export class LogEntry extends LogNode {
   public timestamp: number
   public level: LogLevel
   public depth: number
+  public parentEntry: LogEntry | undefined
   public children: LogEntry[]
 
-  constructor({ level, opts, depth, root }: LogEntryConstructor) {
+  constructor({ level, opts, depth, root, parentEntry }: LogEntryConstructor) {
     super(level, depth)
     this.root = root
+    this.parentEntry = parentEntry
     this.opts = opts
     if (opts.entryStyle === EntryStyle.activity) {
       this.status = EntryStatus.ACTIVE
@@ -202,7 +210,6 @@ export class LogEntry extends LogNode {
     return this
   }
 
-  // public setSuccess: UpdateLogEntry = (entryVal: CreateLogEntryParam = {}): LogEntry => {
   public setSuccess: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
     this.deepSetState({ ...makeLogOpts(entryVal), symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
     this.root.onGraphChange(this)
@@ -291,21 +298,17 @@ export class RootLogNode extends LogNode {
 
 }
 
-export function getLogger(config?: LoggerConfig) {
+export function getLogger() {
   if (!loggerInstance) {
-    loggerInstance = new RootLogNode(config || defaultLoggerConfig)
+    loggerInstance = new RootLogNode(loggerConfig)
   }
 
   return loggerInstance
 }
 
-export function setDefaultLoggerType(loggerType: LoggerType) {
-  defaultLoggerType = loggerType
-  defaultLoggerConfig = DEFAULT_CONFIGS[loggerType]
-}
-
-export function setDefaultLoggerConfig(config: LoggerConfig) {
-  defaultLoggerConfig = config
+export function setLoggerType(type: LoggerType) {
+  loggerType = type
+  loggerConfig = CONFIG_TYPES[type]
 }
 
 // allow configuring logger type via environment variable
@@ -320,7 +323,7 @@ if (process.env.GARDEN_LOGGER_TYPE) {
     })
   }
 
-  defaultLoggerType = type
-  defaultLoggerConfig = DEFAULT_CONFIGS[type]
+  setLoggerType(type)
+
   getLogger().debug(`Setting logger type to ${type} (from GARDEN_LOGGER_TYPE)`)
 }

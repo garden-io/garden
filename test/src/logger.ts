@@ -61,7 +61,7 @@ describe("RootLogNode", () => {
   })
 
   describe("addNode", () => {
-    it("should add new child entries to respective node", () => {
+    it("should add new child entries to the respective node", () => {
       const prevLength = logger.children.length
       const entry = logger.children[0]
       const nested = entry.info("nested")
@@ -78,32 +78,68 @@ describe("RootLogNode", () => {
 })
 
 describe("BasicConsoleWriter.render", () => {
-  it("should return a string if log level is geq than entry level", () => {
-    const writer = new BasicConsoleWriter({ level: LogLevel.silent })
-    const logger = new RootLogNode({ level: LogLevel.silent })
+  it("should return a string if level is geq than entry level and entry contains a message", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new BasicConsoleWriter()
     const entry = logger.info("")
-    const out1 = writer.render(entry, logger)
-    writer.level = LogLevel.verbose
-    const out2 = writer.render(entry, logger)
-
-    expect(out1).to.be.a("null")
-    expect(out2).to.be.a("string")
+    const out = writer.render(entry, logger)
+    expect(out).to.eql("")
+  })
+  it("should override root level if level is set", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new BasicConsoleWriter({ level: LogLevel.verbose })
+    const entry = logger.verbose("")
+    const out = writer.render(entry, logger)
+    expect(out).to.eql("")
+  })
+  it("should return null if entry level is geq to writer level", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new BasicConsoleWriter()
+    const entry = logger.verbose("")
+    const out = writer.render(entry, logger)
+    expect(out).to.eql(null)
+  })
+  it("should return null if entry has no message", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new BasicConsoleWriter()
+    const entry = logger.info({})
+    const out = writer.render(entry, logger)
+    expect(out).to.eql(null)
   })
 })
 
 describe("FancyConsoleWriter.render", () => {
-  it("should return an array of strings if log level is geq than respective entry level", () => {
-    const writer = new FancyConsoleWriter({ level: LogLevel.silent })
-    const logger = new RootLogNode({ level: LogLevel.silent })
+  it("should return an array of strings if level is geq than entry level and entry contains a message", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new FancyConsoleWriter()
     const entry = logger.info("")
-    const out1 = writer.render(logger)
-    writer.level = LogLevel.verbose
-    const out2 = writer.render(logger)
-
+    const out = writer.render(logger)
     writer.stop()
-
-    expect(out1).to.be.a("null")
-    expect(out2).to.be.an("array").of.length(1)
+    expect(out).to.eql(["\n"])
+  })
+  it("should override root level if level is set", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new FancyConsoleWriter({ level: LogLevel.verbose })
+    writer.stop()
+    const entry = logger.verbose("")
+    const out = writer.render(logger)
+    expect(out).to.eql(["\n"])
+  })
+  it("should return null if entry level is geq to writer level", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new FancyConsoleWriter()
+    writer.stop()
+    const entry = logger.verbose("")
+    const out = writer.render(logger)
+    expect(out).to.eql(null)
+  })
+  it("should return null if entry has no message", () => {
+    const logger = new RootLogNode({ level: LogLevel.info })
+    const writer = new FancyConsoleWriter()
+    writer.stop()
+    const entry = logger.info({})
+    const out = writer.render(logger)
+    expect(out).to.eql(null)
   })
 })
 

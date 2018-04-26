@@ -55,6 +55,10 @@ export function combine(renderers: Renderers): string {
 
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
+  const { parentEntry } = entry
+  if (parentEntry && parentEntry.opts.unindentChildren) {
+    return ""
+  }
   return padStart("", entry.depth * 3)
 }
 

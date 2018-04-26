@@ -11,6 +11,7 @@ import chalk from "chalk"
 import { enumToArray, shutdown } from "./util"
 import { merge, intersection, reduce } from "lodash"
 import {
+  BooleanParameter,
   Command,
   ChoicesParameter,
   ParameterValues,
@@ -43,6 +44,11 @@ const GLOBAL_OPTIONS = {
     alias: "r",
     help: "override project root directory (defaults to working directory)",
     defaultValue: process.cwd(),
+  }),
+  silent: new BooleanParameter({
+    alias: "s",
+    help: "suppress log output",
+    defaultValue: false,
   }),
   env: new EnvironmentOption(),
   loglevel: new ChoicesParameter({
@@ -193,7 +199,6 @@ export class GardenCli {
 
   constructor() {
     const version = require("../package.json").version
-
     this.logger = getLogger()
     this.program = sywac
       .help("-h, --help", {
@@ -261,22 +266,24 @@ export class GardenCli {
     }
 
     const action = async argv => {
-      const logger = this.logger
-
       // Sywac returns positional args and options in a single object which we separate into args and opts
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
       const env = optsForAction.env
 
-      // Update logger config
-      const level = LogLevel[<string>argv.loglevel]
+      // Update logger
+      const logger = this.logger
+      const { loglevel, silent } = optsForAction
+      const level = LogLevel[<string>loglevel]
       logger.level = level
-      if (level !== LogLevel.silent) {
+      if (!silent) {
         logger.writers.push(
           new FileWriter({ level, root }),
           new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
         )
+      } else {
+        logger.writers = []
       }
 
       const garden = await Garden.factory(root, { env, logger })

@@ -1,7 +1,7 @@
 import { LoggerType } from "../src/logger/types"
-import { setDefaultLoggerType } from "../src/logger"
+import { setLoggerType, getLogger } from "../src/logger"
 
 // Global before hooks
 before(() => {
-  setDefaultLoggerType(LoggerType.quiet)
+  setLoggerType(LoggerType.quiet)
 })
