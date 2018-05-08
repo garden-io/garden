@@ -14,7 +14,7 @@ import * as winston from "winston"
 import chalk from "chalk"
 const stripAnsi = require("strip-ansi")
 
-import { getChildNodes, interceptStream } from "./util"
+import { getChildEntries, interceptStream } from "./util"
 import {
   EntryStatus,
   LogLevel,
@@ -48,6 +48,9 @@ const DEFAULT_FILE_TRANSPORT_OPTIONS = {
 }
 
 const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
+const isEntryValid = (level: LogLevel, entry: LogEntry): boolean => {
+  return level >= entry.level && entry.opts.msg !== undefined
+}
 
 export interface WriterConfig {
   level?: LogLevel
@@ -100,7 +103,7 @@ export class FileWriter extends Writer {
 
   render(entry: LogEntry): string | null {
     const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
-    if (entry.opts.msg && this.level >= entry.level) {
+    if (isEntryValid(this.level, entry)) {
       return stripAnsi(renderFn(entry))
     }
     return null
@@ -144,7 +147,7 @@ export class BasicConsoleWriter extends Writer {
 
   render(entry: LogEntry, rootLogNode: RootLogNode): string | null {
     const level = this.level || rootLogNode.level
-    if (level >= entry.level) {
+    if (isEntryValid(level, entry)) {
       return formatForConsole(entry)
     }
     return null
@@ -246,14 +249,14 @@ export class FancyConsoleWriter extends Writer {
     }
   }
 
-  /*
-    Has a side effect in that it starts/stops the rendering loop depending on
-    whether or not active entries were found while building output
-  */
+  /**
+   * Has a side effect in that it starts/stops the rendering loop depending on
+   * whether or not active entries were found while building output
+   */
   public render(rootLogNode: RootLogNode): string[] | null {
     let hasActiveEntries = false
     const level = this.level || rootLogNode.level
-    const entries = <any>getChildNodes(rootLogNode)
+    const entries = getChildEntries(rootLogNode)
 
     /**
      * This is a bit ugly for performance sake.
@@ -272,7 +275,7 @@ export class FancyConsoleWriter extends Writer {
         hasActiveEntries = true
         spinnerFrame = this.readOrSetSpinner(idx)
       }
-      if (level >= entry.level) {
+      if (isEntryValid(level, entry)) {
         const formatted = this.readerOrSetFormattedEntry(entry, idx)
         const startPos = leftPad(entry).length
         const withSpinner = spinnerFrame

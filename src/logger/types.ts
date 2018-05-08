@@ -13,7 +13,6 @@ import { GardenError } from "../exceptions"
 export type EmojiName = keyof typeof nodeEmoji.emoji
 
 export enum LogLevel {
-  silent = -1,
   error = 0,
   warn = 1,
   info = 2,
@@ -28,7 +27,6 @@ export enum LoggerType {
   quiet = "quiet",
 }
 
-// Defines entry style and format (only one available style at the moment)
 export enum EntryStyle {
   activity = "activity",
   error = "error",
@@ -51,11 +49,7 @@ export enum EntryStatus {
   WARN = "warn",
 }
 
-export interface HeaderOpts {
-  emoji?: string
-  command: string
-}
-
+// TODO Split up
 export interface LogEntryOpts {
   msg?: string | string[]
   section?: string
@@ -66,4 +60,6 @@ export interface LogEntryOpts {
   notOriginatedFromLogger?: boolean
   showDuration?: boolean
   error?: GardenError | Error
+  id?: string
+  unindentChildren?: boolean
 }
