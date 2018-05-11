@@ -23,6 +23,8 @@ build/
 coverage/
 dist/
 examples/**/app.yaml
+*.js
+*.map
 src/**/*.js
 src/**/*.map
 src/**/*.d.ts
