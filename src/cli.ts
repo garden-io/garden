@@ -10,6 +10,7 @@ import { safeDump } from "js-yaml"
 import * as sywac from "sywac"
 import chalk from "chalk"
 import { RunCommand } from "./commands/run"
+import { ScanCommand } from "./commands/scan"
 import { DeepPrimitiveMap } from "./types/common"
 import { enumToArray, shutdown } from "./util"
 import { merge, intersection, reduce } from "lodash"
@@ -247,6 +248,7 @@ export class GardenCli {
       new LogsCommand(),
       new PushCommand(),
       new RunCommand(),
+      new ScanCommand(),
       new StatusCommand(),
       new TestCommand(),
       new ValidateCommand(),
