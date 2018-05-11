@@ -29,14 +29,14 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v2-dependencies-
 
-      - run: sudo apt install rsync
-
+      - run: sudo apt install rsync ruby ruby-dev cmake libicu-dev pkg-config
+      - run: sudo gem install --no-document copyright-header
       - run: npm install
 
       - save_cache:
           paths:
             - node_modules
-          key: v1-dependencies-{{ checksum "package-lock.json" }}
+          key: v2-dependencies-{{ checksum "package-lock.json" }}
 
       # a couple of special cases needed just for local builds
       - run: |
