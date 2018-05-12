@@ -90,7 +90,7 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
   }
 
   const metadataNamespace = getMetadataNamespace(ctx, provider)
-  const namespacesStatus = await coreApi(context).namespaces().get()
+  const namespacesStatus = await coreApi(context).namespaces.get()
   const namespace = await getAppNamespace(ctx, provider)
 
   for (const n of namespacesStatus.items) {
@@ -174,7 +174,7 @@ export async function execInService(
   }
 
   // get a running pod
-  let res = await coreApi(context, namespace).namespaces.pods.get({
+  let res = await coreApi(context).namespaces(namespace).pods.get({
     qs: {
       labelSelector: `service=${service.name}`,
     },
@@ -274,7 +274,7 @@ export async function testModule(
     },
   }
 
-  await apiPostOrPut(coreApi(context, ns).namespaces.configmaps, resultKey, body)
+  await apiPostOrPut(coreApi(context).namespaces(ns).configmaps, resultKey, body)
 
   return testResult
 }
@@ -285,7 +285,7 @@ export async function getTestResult(
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, version)
-  const res = await apiGetOrNull(coreApi(context, ns).namespaces.configmaps, resultKey)
+  const res = await apiGetOrNull(coreApi(context).namespaces(ns).configmaps, resultKey)
   return res && <TestResult>deserializeKeys(res.data)
 }
 
@@ -329,7 +329,7 @@ export async function getServiceLogs(
 export async function getConfig({ ctx, provider, key }: GetConfigParams) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
-  const res = await apiGetOrNull(coreApi(context, ns).namespaces.secrets, key.join("."))
+  const res = await apiGetOrNull(coreApi(context).namespaces(ns).secrets, key.join("."))
   return res && Buffer.from(res.data.value, "base64").toString()
 }
 
@@ -352,14 +352,14 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
     },
   }
 
-  await apiPostOrPut(coreApi(context, ns).namespaces.secrets, key.join("."), body)
+  await apiPostOrPut(coreApi(context).namespaces(ns).secrets, key.join("."), body)
 }
 
 export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
   try {
-    await coreApi(context, ns).namespaces.secrets(key.join(".")).delete()
+    await coreApi(context).namespaces(ns).secrets(key.join(".")).delete()
   } catch (err) {
     if (err.code === 404) {
       return { found: false }
