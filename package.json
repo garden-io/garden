@@ -81,6 +81,7 @@
     "gulp": "^4.0.0",
     "gulp-cached": "^1.1.1",
     "gulp-debug": "^4.0.0",
+    "gulp-exclude-gitignore": "^1.2.0",
     "gulp-exec": "^3.0.1",
     "gulp-pegjs": "^0.1.0",
     "gulp-sourcemaps": "^2.6.4",

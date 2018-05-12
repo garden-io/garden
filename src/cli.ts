@@ -12,7 +12,11 @@ import chalk from "chalk"
 import { RunCommand } from "./commands/run"
 import { ScanCommand } from "./commands/scan"
 import { DeepPrimitiveMap } from "./types/common"
-import { enumToArray, shutdown } from "./util"
+import {
+  enumToArray,
+  shutdown,
+  sleep,
+} from "./util"
 import { merge, intersection, reduce } from "lodash"
 import {
   BooleanParameter,
@@ -318,6 +322,8 @@ export class GardenCli {
         if (output && result !== undefined) {
           const renderer = OUTPUT_RENDERERS[output]
           console.log(renderer({ success: true, result }))
+          // Note: this circumvents an issue where the process exits before the output is fully flushed
+          await sleep(100)
         }
 
         return result
@@ -329,6 +335,8 @@ export class GardenCli {
         if (output) {
           const renderer = OUTPUT_RENDERERS[output]
           console.error(renderer(result))
+          // Note: this circumvents an issue where the process exits before the output is fully flushed
+          await sleep(100)
         }
 
         return result

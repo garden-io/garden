@@ -6,7 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import {
+  existsSync,
+  readFileSync,
+} from "fs"
 import * as Joi from "joi"
+import { GARDEN_VERSIONFILE_NAME } from "../constants"
 import { ServiceMap } from "../garden"
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
@@ -36,6 +41,7 @@ import {
 import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
 import { Memoize } from "typescript-memoize"
 import { TreeVersion } from "../vcs/base"
+import { join } from "path"
 
 export interface BuildCopySpec {
   source: string
@@ -72,6 +78,12 @@ export interface TestSpec {
 export interface TestConfig {
   [group: string]: TestSpec
 }
+
+const versionFileSchema = Joi.object().keys({
+  versionString: Joi.string().required(),
+  latestCommit: Joi.string().required(),
+  dirtyTimestamp: Joi.number().allow(null).required(),
+})
 
 export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
   allowPush: boolean
@@ -120,6 +132,28 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   async getVersion(): Promise<TreeVersion> {
+    const versionFilePath = join(this.path, GARDEN_VERSIONFILE_NAME)
+
+    if (existsSync(versionFilePath)) {
+      // this is used internally to specify version outside of source control
+      const versionFileContents = readFileSync(versionFilePath).toString().trim()
+
+      if (!!versionFileContents) {
+        try {
+          return validate(JSON.parse(versionFileContents), versionFileSchema)
+        } catch (err) {
+          throw new ConfigurationError(
+            `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${this.path}`,
+            {
+              modulePath: this.path,
+              versionFilePath,
+              versionFileContents,
+            },
+          )
+        }
+      }
+    }
+
     const treeVersion = await this.ctx.vcs.getTreeVersion([this.path])
 
     const versionChain: TreeVersion[] = await Bluebird.map(

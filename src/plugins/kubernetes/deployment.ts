@@ -123,11 +123,6 @@ export async function createDeployment(service: ContainerService, runtimeContext
 
   // expose some metadata to the container
   env.push({
-    name: "GARDEN_VERSION",
-    value: versionString,
-  })
-
-  env.push({
     name: "POD_NAME",
     valueFrom: { fieldRef: { fieldPath: "metadata.name" } },
   })

@@ -1,0 +1,7 @@
+project:
+  name: garden-framework
+  environments:
+    local:
+      providers:
+        container: {}
+        local-kubernetes: {}

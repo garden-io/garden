@@ -1,8 +1,16 @@
-import { spawn as _spawn, ChildProcess } from "child_process"
-import { join } from "path"
+import {
+  spawn as _spawn,
+  ChildProcess,
+} from "child_process"
+import { writeFileSync } from "fs"
+import {
+  join,
+  relative,
+} from "path"
 
 const gulp = require("gulp")
 const cached = require("gulp-cached")
+const excludeGitIgnore = require("gulp-exclude-gitignore")
 // const debug = require("gulp-debug")
 // const exec = require("gulp-exec")
 const pegjs = require("gulp-pegjs")
@@ -47,7 +55,6 @@ function spawn(cmd, args, cb) {
   child.stderr.on("data", (data) => output.push(data.toString()))
 
   child.on("exit", (code) => {
-    console.log(code)
     if (code !== 0) {
       console.log(output.join(""))
       die()
@@ -64,6 +71,28 @@ function die() {
   }
   process.exit(1)
 }
+
+gulp.task("add-version-files", (cb) => {
+  const gardenBinPath = join(destDir, "src", "bin", "garden.js")
+  const proc = _spawn("node", [gardenBinPath, "scan", "--output=json"])
+
+  proc.on("error", err => cb(err))
+
+  let output = ""
+  proc.stdout.on("data", d => output += d)
+
+  proc.on("close", () => {
+    const results = JSON.parse(output)
+
+    for (const module of <any>Object.values(results.result)) {
+      const relPath = relative(__dirname, module.path)
+      const versionFilePath = join(__dirname, destDir, relPath, ".garden-version")
+      writeFileSync(versionFilePath, JSON.stringify(module.version))
+    }
+
+    cb()
+  })
+})
 
 gulp.task("check-licenses", (cb) =>
   spawn("./bin/check-licenses", [], cb),
@@ -85,12 +114,13 @@ gulp.task("pegjs-watch", () =>
 
 gulp.task("static", () => {
   return gulp.src(staticFiles, { base: "./" })
+    .pipe(excludeGitIgnore())
     .pipe(cached("static"))
     .pipe(gulp.dest(destDir))
 })
 
 gulp.task("static-watch", () => {
-  return gulp.watch(staticFiles, gulp.parallel("static"))
+  return gulp.watch(staticFiles, gulp.series("static", "add-version-files"))
 })
 
 gulp.task("tsc", () =>
@@ -154,7 +184,7 @@ gulp.task("tslint-watch", () =>
 )
 
 gulp.task("lint", gulp.parallel("check-licenses", "tslint", "tslint-tests", "tsfmt"))
-gulp.task("build", gulp.parallel("pegjs", "static", "tsc"))
+gulp.task("build", gulp.series(gulp.parallel("pegjs", "static", "tsc"), "add-version-files"))
 gulp.task("dist", gulp.series((done) => { setDestDir("dist"); done() }, "lint", "build"))
 gulp.task("test", gulp.parallel("build", "lint", "mocha"))
 gulp.task("watch",

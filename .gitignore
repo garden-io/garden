@@ -23,7 +23,7 @@ build/
 coverage/
 dist/
 examples/**/app.yaml
-*.js
+gulpfile.js
 *.map
 src/**/*.js
 src/**/*.map
