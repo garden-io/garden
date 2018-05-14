@@ -147,7 +147,7 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
     entry.setSuccess("Finished")
   } catch (err) {
     entry.setError(err.message)
-    const availableNamespaces = getAllAppNamespaces(context)
+    const availableNamespaces = await getAllAppNamespaces(context)
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
 }

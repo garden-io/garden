@@ -78,7 +78,7 @@ const GLOBAL_OPTIONS = {
   output: new ChoicesParameter({
     alias: "o",
     choices: Object.keys(OUTPUT_RENDERERS),
-    help: "output command result in specified format (note: disable progress logging)",
+    help: "output command result in specified format (note: disables progress logging)",
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
@@ -144,7 +144,7 @@ export interface ParseResults {
 
 interface SywacParseResults extends ParseResults {
   output: string
-  details: any
+  details: { result: any }
 }
 
 function makeOptSynopsis(key: string, param: Parameter<any>): string {
@@ -292,7 +292,7 @@ export class GardenCli {
       throw new PluginError(`Global option(s) ${dupKeys.join(" ")} cannot be redefined`, {})
     }
 
-    const action = async argv => {
+    const action = async (argv, cliContext) => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
       const argsForAction = filterByArray(argv, argKeys)
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
@@ -315,32 +315,12 @@ export class GardenCli {
 
       const garden = await Garden.factory(root, { env, logger })
 
-      try {
-        // TODO: enforce that commands always output DeepPrimitiveMap
-        const result = await command.action(garden.pluginContext, argsForAction, optsForAction)
+      // TODO: enforce that commands always output DeepPrimitiveMap
+      const result = await command.action(garden.pluginContext, argsForAction, optsForAction)
 
-        if (output && result !== undefined) {
-          const renderer = OUTPUT_RENDERERS[output]
-          console.log(renderer({ success: true, result }))
-          // Note: this circumvents an issue where the process exits before the output is fully flushed
-          await sleep(100)
-        }
+      // We attach the action result to cli context so that we can process it in the parse method
+      cliContext.details.result = result
 
-        return result
-
-      } catch (error) {
-        // TODO: we can likely do this better
-        const result = { error }
-
-        if (output) {
-          const renderer = OUTPUT_RENDERERS[output]
-          console.error(renderer(result))
-          // Note: this circumvents an issue where the process exits before the output is fully flushed
-          await sleep(100)
-        }
-
-        return result
-      }
     }
 
     // Command specific positional args and options are set inside the builder function
@@ -361,24 +341,41 @@ export class GardenCli {
   }
 
   async parse(): Promise<ParseResults> {
-    return this.program.parse().then((result: SywacParseResults) => {
-      const { argv, errors, code, output } = result
+    const parseResult: SywacParseResults = await this.program.parse()
+    const { argv, details, errors, code, output: cliOutput } = parseResult
+    const { result } = details
+    const { output } = argv
 
-      // --help or --version options were called
-      if (output && !(errors.length > 0)) {
-        this.logger.stop()
-        console.log(output)
-        process.exit(result.code)
-      }
+    // --help or --version options were called so we log the cli output and exit
+    if (cliOutput && errors.length < 1) {
+      this.logger.stop()
+      console.log(cliOutput)
+      process.exit(parseResult.code)
+    }
 
+    // --output option set and there is content to output
+    if (output && (result !== undefined || errors.length > 0)) {
+      const renderer = OUTPUT_RENDERERS[output]
       if (errors.length > 0) {
-        errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
+        const msg = errors.join("\n")
+        console.error(renderer({ result: msg }))
+      } else {
+        console.log(renderer({ success: true, result }))
+      }
+      // Note: this circumvents an issue where the process exits before the output is fully flushed
+      await sleep(100)
+    }
+
+    if (errors.length > 0) {
+      errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
+
+      if (this.logger.writers.find(w => w instanceof FileWriter)) {
         this.logger.info(`See ${ERROR_LOG_FILENAME} for detailed error message`)
       }
+    }
 
-      this.logger.stop()
-      return { argv, code, errors }
-    })
+    this.logger.stop()
+    return { argv, code, errors }
   }
 
 }
