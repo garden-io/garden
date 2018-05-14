@@ -10,7 +10,7 @@ describe("RunCommand", () => {
 
   it("should contain a set of subcommands", () => {
     const cmd = new RunCommand()
-    const subcommandNames = new Set(cmd.subCommands.map(s => s.name))
-    expect(subcommandNames).to.eql(new Set(["module", "service", "test"]))
+    const subcommandNames = cmd.subCommands.map(s => new s().name)
+    expect(subcommandNames).to.eql(["module", "service", "test"])
   })
 })

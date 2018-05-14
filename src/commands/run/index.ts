@@ -21,9 +21,9 @@ export class RunCommand extends Command {
   help = "Run ad-hoc instances of your modules, services and tests"
 
   subCommands = [
-    new RunModuleCommand(),
-    new RunServiceCommand(),
-    new RunTestCommand(),
+    RunModuleCommand,
+    RunServiceCommand,
+    RunTestCommand,
   ]
 
   async action() { }
