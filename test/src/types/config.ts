@@ -12,7 +12,6 @@ describe("loadConfig", () => {
     const parsed = await loadConfig(projectPathA, projectPathA)
 
     expect(parsed.project).to.eql({
-      version: "0",
       name: "test-project-a",
       defaultEnvironment: "local",
       global: {

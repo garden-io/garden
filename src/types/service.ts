@@ -7,10 +7,9 @@
  */
 
 import Bluebird = require("bluebird")
-import * as Joi from "joi"
 import { PluginContext } from "../plugin-context"
 import { Module } from "./module"
-import { joiPrimitive, PrimitiveMap, validate } from "./common"
+import { PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateStrings, TemplateOpts, TemplateStringContext } from "../template-string"
 
@@ -44,7 +43,7 @@ export interface ServiceStatus {
   detail?: any
 }
 
-export type ServiceContext = {
+export type RuntimeContext = {
   envVars: PrimitiveMap
   dependencies: {
     [name: string]: {
@@ -54,9 +53,7 @@ export type ServiceContext = {
   },
 }
 
-const serviceOutputsSchema = Joi.object().pattern(/.+/, joiPrimitive())
-
-export class Service<M extends Module> {
+export class Service<M extends Module = Module> {
   constructor(
     protected ctx: PluginContext, public module: M,
     public name: string, public config: M["services"][string],
@@ -80,7 +77,7 @@ export class Service<M extends Module> {
   /*
     Returns all Services that this service depends on at runtime.
    */
-  async getDependencies() {
+  async getDependencies(): Promise<Service<any>[]> {
     return Bluebird.map(
       this.config.dependencies,
       async (depName: string) => await this.ctx.getService(depName),
@@ -99,43 +96,12 @@ export class Service<M extends Module> {
    */
   async resolveConfig(context?: TemplateStringContext, opts?: TemplateOpts): Promise<Service<M>> {
     if (!context) {
-      context = await this.ctx.getTemplateContext(await this.prepareContext())
+      const dependencies = await this.getDependencies()
+      const runtimeContext = await this.module.prepareRuntimeContext(dependencies)
+      context = await this.ctx.getTemplateContext(runtimeContext)
     }
     const resolved = await resolveTemplateStrings(this.config, context, opts)
     const cls = Object.getPrototypeOf(this).constructor
     return new cls(this.ctx, this.module, this.name, resolved)
-  }
-
-  async prepareContext(): Promise<ServiceContext> {
-    const { versionString } = await this.module.getVersion()
-    const envVars = {
-      GARDEN_VERSION: versionString,
-    }
-    const dependencies = {}
-
-    for (const key in this.ctx.config.variables) {
-      envVars[key] = this.ctx.config.variables[key]
-    }
-
-    for (const dep of await this.getDependencies()) {
-      const depContext = dependencies[dep.name] = {
-        version: versionString,
-        outputs: {},
-      }
-
-      const outputs = await this.ctx.getServiceOutputs(dep)
-      const serviceEnvName = dep.getEnvVarName()
-
-      validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
-
-      for (const [key, value] of Object.entries(outputs)) {
-        const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${key}`.toUpperCase()
-
-        envVars[envVarName] = value
-        depContext.outputs[key] = value
-      }
-    }
-
-    return { envVars, dependencies }
   }
 }

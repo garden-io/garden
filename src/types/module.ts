@@ -11,7 +11,15 @@ import { ServiceMap } from "../garden"
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
 import { TestTask } from "../tasks/test"
-import { identifierRegex, joiIdentifier, joiVariables, PrimitiveMap } from "./common"
+import {
+  identifierRegex,
+  joiEnvVars,
+  joiIdentifier,
+  joiPrimitive,
+  joiVariables,
+  PrimitiveMap,
+  validate,
+} from "./common"
 import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
 import {
@@ -21,6 +29,7 @@ import {
   values,
 } from "lodash"
 import {
+  RuntimeContext,
   Service,
   ServiceConfig,
 } from "./service"
@@ -50,6 +59,8 @@ export interface BuildConfig {
   command?: string,
   dependencies: BuildDependencyConfig[],
 }
+
+const serviceOutputsSchema = Joi.object().pattern(/.+/, joiPrimitive())
 
 export interface TestSpec {
   command: string[]
@@ -162,7 +173,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   async getDeployTasks(
     { force = false, forceBuild = false }: { force?: boolean, forceBuild?: boolean },
-  ): Promise<DeployTask<Service<Module<T>>>[]> {
+  ): Promise<DeployTask<Service>[]> {
     const services = await this.getServices()
     const module = this
 
@@ -184,6 +195,52 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     }
 
     return tasks
+  }
+
+  async prepareRuntimeContext(dependencies: Service<any>[], extraEnvVars: PrimitiveMap = {}): Promise<RuntimeContext> {
+    const { versionString } = await this.getVersion()
+    const envVars = {
+      GARDEN_VERSION: versionString,
+    }
+
+    validate(extraEnvVars, joiEnvVars(), { context: `environment variables for module ${this.name}` })
+
+    for (const [envVarName, value] of Object.entries(extraEnvVars)) {
+      if (envVarName.startsWith("GARDEN")) {
+        throw new ConfigurationError(`Environment variable name cannot start with "GARDEN"`, {
+          envVarName,
+        })
+      }
+      envVars[envVarName] = value
+    }
+
+    for (const [key, value] of Object.entries(this.ctx.config.variables)) {
+      const envVarName = `GARDEN_VARIABLES_${key.replace(/-/g, "_").toUpperCase()}`
+      envVars[envVarName] = value
+    }
+
+    const deps = {}
+
+    for (const dep of dependencies) {
+      const depContext = deps[dep.name] = {
+        version: versionString,
+        outputs: {},
+      }
+
+      const outputs = await this.ctx.getServiceOutputs(dep)
+      const serviceEnvName = dep.getEnvVarName()
+
+      validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
+
+      for (const [key, value] of Object.entries(outputs)) {
+        const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${key}`.toUpperCase()
+
+        envVars[envVarName] = value
+        depContext.outputs[key] = value
+      }
+    }
+
+    return { envVars, dependencies: deps }
   }
 }
 

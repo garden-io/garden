@@ -11,17 +11,23 @@ import * as Joi from "joi"
 
 import { DeploymentError, NotFoundError } from "../../exceptions"
 import {
-  ConfigureEnvironmentParams, DeleteConfigParams,
+  ConfigureEnvironmentParams,
+  DeleteConfigParams,
   DestroyEnvironmentParams,
-  ExecInServiceParams, GetConfigParams,
+  ExecInServiceParams,
+  GetConfigParams,
   GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
-  GetServiceStatusParams, GetTestResultParams,
+  GetServiceStatusParams,
+  GetTestResultParams,
   LoginStatus,
   PluginActionParamsBase,
+  RunModuleParams,
+  RunResult,
   SetConfigParams,
-  TestModuleParams, TestResult,
+  TestModuleParams,
+  TestResult,
 } from "../../types/plugin"
 import { TreeVersion } from "../../vcs/base"
 import {
@@ -84,7 +90,7 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
   }
 
   const metadataNamespace = getMetadataNamespace(ctx, provider)
-  const namespacesStatus = await coreApi(context).namespaces().get()
+  const namespacesStatus = await coreApi(context).namespaces.get()
   const namespace = await getAppNamespace(ctx, provider)
 
   for (const n of namespacesStatus.items) {
@@ -168,7 +174,7 @@ export async function execInService(
   }
 
   // get a running pod
-  let res = await coreApi(context, namespace).namespaces.pods.get({
+  let res = await coreApi(context).namespaces(namespace).pods.get({
     qs: {
       labelSelector: `service=${service.name}`,
     },
@@ -188,52 +194,78 @@ export async function execInService(
   return { code: res.code, output: res.output }
 }
 
-export async function testModule(
-  { ctx, provider, module, testName, testSpec }: TestModuleParams<ContainerModule>,
-): Promise<TestResult> {
-  // TODO: include a service context here
+export async function runModule(
+  { ctx, provider, module, command, interactive, runtimeContext, silent, timeout }: RunModuleParams<ContainerModule>,
+): Promise<RunResult> {
   const context = provider.config.context
-  const baseEnv = {}
-  const envVars = { ...baseEnv, ...testSpec.variables }
-  const envArgs = Object.entries(envVars).map(([v, k]) => `--env=${k}=${v}`)
+  const namespace = await getAppNamespace(ctx, provider)
 
-  // TODO: use the runModule() method
-  const testCommandStr = testSpec.command.join(" ")
+  const envArgs = Object.entries(runtimeContext.envVars).map(([k, v]) => `--env=${k}=${v}`)
+
+  const commandStr = command.join(" ")
   const image = await module.getLocalImageId()
   const version = await module.getVersion()
 
-  const kubecmd = [
-    "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
+  const opts = [
     `--image=${image}`,
     "--restart=Never",
     "--command",
-    "-i",
     "--tty",
     "--rm",
+    "-i",
+    "--quiet",
+  ]
+
+  const kubecmd = [
+    "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
+    ...opts,
     ...envArgs,
     "--",
     "/bin/sh",
     "-c",
-    testCommandStr,
+    commandStr,
   ]
 
   const startedAt = new Date()
 
-  const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
-  const res = await kubectl(context, await getAppNamespace(ctx, provider)).tty(kubecmd, { ignoreError: true, timeout })
+  const res = await kubectl(context, namespace).tty(kubecmd, {
+    ignoreError: true,
+    silent: !interactive || silent, // shouldn't be silent in interactive mode
+    timeout,
+    tty: interactive,
+  })
 
-  const testResult: TestResult = {
+  return {
     moduleName: module.name,
-    testName,
+    command,
     version,
     success: res.code === 0,
     startedAt,
     completedAt: new Date(),
     output: res.output,
   }
+}
+
+export async function testModule(
+  { ctx, provider, env, interactive, module, runtimeContext, silent, testName, testSpec }:
+    TestModuleParams<ContainerModule>,
+): Promise<TestResult> {
+  const command = testSpec.command
+  runtimeContext.envVars = { ...runtimeContext.envVars, ...testSpec.variables }
+  const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
+
+  const result = await runModule({ ctx, provider, env, module, command, interactive, runtimeContext, silent, timeout })
+
+  const context = provider.config.context
+
+  // store test result
+  const testResult: TestResult = {
+    ...result,
+    testName,
+  }
 
   const ns = getMetadataNamespace(ctx, provider)
-  const resultKey = getTestResultKey(module, testName, version)
+  const resultKey = getTestResultKey(module, testName, result.version)
   const body = {
     body: {
       apiVersion: "v1",
@@ -249,7 +281,7 @@ export async function testModule(
     },
   }
 
-  await apiPostOrPut(coreApi(context, ns).namespaces.configmaps, resultKey, body)
+  await apiPostOrPut(coreApi(context).namespaces(ns).configmaps, resultKey, body)
 
   return testResult
 }
@@ -260,7 +292,7 @@ export async function getTestResult(
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, version)
-  const res = await apiGetOrNull(coreApi(context, ns).namespaces.configmaps, resultKey)
+  const res = await apiGetOrNull(coreApi(context).namespaces(ns).configmaps, resultKey)
   return res && <TestResult>deserializeKeys(res.data)
 }
 
@@ -304,7 +336,7 @@ export async function getServiceLogs(
 export async function getConfig({ ctx, provider, key }: GetConfigParams) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
-  const res = await apiGetOrNull(coreApi(context, ns).namespaces.secrets, key.join("."))
+  const res = await apiGetOrNull(coreApi(context).namespaces(ns).secrets, key.join("."))
   return res && Buffer.from(res.data.value, "base64").toString()
 }
 
@@ -327,14 +359,14 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
     },
   }
 
-  await apiPostOrPut(coreApi(context, ns).namespaces.secrets, key.join("."), body)
+  await apiPostOrPut(coreApi(context).namespaces(ns).secrets, key.join("."), body)
 }
 
 export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
   try {
-    await coreApi(context, ns).namespaces.secrets(key.join(".")).delete()
+    await coreApi(context).namespaces(ns).secrets(key.join(".")).delete()
   } catch (err) {
     if (err.code === 404) {
       return { found: false }

@@ -1,5 +1,7 @@
 import * as td from "testdouble"
 import { resolve } from "path"
+import { PluginContext } from "../src/plugin-context"
+import { ContainerModule } from "../src/plugins/container"
 import { TaskResults } from "../src/task-graph"
 import {
   DeleteConfigParams,
@@ -10,13 +12,25 @@ import {
   PluginFactory,
   SetConfigParams,
   ModuleActions,
+  RunModuleParams,
+  RunServiceParams,
 } from "../src/types/plugin"
 import { Garden } from "../src/garden"
-import { Module } from "../src/types/module"
-import { expect } from "chai"
+import {
+  Module,
+  ModuleConfig,
+} from "../src/types/module"
 import { mapValues } from "lodash"
+import { TreeVersion } from "../src/vcs/base"
 
 export const dataDir = resolve(__dirname, "data")
+export const testNow = new Date()
+export const testModuleVersionString = "1234512345"
+export const testModuleVersion: TreeVersion = {
+  versionString: testModuleVersionString,
+  latestCommit: testModuleVersionString,
+  dirtyTimestamp: null,
+}
 
 export function getDataDir(name: string) {
   return resolve(dataDir, name)
@@ -34,6 +48,10 @@ export const projectRootA = getDataDir("test-project-a")
 
 class TestModule extends Module {
   type = "test"
+
+  async getVersion() {
+    return testModuleVersion
+  }
 }
 
 export const testPlugin: PluginFactory = (): GardenPlugin => {
@@ -66,7 +84,29 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
         async parseModule({ ctx, moduleConfig }: ParseModuleParams) {
           return new Module(ctx, moduleConfig)
         },
+        async runModule(params: RunModuleParams) {
+          const version = await params.module.getVersion()
 
+          return {
+            moduleName: params.module.name,
+            command: params.command,
+            completedAt: testNow,
+            output: "OK",
+            version,
+            startedAt: testNow,
+            success: true,
+          }
+        },
+        async runService({ ctx, service, interactive, runtimeContext, silent, timeout}: RunServiceParams) {
+          return ctx.runModule({
+            module: service.module,
+            command: [service.name],
+            interactive,
+            runtimeContext,
+            silent,
+            timeout,
+          })
+        },
         async getServiceStatus() { return {} },
         async deployService() { return {} },
       },
@@ -84,19 +124,21 @@ export const testPluginB: PluginFactory = (params) => {
 }
 testPluginB.pluginName = "test-plugin-b"
 
-export const makeTestModule = (ctx, name = "test") => {
-  return new TestModule(ctx, {
-    type: "test",
-    name,
-    path: "bla",
-    allowPush: false,
-    variables: {},
-    build: { dependencies: [] },
-    services: {
-      testService: { dependencies: [] },
-    },
-    test: {},
-  })
+export const defaultModuleConfig: ModuleConfig = {
+  type: "test",
+  name: "test",
+  path: "bla",
+  allowPush: false,
+  variables: {},
+  build: { dependencies: [] },
+  services: {
+    testService: { dependencies: [] },
+  },
+  test: {},
+}
+
+export const makeTestModule = (ctx: PluginContext, params: Partial<ModuleConfig> = {}) => {
+  return new TestModule(ctx, { ...defaultModuleConfig, ...params })
 }
 
 export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {

@@ -8,6 +8,7 @@
 
 import * as sywac from "sywac"
 import chalk from "chalk"
+import { RunCommand } from "./commands/run"
 import { enumToArray, shutdown } from "./util"
 import { merge, intersection, reduce } from "lodash"
 import {
@@ -220,17 +221,18 @@ export class GardenCli {
     const commands = [
       new BuildCommand(),
       new CallCommand(),
+      new ConfigCommand(),
       new DeployCommand(),
       new DevCommand(),
       new EnvironmentCommand(),
-      new LogsCommand(),
-      new TestCommand(),
-      new ConfigCommand(),
-      new ValidateCommand(),
-      new StatusCommand(),
-      new PushCommand(),
       new LoginCommand(),
       new LogoutCommand(),
+      new LogsCommand(),
+      new PushCommand(),
+      new RunCommand(),
+      new StatusCommand(),
+      new TestCommand(),
+      new ValidateCommand(),
     ]
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
@@ -246,12 +248,14 @@ export class GardenCli {
   }
 
   addCommand(command: Command, program): void {
-    if (this.commands[command.name]) {
+    const fullName = command.getFullName()
+
+    if (this.commands[fullName]) {
       // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
-      throw new PluginError(`Multiple definitions of command "${command.name}"`, {})
+      throw new PluginError(`Multiple definitions of command "${fullName}"`, {})
     }
 
-    this.commands[command.name] = command
+    this.commands[fullName] = command
 
     const args = command.arguments as Parameter<any>
     const options = command.options as Parameter<any>
@@ -292,7 +296,7 @@ export class GardenCli {
 
     // Command specific positional args and options are set inside the builder function
     const setup = parser => {
-      subCommands.forEach(subCommand => this.addCommand(subCommand, parser))
+      subCommands.forEach(subCommandCls => this.addCommand(new subCommandCls(command), parser))
       argKeys.forEach(key => parser.positional(makeArgSynopsis(key, args[key]), makeArgConfig(args[key])))
       optKeys.forEach(key => parser.option(makeOptSynopsis(key, options[key]), makeOptConfig(options[key])))
     }

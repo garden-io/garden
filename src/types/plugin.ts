@@ -16,7 +16,7 @@ import {
   Primitive,
   PrimitiveMap,
 } from "./common"
-import { Service, ServiceContext, ServiceStatus } from "./service"
+import { Service, RuntimeContext, ServiceStatus } from "./service"
 import { LogEntry } from "../logger"
 import { Stream } from "ts-stream"
 import { Moment } from "moment"
@@ -32,6 +32,7 @@ export interface Provider<T extends object = any> {
 
 export interface PluginActionParamsBase {
   ctx: PluginContext
+  env: Environment
   provider: Provider
   logEntry?: LogEntry
 }
@@ -40,32 +41,24 @@ export interface ParseModuleParams<T extends Module = Module> extends PluginActi
   moduleConfig: T["_ConfigType"]
 }
 
-export interface GetEnvironmentStatusParams extends PluginActionParamsBase {
-  env: Environment,
-}
+export interface GetEnvironmentStatusParams extends PluginActionParamsBase { }
 
 export interface ConfigureEnvironmentParams extends PluginActionParamsBase {
-  env: Environment
   status: EnvironmentStatus
 }
 
-export interface DestroyEnvironmentParams extends PluginActionParamsBase {
-  env: Environment,
-}
+export interface DestroyEnvironmentParams extends PluginActionParamsBase { }
 
 export interface GetConfigParams extends PluginActionParamsBase {
-  env: Environment,
   key: string[]
 }
 
 export interface SetConfigParams extends PluginActionParamsBase {
-  env: Environment,
   key: string[]
   value: Primitive
 }
 
 export interface DeleteConfigParams extends PluginActionParamsBase {
-  env: Environment,
   key: string[]
 }
 
@@ -96,48 +89,61 @@ export interface PushModuleParams<T extends Module = Module> extends PluginActio
   module: T
 }
 
+export interface RunModuleParams<T extends Module = Module> extends PluginActionParamsBase {
+  module: T
+  command: string[]
+  interactive: boolean
+  runtimeContext: RuntimeContext
+  silent: boolean
+  timeout?: number
+}
+
 export interface TestModuleParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
+  interactive: boolean
+  runtimeContext: RuntimeContext
+  silent: boolean
   testName: string
   testSpec: TestSpec
-  env: Environment
 }
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginActionParamsBase {
   module: T
   testName: string
   version: TreeVersion
-  env: Environment
 }
 
 export interface GetServiceStatusParams<T extends Module = Module> extends PluginActionParamsBase {
   service: Service<T>,
-  env: Environment,
 }
 
 export interface DeployServiceParams<T extends Module = Module> extends PluginActionParamsBase {
   service: Service<T>,
-  serviceContext: ServiceContext,
-  env: Environment,
+  runtimeContext: RuntimeContext,
 }
 
 export interface GetServiceOutputsParams<T extends Module = Module> extends PluginActionParamsBase {
   service: Service<T>,
-  env: Environment,
 }
 
 export interface ExecInServiceParams<T extends Module = Module> extends PluginActionParamsBase {
   service: Service<T>,
-  env: Environment,
   command: string[],
 }
 
 export interface GetServiceLogsParams<T extends Module = Module> extends PluginActionParamsBase {
   service: Service<T>,
-  env: Environment,
   stream: Stream<ServiceLogEntry>,
   tail?: boolean,
   startTime?: Date,
+}
+
+export interface RunServiceParams<T extends Module = Module> extends PluginActionParamsBase {
+  service: Service<T>
+  interactive: boolean
+  runtimeContext: RuntimeContext
+  silent: boolean
+  timeout?: number
 }
 
 export interface ModuleActionParams<T extends Module = Module> {
@@ -145,6 +151,7 @@ export interface ModuleActionParams<T extends Module = Module> {
   getModuleBuildStatus: GetModuleBuildStatusParams<T>
   buildModule: BuildModuleParams<T>
   pushModule: PushModuleParams<T>
+  runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>
 
@@ -153,6 +160,7 @@ export interface ModuleActionParams<T extends Module = Module> {
   getServiceOutputs: GetServiceOutputsParams<T>
   execInService: ExecInServiceParams<T>
   getServiceLogs: GetServiceLogsParams<T>
+  runService: RunServiceParams<T>
 }
 
 export interface BuildResult {
@@ -168,14 +176,18 @@ export interface PushResult {
   message?: string
 }
 
-export interface TestResult {
+export interface RunResult {
   moduleName: string
-  testName: string
+  command: string[]
   version: TreeVersion
   success: boolean
   startedAt: Moment | Date
   completedAt: Moment | Date
   output: string
+}
+
+export interface TestResult extends RunResult {
+  testName: string
 }
 
 export interface BuildStatus {
@@ -235,6 +247,7 @@ export interface ModuleActionOutputs<T extends Module = Module> {
   getModuleBuildStatus: Promise<BuildStatus>
   buildModule: Promise<BuildResult>
   pushModule: Promise<PushResult>
+  runModule: Promise<RunResult>
   testModule: Promise<TestResult>
   getTestResult: Promise<TestResult | null>
 
@@ -243,6 +256,7 @@ export interface ModuleActionOutputs<T extends Module = Module> {
   getServiceOutputs: Promise<PrimitiveMap>
   execInService: Promise<ExecInServiceResult>
   getServiceLogs: Promise<void>
+  runService: Promise<RunResult>
 }
 
 export type PluginActions = {
@@ -279,6 +293,7 @@ const moduleActionDescriptions: { [P in ModuleActionName]: PluginActionDescripti
   getModuleBuildStatus: {},
   buildModule: {},
   pushModule: {},
+  runModule: {},
   testModule: {},
   getTestResult: {},
 
@@ -287,6 +302,7 @@ const moduleActionDescriptions: { [P in ModuleActionName]: PluginActionDescripti
   getServiceOutputs: {},
   execInService: {},
   getServiceLogs: {},
+  runService: {},
 }
 
 export const pluginActionNames: PluginActionName[] = <PluginActionName[]>Object.keys(pluginActionDescriptions)

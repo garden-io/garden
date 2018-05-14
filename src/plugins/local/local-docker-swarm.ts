@@ -40,7 +40,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       getServiceStatus,
 
       async deployService(
-        { ctx, provider, service, serviceContext, env }: DeployServiceParams<ContainerModule>,
+        { ctx, provider, service, runtimeContext, env }: DeployServiceParams<ContainerModule>,
       ) {
         // TODO: split this method up and test
         const { versionString } = await service.module.getVersion()
@@ -59,7 +59,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           }
         })
 
-        const envVars = map(serviceContext.envVars, (v, k) => `${k}=${v}`)
+        const envVars = map(runtimeContext.envVars, (v, k) => `${k}=${v}`)
 
         const volumeMounts = service.config.volumes.map(v => {
           // TODO-LOW: Support named volumes
