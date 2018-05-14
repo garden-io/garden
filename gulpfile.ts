@@ -45,6 +45,7 @@ function setDestDir(path) {
 const children: ChildProcess[] = []
 
 process.env.FORCE_COLOR = "true"
+process.env.TS_NODE_CACHE = "0"
 
 function spawn(cmd, args, cb) {
   const child = _spawn(cmd, args, { stdio: "pipe", shell: true, env: process.env })
