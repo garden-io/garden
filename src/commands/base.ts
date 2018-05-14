@@ -116,6 +116,10 @@ export class EnvironmentOption extends StringParameter {
 export type Parameters = { [key: string]: Parameter<any> }
 export type ParameterValues<T extends Parameters> = { [P in keyof T]: T["_valueType"] }
 
+export interface CommandConstructor {
+  new(parent?: Command): Command
+}
+
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
   abstract help: string
@@ -124,9 +128,14 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
   arguments: T
   options: U
-  subCommands?: Command[]
 
-  constructor() { }
+  subCommands?: CommandConstructor[]
+
+  constructor(private parent?: Command) { }
+
+  getFullName() {
+    return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
+  }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we

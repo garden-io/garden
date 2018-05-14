@@ -17,9 +17,9 @@ export class ConfigCommand extends Command {
   help = "Manage configuration variables in your environment"
 
   subCommands = [
-    new ConfigGetCommand(),
-    new ConfigSetCommand(),
-    new ConfigDeleteCommand(),
+    ConfigGetCommand,
+    ConfigSetCommand,
+    ConfigDeleteCommand,
   ]
 
   async action() { }

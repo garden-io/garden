@@ -16,8 +16,8 @@ export class EnvironmentCommand extends Command {
   help = "Manage your runtime environment(s)"
 
   subCommands = [
-    new EnvironmentConfigureCommand(),
-    new EnvironmentDestroyCommand(),
+    EnvironmentConfigureCommand,
+    EnvironmentDestroyCommand,
   ]
 
   async action() { }
