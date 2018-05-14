@@ -119,10 +119,15 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
 export function getIgnorer(rootPath: string) {
   // TODO: this doesn't handle nested .gitignore files, we should revisit
   const gitignorePath = join(rootPath, ".gitignore")
+  const gardenignorePath = join(rootPath, ".gardenignore")
   const ig = ignore()
 
   if (existsSync(gitignorePath)) {
     ig.add(readFileSync(gitignorePath).toString())
+  }
+
+  if (existsSync(gardenignorePath)) {
+    ig.add(readFileSync(gardenignorePath).toString())
   }
 
   // should we be adding this (or more) by default?

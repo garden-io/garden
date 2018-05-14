@@ -9,4 +9,4 @@ chmod +x ${garden_bin}
 
 cd ${garden_root}/examples/hello-world
 
-${garden_bin} build --force --silent
+GARDEN_LOGGER_TYPE=basic ${garden_bin} build --force

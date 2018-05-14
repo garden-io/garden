@@ -6,10 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { safeDump } from "js-yaml"
 import * as sywac from "sywac"
 import chalk from "chalk"
 import { RunCommand } from "./commands/run"
-import { enumToArray, shutdown } from "./util"
+import { ScanCommand } from "./commands/scan"
+import { DeepPrimitiveMap } from "./types/common"
+import {
+  enumToArray,
+  shutdown,
+  sleep,
+} from "./util"
 import { merge, intersection, reduce } from "lodash"
 import {
   BooleanParameter,
@@ -39,6 +46,16 @@ import { StatusCommand } from "./commands/status"
 import { PushCommand } from "./commands/push"
 import { LoginCommand } from "./commands/login"
 import { LogoutCommand } from "./commands/logout"
+import stringify = require("json-stringify-safe")
+
+const OUTPUT_RENDERERS = {
+  json: (data: DeepPrimitiveMap) => {
+    return stringify(data, null, 2)
+  },
+  yaml: (data: DeepPrimitiveMap) => {
+    return safeDump(data, { noRefs: true, skipInvalid: true })
+  },
+}
 
 const GLOBAL_OPTIONS = {
   root: new StringParameter({
@@ -57,6 +74,11 @@ const GLOBAL_OPTIONS = {
     choices: enumToArray(LogLevel),
     help: "set logger level",
     defaultValue: LogLevel[LogLevel.info],
+  }),
+  output: new ChoicesParameter({
+    alias: "o",
+    choices: Object.keys(OUTPUT_RENDERERS),
+    help: "output command result in specified format (note: disable progress logging)",
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
@@ -230,6 +252,7 @@ export class GardenCli {
       new LogsCommand(),
       new PushCommand(),
       new RunCommand(),
+      new ScanCommand(),
       new StatusCommand(),
       new TestCommand(),
       new ValidateCommand(),
@@ -278,10 +301,10 @@ export class GardenCli {
 
       // Update logger
       const logger = this.logger
-      const { loglevel, silent } = optsForAction
+      const { loglevel, silent, output } = optsForAction
       const level = LogLevel[<string>loglevel]
       logger.level = level
-      if (!silent) {
+      if (!silent && !output) {
         logger.writers.push(
           new FileWriter({ level, root }),
           new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
@@ -291,7 +314,33 @@ export class GardenCli {
       }
 
       const garden = await Garden.factory(root, { env, logger })
-      return command.action(garden.pluginContext, argsForAction, optsForAction)
+
+      try {
+        // TODO: enforce that commands always output DeepPrimitiveMap
+        const result = await command.action(garden.pluginContext, argsForAction, optsForAction)
+
+        if (output && result !== undefined) {
+          const renderer = OUTPUT_RENDERERS[output]
+          console.log(renderer({ success: true, result }))
+          // Note: this circumvents an issue where the process exits before the output is fully flushed
+          await sleep(100)
+        }
+
+        return result
+
+      } catch (error) {
+        // TODO: we can likely do this better
+        const result = { error }
+
+        if (output) {
+          const renderer = OUTPUT_RENDERERS[output]
+          console.error(renderer(result))
+          // Note: this circumvents an issue where the process exits before the output is fully flushed
+          await sleep(100)
+        }
+
+        return result
+      }
     }
 
     // Command specific positional args and options are set inside the builder function

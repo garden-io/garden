@@ -11,6 +11,7 @@ import { resolve } from "path"
 export const MODULE_CONFIG_FILENAME = "garden.yml"
 export const STATIC_DIR = resolve(__dirname, "..", "static")
 export const GARDEN_DIR_NAME = ".garden"
+export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_NAMESPACE = "default"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
