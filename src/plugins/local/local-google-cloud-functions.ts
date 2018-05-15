@@ -123,7 +123,7 @@ async function getEmulatorModule(ctx: PluginContext, module: GoogleCloudFunction
     }
   })
 
-  const config = await module.getConfig()
+  const config = module.config
   const version = await module.getVersion()
 
   return new ContainerModule(ctx, <ContainerModuleConfig>{

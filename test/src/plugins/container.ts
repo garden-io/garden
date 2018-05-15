@@ -311,6 +311,7 @@ describe("container", () => {
           variables: {},
         }))
 
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.imageExistsLocally()).thenResolve(true)
 
         const result = await ctx.getModuleBuildStatus(module)
@@ -332,6 +333,7 @@ describe("container", () => {
           variables: {},
         }))
 
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.imageExistsLocally()).thenResolve(false)
 
         const result = await ctx.getModuleBuildStatus(module)
@@ -356,6 +358,7 @@ describe("container", () => {
           variables: {},
         }))
 
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.getBuildPath()).thenResolve("/tmp/jaoigjwaeoigjweaoglwaeghe")
         td.when(module.pullImage(ctx)).thenResolve(null)
 
@@ -379,6 +382,7 @@ describe("container", () => {
           variables: {},
         }))
 
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.getLocalImageId()).thenResolve("some/image")
         td.when(module.getBuildPath()).thenResolve(modulePath)
 
@@ -409,6 +413,7 @@ describe("container", () => {
           variables: {},
         }))
 
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.hasDockerfile()).thenReturn(false)
 
         const result = await ctx.pushModule(module)
@@ -431,6 +436,7 @@ describe("container", () => {
           variables: {},
         }))
 
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.hasDockerfile()).thenReturn(true)
         td.when(module.getLocalImageId()).thenReturn("some/image:12345")
         td.when(module.getRemoteImageId()).thenReturn("some/image:12345")
@@ -458,6 +464,7 @@ describe("container", () => {
           variables: {},
         }))
 
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.hasDockerfile()).thenReturn(true)
         td.when(module.getLocalImageId()).thenReturn("some/image:12345")
         td.when(module.getRemoteImageId()).thenReturn("some/image:1.1")

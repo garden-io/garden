@@ -41,13 +41,13 @@ export const genericPlugin = {
       async getModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
         // Each module handler should keep track of this for now.
         // Defaults to return false if a build command is specified.
-        return { ready: !(await module.getConfig()).build.command }
+        return { ready: !module.config.build.command }
       },
 
       async buildModule({ module, buildContext }: BuildModuleParams): Promise<BuildResult> {
         // By default we run the specified build command in the module root, if any.
         // TODO: Keep track of which version has been built (needs local data store/cache).
-        const config: ModuleConfig = await module.getConfig()
+        const config: ModuleConfig = module.config
 
         const contextEnv = mapValues(buildContext, v => v + "")
 

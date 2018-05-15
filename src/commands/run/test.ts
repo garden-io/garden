@@ -52,7 +52,7 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
     const moduleName = args.module
     const testName = args.test
     const module = await ctx.getModule(moduleName)
-    const config = await module.getConfig()
+    const config = module.config
 
     const testSpec = findByName(config.test, testName)
 

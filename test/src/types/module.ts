@@ -15,26 +15,28 @@ describe("Module", () => {
       const module = new Module(ctx, config.module!)
 
       expect(module.name).to.equal(config.module!.name)
-      expect(omitUndefined(await module.getConfig())).to.eql(config.module)
+      expect(omitUndefined(module.config)).to.eql(config.module)
     })
+  })
 
+  describe("resolveConfig", () => {
     it("should resolve template strings", async () => {
-      process.env.TEST_VARIABLE = "banana"
-      // process.env.TEST_PROVIDER_TYPE = "test-plugin"
-
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
       const modulePath = resolve(ctx.projectRoot, "module-a")
 
       const config = await loadConfig(ctx.projectRoot, modulePath)
       const module = new Module(ctx, config.module!)
 
+      const resolved = await module.resolveConfig()
+
       expect(module.name).to.equal(config.module!.name)
-      expect(await module.getConfig()).to.eql({
+      expect(resolved.config).to.eql({
         allowPush: true,
         build: { command: "echo OK", dependencies: [] },
         name: "module-a",
         path: modulePath,
         services: [
+          // service template strings are resolved later
           { name: "service-a", command: "echo \${local.env.TEST_VARIABLE}", dependencies: [] },
         ],
         test: [

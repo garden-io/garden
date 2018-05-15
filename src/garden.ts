@@ -616,7 +616,7 @@ export class Garden {
     @param force - add the module again, even if it's already registered
    */
   async addModule(module: Module, force = false) {
-    const config = await module.getConfig()
+    const config = module.config
 
     if (!force && this.modules[config.name]) {
       const pathA = relative(this.projectRoot, this.modules[config.name].path)

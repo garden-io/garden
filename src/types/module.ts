@@ -37,8 +37,10 @@ import {
   Service,
   ServiceConfig,
 } from "./service"
-import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
-import { Memoize } from "typescript-memoize"
+import {
+  resolveTemplateStrings,
+  TemplateStringContext,
+} from "../template-string"
 import { TreeVersion } from "../vcs/base"
 import { join } from "path"
 
@@ -137,15 +139,14 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   _ConfigType: T
 
-  constructor(private ctx: PluginContext, private config: T) {
+  constructor(private ctx: PluginContext, public config: T) {
     this.name = config.name
     this.type = config.type
     this.path = config.path
     this.services = config.services
   }
 
-  @Memoize()
-  async getConfig(context?: TemplateStringContext): Promise<ModuleConfig> {
+  async resolveConfig(context?: TemplateStringContext) {
     // TODO: allow referencing other module configs (non-trivial, need to save for later)
     const templateContext = await this.ctx.getTemplateContext(context)
     const config = <T>extend({}, this.config)
@@ -154,7 +155,8 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     config.test = await Bluebird.map(config.test, t => resolveTemplateStrings(t, templateContext))
     config.variables = await resolveTemplateStrings(config.variables, templateContext)
 
-    return config
+    const cls = Object.getPrototypeOf(this).constructor
+    return new cls(this.ctx, config)
   }
 
   updateConfig(key: string, value: any) {
@@ -250,9 +252,8 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     { group, force = false, forceBuild = false }: { group?: string, force?: boolean, forceBuild?: boolean },
   ) {
     const tasks: Promise<TestTask>[] = []
-    const config = await this.getConfig()
 
-    for (const test of config.test) {
+    for (const test of this.config.test) {
       if (group && test.name !== group) {
         continue
       }

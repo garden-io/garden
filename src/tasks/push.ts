@@ -40,7 +40,7 @@ export class PushTask extends Task {
   }
 
   async getDependencies() {
-    if (!(await this.module.getConfig()).allowPush) {
+    if (!this.module.config.allowPush) {
       return []
     }
     return [await BuildTask.factory({ ctx: this.ctx, module: this.module, force: this.forceBuild })]
@@ -56,7 +56,7 @@ export class PushTask extends Task {
   }
 
   async process(): Promise<PushResult> {
-    if (!(await this.module.getConfig()).allowPush) {
+    if (!this.module.config.allowPush) {
       this.ctx.log.info({
         section: this.module.name,
         msg: "Push disabled",

@@ -96,7 +96,7 @@ export class Service<M extends Module = Module> {
   /**
    * Resolves all template strings in the service and returns a new Service instance with the resolved config.
    */
-  async resolveConfig(context?: TemplateStringContext, opts?: TemplateOpts): Promise<Service<M>> {
+  async resolveConfig(context?: TemplateStringContext, opts?: TemplateOpts) {
     if (!context) {
       const dependencies = await this.getDependencies()
       const runtimeContext = await this.module.prepareRuntimeContext(dependencies)
@@ -105,5 +105,10 @@ export class Service<M extends Module = Module> {
     const resolved = await resolveTemplateStrings(this.config, context, opts)
     const cls = Object.getPrototypeOf(this).constructor
     return new cls(this.ctx, this.module, this.name, resolved)
+  }
+
+  async prepareRuntimeContext(extraEnvVars?: PrimitiveMap) {
+    const dependencies = await this.getDependencies()
+    return this.module.prepareRuntimeContext(dependencies, extraEnvVars)
   }
 }

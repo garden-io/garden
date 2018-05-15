@@ -24,7 +24,7 @@ export class ScanCommand extends Command {
     const modules = await ctx.getModules()
 
     const output = await Bluebird.map(modules, async (m) => {
-      const config = await m.getConfig()
+      const config = await m.config
       return {
         name: m.name,
         type: m.type,
