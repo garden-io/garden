@@ -8,7 +8,6 @@
 
 import { PluginContext } from "../../plugin-context"
 import {
-  apiGetOrNull,
   coreApi,
 } from "./api"
 import { KubernetesProvider } from "./index"
@@ -18,17 +17,6 @@ import {
 } from "./system"
 import { name as providerName } from "./index"
 import { AuthenticationError } from "../../exceptions"
-
-export async function namespaceReady(context: string, namespace: string) {
-  /**
-   * This is an issue with kubernetes-client where it fetches all namespaces instead of the requested one.
-   * Is fixed in v4.0.0. See https://github.com/godaddy/kubernetes-client/issues/187 and
-   * https://github.com/godaddy/kubernetes-client/pull/190
-   */
-  const allNamespaces = await apiGetOrNull(coreApi(context).namespaces, namespace)
-  const ns = allNamespaces.items.find(n => n.metadata.name === namespace)
-  return ns && ns.status.phase === "Active"
-}
 
 export async function createNamespace(context: string, namespace: string) {
   await coreApi(context).namespaces.post({

@@ -48,19 +48,4 @@ describe("EnvironmentDestroyCommand", () => {
     expect(result["test-plugin"]["configured"]).to.be.false
   })
 
-  it("should wait until each provider is no longer configured", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-
-    td.replace(
-      command,
-      "waitForShutdown",
-      async () => ({
-        "test-plugin": { configured: false },
-      }),
-    )
-
-    const result = await command.action(garden.pluginContext)
-
-    expect(result["test-plugin"]["configured"]).to.be.false
-  })
 })
