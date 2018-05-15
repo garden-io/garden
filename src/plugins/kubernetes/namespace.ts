@@ -8,7 +8,6 @@
 
 import { PluginContext } from "../../plugin-context"
 import {
-  apiGetOrNull,
   coreApi,
 } from "./api"
 import { KubernetesProvider } from "./index"

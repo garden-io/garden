@@ -9,7 +9,7 @@
 import * as inquirer from "inquirer"
 import * as Joi from "joi"
 
-import { DeploymentError, NotFoundError } from "../../exceptions"
+import { DeploymentError, NotFoundError, TimeoutError } from "../../exceptions"
 import {
   ConfigureEnvironmentParams,
   DeleteConfigParams,
@@ -34,7 +34,7 @@ import {
   ContainerModule,
 } from "../container"
 import { values, every, uniq } from "lodash"
-import { deserializeKeys, prompt, serializeKeys, splitFirst } from "../../util"
+import { deserializeKeys, prompt, serializeKeys, splitFirst, sleep } from "../../util"
 import { ServiceStatus } from "../../types/service"
 import { joiIdentifier } from "../../types/common"
 import {
@@ -49,6 +49,7 @@ import {
   getAllAppNamespaces,
 } from "./namespace"
 import {
+  KUBECTL_DEFAULT_TIMEOUT,
   kubectl,
 } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
@@ -134,22 +135,45 @@ export async function getServiceStatus(params: GetServiceStatusParams<ContainerM
   return await checkDeploymentStatus(params)
 }
 
-export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentParams) {
-  const context = provider.config.context
+export async function destroyEnvironment({ ctx, provider, env }: DestroyEnvironmentParams) {
+  const { context } = provider.config
   const namespace = await getAppNamespace(ctx, provider)
   const entry = ctx.log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace}`,
     entryStyle: EntryStyle.activity,
   })
+
   try {
-    await coreApi(context).namespace(namespace).delete(namespace)
-    entry.setSuccess("Finished")
+    // Note: Need to call the delete method with an empty object
+    await coreApi(context).namespaces(namespace).delete({})
   } catch (err) {
     entry.setError(err.message)
     const availableNamespaces = await getAllAppNamespaces(context)
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
+
+  // Wait until namespace has been deleted
+  const startTime = new Date().getTime()
+  while (true) {
+    await sleep(2000)
+
+    const status = await getEnvironmentStatus({ ctx, provider, env })
+
+    if (!status.configured) {
+      entry.setSuccess("Finished")
+      break
+    }
+
+    const now = new Date().getTime()
+    if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
+      throw new TimeoutError(
+        `Timed out waiting for namespace ${namespace} delete to complete`,
+        { status },
+      )
+    }
+  }
+
 }
 
 export async function getServiceOutputs({ service }: GetServiceOutputsParams<ContainerModule>) {
