@@ -9,7 +9,6 @@
 import { LogEntry } from "../logger"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
-import { values } from "lodash"
 import { Task } from "../types/task"
 import {
   Service,
@@ -33,7 +32,7 @@ export class DeployTask<T extends Service<any>> extends Task {
   async getDependencies() {
     const serviceDeps = this.service.config.dependencies
     const services = await this.ctx.getServices(serviceDeps)
-    const deps: Task[] = values(services).map((s) => {
+    const deps: Task[] = services.map((s) => {
       return new DeployTask(this.ctx, s, this.force, this.forceBuild)
     })
 

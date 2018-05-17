@@ -6,7 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { identifierRegex, validate } from "../../types/common"
+import {
+  joiArray,
+  validate,
+} from "../../types/common"
 import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
 import {
   ServiceConfig,
@@ -43,18 +46,14 @@ export interface GoogleCloudFunctionsServiceConfig extends ServiceConfig {
 
 export interface GoogleCloudFunctionsModuleConfig extends ModuleConfig<GoogleCloudFunctionsServiceConfig> { }
 
-export const gcfServicesSchema = Joi.object()
-  .pattern(identifierRegex, baseServiceSchema.keys({
-    entrypoint: Joi.string(),
-    path: Joi.string().default("."),
-    project: Joi.string(),
-  }))
-  .default(() => ({}), "{}")
+export const gcfServicesSchema = joiArray(baseServiceSchema.keys({
+  entrypoint: Joi.string(),
+  path: Joi.string().default("."),
+  project: Joi.string(),
+})).unique("name")
 
 export class GoogleCloudFunctionsModule extends Module<GoogleCloudFunctionsModuleConfig> { }
 export class GoogleCloudFunctionsService extends Service<GoogleCloudFunctionsModule> { }
-
-const pluginName = "google-cloud-functions"
 
 export const gardenPlugin = (): GardenPlugin => ({
   actions: {
@@ -79,7 +78,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         { ctx, provider, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>,
       ) {
         // TODO: provide env vars somehow to function
-        const project = getProject(pluginName, service, env)
+        const project = getProject(service, provider)
         const functionPath = resolve(service.module.path, service.config.path)
         const entrypoint = service.config.entrypoint || service.name
 
@@ -95,9 +94,9 @@ export const gardenPlugin = (): GardenPlugin => ({
         return getServiceStatus({ ctx, provider, service, env })
       },
 
-      async getServiceOutputs({ service, env }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
+      async getServiceOutputs({ service, provider }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
         // TODO: we may want to pull this from the service status instead, along with other outputs
-        const project = getProject(pluginName, service, env)
+        const project = getProject(service, provider)
 
         return {
           endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,
@@ -108,9 +107,9 @@ export const gardenPlugin = (): GardenPlugin => ({
 })
 
 export async function getServiceStatus(
-  { service, env }: GetServiceStatusParams<GoogleCloudFunctionsModule>,
+  { service, provider }: GetServiceStatusParams<GoogleCloudFunctionsModule>,
 ): Promise<ServiceStatus> {
-  const project = getProject(pluginName, service, env)
+  const project = getProject(service, provider)
   const functions: any[] = await gcloud(project).json(["beta", "functions", "list"])
   const providerId = `projects/${project}/locations/${GOOGLE_CLOUD_DEFAULT_REGION}/functions/${service.name}`
 

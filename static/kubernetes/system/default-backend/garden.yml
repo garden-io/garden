@@ -4,9 +4,9 @@ module:
   type: container
   image: gcr.io/google_containers/defaultbackend:1.3
   services:
-    default-backend:
+    - name: default-backend
       ports:
-        http:
+        - name: http
           containerPort: 8080
       # restart: Always
       healthCheck:

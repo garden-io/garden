@@ -51,7 +51,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return {}
       },
 
-      async deployService({ ctx, service, runtimeContext, env }: DeployServiceParams<GoogleAppEngineModule>) {
+      async deployService({ ctx, service, runtimeContext, provider }: DeployServiceParams<GoogleAppEngineModule>) {
         ctx.log.info({
           section: service.name,
           msg: `Deploying app...`,
@@ -84,7 +84,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         dumpYaml(appYamlPath, appYaml)
 
         // deploy to GAE
-        const project = getProject("google-app-engine", service, env)
+        const project = getProject(service, provider)
 
         await gcloud(project).call([
           "app", "deploy", "--quiet",
@@ -93,9 +93,9 @@ export const gardenPlugin = (): GardenPlugin => ({
         ctx.log.info({ section: service.name, msg: `App deployed` })
       },
 
-      async getServiceOutputs({ service, env }: GetServiceOutputsParams<GoogleAppEngineModule>) {
+      async getServiceOutputs({ service, provider }: GetServiceOutputsParams<GoogleAppEngineModule>) {
         // TODO: we may want to pull this from the service status instead, along with other outputs
-        const project = getProject("google-app-engine", service, env)
+        const project = getProject(service, provider)
 
         return {
           endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,

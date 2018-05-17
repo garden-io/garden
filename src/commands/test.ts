@@ -42,7 +42,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<TaskResults> {
     const names = args.module ? args.module.split(",") : undefined
-    const modules = values(await ctx.getModules(names))
+    const modules = await ctx.getModules(names)
 
     ctx.log.header({
       emoji: "thermometer",

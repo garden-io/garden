@@ -54,6 +54,7 @@ import {
   toPairs,
   values,
   padEnd,
+  keyBy,
 } from "lodash"
 import {
   Omit,
@@ -144,11 +145,12 @@ export function createPluginContext(garden: Garden): PluginContext {
   }
 
   const projectConfig = { ...garden.config }
+  const providerConfigs = keyBy(projectConfig.providers, "name")
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
   function commonParams(handler): PluginActionParamsBase {
     const providerName = handler["pluginName"]
-    const providerConfig = projectConfig.providers[handler["pluginName"]]
+    const providerConfig = providerConfigs[providerName]
     const env = garden.getEnvironment()
 
     return {
@@ -352,20 +354,20 @@ export function createPluginContext(garden: Garden): PluginContext {
       const envStatus: EnvironmentStatusMap = await ctx.getEnvironmentStatus()
       const services = await ctx.getServices()
 
-      const serviceStatus = await Bluebird.props(
-        mapValues(services, (service: Service<any>) => ctx.getServiceStatus(service)),
+      const serviceStatus = await Bluebird.map(
+        services, (service: Service<any>) => ctx.getServiceStatus(service),
       )
 
       return {
         providers: envStatus,
-        services: serviceStatus,
+        services: keyBy(serviceStatus, "name"),
       }
     },
 
     deployServices: async ({ names, force = false, forceBuild = false, logEntry }) => {
       const services = await ctx.getServices(names)
 
-      for (const service of values(services)) {
+      for (const service of services) {
         const task = new DeployTask(ctx, service, force, forceBuild, logEntry)
         await ctx.addTask(task)
       }

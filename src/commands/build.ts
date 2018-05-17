@@ -9,7 +9,6 @@
 import { PluginContext } from "../plugin-context"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { BuildTask } from "../tasks/build"
-import { values } from "lodash"
 import { TaskResults } from "../task-graph"
 
 export const buildArguments = {
@@ -36,7 +35,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
     await ctx.clearBuilds()
     const names = args.module ? args.module.split(",") : undefined
-    const modules = values(await ctx.getModules(names))
+    const modules = await ctx.getModules(names)
 
     ctx.log.header({ emoji: "hammer", command: "build" })
 

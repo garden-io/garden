@@ -34,9 +34,12 @@ describe("Module", () => {
         build: { command: "echo OK", dependencies: [] },
         name: "module-a",
         path: modulePath,
-        services:
-          { "service-a": { command: "echo \${local.env.TEST_VARIABLE}", dependencies: [] } },
-        test: { unit: { command: ["echo", "OK"], dependencies: [], variables: {} } },
+        services: [
+          { name: "service-a", command: "echo \${local.env.TEST_VARIABLE}", dependencies: [] },
+        ],
+        test: [
+          { name: "unit", command: ["echo", "OK"], dependencies: [], variables: {} },
+        ],
         type: "generic",
         variables: {},
       })

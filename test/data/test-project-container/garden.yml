@@ -1,7 +1,7 @@
 project:
   name: container-module-test-project
   environments:
-    local:
+    - name: local
       providers:
-        test-plugin: {}
-        container: {}
+        - name: test-plugin
+        - name: container

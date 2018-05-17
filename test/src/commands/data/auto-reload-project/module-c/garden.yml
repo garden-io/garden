@@ -2,7 +2,7 @@ module:
   name: module-c
   type: generic
   services:
-    service-c:
+    - name: service-c
       endpoints:
         - paths: [/path-c]
           containerPort: 8080

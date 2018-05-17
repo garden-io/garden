@@ -48,6 +48,10 @@ export const joiEnvVars = () => Joi
   .object().pattern(envVarRegex, joiPrimitive())
   .default(() => ({}), "{}")
 
+export const joiArray = (schema) => Joi
+  .array().items(schema)
+  .default(() => [], "[]")
+
 export interface Environment {
   name: string
   namespace: string

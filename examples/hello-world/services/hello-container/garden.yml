@@ -2,10 +2,10 @@ module:
   description: Hello world container service
   type: container
   services:
-    hello-container:
+    - name: hello-container
       command: [npm, start]
       ports:
-        http:
+        - name: http
           containerPort: 8080
       endpoints:
         - paths: [/hello]
@@ -20,9 +20,9 @@ module:
     dependencies:
       - hello-npm-package
   test:
-    unit:
+    - name: unit
       command: [npm, test]
-    integ:
+    - name: integ
       command: [npm, run, integ]
       dependencies:
         - hello-function

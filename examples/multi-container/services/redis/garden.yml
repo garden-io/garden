@@ -3,8 +3,8 @@ module:
   type: container
   image: redis:alpine
   services:
-    redis:
+    - name: redis
       ports:
-        redis:
+        - name: redis
           protocol: TCP
           containerPort: 6379

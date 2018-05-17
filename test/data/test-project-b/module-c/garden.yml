@@ -3,7 +3,7 @@ module:
   type: generic
   allowPush: false
   services:
-    service-c:
+    - name: service-c
       endpoints:
         - paths: [/path-c]
           containerPort: 8080

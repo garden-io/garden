@@ -4,7 +4,7 @@ module:
   type: container
   image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0-beta.19
   services:
-    ingress-controller:
+    - name: ingress-controller
       command:
         - /nginx-ingress-controller
         - --default-backend-service=garden-system/default-backend
@@ -15,7 +15,7 @@ module:
       #  - --configmap=garden-system/nginx-configuration
       daemon: true
       ports:
-        http:
+        - name: http
           containerPort: 80
           nodePort: 32000
       healthCheck:

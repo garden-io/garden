@@ -3,7 +3,7 @@ module:
   name: kubernetes-dashboard
   type: kubernetes-specs
   services:
-    kubernetes-dashboard:
+    - name: kubernetes-dashboard
       specs:
       # ------------------- Dashboard Secret ------------------- #
       - apiVersion: v1

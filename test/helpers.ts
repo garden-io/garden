@@ -1,7 +1,6 @@
 import * as td from "testdouble"
 import { resolve } from "path"
 import { PluginContext } from "../src/plugin-context"
-import { ContainerModule } from "../src/plugins/container"
 import { TaskResults } from "../src/task-graph"
 import {
   DeleteConfigParams,
@@ -131,10 +130,13 @@ export const defaultModuleConfig: ModuleConfig = {
   allowPush: false,
   variables: {},
   build: { dependencies: [] },
-  services: {
-    testService: { dependencies: [] },
-  },
-  test: {},
+  services: [
+    {
+      name: "testService",
+      dependencies: [],
+    },
+  ],
+  test: [],
 }
 
 export const makeTestModule = (ctx: PluginContext, params: Partial<ModuleConfig> = {}) => {

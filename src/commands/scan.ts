@@ -8,11 +8,11 @@
 
 import { safeDump } from "js-yaml"
 import { PluginContext } from "../plugin-context"
+import { DeepPrimitiveMap } from "../types/common"
 import { highlightYaml } from "../util"
 import { Command } from "./base"
 import Bluebird = require("bluebird")
 import {
-  mapValues,
   omit,
 } from "lodash"
 
@@ -23,21 +23,22 @@ export class ScanCommand extends Command {
   async action(ctx: PluginContext) {
     const modules = await ctx.getModules()
 
-    const output = await Bluebird.props(mapValues(modules, async (m) => {
+    const output = await Bluebird.map(modules, async (m) => {
+      const config = await m.getConfig()
       return {
         name: m.name,
         type: m.type,
         path: m.path,
-        description: m.config.description,
+        description: config.description,
         version: await m.getVersion(),
-        config: m.config,
+        config,
       }
-    }))
+    })
 
-    const shortOutput = mapValues(output, m => omit(m, ["config"]))
+    const shortOutput = output.map(m => omit(m, ["config"]))
 
     ctx.log.info(highlightYaml(safeDump(shortOutput, { noRefs: true, skipInvalid: true })))
 
-    return output
+    return <DeepPrimitiveMap><any>output
   }
 }

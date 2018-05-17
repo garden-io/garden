@@ -12,6 +12,10 @@ import {
   GardenPlugin,
   Provider,
 } from "../../types/plugin"
+import {
+  ProviderConfig,
+  providerConfigBase,
+} from "../../types/project"
 
 import {
   configureEnvironment,
@@ -36,7 +40,7 @@ import { kubernetesSpecHandlers } from "./specs-module"
 
 export const name = "kubernetes"
 
-export interface KubernetesConfig {
+export interface KubernetesConfig extends ProviderConfig {
   context: string
   ingressHostname: string
   ingressClass: string
@@ -46,7 +50,7 @@ export interface KubernetesConfig {
 
 export interface KubernetesProvider extends Provider<KubernetesConfig> { }
 
-const configSchema = Joi.object().keys({
+const configSchema = providerConfigBase.keys({
   context: Joi.string().required(),
   ingressHostname: Joi.string().hostname().required(),
   ingressClass: Joi.string(),

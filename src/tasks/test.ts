@@ -14,7 +14,6 @@ import { TestResult } from "../types/plugin"
 import { Task } from "../types/task"
 import { EntryStyle } from "../logger/types"
 import chalk from "chalk"
-import { values } from "lodash"
 
 class TestError extends Error {
   toString() {
@@ -27,7 +26,7 @@ export class TestTask<T extends Module> extends Task {
 
   constructor(
     private ctx: PluginContext,
-    private module: T, private testName: string, private testSpec: TestSpec,
+    private module: T, private testSpec: TestSpec,
     private force: boolean, private forceBuild: boolean,
   ) {
     super()
@@ -44,8 +43,7 @@ export class TestTask<T extends Module> extends Task {
 
     const services = await this.ctx.getServices(this.testSpec.dependencies)
 
-    for (const serviceName of Object.keys(services)) {
-      const service = services[serviceName]
+    for (const service of services) {
       deps.push(new DeployTask(this.ctx, service, false, this.forceBuild))
     }
 
@@ -53,11 +51,11 @@ export class TestTask<T extends Module> extends Task {
   }
 
   getName() {
-    return `${this.module.name}.${this.testName}`
+    return `${this.module.name}.${this.testSpec.name}`
   }
 
   getDescription() {
-    return `running ${this.testName} tests in module ${this.module.name}`
+    return `running ${this.testSpec.name} tests in module ${this.module.name}`
   }
 
   async process(): Promise<TestResult> {
@@ -68,7 +66,7 @@ export class TestTask<T extends Module> extends Task {
       if (testResult && testResult.success) {
         const passedEntry = this.ctx.log.info({
           section: this.module.name,
-          msg: `${this.testName} tests`,
+          msg: `${this.testSpec.name} tests`,
         })
         passedEntry.setSuccess({ msg: chalk.green("Already passed"), append: true })
         return testResult
@@ -77,11 +75,11 @@ export class TestTask<T extends Module> extends Task {
 
     const entry = this.ctx.log.info({
       section: this.module.name,
-      msg: `Running ${this.testName} tests`,
+      msg: `Running ${this.testSpec.name} tests`,
       entryStyle: EntryStyle.activity,
     })
 
-    const dependencies = values(await this.ctx.getServices(this.testSpec.dependencies))
+    const dependencies = await this.ctx.getServices(this.testSpec.dependencies)
     const runtimeContext = await this.module.prepareRuntimeContext(dependencies)
 
     const result = await this.ctx.testModule({
@@ -89,7 +87,6 @@ export class TestTask<T extends Module> extends Task {
       module: this.module,
       runtimeContext,
       silent: true,
-      testName: this.testName,
       testSpec: this.testSpec,
     })
 
@@ -108,7 +105,7 @@ export class TestTask<T extends Module> extends Task {
       return null
     }
 
-    const testResult = await this.ctx.getTestResult(this.module, this.testName, await this.module.getVersion())
+    const testResult = await this.ctx.getTestResult(this.module, this.testSpec.name, await this.module.getVersion())
     return testResult && testResult.success && testResult
   }
 }

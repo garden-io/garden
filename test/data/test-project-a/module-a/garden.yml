@@ -2,9 +2,9 @@ module:
   name: module-a
   type: generic
   services:
-    service-a: {}
+    - name: service-a
   build:
     command: echo A
   test:
-    unit:
+    - name: unit
       command: [echo, OK]

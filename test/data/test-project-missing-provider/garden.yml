@@ -1,7 +1,7 @@
 project:
   name: build-test-project
   environments:
-    test:
+    - name: test
       providers:
-        test-plugin: {}
-        test-plugin-b: {}
+        - name: test-plugin
+        - name: test-plugin-b

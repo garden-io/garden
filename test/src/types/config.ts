@@ -15,18 +15,24 @@ describe("loadConfig", () => {
       name: "test-project-a",
       defaultEnvironment: "local",
       global: {
+        providers: [],
         variables: { some: "variable" },
       },
-      environments: {
-        local: {
-          providers: {
-            "test-plugin": {},
-            "test-plugin-b": {},
-          },
+      environments: [
+        {
+          name: "local",
+          providers: [
+            { name: "test-plugin" },
+            { name: "test-plugin-b" },
+          ],
           variables: {},
         },
-        other: { variables: {} },
-      },
+        {
+          name: "other",
+          providers: [],
+          variables: {},
+        },
+      ],
     })
   })
 
@@ -37,15 +43,14 @@ describe("loadConfig", () => {
       name: "module-a",
       type: "generic",
       allowPush: true,
-      services: { "service-a": { dependencies: [] } },
+      services: [{ name: "service-a", dependencies: [] }],
       build: { command: "echo A", dependencies: [] },
-      test: {
-        unit: {
-          command: ["echo", "OK"],
-          dependencies: [],
-          variables: {},
-        },
-      },
+      test: [{
+        name: "unit",
+        command: ["echo", "OK"],
+        dependencies: [],
+        variables: {},
+      }],
       path: modulePathA,
       variables: {},
     })

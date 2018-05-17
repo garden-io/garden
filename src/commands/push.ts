@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import { values } from "lodash"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
@@ -47,7 +46,7 @@ export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 
-    const result = await pushModules(ctx, values(modules), !!opts["force-build"], !!opts["allow-dirty"])
+    const result = await pushModules(ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
     ctx.log.info({ msg: "" })
     ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green("Done!\n") })

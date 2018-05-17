@@ -17,11 +17,16 @@ import {
   GardenPlugin,
   GetEnvironmentStatusParams,
 } from "../../types/plugin"
+import { providerConfigBase } from "../../types/project"
+import { findByName } from "../../util"
 import {
   configureEnvironment,
   getEnvironmentStatus,
 } from "./actions"
-import { gardenPlugin as k8sPlugin } from "./index"
+import {
+  gardenPlugin as k8sPlugin,
+  KubernetesConfig,
+} from "./index"
 import {
   getSystemGarden,
   isSystemGarden,
@@ -55,7 +60,7 @@ async function configureLocalEnvironment(
     const sysGarden = await getSystemGarden(provider)
     const sysProvider = {
       name: provider.name,
-      config: sysGarden.config.providers[provider.name],
+      config: findByName(sysGarden.config.providers, provider.name),
     }
     const sysStatus = await getEnvironmentStatus({
       ctx: sysGarden.pluginContext,
@@ -75,7 +80,7 @@ async function configureLocalEnvironment(
 
 export const name = "local-kubernetes"
 
-const configSchema = Joi.object().keys({
+const configSchema = providerConfigBase.keys({
   context: Joi.string().default("docker-for-desktop"),
   _system: Joi.any(),
 })
@@ -83,7 +88,8 @@ const configSchema = Joi.object().keys({
 export function gardenPlugin({ config }): GardenPlugin {
   config = validate(config, configSchema, { context: "kubernetes provider config" })
 
-  const k8sConfig = {
+  const k8sConfig: KubernetesConfig = {
+    name: config.name,
     context: config.context,
     ingressHostname: "local.app.garden",
     ingressClass: "nginx",

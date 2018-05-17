@@ -11,7 +11,11 @@ import * as childProcess from "child-process-promise"
 import { PluginContext } from "../plugin-context"
 import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
 import { LogSymbolType } from "../logger/types"
-import { identifierRegex, validate } from "../types/common"
+import {
+  joiIdentifier,
+  joiArray,
+  validate,
+} from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
@@ -23,9 +27,13 @@ import {
   ParseModuleParams,
   RunServiceParams,
 } from "../types/plugin"
-import { Service } from "../types/service"
+import {
+  Service,
+  ServiceConfig,
+} from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util"
+import { keyBy } from "lodash"
 
 export interface ServiceEndpointSpec {
   paths?: string[]
@@ -37,6 +45,7 @@ export interface ServiceEndpointSpec {
 export type ServicePortProtocol = "TCP" | "UDP"
 
 export interface ServicePortSpec {
+  name: string
   protocol: ServicePortProtocol
   containerPort: number
   hostPort?: number
@@ -59,13 +68,12 @@ export interface ServiceHealthCheckSpec {
   tcpPort?: string,
 }
 
-export interface ContainerServiceConfig {
+export interface ContainerServiceConfig extends ServiceConfig {
   command?: string[],
   daemon: boolean
-  dependencies: string[],
   endpoints: ServiceEndpointSpec[],
   healthCheck?: ServiceHealthCheckSpec,
-  ports: { [portName: string]: ServicePortSpec },
+  ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
 }
 
@@ -104,7 +112,7 @@ const portSchema = Joi.object()
 
 const volumeSchema = Joi.object()
   .keys({
-    name: Joi.string().required(),
+    name: joiIdentifier(),
     containerPath: Joi.string().required(),
     hostPath: Joi.string(),
   })
@@ -113,17 +121,17 @@ const serviceSchema = baseServiceSchema
   .keys({
     command: Joi.array().items(Joi.string()),
     daemon: Joi.boolean().default(false),
-    endpoints: Joi.array().items(endpointSchema).default(() => [], "[]"),
+    endpoints: joiArray(endpointSchema),
     healthCheck: healthCheckSchema,
-    ports: Joi.object().pattern(identifierRegex, portSchema).default(() => ({}), "{}"),
-    volumes: Joi.array().items(volumeSchema).default(() => [], "[]"),
+    ports: joiArray(portSchema).unique("name"),
+    volumes: joiArray(volumeSchema).unique("name"),
   })
 
 const containerSchema = baseModuleSchema.keys({
   type: Joi.string().allow("container").required(),
   path: Joi.string().required(),
   image: Joi.string(),
-  services: Joi.object().pattern(identifierRegex, serviceSchema).default(() => ({}), "{}"),
+  services: joiArray(serviceSchema).unique("name"),
 })
 
 export class ContainerService extends Service<ContainerModule> { }
@@ -205,14 +213,16 @@ export const gardenPlugin = (): GardenPlugin => ({
         }
 
         // validate services
-        for (const [name, service] of Object.entries(module.services)) {
+        for (const service of module.services) {
           // make sure ports are correctly configured
-          const definedPorts = Object.keys(service.ports)
+          const name = service.name
+          const definedPorts = service.ports
+          const portsByName = keyBy(service.ports, "name")
 
           for (const endpoint of service.endpoints) {
             const endpointPort = endpoint.port
 
-            if (!service.ports[endpointPort]) {
+            if (!portsByName[endpointPort]) {
               throw new ConfigurationError(
                 `Service ${name} does not define port ${endpointPort} defined in endpoint`,
                 { definedPorts, endpointPort },
@@ -223,7 +233,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           if (service.healthCheck && service.healthCheck.httpGet) {
             const healthCheckHttpPort = service.healthCheck.httpGet.port
 
-            if (!service.ports[healthCheckHttpPort]) {
+            if (!portsByName[healthCheckHttpPort]) {
               throw new ConfigurationError(
                 `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
                 { definedPorts, healthCheckHttpPort },
@@ -234,7 +244,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           if (service.healthCheck && service.healthCheck.tcpPort) {
             const healthCheckTcpPort = service.healthCheck.tcpPort
 
-            if (!service.ports[healthCheckTcpPort]) {
+            if (!portsByName[healthCheckTcpPort]) {
               throw new ConfigurationError(
                 `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
                 { definedPorts, healthCheckTcpPort },

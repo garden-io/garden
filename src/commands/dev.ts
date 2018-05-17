@@ -15,7 +15,6 @@ import { STATIC_DIR } from "../constants"
 import { spawnSync } from "child_process"
 import chalk from "chalk"
 import Bluebird = require("bluebird")
-import { values } from "lodash"
 import moment = require("moment")
 
 const imgcatPath = join(STATIC_DIR, "imgcat")
@@ -38,7 +37,7 @@ export class DevCommand extends Command {
 
     await ctx.configureEnvironment()
 
-    const modules = values(await ctx.getModules())
+    const modules = await ctx.getModules()
 
     if (modules.length === 0) {
       if (modules.length === 0) {

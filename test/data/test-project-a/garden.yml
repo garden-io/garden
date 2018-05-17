@@ -4,8 +4,8 @@ project:
     variables:
       some: variable
   environments:
-    local:
+    - name: local
       providers:
-        test-plugin: {}
-        test-plugin-b: {}
-    other: {}
+        - name: test-plugin
+        - name: test-plugin-b
+    - name: other

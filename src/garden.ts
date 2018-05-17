@@ -13,12 +13,13 @@ import {
   sep,
 } from "path"
 import {
+  extend,
   isString,
   values,
   fromPairs,
   merge,
   pick,
-  isEmpty,
+  keyBy,
 } from "lodash"
 import * as Joi from "joi"
 import {
@@ -40,11 +41,11 @@ import {
   pluginSchema,
   RegisterPluginParam,
 } from "./types/plugin"
+import { EnvironmentConfig } from "./types/project"
 import {
-  EnvironmentConfig,
-} from "./types/project"
-import {
+  findByName,
   getIgnorer,
+  getNames,
   scanDirectory,
 } from "./util"
 import {
@@ -217,17 +218,17 @@ export class Garden {
     const environment = parts[0]
     const namespace = parts.slice(1).join(".") || DEFAULT_NAMESPACE
 
-    const envConfig = parsedConfig.project.environments[environment]
+    const envConfig = findByName(parsedConfig.project.environments, environment)
 
     if (!envConfig) {
       throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
         projectName,
         env,
-        definedEnvironments: Object.keys(parsedConfig.project.environments),
+        definedEnvironments: getNames(parsedConfig.project.environments),
       })
     }
 
-    if (!envConfig.providers || isEmpty(envConfig.providers)) {
+    if (!envConfig.providers || envConfig.providers.length === 0) {
       throw new ConfigurationError(`Environment '${environment}' does not specify any providers`, {
         projectName,
         env,
@@ -242,10 +243,26 @@ export class Garden {
       })
     }
 
-    // Resolve the project configuration based on selected environment
-    const projectConfig = merge({}, globalConfig, envConfig)
+    const mergedProviders = merge(
+      {},
+      keyBy(globalConfig.providers, "name"),
+      keyBy(envConfig.providers, "name"),
+    )
 
-    const garden = new Garden(projectRoot, projectName, environment, namespace, projectConfig, localConfigStore, logger)
+    // Resolve the project configuration based on selected environment
+    const projectEnvConfig: EnvironmentConfig = {
+      name: environment,
+      providers: values(mergedProviders),
+      variables: merge({}, globalConfig.variables, envConfig.variables),
+    }
+
+    const garden = new Garden(
+      projectRoot, projectName,
+      environment, namespace,
+      projectEnvConfig,
+      localConfigStore,
+      logger,
+    )
 
     // Register plugins
     for (const plugin of builtinPlugins.concat(plugins)) {
@@ -258,8 +275,8 @@ export class Garden {
 
     // Load configured plugins
     // Validate configuration
-    for (const [providerName, provider] of Object.entries(projectConfig.providers)) {
-      await garden.loadPlugin(providerName, provider)
+    for (const provider of projectEnvConfig.providers) {
+      await garden.loadPlugin(provider.name, provider)
     }
 
     return garden
@@ -376,9 +393,14 @@ export class Garden {
 
     this.loadedPlugins[pluginName] = plugin
 
-    // allow plugins to override their own config (that gets passed to action handlers)
+    // allow plugins to extend their own config (that gets passed to action handlers)
     if (plugin.config) {
-      this.config.providers[pluginName] = plugin.config
+      const providerConfig = findByName(this.config.providers, pluginName)
+      if (providerConfig) {
+        extend(providerConfig, plugin.config)
+      } else {
+        this.config.providers.push(plugin.config)
+      }
     }
 
     for (const modulePath of plugin.modules || []) {
@@ -465,16 +487,16 @@ export class Garden {
     Returns all modules that are registered in this context.
     Scans for modules in the project root if it hasn't already been done.
    */
-  async getModules(names?: string[], noScan?: boolean): Promise<ModuleMap<any>> {
+  async getModules(names?: string[], noScan?: boolean): Promise<Module[]> {
     if (!this.modulesScanned && !noScan) {
       await this.scanModules()
     }
 
     if (!names) {
-      return this.modules
+      return values(this.modules)
     }
 
-    const output = {}
+    const output: Module[] = []
     const missing: string[] = []
 
     for (const name of names) {
@@ -483,7 +505,7 @@ export class Garden {
       if (!module) {
         missing.push(name)
       } else {
-        output[name] = module
+        output.push(module)
       }
     }
 
@@ -501,33 +523,33 @@ export class Garden {
    * Returns the module with the specified name. Throws error if it doesn't exist.
    */
   async getModule(name: string, noScan?: boolean): Promise<Module<ModuleConfig>> {
-    return (await this.getModules([name], noScan))[name]
+    return (await this.getModules([name], noScan))[0]
   }
 
   /*
     Returns all services that are registered in this context.
     Scans for modules and services in the project root if it hasn't already been done.
    */
-  async getServices(names?: string[], noScan?: boolean): Promise<ServiceMap> {
+  async getServices(names?: string[], noScan?: boolean): Promise<Service[]> {
     // TODO: deduplicate (this is almost the same as getModules()
     if (!this.modulesScanned && !noScan) {
       await this.scanModules()
     }
 
     if (!names) {
-      return this.services
+      return values(this.services)
     }
 
-    const output = {}
+    const output: Service[] = []
     const missing: string[] = []
 
     for (const name of names) {
-      const module = this.services[name]
+      const service = this.services[name]
 
-      if (!module) {
+      if (!service) {
         missing.push(name)
       } else {
-        output[name] = module
+        output.push(service)
       }
     }
 
@@ -545,7 +567,7 @@ export class Garden {
    * Returns the service with the specified name. Throws error if it doesn't exist.
    */
   async getService(name: string, noScan?: boolean): Promise<Service<Module>> {
-    return (await this.getServices([name], noScan))[name]
+    return (await this.getServices([name], noScan))[0]
   }
 
   /*
@@ -604,7 +626,9 @@ export class Garden {
     this.modules[config.name] = module
 
     // Add to service-module map
-    for (const serviceName in config.services || {}) {
+    for (const service of config.services || []) {
+      const serviceName = service.name
+
       if (!force && this.services[serviceName]) {
         throw new ConfigurationError(
           `Service names must be unique - ${serviceName} is declared multiple times ` +

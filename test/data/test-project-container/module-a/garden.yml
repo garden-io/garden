@@ -2,9 +2,9 @@ module:
   name: module-a
   type: container
   services:
-    service-a:
+    - name: service-a
       ports:
-        http:
+        - name: http
           containerPort: 8080
       endpoints:
         - paths: [/]

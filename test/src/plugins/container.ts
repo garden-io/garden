@@ -52,8 +52,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image:1.1",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         })
@@ -72,8 +72,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image:1.1",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         })
@@ -93,8 +93,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image:1.1",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         })
@@ -111,8 +111,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         })
@@ -129,8 +129,8 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         })
@@ -152,39 +152,36 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: {
-            "service-a": {
-              command: ["echo"],
-              dependencies: [],
-              daemon: false,
-              endpoints: [
-                {
-                  paths: ["/"],
-                  port: "http",
-                },
-              ],
-              healthCheck: {
-                httpGet: {
-                  path: "/health",
-                  port: "http",
-                },
+          services: [{
+            name: "service-a",
+            command: ["echo"],
+            dependencies: [],
+            daemon: false,
+            endpoints: [
+              {
+                paths: ["/"],
+                port: "http",
               },
-              ports: {
-                http: {
-                  protocol: "TCP",
-                  containerPort: 8080,
-                },
+            ],
+            healthCheck: {
+              httpGet: {
+                path: "/health",
+                port: "http",
               },
-              volumes: [],
             },
-          },
-          test: {
-            unit: {
-              command: ["echo", "OK"],
-              dependencies: [],
-              variables: {},
-            },
-          },
+            ports: [{
+              name: "http",
+              protocol: "TCP",
+              containerPort: 8080,
+            }],
+            volumes: [],
+          }],
+          test: [{
+            name: "unit",
+            command: ["echo", "OK"],
+            dependencies: [],
+            variables: {},
+          }],
           type: "test",
           variables: {},
         }
@@ -201,28 +198,26 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: {
-            "service-a": {
-              command: ["echo"],
-              dependencies: [],
-              daemon: false,
-              endpoints: [
-                {
-                  paths: ["/"],
-                  port: "bla",
-                },
-              ],
-              ports: {},
-              volumes: [],
-            },
-          },
-          test: {
-            unit: {
-              command: ["echo", "OK"],
-              dependencies: [],
-              variables: {},
-            },
-          },
+          services: [{
+            name: "service-a",
+            command: ["echo"],
+            dependencies: [],
+            daemon: false,
+            endpoints: [
+              {
+                paths: ["/"],
+                port: "bla",
+              },
+            ],
+            ports: [],
+            volumes: [],
+          }],
+          test: [{
+            name: "unit",
+            command: ["echo", "OK"],
+            dependencies: [],
+            variables: {},
+          }],
           type: "test",
           variables: {},
         }
@@ -242,29 +237,22 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: {
-            "service-a": {
-              command: ["echo"],
-              dependencies: [],
-              daemon: false,
-              endpoints: [],
-              healthCheck: {
-                httpGet: {
-                  path: "/",
-                  port: "bla",
-                },
+          services: [{
+            name: "service-a",
+            command: ["echo"],
+            dependencies: [],
+            daemon: false,
+            endpoints: [],
+            healthCheck: {
+              httpGet: {
+                path: "/",
+                port: "bla",
               },
-              ports: {},
-              volumes: [],
             },
-          },
-          test: {
-            unit: {
-              command: ["echo", "OK"],
-              dependencies: [],
-              variables: {},
-            },
-          },
+            ports: [],
+            volumes: [],
+          }],
+          test: [],
           type: "test",
           variables: {},
         }
@@ -284,26 +272,19 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: {
-            "service-a": {
-              command: ["echo"],
-              dependencies: [],
-              daemon: false,
-              endpoints: [],
-              healthCheck: {
-                tcpPort: "bla",
-              },
-              ports: {},
-              volumes: [],
+          services: [{
+            name: "service-a",
+            command: ["echo"],
+            dependencies: [],
+            daemon: false,
+            endpoints: [],
+            healthCheck: {
+              tcpPort: "bla",
             },
-          },
-          test: {
-            unit: {
-              command: ["echo", "OK"],
-              dependencies: [],
-              variables: {},
-            },
-          },
+            ports: [],
+            volumes: [],
+          }],
+          test: [],
           type: "test",
           variables: {},
         }
@@ -324,8 +305,8 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         }))
@@ -345,8 +326,8 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         }))
@@ -369,8 +350,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         }))
@@ -392,8 +373,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         }))
@@ -422,8 +403,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         }))
@@ -444,8 +425,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image:1.1",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         }))
@@ -471,8 +452,8 @@ describe("container", () => {
           name: "test",
           path: modulePath,
           image: "some/image:1.1",
-          services: {},
-          test: {},
+          services: [],
+          test: [],
           type: "container",
           variables: {},
         }))

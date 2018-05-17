@@ -2,9 +2,9 @@ const nodetree = require("nodetree")
 import { join } from "path"
 import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
-import { values } from "lodash"
 import { BuildTask } from "../../src/tasks/build"
 import { makeTestGarden } from "../helpers"
+import { keyBy } from "lodash"
 
 /*
   Module dependency diagram for test-project-build-products
@@ -40,16 +40,14 @@ describe("BuildDir", () => {
   it("should ensure that a module's build subdir exists before returning from buildPath", async () => {
     const garden = await makeGarden()
     await garden.buildDir.clear()
-    const modules = await garden.getModules()
-    const moduleA = modules["module-a"]
+    const moduleA = await garden.getModule("module-a")
     const buildPath = await garden.buildDir.buildPath(moduleA)
     expect(await pathExists(buildPath)).to.eql(true)
   })
 
   it("should sync sources to the build dir", async () => {
     const garden = await makeGarden()
-    const modules = await garden.getModules()
-    const moduleA = modules["module-a"]
+    const moduleA = await garden.getModule("module-a")
     await garden.buildDir.syncFromSrc(moduleA)
     const buildDirA = await garden.buildDir.buildPath(moduleA)
 
@@ -71,14 +69,15 @@ describe("BuildDir", () => {
       await garden.clearBuilds()
       const modules = await garden.getModules()
 
-      for (const module of values(modules)) {
+      for (const module of modules) {
         await garden.addTask(new BuildTask(garden.pluginContext, module, false))
       }
 
       await garden.processTasks()
+      const modulesByName = keyBy(modules, "name")
 
-      const buildDirD = await garden.buildDir.buildPath(modules["module-d"])
-      const buildDirE = await garden.buildDir.buildPath(modules["module-e"])
+      const buildDirD = await garden.buildDir.buildPath(modulesByName["module-d"])
+      const buildDirE = await garden.buildDir.buildPath(modulesByName["module-e"])
 
       // All these destinations should be populated now.
       const buildProductDestinations = [

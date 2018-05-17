@@ -2,6 +2,6 @@ module:
   description: worker
   type: container
   services:
-    javaworker:
+    - name: javaworker
       dependencies:
         - redis

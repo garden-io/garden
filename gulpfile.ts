@@ -85,7 +85,7 @@ gulp.task("add-version-files", (cb) => {
   proc.on("close", () => {
     const results = JSON.parse(output)
 
-    for (const module of <any>Object.values(results.result)) {
+    for (const module of <any>results.result) {
       const relPath = relative(__dirname, module.path)
       const versionFilePath = join(__dirname, destDir, relPath, ".garden-version")
       writeFileSync(versionFilePath, JSON.stringify(module.version))

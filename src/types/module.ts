@@ -12,12 +12,12 @@ import {
 } from "fs"
 import * as Joi from "joi"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
-import { ServiceMap } from "../garden"
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
 import { TestTask } from "../tasks/test"
+import { getNames } from "../util"
 import {
-  identifierRegex,
+  joiArray,
   joiEnvVars,
   joiIdentifier,
   joiPrimitive,
@@ -29,9 +29,8 @@ import { ConfigurationError } from "../exceptions"
 import Bluebird = require("bluebird")
 import {
   extend,
-  keys,
   set,
-  values,
+  keyBy,
 } from "lodash"
 import {
   RuntimeContext,
@@ -69,15 +68,20 @@ export interface BuildConfig {
 const serviceOutputsSchema = Joi.object().pattern(/.+/, joiPrimitive())
 
 export interface TestSpec {
+  name: string
   command: string[]
   dependencies: string[]
   variables: PrimitiveMap
   timeout?: number
 }
 
-export interface TestConfig {
-  [group: string]: TestSpec
-}
+export const baseTestSpecSchema = Joi.object().keys({
+  name: joiIdentifier().required(),
+  command: Joi.array().items(Joi.string()).required(),
+  dependencies: Joi.array().items(Joi.string()).default(() => [], "[]"),
+  variables: joiVariables(),
+  timeout: Joi.number(),
+})
 
 const versionFileSchema = Joi.object().keys({
   versionString: Joi.string().required(),
@@ -91,11 +95,37 @@ export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
   description?: string
   name: string
   path: string
-  services: { [name: string]: T }
-  test: TestConfig
+  services: T[]
+  test: TestSpec[]
   type: string
   variables: PrimitiveMap
 }
+
+export const baseServiceSchema = Joi.object()
+  .keys({
+    dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
+  })
+  .options({ allowUnknown: true })
+
+export const baseDependencySchema = Joi.object().keys({
+  name: joiIdentifier().required(),
+  copy: Joi.array().items(copySchema).default(() => [], "[]"),
+})
+
+export const baseModuleSchema = Joi.object().keys({
+  type: joiIdentifier().required(),
+  name: joiIdentifier(),
+  description: Joi.string(),
+  variables: joiVariables(),
+  services: joiArray(baseServiceSchema).unique("name"),
+  allowPush: Joi.boolean()
+    .default(true, "Set to false to disable pushing this module to remote registries"),
+  build: Joi.object().keys({
+    command: Joi.string(),
+    dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),
+  }).default(() => ({ dependencies: [] }), "{}"),
+  test: joiArray(baseTestSpecSchema).unique("name"),
+}).required().unknown(true)
 
 export class Module<T extends ModuleConfig = ModuleConfig> {
   public name: string
@@ -121,7 +151,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     const config = <T>extend({}, this.config)
 
     config.build = await resolveTemplateStrings(config.build, templateContext)
-    config.test = await resolveTemplateStrings(config.test, templateContext)
+    config.test = await Bluebird.map(config.test, t => resolveTemplateStrings(t, templateContext))
     config.variables = await resolveTemplateStrings(config.variables, templateContext)
 
     return config
@@ -178,7 +208,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     }
 
     // TODO: Detect circular dependencies
-    const modules = await this.ctx.getModules()
+    const modules = keyBy(await this.ctx.getModules(), "name")
     const deps: Module[] = []
 
     for (let dependencyConfig of this.config.build.dependencies) {
@@ -200,8 +230,8 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     return deps
   }
 
-  async getServices(): Promise<ServiceMap> {
-    const serviceNames = keys(this.services || {})
+  async getServices(): Promise<Service[]> {
+    const serviceNames = getNames(this.services)
     return this.ctx.getServices(serviceNames)
   }
 
@@ -211,7 +241,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     const services = await this.getServices()
     const module = this
 
-    return values(services).map(s => new DeployTask(module.ctx, s, force, forceBuild))
+    return services.map(s => new DeployTask(module.ctx, s, force, forceBuild))
   }
 
   async getTestTasks(
@@ -220,12 +250,11 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     const tasks: TestTask<Module<T>>[] = []
     const config = await this.getConfig()
 
-    for (const testName of Object.keys(config.test)) {
-      if (group && testName !== group) {
+    for (const test of config.test) {
+      if (group && test.name !== group) {
         continue
       }
-      const testSpec = config.test[testName]
-      tasks.push(new TestTask<Module<T>>(this.ctx, this, testName, testSpec, force, forceBuild))
+      tasks.push(new TestTask<Module<T>>(this.ctx, this, test, force, forceBuild))
     }
 
     return tasks
@@ -279,40 +308,3 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 }
 
 export type ModuleConfigType<T extends Module> = T["_ConfigType"]
-
-export const baseServiceSchema = Joi.object()
-  .keys({
-    dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
-  })
-  .options({ allowUnknown: true })
-
-export const baseServicesSchema = Joi.object()
-  .pattern(identifierRegex, baseServiceSchema)
-  .default(() => ({}), "{}")
-
-export const baseTestSpecSchema = Joi.object().keys({
-  command: Joi.array().items(Joi.string()).required(),
-  dependencies: Joi.array().items(Joi.string()).default(() => [], "[]"),
-  variables: joiVariables(),
-  timeout: Joi.number(),
-})
-
-export const baseDependencySchema = Joi.object().keys({
-  name: joiIdentifier().required(),
-  copy: Joi.array().items(copySchema).default(() => [], "[]"),
-})
-
-export const baseModuleSchema = Joi.object().keys({
-  type: joiIdentifier().required(),
-  name: joiIdentifier(),
-  description: Joi.string(),
-  variables: joiVariables(),
-  services: baseServicesSchema,
-  allowPush: Joi.boolean()
-    .default(true, "Set to false to disable pushing this module to remote registries"),
-  build: Joi.object().keys({
-    command: Joi.string(),
-    dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),
-  }).default(() => ({ dependencies: [] }), "{}"),
-  test: Joi.object().pattern(/[\w\d]+/i, baseTestSpecSchema).default(() => ({}), "{}"),
-}).required().unknown(true)
