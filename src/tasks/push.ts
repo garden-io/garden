@@ -12,23 +12,38 @@ import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { PushResult } from "../types/plugin"
-import { Task } from "../types/task"
+import { Task, TaskParams, TaskVersion } from "../types/task"
 
-export class PushTask<T extends Module<any>> extends Task {
+export interface PushTaskParams extends TaskParams {
+  ctx: PluginContext
+  module: Module
+  forceBuild: boolean
+}
+
+export class PushTask extends Task {
   type = "push"
 
-  constructor(
-    private ctx: PluginContext,
-    private module: T,
-    private forceBuild: boolean) {
-    super()
+  private ctx: PluginContext
+  private module: Module
+  private forceBuild: boolean
+
+  constructor(initArgs: PushTaskParams & TaskVersion) {
+    super(initArgs)
+    this.ctx = initArgs.ctx
+    this.module = initArgs.module
+    this.forceBuild = initArgs.forceBuild
+  }
+
+  static async factory(initArgs: PushTaskParams): Promise<PushTask> {
+    initArgs.version = await initArgs.module.getVersion()
+    return new PushTask(<PushTaskParams & TaskVersion>initArgs)
   }
 
   async getDependencies() {
     if (!(await this.module.getConfig()).allowPush) {
       return []
     }
-    return [new BuildTask(this.ctx, this.module, this.forceBuild)]
+    return [await BuildTask.factory({ ctx: this.ctx, module: this.module, force: this.forceBuild })]
   }
 
   getName() {

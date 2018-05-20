@@ -21,7 +21,13 @@ class TestTask extends Task {
     private callback?: (name: string, result: any) => Promise<void>,
     id: string = "",
   ) {
-    super()
+    super({
+      version: {
+        versionString: "12345#6789",
+        latestCommit: "12345",
+        dirtyTimestamp: 6789,
+      },
+    })
     this.name = name
     this.id = id
 
@@ -40,6 +46,10 @@ class TestTask extends Task {
 
   getKey(): string {
     return this.id ? `${this.name}.${this.id}` : this.name
+  }
+
+  async getVersion() {
+    return this.version
   }
 
   getDescription() {

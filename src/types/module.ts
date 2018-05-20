@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
 import {
   existsSync,
   readFileSync,
@@ -26,7 +27,6 @@ import {
   validate,
 } from "./common"
 import { ConfigurationError } from "../exceptions"
-import Bluebird = require("bluebird")
 import {
   extend,
   set,
@@ -237,27 +237,35 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
   async getDeployTasks(
     { force = false, forceBuild = false }: { force?: boolean, forceBuild?: boolean },
-  ): Promise<DeployTask<Service>[]> {
+  ): Promise<DeployTask[]> {
     const services = await this.getServices()
     const module = this
 
-    return services.map(s => new DeployTask(module.ctx, s, force, forceBuild))
+    return Bluebird.map(services, async (service) => {
+      return DeployTask.factory({ ctx: module.ctx, service, force, forceBuild })
+    })
   }
 
   async getTestTasks(
     { group, force = false, forceBuild = false }: { group?: string, force?: boolean, forceBuild?: boolean },
   ) {
-    const tasks: TestTask<Module<T>>[] = []
+    const tasks: Promise<TestTask>[] = []
     const config = await this.getConfig()
 
     for (const test of config.test) {
       if (group && test.name !== group) {
         continue
       }
-      tasks.push(new TestTask<Module<T>>(this.ctx, this, test, force, forceBuild))
+      tasks.push(TestTask.factory({
+        force,
+        forceBuild,
+        testSpec: test,
+        ctx: this.ctx,
+        module: this,
+      }))
     }
 
-    return tasks
+    return Bluebird.all(tasks)
   }
 
   async prepareRuntimeContext(dependencies: Service<any>[], extraEnvVars: PrimitiveMap = {}): Promise<RuntimeContext> {

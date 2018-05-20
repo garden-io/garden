@@ -6,24 +6,49 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { round } from "lodash"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { BuildResult } from "../types/plugin"
-import { Task } from "../types/task"
+import { Task, TaskParams, TaskVersion } from "../types/task"
 
-export class BuildTask<T extends Module> extends Task {
+export interface BuildTaskParams extends TaskParams {
+  ctx: PluginContext
+  module: Module
+  force: boolean
+}
+
+export class BuildTask extends Task {
   type = "build"
 
-  constructor(private ctx: PluginContext, private module: T, private force: boolean) {
-    super()
+  private ctx: PluginContext
+  private module: Module
+  private force: boolean
+
+  constructor(initArgs: BuildTaskParams & TaskVersion) {
+    super(initArgs)
+    this.ctx = initArgs.ctx
+    this.module = initArgs.module
+    this.force = initArgs.force
   }
 
-  async getDependencies() {
+  /*
+    TODO: Replace with a generic factory method on the Task class to avoid repetition. This applies equally to other
+     child classes of Task that implement an equivalent factory method.
+  */
+  static async factory(initArgs: BuildTaskParams): Promise<BuildTask> {
+    initArgs.version = await initArgs.module.getVersion()
+    return new BuildTask(<BuildTaskParams & TaskVersion>initArgs)
+  }
+
+  async getDependencies(): Promise<BuildTask[]> {
     const deps = await this.module.getBuildDependencies()
-    return deps.map(<M extends Module>(m: M) => new BuildTask(this.ctx, m, this.force))
+    return Bluebird.map(deps, async (m: Module) => {
+      return BuildTask.factory({ ctx: this.ctx, module: m, force: this.force })
+    })
   }
 
   protected getName() {

@@ -53,7 +53,7 @@ export class DevCommand extends Command {
       const tasks = testTasks.concat(deployTasks)
 
       if (tasks.length === 0) {
-        await ctx.addTask(new BuildTask(ctx, module, false))
+        await ctx.addTask(await BuildTask.factory({ ctx, module, force: false }))
       } else {
         await Bluebird.map(tasks, ctx.addTask)
       }
