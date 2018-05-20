@@ -7,12 +7,12 @@ describe("Service", () => {
   describe("factory", () => {
     it("should create a Service instance with the given config", async () => {
       const ctx = await makeTestContextA()
-      const module = (await ctx.getModules(["module-a"]))["module-a"]
+      const module = await ctx.getModule("module-a")
 
       const service = await Service.factory(ctx, module, "service-a")
 
       expect(service.name).to.equal("service-a")
-      expect(service.config).to.eql(module.services["service-a"])
+      expect(service.config).to.eql(module.services[0])
     })
 
     it("should resolve template strings", async () => {
@@ -22,11 +22,11 @@ describe("Service", () => {
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
       await ctx.setConfig(["project", "my", "variable"], "OK")
 
-      const module = (await ctx.getModules(["module-a"]))["module-a"]
+      const module = await ctx.getModule("module-a")
 
       const service = await Service.factory(ctx, module, "service-a")
 
-      expect(service.config).to.eql({ command: "echo banana", dependencies: [] })
+      expect(service.config).to.eql({ name: "service-a", command: "echo banana", dependencies: [] })
     })
   })
 
@@ -61,6 +61,7 @@ describe("Service", () => {
       const resolved = await serviceB.resolveConfig()
 
       expect(resolved.config).to.eql({
+        name: "service-b",
         command: `echo ${(await serviceA.module.getVersion()).versionString}`,
         dependencies: ["service-a"],
       })

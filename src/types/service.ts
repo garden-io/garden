@@ -8,6 +8,7 @@
 
 import Bluebird = require("bluebird")
 import { PluginContext } from "../plugin-context"
+import { findByName } from "../util"
 import { Module } from "./module"
 import { PrimitiveMap } from "./common"
 import { ConfigurationError } from "../exceptions"
@@ -26,6 +27,7 @@ export interface ServiceEndpoint {
 }
 
 export interface ServiceConfig {
+  name: string
   dependencies: string[]
 }
 
@@ -56,14 +58,14 @@ export type RuntimeContext = {
 export class Service<M extends Module = Module> {
   constructor(
     protected ctx: PluginContext, public module: M,
-    public name: string, public config: M["services"][string],
+    public name: string, public config: M["services"][0],
   ) { }
 
   static async factory<S extends Service<M>, M extends Module>(
     this: (new (ctx: PluginContext, module: M, name: string, config: S["config"]) => S),
     ctx: PluginContext, module: M, name: string,
   ) {
-    const config = module.services[name]
+    const config = findByName(module.services, name)
 
     if (!config) {
       throw new ConfigurationError(`Could not find service ${name} in module ${module.name}`, { module, name })

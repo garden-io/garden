@@ -10,8 +10,8 @@ import Bluebird = require("bluebird")
 import * as Joi from "joi"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import {
+  joiArray,
   joiIdentifier,
-  joiIdentifierMap,
   validate,
 } from "../../types/common"
 import {
@@ -51,11 +51,11 @@ const k8sSpecSchema = Joi.object().keys({
   }).required(),
 }).unknown(true)
 
-const specsServicesSchema = joiIdentifierMap(baseServiceSchema.keys({
+const specsServicesSchema = joiArray(baseServiceSchema.keys({
   specs: Joi.array().items(k8sSpecSchema).required(),
   // TODO: support spec files as well
   // specFiles: Joi.array().items(Joi.string()),
-}))
+})).unique("name")
 
 export const kubernetesSpecHandlers = {
   parseModule: async ({ ctx, moduleConfig }: ParseModuleParams): Promise<KubernetesSpecsModule> => {

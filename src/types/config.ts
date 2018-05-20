@@ -7,6 +7,10 @@
  */
 
 import { join, parse, relative, sep } from "path"
+import {
+  findByName,
+  getNames,
+} from "../util"
 import { baseModuleSchema, ModuleConfig } from "./module"
 import { joiIdentifier, validate } from "./common"
 import { ConfigurationError } from "../exceptions"
@@ -14,7 +18,6 @@ import * as Joi from "joi"
 import * as yaml from "js-yaml"
 import { readFileSync } from "fs"
 import { defaultEnvironments, ProjectConfig, projectSchema } from "./project"
-import { extend } from "lodash"
 
 const CONFIG_FILENAME = "garden.yml"
 
@@ -80,18 +83,22 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
 
   if (project) {
     // we include the default local environment unless explicitly overridden
-    project.environments = extend({}, defaultEnvironments, project.environments)
+    for (const env of defaultEnvironments) {
+      if (!findByName(project.environments, env.name)) {
+        project.environments.push(env)
+      }
+    }
 
     // the default environment is the first specified environment in the config, unless specified
     const defaultEnvironment = project.defaultEnvironment
 
     if (defaultEnvironment === "") {
-      project.defaultEnvironment = Object.keys(project.environments)[0]
+      project.defaultEnvironment = project.environments[0].name
     } else {
-      if (!project.environments[defaultEnvironment]) {
+      if (!findByName(project.environments, defaultEnvironment)) {
         throw new ConfigurationError(`The specified default environment ${defaultEnvironment} is not defined`, {
           defaultEnvironment,
-          availableEnvironments: Object.keys(project.environments),
+          availableEnvironments: getNames(project.environments),
         })
       }
     }

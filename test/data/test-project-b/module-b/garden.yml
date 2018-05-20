@@ -2,7 +2,7 @@ module:
   name: module-b
   type: generic
   services:
-    service-b:
+    - name: service-b
       endpoints:
         - paths: [/path-b]
           containerPort: 8080

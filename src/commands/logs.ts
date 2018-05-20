@@ -11,7 +11,6 @@ import { BooleanParameter, Command, ParameterValues, StringParameter } from "./b
 import chalk from "chalk"
 import { ServiceLogEntry } from "../types/plugin"
 import Bluebird = require("bluebird")
-import { values } from "lodash"
 import { Service } from "../types/service"
 import Stream from "ts-stream"
 
@@ -53,7 +52,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
 
     // NOTE: This will work differently when we have Elasticsearch set up for logging, but is
     //       quite servicable for now.
-    await Bluebird.map(values(services), async (service: Service<any>) => {
+    await Bluebird.map(services, async (service: Service<any>) => {
       await ctx.getServiceLogs(service, stream, opts.tail)
     })
 

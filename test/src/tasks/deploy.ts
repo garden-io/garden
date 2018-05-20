@@ -41,6 +41,7 @@ describe("DeployTask", () => {
     const { versionString } = await serviceA.module.getVersion()
 
     expect(actionParams.service.config).to.eql({
+      name: "service-b",
       command: `echo ${versionString}`,
       dependencies: ["service-a"],
     })

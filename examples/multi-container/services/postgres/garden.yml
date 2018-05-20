@@ -3,10 +3,10 @@ module:
   type: container
   image: postgres:9.4
   services:
-    db:
+    - name: db
       volumes:
         - name: data
           containerPath: /db-data
       ports:
-        db:
+        - name: db
           containerPort: 5432

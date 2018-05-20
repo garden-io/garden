@@ -67,7 +67,7 @@ export const genericPlugin = {
         }
       },
 
-      async testModule({ module, testName, testSpec }: TestModuleParams): Promise<TestResult> {
+      async testModule({ module, testSpec }: TestModuleParams): Promise<TestResult> {
         const startedAt = new Date()
         const command = testSpec.command
         const result = await spawn(
@@ -77,7 +77,7 @@ export const genericPlugin = {
         return {
           moduleName: module.name,
           command,
-          testName,
+          testName: testSpec.name,
           version: await module.getVersion(),
           success: result.code === 0,
           startedAt,

@@ -4,7 +4,6 @@ import { expect } from "chai"
 import {
   dataDir,
   expectError,
-  makeTestContextA,
   makeTestGarden,
   makeTestGardenA,
   makeTestModule,
@@ -12,6 +11,7 @@ import {
   testPlugin,
   testPluginB,
 } from "../helpers"
+import { getNames } from "../../src/util"
 
 describe("Garden", () => {
   describe("factory", () => {
@@ -44,10 +44,11 @@ describe("Garden", () => {
 
       expect(ctx.projectName).to.equal("test-project-a")
       expect(ctx.config).to.eql({
-        providers: {
-          "test-plugin": {},
-          "test-plugin-b": {},
-        },
+        name: "local",
+        providers: [
+          { name: "test-plugin" },
+          { name: "test-plugin-b" },
+        ],
         variables: {
           some: "variable",
         },
@@ -66,9 +67,10 @@ describe("Garden", () => {
       delete process.env.TEST_VARIABLE
 
       expect(ctx.config).to.eql({
-        providers: {
-          "test-plugin": {},
-        },
+        name: "local",
+        providers: [
+          { name: "test-plugin" },
+        ],
         variables: {
           some: "banana",
           "service-a-build-command": "echo OK",
@@ -142,14 +144,14 @@ describe("Garden", () => {
       const ctx = await makeTestGardenA()
       const modules = await ctx.getModules()
 
-      expect(Object.keys(modules)).to.eql(["module-a", "module-b", "module-c"])
+      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should optionally return specified modules in the context", async () => {
       const ctx = await makeTestGardenA()
       const modules = await ctx.getModules(["module-b", "module-c"])
 
-      expect(Object.keys(modules)).to.eql(["module-b", "module-c"])
+      expect(getNames(modules)).to.eql(["module-b", "module-c"])
     })
 
     it("should throw if named module is missing", async () => {
@@ -171,14 +173,14 @@ describe("Garden", () => {
       const ctx = await makeTestGardenA()
       const services = await ctx.getServices()
 
-      expect(Object.keys(services)).to.eql(["service-a", "service-b", "service-c"])
+      expect(getNames(services)).to.eql(["service-a", "service-b", "service-c"])
     })
 
     it("should optionally return specified services in the context", async () => {
       const ctx = await makeTestGardenA()
       const services = await ctx.getServices(["service-b", "service-c"])
 
-      expect(Object.keys(services)).to.eql(["service-b", "service-c"])
+      expect(getNames(services)).to.eql(["service-b", "service-c"])
     })
 
     it("should throw if named service is missing", async () => {
@@ -225,7 +227,7 @@ describe("Garden", () => {
       await garden.scanModules()
 
       const modules = await garden.getModules(undefined, true)
-      expect(Object.keys(modules)).to.eql(["module-a", "module-b", "module-c"])
+      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
   })
 
@@ -237,10 +239,10 @@ describe("Garden", () => {
       await garden.addModule(testModule)
 
       const modules = await garden.getModules(undefined, true)
-      expect(Object.keys(modules)).to.eql(["test"])
+      expect(getNames(modules)).to.eql(["test"])
 
       const services = await garden.getServices(undefined, true)
-      expect(Object.keys(services)).to.eql(["testService"])
+      expect(getNames(services)).to.eql(["testService"])
     })
 
     it("should throw when adding module twice without force parameter", async () => {
@@ -269,7 +271,7 @@ describe("Garden", () => {
       await garden.addModule(testModule, true)
 
       const modules = await garden.getModules(undefined, true)
-      expect(Object.keys(modules)).to.eql(["test"])
+      expect(getNames(modules)).to.eql(["test"])
     })
 
     it("should throw if a service is added twice without force parameter", async () => {
@@ -300,7 +302,7 @@ describe("Garden", () => {
       await garden.addModule(testModuleB, true)
 
       const services = await ctx.getServices(undefined, true)
-      expect(Object.keys(services)).to.eql(["testService"])
+      expect(getNames(services)).to.eql(["testService"])
     })
   })
 
@@ -355,10 +357,11 @@ describe("Garden", () => {
       expect(result.environment).to.eql({
         name: "local",
         config: {
-          providers: {
-            "test-plugin": {},
-            "test-plugin-b": {},
-          },
+          name: "local",
+          providers: [
+            { name: "test-plugin" },
+            { name: "test-plugin-b" },
+          ],
           variables: {
             some: "variable",
           },
@@ -378,10 +381,11 @@ describe("Garden", () => {
       expect(result.environment).to.eql({
         name: "local",
         config: {
-          providers: {
-            "test-plugin": {},
-            "test-plugin-b": {},
-          },
+          name: "local",
+          providers: [
+            { name: "test-plugin" },
+            { name: "test-plugin-b" },
+          ],
           variables: {
             some: "variable",
           },

@@ -103,7 +103,6 @@ export interface TestModuleParams<T extends Module = Module> extends PluginActio
   interactive: boolean
   runtimeContext: RuntimeContext
   silent: boolean
-  testName: string
   testSpec: TestSpec
 }
 

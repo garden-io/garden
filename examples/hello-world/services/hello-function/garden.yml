@@ -3,10 +3,10 @@ module:
   name: hello-function
   type: google-cloud-function
   services:
-    hello-function:
+    - name: hello-function
       entrypoint: helloFunction
   test:
-    unit:
+    - name: unit
       command: [npm, test]
   build:
     dependencies:

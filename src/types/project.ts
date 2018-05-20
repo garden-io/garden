@@ -8,44 +8,58 @@
 
 import * as Joi from "joi"
 import {
-  identifierRegex,
+  joiArray,
   joiIdentifier,
   joiVariables,
   Primitive,
 } from "./common"
 
-export const defaultProviders = {
-  container: {},
+export interface ProviderConfig {
+  name: string
+  [key: string]: any
 }
 
-export const defaultEnvironments = {
-  local: {
-    providers: {
-      "local-kubernetes": {
-        context: "docker-for-desktop",
-      },
-    },
-  },
-}
-
-export interface EnvironmentConfig {
+export interface CommonEnvironmentConfig {
   configurationHandler?: string
-  providers: { [key: string]: any }  // further validated by each plugin
+  providers: ProviderConfig[]  // further validated by each plugin
   variables: { [key: string]: Primitive }
+}
+
+export interface EnvironmentConfig extends CommonEnvironmentConfig {
+  name: string
 }
 
 export interface ProjectConfig {
   name: string
   defaultEnvironment: string
-  global: EnvironmentConfig
-  environments: { [key: string]: EnvironmentConfig }
+  global: CommonEnvironmentConfig
+  environments: EnvironmentConfig[]
 }
 
-export const providerConfigBase = Joi.object().unknown(true)
+export const defaultProviders = [
+  { name: "container" },
+]
+
+export const defaultEnvironments: EnvironmentConfig[] = [
+  {
+    name: "local",
+    providers: [
+      {
+        name: "local-kubernetes",
+        context: "docker-for-desktop",
+      },
+    ],
+    variables: {},
+  },
+]
+
+export const providerConfigBase = Joi.object().keys({
+  name: joiIdentifier().required(),
+}).unknown(true)
 
 export const environmentSchema = Joi.object().keys({
   configurationHandler: joiIdentifier(),
-  providers: Joi.object().pattern(identifierRegex, providerConfigBase),
+  providers: joiArray(providerConfigBase).unique("name"),
   variables: joiVariables(),
 })
 
@@ -58,7 +72,7 @@ export const projectSchema = Joi.object().keys({
   name: joiIdentifier().required(),
   defaultEnvironment: Joi.string().default("", "<first specified environment>"),
   global: environmentSchema.default(() => defaultGlobal, JSON.stringify(defaultGlobal)),
-  environments: Joi.object()
-    .pattern(identifierRegex, environmentSchema)
+  environments: joiArray(environmentSchema.keys({ name: joiIdentifier().required() }))
+    .unique("name")
     .default(() => ({ ...defaultEnvironments }), JSON.stringify(defaultEnvironments)),
 }).required()

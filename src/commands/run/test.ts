@@ -11,8 +11,11 @@ import { ParameterError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin"
+import {
+  findByName,
+  getNames,
+} from "../../util"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
-import { values } from "lodash"
 import { printRuntimeContext } from "./index"
 
 export const runArgs = {
@@ -51,13 +54,13 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
     const module = await ctx.getModule(moduleName)
     const config = await module.getConfig()
 
-    const testSpec = config.test[testName]
+    const testSpec = findByName(config.test, testName)
 
     if (!testSpec) {
       throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
         moduleName,
         testName,
-        availableTests: Object.keys(config.test),
+        availableTests: getNames(config.test),
       })
     }
 
@@ -74,10 +77,10 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
 
     const interactive = opts.interactive
     const deps = await ctx.getServices(testSpec.dependencies)
-    const runtimeContext = await module.prepareRuntimeContext(values(deps))
+    const runtimeContext = await module.prepareRuntimeContext(deps)
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.testModule({ module, interactive, runtimeContext, silent: false, testName, testSpec })
+    return ctx.testModule({ module, interactive, runtimeContext, silent: false, testSpec })
   }
 }

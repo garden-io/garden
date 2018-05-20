@@ -48,7 +48,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         ctx.log.info({ section: service.name, msg: `Deploying version ${versionString}` })
 
         const identifier = await service.module.getLocalImageId()
-        const ports = Object.values(service.config.ports).map(p => {
+        const ports = service.config.ports.map(p => {
           const port: any = {
             Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
             TargetPort: p.containerPort,

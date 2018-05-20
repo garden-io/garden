@@ -12,7 +12,11 @@ import {
   ContainerService,
   ContainerServiceConfig,
 } from "../container"
-import { toPairs, extend } from "lodash"
+import {
+  toPairs,
+  extend,
+  keyBy,
+} from "lodash"
 import {
   RuntimeContext,
   ServiceStatus,
@@ -178,9 +182,11 @@ export async function createDeployment(service: ContainerService, runtimeContext
       failureThreshold: 3,
     }
 
+    const portsByName = keyBy(config.ports, "name")
+
     if (config.healthCheck.httpGet) {
       const httpGet: any = extend({}, config.healthCheck.httpGet)
-      httpGet.port = config.ports[httpGet.port].containerPort
+      httpGet.port = portsByName[httpGet.port].containerPort
 
       container.readinessProbe.httpGet = httpGet
       container.livenessProbe.httpGet = httpGet
@@ -189,7 +195,7 @@ export async function createDeployment(service: ContainerService, runtimeContext
       container.livenessProbe.exec = container.readinessProbe.exec
     } else if (config.healthCheck.tcpPort) {
       container.readinessProbe.tcpSocket = {
-        port: config.ports[config.healthCheck.tcpPort].containerPort,
+        port: portsByName[config.healthCheck.tcpPort].containerPort,
       }
       container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
     } else {
@@ -252,7 +258,7 @@ export async function createDeployment(service: ContainerService, runtimeContext
     container.volumeMounts = volumeMounts
   }
 
-  const ports = Object.values(config.ports)
+  const ports = config.ports
 
   for (const port of ports) {
     container.ports.push({

@@ -2,7 +2,7 @@ module:
   name: module-b
   type: generic
   services:
-    service-b:
+    - name: service-b
       dependencies:
         - service-a
   build:
@@ -10,5 +10,5 @@ module:
     dependencies:
       - module-a
   test:
-    unit:
+    - name: unit
       command: [echo, OK]

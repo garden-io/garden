@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Environment } from "../../types/common"
 import { Module, ModuleConfig } from "../../types/module"
 import { Service, ServiceConfig } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
 import { GCloud } from "./gcloud"
-import { ConfigureEnvironmentParams } from "../../types/plugin"
+import {
+  ConfigureEnvironmentParams,
+  Provider,
+} from "../../types/plugin"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
@@ -87,9 +89,6 @@ export function gcloud(project?: string, account?: string) {
   return new GCloud({ project, account })
 }
 
-export function getProject<T extends GoogleCloudModule>(providerName: string, service: Service<T>, env: Environment) {
-  // TODO: this is very contrived - we should rethink this a bit and pass
-  // provider configuration when calling the plugin
-  const provider = env.config.providers[providerName]
-  return service.config.project || provider["default-project"] || null
+export function getProject<T extends GoogleCloudModule>(service: Service<T>, provider: Provider) {
+  return service.config.project || provider.config["default-project"] || null
 }

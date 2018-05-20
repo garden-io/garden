@@ -18,6 +18,7 @@ import * as inquirer from "inquirer"
 import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
+import { find } from "lodash"
 import { getLogger, RootLogNode } from "./logger"
 import {
   TimeoutError,
@@ -383,4 +384,16 @@ export function highlightYaml(s: string) {
 export async function loadYamlFile(path: string): Promise<any> {
   const fileData = await readFile(path)
   return yaml.safeLoad(fileData.toString())
+}
+
+export interface ObjectWithName {
+  name: string
+}
+
+export function getNames<T extends ObjectWithName>(array: T[]) {
+  return array.map(v => v.name)
+}
+
+export function findByName<T extends ObjectWithName>(array: T[], name: string): T | undefined {
+  return find(array, ["name", name])
 }

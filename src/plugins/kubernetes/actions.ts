@@ -271,9 +271,10 @@ export async function runModule(
 }
 
 export async function testModule(
-  { ctx, provider, env, interactive, module, runtimeContext, silent, testName, testSpec }:
+  { ctx, provider, env, interactive, module, runtimeContext, silent, testSpec }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
+  const testName = testSpec.name
   const command = testSpec.command
   runtimeContext.envVars = { ...runtimeContext.envVars, ...testSpec.variables }
   const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT

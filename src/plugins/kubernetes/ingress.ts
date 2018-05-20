@@ -7,6 +7,7 @@
  */
 
 import { PluginContext } from "../../plugin-context"
+import { findByName } from "../../util"
 import { ContainerService } from "../container"
 import { KubernetesProvider } from "./index"
 
@@ -24,7 +25,7 @@ export async function createIngress(ctx: PluginContext, provider: KubernetesProv
 
     const backend = {
       serviceName: service.name,
-      servicePort: service.config.ports[e.port].containerPort,
+      servicePort: findByName(service.config.ports, e.port)!.containerPort,
     }
 
     rule.http = {

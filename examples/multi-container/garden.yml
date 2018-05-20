@@ -1,7 +1,10 @@
 project:
   name: multi-container
   environments:
-    dev:
+    - name: local
       providers:
-        kubernetes:
+        - name: local-kubernetes
+    - name: dev
+      providers:
+        - name: kubernetes
           context: my-dev-context

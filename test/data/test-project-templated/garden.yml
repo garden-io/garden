@@ -5,6 +5,6 @@ project:
       some: ${local.env.TEST_VARIABLE}
       service-a-build-command: echo OK
   environments:
-    local:
+    - name: local
       providers:
-        test-plugin: {}
+        - name: test-plugin

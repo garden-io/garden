@@ -31,23 +31,25 @@ export async function getSystemGarden(provider: KubernetesProvider): Promise<Gar
       project: {
         name: "garden-system",
         global: {
-          providers: {
-            container: {},
-          },
+          providers: [
+            { name: "container" },
+          ],
           variables: {},
         },
         defaultEnvironment: "default",
-        environments: {
-          default: {
-            providers: {
-              "local-kubernetes": {
+        environments: [
+          {
+            name: "default",
+            providers: [
+              {
+                name: "local-kubernetes",
                 context: provider.config.context,
                 _system: systemSymbol,
               },
-            },
+            ],
             variables: {},
           },
-        },
+        ],
       },
     },
   })

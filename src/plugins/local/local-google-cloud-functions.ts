@@ -32,7 +32,6 @@ import {
   ServicePortProtocol,
 } from "../container"
 import { validate } from "../../types/common"
-import { mapValues } from "lodash"
 
 const baseContainerName = "local-google-cloud-functions.local-gcf-container"
 const emulatorBaseModulePath = join(STATIC_DIR, "local-gcf-container")
@@ -101,10 +100,11 @@ export const gardenPlugin = (): GardenPlugin => ({
 })
 
 async function getEmulatorModule(ctx: PluginContext, module: GoogleCloudFunctionsModule) {
-  const services = mapValues(module.services, (s, name) => {
-    const functionEntrypoint = s.entrypoint || name
+  const services = module.services.map((s) => {
+    const functionEntrypoint = s.entrypoint || s.name
 
     return {
+      name: s.name,
       command: ["/app/start.sh", functionEntrypoint],
       daemon: false,
       dependencies: s.dependencies,
@@ -112,9 +112,13 @@ async function getEmulatorModule(ctx: PluginContext, module: GoogleCloudFunction
         port: "http",
       }],
       healthCheck: { tcpPort: "http" },
-      ports: {
-        http: { protocol: <ServicePortProtocol>"TCP", containerPort: 8010 },
-      },
+      ports: [
+        {
+          name: "http",
+          protocol: <ServicePortProtocol>"TCP",
+          containerPort: 8010,
+        },
+      ],
       volumes: [],
     }
   })

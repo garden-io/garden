@@ -13,7 +13,6 @@ import { RunResult } from "../../types/plugin"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
 import {
   uniq,
-  values,
   flatten,
 } from "lodash"
 import { printRuntimeContext } from "./index"
@@ -72,9 +71,9 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
     const command = args.command ? args.command.split(" ") : []
 
     // combine all dependencies for all services in the module, to be sure we have all the context we need
-    const services = values(await module.getServices())
+    const services = await module.getServices()
     const depNames = uniq(flatten(services.map(s => s.config.dependencies)))
-    const deps = values(await ctx.getServices(depNames))
+    const deps = await ctx.getServices(depNames)
 
     const runtimeContext = await module.prepareRuntimeContext(deps)
 
