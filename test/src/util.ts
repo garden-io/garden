@@ -1,6 +1,6 @@
-import { scanDirectory } from "../../src/util"
-import { join } from "path"
 import { expect } from "chai"
+import { join } from "path"
+import { scanDirectory } from "../../src/util"
 
 describe("util", () => {
   describe("scanDirectory", () => {
@@ -33,4 +33,5 @@ describe("util", () => {
       expect(count).to.eq(3)
     })
   })
+
 })

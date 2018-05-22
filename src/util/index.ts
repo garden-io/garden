@@ -19,16 +19,16 @@ import { spawn as _spawn } from "child_process"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 import { find } from "lodash"
-import { getLogger, RootLogNode } from "./logger"
+import { getLogger, RootLogNode } from "../logger/index"
 import {
   TimeoutError,
   GardenError,
-} from "./exceptions"
+} from "../exceptions"
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
-import { FancyConsoleWriter } from "./logger/writers"
+import { FancyConsoleWriter } from "../logger/writers"
 import hasAnsi = require("has-ansi")
 
 // shim to allow async generator functions

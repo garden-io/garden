@@ -95,6 +95,7 @@ import { Task } from "./types/task"
 import {
   LocalConfigStore,
 } from "./config-store"
+import { detectCircularDependencies } from "./util/detectCycles"
 
 export interface ModuleMap<T extends Module> {
   [key: string]: T
@@ -571,7 +572,7 @@ export class Garden {
   }
 
   /*
-    Scans the project root for modules and adds them to the context
+    Scans the project root for modules and adds them to the context.
    */
   async scanModules() {
     const ignorer = getIgnorer(this.projectRoot)
@@ -603,6 +604,10 @@ export class Garden {
     }
 
     this.modulesScanned = true
+
+    await detectCircularDependencies(
+      await this.getModules(),
+      (await this.getServices()).map(s => s.name))
   }
 
   /*

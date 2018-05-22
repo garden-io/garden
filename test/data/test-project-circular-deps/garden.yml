@@ -1,0 +1,6 @@
+project:
+  name: test-project-b
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin

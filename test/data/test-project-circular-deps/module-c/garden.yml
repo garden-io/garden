@@ -1,0 +1,14 @@
+module:
+  name: module-c
+  type: generic
+  allowPush: false
+  services:
+    - name: service-c:
+      endpoints:
+        - paths: [/path-c]
+          containerPort: 8080
+      dependencies:
+        - service-b
+  build:
+    dependencies:
+      - module-b

@@ -47,7 +47,7 @@ export class Kubectl {
     args: string[],
     { data, ignoreError = false, silent = true, timeout = KUBECTL_DEFAULT_TIMEOUT }: KubectlParams = {},
   ): Promise<KubectlOutput> {
-    // TODO: use the spawn helper from util.ts
+    // TODO: use the spawn helper from index.ts
     const logger = getLogger()
     const out: KubectlOutput = {
       code: 0,
