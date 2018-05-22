@@ -18,7 +18,7 @@ describe("DeployTask", () => {
 
     const garden = await makeTestGarden(resolve(dataDir, "test-project-templated"))
     const ctx = garden.pluginContext
-    await ctx.setConfig(["project", "my", "variable"], "OK")
+    await ctx.setConfig({ key: ["project", "my", "variable"], value: "OK" })
 
     const serviceA = await ctx.getService("service-a")
     const serviceB = await ctx.getService("service-b")
@@ -27,28 +27,42 @@ describe("DeployTask", () => {
     let actionParams: any = {}
 
     stubModuleAction(
-      garden, "generic", "test-plugin", "getServiceStatus",
+      garden, "test", "test-plugin", "getServiceStatus",
       async () => ({}),
     )
 
     stubModuleAction(
-      garden, "generic", "test-plugin", "deployService",
-      async (params) => { actionParams = params },
+      garden, "test", "test-plugin", "deployService",
+      async (params) => {
+        actionParams = params
+        return {}
+      },
     )
 
     await task.process()
 
-    const { versionString } = await serviceA.module.getVersion()
+    const versionStringA = (await serviceA.module.getVersion()).versionString
+    const versionStringB = (await serviceB.module.getVersion()).versionString
 
     expect(actionParams.service.config).to.eql({
       name: "service-b",
-      command: `echo ${versionString}`,
       dependencies: ["service-a"],
+      outputs: {},
+      spec: {
+        command: ["echo", versionStringA],
+        daemon: false,
+        dependencies: ["service-a"],
+        endpoints: [],
+        name: "service-b",
+        outputs: {},
+        ports: [],
+        volumes: [],
+      },
     })
     expect(actionParams.runtimeContext.dependencies).to.eql({
       "service-a": {
         outputs: {},
-        version: versionString,
+        version: versionStringA,
       },
     })
   })

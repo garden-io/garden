@@ -1,25 +1,37 @@
 import * as td from "testdouble"
 import { resolve } from "path"
 import { PluginContext } from "../src/plugin-context"
+import {
+  ContainerModule,
+  containerModuleSpecSchema,
+  ContainerServiceConfig,
+} from "../src/plugins/container"
+import {
+  testGenericModule,
+} from "../src/plugins/generic"
 import { TaskResults } from "../src/task-graph"
+import {
+  validate,
+} from "../src/types/common"
+import {
+  GardenPlugin,
+  PluginActions,
+  PluginFactory,
+  ModuleActions,
+  } from "../src/types/plugin"
+import { Garden } from "../src/garden"
+import {
+  ModuleConfig,
+} from "../src/types/module"
+import { mapValues } from "lodash"
 import {
   DeleteConfigParams,
   GetConfigParams,
   ParseModuleParams,
-  GardenPlugin,
-  PluginActions,
-  PluginFactory,
-  SetConfigParams,
-  ModuleActions,
   RunModuleParams,
   RunServiceParams,
-} from "../src/types/plugin"
-import { Garden } from "../src/garden"
-import {
-  Module,
-  ModuleConfig,
-} from "../src/types/module"
-import { mapValues } from "lodash"
+  SetConfigParams,
+} from "../src/types/plugin/params"
 import { TreeVersion } from "../src/vcs/base"
 
 export const dataDir = resolve(__dirname, "data")
@@ -45,7 +57,7 @@ export async function profileBlock(description: string, block: () => Promise<any
 
 export const projectRootA = getDataDir("test-project-a")
 
-class TestModule extends Module {
+class TestModule extends ContainerModule {
   type = "test"
 
   async getVersion() {
@@ -58,14 +70,17 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
 
   return {
     actions: {
-      async configureEnvironment() { },
+      async configureEnvironment() {
+        return {}
+      },
 
       async setConfig({ key, value }: SetConfigParams) {
         _config[key.join(".")] = value
+        return {}
       },
 
       async getConfig({ key }: GetConfigParams) {
-        return _config[key.join(".")] || null
+        return { value: _config[key.join(".")] || null }
       },
 
       async deleteConfig({ key }: DeleteConfigParams) {
@@ -79,10 +94,39 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
       },
     },
     moduleActions: {
-      generic: {
-        async parseModule({ ctx, moduleConfig }: ParseModuleParams) {
-          return new Module(ctx, moduleConfig)
+      test: {
+        testModule: testGenericModule,
+
+        async parseModule({ ctx, moduleConfig }: ParseModuleParams<TestModule>) {
+          moduleConfig.spec = validate(
+            moduleConfig.spec,
+            containerModuleSpecSchema,
+            { context: `test module ${moduleConfig.name}` },
+          )
+
+          // validate services
+          const services: ContainerServiceConfig[] = moduleConfig.spec.services.map(spec => ({
+            name: spec.name,
+            dependencies: spec.dependencies,
+            outputs: spec.outputs,
+            spec,
+          }))
+
+          const tests = moduleConfig.spec.tests.map(t => ({
+            name: t.name,
+            dependencies: t.dependencies,
+            spec: t,
+            timeout: t.timeout,
+            variables: t.variables,
+          }))
+
+          return {
+            module: moduleConfig,
+            services,
+            tests,
+          }
         },
+
         async runModule(params: RunModuleParams) {
           const version = await params.module.getVersion()
 
@@ -96,9 +140,10 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             success: true,
           }
         },
+
         async runService({ ctx, service, interactive, runtimeContext, silent, timeout}: RunServiceParams) {
           return ctx.runModule({
-            module: service.module,
+            moduleName: service.module.name,
             command: [service.name],
             interactive,
             runtimeContext,
@@ -106,6 +151,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             timeout,
           })
         },
+
         async getServiceStatus() { return {} },
         async deployService() { return {} },
       },
@@ -117,11 +163,20 @@ testPlugin.pluginName = "test-plugin"
 export const testPluginB: PluginFactory = (params) => {
   const plugin = testPlugin(params)
   plugin.moduleActions = {
-    test: plugin.moduleActions!.generic,
+    test: plugin.moduleActions!.test,
   }
   return plugin
 }
 testPluginB.pluginName = "test-plugin-b"
+
+export const testPluginC: PluginFactory = (params) => {
+  const plugin = testPlugin(params)
+  plugin.moduleActions = {
+    "test-c": plugin.moduleActions!.test,
+  }
+  return plugin
+}
+testPluginC.pluginName = "test-plugin-c"
 
 export const defaultModuleConfig: ModuleConfig = {
   type: "test",
@@ -130,23 +185,30 @@ export const defaultModuleConfig: ModuleConfig = {
   allowPush: false,
   variables: {},
   build: { dependencies: [] },
-  services: [
-    {
-      name: "testService",
-      dependencies: [],
-    },
-  ],
-  test: [],
+  spec: {
+    services: [
+      {
+        name: "testService",
+        dependencies: [],
+      },
+    ],
+  },
 }
 
 export const makeTestModule = (ctx: PluginContext, params: Partial<ModuleConfig> = {}) => {
-  return new TestModule(ctx, { ...defaultModuleConfig, ...params })
+  return new TestModule(
+    ctx,
+    { ...defaultModuleConfig, ...params },
+    defaultModuleConfig.spec.services,
+    [],
+  )
 }
 
 export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
   const testPlugins: PluginFactory[] = [
     testPlugin,
     testPluginB,
+    testPluginC,
   ]
   const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
 
@@ -174,9 +236,12 @@ export function stubAction<T extends keyof PluginActions> (
 }
 
 export function stubModuleAction<T extends keyof ModuleActions<any>> (
-  garden: Garden, moduleType: string, pluginName: string, type: T, handler?: ModuleActions<any>[T],
+  garden: Garden, moduleType: string, pluginName: string, actionType: T, handler: ModuleActions<any>[T],
 ) {
-  return td.replace(garden["moduleActionHandlers"][moduleType][type], pluginName, handler)
+  handler["actionType"] = actionType
+  handler["pluginName"] = pluginName
+  handler["moduleType"] = moduleType
+  return td.replace(garden["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
 }
 
 export async function expectError(fn: Function, typeOrCallback: string | ((err: any) => void)) {

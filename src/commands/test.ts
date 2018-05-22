@@ -49,7 +49,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
       command: `Running tests`,
     })
 
-    await ctx.configureEnvironment()
+    await ctx.configureEnvironment({})
 
     const group = opts.group
     const force = opts.force

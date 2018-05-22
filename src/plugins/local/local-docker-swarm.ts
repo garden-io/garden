@@ -11,13 +11,18 @@ import { exec } from "child-process-promise"
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import {
+  GardenPlugin,
+} from "../../types/plugin"
+import {
+  DeployServiceParams,
   ExecInServiceParams,
   GetServiceOutputsParams,
   GetServiceStatusParams,
-  GardenPlugin,
-  DeployServiceParams,
-} from "../../types/plugin"
-import { ContainerModule } from "../container"
+} from "../../types/plugin/params"
+import {
+  helpers,
+  ContainerModule,
+} from "../container"
 import {
   map,
   sortBy,
@@ -40,15 +45,15 @@ export const gardenPlugin = (): GardenPlugin => ({
       getServiceStatus,
 
       async deployService(
-        { ctx, provider, service, runtimeContext, env }: DeployServiceParams<ContainerModule>,
+        { ctx, provider, module, service, runtimeContext, env }: DeployServiceParams<ContainerModule>,
       ) {
         // TODO: split this method up and test
         const { versionString } = await service.module.getVersion()
 
         ctx.log.info({ section: service.name, msg: `Deploying version ${versionString}` })
 
-        const identifier = await service.module.getLocalImageId()
-        const ports = service.config.ports.map(p => {
+        const identifier = await helpers.getLocalImageId(module)
+        const ports = service.spec.ports.map(p => {
           const port: any = {
             Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
             TargetPort: p.containerPort,
@@ -61,7 +66,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
         const envVars = map(runtimeContext.envVars, (v, k) => `${k}=${v}`)
 
-        const volumeMounts = service.config.volumes.map(v => {
+        const volumeMounts = service.spec.volumes.map(v => {
           // TODO-LOW: Support named volumes
           if (v.hostPath) {
             return {
@@ -87,7 +92,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           TaskTemplate: {
             ContainerSpec: {
               Image: identifier,
-              Command: service.config.command,
+              Command: service.spec.command,
               Env: envVars,
               Mounts: volumeMounts,
             },
@@ -112,7 +117,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         }
 
         const docker = getDocker()
-        const serviceStatus = await getServiceStatus({ ctx, provider, service, env })
+        const serviceStatus = await getServiceStatus({ ctx, provider, service, env, module })
         let swarmServiceStatus
         let serviceId
 
@@ -168,7 +173,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           msg: `Ready`,
         })
 
-        return getServiceStatus({ ctx, provider, service, env })
+        return getServiceStatus({ ctx, provider, module, service, env })
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<ContainerModule>) {
@@ -180,7 +185,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       async execInService(
         { ctx, provider, env, service, command }: ExecInServiceParams<ContainerModule>,
       ) {
-        const status = await getServiceStatus({ ctx, provider, service, env })
+        const status = await getServiceStatus({ ctx, provider, service, env, module: service.module })
 
         if (!status.state || status.state !== "ready") {
           throw new DeploymentError(`Service ${service.name} is not running`, {
@@ -234,6 +239,7 @@ async function getEnvironmentStatus() {
 
 async function configureEnvironment() {
   await getDocker().swarmInit({})
+  return {}
 }
 
 async function getServiceStatus({ ctx, service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {

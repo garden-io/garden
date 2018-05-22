@@ -15,7 +15,7 @@ import * as deepMap from "deep-map"
 import { GardenError } from "./exceptions"
 
 export type StringOrStringPromise = Promise<string> | string
-export type KeyResolver = (keyParts: string[]) => StringOrStringPromise
+export type KeyResolver = (keyParts: string[]) => Promise<string | undefined> | string | undefined
 
 export interface TemplateStringContext {
   [type: string]: Primitive | KeyResolver | TemplateStringContext | undefined
@@ -76,6 +76,15 @@ export async function resolveTemplateString(
 }
 
 export function genericResolver(context: TemplateStringContext, ignoreMissingKeys = false): KeyResolver {
+  function pathOrError(path) {
+    if (ignoreMissingKeys) {
+      // return the format string unchanged if option is set
+      return `\$\{${path}\}`
+    } else {
+      throw new TemplateStringError(`Could not find key: ${path}`, { path, context })
+    }
+  }
+
   return (parts: string[]) => {
     const path = parts.join(".")
     let value
@@ -87,15 +96,11 @@ export function genericResolver(context: TemplateStringContext, ignoreMissingKey
       switch (typeof value) {
         case "function":
           // pass the rest of the key parts to the resolver function
-          return value(parts.slice(p + 1))
+          const resolvedValue = value(parts.slice(p + 1))
+          return resolvedValue === undefined ? pathOrError(path) : resolvedValue
 
         case "undefined":
-          if (ignoreMissingKeys) {
-            // return the format string unchanged if option is set
-            return `\$\{${path}\}`
-          } else {
-            throw new TemplateStringError(`Could not find key: ${path}`, { path, context })
-          }
+          return pathOrError(path)
       }
     }
 

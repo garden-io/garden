@@ -1,19 +1,20 @@
 import { ConfigDeleteCommand } from "../../../../src/commands/config/delete"
 import { expectError, makeTestContextA } from "../../../helpers"
+import { expect } from "chai"
 
 describe("ConfigDeleteCommand", () => {
   it("should delete a config variable", async () => {
     const ctx = await makeTestContextA()
     const command = new ConfigDeleteCommand()
 
-    await ctx.setConfig(["project", "mykey"], "myvalue")
+    const key = ["project", "mykey"]
+    const value = "myvalue"
+
+    await ctx.setConfig({ key, value })
 
     await command.action(ctx, { key: "project.mykey" })
 
-    await expectError(
-      async () => await ctx.getConfig(["project", "mykey"]),
-      "not-found",
-    )
+    expect(await ctx.getConfig({ key })).to.eql({ value: null })
   })
 
   it("should throw on invalid key", async () => {

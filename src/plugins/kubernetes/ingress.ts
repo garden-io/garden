@@ -13,11 +13,11 @@ import { KubernetesProvider } from "./index"
 
 export async function createIngress(ctx: PluginContext, provider: KubernetesProvider, service: ContainerService) {
   // FIXME: ingresses don't get updated when deployment is already running (rethink status check)
-  if (service.config.endpoints.length === 0) {
+  if (service.spec.endpoints.length === 0) {
     return null
   }
 
-  const rules = service.config.endpoints.map(e => {
+  const rules = service.spec.endpoints.map(e => {
     const rule: any = {}
 
     // TODO: support separate hostnames per endpoint
@@ -25,7 +25,7 @@ export async function createIngress(ctx: PluginContext, provider: KubernetesProv
 
     const backend = {
       serviceName: service.name,
-      servicePort: findByName(service.config.ports, e.port)!.containerPort,
+      servicePort: findByName(service.spec.ports, e.port)!.containerPort,
     }
 
     rule.http = {

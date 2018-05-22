@@ -9,7 +9,7 @@
 import { Command } from "./base"
 import { EntryStyle } from "../logger/types"
 import { PluginContext } from "../plugin-context"
-import { LoginStatusMap } from "../types/plugin"
+import { LoginStatusMap } from "../types/plugin/outputs"
 
 export class LogoutCommand extends Command {
   name = "logout"
@@ -21,7 +21,7 @@ export class LogoutCommand extends Command {
 
     const entry = ctx.log.info({ msg: "Logging out...", entryStyle: EntryStyle.activity })
 
-    const result = await ctx.logout()
+    const result = await ctx.logout({})
 
     entry.setSuccess("Logged out successfully")
 

@@ -11,7 +11,7 @@ import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
-import { PushResult } from "../types/plugin"
+import { PushResult } from "../types/plugin/outputs"
 import { Task, TaskParams, TaskVersion } from "../types/task"
 
 export interface PushTaskParams extends TaskParams {
@@ -65,18 +65,18 @@ export class PushTask extends Task {
       return { pushed: false }
     }
 
-    const entry = this.ctx.log.info({
+    const logEntry = this.ctx.log.info({
       section: this.module.name,
       msg: "Pushing",
       entryStyle: EntryStyle.activity,
     })
 
-    const result = await this.ctx.pushModule(this.module, entry)
+    const result = await this.ctx.pushModule({ moduleName: this.module.name, logEntry })
 
     if (result.pushed) {
-      entry.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
+      logEntry.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
     } else {
-      entry.setWarn({ msg: result.message, append: true })
+      logEntry.setWarn({ msg: result.message, append: true })
     }
 
     return result

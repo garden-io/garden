@@ -1,2 +1,5 @@
 project:
   name: build-products
+  global:
+    providers:
+      - name: test-plugin

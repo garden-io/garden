@@ -1,6 +1,6 @@
 module:
   name: module-b
-  type: generic
+  type: test
   services:
     - name: service-b
       dependencies:
@@ -9,6 +9,6 @@ module:
     command: echo B
     dependencies:
       - module-a
-  test:
+  tests:
     - name: unit
       command: [echo, OK]

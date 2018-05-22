@@ -10,41 +10,45 @@ import {
   joiArray,
   validate,
 } from "../../types/common"
-import { baseServiceSchema, Module, ModuleConfig } from "../../types/module"
 import {
-  ServiceConfig,
+  Module,
+  ModuleSpec,
+} from "../../types/module"
+import { ParseModuleResult } from "../../types/plugin/outputs"
+import {
+  DeployServiceParams,
+  GetServiceOutputsParams,
+  GetServiceStatusParams,
+  ParseModuleParams,
+} from "../../types/plugin/params"
+import {
+  baseServiceSchema,
   ServiceState,
   ServiceStatus,
-  Service,
 } from "../../types/service"
 import {
   resolve,
 } from "path"
 import * as Joi from "joi"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
+import { GenericTestSpec } from "../generic"
 import {
   configureEnvironment,
   gcloud,
   getEnvironmentStatus,
   getProject,
   GOOGLE_CLOUD_DEFAULT_REGION,
+  GoogleCloudServiceSpec,
 } from "./common"
 import {
-  DeployServiceParams,
   GardenPlugin,
-  GetServiceOutputsParams,
-  GetServiceStatusParams,
-  ParseModuleParams,
 } from "../../types/plugin"
 
-export interface GoogleCloudFunctionsServiceConfig extends ServiceConfig {
+export interface GcfServiceSpec extends GoogleCloudServiceSpec {
   function: string,
   entrypoint?: string,
   path: string,
-  project?: string,
 }
-
-export interface GoogleCloudFunctionsModuleConfig extends ModuleConfig<GoogleCloudFunctionsServiceConfig> { }
 
 export const gcfServicesSchema = joiArray(baseServiceSchema.keys({
   entrypoint: Joi.string(),
@@ -52,8 +56,38 @@ export const gcfServicesSchema = joiArray(baseServiceSchema.keys({
   project: Joi.string(),
 })).unique("name")
 
-export class GoogleCloudFunctionsModule extends Module<GoogleCloudFunctionsModuleConfig> { }
-export class GoogleCloudFunctionsService extends Service<GoogleCloudFunctionsModule> { }
+export interface GcfModuleSpec extends ModuleSpec {
+  functions: GcfServiceSpec[],
+  tests: GenericTestSpec[],
+}
+
+export class GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, GenericTestSpec> { }
+
+export async function parseGcfModule(
+  { moduleConfig }: ParseModuleParams<GcfModule>,
+): Promise<ParseModuleResult<GcfModule>> {
+  // TODO: check that each function exists at the specified path
+  const functions = validate(
+    moduleConfig.spec.functions, gcfServicesSchema, { context: `services in module ${moduleConfig.name}` },
+  )
+
+  return {
+    module: moduleConfig,
+    services: functions.map(f => ({
+      name: f.name,
+      dependencies: f.dependencies,
+      outputs: f.outputs,
+      spec: f,
+    })),
+    tests: moduleConfig.spec.tests.map(t => ({
+      name: t.name,
+      dependencies: t.dependencies,
+      variables: t.variables,
+      timeout: t.timeout,
+      spec: t,
+    })),
+  }
+}
 
 export const gardenPlugin = (): GardenPlugin => ({
   actions: {
@@ -62,25 +96,15 @@ export const gardenPlugin = (): GardenPlugin => ({
   },
   moduleActions: {
     "google-cloud-function": {
-      async parseModule({ ctx, moduleConfig }: ParseModuleParams<GoogleCloudFunctionsModule>) {
-        const module = new GoogleCloudFunctionsModule(ctx, moduleConfig)
-
-        // TODO: check that each function exists at the specified path
-
-        module.services = validate(
-          moduleConfig.services, gcfServicesSchema, { context: `services in module ${moduleConfig.name}` },
-        )
-
-        return module
-      },
+      parseModule: parseGcfModule,
 
       async deployService(
-        { ctx, provider, service, env }: DeployServiceParams<GoogleCloudFunctionsModule>,
+        { ctx, provider, module, service, env }: DeployServiceParams<GcfModule>,
       ) {
         // TODO: provide env vars somehow to function
         const project = getProject(service, provider)
-        const functionPath = resolve(service.module.path, service.config.path)
-        const entrypoint = service.config.entrypoint || service.name
+        const functionPath = resolve(service.module.path, service.spec.path)
+        const entrypoint = service.spec.entrypoint || service.name
 
         await gcloud(project).call([
           "beta", "functions",
@@ -91,10 +115,10 @@ export const gardenPlugin = (): GardenPlugin => ({
           "--trigger-http",
         ])
 
-        return getServiceStatus({ ctx, provider, service, env })
+        return getServiceStatus({ ctx, provider, module, service, env })
       },
 
-      async getServiceOutputs({ service, provider }: GetServiceOutputsParams<GoogleCloudFunctionsModule>) {
+      async getServiceOutputs({ service, provider }: GetServiceOutputsParams<GcfModule>) {
         // TODO: we may want to pull this from the service status instead, along with other outputs
         const project = getProject(service, provider)
 
@@ -107,7 +131,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 })
 
 export async function getServiceStatus(
-  { service, provider }: GetServiceStatusParams<GoogleCloudFunctionsModule>,
+  { service, provider }: GetServiceStatusParams<GcfModule>,
 ): Promise<ServiceStatus> {
   const project = getProject(service, provider)
   const functions: any[] = await gcloud(project).json(["beta", "functions", "list"])

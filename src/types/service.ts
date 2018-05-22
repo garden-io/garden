@@ -7,12 +7,23 @@
  */
 
 import Bluebird = require("bluebird")
-import { PluginContext } from "../plugin-context"
-import { findByName } from "../util"
-import { Module } from "./module"
-import { PrimitiveMap } from "./common"
+import * as Joi from "joi"
 import { ConfigurationError } from "../exceptions"
-import { resolveTemplateStrings, TemplateOpts, TemplateStringContext } from "../template-string"
+import { PluginContext } from "../plugin-context"
+import {
+  resolveTemplateStrings,
+  TemplateOpts,
+  TemplateStringContext,
+} from "../template-string"
+import { findByName } from "../util"
+import {
+  joiArray,
+  joiIdentifier,
+  joiIdentifierMap,
+  joiPrimitive,
+  PrimitiveMap,
+} from "./common"
+import { Module } from "./module"
 
 export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
 
@@ -26,11 +37,42 @@ export interface ServiceEndpoint {
   paths?: string[]
 }
 
-export interface ServiceConfig {
+export const serviceEndpointSchema = Joi.object().keys({
+  protocol: Joi.string().only("http", "https", "tcp", "udp").required(),
+  hostname: Joi.string().required(),
+  port: Joi.number(),
+  url: Joi.string().required(),
+  paths: Joi.array().items(Joi.string()),
+})
+
+export interface ServiceSpec { }
+
+export interface BaseServiceSpec extends ServiceSpec {
   name: string
   dependencies: string[]
+  outputs: PrimitiveMap
 }
 
+export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
+
+export const baseServiceSchema = Joi.object()
+  .keys({
+    name: joiIdentifier().required(),
+    dependencies: joiArray(joiIdentifier()),
+    outputs: serviceOutputsSchema,
+  })
+  .unknown(true)
+
+export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends BaseServiceSpec {
+  // Plugins can add custom fields that are kept here
+  spec: T
+}
+
+export const serviceConfigSchema = baseServiceSchema.keys({
+  spec: Joi.object(),
+})
+
+// TODO: revise this schema
 export interface ServiceStatus {
   providerId?: string
   providerVersion?: string
@@ -45,6 +87,20 @@ export interface ServiceStatus {
   detail?: any
 }
 
+export const serviceStatusSchema = Joi.object().keys({
+  providerId: Joi.string(),
+  providerVersion: Joi.string(),
+  version: Joi.string(),
+  state: Joi.string(),
+  runningReplicas: Joi.number(),
+  endpoints: Joi.array().items(serviceEndpointSchema),
+  lastMessage: Joi.string().allow(""),
+  lastError: Joi.string(),
+  createdAt: Joi.string(),
+  updatedAt: Joi.string(),
+  detail: Joi.object(),
+})
+
 export type RuntimeContext = {
   envVars: PrimitiveMap
   dependencies: {
@@ -53,13 +109,22 @@ export type RuntimeContext = {
       outputs: PrimitiveMap,
     },
   },
+  module: {
+    name: string,
+    type: string,
+    version: string,
+  },
 }
 
 export class Service<M extends Module = Module> {
+  public spec: M["services"][0]["spec"]
+
   constructor(
     protected ctx: PluginContext, public module: M,
     public name: string, public config: M["services"][0],
-  ) { }
+  ) {
+    this.spec = config.spec
+  }
 
   static async factory<S extends Service<M>, M extends Module>(
     this: (new (ctx: PluginContext, module: M, name: string, config: S["config"]) => S),
@@ -81,7 +146,7 @@ export class Service<M extends Module = Module> {
    */
   async getDependencies(): Promise<Service<any>[]> {
     return Bluebird.map(
-      this.config.dependencies,
+      this.config.dependencies || [],
       async (depName: string) => await this.ctx.getService(depName),
     )
   }

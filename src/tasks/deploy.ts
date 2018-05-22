@@ -74,7 +74,7 @@ export class DeployTask extends Task {
   }
 
   async process(): Promise<ServiceStatus> {
-    const entry = (this.logEntry || this.ctx.log).info({
+    const logEntry = (this.logEntry || this.ctx.log).info({
       section: this.service.name,
       msg: "Checking status",
       entryStyle: EntryStyle.activity,
@@ -82,7 +82,7 @@ export class DeployTask extends Task {
 
     // TODO: get version from build task results
     const { versionString } = await this.service.module.getVersion()
-    const status = await this.ctx.getServiceStatus(this.service)
+    const status = await this.ctx.getServiceStatus({ serviceName: this.service.name, logEntry })
 
     if (
       !this.force &&
@@ -90,18 +90,22 @@ export class DeployTask extends Task {
       status.state === "ready"
     ) {
       // already deployed and ready
-      entry.setSuccess({
+      logEntry.setSuccess({
         msg: `Version ${versionString} already deployed`,
         append: true,
       })
       return status
     }
 
-    entry.setState({ section: this.service.name, msg: "Deploying" })
+    logEntry.setState({ section: this.service.name, msg: "Deploying" })
 
-    const result = await this.ctx.deployService(this.service, entry)
+    const result = await this.ctx.deployService({
+      serviceName: this.service.name,
+      runtimeContext: await this.service.prepareRuntimeContext(),
+      logEntry,
+    })
 
-    entry.setSuccess({ msg: chalk.green(`Ready`), append: true })
+    logEntry.setSuccess({ msg: chalk.green(`Ready`), append: true })
 
     return result
   }

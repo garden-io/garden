@@ -1,6 +1,6 @@
 import { expect } from "chai"
 
-import { LogLevel, EntryStatus, LogSymbolType, LoggerType } from "../../src/logger/types"
+import { LogLevel, EntryStatus, LogSymbolType } from "../../src/logger/types"
 import { BasicConsoleWriter, FancyConsoleWriter } from "../../src/logger/writers"
 import { RootLogNode } from "../../src/logger"
 import { getChildNodes } from "../../src/logger/util"

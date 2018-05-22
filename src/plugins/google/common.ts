@@ -6,24 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Module, ModuleConfig } from "../../types/module"
-import { Service, ServiceConfig } from "../../types/service"
+import {
+  Module,
+  ModuleSpec,
+} from "../../types/module"
+import { ConfigureEnvironmentParams } from "../../types/plugin/params"
+import {
+  BaseServiceSpec,
+  Service,
+} from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
+import { GenericTestSpec } from "../generic"
 import { GCloud } from "./gcloud"
 import {
-  ConfigureEnvironmentParams,
   Provider,
 } from "../../types/plugin"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
-export interface GoogleCloudServiceConfig extends ServiceConfig {
-  project?: string
+export interface GoogleCloudServiceSpec extends BaseServiceSpec {
+  project?: string,
 }
 
-export interface GoogleCloudModuleConfig extends ModuleConfig<GoogleCloudServiceConfig> { }
-
-export abstract class GoogleCloudModule extends Module<GoogleCloudModuleConfig> { }
+export abstract class GoogleCloudModule<
+  M extends ModuleSpec = ModuleSpec,
+  S extends GoogleCloudServiceSpec = GoogleCloudServiceSpec,
+  T extends GenericTestSpec = GenericTestSpec,
+  > extends Module<M, S, T> { }
 
 export async function getEnvironmentStatus() {
   let sdkInfo
@@ -83,6 +92,8 @@ export async function configureEnvironment({ ctx, status }: ConfigureEnvironment
     })
     await gcloud().tty(["init"], { silent: false })
   }
+
+  return {}
 }
 
 export function gcloud(project?: string, account?: string) {
@@ -90,5 +101,5 @@ export function gcloud(project?: string, account?: string) {
 }
 
 export function getProject<T extends GoogleCloudModule>(service: Service<T>, provider: Provider) {
-  return service.config.project || provider.config["default-project"] || null
+  return service.spec.project || provider.config["default-project"] || null
 }

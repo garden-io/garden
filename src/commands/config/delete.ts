@@ -29,12 +29,13 @@ export class ConfigDeleteCommand extends Command<typeof configDeleteArgs> {
   arguments = configDeleteArgs
 
   async action(ctx: PluginContext, args: DeleteArgs) {
-    const res = await ctx.deleteConfig(args.key.split("."))
+    const key = args.key.split(".")
+    const res = await ctx.deleteConfig({ key })
 
     if (res.found) {
       ctx.log.info(`Deleted config key ${args.key}`)
     } else {
-      throw new NotFoundError(`Could not find config key ${args.key}`, { key: args.key })
+      throw new NotFoundError(`Could not find config key ${args.key}`, { key })
     }
 
     return { ok: true }

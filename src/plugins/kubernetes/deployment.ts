@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployServiceParams } from "../../types/plugin"
+import { DeployServiceParams } from "../../types/plugin/params"
 import {
+  helpers,
   ContainerModule,
   ContainerService,
-  ContainerServiceConfig,
 } from "../container"
 import {
   toPairs,
@@ -72,10 +72,10 @@ export async function deployService(
 }
 
 export async function createDeployment(service: ContainerService, runtimeContext: RuntimeContext) {
-  const config: ContainerServiceConfig = service.config
+  const spec = service.spec
   const { versionString } = await service.module.getVersion()
   // TODO: support specifying replica count
-  const configuredReplicas = 1 // service.config.count[env.name] || 1
+  const configuredReplicas = 1 // service.spec.count[env.name] || 1
 
   // TODO: moar type-safety
   const deployment: any = {
@@ -142,9 +142,9 @@ export async function createDeployment(service: ContainerService, runtimeContext
   })
 
   const container: any = {
-    args: service.config.command || [],
+    args: service.spec.command || [],
     name: service.name,
-    image: await service.module.getLocalImageId(),
+    image: await helpers.getLocalImageId(service.module),
     env,
     ports: [],
     // TODO: make these configurable
@@ -165,7 +165,7 @@ export async function createDeployment(service: ContainerService, runtimeContext
   //   container.command = [config.entrypoint]
   // }
 
-  if (config.healthCheck) {
+  if (spec.healthCheck) {
     container.readinessProbe = {
       initialDelaySeconds: 10,
       periodSeconds: 5,
@@ -182,20 +182,20 @@ export async function createDeployment(service: ContainerService, runtimeContext
       failureThreshold: 3,
     }
 
-    const portsByName = keyBy(config.ports, "name")
+    const portsByName = keyBy(spec.ports, "name")
 
-    if (config.healthCheck.httpGet) {
-      const httpGet: any = extend({}, config.healthCheck.httpGet)
+    if (spec.healthCheck.httpGet) {
+      const httpGet: any = extend({}, spec.healthCheck.httpGet)
       httpGet.port = portsByName[httpGet.port].containerPort
 
       container.readinessProbe.httpGet = httpGet
       container.livenessProbe.httpGet = httpGet
-    } else if (config.healthCheck.command) {
-      container.readinessProbe.exec = { command: config.healthCheck.command.map(s => s.toString()) }
+    } else if (spec.healthCheck.command) {
+      container.readinessProbe.exec = { command: spec.healthCheck.command.map(s => s.toString()) }
       container.livenessProbe.exec = container.readinessProbe.exec
-    } else if (config.healthCheck.tcpPort) {
+    } else if (spec.healthCheck.tcpPort) {
       container.readinessProbe.tcpSocket = {
-        port: portsByName[config.healthCheck.tcpPort].containerPort,
+        port: portsByName[spec.healthCheck.tcpPort].containerPort,
       }
       container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
     } else {
@@ -217,11 +217,11 @@ export async function createDeployment(service: ContainerService, runtimeContext
   deployment.spec.selector.matchLabels = { service: service.name }
   deployment.spec.template.metadata.labels = labels
 
-  if (config.volumes && config.volumes.length) {
+  if (spec.volumes && spec.volumes.length) {
     const volumes: any[] = []
     const volumeMounts: any[] = []
 
-    for (const volume of config.volumes) {
+    for (const volume of spec.volumes) {
       const volumeName = volume.name
       const volumeType = !!volume.hostPath ? "hostPath" : "emptyDir"
 
@@ -258,7 +258,7 @@ export async function createDeployment(service: ContainerService, runtimeContext
     container.volumeMounts = volumeMounts
   }
 
-  const ports = config.ports
+  const ports = spec.ports
 
   for (const port of ports) {
     container.ports.push({
@@ -267,7 +267,7 @@ export async function createDeployment(service: ContainerService, runtimeContext
     })
   }
 
-  if (config.daemon) {
+  if (spec.daemon) {
     // this runs a pod on every node
     deployment.kind = "DaemonSet"
     deployment.spec.updateStrategy = {

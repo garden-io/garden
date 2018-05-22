@@ -1,10 +1,12 @@
 #!/bin/sh
 
+set -e
+
 cd /functions
 
 functions-emulator start --bindHost 0.0.0.0
 
-functions-emulator deploy $2 \
+functions-emulator deploy $1 \
   --trigger-http \
   --project local \
   --region local

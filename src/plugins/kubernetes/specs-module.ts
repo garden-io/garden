@@ -10,36 +10,41 @@ import Bluebird = require("bluebird")
 import * as Joi from "joi"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import {
-  joiArray,
   joiIdentifier,
   validate,
 } from "../../types/common"
 import {
-  baseServiceSchema,
   Module,
-  ModuleConfig,
+  ModuleSpec,
 } from "../../types/module"
+import { ModuleActions } from "../../types/plugin"
+import {
+  ParseModuleResult,
+} from "../../types/plugin/outputs"
 import {
   DeployServiceParams,
   GetServiceStatusParams,
   ParseModuleParams,
-} from "../../types/plugin"
+} from "../../types/plugin/params"
 import {
   ServiceConfig,
+  ServiceSpec,
   ServiceStatus,
 } from "../../types/service"
+import {
+  TestConfig,
+  TestSpec,
+} from "../../types/test"
 import {
   apply,
 } from "./kubectl"
 import { getAppNamespace } from "./namespace"
 
-export interface KubernetesSpecsServiceConfig extends ServiceConfig {
-  specs: object[]
+export interface KubernetesSpecsModuleSpec extends ModuleSpec {
+  specs: any[],
 }
 
-export interface KubernetesSpecsModuleConfig extends ModuleConfig<KubernetesSpecsServiceConfig> { }
-
-export class KubernetesSpecsModule extends Module<KubernetesSpecsModuleConfig> { }
+export class KubernetesSpecsModule extends Module<KubernetesSpecsModuleSpec> { }
 
 const k8sSpecSchema = Joi.object().keys({
   apiVersion: Joi.string().required(),
@@ -48,26 +53,31 @@ const k8sSpecSchema = Joi.object().keys({
     annotations: Joi.object(),
     name: joiIdentifier().required(),
     namespace: joiIdentifier(),
-  }).required(),
+    labels: Joi.object(),
+  }).required().unknown(true),
 }).unknown(true)
 
-const specsServicesSchema = joiArray(baseServiceSchema.keys({
-  specs: Joi.array().items(k8sSpecSchema).required(),
-  // TODO: support spec files as well
-  // specFiles: Joi.array().items(Joi.string()),
-})).unique("name")
+const k8sSpecsSchema = Joi.array().items(k8sSpecSchema).min(1)
 
-export const kubernetesSpecHandlers = {
-  parseModule: async ({ ctx, moduleConfig }: ParseModuleParams): Promise<KubernetesSpecsModule> => {
-    moduleConfig.services = validate(
-      moduleConfig.services,
-      specsServicesSchema,
-      { context: `${moduleConfig.name} services` },
-    )
-
+export const kubernetesSpecHandlers: Partial<ModuleActions> = {
+  async parseModule({ moduleConfig }: ParseModuleParams<KubernetesSpecsModule>): Promise<ParseModuleResult> {
     // TODO: check that each spec namespace is the same as on the project, if specified
+    const services: ServiceConfig<ServiceSpec>[] = [{
+      name: moduleConfig.name,
+      dependencies: [],
+      outputs: {},
+      spec: {
+        specs: validate(moduleConfig.spec.specs, k8sSpecsSchema, { context: `${moduleConfig.name} kubernetes specs` }),
+      },
+    }]
 
-    return new KubernetesSpecsModule(ctx, <KubernetesSpecsModuleConfig>moduleConfig)
+    const tests: TestConfig<TestSpec>[] = []
+
+    return {
+      module: moduleConfig,
+      services,
+      tests,
+    }
   },
 
   getServiceStatus: async (
@@ -78,7 +88,7 @@ export const kubernetesSpecHandlers = {
     const currentVersion = await service.module.getVersion()
 
     const dryRunOutputs = await Bluebird.map(
-      service.config.specs,
+      service.module.spec.specs,
       (spec) => apply(context, spec, { dryRun: true, namespace }),
     )
 
@@ -100,7 +110,7 @@ export const kubernetesSpecHandlers = {
     const namespace = await getAppNamespace(ctx, provider)
     const currentVersion = await service.module.getVersion()
 
-    return Bluebird.each(service.config.specs, async (spec) => {
+    await Bluebird.each(service.module.spec.specs, async (spec) => {
       const annotatedSpec = {
         metadata: <any>{},
         ...spec,
@@ -114,5 +124,7 @@ export const kubernetesSpecHandlers = {
 
       await apply(context, annotatedSpec, { namespace })
     })
+
+    return {}
   },
 }

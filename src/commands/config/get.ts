@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { NotFoundError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { Command, ParameterValues, StringParameter } from "../base"
 
@@ -27,10 +28,15 @@ export class ConfigGetCommand extends Command<typeof configGetArgs> {
   arguments = configGetArgs
 
   async action(ctx: PluginContext, args: GetArgs) {
-    const res = await ctx.getConfig(args.key.split("."))
+    const key = args.key.split(".")
+    const { value } = await ctx.getConfig({ key })
 
-    ctx.log.info(res)
+    if (value === null || value === undefined) {
+      throw new NotFoundError(`Could not find config key ${args.key}`, { key })
+    }
 
-    return { [args.key]: res }
+    ctx.log.info(value)
+
+    return { [args.key]: value }
   }
 }

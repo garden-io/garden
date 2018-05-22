@@ -9,7 +9,7 @@
 import { Command } from "./base"
 import { EntryStyle } from "../logger/types"
 import { PluginContext } from "../plugin-context"
-import { LoginStatusMap } from "../types/plugin"
+import { LoginStatusMap } from "../types/plugin/outputs"
 
 export class LoginCommand extends Command {
   name = "login"
@@ -19,7 +19,7 @@ export class LoginCommand extends Command {
     ctx.log.header({ emoji: "unlock", command: "Login" })
     ctx.log.info({ msg: "Logging in...", entryStyle: EntryStyle.activity })
 
-    const result = await ctx.login()
+    const result = await ctx.login({})
 
     ctx.log.info("\nLogin success!")
 

@@ -12,7 +12,7 @@ import { round } from "lodash"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
-import { BuildResult } from "../types/plugin"
+import { BuildResult } from "../types/plugin/outputs"
 import { Task, TaskParams, TaskVersion } from "../types/task"
 
 export interface BuildTaskParams extends TaskParams {
@@ -60,23 +60,28 @@ export class BuildTask extends Task {
   }
 
   async process(): Promise<BuildResult> {
-    if (!this.force && (await this.ctx.getModuleBuildStatus(this.module)).ready) {
+    const moduleName = this.module.name
+
+    if (!this.force && (await this.ctx.getModuleBuildStatus({ moduleName })).ready) {
       // this is necessary in case other modules depend on files from this one
-      await this.ctx.stageBuild(this.module)
+      await this.ctx.stageBuild(moduleName)
       return { fresh: false }
     }
 
-    const entry = this.ctx.log.info({
+    const logEntry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",
       entryStyle: EntryStyle.activity,
     })
 
     const startTime = new Date().getTime()
-    const result = await this.ctx.buildModule(this.module, {}, entry)
+    const result = await this.ctx.buildModule({
+      moduleName,
+      logEntry,
+    })
     const buildTime = (new Date().getTime()) - startTime
 
-    entry.setSuccess({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
+    logEntry.setSuccess({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
 
     return result
   }

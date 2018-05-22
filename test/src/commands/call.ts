@@ -2,7 +2,9 @@ import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { CallCommand } from "../../../src/commands/call"
 import { expect } from "chai"
-import { GetServiceStatusParams, PluginFactory } from "../../../src/types/plugin"
+import { parseContainerModule } from "../../../src/plugins/container"
+import { PluginFactory } from "../../../src/types/plugin"
+import { GetServiceStatusParams } from "../../../src/types/plugin/params"
 import { ServiceStatus } from "../../../src/types/service"
 import nock = require("nock")
 
@@ -22,14 +24,13 @@ const testProvider: PluginFactory = () => {
     },
   }
 
-  const getServiceStatus = async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
-    return testStatuses[service.name] || {}
+  const getServiceStatus = async (params: GetServiceStatusParams): Promise<ServiceStatus> => {
+    return testStatuses[params.service.name] || {}
   }
 
   return {
     moduleActions: {
-      generic: { getServiceStatus },
-      container: { getServiceStatus },
+      container: { parseModule: parseContainerModule, getServiceStatus },
     },
   }
 }

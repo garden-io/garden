@@ -31,7 +31,8 @@ export class ConfigSetCommand extends Command<typeof configSetArgs> {
   arguments = configSetArgs
 
   async action(ctx: PluginContext, args: SetArgs) {
-    await ctx.setConfig(args.key.split("."), args.value)
+    const key = args.key.split(".")
+    await ctx.setConfig({ key, value: args.value })
     ctx.log.info(`Set config key ${args.key}`)
     return { ok: true }
   }

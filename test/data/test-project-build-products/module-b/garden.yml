@@ -1,5 +1,5 @@
 module:
   name: module-b
-  type: generic
+  type: test
   build:
     command: "echo B && mkdir -p build/build_subdir && touch build/b1.txt build/build_subdir/b2.txt build/unused.txt"

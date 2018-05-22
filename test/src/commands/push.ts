@@ -3,6 +3,7 @@ import { join } from "path"
 import { expect } from "chai"
 import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
+import { parseContainerModule } from "../../../src/plugins/container"
 import {
   PluginFactory,
 } from "../../../src/types/plugin"
@@ -31,7 +32,8 @@ const pushModule = async () => {
 const testProvider: PluginFactory = () => {
   return {
     moduleActions: {
-      generic: {
+      container: {
+        parseModule: parseContainerModule,
         getModuleBuildStatus,
         buildModule,
         pushModule,
@@ -45,7 +47,8 @@ testProvider.pluginName = "test-plugin"
 const testProviderB: PluginFactory = () => {
   return {
     moduleActions: {
-      generic: {
+      container: {
+        parseModule: parseContainerModule,
         getModuleBuildStatus,
         buildModule,
       },
@@ -58,7 +61,8 @@ testProviderB.pluginName = "test-plugin-b"
 const testProviderNoPush: PluginFactory = () => {
   return {
     moduleActions: {
-      generic: {
+      container: {
+        parseModule: parseContainerModule,
         getModuleBuildStatus,
         buildModule,
       },
@@ -197,7 +201,7 @@ describe("PushCommand", () => {
 
     expect(taskResultOutputs(result)).to.eql({
       "build.module-a": { fresh: false },
-      "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type generic") },
+      "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type container") },
     })
   })
 

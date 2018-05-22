@@ -20,13 +20,27 @@ describe("Service", () => {
       process.env.TEST_PROVIDER_TYPE = "test-plugin"
 
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
-      await ctx.setConfig(["project", "my", "variable"], "OK")
+      await ctx.setConfig({ key: ["project", "my", "variable"], value: "OK" })
 
       const module = await ctx.getModule("module-a")
 
       const service = await Service.factory(ctx, module, "service-a")
 
-      expect(service.config).to.eql({ name: "service-a", command: "echo banana", dependencies: [] })
+      expect(service.config).to.eql({
+        name: "service-a",
+        dependencies: [],
+        outputs: {},
+        spec: {
+          name: "service-a",
+          command: ["echo", "banana"],
+          daemon: false,
+          dependencies: [],
+          endpoints: [],
+          outputs: {},
+          ports: [],
+          volumes: [],
+        },
+      })
     })
   })
 
@@ -53,7 +67,7 @@ describe("Service", () => {
       process.env.TEST_VARIABLE = "banana"
 
       const ctx = await makeTestContext(resolve(dataDir, "test-project-templated"))
-      await ctx.setConfig(["project", "my", "variable"], "OK")
+      await ctx.setConfig({ key: ["project", "my", "variable"], value: "OK" })
 
       const serviceA = await ctx.getService("service-a")
       const serviceB = await ctx.getService("service-b")
@@ -62,8 +76,18 @@ describe("Service", () => {
 
       expect(resolved.config).to.eql({
         name: "service-b",
-        command: `echo ${(await serviceA.module.getVersion()).versionString}`,
         dependencies: ["service-a"],
+        outputs: {},
+        spec: {
+          name: "service-b",
+          command: ["echo", (await serviceA.module.getVersion()).versionString],
+          daemon: false,
+          dependencies: ["service-a"],
+          endpoints: [],
+          outputs: {},
+          ports: [],
+          volumes: [],
+        },
       })
 
       delete process.env.TEST_PROVIDER_TYPE
