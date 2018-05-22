@@ -80,10 +80,22 @@ gulp.task("add-version-files", (cb) => {
   proc.on("error", err => cb(err))
 
   let output = ""
-  proc.stdout.on("data", d => output += d)
+  let outputWithError = ""
+  proc.stdout.on("data", d => {
+    output += d
+    outputWithError += d
+  })
+  proc.stderr.on("data", d => outputWithError += d)
 
   proc.on("close", () => {
-    const results = JSON.parse(output)
+    let results
+    try {
+      results = JSON.parse(output)
+    } catch {
+      const msg = "Got unexpected output from `garden scan`"
+      console.error(msg + "\n" + outputWithError)
+      return cb(msg)
+    }
 
     for (const module of <any>results.result) {
       const relPath = relative(__dirname, module.path)
