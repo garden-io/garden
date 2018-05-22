@@ -29,6 +29,10 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v2-dependencies-
 
+      - run:
+          command: |
+            curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
       - run: sudo apt install rsync ruby ruby-dev cmake libicu-dev pkg-config
       - run: sudo gem install --no-document copyright-header
       - run: npm install

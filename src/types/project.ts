@@ -46,7 +46,6 @@ export const defaultEnvironments: EnvironmentConfig[] = [
     providers: [
       {
         name: "local-kubernetes",
-        context: "docker-for-desktop",
       },
     ],
     variables: {},
