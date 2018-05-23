@@ -1,8 +1,27 @@
 [![CircleCI](https://circleci.com/gh/garden-io/garden/tree/master.svg?style=svg&circle-token=ac1ec9984d093f91e594e5a0a03b34cec2c2a093)](https://circleci.com/gh/garden-io/garden/tree/master)
+ 
 
-# garden
+![](docs/garden-banner-logotype-left-2.png)
 
-Just getting started now... More docs to follow.
+*Welcome! Garden is a full-featured development framework for containers and serverless backends, designed to make 
+it easy to develop and test distributed systems.* 
+<br><br>
+
+### Status
+
+The project is in _early alpha_ (or developer preview, if you prefer). This means APIs may well change (not drastically,
+but still), overall stability will improve and platform support is still limited.
+
+All that said, Garden can already be highly useful if the following applies to you:
+
+* **You're deploying to (or transitioning to) Kubernetes.**
+* **You develop on Mac or Linux.**
+* **You work mostly with containers _today_ (but perhaps plan on adopting serverless platforms in the future).**
+* **You really don't want to spend your precious hours building your own developer tooling!**
+
+If that sounds right for you, please give it a go and don't hesitate to report issues or come right over 
+to our [Gitter](https://gitter.im/garden-io/Lobby#) for a chat!
+
 
 ## Setup
 
@@ -10,12 +29,20 @@ Just getting started now... More docs to follow.
 
 You need to set up the following on your local machine to use garden:
 * Node.js >= 8.x
+* Docker
 * Git
 * rsync
 * [Watchman](https://facebook.github.io/watchman/docs/install.html)
-* [Docker for Mac/Windows (edge version)](https://docs.docker.com/engine/installation/)
+* Local installation of Kubernetes
 
-We recommend using Homebrew on Mac for everything except Docker. 
+To install Kubernetes, we recommend [Docker for Mac/Windows (edge version)](https://docs.docker.com/engine/installation/) 
+on Mac/Windows, and you can use [Minikube](https://github.com/kubernetes/minikube) on any supported platform.
+You'll just need to configure a [kubectl context](https://kubernetes.io/docs/reference/kubectl/cheatsheet/#kubectl-context-and-configuration)
+to point to your local instance.
+
+<!--- TODO: explain kubectl contexts somewhere in more detail --->
+
+On Mac, we recommend using Homebrew on Mac to install everything except Docker, but use whatever works for you! 
 
 Note that you need to install the _edge version_ of Docker for Mac/Windows in 
 order to enable Kubernetes support. Once installed, you need to open the 
@@ -25,96 +52,39 @@ or [here for Windows](https://docs.docker.com/docker-for-windows/kubernetes/).
 
 ### Installation
 
-TODO
+Once you have the above dependencies set up, simply run
+
+    npm install -g garden-cli
+
+Then go on to our [getting started guide](docs/getting-started.md), or try out the simple hello-world 
+example below to kick things off.
 
 
 ## Examples
 
 The `examples/` directory contains usage examples for the framework. You might want to start with
 the `hello-world` example project, to see an example of basic build, deployment and interaction
-flows. Take a look around the projects, taking special note of the `garden*.yml` files - 
-it's pretty straightforward, promise :)
+flows. Take a look around the projects, taking special note of the `garden.yml` files - 
+it's pretty straightforward, we promise :)
 
 To spin it up, `cd` to any of the directories under `examples/` and run:
 
     garden deploy
     
-If you've deployed the `hello-world` project, you can try querying the `/hello` endpoint:
+Once you've deployed the `hello-world` project, you can try querying the `/hello` endpoint:
 
     garden call hello-container/hello
-
-
-## Developing the framework
-
-### Contributing guidelines
-
-We heartily welcome any form of contribution to the project, including issue reports, feature requests, 
-discussion, pull requests, feature requests and any type of feedback. We request that all contributors 
-adhere to the [Contributor Covenant](CODE_OF_CONDUCT.md) and work with us to make the collaboration and 
-community productive and fun for everyone :)
-
-### Commit messages
-
-We follow and automatically validate 
-[Angular-like formatting](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#commits) for our
-commit messages, for consistency and clarity.
-
-### Setting up your development environment
-
-    ./bin/bootstrap-osx
-    npm install
     
-### Running a development version
+For more details, please head over to our [getting started guide](docs/getting-started.md).
 
-Start the dev command in your console:
 
-    npm run dev
-    
-This will do an initial development build, `npm link` it to your global npm folder, and then watch for 
-changes and auto-rebuild as you code. You can then run the `garden` command as normal. 
-    
-Also, you might like to add a couple of shorthands:
+## Contributing
 
-    alias g='garden'
-    alias k='kubectl'
-    
-### Testing
+We welcome any and all contributions to Garden! What we're trying to achieve is a big task, and 
+developers have a lot of diverse needs, so we need and appreciate your input, whether it's through 
+code, docs, issues or developing plugins for your needs.
 
-Tests are run using `mocha`. To run the full test suite, including linting and other validation, simply run
-
-    npm test
-    
-#### CI
-
-We use [Circle CI](https://circleci.com) for integration testing. Sometimes
-it can be useful to test and debug the CI build locally, particularly when 
-updating or adding dependencies. You can use their 
-[CLI](https://circleci.com/docs/2.0/local-jobs/) for that, which
-is installed automatically by the `./bin/bootstrap-osx` script. Once you
-have it installed you can run `circleci build` in the repo root to test 
-the build locally.
-
-### License/copyright headers
-
-Every source file must include the contents of `static/license-header.txt` at the top. This is 
-automatically checked during CI. You can run the check with `npm run check-licenses` and you can
-automatically add the header to new sources using `npm run add-licenses`. 
-  
-### Release process
-
-We use [Release It!](https://github.com/webpro/release-it) to automate the release process.
-
-To set up, first make sure you're logged in to npm (`npm login`). You'll also need to get a 
-[Github token](https://github.com/settings/tokens) for the repository with "repo" access to 
-the repository ("admin" scope is not necessary) and expose it as an environment variable:
-
-    export GITHUB_TOKEN="f941e0..."
-    
-Then to start the release process, use any of the following commands:
-
-    npm run release-major  # for major (potentially breaking) updates, e.g. 2.0.0 
-    npm run release-minor  # for minor releases, e.g. 0.10.0
-    npm run release-patch  # for bugfix releases, e.g. 0.10.1 
+For more detailed guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 
 ## License
