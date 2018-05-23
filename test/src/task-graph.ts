@@ -10,16 +10,25 @@ import {
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
+type TestTaskCallback = (name: string, result: any) => Promise<void>
+
+interface TestTaskOptions {
+  callback?: TestTaskCallback
+  id?: string
+  throwError?: boolean
+}
+
 class TestTask extends Task {
   type = "test"
   name: string
+  callback: TestTaskCallback | null
   id: string
+  throwError: boolean
 
   constructor(
     name: string,
     dependencies?: Task[],
-    private callback?: (name: string, result: any) => Promise<void>,
-    id: string = "",
+    options?: TestTaskOptions,
   ) {
     super({
       version: {
@@ -29,7 +38,9 @@ class TestTask extends Task {
       },
     })
     this.name = name
-    this.id = id
+    this.callback = (options && options.callback) || null
+    this.id = (options && options.id) || ""
+    this.throwError = !!(options && options.throwError)
 
     if (dependencies) {
       this.dependencies = dependencies
@@ -48,10 +59,6 @@ class TestTask extends Task {
     return this.id ? `${this.name}.${this.id}` : this.name
   }
 
-  async getVersion() {
-    return this.version
-  }
-
   getDescription() {
     return this.getKey()
   }
@@ -61,6 +68,10 @@ class TestTask extends Task {
 
     if (this.callback) {
       await this.callback(this.getKey(), result.result)
+    }
+
+    if (this.throwError) {
+      throw new Error()
     }
 
     return result
@@ -110,10 +121,12 @@ describe("task-graph", () => {
         callbackResults[key] = result
       }
 
-      const taskA = new TestTask("a", [], callback)
-      const taskB = new TestTask("b", [taskA], callback)
-      const taskC = new TestTask("c", [taskB], callback)
-      const taskD = new TestTask("d", [taskB, taskC], callback)
+      const opts = { callback }
+
+      const taskA = new TestTask("a", [], opts)
+      const taskB = new TestTask("b", [taskA], opts)
+      const taskC = new TestTask("c", [taskB], opts)
+      const taskD = new TestTask("d", [taskB, taskC], opts)
 
       // we should be able to add tasks multiple times and in any order
       await graph.addTask(taskC)
@@ -188,6 +201,46 @@ describe("task-graph", () => {
       })
     })
 
+    it("should recursively cancel a task's dependants when it throws an error", async() => {
+      const ctx = await getContext()
+      const graph = new TaskGraph(ctx)
+
+      const callbackResults = {}
+      const resultOrder: string[] = []
+
+      const callback = async (key: string, result: any) => {
+        resultOrder.push(key)
+      }
+
+      const opts = { callback }
+
+      const taskA = new TestTask("a", [], opts)
+      const taskB = new TestTask("b", [taskA], { callback, throwError: true})
+      const taskC = new TestTask("c", [taskB], opts)
+      const taskD = new TestTask("d", [taskB, taskC], opts)
+
+      await graph.addTask(taskA)
+      await graph.addTask(taskB)
+      await graph.addTask(taskC)
+      await graph.addTask(taskD)
+
+      const results = await graph.processTasks()
+
+      const resultA: TaskResult = {
+        type: "test",
+        description: "a",
+        output: {
+          result: "result-a",
+          dependencyResults: {},
+        },
+        dependencyResults: {},
+      }
+
+      expect(results.a).to.eql(resultA)
+      expect(results.b).to.have.property("error")
+      expect(resultOrder).to.eql(["a", "b"])
+    })
+
     it.skip(
       "should process a task as an inheritor of an existing, in-progress task when they have the same base key",
       async () =>
@@ -231,13 +284,13 @@ describe("task-graph", () => {
         callbackResults[key] = result
       }
 
-      const dependencyA = new TestTask("dependencyA", [], defaultCallback)
-      const dependencyB = new TestTask("dependencyB", [], defaultCallback)
-      const parentTask  = new TestTask("sharedName", [dependencyA, dependencyB], parentCallback, "1")
-      const dependantA  = new TestTask("dependantA", [parentTask], defaultCallback)
-      const dependantB  = new TestTask("dependantB", [parentTask], defaultCallback)
+      const dependencyA = new TestTask("dependencyA", [], {callback: defaultCallback})
+      const dependencyB = new TestTask("dependencyB", [], {callback: defaultCallback})
+      const parentTask  = new TestTask("sharedName", [dependencyA, dependencyB], {callback: parentCallback, id: "1"})
+      const dependantA  = new TestTask("dependantA", [parentTask], {callback: defaultCallback})
+      const dependantB  = new TestTask("dependantB", [parentTask], {callback: defaultCallback})
 
-      const inheritorTask = new TestTask("sharedName", [dependencyA, dependencyB], defaultCallback, "2")
+      const inheritorTask = new TestTask("sharedName", [dependencyA, dependencyB], {callback: defaultCallback, id: "2"})
 
       await graph.addTask(dependencyA)
       await graph.addTask(dependencyB)
