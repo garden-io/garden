@@ -344,6 +344,7 @@ export async function getServiceLogs(
 
   const namespace = await getAppNamespace(ctx, provider)
   const proc = kubectl(context, namespace).spawn(kubectlArgs)
+  let timestamp: Date
 
   proc.stdout
     .pipe(split())
@@ -352,7 +353,9 @@ export async function getServiceLogs(
         return
       }
       const [timestampStr, msg] = splitFirst(s, " ")
-      const timestamp = moment(timestampStr).toDate()
+      try {
+        timestamp = moment(timestampStr).toDate()
+      } catch { }
       stream.write({ serviceName: service.name, timestamp, msg })
     })
 
