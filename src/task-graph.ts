@@ -142,6 +142,7 @@ export class TaskGraph {
         const type = node.getType()
         const baseKey = node.getBaseKey()
         const description = node.getDescription()
+        let result
 
         try {
           this.logTask(node)
@@ -154,17 +155,17 @@ export class TaskGraph {
             this.resultCache.pick(dependencyBaseKeys),
             pick(results, dependencyBaseKeys))
 
-          let result
           try {
             result = await node.process(dependencyResults)
           } catch (error) {
             result = { type, description, error }
+            this.cancelDependants(node)
           } finally {
             results[baseKey] = result
             this.resultCache.put(baseKey, task.version.versionString, result)
           }
         } finally {
-          this.completeTask(node)
+          this.completeTask(node, !result.error)
         }
 
         return loop()
@@ -176,7 +177,7 @@ export class TaskGraph {
     return results
   }
 
-  private completeTask(node: TaskNode) {
+  private completeTask(node: TaskNode, success: boolean) {
     if (node.getDependencies().length > 0) {
       throw new TaskGraphError(`Task ${node.getKey()} still has unprocessed dependencies`)
     }
@@ -190,7 +191,7 @@ export class TaskGraph {
     }
 
     this.remove(node)
-    this.logTaskComplete(node)
+    this.logTaskComplete(node, success)
   }
 
   private getPredecessor(task: Task): TaskNode | null {
@@ -245,6 +246,22 @@ export class TaskGraph {
     this.inProgress.removeNode(node)
   }
 
+  // Recursively remove node's dependants, without removing node.
+  private cancelDependants(node: TaskNode) {
+    const remover = (n) => {
+      for (const dependant of n.getDependants()) {
+        this.logTaskComplete(n, false)
+        remover(dependant)
+      }
+      this.remove(n)
+    }
+
+    for (const dependant of node.getDependants()) {
+      node.removeDependant(dependant)
+      remover(dependant)
+    }
+  }
+
   // Logging
   private logTask(node: TaskNode) {
     const entry = this.ctx.log.debug({
@@ -255,9 +272,11 @@ export class TaskGraph {
     this.logEntryMap[node.getKey()] = entry
   }
 
-  private logTaskComplete(node: TaskNode) {
+  private logTaskComplete(node: TaskNode, success: boolean) {
     const entry = this.logEntryMap[node.getKey()]
-    entry && entry.setSuccess()
+    if (entry) {
+      success ? entry.setSuccess() : entry.setError()
+    }
     this.logEntryMap.counter.setState(remainingTasksToStr(this.index.length))
   }
 
