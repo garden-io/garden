@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  build:
+  unit-tests:
     docker:
       # specify the version you desire here
       - image: circleci/node:9
@@ -29,6 +29,10 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v2-dependencies-
 
+      - run:
+          command: |
+            curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
       - run: sudo apt install rsync ruby ruby-dev cmake libicu-dev pkg-config
       - run: sudo gem install --no-document copyright-header
       - run: npm install
@@ -47,4 +51,54 @@ jobs:
 
       # run tests
       - run: npm test
-      - run: ./bin/integ
+
+  minikube-tests:
+    # got this from https://github.com/gavinzhou/ci-minikube/blob/master/.circleci/config.yml
+    machine: true
+    environment:
+      CHANGE_MINIKUBE_NONE_USER: true
+      BASH_ENV: ~/.bashrc
+    steps:
+      - checkout
+      - run:
+          command: |
+            curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+      - run:
+          command: |
+            ## only run 0.25.0 , not work after 0.25.0+
+            ## because circleci machine run ubuntu 14
+            curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.25.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+      - run: sudo minikube start --vm-driver=none
+      - run: sudo minikube update-context
+      - run:
+          name: Install node@8
+          # https://discuss.circleci.com/t/how-to-change-node-version-in-circleci-2-0/17455
+          command: |
+            set +e
+            touch $BASH_ENV
+            curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.5/install.sh | bash
+            echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+            echo 'nvm install 8' >> $BASH_ENV
+            echo 'nvm alias default 8' >> $BASH_ENV
+      - run:
+          # for some reason we need to manually source $BASH_ENV (CircleCI machine executer is poorly documented...)
+          command: |
+            source $BASH_ENV
+            npm install
+            npm run build
+      - run:
+          command: |
+            JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until sudo kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
+      - run: sudo kubectl cluster-info
+      - run:
+          command: |
+            source $BASH_ENV
+            ./bin/integ
+
+workflows:
+  version: 2
+  all-tests:
+    jobs:
+      - unit-tests
+#      - minikube-tests

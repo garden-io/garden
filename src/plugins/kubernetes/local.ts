@@ -6,11 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { execSync } from "child_process"
+import { readFileSync } from "fs"
+import { safeLoad } from "js-yaml"
 import {
   every,
   values,
 } from "lodash"
 import * as Joi from "joi"
+import { join } from "path"
 import { validate } from "../../types/common"
 import {
   ConfigureEnvironmentParams,
@@ -31,6 +35,11 @@ import {
   getSystemGarden,
   isSystemGarden,
 } from "./system"
+
+// note: this is in order of preference, in case neither is set as the current kubectl context
+// and none is explicitly configured in the garden.yml
+const supportedContexts = ["docker-for-desktop", "minikube"]
+const kubeConfigPath = join(process.env.HOME || "~", ".kube", "config")
 
 // extend the environment configuration to also set up an ingress controller and dashboard
 export async function getLocalEnvironmentStatus(
@@ -78,19 +87,72 @@ async function configureLocalEnvironment(
   }
 }
 
-export const name = "local-kubernetes"
+function getKubeConfig(): any {
+  try {
+    return safeLoad(readFileSync(kubeConfigPath).toString())
+  } catch {
+    return {}
+  }
+}
+
+function setMinikubeDockerEnv() {
+  const minikubeEnv = execSync("minikube docker-env --shell=bash").toString()
+  for (const line of minikubeEnv.split("\n")) {
+    const matched = line.match(/^export (\w+)="(.+)"$/)
+    if (matched) {
+      process.env[matched[1]] = matched[2]
+    }
+  }
+}
 
 const configSchema = providerConfigBase.keys({
-  context: Joi.string().default("docker-for-desktop"),
+  context: Joi.string(),
   _system: Joi.any(),
 })
 
-export function gardenPlugin({ config }): GardenPlugin {
+export const name = "local-kubernetes"
+
+export function gardenPlugin({ config, logEntry }): GardenPlugin {
   config = validate(config, configSchema, { context: "kubernetes provider config" })
+
+  let context = config.context
+
+  if (!context) {
+    // automatically detect supported kubectl context if not explicitly configured
+    const kubeConfig = getKubeConfig()
+    const currentContext = kubeConfig["current-context"]
+
+    if (currentContext && supportedContexts.includes(currentContext)) {
+      // prefer current context if set and supported
+      context = currentContext
+      logEntry.debug({ section: name, msg: `Using current context: ${context}` })
+    } else if (kubeConfig.contexts) {
+      const availableContexts = kubeConfig.contexts.map(c => c.name)
+
+      for (const supportedContext of supportedContexts) {
+        if (availableContexts.includes(supportedContext)) {
+          context = supportedContext
+          logEntry.debug({ section: name, msg: `Using detected context: ${context}` })
+          break
+        }
+      }
+    }
+  }
+
+  if (!context) {
+    context = supportedContexts[0]
+    logEntry.debug({ section: name, msg: `No kubectl context auto-deteced, using default: ${context}` })
+  }
+
+  if (context === "minikube") {
+    // automatically set docker environment variables for minikube
+    // TODO: it would be better to explicitly provide those to docker instead of using process.env
+    setMinikubeDockerEnv()
+  }
 
   const k8sConfig: KubernetesConfig = {
     name: config.name,
-    context: config.context,
+    context,
     ingressHostname: "local.app.garden",
     ingressClass: "nginx",
     // TODO: support SSL on local deployments

@@ -10,7 +10,6 @@ project:
     - name: local
       providers:
         - name: local-kubernetes
-          context: docker-for-desktop
         - name: local-google-cloud-functions
     - name: dev
       providers:

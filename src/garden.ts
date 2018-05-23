@@ -380,8 +380,8 @@ export class Garden {
 
     try {
       plugin = factory({
-        garden: this,
         config,
+        logEntry: this.log,
       })
     } catch (error) {
       throw new PluginError(`Unexpected error when loading plugin "${pluginName}": ${error}`, {

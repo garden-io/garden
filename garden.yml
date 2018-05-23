@@ -5,3 +5,5 @@ project:
       providers:
         - name: container
         - name: local-kubernetes
+          # note: this context is not actually used for anything
+          context: docker-for-desktop
