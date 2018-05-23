@@ -4,7 +4,8 @@ Garden can be used with [Minikube](https://github.com/kubernetes/minikube) on su
 
 ### Installation
 
-For installation instructions, please see the [official guide](https://github.com/kubernetes/minikube#installation).
+For Minikube installation instructions, please see the 
+[official guide](https://github.com/kubernetes/minikube#installation).
 You'll likely also need to install a driver to run the Minikube VM, please follow the 
 [instructions here](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
 and note the name of the driver.
@@ -39,4 +40,13 @@ _Note: If you happen to have installed both Minikube and the Docker for Mac vers
 `garden` will choose whichever one is configured as the current context in your `kubectl` configuration, and if neither
 is set as the current context, Docker for Mac is preferred by default._
 
-Once configured, the `local-kubernetes` plugin will automatically configure everything Garden needs to work.
+### Hostname
+
+Garden needs the Kubernetes instance to have a hostname. By default Garden will use `<minikube-ip>.nip.io`. If you'd 
+like to use a custom hostname, you can specify it via the `ingressHostname` in the `local-kubernetes` provider config
+(see above).
+
+### Anything else?
+
+Once the above is set up, the `local-kubernetes` plugin will automatically configure everything else Garden needs to 
+work. The built-in nginx ingress controller will be automatically enabled and used to route requests to services.

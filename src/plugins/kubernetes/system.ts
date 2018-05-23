@@ -12,7 +12,6 @@ import { Garden } from "../../garden"
 import { KubernetesProvider } from "./index"
 
 export const GARDEN_SYSTEM_NAMESPACE = "garden-system"
-export const localIngressPort = 32000
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
 const systemSymbol = Symbol()

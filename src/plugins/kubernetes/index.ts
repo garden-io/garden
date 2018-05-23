@@ -43,9 +43,9 @@ export const name = "kubernetes"
 export interface KubernetesConfig extends ProviderConfig {
   context: string
   ingressHostname: string
+  ingressPort: number
   ingressClass: string
   forceSsl: boolean
-  _system?: Symbol
 }
 
 export interface KubernetesProvider extends Provider<KubernetesConfig> { }
@@ -53,6 +53,7 @@ export interface KubernetesProvider extends Provider<KubernetesConfig> { }
 const configSchema = providerConfigBase.keys({
   context: Joi.string().required(),
   ingressHostname: Joi.string().hostname().required(),
+  ingressPort: Joi.number().default(80),
   ingressClass: Joi.string(),
   forceSsl: Joi.boolean().default(true),
   _system: Joi.any(),

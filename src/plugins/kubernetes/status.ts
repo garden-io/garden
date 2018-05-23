@@ -28,7 +28,6 @@ import {
 import { getServiceHostname } from "./ingress"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { getAppNamespace } from "./namespace"
-import { localIngressPort } from "./system"
 
 export async function checkDeploymentStatus(
   { ctx, provider, service, resourceVersion }:
@@ -42,6 +41,7 @@ export async function checkDeploymentStatus(
   const endpoints = service.spec.endpoints.map((e: ServiceEndpointSpec) => {
     // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
     const protocol: ServiceProtocol = "http"
+    const localIngressPort = provider.config.ingressPort
 
     return {
       protocol,
