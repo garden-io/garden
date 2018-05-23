@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { Stream } from "ts-stream"
 import { NotFoundError } from "./exceptions"
@@ -48,7 +49,6 @@ import {
   RuntimeContext,
   ServiceStatus,
 } from "./types/service"
-import Bluebird = require("bluebird")
 import {
   mapValues,
   toPairs,
@@ -367,10 +367,10 @@ export function createPluginContext(garden: Garden): PluginContext {
     deployServices: async ({ names, force = false, forceBuild = false, logEntry }) => {
       const services = await ctx.getServices(names)
 
-      for (const service of services) {
-        const task = new DeployTask(ctx, service, force, forceBuild, logEntry)
+      await Bluebird.map(services, async (service) => {
+        const task = await DeployTask.factory({ ctx, service, force, forceBuild, logEntry })
         await ctx.addTask(task)
-      }
+      })
 
       return ctx.processTasks()
     },

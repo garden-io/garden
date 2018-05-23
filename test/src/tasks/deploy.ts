@@ -23,7 +23,7 @@ describe("DeployTask", () => {
     const serviceA = await ctx.getService("service-a")
     const serviceB = await ctx.getService("service-b")
 
-    const task = new DeployTask(ctx, serviceB, false, false)
+    const task = await DeployTask.factory({ctx, service: serviceB, force: false, forceBuild: false})
     let actionParams: any = {}
 
     stubModuleAction(

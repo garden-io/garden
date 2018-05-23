@@ -6,37 +6,62 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
+import chalk from "chalk"
 import { LogEntry } from "../logger"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
-import { Task } from "../types/task"
+import { Task, TaskParams, TaskVersion } from "../types/task"
 import {
   Service,
   ServiceStatus,
 } from "../types/service"
 import { EntryStyle } from "../logger/types"
-import chalk from "chalk"
 
-export class DeployTask<T extends Service<any>> extends Task {
+export interface DeployTaskParams extends TaskParams {
+  ctx: PluginContext
+  service: Service
+  force: boolean
+  forceBuild: boolean
+  logEntry?: LogEntry
+}
+
+export class DeployTask extends Task {
   type = "deploy"
 
-  constructor(
-    private ctx: PluginContext,
-    private service: T,
-    private force: boolean,
-    private forceBuild: boolean,
-    private logEntry?: LogEntry) {
-    super()
+  private ctx: PluginContext
+  private service: Service
+  private force: boolean
+  private forceBuild: boolean
+  private logEntry?: LogEntry
+
+  constructor(initArgs: DeployTaskParams & TaskVersion) {
+    super(initArgs)
+    this.ctx = initArgs.ctx
+    this.service = initArgs.service
+    this.force = initArgs.force
+    this.forceBuild = initArgs.forceBuild
+    this.logEntry = initArgs.logEntry
+  }
+
+  static async factory(initArgs: DeployTaskParams): Promise<DeployTask> {
+    initArgs.version = await initArgs.service.module.getVersion()
+    return new DeployTask(<DeployTaskParams & TaskVersion>initArgs)
   }
 
   async getDependencies() {
     const serviceDeps = this.service.config.dependencies
     const services = await this.ctx.getServices(serviceDeps)
-    const deps: Task[] = services.map((s) => {
-      return new DeployTask(this.ctx, s, this.force, this.forceBuild)
+    const deps: Task[] = await Bluebird.map(services, async (service) => {
+      return DeployTask.factory({
+        service,
+        ctx: this.ctx,
+        force: this.force,
+        forceBuild: this.forceBuild,
+      })
     })
 
-    deps.push(new BuildTask(this.ctx, this.service.module, this.forceBuild))
+    deps.push(await BuildTask.factory({ ctx: this.ctx, module: this.service.module, force: this.forceBuild }))
     return deps
   }
 

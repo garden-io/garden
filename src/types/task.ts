@@ -7,19 +7,30 @@
  */
 
 import { TaskResults } from "../task-graph"
+import { TreeVersion } from "../vcs/base"
 import { v1 as uuidv1 } from "uuid"
 
 export class TaskDefinitionError extends Error { }
 
+export interface TaskVersion {
+  version: TreeVersion
+}
+
+export interface TaskParams {
+  version?: TreeVersion
+}
+
 export abstract class Task {
   abstract type: string
   id: string
+  version: TreeVersion
 
   dependencies: Task[]
 
-  constructor() {
+  constructor(initArgs: TaskParams & TaskVersion) {
     this.dependencies = []
     this.id = uuidv1() // uuidv1 is timestamp-based
+    this.version = initArgs.version
   }
 
   async getDependencies(): Promise<Task[]> {
@@ -39,11 +50,4 @@ export abstract class Task {
   abstract getDescription(): string
 
   abstract async process(dependencyResults: TaskResults): Promise<any>
-}
-
-// Ensures that the task's version has been computed before it is used further.
-export async function makeTask(taskClass, initArgs) {
-  const task = new taskClass(...initArgs)
-  await task.getVersion()
-  return task
 }

@@ -72,7 +72,7 @@ export async function pushModules(
       )
     }
 
-    const task = new PushTask(ctx, module, forceBuild)
+    const task = await PushTask.factory({ ctx, module, forceBuild })
     await ctx.addTask(task)
   }
 

@@ -57,7 +57,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
 
     const results = await ctx.processModules(modules, opts.watch, async (module) => {
       const tasks = await module.getTestTasks({ group, force, forceBuild })
-      await Bluebird.map(tasks, ctx.addTask)
+      return Bluebird.map(tasks, ctx.addTask)
     })
 
     const failed = values(results).filter(r => !!r.error).length

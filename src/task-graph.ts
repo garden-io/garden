@@ -8,7 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { pick } from "lodash"
+import { merge, pick } from "lodash"
 import { Task, TaskDefinitionError } from "./types/task"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
@@ -55,12 +55,14 @@ export class TaskGraph {
   private inProgress: TaskNodeMap
   private logEntryMap: LogEntryMap
 
+  private resultCache: ResultCache
   private opQueue: OperationQueue
 
   constructor(private ctx: PluginContext, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
+    this.resultCache = new ResultCache()
     this.opQueue = new OperationQueue(this)
     this.logEntryMap = {}
   }
@@ -70,7 +72,6 @@ export class TaskGraph {
   }
 
   async addTaskInternal(task: Task) {
-    // TODO: Detect circular dependencies.
     const predecessor = this.getPredecessor(task)
     let node = this.getNode(task)
 
@@ -137,6 +138,7 @@ export class TaskGraph {
       this.initLogging()
 
       return Bluebird.map(batch, async (node: TaskNode) => {
+        const task = node.task
         const type = node.getType()
         const baseKey = node.getBaseKey()
         const description = node.getDescription()
@@ -145,15 +147,21 @@ export class TaskGraph {
           this.logTask(node)
           this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
-          const dependencyBaseKeys = (await node.task.getDependencies())
-            .map(task => task.getBaseKey())
+          const dependencyBaseKeys = (await task.getDependencies())
+            .map(dep => dep.getBaseKey())
 
-          const dependencyResults = pick(results, dependencyBaseKeys)
+          const dependencyResults = merge(
+            this.resultCache.pick(dependencyBaseKeys),
+            pick(results, dependencyBaseKeys))
 
+          let result
           try {
-            results[baseKey] = await node.process(dependencyResults)
+            result = await node.process(dependencyResults)
           } catch (error) {
-            results[baseKey] = { type, description, error }
+            result = { type, description, error }
+          } finally {
+            results[baseKey] = result
+            this.resultCache.put(baseKey, task.version.versionString, result)
           }
         } finally {
           this.completeTask(node)
@@ -197,9 +205,15 @@ export class TaskGraph {
   private async addDependencies(node: TaskNode) {
     const task = node.task
     for (const d of await task.getDependencies()) {
+
+      if (this.resultCache.get(d.getBaseKey(), d.version.versionString)) {
+        continue
+      }
+
       const dependency = this.getPredecessor(d) || this.getNode(d)
       this.index.addNode(dependency)
       node.addDependency(dependency)
+
     }
   }
 
@@ -388,6 +402,56 @@ class TaskNode {
       dependencyResults,
     }
   }
+}
+
+interface CachedResult {
+  result: TaskResult,
+  versionString: string
+}
+
+class ResultCache {
+  /*
+    By design, at most one TaskResult (the most recently processed) is cached for a given baseKey.
+
+    Invariant: No concurrent calls are made to this class' instance methods, since they
+    only happen within TaskGraph's addTaskInternal and processTasksInternal methods,
+    which are never executed concurrently, since they are executed sequentially by the
+    operation queue.
+  */
+  private cache: { [key: string]: CachedResult }
+
+  constructor() {
+    this.cache = {}
+  }
+
+  put(baseKey: string, versionString: string, result: TaskResult): void {
+    this.cache[baseKey] = { result, versionString }
+  }
+
+  get(baseKey: string, versionString: string): TaskResult | null {
+    const r = this.cache[baseKey]
+    return (r && r.versionString === versionString && !r.result.error) ? r.result : null
+  }
+
+  getNewest(baseKey: string): TaskResult | null {
+    const r = this.cache[baseKey]
+    return (r && !r.result.error) ? r.result : null
+  }
+
+  // Returns newest cached results, if any, for baseKeys
+  pick(baseKeys: string[]): TaskResults {
+    const results: TaskResults = {}
+
+    for (const baseKey of baseKeys) {
+      const cachedResult = this.getNewest(baseKey)
+      if (cachedResult) {
+        results[baseKey] = cachedResult
+      }
+    }
+
+    return results
+  }
+
 }
 
 // TODO: Add more typing to this class.
