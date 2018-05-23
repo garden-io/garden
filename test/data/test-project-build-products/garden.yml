@@ -1,5 +1,6 @@
 project:
   name: build-products
-  global:
-    providers:
-      - name: test-plugin
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin

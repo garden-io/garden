@@ -9,10 +9,6 @@ import {
 import { DeployTask } from "../../../src/tasks/deploy"
 
 describe("DeployTask", () => {
-  afterEach(() => {
-    td.reset()
-  })
-
   it("should fully resolve templated strings on the service before deploying", async () => {
     process.env.TEST_VARIABLE = "banana"
 

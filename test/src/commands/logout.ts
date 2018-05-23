@@ -5,10 +5,6 @@ import * as td from "testdouble"
 import { LogoutCommand } from "../../../src/commands/logout"
 
 describe("LogoutCommand", () => {
-  afterEach(() => {
-    td.reset()
-  })
-
   const command = new LogoutCommand()
 
   it("should log out from a provider", async () => {

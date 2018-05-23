@@ -34,10 +34,6 @@ const testProvider: PluginFactory = () => {
 testProvider.pluginName = "test-plugin"
 
 describe("EnvironmentDestroyCommand", () => {
-  afterEach(() => {
-    td.reset()
-  })
-
   const projectRootB = join(__dirname, "..", "..", "..", "data", "test-project-b")
   const command = new EnvironmentDestroyCommand()
 

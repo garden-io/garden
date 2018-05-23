@@ -38,8 +38,6 @@ describe("container", () => {
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
   })
 
-  afterEach(() => td.reset())
-
   const provider = { name: "container", config: {} }
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {

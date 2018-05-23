@@ -90,10 +90,6 @@ describe("PushCommand", () => {
     })
   })
 
-  afterEach(() => {
-    td.reset()
-  })
-
   it("should build and push modules in a project", async () => {
     const ctx = await getTestContext()
     const command = new PushCommand()

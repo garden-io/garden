@@ -1,12 +1,12 @@
 import { join } from "path"
 import { expect } from "chai"
-import { Garden } from "../../src/garden"
 import { Task } from "../../src/types/task"
 import {
   TaskGraph,
   TaskResult,
   TaskResults,
 } from "../../src/task-graph"
+import { makeTestGarden } from "../helpers"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
@@ -82,7 +82,7 @@ describe("task-graph", () => {
 
   describe("TaskGraph", () => {
     async function getContext() {
-      const garden = await Garden.factory(projectRoot)
+      const garden = await makeTestGarden(projectRoot)
       return garden.pluginContext
     }
 
