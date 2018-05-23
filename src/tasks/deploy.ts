@@ -103,6 +103,7 @@ export class DeployTask extends Task {
       serviceName: this.service.name,
       runtimeContext: await this.service.prepareRuntimeContext(),
       logEntry,
+      force: this.force,
     })
 
     logEntry.setSuccess({ msg: chalk.green(`Ready`), append: true })

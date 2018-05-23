@@ -123,6 +123,7 @@ export interface GetServiceStatusParams<T extends Module = Module> extends Plugi
 
 export interface DeployServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
   runtimeContext: RuntimeContext,
+  force?: boolean,
 }
 
 export interface GetServiceOutputsParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
