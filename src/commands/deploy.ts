@@ -52,13 +52,12 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     const force = opts.force
     const forceBuild = opts["force-build"]
 
-    const modules = Array.from(new Set(services.map(s => s.module)))
-
-    const result = await ctx.processModules(modules, watch, async (module) => {
-      const servicesToDeploy = (await module.getServices()).filter(s => names.includes(s.name))
-      for (const service of servicesToDeploy) {
-        await ctx.addTask(await DeployTask.factory({ ctx, service, force, forceBuild }))
-      }
+    const result = await ctx.processServices({
+      services,
+      watch,
+      process: async (service) => {
+        return [await DeployTask.factory({ ctx, service, force, forceBuild })]
+      },
     })
 
     ctx.log.info("")

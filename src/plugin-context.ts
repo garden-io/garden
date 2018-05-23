@@ -11,12 +11,8 @@ import chalk from "chalk"
 import {
   Garden,
 } from "./garden"
-import {
-  LogEntry,
-} from "./logger"
 import { EntryStyle } from "./logger/types"
 import { TaskResults } from "./task-graph"
-import { DeployTask } from "./tasks/deploy"
 import {
   PrimitiveMap,
 } from "./types/common"
@@ -79,8 +75,11 @@ import {
   padEnd,
   keyBy,
   omit,
+  flatten,
 } from "lodash"
+import { Task } from "./types/task"
 import {
+  getNames,
   Omit,
   registerCleanupFunction,
   sleep,
@@ -122,6 +121,18 @@ export type WrappedFromGarden = Pick<Garden,
   "getTemplateContext" |
   "addTask" |
   "processTasks">
+
+export interface ProcessModulesParams {
+  modules: Module[],
+  watch: boolean,
+  process: (module: Module) => Promise<Task[]>,
+}
+
+export interface ProcessServicesParams {
+  services: Service[],
+  watch: boolean,
+  process: (service: Service) => Promise<Task[]>,
+}
 
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getEnvironmentStatus: (params: {}) => Promise<EnvironmentStatusMap>
@@ -165,12 +176,8 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getModuleBuildPath: (moduleName: string) => Promise<string>
   stageBuild: (moduleName: string) => Promise<void>
   getStatus: () => Promise<ContextStatus>
-  deployServices: (
-    params: { names?: string[], force?: boolean, forceBuild?: boolean, logEntry?: LogEntry },
-  ) => Promise<any>
-  processModules: (
-    modules: Module[], watch: boolean, process: (module: Module) => Promise<any>,
-  ) => Promise<TaskResults>
+  processModules: (params: ProcessModulesParams) => Promise<TaskResults>
+  processServices: (params: ProcessServicesParams) => Promise<TaskResults>
 }
 
 export function createPluginContext(garden: Garden): PluginContext {
@@ -323,6 +330,23 @@ export function createPluginContext(garden: Garden): PluginContext {
       return handler({ ...commonParams(handler), key })
     },
 
+    getLoginStatus: async () => {
+      const handlers = garden.getActionHandlers("getLoginStatus")
+      return Bluebird.props(mapValues(handlers, h => h({ ...commonParams(h) })))
+    },
+
+    login: async () => {
+      const handlers = garden.getActionHandlers("login")
+      await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
+      return ctx.getLoginStatus({})
+    },
+
+    logout: async () => {
+      const handlers = garden.getActionHandlers("logout")
+      await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
+      return ctx.getLoginStatus({})
+    },
+
     //endregion
 
     //===========================================================================
@@ -430,18 +454,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       }
     },
 
-    deployServices: async ({ names, force = false, forceBuild = false, logEntry }) => {
-      const services = await ctx.getServices(names)
-
-      await Bluebird.map(services, async (service) => {
-        const task = await DeployTask.factory({ ctx, service, force, forceBuild, logEntry })
-        await ctx.addTask(task)
-      })
-
-      return ctx.processTasks()
-    },
-
-    processModules: async (modules: Module[], watch: boolean, process: (module: Module) => Promise<any>) => {
+    processModules: async ({ modules, watch, process }: ProcessModulesParams) => {
       // TODO: log errors as they happen, instead of after processing all tasks
       const logErrors = (taskResults: TaskResults) => {
         for (const result of values(taskResults).filter(r => !!r.error)) {
@@ -455,7 +468,8 @@ export function createPluginContext(garden: Garden): PluginContext {
       }
 
       for (const module of modules) {
-        await process(module)
+        const tasks = await process(module)
+        await Bluebird.map(tasks, ctx.addTask)
       }
 
       const results = await ctx.processTasks()
@@ -468,7 +482,8 @@ export function createPluginContext(garden: Garden): PluginContext {
       const autoReloadDependants = await computeAutoReloadDependants(modules)
 
       async function handleChanges(module: Module) {
-        await process(module)
+        const tasks = await process(module)
+        await Bluebird.map(tasks, ctx.addTask)
 
         const dependantsForModule = autoReloadDependants[module.name]
         if (!dependantsForModule) {
@@ -500,21 +515,19 @@ export function createPluginContext(garden: Garden): PluginContext {
       }
     },
 
-    getLoginStatus: async () => {
-      const handlers = garden.getActionHandlers("getLoginStatus")
-      return Bluebird.props(mapValues(handlers, h => h({ ...commonParams(h) })))
-    },
+    processServices: async ({ services, watch, process }: ProcessServicesParams) => {
+      const serviceNames = getNames(services)
+      const modules = Array.from(new Set(services.map(s => s.module)))
 
-    login: async () => {
-      const handlers = garden.getActionHandlers("login")
-      await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
-      return ctx.getLoginStatus({})
-    },
-
-    logout: async () => {
-      const handlers = garden.getActionHandlers("logout")
-      await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
-      return ctx.getLoginStatus({})
+      return ctx.processModules({
+        modules,
+        watch,
+        process: async (module) => {
+          const moduleServices = await module.getServices()
+          const servicesToDeploy = moduleServices.filter(s => serviceNames.includes(s.name))
+          return flatten(await Bluebird.map(servicesToDeploy, process))
+        },
+      })
     },
 
     //endregion
