@@ -55,7 +55,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     const modules = Array.from(new Set(services.map(s => s.module)))
 
     const result = await ctx.processModules(modules, watch, async (module) => {
-      const servicesToDeploy = await module.getServices()
+      const servicesToDeploy = (await module.getServices()).filter(s => names.includes(s.name))
       for (const service of servicesToDeploy) {
         await ctx.addTask(await DeployTask.factory({ ctx, service, force, forceBuild }))
       }
