@@ -101,4 +101,4 @@ workflows:
   all-tests:
     jobs:
       - unit-tests
-      - minikube-tests
+#      - minikube-tests
