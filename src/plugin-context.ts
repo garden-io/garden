@@ -125,7 +125,7 @@ export type WrappedFromGarden = Pick<Garden,
 
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getEnvironmentStatus: (params: {}) => Promise<EnvironmentStatusMap>
-  configureEnvironment: (params: {}) => Promise<EnvironmentStatusMap>
+  configureEnvironment: (params: { force?: boolean }) => Promise<EnvironmentStatusMap>
   destroyEnvironment: (params: {}) => Promise<EnvironmentStatusMap>
   getConfig: (params: PluginContextParams<GetConfigParams>) => Promise<GetConfigResult>
   setConfig: (params: PluginContextParams<SetConfigParams>) => Promise<SetConfigResult>
@@ -273,7 +273,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       return Bluebird.props(mapValues(handlers, h => h({ ...commonParams(h) })))
     },
 
-    configureEnvironment: async () => {
+    configureEnvironment: async ({ force = false }: { force?: boolean }) => {
       const handlers = garden.getActionHandlers("configureEnvironment")
 
       const statuses = await ctx.getEnvironmentStatus({})
@@ -281,7 +281,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       await Bluebird.each(toPairs(handlers), async ([name, handler]) => {
         const status = statuses[name] || { configured: false }
 
-        if (status.configured) {
+        if (status.configured && !force) {
           return
         }
 
@@ -291,7 +291,7 @@ export function createPluginContext(garden: Garden): PluginContext {
           msg: "Configuring...",
         })
 
-        await handler({ ...commonParams(handler), status, logEntry })
+        await handler({ ...commonParams(handler), force, status, logEntry })
 
         logEntry.setSuccess("Configured")
       })

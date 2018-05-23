@@ -56,6 +56,7 @@ export interface GetEnvironmentStatusParams extends PluginActionParamsBase {
 
 export interface ConfigureEnvironmentParams extends PluginActionParamsBase {
   status: EnvironmentStatus
+  force: boolean
 }
 
 export interface DestroyEnvironmentParams extends PluginActionParamsBase {

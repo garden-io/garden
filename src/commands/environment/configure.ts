@@ -8,18 +8,30 @@
 
 import { PluginContext } from "../../plugin-context"
 import { EnvironmentStatusMap } from "../../types/plugin/outputs"
-import { Command } from "../base"
+import {
+  BooleanParameter,
+  Command,
+  ParameterValues,
+} from "../base"
 
-export class EnvironmentConfigureCommand extends Command {
+export const options = {
+  force: new BooleanParameter({ help: "Force reconfiguration of module(s)" }),
+}
+
+export type Opts = ParameterValues<typeof options>
+
+export class EnvironmentConfigureCommand extends Command<any, Opts> {
   name = "configure"
   alias = "config"
   help = "Configures your environment"
 
-  async action(ctx: PluginContext): Promise<EnvironmentStatusMap> {
+  options = options
+
+  async action(ctx: PluginContext, _args, opts: Opts): Promise<EnvironmentStatusMap> {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "gear", command: `Configuring ${name} environment` })
 
-    const result = await ctx.configureEnvironment({})
+    const result = await ctx.configureEnvironment({ force: opts.force })
 
     ctx.log.info("")
     ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
