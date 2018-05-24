@@ -1,10 +1,14 @@
 module:
   name: module-c
-  type: generic
+  type: container
+  image: scratch
   services:
     - name: service-c
       endpoints:
         - paths: [/path-c]
+          port: http
+      ports:
+        - name: http
           containerPort: 8080
   build:
     command: echo C

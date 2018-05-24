@@ -13,8 +13,10 @@ import {
 } from "fs"
 import * as Joi from "joi"
 import {
+  flatten,
   keyBy,
   set,
+  uniq,
 } from "lodash"
 import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
@@ -255,6 +257,14 @@ export class Module<
   async getServices(): Promise<Service[]> {
     const serviceNames = getNames(this.services)
     return this.ctx.getServices(serviceNames)
+  }
+
+  async getServiceDependencies(): Promise<Service[]> {
+    const depNames: string[] = uniq(flatten(this.services
+      .map(serviceConfig => serviceConfig.dependencies)
+      .filter(deps => deps)))
+
+    return this.ctx.getServices(depNames)
   }
 
   async getDeployTasks(
