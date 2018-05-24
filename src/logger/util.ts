@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntryOpts } from "./types"
+import { LogEntryOpts, LogLevel } from "./types"
 import { LogEntry, LogNode } from "."
 
 export interface Node {
@@ -107,7 +107,7 @@ export function interceptStream(stream: NodeJS.WriteStream, callback: Function) 
   return restore
 }
 
-export const getTerminalWidth = (stream: NodeJS.WriteStream = process.stdout) => {
+export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
   const columns = (stream || {}).columns
 
   if (!columns) {
@@ -120,4 +120,8 @@ export const getTerminalWidth = (stream: NodeJS.WriteStream = process.stdout) =>
   }
 
   return columns
+}
+
+export function validate(level: LogLevel, entry: LogEntry): boolean {
+  return level >= entry.level && entry.opts.msg !== undefined
 }

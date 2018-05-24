@@ -2,7 +2,8 @@ const stripAnsi = require("strip-ansi")
 import { expect } from "chai"
 
 import { LogLevel, EntryStatus, LogSymbolType, EntryStyle } from "../../src/logger/types"
-import { BasicTerminalWriter, FancyTerminalWriter } from "../../src/logger/writers"
+import { BasicTerminalWriter } from "../../src/logger/writers/basic-terminal-writer"
+import { FancyTerminalWriter } from "../../src/logger/writers/fancy-terminal-writer"
 import { RootLogNode } from "../../src/logger"
 import { getChildNodes } from "../../src/logger/util"
 

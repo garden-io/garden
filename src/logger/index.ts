@@ -25,7 +25,9 @@ import {
   LogEntryOpts,
   LogSymbolType,
 } from "./types"
-import { BasicTerminalWriter, FancyTerminalWriter, Writer } from "./writers"
+import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
+import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
+import { Writer } from "./writers/base"
 import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1

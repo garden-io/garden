@@ -35,7 +35,7 @@ import {
   PluginError,
 } from "./exceptions"
 import { Garden } from "./garden"
-import { FileWriter } from "./logger/writers"
+import { FileWriter } from "./logger/writers/file-writer"
 import { getLogger, RootLogNode } from "./logger"
 import { resolve } from "path"
 import { BuildCommand } from "./commands/build"

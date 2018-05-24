@@ -43,7 +43,6 @@
     "klaw": "^2.1.1",
     "kubernetes-client": "^5.2.0",
     "log-symbols": "^2.2.0",
-    "log-update": "^2.3.0",
     "moment": "^2.22.1",
     "node-emoji": "^1.8.1",
     "node-pty": "^0.7.4",
