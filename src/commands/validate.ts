@@ -7,13 +7,16 @@
  */
 
 import { PluginContext } from "../plugin-context"
-import { Command } from "./base"
+import {
+  Command,
+  CommandResult,
+} from "./base"
 
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors"
 
-  async action(ctx: PluginContext) {
+  async action(ctx: PluginContext): Promise<CommandResult> {
 
     ctx.log.header({ emoji: "heavy_check_mark", command: "validate" })
 

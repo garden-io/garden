@@ -9,7 +9,10 @@
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "../tasks/build"
 import { Task } from "../types/task"
-import { Command } from "./base"
+import {
+  Command,
+  CommandResult,
+} from "./base"
 import { join } from "path"
 import { STATIC_DIR } from "../constants"
 import { spawnSync } from "child_process"
@@ -23,7 +26,7 @@ export class DevCommand extends Command {
   name = "dev"
   help = "Starts the garden development console"
 
-  async action(ctx: PluginContext) {
+  async action(ctx: PluginContext): Promise<CommandResult> {
     try {
       spawnSync(imgcatPath, [bannerPath], {
         stdio: "inherit",

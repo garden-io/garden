@@ -8,7 +8,12 @@
 
 import { NotFoundError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import { Command, ParameterValues, StringParameter } from "../base"
+import {
+  Command,
+  CommandResult,
+  ParameterValues,
+  StringParameter,
+} from "../base"
 
 export const configGetArgs = {
   key: new StringParameter({
@@ -27,7 +32,7 @@ export class ConfigGetCommand extends Command<typeof configGetArgs> {
 
   arguments = configGetArgs
 
-  async action(ctx: PluginContext, args: GetArgs) {
+  async action(ctx: PluginContext, args: GetArgs): Promise<CommandResult> {
     const key = args.key.split(".")
     const { value } = await ctx.getConfig({ key })
 

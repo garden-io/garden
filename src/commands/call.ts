@@ -10,7 +10,12 @@ import { resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
 import { isObject } from "util"
-import { Command, ParameterValues, StringParameter } from "./base"
+import {
+  Command,
+  CommandResult,
+  ParameterValues,
+  StringParameter,
+} from "./base"
 import { splitFirst } from "../util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
@@ -32,7 +37,7 @@ export class CallCommand extends Command<typeof callArgs> {
 
   arguments = callArgs
 
-  async action(ctx: PluginContext, args: Args) {
+  async action(ctx: PluginContext, args: Args): Promise<CommandResult> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
     path = "/" + path
 
