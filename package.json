@@ -113,6 +113,7 @@
     "dev": "gulp build && cd build && npm link && cd .. && gulp watch",
     "dist": "gulp dist",
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
+    "integ": "./test/integ/run",
     "lint": "gulp lint",
     "prepare": "npm run snyk-protect",
     "preversion": "npm test",
@@ -129,7 +130,7 @@
   "husky": {
     "hooks": {
       "commit-msg": "validate-commit-msg -p angular",
-      "pre-push": "npm test"
+      "pre-push": "npm test && npm run integ"
     }
   },
   "snyk": true

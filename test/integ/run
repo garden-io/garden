@@ -1,0 +1,18 @@
+#!/usr/bin/env bash -eo pipefail
+
+here=$(cd `dirname $0` && pwd)
+garden_root=$(cd ${here} && cd $(git rev-parse --show-toplevel) && pwd)
+garden_bin=${garden_root}/build/src/bin/garden.js
+
+chmod +x ${garden_bin}
+
+cd ${garden_root}/examples/hello-world
+
+export GARDEN_LOGGER_TYPE=basic
+
+cd ${here}/basic-project
+${garden_bin} scan
+${garden_bin} build
+${garden_bin} deploy
+${garden_bin} test
+${garden_bin} env config
