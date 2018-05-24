@@ -7,7 +7,13 @@
  */
 
 import { PluginContext } from "../../plugin-context"
-import { Command, ParameterValues, StringParameter } from "../base"
+import { SetConfigResult } from "../../types/plugin/outputs"
+import {
+  Command,
+  CommandResult,
+  ParameterValues,
+  StringParameter,
+} from "../base"
 
 export const configSetArgs = {
   key: new StringParameter({
@@ -30,10 +36,10 @@ export class ConfigSetCommand extends Command<typeof configSetArgs> {
 
   arguments = configSetArgs
 
-  async action(ctx: PluginContext, args: SetArgs) {
+  async action(ctx: PluginContext, args: SetArgs): Promise<CommandResult<SetConfigResult>> {
     const key = args.key.split(".")
-    await ctx.setConfig({ key, value: args.value })
+    const result = await ctx.setConfig({ key, value: args.value })
     ctx.log.info(`Set config key ${args.key}`)
-    return { ok: true }
+    return { result }
   }
 }

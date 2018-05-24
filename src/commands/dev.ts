@@ -43,7 +43,7 @@ export class DevCommand extends Command {
         ctx.log.info({ msg: "No modules found in project." })
       }
       ctx.log.info({ msg: "Aborting..." })
-      return
+      return {}
     }
 
     await ctx.processModules({
@@ -61,6 +61,8 @@ export class DevCommand extends Command {
         }
       },
     })
+
+    return {}
   }
 }
 

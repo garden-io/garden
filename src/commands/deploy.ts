@@ -8,7 +8,14 @@
 
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
+import {
+  BooleanParameter,
+  Command,
+  CommandResult,
+  handleTaskResults,
+  ParameterValues,
+  StringParameter,
+} from "./base"
 import { TaskResults } from "../task-graph"
 
 export const deployArgs = {
@@ -34,13 +41,13 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   arguments = deployArgs
   options = deployOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<TaskResults> {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
     const names = args.service ? args.service.split(",") : undefined
     const services = await ctx.getServices(names)
 
     if (services.length === 0) {
       ctx.log.warn({ msg: "No services found. Aborting." })
-      return {}
+      return { result: {} }
     }
 
     ctx.log.header({ emoji: "rocket", command: "Deploy" })
@@ -52,7 +59,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     const force = opts.force
     const forceBuild = opts["force-build"]
 
-    const result = await ctx.processServices({
+    const results = await ctx.processServices({
       services,
       watch,
       process: async (service) => {
@@ -60,9 +67,6 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
       },
     })
 
-    ctx.log.info("")
-    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
-
-    return result
+    return handleTaskResults(ctx, "deploy", results)
   }
 }

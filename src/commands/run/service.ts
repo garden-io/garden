@@ -10,7 +10,13 @@ import chalk from "chalk"
 import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin/outputs"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
+import {
+  BooleanParameter,
+  Command,
+  CommandResult,
+  ParameterValues,
+  StringParameter,
+} from "../base"
 import { printRuntimeContext } from "./index"
 
 export const runArgs = {
@@ -39,7 +45,7 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<RunResult> {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
     const service = await ctx.getService(serviceName)
     const module = service.module
@@ -60,6 +66,8 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.runService({ serviceName, runtimeContext, silent: false, interactive: opts.interactive })
+    const result = await ctx.runService({ serviceName, runtimeContext, silent: false, interactive: opts.interactive })
+
+    return { result }
   }
 }

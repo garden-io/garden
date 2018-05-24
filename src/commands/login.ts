@@ -6,7 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command } from "./base"
+import {
+  Command,
+  CommandResult,
+} from "./base"
 import { EntryStyle } from "../logger/types"
 import { PluginContext } from "../plugin-context"
 import { LoginStatusMap } from "../types/plugin/outputs"
@@ -15,7 +18,7 @@ export class LoginCommand extends Command {
   name = "login"
   help = "Log into the Garden framework"
 
-  async action(ctx: PluginContext): Promise<LoginStatusMap> {
+  async action(ctx: PluginContext): Promise<CommandResult<LoginStatusMap>> {
     ctx.log.header({ emoji: "unlock", command: "Login" })
     ctx.log.info({ msg: "Logging in...", entryStyle: EntryStyle.activity })
 
@@ -23,6 +26,6 @@ export class LoginCommand extends Command {
 
     ctx.log.info("\nLogin success!")
 
-    return result
+    return { result }
   }
 }

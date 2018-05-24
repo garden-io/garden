@@ -6,7 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command } from "./base"
+import {
+  Command,
+  CommandResult,
+} from "./base"
 import { EntryStyle } from "../logger/types"
 import { PluginContext } from "../plugin-context"
 import { LoginStatusMap } from "../types/plugin/outputs"
@@ -15,7 +18,7 @@ export class LogoutCommand extends Command {
   name = "logout"
   help = "Log into the Garden framework"
 
-  async action(ctx: PluginContext): Promise<LoginStatusMap> {
+  async action(ctx: PluginContext): Promise<CommandResult<LoginStatusMap>> {
 
     ctx.log.header({ emoji: "lock", command: "Logout" })
 
@@ -25,6 +28,6 @@ export class LogoutCommand extends Command {
 
     entry.setSuccess("Logged out successfully")
 
-    return result
+    return { result }
   }
 }

@@ -6,7 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import {
+  GardenError,
+  RuntimeError,
+} from "../exceptions"
 import { PluginContext } from "../plugin-context"
+import { TaskResults } from "../task-graph"
 
 export class ValidationError extends Error { }
 
@@ -120,6 +125,11 @@ export interface CommandConstructor {
   new(parent?: Command): Command
 }
 
+export interface CommandResult<T = any> {
+  result?: T
+  errors?: GardenError[]
+}
+
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
   abstract help: string
@@ -141,5 +151,22 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract async action(ctx: PluginContext, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<any>
+  abstract async action(ctx: PluginContext, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<CommandResult>
+}
+
+export async function handleTaskResults(
+  ctx: PluginContext, taskType: string, result: TaskResults,
+): Promise<CommandResult<TaskResults>> {
+  const failed = Object.values(result).filter(r => !!r.error).length
+
+  if (failed) {
+    const error = new RuntimeError(`${failed} ${taskType} task(s) failed!`, {
+      result,
+    })
+    return { errors: [error] }
+  } else {
+    ctx.log.info("")
+    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+    return { result }
+  }
 }

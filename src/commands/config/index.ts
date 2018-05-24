@@ -22,5 +22,5 @@ export class ConfigCommand extends Command {
     ConfigDeleteCommand,
   ]
 
-  async action() { }
+  async action() { return {} }
 }

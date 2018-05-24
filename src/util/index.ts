@@ -22,7 +22,7 @@ import { find } from "lodash"
 import { getLogger, RootLogNode } from "../logger/index"
 import {
   TimeoutError,
-  GardenError,
+  GardenBaseError,
 } from "../exceptions"
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
@@ -47,7 +47,7 @@ export function shutdown(code) {
   process.exit(code)
 }
 
-export class RsyncError extends GardenError {
+export class RsyncError extends GardenBaseError {
   type = "rsync"
 }
 

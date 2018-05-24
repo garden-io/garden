@@ -1,6 +1,5 @@
 import { expect } from "chai"
 import { join } from "path"
-import * as td from "testdouble"
 
 import {
   PluginFactory,
@@ -40,9 +39,9 @@ describe("EnvironmentDestroyCommand", () => {
   it("should destroy environment", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
 
-    const result = await command.action(garden.pluginContext)
+    const { result } = await command.action(garden.pluginContext)
 
-    expect(result["test-plugin"]["configured"]).to.be.false
+    expect(result!["test-plugin"]["configured"]).to.be.false
   })
 
 })

@@ -15,7 +15,13 @@ import {
   findByName,
   getNames,
 } from "../../util"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
+import {
+  BooleanParameter,
+  Command,
+  CommandResult,
+  ParameterValues,
+  StringParameter,
+} from "../base"
 import { printRuntimeContext } from "./index"
 
 export const runArgs = {
@@ -48,7 +54,7 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<RunResult> {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
     const testName = args.test
     const module = await ctx.getModule(moduleName)
@@ -80,6 +86,8 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.testModule({ moduleName, interactive, runtimeContext, silent: false, testConfig })
+    const result = await ctx.testModule({ moduleName, interactive, runtimeContext, silent: false, testConfig })
+
+    return { result }
   }
 }

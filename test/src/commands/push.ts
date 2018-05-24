@@ -94,7 +94,7 @@ describe("PushCommand", () => {
     const ctx = await getTestContext()
     const command = new PushCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx, {
         module: "",
       },
@@ -104,7 +104,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "build.module-b": { fresh: false },
       "push.module-a": { pushed: true },
@@ -117,7 +117,7 @@ describe("PushCommand", () => {
     const ctx = await getTestContext()
     const command = new PushCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx,
       {
         module: "",
@@ -128,7 +128,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true },
       "build.module-b": { fresh: true },
       "push.module-a": { pushed: true },
@@ -141,7 +141,7 @@ describe("PushCommand", () => {
     const ctx = await getTestContext()
     const command = new PushCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx,
       {
         module: "module-a",
@@ -152,7 +152,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "push.module-a": { pushed: true },
     })
@@ -162,7 +162,7 @@ describe("PushCommand", () => {
     const ctx = await getTestContext()
     const command = new PushCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx,
       {
         module: "module-c",
@@ -173,7 +173,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "push.module-c": { pushed: false },
     })
   })
@@ -184,7 +184,7 @@ describe("PushCommand", () => {
 
     const command = new PushCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx,
       {
         module: "module-a",
@@ -195,7 +195,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type container") },
     })
@@ -237,7 +237,7 @@ describe("PushCommand", () => {
     const ctx = await getTestContext()
     const command = new PushCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx,
       {
         module: "module-a",
@@ -248,7 +248,7 @@ describe("PushCommand", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true },
       "push.module-a": { pushed: true },
     })

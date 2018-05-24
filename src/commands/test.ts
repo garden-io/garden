@@ -7,9 +7,14 @@
  */
 
 import { PluginContext } from "../plugin-context"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
-import { values } from "lodash"
-import chalk from "chalk"
+import {
+  BooleanParameter,
+  Command,
+  handleTaskResults,
+  ParameterValues,
+  StringParameter,
+  CommandResult,
+} from "./base"
 import { TaskResults } from "../task-graph"
 
 export const testArgs = {
@@ -39,7 +44,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   arguments = testArgs
   options = testOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<TaskResults> {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 
@@ -60,15 +65,6 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
       process: async (module) => module.getTestTasks({ group, force, forceBuild }),
     })
 
-    const failed = values(results).filter(r => !!r.error).length
-
-    if (failed) {
-      ctx.log.error({ emoji: "warning", msg: `${failed} test runs failed! See log output above.\n` })
-    } else {
-      ctx.log.info("")
-      ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green(` All tests passing!\n`) })
-    }
-
-    return results
+    return handleTaskResults(ctx, "test", results)
   }
 }
