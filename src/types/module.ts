@@ -332,7 +332,7 @@ export class Module<
       }
       const depContext = deps[dep.name]
 
-      const outputs = await this.ctx.getServiceOutputs({ serviceName: dep.name })
+      const outputs = { ...await this.ctx.getServiceOutputs({ serviceName: dep.name }), ...dep.config.outputs }
       const serviceEnvName = dep.getEnvVarName()
 
       validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })

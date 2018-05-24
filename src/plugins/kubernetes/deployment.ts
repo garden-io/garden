@@ -44,26 +44,26 @@ interface KubeEnvVar {
 }
 
 export async function deployService(
-  { ctx, provider, service, env, runtimeContext, logEntry }: DeployServiceParams<ContainerModule>,
+  { ctx, provider, service, env, runtimeContext, force, logEntry }: DeployServiceParams<ContainerModule>,
 ): Promise<ServiceStatus> {
   const namespace = await getAppNamespace(ctx, provider)
 
   const context = provider.config.context
   const deployment = await createDeployment(service, runtimeContext)
-  await apply(context, deployment, { namespace })
+  await apply(context, deployment, { namespace, force })
 
   // TODO: automatically clean up Services and Ingresses if they should no longer exist
 
   const kubeservices = await createServices(service)
 
   for (let kubeservice of kubeservices) {
-    await apply(context, kubeservice, { namespace })
+    await apply(context, kubeservice, { namespace, force })
   }
 
   const ingress = await createIngress(ctx, provider, service)
 
   if (ingress !== null) {
-    await apply(context, ingress, { namespace })
+    await apply(context, ingress, { namespace, force })
   }
 
   await waitForDeployment({ ctx, provider, service, logEntry, env })

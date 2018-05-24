@@ -11,7 +11,6 @@ import { BooleanParameter, Command, ParameterValues, StringParameter } from "./b
 import { values } from "lodash"
 import chalk from "chalk"
 import { TaskResults } from "../task-graph"
-import Bluebird = require("bluebird")
 
 export const testArgs = {
   module: new StringParameter({
@@ -55,9 +54,10 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
     const force = opts.force
     const forceBuild = opts["force-build"]
 
-    const results = await ctx.processModules(modules, opts.watch, async (module) => {
-      const tasks = await module.getTestTasks({ group, force, forceBuild })
-      return Bluebird.map(tasks, ctx.addTask)
+    const results = await ctx.processModules({
+      modules,
+      watch: opts.watch,
+      process: async (module) => module.getTestTasks({ group, force, forceBuild }),
     })
 
     const failed = values(results).filter(r => !!r.error).length

@@ -28,7 +28,7 @@ const tsSources = "src/**/*.ts"
 const testTsSources = "test/**/*.ts"
 const pegjsSources = "src/*.pegjs"
 
-const staticFiles = ["package.json", "package-lock.json", "static/**", ".snyk"]
+const staticFiles = ["package.json", "package-lock.json", "static/**/*", ".snyk"]
 
 let destDir = "build"
 
@@ -200,6 +200,8 @@ gulp.task("lint", gulp.parallel("check-licenses", "tslint", "tslint-tests", "tsf
 gulp.task("build", gulp.series(gulp.parallel("pegjs", "static", "tsc"), "add-version-files"))
 gulp.task("dist", gulp.series((done) => { setDestDir("dist"); done() }, "lint", "build"))
 gulp.task("test", gulp.parallel("build", "lint", "mocha"))
-gulp.task("watch",
-  gulp.parallel("pegjs-watch", "static-watch", "tsc-watch", "tsfmt-watch", "tslint-watch"))
+gulp.task("watch", gulp.series(
+  "build",
+  gulp.parallel("pegjs-watch", "static-watch", "tsc-watch", "tsfmt-watch", "tslint-watch")),
+)
 gulp.task("default", gulp.series("watch"))

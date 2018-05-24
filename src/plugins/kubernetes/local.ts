@@ -15,6 +15,8 @@ import {
 } from "lodash"
 import * as Joi from "joi"
 import { join } from "path"
+import { PluginError } from "../../exceptions"
+import { DeployTask } from "../../tasks/deploy"
 import { validate } from "../../types/common"
 import {
   GardenPlugin,
@@ -37,6 +39,8 @@ import {
   getSystemGarden,
   isSystemGarden,
 } from "./system"
+
+// TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
@@ -63,29 +67,50 @@ export async function getLocalEnvironmentStatus(
 }
 
 async function configureLocalEnvironment(
-  { ctx, provider, env, status, logEntry }: ConfigureEnvironmentParams,
+  { ctx, provider, env, force, status, logEntry }: ConfigureEnvironmentParams,
 ) {
-  await configureEnvironment({ ctx, provider, env, status, logEntry })
+  await configureEnvironment({ ctx, provider, env, force, status, logEntry })
 
   if (!isSystemGarden(provider)) {
     const sysGarden = await getSystemGarden(provider)
+    const sysCtx = sysGarden.pluginContext
     const sysProvider = {
       name: provider.name,
       config: findByName(sysGarden.config.providers, provider.name)!,
     }
+
     const sysStatus = await getEnvironmentStatus({
-      ctx: sysGarden.pluginContext,
+      ctx: sysCtx,
       provider: sysProvider,
       env,
     })
+
     await configureEnvironment({
-      ctx: sysGarden.pluginContext,
+      ctx: sysCtx,
       env: sysGarden.getEnvironment(),
       provider: sysProvider,
+      force,
       status: sysStatus,
       logEntry,
     })
-    await sysGarden.pluginContext.deployServices({ logEntry })
+
+    const services = await sysCtx.getServices(provider.config._systemServices)
+
+    const results = await sysCtx.processServices({
+      services,
+      watch: false,
+      process: async (service) => {
+        return [await DeployTask.factory({ ctx: sysCtx, service, force, forceBuild: false })]
+      },
+    })
+
+    const failed = values(results).filter(r => !!r.error).length
+
+    if (failed) {
+      throw new PluginError(`local-kubernetes: ${failed} errors occurred when configuring environments`, {
+        results,
+      })
+    }
   }
 
   return {}
@@ -109,9 +134,16 @@ function setMinikubeDockerEnv() {
   }
 }
 
+export interface LocalKubernetesConfig extends KubernetesConfig {
+  _system?: Symbol
+  _systemServices?: string[]
+}
+
 const configSchema = providerConfigBase.keys({
   context: Joi.string(),
+  ingressHostname: Joi.string(),
   _system: Joi.any(),
+  _systemServices: Joi.array().items(Joi.string()),
 })
 
 export const name = "local-kubernetes"
@@ -120,6 +152,9 @@ export function gardenPlugin({ config, logEntry }): GardenPlugin {
   config = validate(config, configSchema, { context: "kubernetes provider config" })
 
   let context = config.context
+  let systemServices
+  let ingressHostname
+  let ingressPort
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
@@ -149,19 +184,37 @@ export function gardenPlugin({ config, logEntry }): GardenPlugin {
   }
 
   if (context === "minikube") {
+    execSync("minikube addons enable ingress")
+
+    ingressHostname = config.ingressHostname
+
+    if (!ingressHostname) {
+      // use the nip.io service to give a hostname to the instance, if none is explicitly configured
+      const minikubeIp = execSync("minikube ip").toString().trim()
+      ingressHostname = minikubeIp + ".nip.io"
+    }
+
+    ingressPort = 80
+    systemServices = []
+
     // automatically set docker environment variables for minikube
     // TODO: it would be better to explicitly provide those to docker instead of using process.env
     setMinikubeDockerEnv()
+  } else {
+    ingressHostname = config.ingressHostname || "local.app.garden"
+    ingressPort = 32000
   }
 
-  const k8sConfig: KubernetesConfig = {
+  const k8sConfig: LocalKubernetesConfig = {
     name: config.name,
     context,
-    ingressHostname: "local.app.garden",
+    ingressHostname,
+    ingressPort,
     ingressClass: "nginx",
     // TODO: support SSL on local deployments
     forceSsl: false,
     _system: config._system,
+    _systemServices: systemServices,
   }
 
   const plugin = k8sPlugin({ config: k8sConfig })

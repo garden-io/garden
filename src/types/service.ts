@@ -172,8 +172,8 @@ export class Service<M extends Module = Module> {
     return new cls(this.ctx, this.module, this.name, resolved)
   }
 
-  async prepareRuntimeContext(extraEnvVars?: PrimitiveMap) {
+  async prepareRuntimeContext(extraEnvVars: PrimitiveMap = {}) {
     const dependencies = await this.getDependencies()
-    return this.module.prepareRuntimeContext(dependencies, extraEnvVars)
+    return this.module.prepareRuntimeContext(dependencies, { ...extraEnvVars })
   }
 }

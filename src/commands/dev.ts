@@ -14,7 +14,6 @@ import { join } from "path"
 import { STATIC_DIR } from "../constants"
 import { spawnSync } from "child_process"
 import chalk from "chalk"
-import Bluebird = require("bluebird")
 import moment = require("moment")
 
 const imgcatPath = join(STATIC_DIR, "imgcat")
@@ -47,16 +46,20 @@ export class DevCommand extends Command {
       return
     }
 
-    await ctx.processModules(modules, true, async (module) => {
-      const testTasks: Task[] = await module.getTestTasks({})
-      const deployTasks = await module.getDeployTasks({})
-      const tasks = testTasks.concat(deployTasks)
+    await ctx.processModules({
+      modules,
+      watch: true,
+      process: async (module) => {
+        const testTasks: Task[] = await module.getTestTasks({})
+        const deployTasks = await module.getDeployTasks({})
+        const tasks = testTasks.concat(deployTasks)
 
-      if (tasks.length === 0) {
-        await ctx.addTask(await BuildTask.factory({ ctx, module, force: false }))
-      } else {
-        await Bluebird.map(tasks, ctx.addTask)
-      }
+        if (tasks.length === 0) {
+          return [await BuildTask.factory({ ctx, module, force: false })]
+        } else {
+          return tasks
+        }
+      },
     })
   }
 }
