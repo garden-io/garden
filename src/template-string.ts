@@ -12,7 +12,7 @@ import Bluebird = require("bluebird")
 import { isPrimitive, Primitive } from "./types/common"
 import { deepResolve } from "./util"
 import * as deepMap from "deep-map"
-import { GardenError } from "./exceptions"
+import { GardenBaseError } from "./exceptions"
 
 export type StringOrStringPromise = Promise<string> | string
 export type KeyResolver = (keyParts: string[]) => Promise<string | undefined> | string | undefined
@@ -21,7 +21,7 @@ export interface TemplateStringContext {
   [type: string]: Primitive | KeyResolver | TemplateStringContext | undefined
 }
 
-class TemplateStringError extends GardenError {
+class TemplateStringError extends GardenBaseError {
   type = "template-string"
 }
 

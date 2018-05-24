@@ -20,7 +20,7 @@ describe("RunServiceCommand", () => {
     }))
 
     const cmd = new RunServiceCommand()
-    const res = await cmd.action(
+    const { result } = await cmd.action(
       ctx,
       { service: "testService" },
       { interactive: false, "force-build": false },
@@ -36,6 +36,6 @@ describe("RunServiceCommand", () => {
       success: true,
     }
 
-    expect(res).to.eql(expected)
+    expect(result).to.eql(expected)
   })
 })

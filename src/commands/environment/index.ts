@@ -20,5 +20,5 @@ export class EnvironmentCommand extends Command {
     EnvironmentDestroyCommand,
   ]
 
-  async action() { }
+  async action() { return {} }
 }

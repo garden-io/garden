@@ -7,7 +7,14 @@
  */
 
 import { PluginContext } from "../plugin-context"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
+import {
+  BooleanParameter,
+  Command,
+  CommandResult,
+  handleTaskResults,
+  ParameterValues,
+  StringParameter,
+} from "./base"
 import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 
@@ -32,14 +39,14 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   arguments = buildArguments
   options = buildOptions
 
-  async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<TaskResults> {
+  async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<CommandResult<TaskResults>> {
     await ctx.clearBuilds()
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 
-    ctx.log.header({ emoji: "hammer", command: "build" })
+    ctx.log.header({ emoji: "hammer", command: "Build" })
 
-    const result = await ctx.processModules({
+    const results = await ctx.processModules({
       modules,
       watch: opts.watch,
       process: async (module) => {
@@ -47,9 +54,6 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
       },
     })
 
-    ctx.log.info("")
-    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
-
-    return result
+    return handleTaskResults(ctx, "build", results)
   }
 }

@@ -26,9 +26,14 @@ import {
   Parameter,
   StringParameter,
   EnvironmentOption,
+  CommandResult,
 } from "./commands/base"
 import { ValidateCommand } from "./commands/validate"
-import { InternalError, PluginError } from "./exceptions"
+import {
+  GardenError,
+  InternalError,
+  PluginError,
+} from "./exceptions"
 import { Garden } from "./garden"
 import { FileWriter } from "./logger/writers"
 import { getLogger, RootLogNode } from "./logger"
@@ -139,7 +144,7 @@ interface OptConfig {
 export interface ParseResults {
   argv: any
   code: number
-  errors: Error[]
+  errors: (GardenError | Error)[]
 }
 
 interface SywacParseResults extends ParseResults {
@@ -320,7 +325,6 @@ export class GardenCli {
 
       // We attach the action result to cli context so that we can process it in the parse method
       cliContext.details.result = result
-
     }
 
     // Command specific positional args and options are set inside the builder function
@@ -342,25 +346,30 @@ export class GardenCli {
 
   async parse(): Promise<ParseResults> {
     const parseResult: SywacParseResults = await this.program.parse()
-    const { argv, details, errors, code, output: cliOutput } = parseResult
-    const { result } = details
+    const { argv, details, errors: parseErrors, output: cliOutput } = parseResult
+    const commandResult: CommandResult = details.result
     const { output } = argv
 
+    let code = parseResult.code
+
     // --help or --version options were called so we log the cli output and exit
-    if (cliOutput && errors.length < 1) {
+    if (cliOutput && parseErrors.length < 1) {
       this.logger.stop()
       console.log(cliOutput)
       process.exit(parseResult.code)
     }
 
-    // --output option set and there is content to output
-    if (output && (result !== undefined || errors.length > 0)) {
+    const errors: GardenError[] = parseErrors
+      .map(e => ({ type: "parameter", message: e.toString() }))
+      .concat(commandResult.errors || [])
+
+    // --output option set
+    if (output) {
       const renderer = OUTPUT_RENDERERS[output]
       if (errors.length > 0) {
-        const msg = errors.join("\n")
-        console.error(renderer({ result: msg }))
+        console.error(renderer({ success: false, errors }))
       } else {
-        console.log(renderer({ success: true, result }))
+        console.log(renderer({ success: true, ...commandResult }))
       }
       // Note: this circumvents an issue where the process exits before the output is fully flushed
       await sleep(100)
@@ -370,8 +379,10 @@ export class GardenCli {
       errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
 
       if (this.logger.writers.find(w => w instanceof FileWriter)) {
-        this.logger.info(`See ${ERROR_LOG_FILENAME} for detailed error message`)
+        this.logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)
       }
+
+      code = 1
     }
 
     this.logger.stop()

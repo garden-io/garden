@@ -7,7 +7,13 @@
  */
 
 import { PluginContext } from "../../plugin-context"
-import { Command, ParameterValues, StringParameter } from "../base"
+import { DeleteConfigResult } from "../../types/plugin/outputs"
+import {
+  Command,
+  CommandResult,
+  ParameterValues,
+  StringParameter,
+} from "../base"
 import { NotFoundError } from "../../exceptions"
 
 export const configDeleteArgs = {
@@ -28,16 +34,16 @@ export class ConfigDeleteCommand extends Command<typeof configDeleteArgs> {
 
   arguments = configDeleteArgs
 
-  async action(ctx: PluginContext, args: DeleteArgs) {
+  async action(ctx: PluginContext, args: DeleteArgs): Promise<CommandResult<DeleteConfigResult>> {
     const key = args.key.split(".")
-    const res = await ctx.deleteConfig({ key })
+    const result = await ctx.deleteConfig({ key })
 
-    if (res.found) {
+    if (result.found) {
       ctx.log.info(`Deleted config key ${args.key}`)
     } else {
       throw new NotFoundError(`Could not find config key ${args.key}`, { key })
     }
 
-    return { ok: true }
+    return { result }
   }
 }

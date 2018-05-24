@@ -20,7 +20,7 @@ describe("RunModuleCommand", () => {
     }))
 
     const cmd = new RunModuleCommand()
-    const res = await cmd.action(
+    const { result } = await cmd.action(
       ctx,
       { module: "run-test", command: undefined },
       { interactive: false, "force-build": false },
@@ -36,7 +36,7 @@ describe("RunModuleCommand", () => {
       success: true,
     }
 
-    expect(res).to.eql(expected)
+    expect(result).to.eql(expected)
   })
 
   it("should run a module with a command param", async () => {
@@ -48,7 +48,7 @@ describe("RunModuleCommand", () => {
     }))
 
     const cmd = new RunModuleCommand()
-    const res = await cmd.action(
+    const { result } = await cmd.action(
       ctx,
       { module: "run-test", command: "my command" },
       { interactive: false, "force-build": false },
@@ -64,6 +64,6 @@ describe("RunModuleCommand", () => {
       success: true,
     }
 
-    expect(res).to.eql(expected)
+    expect(result).to.eql(expected)
   })
 })

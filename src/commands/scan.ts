@@ -10,7 +10,10 @@ import { safeDump } from "js-yaml"
 import { PluginContext } from "../plugin-context"
 import { DeepPrimitiveMap } from "../types/common"
 import { highlightYaml } from "../util"
-import { Command } from "./base"
+import {
+  Command,
+  CommandResult,
+} from "./base"
 import Bluebird = require("bluebird")
 import {
   omit,
@@ -20,7 +23,7 @@ export class ScanCommand extends Command {
   name = "scan"
   help = "Scans your project and outputs an overview of all modules"
 
-  async action(ctx: PluginContext) {
+  async action(ctx: PluginContext): Promise<CommandResult<DeepPrimitiveMap>> {
     const modules = await ctx.getModules()
 
     const output = await Bluebird.map(modules, async (m) => {
@@ -39,6 +42,6 @@ export class ScanCommand extends Command {
 
     ctx.log.info(highlightYaml(safeDump(shortOutput, { noRefs: true, skipInvalid: true })))
 
-    return <DeepPrimitiveMap><any>output
+    return { result: <DeepPrimitiveMap><any>output }
   }
 }

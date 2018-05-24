@@ -6,7 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export abstract class GardenError extends Error {
+export interface GardenError {
+  type: string
+  message: string
+  detail?: any
+  stack?: string
+}
+
+export abstract class GardenBaseError extends Error implements GardenError {
   abstract type: string
   detail: any
 
@@ -16,50 +23,60 @@ export abstract class GardenError extends Error {
   }
 }
 
-export class AuthenticationError extends GardenError {
+export function toGardenError(err: Error): GardenError {
+  if (err instanceof GardenBaseError) {
+    return err
+  } else {
+    const out = new RuntimeError(err.message, {})
+    out.stack = err.stack
+    return out
+  }
+}
+
+export class AuthenticationError extends GardenBaseError {
   type = "authentication"
 }
 
-export class ConfigurationError extends GardenError {
+export class ConfigurationError extends GardenBaseError {
   type = "configuration"
 }
 
-export class LocalConfigError extends GardenError {
+export class LocalConfigError extends GardenBaseError {
   type = "local-config"
 }
 
-export class ValidationError extends GardenError {
+export class ValidationError extends GardenBaseError {
   type = "validation"
 }
 
-export class PluginError extends GardenError {
+export class PluginError extends GardenBaseError {
   type = "plugin"
 }
 
-export class ParameterError extends GardenError {
+export class ParameterError extends GardenBaseError {
   type = "parameter"
 }
 
-export class NotImplementedError extends GardenError {
+export class NotImplementedError extends GardenBaseError {
   type = "not-implemented"
 }
 
-export class DeploymentError extends GardenError {
+export class DeploymentError extends GardenBaseError {
   type = "deployment"
 }
 
-export class RuntimeError extends GardenError {
+export class RuntimeError extends GardenBaseError {
   type = "runtime"
 }
 
-export class InternalError extends GardenError {
+export class InternalError extends GardenBaseError {
   type = "internal"
 }
 
-export class TimeoutError extends GardenError {
+export class TimeoutError extends GardenBaseError {
   type = "timeout"
 }
 
-export class NotFoundError extends GardenError {
+export class NotFoundError extends GardenBaseError {
   type = "not-found"
 }

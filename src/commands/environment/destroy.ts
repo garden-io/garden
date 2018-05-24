@@ -8,7 +8,10 @@
 
 import { PluginContext } from "../../plugin-context"
 
-import { Command } from "../base"
+import {
+  Command,
+  CommandResult,
+} from "../base"
 import { EnvironmentStatusMap } from "../../types/plugin/outputs"
 
 export class EnvironmentDestroyCommand extends Command {
@@ -16,7 +19,7 @@ export class EnvironmentDestroyCommand extends Command {
   alias = "d"
   help = "Destroy environment"
 
-  async action(ctx: PluginContext): Promise<EnvironmentStatusMap> {
+  async action(ctx: PluginContext): Promise<CommandResult<EnvironmentStatusMap>> {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "skull_and_crossbones", command: `Destroying ${name} environment` })
 
@@ -24,7 +27,7 @@ export class EnvironmentDestroyCommand extends Command {
 
     ctx.log.finish()
 
-    return result
+    return { result }
   }
 
 }

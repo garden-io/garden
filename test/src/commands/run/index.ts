@@ -5,7 +5,7 @@ describe("RunCommand", () => {
   it("should do nothing", async () => {
     const cmd = new RunCommand()
     const res = await cmd.action()
-    expect(res).to.be.undefined
+    expect(res).to.eql({})
   })
 
   it("should contain a set of subcommands", () => {

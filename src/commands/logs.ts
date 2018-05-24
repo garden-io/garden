@@ -69,6 +69,6 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
       await ctx.getServiceLogs({ serviceName: service.name, stream, tail })
     })
 
-    return result
+    return { result }
   }
 }

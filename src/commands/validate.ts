@@ -18,5 +18,7 @@ export class ValidateCommand extends Command {
     ctx.log.header({ emoji: "heavy_check_mark", command: "validate" })
 
     await ctx.getModules()
+
+    return {}
   }
 }

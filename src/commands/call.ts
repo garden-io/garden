@@ -119,10 +119,12 @@ export class CallCommand extends Command<typeof callArgs> {
     res.data && ctx.log.info(chalk.white(resStr))
 
     return {
-      serviceName,
-      path,
-      url,
-      response: pick(res, ["status", "statusText", "headers", "data"]),
+      result: {
+        serviceName,
+        path,
+        url,
+        response: pick(res, ["status", "statusText", "headers", "data"]),
+      },
     }
   }
 }

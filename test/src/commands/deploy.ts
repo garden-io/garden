@@ -64,7 +64,7 @@ describe("commands.deploy", () => {
     const ctx = garden.pluginContext
     const command = new DeployCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx, {
         service: "",
       },
@@ -75,7 +75,7 @@ describe("commands.deploy", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A\n" },
       "build.module-b": { fresh: true, buildLog: "B\n" },
       "build.module-c": {},
@@ -90,7 +90,7 @@ describe("commands.deploy", () => {
     const ctx = garden.pluginContext
     const command = new DeployCommand()
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx,
       {
         service: "service-b",
@@ -102,7 +102,7 @@ describe("commands.deploy", () => {
       },
     )
 
-    expect(taskResultOutputs(result)).to.eql({
+    expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A\n" },
       "build.module-b": { fresh: true, buildLog: "B\n" },
       "deploy.service-a": { version: "1", state: "ready" },

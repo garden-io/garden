@@ -4,9 +4,9 @@
   "description": "Garden hello world docker service",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node main.js",
     "test": "echo OK",
-    "integ": "echo OK"
+    "integ": "node_modules/mocha/bin/mocha test/integ.js"
   },
   "author": "garden.io <info@garden.io>",
   "license": "ISC",
@@ -14,5 +14,9 @@
     "express": "^4.16.2",
     "request": "^2.83.0",
     "request-promise": "^4.2.2"
+  },
+  "devDependencies": {
+    "mocha": "^5.1.1",
+    "supertest": "^3.0.0"
   }
 }

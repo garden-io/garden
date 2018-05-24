@@ -22,7 +22,7 @@ export interface TaskResult {
   description: string
   output?: any
   dependencyResults?: TaskResults
-  error?: any
+  error?: Error
 }
 
 /*

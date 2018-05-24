@@ -6,8 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
+import {
+  BooleanParameter,
+  Command,
+  CommandResult,
+  handleTaskResults,
+  ParameterValues,
+  StringParameter,
+} from "./base"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { PushTask } from "../tasks/push"
@@ -40,7 +46,7 @@ export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
   arguments = pushArgs
   options = pushOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts) {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
     ctx.log.header({ emoji: "rocket", command: "Push modules" })
 
     const names = args.module ? args.module.split(",") : undefined
@@ -48,10 +54,7 @@ export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
 
     const result = await pushModules(ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
-    ctx.log.info({ msg: "" })
-    ctx.log.info({ emoji: "heavy_check_mark", msg: chalk.green("Done!\n") })
-
-    return result
+    return handleTaskResults(ctx, "push", result)
   }
 }
 

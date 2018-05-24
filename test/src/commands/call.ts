@@ -58,7 +58,7 @@ describe("commands.call", () => {
       .get("/path-a")
       .reply(200, "bla")
 
-    const result = await command.action(
+    const { result } = await command.action(
       ctx,
       {
         serviceAndPath: "service-a/path-a",

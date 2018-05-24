@@ -10,7 +10,13 @@ import chalk from "chalk"
 import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin/outputs"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
+import {
+  BooleanParameter,
+  Command,
+  ParameterValues,
+  StringParameter,
+  CommandResult,
+} from "../base"
 import {
   uniq,
   flatten,
@@ -49,7 +55,7 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<RunResult> {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
     const module = await ctx.getModule(moduleName)
 
@@ -79,6 +85,16 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.runModule({ moduleName, command, runtimeContext, silent: false, interactive: opts.interactive })
+    ctx.log.info("")
+
+    const result = await ctx.runModule({
+      moduleName,
+      command,
+      runtimeContext,
+      silent: false,
+      interactive: opts.interactive,
+    })
+
+    return { result }
   }
 }

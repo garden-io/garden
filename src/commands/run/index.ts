@@ -26,7 +26,7 @@ export class RunCommand extends Command {
     RunTestCommand,
   ]
 
-  async action() { }
+  async action() { return {} }
 }
 
 export function printRuntimeContext(ctx: PluginContext, runtimeContext: RuntimeContext) {

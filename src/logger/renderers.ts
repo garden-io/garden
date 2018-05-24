@@ -16,7 +16,6 @@ import hasAnsi = require("has-ansi")
 import { duration } from "./util"
 import { LogSymbolType, EntryStyle } from "./types"
 import { LogEntry } from "./index"
-import { GardenError } from "../exceptions"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -73,10 +72,11 @@ export function renderEmoji(entry: LogEntry): string {
 export function renderError(entry: LogEntry) {
   const { error } = entry.opts
   if (error) {
-    let out = `${error.stack}`
-    if (error instanceof GardenError) {
-      const detail = yaml.safeDump(error.detail, { noRefs: true, skipInvalid: true })
-      out += `\nError Details:\n${detail}`
+    let out = `${error.stack || error.message}`
+    const detail = (<any>error).detail
+    if (detail) {
+      const yamlDetail = yaml.safeDump(detail, { noRefs: true, skipInvalid: true })
+      out += `\nError Details:\n${yamlDetail}`
     }
     return out
   }

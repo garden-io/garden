@@ -11,7 +11,10 @@ import {
   ContextStatus,
   PluginContext,
 } from "../plugin-context"
-import { Command } from "./base"
+import {
+  Command,
+  CommandResult,
+} from "./base"
 import { highlightYaml } from "../util"
 
 export class StatusCommand extends Command {
@@ -19,13 +22,13 @@ export class StatusCommand extends Command {
   alias = "s"
   help = "Outputs the status of your environment"
 
-  async action(ctx: PluginContext): Promise<ContextStatus> {
+  async action(ctx: PluginContext): Promise<CommandResult<ContextStatus>> {
     const status = await ctx.getStatus()
     const yamlStatus = yaml.safeDump(status, { noRefs: true, skipInvalid: true })
 
     // TODO: do a nicer print of this by default and add --yaml/--json options (maybe globally) for exporting
     ctx.log.info(highlightYaml(yamlStatus))
 
-    return status
+    return { result: status }
   }
 }
