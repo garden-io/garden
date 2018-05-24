@@ -7,7 +7,7 @@ describe("ConfigGetCommand", () => {
     const ctx = await makeTestContextA()
     const command = new ConfigGetCommand()
 
-    await ctx.setConfig(["project", "mykey"], "myvalue")
+    await ctx.setConfig({ key: ["project", "mykey"], value: "myvalue" })
 
     const res = await command.action(ctx, { key: "project.mykey" })
 

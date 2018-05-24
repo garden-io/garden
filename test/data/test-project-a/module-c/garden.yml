@@ -1,11 +1,11 @@
 module:
   name: module-c
-  type: generic
+  type: test
   services:
     - name: service-c
   build:
     dependencies:
       - module-b
-  test:
+  tests:
     - name: unit
       command: [echo, OK]

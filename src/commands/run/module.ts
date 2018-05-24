@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
-import { RunResult } from "../../types/plugin"
+import { RunResult } from "../../types/plugin/outputs"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
 import {
   uniq,
@@ -50,19 +50,19 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
   options = runOpts
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<RunResult> {
-    const name = args.module
-    const module = await ctx.getModule(name)
+    const moduleName = args.module
+    const module = await ctx.getModule(moduleName)
 
     const msg = args.command
-      ? `Running command ${chalk.white(args.command)} in module ${chalk.white(name)}`
-      : `Running module ${chalk.white(name)}`
+      ? `Running command ${chalk.white(args.command)} in module ${chalk.white(moduleName)}`
+      : `Running module ${chalk.white(moduleName)}`
 
     ctx.log.header({
       emoji: "runner",
       command: msg,
     })
 
-    await ctx.configureEnvironment()
+    await ctx.configureEnvironment({})
 
     const buildTask = await BuildTask.factory({ ctx, module, force: opts["force-build"] })
     await ctx.addTask(buildTask)
@@ -79,6 +79,6 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.runModule({ module, command, runtimeContext, silent: false, interactive: opts.interactive })
+    return ctx.runModule({ moduleName, command, runtimeContext, silent: false, interactive: opts.interactive })
   }
 }

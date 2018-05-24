@@ -41,18 +41,20 @@ describe("loadConfig", () => {
 
     expect(parsed.module).to.eql({
       name: "module-a",
-      type: "generic",
+      type: "test",
+      description: undefined,
       allowPush: true,
-      services: [{ name: "service-a", dependencies: [] }],
       build: { command: "echo A", dependencies: [] },
-      test: [{
-        name: "unit",
-        command: ["echo", "OK"],
-        dependencies: [],
-        variables: {},
-      }],
       path: modulePathA,
       variables: {},
+
+      spec: {
+        services: [{ name: "service-a" }],
+        tests: [{
+          name: "unit",
+          command: ["echo", "OK"],
+        }],
+      },
     })
   })
 })

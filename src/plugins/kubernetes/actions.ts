@@ -11,6 +11,14 @@ import * as Joi from "joi"
 
 import { DeploymentError, NotFoundError, TimeoutError } from "../../exceptions"
 import {
+  GetServiceLogsResult,
+  LoginStatus,
+} from "../../types/plugin/outputs"
+import {
+  RunResult,
+  TestResult,
+} from "../../types/plugin/outputs"
+import {
   ConfigureEnvironmentParams,
   DeleteConfigParams,
   DestroyEnvironmentParams,
@@ -21,17 +29,15 @@ import {
   GetServiceOutputsParams,
   GetServiceStatusParams,
   GetTestResultParams,
-  LoginStatus,
   PluginActionParamsBase,
   RunModuleParams,
-  RunResult,
   SetConfigParams,
   TestModuleParams,
-  TestResult,
-} from "../../types/plugin"
+} from "../../types/plugin/params"
 import { TreeVersion } from "../../vcs/base"
 import {
   ContainerModule,
+  helpers,
 } from "../container"
 import { values, every, uniq } from "lodash"
 import { deserializeKeys, prompt, serializeKeys, splitFirst, sleep } from "../../util"
@@ -128,6 +134,8 @@ export async function configureEnvironment(
     logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
     await createNamespace(context, ns)
   }
+
+  return {}
 }
 
 export async function getServiceStatus(params: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
@@ -174,6 +182,7 @@ export async function destroyEnvironment({ ctx, provider, env }: DestroyEnvironm
     }
   }
 
+  return {}
 }
 
 export async function getServiceOutputs({ service }: GetServiceOutputsParams<ContainerModule>) {
@@ -183,10 +192,10 @@ export async function getServiceOutputs({ service }: GetServiceOutputsParams<Con
 }
 
 export async function execInService(
-  { ctx, provider, service, env, command }: ExecInServiceParams<ContainerModule>,
+  { ctx, provider, module, service, env, command }: ExecInServiceParams<ContainerModule>,
 ) {
   const context = provider.config.context
-  const status = await getServiceStatus({ ctx, provider, service, env })
+  const status = await getServiceStatus({ ctx, provider, module, service, env })
   const namespace = await getAppNamespace(ctx, provider)
 
   // TODO: this check should probably live outside of the plugin
@@ -227,7 +236,7 @@ export async function runModule(
   const envArgs = Object.entries(runtimeContext.envVars).map(([k, v]) => `--env=${k}=${v}`)
 
   const commandStr = command.join(" ")
-  const image = await module.getLocalImageId()
+  const image = await helpers.getLocalImageId(module)
   const version = await module.getVersion()
 
   const opts = [
@@ -271,13 +280,13 @@ export async function runModule(
 }
 
 export async function testModule(
-  { ctx, provider, env, interactive, module, runtimeContext, silent, testSpec }:
+  { ctx, provider, env, interactive, module, runtimeContext, silent, testConfig }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
-  const testName = testSpec.name
-  const command = testSpec.command
-  runtimeContext.envVars = { ...runtimeContext.envVars, ...testSpec.variables }
-  const timeout = testSpec.timeout || DEFAULT_TEST_TIMEOUT
+  const testName = testConfig.name
+  const command = testConfig.spec.command
+  runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.variables }
+  const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
   const result = await runModule({ ctx, provider, env, module, command, interactive, runtimeContext, silent, timeout })
 
@@ -325,7 +334,7 @@ export async function getServiceLogs(
   { ctx, provider, service, stream, tail }: GetServiceLogsParams<ContainerModule>,
 ) {
   const context = provider.config.context
-  const resourceType = service.config.daemon ? "daemonset" : "deployment"
+  const resourceType = service.spec.daemon ? "daemonset" : "deployment"
 
   const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
 
@@ -343,17 +352,17 @@ export async function getServiceLogs(
         return
       }
       const [timestampStr, msg] = splitFirst(s, " ")
-      const timestamp = moment(timestampStr)
+      const timestamp = moment(timestampStr).toDate()
       stream.write({ serviceName: service.name, timestamp, msg })
     })
 
   proc.stderr.pipe(process.stderr)
 
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<GetServiceLogsResult>((resolve, reject) => {
     proc.on("error", reject)
 
     proc.on("exit", () => {
-      resolve()
+      resolve({})
     })
   })
 }
@@ -362,7 +371,8 @@ export async function getConfig({ ctx, provider, key }: GetConfigParams) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
   const res = await apiGetOrNull(coreApi(context).namespaces(ns).secrets, key.join("."))
-  return res && Buffer.from(res.data.value, "base64").toString()
+  const value = res && Buffer.from(res.data.value, "base64").toString()
+  return { value }
 }
 
 export async function setConfig({ ctx, provider, key, value }: SetConfigParams) {
@@ -385,6 +395,8 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
   }
 
   await apiPostOrPut(coreApi(context).namespaces(ns).secrets, key.join("."), body)
+
+  return {}
 }
 
 export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {

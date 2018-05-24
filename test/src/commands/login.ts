@@ -5,10 +5,6 @@ import * as td from "testdouble"
 import { LoginCommand } from "../../../src/commands/login"
 
 describe("LoginCommand", () => {
-  afterEach(() => {
-    td.reset()
-  })
-
   const command = new LoginCommand()
 
   it("should log in to provider", async () => {

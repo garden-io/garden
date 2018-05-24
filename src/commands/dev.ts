@@ -35,7 +35,7 @@ export class DevCommand extends Command {
 
     ctx.log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
-    await ctx.configureEnvironment()
+    await ctx.configureEnvironment({})
 
     const modules = await ctx.getModules()
 

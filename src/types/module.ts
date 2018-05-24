@@ -12,35 +12,40 @@ import {
   readFileSync,
 } from "fs"
 import * as Joi from "joi"
+import {
+  keyBy,
+  set,
+} from "lodash"
+import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
+import { ConfigurationError } from "../exceptions"
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
 import { TestTask } from "../tasks/test"
-import { getNames } from "../util"
 import {
-  joiArray,
+  resolveTemplateStrings,
+  TemplateStringContext,
+} from "../template-string"
+import { getNames } from "../util"
+import { TreeVersion } from "../vcs/base"
+import {
   joiEnvVars,
   joiIdentifier,
-  joiPrimitive,
   joiVariables,
   PrimitiveMap,
   validate,
 } from "./common"
-import { ConfigurationError } from "../exceptions"
-import {
-  extend,
-  set,
-  keyBy,
-} from "lodash"
 import {
   RuntimeContext,
   Service,
   ServiceConfig,
+  serviceOutputsSchema,
+  ServiceSpec,
 } from "./service"
-import { resolveTemplateStrings, TemplateStringContext } from "../template-string"
-import { Memoize } from "typescript-memoize"
-import { TreeVersion } from "../vcs/base"
-import { join } from "path"
+import {
+  TestConfig,
+  TestSpec,
+} from "./test"
 
 export interface BuildCopySpec {
   source: string
@@ -56,8 +61,15 @@ const copySchema = Joi.object().keys({
 
 export interface BuildDependencyConfig {
   name: string
+  plugin?: string
   copy: BuildCopySpec[]
 }
+
+export const buildDependencySchema = Joi.object().keys({
+  name: joiIdentifier().required(),
+  plugin: joiIdentifier(),
+  copy: Joi.array().items(copySchema).default(() => [], "[]"),
+})
 
 export interface BuildConfig {
   // TODO: this should be a string array, to match other command specs
@@ -65,96 +77,105 @@ export interface BuildConfig {
   dependencies: BuildDependencyConfig[],
 }
 
-const serviceOutputsSchema = Joi.object().pattern(/.+/, joiPrimitive())
-
-export interface TestSpec {
-  name: string
-  command: string[]
-  dependencies: string[]
-  variables: PrimitiveMap
-  timeout?: number
-}
-
-export const baseTestSpecSchema = Joi.object().keys({
-  name: joiIdentifier().required(),
-  command: Joi.array().items(Joi.string()).required(),
-  dependencies: Joi.array().items(Joi.string()).default(() => [], "[]"),
-  variables: joiVariables(),
-  timeout: Joi.number(),
-})
-
 const versionFileSchema = Joi.object().keys({
   versionString: Joi.string().required(),
   latestCommit: Joi.string().required(),
   dirtyTimestamp: Joi.number().allow(null).required(),
 })
 
-export interface ModuleConfig<T extends ServiceConfig = ServiceConfig> {
+export interface ModuleSpec { }
+
+export interface BaseModuleSpec {
   allowPush: boolean
   build: BuildConfig
   description?: string
   name: string
   path: string
-  services: T[]
-  test: TestSpec[]
   type: string
   variables: PrimitiveMap
 }
 
-export const baseServiceSchema = Joi.object()
-  .keys({
-    dependencies: Joi.array().items((joiIdentifier())).default(() => [], "[]"),
-  })
-  .options({ allowUnknown: true })
-
-export const baseDependencySchema = Joi.object().keys({
-  name: joiIdentifier().required(),
-  copy: Joi.array().items(copySchema).default(() => [], "[]"),
-})
-
-export const baseModuleSchema = Joi.object().keys({
+export const baseModuleSpecSchema = Joi.object().keys({
   type: joiIdentifier().required(),
   name: joiIdentifier(),
   description: Joi.string(),
   variables: joiVariables(),
-  services: joiArray(baseServiceSchema).unique("name"),
   allowPush: Joi.boolean()
     .default(true, "Set to false to disable pushing this module to remote registries"),
   build: Joi.object().keys({
     command: Joi.string(),
-    dependencies: Joi.array().items(baseDependencySchema).default(() => [], "[]"),
+    dependencies: Joi.array().items(buildDependencySchema).default(() => [], "[]"),
   }).default(() => ({ dependencies: [] }), "{}"),
-  test: joiArray(baseTestSpecSchema).unique("name"),
 }).required().unknown(true)
 
-export class Module<T extends ModuleConfig = ModuleConfig> {
-  public name: string
-  public type: string
-  public path: string
-  public services: T["services"]
+export interface ModuleConfig<T extends ModuleSpec = any> extends BaseModuleSpec {
+  // Plugins can add custom fields that are kept here
+  spec: T
+}
+
+export const moduleConfigSchema = baseModuleSpecSchema.keys({
+  spec: Joi.object(),
+})
+
+export interface ModuleConstructor<
+  M extends ModuleSpec = ModuleSpec,
+  S extends ServiceSpec = ServiceSpec,
+  T extends TestSpec = TestSpec,
+  > {
+  new(ctx: PluginContext, config: ModuleConfig<M>, serviceConfigs: ServiceConfig<S>[], testConfigs: TestConfig<T>[])
+    : Module<M, S, T>,
+}
+
+export class Module<
+  M extends ModuleSpec = any,
+  S extends ServiceSpec = any,
+  T extends TestSpec = any,
+  > {
+  public readonly name: string
+  public readonly type: string
+  public readonly path: string
+
+  public readonly spec: M
+  public readonly services: ServiceConfig<S>[]
+  public readonly tests: TestConfig<T>[]
 
   private _buildDependencies: Module[]
 
-  _ConfigType: T
+  readonly _ConfigType: ModuleConfig<M>
 
-  constructor(private ctx: PluginContext, private config: T) {
+  constructor(
+    private ctx: PluginContext,
+    public config: ModuleConfig<M>,
+    serviceConfigs: ServiceConfig<S>[],
+    testConfigs: TestConfig<T>[],
+  ) {
+    this.config = config
+    this.spec = config.spec
     this.name = config.name
     this.type = config.type
     this.path = config.path
-    this.services = config.services
+    this.services = serviceConfigs
+    this.tests = testConfigs
   }
 
-  @Memoize()
-  async getConfig(context?: TemplateStringContext): Promise<ModuleConfig> {
+  async resolveConfig(context?: TemplateStringContext): Promise<Module<M, S, T>> {
     // TODO: allow referencing other module configs (non-trivial, need to save for later)
-    const templateContext = await this.ctx.getTemplateContext(context)
-    const config = <T>extend({}, this.config)
+    const runtimeContext = await this.prepareRuntimeContext([])
+    const templateContext = await this.ctx.getTemplateContext({
+      ...context,
+      ...runtimeContext,
+    })
+    const config = { ...this.config }
 
     config.build = await resolveTemplateStrings(config.build, templateContext)
-    config.test = await Bluebird.map(config.test, t => resolveTemplateStrings(t, templateContext))
+    config.spec = await resolveTemplateStrings(config.spec, templateContext, { ignoreMissingKeys: true })
     config.variables = await resolveTemplateStrings(config.variables, templateContext)
 
-    return config
+    const services = await resolveTemplateStrings(this.services, templateContext, { ignoreMissingKeys: true })
+    const tests = await resolveTemplateStrings(this.tests, templateContext, { ignoreMissingKeys: true })
+
+    const cls = <typeof Module>Object.getPrototypeOf(this).constructor
+    return new cls(this.ctx, config, services, tests)
   }
 
   updateConfig(key: string, value: any) {
@@ -199,7 +220,7 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
   }
 
   async getBuildPath() {
-    return await this.ctx.getModuleBuildPath(this)
+    return await this.ctx.getModuleBuildPath(this.name)
   }
 
   async getBuildDependencies(): Promise<Module[]> {
@@ -211,8 +232,9 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     const modules = keyBy(await this.ctx.getModules(), "name")
     const deps: Module[] = []
 
-    for (let dependencyConfig of this.config.build.dependencies) {
-      const dependencyName = dependencyConfig.name
+    for (let dep of this.config.build.dependencies) {
+      // TODO: find a more elegant way of dealing with plugin module dependencies
+      const dependencyName = dep.plugin ? `${dep.plugin}--${dep.name}` : dep.name
       const dependency = modules[dependencyName]
 
       if (!dependency) {
@@ -250,16 +272,15 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     { group, force = false, forceBuild = false }: { group?: string, force?: boolean, forceBuild?: boolean },
   ) {
     const tasks: Promise<TestTask>[] = []
-    const config = await this.getConfig()
 
-    for (const test of config.test) {
+    for (const test of this.tests) {
       if (group && test.name !== group) {
         continue
       }
       tasks.push(TestTask.factory({
         force,
         forceBuild,
-        testSpec: test,
+        testConfig: test,
         ctx: this.ctx,
         module: this,
       }))
@@ -268,7 +289,10 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
     return Bluebird.all(tasks)
   }
 
-  async prepareRuntimeContext(dependencies: Service<any>[], extraEnvVars: PrimitiveMap = {}): Promise<RuntimeContext> {
+  async prepareRuntimeContext(
+    serviceDependencies: Service<any>[], extraEnvVars: PrimitiveMap = {},
+  ): Promise<RuntimeContext> {
+    const buildDependencies = await this.getBuildDependencies()
     const { versionString } = await this.getVersion()
     const envVars = {
       GARDEN_VERSION: versionString,
@@ -292,13 +316,23 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
 
     const deps = {}
 
-    for (const dep of dependencies) {
-      const depContext = deps[dep.name] = {
-        version: versionString,
+    for (const module of buildDependencies) {
+      deps[module.name] = {
+        version: (await module.getVersion()).versionString,
         outputs: {},
       }
+    }
 
-      const outputs = await this.ctx.getServiceOutputs(dep)
+    for (const dep of serviceDependencies) {
+      if (!deps[dep.name]) {
+        deps[dep.name] = {
+          version: (await dep.module.getVersion()).versionString,
+          outputs: {},
+        }
+      }
+      const depContext = deps[dep.name]
+
+      const outputs = await this.ctx.getServiceOutputs({ serviceName: dep.name })
       const serviceEnvName = dep.getEnvVarName()
 
       validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
@@ -311,8 +345,16 @@ export class Module<T extends ModuleConfig = ModuleConfig> {
       }
     }
 
-    return { envVars, dependencies: deps }
+    return {
+      envVars,
+      dependencies: deps,
+      module: {
+        name: this.name,
+        type: this.type,
+        version: versionString,
+      },
+    }
   }
 }
 
-export type ModuleConfigType<T extends Module> = T["_ConfigType"]
+export type ModuleConfigType<M extends Module> = M["_ConfigType"]

@@ -18,6 +18,6 @@ let _serviceConfig: ServiceConfig
 
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
-    "npm-package": genericPlugin.moduleActions.generic,
+    "npm-package": genericPlugin.moduleActions!.generic,
   },
 })

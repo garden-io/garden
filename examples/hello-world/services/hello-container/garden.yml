@@ -19,7 +19,7 @@ module:
   build:
     dependencies:
       - hello-npm-package
-  test:
+  tests:
     - name: unit
       command: [npm, test]
     - name: integ

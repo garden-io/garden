@@ -17,10 +17,12 @@ import * as Joi from "joi"
 import { join } from "path"
 import { validate } from "../../types/common"
 import {
-  ConfigureEnvironmentParams,
   GardenPlugin,
-  GetEnvironmentStatusParams,
 } from "../../types/plugin"
+import {
+  ConfigureEnvironmentParams,
+  GetEnvironmentStatusParams,
+} from "../../types/plugin/params"
 import { providerConfigBase } from "../../types/project"
 import { findByName } from "../../util"
 import {
@@ -69,7 +71,7 @@ async function configureLocalEnvironment(
     const sysGarden = await getSystemGarden(provider)
     const sysProvider = {
       name: provider.name,
-      config: findByName(sysGarden.config.providers, provider.name),
+      config: findByName(sysGarden.config.providers, provider.name)!,
     }
     const sysStatus = await getEnvironmentStatus({
       ctx: sysGarden.pluginContext,
@@ -85,6 +87,8 @@ async function configureLocalEnvironment(
     })
     await sysGarden.pluginContext.deployServices({ logEntry })
   }
+
+  return {}
 }
 
 function getKubeConfig(): any {

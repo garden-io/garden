@@ -11,13 +11,14 @@ import {
   findByName,
   getNames,
 } from "../util"
-import { baseModuleSchema, ModuleConfig } from "./module"
+import { baseModuleSpecSchema, ModuleConfig } from "./module"
 import { joiIdentifier, validate } from "./common"
 import { ConfigurationError } from "../exceptions"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
 import { readFileSync } from "fs"
 import { defaultEnvironments, ProjectConfig, projectSchema } from "./project"
+import { omit } from "lodash"
 
 const CONFIG_FILENAME = "garden.yml"
 
@@ -35,17 +36,19 @@ export const configSchema = Joi.object()
     version: Joi.string().default("0").only("0"),
     dirname: Joi.string(),
     path: Joi.string(),
-    module: baseModuleSchema,
+    module: baseModuleSpecSchema,
     project: projectSchema,
   })
   .optionalKeys(["module", "project"])
   .required()
 
+const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children)
+
 export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig> {
   // TODO: nicer error messages when load/validation fails
   const absPath = join(path, CONFIG_FILENAME)
   let fileData
-  let config
+  let spec: any
 
   try {
     fileData = readFileSync(absPath)
@@ -54,12 +57,12 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   }
 
   try {
-    config = <GardenConfig>yaml.safeLoad(fileData) || {}
+    spec = yaml.safeLoad(fileData) || {}
   } catch (err) {
     throw new ConfigurationError(`Could not parse ${CONFIG_FILENAME} in directory ${path} as valid YAML`, err)
   }
 
-  if (config.module) {
+  if (spec.module) {
     /*
       We allow specifying modules by name only as a shorthand:
 
@@ -67,19 +70,17 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
           - foo-module
           - name: foo-module // same as the above
      */
-    if (config.module.build && config.module.build.dependencies) {
-      config.module.build.dependencies = config.module.build.dependencies
+    if (spec.module.build && spec.module.build.dependencies) {
+      spec.module.build.dependencies = spec.module.build.dependencies
         .map(dep => (typeof dep) === "string" ? { name: dep } : dep)
     }
   }
 
-  const parsed = <GardenConfig>validate(config, configSchema, { context: relative(projectRoot, absPath) })
+  const parsed = <GardenConfig>validate(spec, configSchema, { context: relative(projectRoot, absPath) })
 
+  const dirname = parse(absPath).dir.split(sep).slice(-1)[0]
   const project = parsed.project
-  const module = parsed.module
-
-  parsed.dirname = parse(absPath).dir.split(sep).slice(-1)[0]
-  parsed.path = path
+  let module = parsed.module
 
   if (project) {
     // we include the default local environment unless explicitly overridden
@@ -105,11 +106,21 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   }
 
   if (module) {
-    module.path = path
+    // Built-in keys are validated here and the rest are put into the `spec` field
+    module = {
+      allowPush: module.allowPush,
+      build: module.build,
+      description: module.description,
+      name: module.name,
+      path,
+      spec: omit(module, baseModuleSchemaKeys),
+      type: module.type,
+      variables: module.variables,
+    }
 
     if (!module.name) {
       try {
-        module.name = validate(parsed.dirname, joiIdentifier())
+        module.name = validate(dirname, joiIdentifier())
       } catch (_) {
         throw new ConfigurationError(
           `Directory name ${parsed.dirname} is not a valid module name (must be valid identifier). ` +
@@ -120,5 +131,11 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     }
   }
 
-  return parsed
+  return {
+    version: parsed.version,
+    dirname,
+    path,
+    module,
+    project,
+  }
 }

@@ -35,7 +35,7 @@ export async function createServices(service: ContainerService) {
 
   // first add internally exposed (ClusterIP) service
   const internalPorts: any = []
-  const ports = service.config.ports
+  const ports = service.spec.ports
 
   for (const portSpec of ports) {
     internalPorts.push({

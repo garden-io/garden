@@ -32,11 +32,11 @@ import {
 } from "./plugins"
 import {
   Module,
-  ModuleConfig,
-  ModuleConfigType,
 } from "./types/module"
 import {
+  moduleActionDescriptions,
   moduleActionNames,
+  pluginActionDescriptions,
   pluginModuleSchema,
   pluginSchema,
   RegisterPluginParam,
@@ -121,7 +121,9 @@ export type PluginActionMap = {
 
 export type ModuleActionMap = {
   [A in keyof ModuleActions<any>]: {
-    [pluginName: string]: ModuleActions<any>[A],
+    [moduleType: string]: {
+      [pluginName: string]: ModuleActions<any>[A],
+    },
   }
 }
 
@@ -405,15 +407,19 @@ export class Garden {
     }
 
     for (const modulePath of plugin.modules || []) {
-      const module = await this.resolveModule(modulePath)
+      let module = await this.resolveModule(modulePath)
       if (!module) {
         throw new PluginError(`Could not load module "${modulePath}" specified in plugin "${pluginName}"`, {
           pluginName,
           modulePath,
         })
       }
-      module.name = `${pluginName}.${module.name}`
-      module.updateConfig("name", module.name)
+      module = new Module(
+        this.pluginContext,
+        { ...module.config, name: `${pluginName}--${module.name}` },
+        module.services,
+        module.tests,
+      )
       await this.addModule(module)
     }
 
@@ -451,9 +457,11 @@ export class Garden {
     pluginName: string, actionType: T, handler: PluginActions[T],
   ) {
     const plugin = this.getPlugin(pluginName)
+    const schema = pluginActionDescriptions[actionType].resultSchema
 
-    const wrapped = (...args) => {
-      return handler.apply(plugin, args)
+    const wrapped = async (...args) => {
+      const result = await handler.apply(plugin, args)
+      return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
     }
     wrapped["actionType"] = actionType
     wrapped["pluginName"] = pluginName
@@ -465,23 +473,25 @@ export class Garden {
     pluginName: string, actionType: T, moduleType: string, handler: ModuleActions<any>[T],
   ) {
     const plugin = this.getPlugin(pluginName)
+    const schema = moduleActionDescriptions[actionType].resultSchema
 
-    const wrapped = (...args) => {
-      return handler.apply(plugin, args)
+    const wrapped = async (...args) => {
+      const result = await handler.apply(plugin, args)
+      return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
     }
     wrapped["actionType"] = actionType
     wrapped["pluginName"] = pluginName
     wrapped["moduleType"] = moduleType
 
-    if (!this.moduleActionHandlers[moduleType]) {
-      this.moduleActionHandlers[moduleType] = {}
+    if (!this.moduleActionHandlers[actionType]) {
+      this.moduleActionHandlers[actionType] = {}
     }
 
-    if (!this.moduleActionHandlers[moduleType][actionType]) {
-      this.moduleActionHandlers[moduleType][actionType] = {}
+    if (!this.moduleActionHandlers[actionType][moduleType]) {
+      this.moduleActionHandlers[actionType][moduleType] = {}
     }
 
-    this.moduleActionHandlers[moduleType][actionType][pluginName] = wrapped
+    this.moduleActionHandlers[actionType][moduleType][pluginName] = wrapped
   }
 
   /*
@@ -523,7 +533,7 @@ export class Garden {
   /**
    * Returns the module with the specified name. Throws error if it doesn't exist.
    */
-  async getModule(name: string, noScan?: boolean): Promise<Module<ModuleConfig>> {
+  async getModule(name: string, noScan?: boolean): Promise<Module> {
     return (await this.getModules([name], noScan))[0]
   }
 
@@ -605,9 +615,14 @@ export class Garden {
 
     this.modulesScanned = true
 
-    await detectCircularDependencies(
-      await this.getModules(),
-      (await this.getServices()).map(s => s.name))
+    await this.detectCircularDependencies()
+  }
+
+  private async detectCircularDependencies() {
+    const modules = await this.getModules()
+    const services = await this.getServices()
+
+    return detectCircularDependencies(modules, services)
   }
 
   /*
@@ -616,7 +631,7 @@ export class Garden {
     @param force - add the module again, even if it's already registered
    */
   async addModule(module: Module, force = false) {
-    const config = await module.getConfig()
+    const config = module.config
 
     if (!force && this.modules[config.name]) {
       const pathA = relative(this.projectRoot, this.modules[config.name].path)
@@ -631,7 +646,7 @@ export class Garden {
     this.modules[config.name] = module
 
     // Add to service-module map
-    for (const service of config.services || []) {
+    for (const service of module.services) {
       const serviceName = service.name
 
       if (!force && this.services[serviceName]) {
@@ -648,6 +663,11 @@ export class Garden {
 
       this.services[serviceName] = await Service.factory(this.pluginContext, module, serviceName)
     }
+
+    if (this.modulesScanned) {
+      // need to re-run this if adding modules after initial scan
+      await this.detectCircularDependencies()
+    }
   }
 
   /*
@@ -658,32 +678,36 @@ export class Garden {
 
     // TODO: support git URLs
    */
-  async resolveModule<T extends Module = Module>(nameOrLocation: string): Promise<T | null> {
+  async resolveModule(nameOrLocation: string): Promise<Module | null> {
     const parsedPath = parse(nameOrLocation)
 
     if (parsedPath.dir === "") {
       // Looks like a name
-      const module = this.modules[nameOrLocation]
+      const existingModule = this.modules[nameOrLocation]
 
-      if (!module) {
+      if (!existingModule) {
         throw new ConfigurationError(`Module ${nameOrLocation} could not be found`, {
           name: nameOrLocation,
         })
       }
 
-      return <T>module
+      return existingModule
     }
 
     // Looks like a path
     const path = resolve(this.projectRoot, nameOrLocation)
     const config = await loadConfig(this.projectRoot, path)
-    const moduleConfig = <ModuleConfigType<T>>config.module
+    const moduleConfig = config.module
 
     if (!moduleConfig) {
       return null
     }
 
-    return this.pluginContext.parseModule(moduleConfig)
+    const moduleName = moduleConfig.name
+
+    const { module, services, tests } = await this.pluginContext.parseModule({ moduleName, moduleConfig })
+
+    return new Module(this.pluginContext, module, services, tests)
   }
 
   async getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
@@ -692,7 +716,8 @@ export class Garden {
     return {
       ...await getTemplateContext(),
       config: async (key: string[]) => {
-        return _this.pluginContext.getConfig(key)
+        const { value } = await _this.pluginContext.getConfig({ key })
+        return value === null ? undefined : value
       },
       variables: this.config.variables,
       environment: { name: this.environment, config: <any>this.config },
@@ -725,7 +750,7 @@ export class Garden {
   public getModuleActionHandlers<T extends keyof ModuleActions<any>>(
     actionType: T, moduleType: string,
   ): ModuleActionHandlerMap<T> {
-    return pick((this.moduleActionHandlers[moduleType] || {})[actionType], this.getEnvPlugins())
+    return pick((this.moduleActionHandlers[actionType] || {})[moduleType], this.getEnvPlugins())
   }
 
   /**
@@ -757,7 +782,7 @@ export class Garden {
   /**
    * Get the last configured handler for the specified action.
    */
-  public getModuleActionHandler<T extends keyof ModuleActions<any>>(
+  public getModuleActionHandler<T extends keyof ModuleActions>(
     type: T, moduleType: string, defaultHandler?: ModuleActions<any>[T],
   ): ModuleActions<any>[T] {
 

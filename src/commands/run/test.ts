@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { ParameterError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
-import { RunResult } from "../../types/plugin"
+import { RunResult } from "../../types/plugin/outputs"
 import {
   findByName,
   getNames,
@@ -52,15 +52,14 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
     const moduleName = args.module
     const testName = args.test
     const module = await ctx.getModule(moduleName)
-    const config = await module.getConfig()
 
-    const testSpec = findByName(config.test, testName)
+    const testConfig = findByName(module.tests, testName)
 
-    if (!testSpec) {
+    if (!testConfig) {
       throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
         moduleName,
         testName,
-        availableTests: getNames(config.test),
+        availableTests: getNames(module.tests),
       })
     }
 
@@ -69,18 +68,18 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
       command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
     })
 
-    await ctx.configureEnvironment()
+    await ctx.configureEnvironment({})
 
     const buildTask = await BuildTask.factory({ ctx, module, force: opts["force-build"] })
     await ctx.addTask(buildTask)
     await ctx.processTasks()
 
     const interactive = opts.interactive
-    const deps = await ctx.getServices(testSpec.dependencies)
+    const deps = await ctx.getServices(testConfig.dependencies)
     const runtimeContext = await module.prepareRuntimeContext(deps)
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.testModule({ module, interactive, runtimeContext, silent: false, testSpec })
+    return ctx.testModule({ moduleName, interactive, runtimeContext, silent: false, testConfig })
   }
 }

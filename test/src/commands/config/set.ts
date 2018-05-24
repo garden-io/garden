@@ -9,7 +9,7 @@ describe("ConfigSetCommand", () => {
 
     await command.action(ctx, { key: "project.mykey", value: "myvalue" })
 
-    expect(await ctx.getConfig(["project", "mykey"])).to.equal("myvalue")
+    expect(await ctx.getConfig({ key: ["project", "mykey"] })).to.eql({ value: "myvalue" })
   })
 
   it("should throw on invalid key", async () => {

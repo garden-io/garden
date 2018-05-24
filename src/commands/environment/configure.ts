@@ -7,7 +7,7 @@
  */
 
 import { PluginContext } from "../../plugin-context"
-import { EnvironmentStatusMap } from "../../types/plugin"
+import { EnvironmentStatusMap } from "../../types/plugin/outputs"
 import { Command } from "../base"
 
 export class EnvironmentConfigureCommand extends Command {
@@ -19,7 +19,7 @@ export class EnvironmentConfigureCommand extends Command {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "gear", command: `Configuring ${name} environment` })
 
-    const result = await ctx.configureEnvironment()
+    const result = await ctx.configureEnvironment({})
 
     ctx.log.info("")
     ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })

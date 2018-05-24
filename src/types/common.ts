@@ -18,6 +18,10 @@ export type Primitive = string | number | boolean
 export interface PrimitiveMap { [key: string]: Primitive }
 export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap }
 
+// export type ConfigWithSpec<S extends object> = <T extends S>{
+//   spec: Omit<T, keyof S> & Partial<S>
+// }
+
 export const enumToArray = Enum => (
   Object.values(Enum).filter(k => typeof k === "string") as string[]
 )
@@ -34,7 +38,9 @@ export const joiIdentifier = () => Joi
     "cannot contain consecutive dashes and cannot end with a dash",
 )
 
-export const joiIdentifierMap = (valueSchema: JoiObject) => Joi.object().pattern(identifierRegex, valueSchema)
+export const joiIdentifierMap = (valueSchema: JoiObject) => Joi
+  .object().pattern(identifierRegex, valueSchema)
+  .default(() => ({}), "{}")
 
 export const joiVariables = () => Joi
   .object().pattern(/[\w\d]+/i, joiPrimitive())

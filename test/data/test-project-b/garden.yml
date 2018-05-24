@@ -1,5 +1,7 @@
 project:
   name: test-project-b
+  global:
+    providers: []
   environments:
     - name: local
       providers:

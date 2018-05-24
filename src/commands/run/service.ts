@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
-import { RunResult } from "../../types/plugin"
+import { RunResult } from "../../types/plugin/outputs"
 import { BooleanParameter, Command, ParameterValues, StringParameter } from "../base"
 import { printRuntimeContext } from "./index"
 
@@ -40,16 +40,16 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
   options = runOpts
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<RunResult> {
-    const name = args.service
-    const service = await ctx.getService(name)
+    const serviceName = args.service
+    const service = await ctx.getService(serviceName)
     const module = service.module
 
     ctx.log.header({
       emoji: "runner",
-      command: `Running service ${chalk.cyan(name)} in module ${chalk.cyan(module.name)}`,
+      command: `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`,
     })
 
-    await ctx.configureEnvironment()
+    await ctx.configureEnvironment({})
 
     const buildTask = await BuildTask.factory({ ctx, module, force: opts["force-build"] })
     await ctx.addTask(buildTask)
@@ -60,6 +60,6 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
-    return ctx.runService({ service, runtimeContext, silent: false, interactive: opts.interactive })
+    return ctx.runService({ serviceName, runtimeContext, silent: false, interactive: opts.interactive })
   }
 }

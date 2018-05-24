@@ -1,6 +1,6 @@
 module:
   name: module-e
-  type: generic
+  type: test
   build:
     command: "echo E"
     dependencies:

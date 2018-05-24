@@ -35,11 +35,11 @@ export async function checkDeploymentStatus(
     { ctx: PluginContext, provider: Provider, service: ContainerService, resourceVersion?: number },
 ): Promise<ServiceStatus> {
   const context = provider.config.context
-  const type = service.config.daemon ? "daemonsets" : "deployments"
+  const type = service.spec.daemon ? "daemonsets" : "deployments"
   const hostname = getServiceHostname(ctx, provider, service)
   const namespace = await getAppNamespace(ctx, provider)
 
-  const endpoints = service.config.endpoints.map((e: ServiceEndpointSpec) => {
+  const endpoints = service.spec.endpoints.map((e: ServiceEndpointSpec) => {
     // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
     const protocol: ServiceProtocol = "http"
 
@@ -143,7 +143,7 @@ export async function checkDeploymentStatus(
   if (statusRes.metadata.generation > status.observedGeneration) {
     statusMsg = `Waiting for spec update to be observed...`
     out.state = "deploying"
-  } else if (service.config.daemon) {
+  } else if (service.spec.daemon) {
     const desired = status.desiredNumberScheduled || 0
     const updated = status.updatedNumberScheduled || 0
     available = status.numberAvailable || 0

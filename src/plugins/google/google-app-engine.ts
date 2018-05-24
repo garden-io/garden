@@ -6,6 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import {
+  DeployServiceParams,
+  GetServiceOutputsParams,
+} from "../../types/plugin/params"
 import { ServiceStatus } from "../../types/service"
 import { join } from "path"
 import {
@@ -17,21 +21,21 @@ import {
   GOOGLE_CLOUD_DEFAULT_REGION,
   configureEnvironment,
 } from "./common"
-import { ContainerModule, ContainerModuleConfig, ContainerServiceConfig } from "../container"
+import {
+  ContainerModule,
+  ContainerModuleSpec,
+  ContainerServiceSpec,
+} from "../container"
 import { dumpYaml } from "../../util"
 import {
-  DeployServiceParams,
   GardenPlugin,
-  GetServiceOutputsParams,
 } from "../../types/plugin"
 
-export interface GoogleAppEngineServiceConfig extends ContainerServiceConfig {
-  project: string
+export interface GoogleAppEngineServiceSpec extends ContainerServiceSpec {
+  project?: string
 }
 
-export interface GoogleAppEngineModuleConfig extends ContainerModuleConfig<GoogleAppEngineServiceConfig> { }
-
-export class GoogleAppEngineModule extends ContainerModule<GoogleAppEngineModuleConfig> { }
+export class GoogleAppEngineModule extends ContainerModule<ContainerModuleSpec, GoogleAppEngineServiceSpec> { }
 
 export const gardenPlugin = (): GardenPlugin => ({
   actions: {
@@ -57,7 +61,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           msg: `Deploying app...`,
         })
 
-        const config = service.config
+        const config = service.spec
 
         // prepare app.yaml
         const appYaml: any = {
@@ -91,6 +95,8 @@ export const gardenPlugin = (): GardenPlugin => ({
         ], { cwd: service.module.path })
 
         ctx.log.info({ section: service.name, msg: `App deployed` })
+
+        return {}
       },
 
       async getServiceOutputs({ service, provider }: GetServiceOutputsParams<GoogleAppEngineModule>) {

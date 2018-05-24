@@ -492,15 +492,6 @@ describe("Garden", () => {
       expect(handler["pluginName"]).to.equal("test-plugin-b")
     })
 
-    it("should filter to only handlers for the specified module type", async () => {
-      const ctx = await makeTestGardenA()
-
-      const handler = ctx.getModuleActionHandler("deployService", "test")
-
-      expect(handler["actionType"]).to.equal("deployService")
-      expect(handler["pluginName"]).to.equal("test-plugin-b")
-    })
-
     it("should throw if no handler is available", async () => {
       const ctx = await makeTestGardenA()
       await expectError(() => ctx.getModuleActionHandler("execInService", "container"), "parameter")

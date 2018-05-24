@@ -3,11 +3,11 @@ import { join } from "path"
 import * as td from "testdouble"
 
 import {
-  EnvironmentStatus,
   PluginFactory,
 } from "../../../../src/types/plugin"
 import { EnvironmentDestroyCommand } from "../../../../src/commands/environment/destroy"
 import { Garden } from "../../../../src/garden"
+import { EnvironmentStatus } from "../../../../src/types/plugin/outputs"
 
 const testProvider: PluginFactory = () => {
   const name = "test-plugin"
@@ -16,6 +16,7 @@ const testProvider: PluginFactory = () => {
 
   const destroyEnvironment = async () => {
     testEnvStatuses[name] = { configured: false }
+    return {}
   }
 
   const getEnvironmentStatus = async () => {
@@ -33,10 +34,6 @@ const testProvider: PluginFactory = () => {
 testProvider.pluginName = "test-plugin"
 
 describe("EnvironmentDestroyCommand", () => {
-  afterEach(() => {
-    td.reset()
-  })
-
   const projectRootB = join(__dirname, "..", "..", "..", "data", "test-project-b")
   const command = new EnvironmentDestroyCommand()
 

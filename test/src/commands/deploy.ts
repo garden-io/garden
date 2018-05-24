@@ -2,11 +2,14 @@ import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
+import { parseContainerModule } from "../../../src/plugins/container"
+import {
+  PluginFactory,
+} from "../../../src/types/plugin"
 import {
   DeployServiceParams,
   GetServiceStatusParams,
-  PluginFactory,
-} from "../../../src/types/plugin"
+} from "../../../src/types/plugin/params"
 import { ServiceState, ServiceStatus } from "../../../src/types/service"
 import { taskResultOutputs } from "../../helpers"
 
@@ -43,8 +46,7 @@ const testProvider: PluginFactory = () => {
 
   return {
     moduleActions: {
-      generic: { deployService, getServiceStatus },
-      container: { deployService, getServiceStatus },
+      container: { parseModule: parseContainerModule, deployService, getServiceStatus },
     },
   }
 }

@@ -1,2 +1,6 @@
 project:
   name: build-products
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin

@@ -9,31 +9,45 @@
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
 import { PluginContext } from "../plugin-context"
-import { baseModuleSchema, baseServiceSchema, Module, ModuleConfig } from "../types/module"
+import {
+  Module,
+  ModuleConfig,
+} from "../types/module"
 import { LogSymbolType } from "../logger/types"
 import {
   joiIdentifier,
   joiArray,
   validate,
+  PrimitiveMap,
+  joiPrimitive,
 } from "../types/common"
 import { existsSync } from "fs"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
 import {
-  BuildModuleParams,
-  GetModuleBuildStatusParams,
   GardenPlugin,
-  PushModuleParams,
-  ParseModuleParams,
-  RunServiceParams,
 } from "../types/plugin"
 import {
+  BuildModuleParams,
+  GetModuleBuildStatusParams,
+  ParseModuleParams,
+  PushModuleParams,
+  RunServiceParams,
+} from "../types/plugin/params"
+import {
+  baseServiceSchema,
+  BaseServiceSpec,
   Service,
   ServiceConfig,
 } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util"
 import { keyBy } from "lodash"
+import {
+  genericModuleSpecSchema,
+  GenericModuleSpec,
+  GenericTestSpec,
+} from "./generic"
 
 export interface ServiceEndpointSpec {
   paths?: string[]
@@ -68,8 +82,8 @@ export interface ServiceHealthCheckSpec {
   tcpPort?: string,
 }
 
-export interface ContainerServiceConfig extends ServiceConfig {
-  command?: string[],
+export interface ContainerServiceSpec extends BaseServiceSpec {
+  command: string[],
   daemon: boolean
   endpoints: ServiceEndpointSpec[],
   healthCheck?: ServiceHealthCheckSpec,
@@ -77,11 +91,7 @@ export interface ContainerServiceConfig extends ServiceConfig {
   volumes: ServiceVolumeSpec[],
 }
 
-export interface ContainerModuleConfig
-  <T extends ContainerServiceConfig = ContainerServiceConfig>
-  extends ModuleConfig<T> {
-  image?: string
-}
+export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const endpointSchema = Joi.object()
   .keys({
@@ -103,6 +113,7 @@ const healthCheckSchema = Joi.object()
 
 const portSchema = Joi.object()
   .keys({
+    name: joiIdentifier().required(),
     protocol: Joi.string().allow("TCP", "UDP").default(DEFAULT_PORT_PROTOCOL),
     containerPort: Joi.number().required(),
     hostPort: Joi.number(),
@@ -112,7 +123,7 @@ const portSchema = Joi.object()
 
 const volumeSchema = Joi.object()
   .keys({
-    name: joiIdentifier(),
+    name: joiIdentifier().required(),
     containerPath: Joi.string().required(),
     hostPath: Joi.string(),
   })
@@ -127,71 +138,157 @@ const serviceSchema = baseServiceSchema
     volumes: joiArray(volumeSchema).unique("name"),
   })
 
-const containerSchema = baseModuleSchema.keys({
-  type: Joi.string().allow("container").required(),
-  path: Joi.string().required(),
+export interface ContainerModuleSpec extends GenericModuleSpec {
+  buildArgs: PrimitiveMap,
+  image?: string,
+  services: ContainerServiceSpec[],
+}
+
+export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
+
+export const containerModuleSpecSchema = genericModuleSpecSchema.keys({
+  buildArgs: Joi.object().pattern(/.+/, joiPrimitive()).default(() => ({}), "{}"),
   image: Joi.string(),
   services: joiArray(serviceSchema).unique("name"),
 })
 
 export class ContainerService extends Service<ContainerModule> { }
 
-export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleConfig> extends Module<T> {
-  image?: string
+export class ContainerModule<
+  M extends ContainerModuleSpec = ContainerModuleSpec,
+  S extends ContainerServiceSpec = ContainerServiceSpec,
+  T extends GenericTestSpec = GenericTestSpec,
+  > extends Module<M, S, T> { }
 
-  constructor(ctx: PluginContext, config: T) {
-    super(ctx, config)
+export async function getImage(module: ContainerModule) {
+  return module.spec.image
+}
 
-    this.image = config.image
-  }
-
-  async getLocalImageId() {
-    if (this.hasDockerfile()) {
-      const { versionString } = await this.getVersion()
-      return `${this.name}:${versionString}`
+export const helpers = {
+  async getLocalImageId(module: ContainerModule) {
+    if (helpers.hasDockerfile(module)) {
+      const { versionString } = await module.getVersion()
+      return `${module.name}:${versionString}`
     } else {
-      return this.image
+      return getImage(module)
     }
-  }
+  },
 
-  async getRemoteImageId() {
+  async getRemoteImageId(module: ContainerModule) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    if (this.image) {
-      let [imageName, version] = splitFirst(this.image, ":")
+    const image = await getImage(module)
+    if (image) {
+      let [imageName, version] = splitFirst(image, ":")
 
       if (version) {
         // we use the specified version in the image name, if specified
         // (allows specifying version on source images, and also setting specific version name when pushing images)
-        return this.image
+        return image
       } else {
-        const { versionString } = await this.getVersion()
+        const { versionString } = await module.getVersion()
         return `${imageName}:${versionString}`
       }
     } else {
-      return this.getLocalImageId()
+      return helpers.getLocalImageId(module)
     }
-  }
+  },
 
-  async pullImage(ctx: PluginContext) {
-    const identifier = await this.getRemoteImageId()
+  async pullImage(ctx: PluginContext, module: ContainerModule) {
+    const identifier = await helpers.getRemoteImageId(module)
 
-    ctx.log.info({ section: this.name, msg: `pulling image ${identifier}...` })
-    await this.dockerCli(`pull ${identifier}`)
-  }
+    ctx.log.info({ section: module.name, msg: `pulling image ${identifier}...` })
+    await helpers.dockerCli(module, `pull ${identifier}`)
+  },
 
-  async imageExistsLocally() {
-    const identifier = await this.getLocalImageId()
-    const exists = (await this.dockerCli(`images ${identifier} -q`)).stdout.trim().length > 0
+  async imageExistsLocally(module: ContainerModule) {
+    const identifier = await helpers.getLocalImageId(module)
+    const exists = (await helpers.dockerCli(module, `images ${identifier} -q`)).stdout.trim().length > 0
     return exists ? identifier : null
-  }
+  },
 
-  async dockerCli(args) {
+  async dockerCli(module: ContainerModule, args) {
     // TODO: use dockerode instead of CLI
-    return childProcess.exec("docker " + args, { cwd: await this.getBuildPath(), maxBuffer: 1024 * 1024 })
+    return childProcess.exec("docker " + args, { cwd: await module.getBuildPath(), maxBuffer: 1024 * 1024 })
+  },
+
+  hasDockerfile(module: ContainerModule) {
+    return existsSync(join(module.path, "Dockerfile"))
+  },
+}
+
+export async function parseContainerModule({ ctx, moduleConfig }: ParseModuleParams<ContainerModule>) {
+  moduleConfig.spec = validate(moduleConfig.spec, containerModuleSpecSchema, { context: `module ${moduleConfig.name}` })
+
+  // validate services
+  const services: ContainerServiceConfig[] = moduleConfig.spec.services.map(spec => {
+    // make sure ports are correctly configured
+    const name = spec.name
+    const definedPorts = spec.ports
+    const portsByName = keyBy(spec.ports, "name")
+
+    for (const endpoint of spec.endpoints) {
+      const endpointPort = endpoint.port
+
+      if (!portsByName[endpointPort]) {
+        throw new ConfigurationError(
+          `Service ${name} does not define port ${endpointPort} defined in endpoint`,
+          { definedPorts, endpointPort },
+        )
+      }
+    }
+
+    if (spec.healthCheck && spec.healthCheck.httpGet) {
+      const healthCheckHttpPort = spec.healthCheck.httpGet.port
+
+      if (!portsByName[healthCheckHttpPort]) {
+        throw new ConfigurationError(
+          `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
+          { definedPorts, healthCheckHttpPort },
+        )
+      }
+    }
+
+    if (spec.healthCheck && spec.healthCheck.tcpPort) {
+      const healthCheckTcpPort = spec.healthCheck.tcpPort
+
+      if (!portsByName[healthCheckTcpPort]) {
+        throw new ConfigurationError(
+          `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
+          { definedPorts, healthCheckTcpPort },
+        )
+      }
+    }
+
+    return {
+      name,
+      dependencies: spec.dependencies,
+      outputs: spec.outputs,
+      spec,
+    }
+  })
+
+  const tests = moduleConfig.spec.tests.map(t => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    spec: t,
+    timeout: t.timeout,
+    variables: <PrimitiveMap>t.variables,
+  }))
+
+  const module = new ContainerModule(ctx, moduleConfig, services, tests)
+
+  // make sure we can build the thing
+  if (!(await getImage(module)) && !helpers.hasDockerfile(module)) {
+    throw new ConfigurationError(
+      `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
+      {},
+    )
   }
 
-  hasDockerfile() {
-    return existsSync(join(this.path, "Dockerfile"))
+  return {
+    module: moduleConfig,
+    services,
+    tests,
   }
 }
 
@@ -199,65 +296,10 @@ export class ContainerModule<T extends ContainerModuleConfig = ContainerModuleCo
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
     container: {
-      async parseModule({ ctx, moduleConfig }: ParseModuleParams<ContainerModule>) {
-        moduleConfig = validate(moduleConfig, containerSchema, { context: `module ${moduleConfig.name}` })
-
-        const module = new ContainerModule(ctx, moduleConfig)
-
-        // make sure we can build the thing
-        if (!module.image && !module.hasDockerfile()) {
-          throw new ConfigurationError(
-            `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
-            {},
-          )
-        }
-
-        // validate services
-        for (const service of module.services) {
-          // make sure ports are correctly configured
-          const name = service.name
-          const definedPorts = service.ports
-          const portsByName = keyBy(service.ports, "name")
-
-          for (const endpoint of service.endpoints) {
-            const endpointPort = endpoint.port
-
-            if (!portsByName[endpointPort]) {
-              throw new ConfigurationError(
-                `Service ${name} does not define port ${endpointPort} defined in endpoint`,
-                { definedPorts, endpointPort },
-              )
-            }
-          }
-
-          if (service.healthCheck && service.healthCheck.httpGet) {
-            const healthCheckHttpPort = service.healthCheck.httpGet.port
-
-            if (!portsByName[healthCheckHttpPort]) {
-              throw new ConfigurationError(
-                `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
-                { definedPorts, healthCheckHttpPort },
-              )
-            }
-          }
-
-          if (service.healthCheck && service.healthCheck.tcpPort) {
-            const healthCheckTcpPort = service.healthCheck.tcpPort
-
-            if (!portsByName[healthCheckTcpPort]) {
-              throw new ConfigurationError(
-                `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
-                { definedPorts, healthCheckTcpPort },
-              )
-            }
-          }
-        }
-
-        return module
-      },
+      parseModule: parseContainerModule,
 
       async getModuleBuildStatus({ module, logEntry }: GetModuleBuildStatusParams<ContainerModule>) {
-        const identifier = await module.imageExistsLocally()
+        const identifier = await helpers.imageExistsLocally(module)
 
         if (identifier) {
           logEntry && logEntry.debug({
@@ -270,56 +312,57 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { ready: !!identifier }
       },
 
-      async buildModule({ ctx, module, buildContext, logEntry }: BuildModuleParams<ContainerModule>) {
+      async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
         const buildPath = await module.getBuildPath()
         const dockerfilePath = join(buildPath, "Dockerfile")
+        const image = await getImage(module)
 
-        if (!!module.image && !existsSync(dockerfilePath)) {
-          if (await module.imageExistsLocally()) {
+        if (!!image && !existsSync(dockerfilePath)) {
+          if (await helpers.imageExistsLocally(module)) {
             return { fresh: false }
           }
-          logEntry && logEntry.setState(`Pulling image ${module.image}...`)
-          await module.pullImage(ctx)
+          logEntry && logEntry.setState(`Pulling image ${image}...`)
+          await helpers.pullImage(ctx, module)
           return { fetched: true }
         }
 
-        const identifier = await module.getLocalImageId()
+        const identifier = await helpers.getLocalImageId(module)
 
         // build doesn't exist, so we create it
         logEntry && logEntry.setState(`Building ${identifier}...`)
 
-        const buildArgs = Object.entries(buildContext).map(([key, value]) => {
+        const buildArgs = Object.entries(module.spec.buildArgs).map(([key, value]) => {
           // TODO: may need to escape this
           return `--build-arg ${key}=${value}`
         }).join(" ")
 
         // TODO: log error if it occurs
         // TODO: stream output to log if at debug log level
-        await module.dockerCli(`build ${buildArgs} -t ${identifier} ${buildPath}`)
+        await helpers.dockerCli(module, `build ${buildArgs} -t ${identifier} ${buildPath}`)
 
         return { fresh: true, details: { identifier } }
       },
 
       async pushModule({ module, logEntry }: PushModuleParams<ContainerModule>) {
-        if (!module.hasDockerfile()) {
+        if (!helpers.hasDockerfile(module)) {
           logEntry && logEntry.setState({ msg: `Nothing to push` })
           return { pushed: false }
         }
 
-        const localId = await module.getLocalImageId()
-        const remoteId = await module.getRemoteImageId()
+        const localId = await helpers.getLocalImageId(module)
+        const remoteId = await helpers.getRemoteImageId(module)
 
         // build doesn't exist, so we create it
         logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
 
         if (localId !== remoteId) {
-          await module.dockerCli(`tag ${localId} ${remoteId}`)
+          await helpers.dockerCli(module, `tag ${localId} ${remoteId}`)
         }
 
         // TODO: log error if it occurs
         // TODO: stream output to log if at debug log level
         // TODO: check if module already exists remotely?
-        await module.dockerCli(`push ${remoteId}`)
+        await helpers.dockerCli(module, `push ${remoteId}`)
 
         return { pushed: true }
       },
@@ -328,8 +371,8 @@ export const gardenPlugin = (): GardenPlugin => ({
         { ctx, service, interactive, runtimeContext, silent, timeout }: RunServiceParams<ContainerModule>,
       ) {
         return ctx.runModule({
-          module: service.module,
-          command: service.config.command || [],
+          moduleName: service.module.name,
+          command: service.spec.command || [],
           interactive,
           runtimeContext,
           silent,

@@ -1,6 +1,6 @@
 module:
   name: module-d
-  type: generic
+  type: test
   build:
     command: "echo D && mkdir -p build && touch build/d.txt"
     dependencies:

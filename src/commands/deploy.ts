@@ -46,7 +46,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     ctx.log.header({ emoji: "rocket", command: "Deploy" })
 
     // TODO: make this a task
-    await ctx.configureEnvironment()
+    await ctx.configureEnvironment({})
 
     const watch = opts.watch
     const force = opts.force

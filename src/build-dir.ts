@@ -21,12 +21,12 @@ import {
 import * as Rsync from "rsync"
 import { GARDEN_DIR_NAME } from "./constants"
 import { ConfigurationError } from "./exceptions"
-import { PluginContext } from "./plugin-context"
 import { execRsyncCmd } from "./util"
 import {
   BuildCopySpec,
   Module,
 } from "./types/module"
+import { zip } from "lodash"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
@@ -44,28 +44,28 @@ export class BuildDir {
     ensureDirSync(this.buildDirPath)
   }
 
-  async syncFromSrc<T extends Module>(module: T) {
+  async syncFromSrc(module: Module) {
     await this.sync(
       resolve(this.projectRoot, module.path, "*"),
       await this.buildPath(module),
     )
   }
 
-  async syncDependencyProducts<T extends Module>(ctx: PluginContext, module: T) {
+  async syncDependencyProducts(module: Module) {
     await this.syncFromSrc(module)
     const buildPath = await this.buildPath(module)
-    const config = await module.getConfig()
+    const buildDependencies = await module.getBuildDependencies()
+    const dependencyConfigs = module.config.build.dependencies || []
 
-    await bluebirdMap(config.build.dependencies || [], async (depConfig) => {
-      if (!depConfig.copy) {
-        return []
+    await bluebirdMap(zip(buildDependencies, dependencyConfigs), async ([sourceModule, depConfig]) => {
+      if (!sourceModule || !depConfig || !depConfig.copy) {
+        return
       }
 
-      const sourceModule = await ctx.getModule(depConfig.name)
       const sourceBuildPath = await this.buildPath(sourceModule)
 
       // Sync to the module's top-level dir by default.
-      return bluebirdMap(depConfig.copy, (copy: BuildCopySpec) => {
+      await bluebirdMap(depConfig.copy, (copy: BuildCopySpec) => {
         if (isAbsolute(copy.source)) {
           throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
             copySpec: copy,
@@ -89,7 +89,7 @@ export class BuildDir {
     await emptyDir(this.buildDirPath)
   }
 
-  async buildPath<T extends Module>(module: T): Promise<string> {
+  async buildPath(module: Module): Promise<string> {
     const path = resolve(this.buildDirPath, module.name)
     await ensureDir(path)
     return path

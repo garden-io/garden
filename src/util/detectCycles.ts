@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { forEach, get, isEqual, join, set, uniqWith } from "lodash"
-import { Module, ModuleConfig } from "../types/module"
+import { get, isEqual, join, set, uniqWith } from "lodash"
+import { Module } from "../types/module"
 import { ConfigurationError } from "../exceptions"
+import { Service } from "../types/service"
 
 export type Cycle = string[]
 
@@ -19,8 +20,7 @@ export type Cycle = string[]
 
   Throws an error if cycles were found.
 */
-export async function detectCircularDependencies(modules: Module[], serviceNames: string[]) {
-
+export async function detectCircularDependencies(modules: Module[], services: Service[]) {
   // Sparse matrices
   const buildGraph = {}
   const serviceGraph = {}
@@ -30,23 +30,21 @@ export async function detectCircularDependencies(modules: Module[], serviceNames
     are accounted for via service dependencies.
     */
   for (const module of modules) {
-    const conf: ModuleConfig = await module.getConfig()
-
     // Build dependencies
-    for (const buildDep of get(conf, ["build", "dependencies"], [])) {
+    for (const buildDep of module.config.build.dependencies) {
       const depName = buildDep.name
       set(buildGraph, [module.name, depName], { distance: 1, next: depName })
     }
 
     // Service dependencies
-    forEach(get(conf, ["services"], {}), (serviceConfig, serviceName) => {
-      for (const depName of get(serviceConfig, ["dependencies"], [])) {
-        set(serviceGraph, [serviceName, depName], { distance: 1, next: depName })
+    for (const service of module.services || []) {
+      for (const depName of service.dependencies) {
+        set(serviceGraph, [service.name, depName], { distance: 1, next: depName })
       }
-    })
-
+    }
   }
 
+  const serviceNames = services.map(s => s.name)
   const buildCycles = detectCycles(buildGraph, modules.map(m => m.name))
   const serviceCycles = detectCycles(serviceGraph, serviceNames)
 

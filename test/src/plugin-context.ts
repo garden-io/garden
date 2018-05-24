@@ -12,8 +12,8 @@ describe("PluginContext", () => {
       const key = ["project", "my", "variable"]
       const value = "myvalue"
 
-      await ctx.setConfig(key, value)
-      expect(await ctx.getConfig(key)).to.equal(value)
+      await ctx.setConfig({ key, value })
+      expect(await ctx.getConfig({ key })).to.eql({ value })
     })
 
     it("should throw with an invalid namespace in the key", async () => {
@@ -22,7 +22,7 @@ describe("PluginContext", () => {
       const key = ["bla", "my", "variable"]
       const value = "myvalue"
 
-      await expectError(async () => await ctx.setConfig(key, value), "parameter")
+      await expectError(async () => await ctx.setConfig({ key, value }), "parameter")
     })
 
     it("should throw with malformatted key", async () => {
@@ -31,7 +31,7 @@ describe("PluginContext", () => {
       const key = ["project", "!4215"]
       const value = "myvalue"
 
-      await expectError(async () => await ctx.setConfig(key, value), "parameter")
+      await expectError(async () => await ctx.setConfig({ key, value }), "parameter")
     })
   })
 
@@ -42,16 +42,8 @@ describe("PluginContext", () => {
       const key = ["project", "my", "variable"]
       const value = "myvalue"
 
-      await ctx.setConfig(key, value)
-      expect(await ctx.getConfig(key)).to.equal(value)
-    })
-
-    it("should throw if key does not exist", async () => {
-      const ctx = await makeTestContextA()
-
-      const key = ["project", "my", "variable"]
-
-      await expectError(async () => await ctx.getConfig(key), "not-found")
+      await ctx.setConfig({ key, value })
+      expect(await ctx.getConfig({ key })).to.eql({ value })
     })
 
     it("should throw with an invalid namespace in the key", async () => {
@@ -59,7 +51,7 @@ describe("PluginContext", () => {
 
       const key = ["bla", "my", "variable"]
 
-      await expectError(async () => await ctx.getConfig(key), "parameter")
+      await expectError(async () => await ctx.getConfig({ key }), "parameter")
     })
 
     it("should throw with malformatted key", async () => {
@@ -67,7 +59,7 @@ describe("PluginContext", () => {
 
       const key = ["project", "!4215"]
 
-      await expectError(async () => await ctx.getConfig(key), "parameter")
+      await expectError(async () => await ctx.getConfig({ key }), "parameter")
     })
   })
 
@@ -78,8 +70,8 @@ describe("PluginContext", () => {
       const key = ["project", "my", "variable"]
       const value = "myvalue"
 
-      await ctx.setConfig(key, value)
-      expect(await ctx.deleteConfig(key)).to.eql({ found: true })
+      await ctx.setConfig({ key, value })
+      expect(await ctx.deleteConfig({ key })).to.eql({ found: true })
     })
 
     it("should return {found:false} if key does not exist", async () => {
@@ -87,7 +79,7 @@ describe("PluginContext", () => {
 
       const key = ["project", "my", "variable"]
 
-      await expectError(async () => await ctx.deleteConfig(key), "not-found")
+      expect(await ctx.deleteConfig({ key })).to.eql({ found: false })
     })
 
     it("should throw with an invalid namespace in the key", async () => {
@@ -95,7 +87,7 @@ describe("PluginContext", () => {
 
       const key = ["bla", "my", "variable"]
 
-      await expectError(async () => await ctx.deleteConfig(key), "parameter")
+      await expectError(async () => await ctx.deleteConfig({ key }), "parameter")
     })
 
     it("should throw with malformatted key", async () => {
@@ -103,7 +95,7 @@ describe("PluginContext", () => {
 
       const key = ["project", "!4215"]
 
-      await expectError(async () => await ctx.deleteConfig(key), "parameter")
+      await expectError(async () => await ctx.deleteConfig({ key }), "parameter")
     })
   })
 })

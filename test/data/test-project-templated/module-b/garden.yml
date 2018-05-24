@@ -1,13 +1,13 @@
 module:
   name: module-b
-  type: generic
+  type: test
   services:
     - name: service-b
-      command: echo ${dependencies.service-a.version}
+      command: [echo, "${dependencies.service-a.version}"]
       dependencies:
         - service-a
   build:
     command: ${variables.service-a-build-command}
-  test:
+  tests:
     - name: unit
       command: [echo, "${config.project.my.variable}"]

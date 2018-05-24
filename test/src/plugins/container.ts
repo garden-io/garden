@@ -4,8 +4,10 @@ import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
 import { PluginContext } from "../../../src/plugin-context"
 import {
+  ContainerModule,
   ContainerModuleConfig,
   gardenPlugin,
+  helpers,
 } from "../../../src/plugins/container"
 import { Environment } from "../../../src/types/common"
 import {
@@ -20,6 +22,9 @@ describe("container", () => {
 
   const handler = gardenPlugin()
   const parseModule = handler.moduleActions!.container!.parseModule!
+  const buildModule = handler.moduleActions!.container!.buildModule!
+  const pushModule = handler.moduleActions!.container!.pushModule!
+  const getModuleBuildStatus = handler.moduleActions!.container!.getModuleBuildStatus!
 
   let garden: Garden
   let ctx: PluginContext
@@ -33,15 +38,14 @@ describe("container", () => {
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
   })
 
-  afterEach(() => td.reset())
-
   const provider = { name: "container", config: {} }
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-    return parseModule!({ ctx, env, provider, moduleConfig })
+    const parseResults = await parseModule!({ ctx, env, provider, moduleConfig })
+    return new ContainerModule(ctx, parseResults.module, parseResults.services, parseResults.tests)
   }
 
-  describe("ContainerModule", () => {
+  describe("helpers", () => {
     describe("getLocalImageId", () => {
       it("should create identifier with commit hash version if module has a Dockerfile", async () => {
         const module = await getTestModule({
@@ -51,16 +55,21 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image:1.1",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image:1.1",
+            services: [],
+            tests: [],
+          },
         })
 
-        td.replace(module, "hasDockerfile", () => true)
+        td.replace(helpers, "hasDockerfile", () => true)
         td.replace(module, "getVersion", async () => ({ versionString: "1234" }))
-        expect(await module.getLocalImageId()).to.equal("test:1234")
+
+        expect(await helpers.getLocalImageId(module)).to.equal("test:1234")
       })
 
       it("should create identifier with image name if module has no Dockerfile", async () => {
@@ -71,15 +80,20 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image:1.1",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image:1.1",
+            services: [],
+            tests: [],
+          },
         })
 
-        td.replace(module, "hasDockerfile", () => false)
-        expect(await module.getLocalImageId()).to.equal("some/image:1.1")
+        td.replace(helpers, "hasDockerfile", () => false)
+
+        expect(await helpers.getLocalImageId(module)).to.equal("some/image:1.1")
       })
     })
 
@@ -92,14 +106,18 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image:1.1",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image:1.1",
+            services: [],
+            tests: [],
+          },
         })
 
-        expect(await module.getRemoteImageId()).to.equal("some/image:1.1")
+        expect(await helpers.getRemoteImageId(module)).to.equal("some/image:1.1")
       })
 
       it("should use image name if specified with commit hash if no version is set", async () => {
@@ -110,15 +128,20 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image",
+            services: [],
+            tests: [],
+          },
         })
 
         td.replace(module, "getVersion", async () => ({ versionString: "1234" }))
-        expect(await module.getRemoteImageId()).to.equal("some/image:1234")
+
+        expect(await helpers.getRemoteImageId(module)).to.equal("some/image:1234")
       })
 
       it("should use local id if no image name is set", async () => {
@@ -129,14 +152,19 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            services: [],
+            tests: [],
+          },
         })
 
-        td.replace(module, "getLocalImageId", async () => "test:1234")
-        expect(await module.getRemoteImageId()).to.equal("test:1234")
+        td.replace(helpers, "getLocalImageId", async () => "test:1234")
+
+        expect(await helpers.getRemoteImageId(module)).to.equal("test:1234")
       })
     })
   })
@@ -152,38 +180,44 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: [{
-            name: "service-a",
-            command: ["echo"],
-            dependencies: [],
-            daemon: false,
-            endpoints: [
-              {
-                paths: ["/"],
-                port: "http",
-              },
-            ],
-            healthCheck: {
-              httpGet: {
-                path: "/health",
-                port: "http",
-              },
-            },
-            ports: [{
-              name: "http",
-              protocol: "TCP",
-              containerPort: 8080,
-            }],
-            volumes: [],
-          }],
-          test: [{
-            name: "unit",
-            command: ["echo", "OK"],
-            dependencies: [],
-            variables: {},
-          }],
-          type: "test",
+          type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            services: [{
+              name: "service-a",
+              command: ["echo"],
+              dependencies: [],
+              daemon: false,
+              endpoints: [
+                {
+                  paths: ["/"],
+                  port: "http",
+                },
+              ],
+              healthCheck: {
+                httpGet: {
+                  path: "/health",
+                  port: "http",
+                },
+              },
+              ports: [{
+                name: "http",
+                protocol: "TCP",
+                containerPort: 8080,
+              }],
+              outputs: {},
+              volumes: [],
+            }],
+            tests: [{
+              name: "unit",
+              command: ["echo", "OK"],
+              dependencies: [],
+              timeout: null,
+              variables: {},
+            }],
+          },
         }
 
         await parseModule({ ctx, env, provider, moduleConfig })
@@ -198,28 +232,34 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: [{
-            name: "service-a",
-            command: ["echo"],
-            dependencies: [],
-            daemon: false,
-            endpoints: [
-              {
-                paths: ["/"],
-                port: "bla",
-              },
-            ],
-            ports: [],
-            volumes: [],
-          }],
-          test: [{
-            name: "unit",
-            command: ["echo", "OK"],
-            dependencies: [],
-            variables: {},
-          }],
           type: "test",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            services: [{
+              name: "service-a",
+              command: ["echo"],
+              dependencies: [],
+              daemon: false,
+              endpoints: [
+                {
+                  paths: ["/"],
+                  port: "bla",
+                },
+              ],
+              ports: [],
+              outputs: {},
+              volumes: [],
+            }],
+            tests: [{
+              name: "unit",
+              command: ["echo", "OK"],
+              dependencies: [],
+              timeout: null,
+              variables: {},
+            }],
+          },
         }
 
         await expectError(
@@ -237,24 +277,29 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: [{
-            name: "service-a",
-            command: ["echo"],
-            dependencies: [],
-            daemon: false,
-            endpoints: [],
-            healthCheck: {
-              httpGet: {
-                path: "/",
-                port: "bla",
-              },
-            },
-            ports: [],
-            volumes: [],
-          }],
-          test: [],
           type: "test",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            services: [{
+              name: "service-a",
+              command: ["echo"],
+              dependencies: [],
+              daemon: false,
+              endpoints: [],
+              healthCheck: {
+                httpGet: {
+                  path: "/",
+                  port: "bla",
+                },
+              },
+              ports: [],
+              outputs: {},
+              volumes: [],
+            }],
+            tests: [],
+          },
         }
 
         await expectError(
@@ -272,21 +317,26 @@ describe("container", () => {
           },
           name: "module-a",
           path: modulePath,
-          services: [{
-            name: "service-a",
-            command: ["echo"],
-            dependencies: [],
-            daemon: false,
-            endpoints: [],
-            healthCheck: {
-              tcpPort: "bla",
-            },
-            ports: [],
-            volumes: [],
-          }],
-          test: [],
           type: "test",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            services: [{
+              name: "service-a",
+              command: ["echo"],
+              dependencies: [],
+              daemon: false,
+              endpoints: [],
+              healthCheck: {
+                tcpPort: "bla",
+              },
+              ports: [],
+              outputs: {},
+              volumes: [],
+            }],
+            tests: [],
+          },
         }
 
         await expectError(
@@ -305,16 +355,20 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            services: [],
+            tests: [],
+          },
         }))
 
-        td.when(module.imageExistsLocally()).thenResolve(true)
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
+        td.replace(helpers, "imageExistsLocally", async () => true)
 
-        const result = await ctx.getModuleBuildStatus(module)
-
+        const result = await getModuleBuildStatus({ ctx, env, provider, module })
         expect(result).to.eql({ ready: true })
       })
 
@@ -326,16 +380,20 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            services: [],
+            tests: [],
+          },
         }))
 
-        td.when(module.imageExistsLocally()).thenResolve(false)
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
+        td.replace(helpers, "imageExistsLocally", async () => false)
 
-        const result = await ctx.getModuleBuildStatus(module)
-
+        const result = await getModuleBuildStatus({ ctx, env, provider, module })
         expect(result).to.eql({ ready: false })
       })
     })
@@ -349,17 +407,25 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image",
+            services: [],
+            tests: [],
+          },
         }))
 
+        td.when(module.getVersion()).thenResolve({ versionString: "1234" })
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.getBuildPath()).thenResolve("/tmp/jaoigjwaeoigjweaoglwaeghe")
-        td.when(module.pullImage(ctx)).thenResolve(null)
 
-        const result = await ctx.buildModule(module, {})
+        td.replace(helpers, "pullImage", async () => null)
+        td.replace(helpers, "imageExistsLocally", async () => false)
+
+        const result = await buildModule({ ctx, env, provider, module })
 
         expect(result).to.eql({ fetched: true })
       })
@@ -372,24 +438,32 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image",
+            services: [],
+            tests: [],
+          },
         }))
 
-        td.when(module.getLocalImageId()).thenResolve("some/image")
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.getBuildPath()).thenResolve(modulePath)
 
-        const result = await ctx.buildModule(module, {})
+        td.replace(helpers, "getLocalImageId", async () => "some/image")
+
+        const dockerCli = td.replace(helpers, "dockerCli")
+
+        const result = await buildModule({ ctx, env, provider, module })
 
         expect(result).to.eql({
           fresh: true,
           details: { identifier: "some/image" },
         })
 
-        td.verify(module.dockerCli("build  -t some/image " + modulePath))
+        td.verify(dockerCli(module, "build  -t some/image " + modulePath))
       })
     })
 
@@ -402,17 +476,22 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image",
+            services: [],
+            tests: [],
+          },
         }))
 
-        td.when(module.hasDockerfile()).thenReturn(false)
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
 
-        const result = await ctx.pushModule(module)
+        td.replace(helpers, "hasDockerfile", () => false)
 
+        const result = await pushModule({ ctx, env, provider, module })
         expect(result).to.eql({ pushed: false })
       })
 
@@ -424,23 +503,30 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image:1.1",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image:1.1",
+            services: [],
+            tests: [],
+          },
         }))
 
-        td.when(module.hasDockerfile()).thenReturn(true)
-        td.when(module.getLocalImageId()).thenReturn("some/image:12345")
-        td.when(module.getRemoteImageId()).thenReturn("some/image:12345")
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
 
-        const result = await ctx.pushModule(module)
+        td.replace(helpers, "hasDockerfile", () => true)
+        td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
+        td.replace(helpers, "getRemoteImageId", async () => "some/image:12345")
 
+        const dockerCli = td.replace(helpers, "dockerCli")
+
+        const result = await pushModule({ ctx, env, provider, module })
         expect(result).to.eql({ pushed: true })
 
-        td.verify(module.dockerCli("tag some/image:12345 some/image:12345"), { times: 0 })
-        td.verify(module.dockerCli("push some/image:12345"))
+        td.verify(dockerCli(module, "tag some/image:12345 some/image:12345"), { times: 0 })
+        td.verify(dockerCli(module, "push some/image:12345"))
       })
 
       it("tag image if remote id differs from local id", async () => {
@@ -451,23 +537,30 @@ describe("container", () => {
           },
           name: "test",
           path: modulePath,
-          image: "some/image:1.1",
-          services: [],
-          test: [],
           type: "container",
           variables: {},
+
+          spec: {
+            buildArgs: {},
+            image: "some/image:1.1",
+            services: [],
+            tests: [],
+          },
         }))
 
-        td.when(module.hasDockerfile()).thenReturn(true)
-        td.when(module.getLocalImageId()).thenReturn("some/image:12345")
-        td.when(module.getRemoteImageId()).thenReturn("some/image:1.1")
+        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
 
-        const result = await ctx.pushModule(module)
+        td.replace(helpers, "hasDockerfile", () => true)
+        td.replace(helpers, "getLocalImageId", () => "some/image:12345")
+        td.replace(helpers, "getRemoteImageId", () => "some/image:1.1")
 
+        const dockerCli = td.replace(helpers, "dockerCli")
+
+        const result = await pushModule({ ctx, env, provider, module })
         expect(result).to.eql({ pushed: true })
 
-        td.verify(module.dockerCli("tag some/image:12345 some/image:1.1"))
-        td.verify(module.dockerCli("push some/image:1.1"))
+        td.verify(dockerCli(module, "tag some/image:12345 some/image:1.1"))
+        td.verify(dockerCli(module, "push some/image:1.1"))
       })
     })
   })
