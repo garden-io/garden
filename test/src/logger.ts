@@ -1,7 +1,8 @@
+const stripAnsi = require("strip-ansi")
 import { expect } from "chai"
 
-import { LogLevel, EntryStatus, LogSymbolType } from "../../src/logger/types"
-import { BasicConsoleWriter, FancyConsoleWriter } from "../../src/logger/writers"
+import { LogLevel, EntryStatus, LogSymbolType, EntryStyle } from "../../src/logger/types"
+import { BasicTerminalWriter, FancyTerminalWriter } from "../../src/logger/writers"
 import { RootLogNode } from "../../src/logger"
 import { getChildNodes } from "../../src/logger/util"
 
@@ -77,69 +78,73 @@ describe("RootLogNode", () => {
 
 })
 
-describe("BasicConsoleWriter.render", () => {
+describe("BasicTerminalWriter.render", () => {
   it("should return a string if level is geq than entry level and entry contains a message", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new BasicConsoleWriter()
+    const writer = new BasicTerminalWriter()
     const entry = logger.info("")
     const out = writer.render(entry, logger)
-    expect(out).to.eql("")
+    expect(out).to.eql("\n")
   })
   it("should override root level if level is set", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new BasicConsoleWriter({ level: LogLevel.verbose })
+    const writer = new BasicTerminalWriter({ level: LogLevel.verbose })
     const entry = logger.verbose("")
     const out = writer.render(entry, logger)
-    expect(out).to.eql("")
+    expect(out).to.eql("\n")
   })
   it("should return null if entry level is geq to writer level", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new BasicConsoleWriter()
+    const writer = new BasicTerminalWriter()
     const entry = logger.verbose("")
     const out = writer.render(entry, logger)
     expect(out).to.eql(null)
   })
   it("should return null if entry has no message", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new BasicConsoleWriter()
+    const writer = new BasicTerminalWriter()
     const entry = logger.info({})
     const out = writer.render(entry, logger)
     expect(out).to.eql(null)
   })
 })
 
-describe("FancyConsoleWriter.render", () => {
-  it("should return an array of strings if level is geq than entry level and entry contains a message", () => {
+describe("FancyTerminalWriter.toTerminalEntries", () => {
+  const writer = new FancyTerminalWriter()
+  const verboseWriter = new FancyTerminalWriter({ level: LogLevel.verbose })
+  writer.stop()
+  verboseWriter.stop()
+  it("should map a LogNode into an array of entries with line numbers and spinner positions", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new FancyConsoleWriter()
-    const entry = logger.info("")
-    const out = writer.render(logger)
-    writer.stop()
-    expect(out).to.eql(["\n"])
+    logger.info("1 line") // 0
+    logger.info("2 lines\n") // 1
+    logger.info("1 line") // 3
+    logger.info("3 lines\n\n") // 4
+    const spinner = logger.info({msg: "spinner", entryStyle: EntryStyle.activity}) // 7
+    spinner.info({msg: "nested spinner", entryStyle: EntryStyle.activity}) // 8
+    const terminalEntries = writer.toTerminalEntries(logger)
+    const lineNumbers = terminalEntries.map(e => e.lineNumber)
+    const spinners = terminalEntries.filter(e => !!e.spinnerCoords).map(e => e.spinnerCoords)
+    expect(lineNumbers).to.eql([0, 1, 3, 4, 7, 8])
+    expect(spinners).to.eql([[0, 7], [3, 8]])
   })
   it("should override root level if level is set", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new FancyConsoleWriter({ level: LogLevel.verbose })
-    writer.stop()
     const entry = logger.verbose("")
-    const out = writer.render(logger)
-    expect(out).to.eql(["\n"])
+    const terminalEntries = verboseWriter.toTerminalEntries(logger)
+    expect(terminalEntries[0].key).to.eql(entry.key)
   })
-  it("should return null if entry level is geq to writer level", () => {
+  it("should skip entry if entry level is geq to writer level", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new FancyConsoleWriter()
-    writer.stop()
     const entry = logger.verbose("")
-    const out = writer.render(logger)
-    expect(out).to.eql(null)
+    const terminalEntries = writer.toTerminalEntries(logger)
+    expect(terminalEntries).to.eql([])
   })
-  it("should return null if entry has no message", () => {
+  it("should skip entry if entry has no message", () => {
     const logger = new RootLogNode({ level: LogLevel.info })
-    const writer = new FancyConsoleWriter()
-    writer.stop()
     const entry = logger.info({})
-    const out = writer.render(logger)
-    expect(out).to.eql(null)
+    const terminalEntries = writer.toTerminalEntries(logger)
+    expect(terminalEntries).to.eql([])
   })
 })
 

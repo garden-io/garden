@@ -57,7 +57,7 @@ export interface LogEntryOpts {
   symbol?: LogSymbolType
   entryStyle?: EntryStyle
   append?: boolean
-  notOriginatedFromLogger?: boolean
+  fromStdStream?: boolean
   showDuration?: boolean
   error?: GardenError | Error
   id?: string

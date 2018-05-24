@@ -7,6 +7,7 @@
  */
 
 import * as nodeEmoji from "node-emoji"
+import * as uniqid from "uniqid"
 import chalk from "chalk"
 
 import { combine } from "./renderers"
@@ -24,18 +25,18 @@ import {
   LogEntryOpts,
   LogSymbolType,
 } from "./types"
-import { BasicConsoleWriter, FancyConsoleWriter, Writer } from "./writers"
+import { BasicTerminalWriter, FancyTerminalWriter, Writer } from "./writers"
 import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
 const CONFIG_TYPES: { [key in LoggerType]: LoggerConfig } = {
   [LoggerType.fancy]: {
     level: LogLevel.info,
-    writers: [new FancyConsoleWriter()],
+    writers: [new FancyTerminalWriter()],
   },
   [LoggerType.basic]: {
     level: LogLevel.info,
-    writers: [new BasicConsoleWriter()],
+    writers: [new BasicTerminalWriter()],
   },
   [LoggerType.quiet]: {
     level: LogLevel.info,
@@ -52,6 +53,7 @@ export interface LogEntryConstructor {
   opts: LogEntryOpts
   depth: number
   root: RootLogNode
+  key: string
   parentEntry?: LogEntry
 }
 
@@ -59,14 +61,16 @@ let loggerInstance: RootLogNode
 let loggerType: LoggerType = LoggerType.fancy
 let loggerConfig: LoggerConfig = CONFIG_TYPES[loggerType]
 
-function createLogEntry(level: LogLevel, opts: LogEntryOpts, parentNode: LogNode) {
+function createLogEntry(level: LogLevel, opts: LogEntryOpts, parentNode: LogNode): LogEntry {
   const { depth, root } = parentNode
+  const key = uniqid()
   let parentEntry
   if (parentNode.depth > ROOT_DEPTH) {
     parentEntry = parentNode
   }
-  const params = {
+  const params: LogEntryConstructor = {
     depth: depth + 1,
+    key,
     root,
     level,
     opts,
@@ -146,13 +150,15 @@ export class LogEntry extends LogNode {
   public timestamp: number
   public level: LogLevel
   public depth: number
+  public key: string
   public parentEntry: LogEntry | undefined
   public children: LogEntry[]
 
-  constructor({ level, opts, depth, root, parentEntry }: LogEntryConstructor) {
+  constructor({ level, opts, depth, root, parentEntry, key }: LogEntryConstructor) {
     super(level, depth)
     this.root = root
     this.parentEntry = parentEntry
+    this.key = key
     this.opts = opts
     if (opts.entryStyle === EntryStyle.activity) {
       this.status = EntryStatus.ACTIVE
@@ -228,15 +234,17 @@ export class LogEntry extends LogNode {
     return this
   }
 
-  public notOriginatedFromLogger(): boolean {
-    return !!this.opts.notOriginatedFromLogger
+  public fromStdStream(): boolean {
+    return !!this.opts.fromStdStream
   }
 
   public stop() {
     // Stop gracefully if still in active state
     if (this.status === EntryStatus.ACTIVE) {
       this.setOwnState({ symbol: LogSymbolType.empty }, EntryStatus.DONE)
+      this.root.onGraphChange(this)
     }
+    return this
   }
 
   public inspect() {
@@ -260,11 +268,11 @@ export class RootLogNode extends LogNode {
   }
 
   public onGraphChange(entry: LogEntry): void {
-    this.writers.forEach(writer => writer.write(entry, this))
+    this.writers.forEach(writer => writer.onGraphChange(entry, this))
   }
 
   public getLogEntries(): LogEntry[] {
-    return getChildEntries(this).filter(entry => !entry.notOriginatedFromLogger())
+    return getChildEntries(this).filter(entry => !entry.fromStdStream())
   }
 
   public header(

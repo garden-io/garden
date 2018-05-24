@@ -92,9 +92,9 @@ export function renderSymbol(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { entryStyle, msg, notOriginatedFromLogger } = entry.opts
+  const { entryStyle, fromStdStream, msg } = entry.opts
 
-  if (notOriginatedFromLogger) {
+  if (fromStdStream) {
     return isArray(msg) ? msg.join(" ") : msg || ""
   }
 
