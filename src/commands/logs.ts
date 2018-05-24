@@ -7,7 +7,13 @@
  */
 
 import { PluginContext } from "../plugin-context"
-import { BooleanParameter, Command, ParameterValues, StringParameter } from "./base"
+import {
+  BooleanParameter,
+  Command,
+  CommandResult,
+  ParameterValues,
+  StringParameter,
+} from "./base"
 import chalk from "chalk"
 import { ServiceLogEntry } from "../types/plugin/outputs"
 import Bluebird = require("bluebird")
@@ -37,7 +43,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   arguments = logsArgs
   options = logsOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts) {
+  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<ServiceLogEntry[]>> {
     const names = args.service ? args.service.split(",") : undefined
     const tail = opts.tail
     const services = await ctx.getServices(names)
@@ -61,6 +67,10 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
         section: entry.serviceName,
         msg: [timestamp, chalk.white(entry.msg)],
       })
+
+      if (!tail) {
+        result.push(entry)
+      }
     })
 
     // NOTE: This will work differently when we have Elasticsearch set up for logging, but is

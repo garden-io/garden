@@ -149,7 +149,7 @@ export interface ParseResults {
 
 interface SywacParseResults extends ParseResults {
   output: string
-  details: { result: any }
+  details: { result?: CommandResult }
 }
 
 function makeOptSynopsis(key: string, param: Parameter<any>): string {
@@ -347,7 +347,7 @@ export class GardenCli {
   async parse(): Promise<ParseResults> {
     const parseResult: SywacParseResults = await this.program.parse()
     const { argv, details, errors: parseErrors, output: cliOutput } = parseResult
-    const commandResult: CommandResult = details.result
+    const commandResult = details.result
     const { output } = argv
 
     let code = parseResult.code
@@ -361,7 +361,7 @@ export class GardenCli {
 
     const errors: GardenError[] = parseErrors
       .map(e => ({ type: "parameter", message: e.toString() }))
-      .concat(commandResult.errors || [])
+      .concat((commandResult && commandResult.errors) || [])
 
     // --output option set
     if (output) {

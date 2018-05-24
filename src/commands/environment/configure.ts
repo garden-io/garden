@@ -11,6 +11,7 @@ import { EnvironmentStatusMap } from "../../types/plugin/outputs"
 import {
   BooleanParameter,
   Command,
+  CommandResult,
   ParameterValues,
 } from "../base"
 
@@ -27,7 +28,7 @@ export class EnvironmentConfigureCommand extends Command<any, Opts> {
 
   options = options
 
-  async action(ctx: PluginContext, _args, opts: Opts): Promise<EnvironmentStatusMap> {
+  async action(ctx: PluginContext, _args, opts: Opts): Promise<CommandResult<EnvironmentStatusMap>> {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "gear", command: `Configuring ${name} environment` })
 
@@ -36,6 +37,6 @@ export class EnvironmentConfigureCommand extends Command<any, Opts> {
     ctx.log.info("")
     ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
 
-    return result
+    return { result }
   }
 }
