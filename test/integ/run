@@ -10,7 +10,6 @@ cd ${garden_root}/examples/hello-world
 
 export GARDEN_LOGGER_TYPE=basic
 
-cd ${here}/basic-project
 ${garden_bin} scan
 ${garden_bin} build
 ${garden_bin} deploy

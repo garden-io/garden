@@ -79,6 +79,8 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
+    ctx.log.info("")
+
     return ctx.runModule({ moduleName, command, runtimeContext, silent: false, interactive: opts.interactive })
   }
 }

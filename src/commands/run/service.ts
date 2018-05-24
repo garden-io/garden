@@ -15,7 +15,7 @@ import { printRuntimeContext } from "./index"
 
 export const runArgs = {
   service: new StringParameter({
-    help: "The command to run in the module",
+    help: "The service to run",
     required: true,
   }),
 }
