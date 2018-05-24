@@ -19,7 +19,7 @@ Start by cloning the repo.
 
 For Mac we have a script that installs all required dependencies, mostly via Homebrew:
 
-    ./bin/bootstrap-osx
+    ./bin/bootstrap/mac-dev
     
 Other platforms need to roll their own for now (contributions welcome!). Please have a look
 at the script for Mac to see what's installed. Once dependencies are in place, all you need is:  
@@ -52,7 +52,7 @@ We use [Circle CI](https://circleci.com) for integration testing. Sometimes
 it can be useful to test and debug the CI build locally, particularly when 
 updating or adding dependencies. You can use their 
 [CLI](https://circleci.com/docs/2.0/local-jobs/) for that, which
-is installed automatically by the `./bin/bootstrap-osx` script. Once you
+is installed automatically by the `./bin/bootstrap/mac-dev` script. Once you
 have it installed you can run `circleci build` in the repo root to test 
 the build locally.
 

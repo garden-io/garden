@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+./$(dirname $0)/mac-base
+
+brew install ruby
+
+# install/update global packages
+npm install -g gulp-cli@4.0.0
+gem install --no-document copyright-header
+
+# install CircleCI CLI
+curl -o /usr/local/bin/circleci https://circle-downloads.s3.amazonaws.com/releases/build_agent_wrapper/circleci
+chmod +x /usr/local/bin/circleci

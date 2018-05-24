@@ -1,0 +1,24 @@
+#!/usr/bin/env bash -eo pipefail
+
+./$(dirname $0)/mac-base
+
+# the homebrew formula for hyperkit currently doesn't work
+sudo cp $(dirname $0)/../../.circleci/hyperkit /usr/local/bin/hyperkit
+
+# install and start minikube
+brew install docker
+brew cask install minikube
+
+curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit \
+&& chmod +x docker-machine-driver-hyperkit \
+&& sudo mv docker-machine-driver-hyperkit /usr/local/bin/ \
+&& sudo chown root:wheel /usr/local/bin/docker-machine-driver-hyperkit \
+&& sudo chmod u+s /usr/local/bin/docker-machine-driver-hyperkit
+
+sudo minikube config set WantReportErrorPrompt false
+sudo minikube start --vm-driver=hyperkit
+sudo minikube update-context
+
+echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc
+echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
+echo 'eval $(sudo minikube docker-env)' >> ~/.bashrc
