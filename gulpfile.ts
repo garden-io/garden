@@ -73,6 +73,9 @@ function die() {
   process.exit(1)
 }
 
+process.on("SIGINT", die)
+process.on("SIGTERM", die)
+
 gulp.task("add-version-files", (cb) => {
   const gardenBinPath = join(destDir, "src", "bin", "garden.js")
   const proc = _spawn("node", [gardenBinPath, "scan", "--output=json"])
