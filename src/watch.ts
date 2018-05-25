@@ -8,7 +8,7 @@
 
 import { map as bluebirdMap } from "bluebird"
 import { Client } from "fb-watchman"
-import { keyBy } from "lodash"
+import { keyBy, uniqBy, values } from "lodash"
 import { relative, resolve } from "path"
 import { Module } from "./types/module"
 import { PluginContext } from "./plugin-context"
@@ -19,18 +19,47 @@ export interface OnChangeHandler {
   (ctx: PluginContext, module: Module): Promise<void>
 }
 
-export async function computeAutoReloadDependants(modules: Module[]):
-  Promise<AutoReloadDependants> {
-  let dependants = {}
+/*
+  Resolves to modules and their build & service dependency modules (recursively).
+  Each module is represented at most once in the output.
+*/
+export async function autoReloadModules(modules: Module[]): Promise<Module[]> {
+  const modulesByName = {}
 
-  for (const module of modules) {
-    const deps = await module.getBuildDependencies()
-    for (const dep of deps) {
+  const scanner = async (module: Module, byName: object) => {
+    byName[module.name] = module
+    for (const dep of await uniqueDependencyModules(module)) {
+      if (!byName[dep.name]) {
+        await scanner(dep, byName)
+      }
+    }
+  }
+
+  for (const m of modules) {
+    await scanner(m, modulesByName)
+  }
+
+  return values(modulesByName)
+}
+
+export async function computeAutoReloadDependants(ctx: PluginContext):
+  Promise<AutoReloadDependants> {
+  const dependants = {}
+
+  for (const module of await ctx.getModules()) {
+    const depModules: Module[] = await uniqueDependencyModules(module)
+    for (const dep of depModules) {
       dependants[dep.name] = (dependants[dep.name] || new Set()).add(module)
     }
   }
 
   return dependants
+}
+
+async function uniqueDependencyModules(module: Module): Promise<Module[]> {
+  const buildDepModules = await module.getBuildDependencies()
+  const serviceDepModules = (await module.getServiceDependencies()).map(s => s.module)
+  return uniqBy(buildDepModules.concat(serviceDepModules), m => m.name)
 }
 
 export type CapabilityOptions = { required?: string[], optional?: string[] }

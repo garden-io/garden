@@ -1,16 +1,18 @@
 module:
   name: module-e
-  type: generic
+  type: container
+  image: scratch
   services:
     - name: service-e
       dependencies:
-        - service-b
         - service-c
       endpoints:
         - paths: [/path-e]
+          port: http
+      ports:
+        - name: http
           containerPort: 8080
   build:
     dependencies:
       - module-b
-      - module-c
     command: echo E

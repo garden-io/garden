@@ -85,6 +85,7 @@ import {
   sleep,
 } from "./util"
 import {
+  autoReloadModules,
   computeAutoReloadDependants,
   FSWatcher,
 } from "./watch"
@@ -479,7 +480,8 @@ export function createPluginContext(garden: Garden): PluginContext {
         return results
       }
 
-      const autoReloadDependants = await computeAutoReloadDependants(modules)
+      const modulesToWatch = await autoReloadModules(modules)
+      const autoReloadDependants = await computeAutoReloadDependants(ctx)
 
       async function handleChanges(module: Module) {
         const tasks = await process(module)
@@ -498,7 +500,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       const watcher = new FSWatcher(ctx.projectRoot)
 
       // TODO: should the prefix here be different or set explicitly per run?
-      await watcher.watchModules(modules, "addTasksForAutoReload/",
+      await watcher.watchModules(modulesToWatch, "addTasksForAutoReload/",
         async (changedModule) => {
           ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
           await handleChanges(changedModule)
