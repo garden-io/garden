@@ -17,6 +17,7 @@
     "garden": "./src/bin/garden.js"
   },
   "dependencies": {
+    "ansi-escapes": "^3.1.0",
     "async-exit-hook": "^2.0.1",
     "axios": "^0.18.0",
     "bluebird": "^3.5.1",
@@ -42,7 +43,6 @@
     "klaw": "^2.1.1",
     "kubernetes-client": "^5.2.0",
     "log-symbols": "^2.2.0",
-    "log-update": "^2.3.0",
     "moment": "^2.22.1",
     "node-emoji": "^1.8.1",
     "node-pty": "^0.7.4",
@@ -55,8 +55,10 @@
     "sywac": "^1.2.0",
     "ts-stream": "^1.0.1",
     "typescript-memoize": "^1.0.0-alpha.3",
+    "uniqid": "^4.1.1",
     "uuid": "^3.2.1",
-    "winston": "^3.0.0-rc3"
+    "winston": "^3.0.0-rc3",
+    "wrap-ansi": "^3.0.1"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.20",
@@ -77,6 +79,8 @@
     "@types/node": "^10.0.8",
     "@types/node-emoji": "^1.8.0",
     "@types/prettyjson": "0.0.28",
+    "@types/uniqid": "^4.1.2",
+    "@types/wrap-ansi": "^3.0.0",
     "chai": "^4.1.2",
     "gulp": "^4.0.0",
     "gulp-cached": "^1.1.1",

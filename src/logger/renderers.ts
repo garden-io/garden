@@ -92,9 +92,9 @@ export function renderSymbol(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { entryStyle, msg, notOriginatedFromLogger } = entry.opts
+  const { entryStyle, fromStdStream, msg } = entry.opts
 
-  if (notOriginatedFromLogger) {
+  if (fromStdStream) {
     return isArray(msg) ? msg.join(" ") : msg || ""
   }
 
@@ -115,4 +115,29 @@ export function renderDuration(entry: LogEntry): string {
   return showDuration
     ? msgStyle(` (finished in ${duration(entry.timestamp)}s)`)
     : ""
+}
+
+export function formatForTerminal(entry: LogEntry): string {
+  let renderers
+  if (entry.depth > 0) {
+    // Skip section on child entries.
+    renderers = [
+      [leftPad, [entry]],
+      [renderSymbol, [entry]],
+      [renderEmoji, [entry]],
+      [renderMsg, [entry]],
+      [renderDuration, [entry]],
+      ["\n"],
+    ]
+  } else {
+    renderers = [
+      [renderSymbol, [entry]],
+      [renderSection, [entry]],
+      [renderEmoji, [entry]],
+      [renderMsg, [entry]],
+      [renderDuration, [entry]],
+      ["\n"],
+    ]
+  }
+  return combine(renderers)
 }

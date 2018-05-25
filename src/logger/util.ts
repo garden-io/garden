@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntryOpts } from "./types"
+import { LogEntryOpts, LogLevel } from "./types"
 import { LogEntry, LogNode } from "."
 
 export interface Node {
@@ -82,7 +82,7 @@ interface StreamWriteExtraParam {
  * Used e.g. by FancyLogger so that writes from other sources can be intercepted
  * and pushed to the log stack.
  */
-export function interceptStream(stream: NodeJS.WritableStream, callback: Function) {
+export function interceptStream(stream: NodeJS.WriteStream, callback: Function) {
   const prevWrite = stream.write
 
   stream.write = (write =>
@@ -105,4 +105,23 @@ export function interceptStream(stream: NodeJS.WritableStream, callback: Functio
   }
 
   return restore
+}
+
+export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
+  const columns = (stream || {}).columns
+
+  if (!columns) {
+    return 80
+  }
+
+  // Windows appears to wrap a character early
+  if (process.platform === "win32") {
+    return columns - 1
+  }
+
+  return columns
+}
+
+export function validate(level: LogLevel, entry: LogEntry): boolean {
+  return level >= entry.level && entry.opts.msg !== undefined
 }

@@ -40,7 +40,7 @@ import {
   helpers,
 } from "../container"
 import { values, every, uniq } from "lodash"
-import { deserializeKeys, prompt, serializeKeys, splitFirst, sleep } from "../../util"
+import { deserializeKeys, serializeKeys, splitFirst, sleep } from "../../util"
 import { ServiceStatus } from "../../types/service"
 import { joiIdentifier } from "../../types/common"
 import {
@@ -453,7 +453,7 @@ export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatu
   let ans: Ans
 
   const inputPrompt = async () => {
-    return prompt({
+    return inquirer.prompt({
       name: promptName,
       message: "Enter username",
       validate: input => {
@@ -467,7 +467,7 @@ export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatu
     })
   }
   const choicesPrompt = async () => {
-    return prompt({
+    return inquirer.prompt({
       name: promptName,
       type: "list",
       message: "Log in as...",
