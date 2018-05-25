@@ -12,6 +12,7 @@ import {
   join,
   parse,
   resolve,
+  sep,
 } from "path"
 import {
   emptyDir,
@@ -46,7 +47,7 @@ export class BuildDir {
 
   async syncFromSrc(module: Module) {
     await this.sync(
-      resolve(this.projectRoot, module.path, "*"),
+      resolve(this.projectRoot, module.path) + sep,
       await this.buildPath(module),
     )
   }
