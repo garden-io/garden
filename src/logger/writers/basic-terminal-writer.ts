@@ -30,7 +30,7 @@ export class BasicTerminalWriter extends Writer {
   onGraphChange(entry: LogEntry, rootLogNode: RootLogNode) {
     const out = this.render(entry, rootLogNode)
     if (out) {
-      console.log(out)
+      process.stdout.write(out)
     }
   }
 
