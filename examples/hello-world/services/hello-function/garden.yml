@@ -12,5 +12,5 @@ module:
     dependencies:
       - name: hello-npm-package
         copy:
-          - source: "*"
+          - source: "./"
             target: libraries/hello-npm-package/
