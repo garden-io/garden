@@ -70,17 +70,17 @@ export function renderEmoji(entry: LogEntry): string {
 }
 
 export function renderError(entry: LogEntry) {
-  const { error } = entry.opts
+  const { msg, error } = entry.opts
   if (error) {
-    let out = `${error.stack || error.message}`
-    const detail = (<any>error).detail
+    const { detail, message, stack } = error
+    let out = `${stack || message}`
     if (detail) {
       const yamlDetail = yaml.safeDump(detail, { noRefs: true, skipInvalid: true })
       out += `\nError Details:\n${yamlDetail}`
     }
     return out
   }
-  return ""
+  return msg || ""
 }
 
 export function renderSymbol(entry: LogEntry): string {

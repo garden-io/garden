@@ -33,6 +33,7 @@ import {
   GardenError,
   InternalError,
   PluginError,
+  toGardenError,
 } from "./exceptions"
 import { Garden } from "./garden"
 import { FileWriter } from "./logger/writers/file-writer"
@@ -346,28 +347,28 @@ export class GardenCli {
 
   async parse(): Promise<ParseResults> {
     const parseResult: SywacParseResults = await this.program.parse()
-    const { argv, details, errors: parseErrors, output: cliOutput } = parseResult
+    const { argv, details, errors, output: cliOutput } = parseResult
     const commandResult = details.result
     const { output } = argv
 
     let code = parseResult.code
 
     // --help or --version options were called so we log the cli output and exit
-    if (cliOutput && parseErrors.length < 1) {
+    if (cliOutput && errors.length < 1) {
       this.logger.stop()
       console.log(cliOutput)
       process.exit(parseResult.code)
     }
 
-    const errors: GardenError[] = parseErrors
-      .map(e => ({ type: "parameter", message: e.toString() }))
+    const gardenErrors: GardenError[] = errors
+      .map(toGardenError)
       .concat((commandResult && commandResult.errors) || [])
 
     // --output option set
     if (output) {
       const renderer = OUTPUT_RENDERERS[output]
-      if (errors.length > 0) {
-        console.error(renderer({ success: false, errors }))
+      if (gardenErrors.length > 0) {
+        console.error(renderer({ success: false, errors: gardenErrors }))
       } else {
         console.log(renderer({ success: true, ...commandResult }))
       }
@@ -375,8 +376,11 @@ export class GardenCli {
       await sleep(100)
     }
 
-    if (errors.length > 0) {
-      errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
+    if (gardenErrors.length > 0) {
+      gardenErrors.forEach(error => this.logger.error({
+        msg: error.message,
+        error,
+      }))
 
       if (this.logger.writers.find(w => w instanceof FileWriter)) {
         this.logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)
