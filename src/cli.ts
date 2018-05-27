@@ -305,15 +305,30 @@ export class GardenCli {
       const root = resolve(process.cwd(), optsForAction.root)
       const env = optsForAction.env
 
-      // Update logger
+      // Configure logger
       const logger = this.logger
       const { loglevel, silent, output } = optsForAction
       const level = LogLevel[<string>loglevel]
       logger.level = level
       if (!silent && !output) {
         logger.writers.push(
-          new FileWriter({ level, root }),
-          new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
+          await FileWriter.factory({
+            root,
+            level,
+            filename: "development.log",
+          }),
+          await FileWriter.factory({
+            root,
+            filename: ERROR_LOG_FILENAME,
+            level: LogLevel.error,
+          }),
+          await FileWriter.factory({
+            root,
+            logDirPath: ".",
+            filename: ERROR_LOG_FILENAME,
+            level: LogLevel.error,
+            truncatePrevious: true,
+          }),
         )
       } else {
         logger.writers = []

@@ -9,6 +9,7 @@
 import * as winston from "winston"
 import * as path from "path"
 import * as stripAnsi from "strip-ansi"
+import { ensureDir, truncate } from "fs-extra"
 
 import {
   LogLevel,
@@ -20,17 +21,19 @@ import {
   renderError,
   renderMsg,
 } from "../renderers"
+import { LOGS_DIR } from "../../constants"
 
 export interface FileWriterConfig {
   level: LogLevel
   root: string
-  filename?: string
+  filename: string
+  logDirPath?: string
   fileTransportOptions?: {}
+  truncatePrevious?: boolean
 }
 
 const { combine: winstonCombine, timestamp, printf } = winston.format
 
-const DEFAULT_LOG_FILENAME = "development.log"
 const DEFAULT_FILE_TRANSPORT_OPTIONS = {
   format: winstonCombine(
     timestamp(),
@@ -47,12 +50,10 @@ export class FileWriter extends Writer {
 
   public level: LogLevel
 
-  constructor(config: FileWriterConfig) {
+  constructor(filePath: string, config: FileWriterConfig) {
     const {
       fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS,
-      filename = DEFAULT_LOG_FILENAME,
       level,
-      root,
     } = config
 
     super({ level })
@@ -62,15 +63,34 @@ export class FileWriter extends Writer {
       transports: [
         new winston.transports.File({
           ...fileTransportOptions,
-          filename: path.join(root, filename),
+          filename: filePath,
         }),
       ],
     })
   }
 
+  static async factory(config: FileWriterConfig) {
+    const {
+      filename,
+      root,
+      truncatePrevious,
+      logDirPath = LOGS_DIR,
+    } = config
+    const fullPath = path.join(root, logDirPath)
+    await ensureDir(fullPath)
+    const filePath = path.join(fullPath, filename)
+    if (truncatePrevious) {
+      try {
+        await truncate(filePath)
+      } catch (_) {
+      }
+    }
+    return new FileWriter(filePath, config)
+  }
+
   render(entry: LogEntry): string | null {
-    const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
     if (validate(this.level, entry)) {
+      const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
       return stripAnsi(renderFn(entry))
     }
     return null
