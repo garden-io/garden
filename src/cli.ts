@@ -17,7 +17,7 @@ import {
   shutdown,
   sleep,
 } from "./util"
-import { merge, intersection, reduce } from "lodash"
+import { difference, flatten, merge, intersection, reduce } from "lodash"
 import {
   BooleanParameter,
   Command,
@@ -195,6 +195,11 @@ function makeOptConfig(param: Parameter<any>): OptConfig {
   return config
 }
 
+function getAliases(params: ParameterValues<any>) {
+  return flatten(Object.entries(params)
+    .map(([key, param]) => param.alias ? [key, param.alias] : [key]))
+}
+
 /**
  * Returns the params that need to be overridden set to false
  */
@@ -240,7 +245,7 @@ export class GardenCli {
         implicitCommand: false,
       })
       .showHelpByDefault()
-      .check((argv, _context) => {
+      .check((argv, _ctx) => {
         // NOTE: Need to mutate argv!
         merge(argv, falsifyConflictingParams(argv, GLOBAL_OPTIONS))
       })
@@ -263,6 +268,7 @@ export class GardenCli {
       new TestCommand(),
       new ValidateCommand(),
     ]
+
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
     commands.forEach(command => this.addCommand(command, this.program))
@@ -286,8 +292,8 @@ export class GardenCli {
 
     this.commands[fullName] = command
 
-    const args = command.arguments as Parameter<any>
-    const options = command.options as Parameter<any>
+    const args = <ParameterValues<any>>command.arguments || {}
+    const options = <ParameterValues<any>>command.options || {}
     const subCommands = command.subCommands || []
     const argKeys = getKeys(args)
     const optKeys = getKeys(options)
@@ -304,6 +310,19 @@ export class GardenCli {
       const optsForAction = filterByArray(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), optsForAction.root)
       const env = optsForAction.env
+
+      // Validate options (feels like the parser should handle this)
+      const builtinOptions = ["help", "h", "version", "v"]
+      const availableOptions = [...getAliases(options), ...getAliases(GLOBAL_OPTIONS), ...builtinOptions]
+      const passedOptions = cliContext.args
+        .filter(str => str.startsWith("-") || str.startsWith("--"))
+        .map(str => str.startsWith("--") ? str.slice(2) : str.slice(1))
+        .map(str => str.split("=")[0])
+      const invalid = difference(passedOptions, availableOptions)
+      if (invalid.length > 0) {
+        cliContext.cliMessage(`Received invalid flag(s): ${invalid.join(" ")}`)
+        return
+      }
 
       // Configure logger
       const logger = this.logger
