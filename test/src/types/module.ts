@@ -1,9 +1,15 @@
 import { Module } from "../../../src/types/module"
 import { resolve } from "path"
-import { dataDir, makeTestContextA, makeTestContext } from "../../helpers"
+import {
+  dataDir,
+  makeTestContextA,
+  makeTestContext,
+  makeTestGardenA,
+} from "../../helpers"
 import { expect } from "chai"
 import { loadConfig } from "../../../src/types/config"
 
+const getVersion = Module.prototype.getVersion
 const modulePathA = resolve(dataDir, "test-project-a", "module-a")
 
 describe("Module", () => {
@@ -40,6 +46,37 @@ describe("Module", () => {
       },
       type: "test",
       variables: {},
+    })
+  })
+
+  describe("getVersion", () => {
+    let stub: any
+
+    beforeEach(() => {
+      stub = Module.prototype.getVersion
+      Module.prototype.getVersion = getVersion
+    })
+
+    afterEach(() => {
+      Module.prototype.getVersion = stub
+    })
+
+    it("should use cached version if available", async () => {
+      const garden = await makeTestGardenA()
+      const ctx = garden.pluginContext
+      const config = await loadConfig(ctx.projectRoot, modulePathA)
+      const module = new Module(ctx, config.module!, [], [])
+
+      const cachedVersion = {
+        versionString: "0123456789",
+        latestCommit: "0123456789",
+        dirtyTimestamp: null,
+      }
+      garden.cache.set(["moduleVersions", module.name], cachedVersion, module.getCacheContext())
+
+      const version = await module.getVersion()
+
+      expect(version).to.eql(cachedVersion)
     })
   })
 

@@ -10,6 +10,7 @@ import { map as bluebirdMap } from "bluebird"
 import { Client } from "fb-watchman"
 import { keyBy, uniqBy, values } from "lodash"
 import { relative, resolve } from "path"
+import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
 import { PluginContext } from "./plugin-context"
 
@@ -81,10 +82,12 @@ export type SubscriptionResponse = {
 export class FSWatcher {
   private readonly client
   private capabilityCheckComplete: boolean
+  private projectRoot: string
 
-  constructor(private projectRoot: string) {
+  constructor(private ctx: PluginContext) {
     this.client = new Client()
     this.capabilityCheckComplete = false
+    this.projectRoot = ctx.projectRoot
   }
 
   /*
@@ -113,6 +116,8 @@ export class FSWatcher {
     modules: Module[], subscriptionPrefix: string,
     changeHandler: (module: Module, response: SubscriptionResponse) => Promise<void>,
   ) {
+    const _this = this
+
     if (!this.capabilityCheckComplete) {
       await this.capabilityCheck({ optional: [], required: ["relative_root"] })
     }
@@ -143,6 +148,10 @@ export class FSWatcher {
         console.log("no module found for changed file, skipping auto-rebuild")
         return
       }
+
+      // invalidate the cache for anything attached to the module path or upwards in the directory tree
+      const cacheContext = pathToCacheContext(changedModule.path)
+      _this.ctx.invalidateCacheUp(cacheContext)
 
       await changeHandler(changedModule, response)
     })

@@ -9,14 +9,26 @@
 import Bluebird = require("bluebird")
 import chalk from "chalk"
 import {
+  pathExists,
+  readFile,
+} from "fs-extra"
+import { join } from "path"
+import { CacheContext } from "./cache"
+import { GARDEN_VERSIONFILE_NAME } from "./constants"
+import { ConfigurationError } from "./exceptions"
+import {
   Garden,
 } from "./garden"
 import { EntryStyle } from "./logger/types"
 import { TaskResults } from "./task-graph"
 import {
   PrimitiveMap,
+  validate,
 } from "./types/common"
-import { Module } from "./types/module"
+import {
+  Module,
+  versionFileSchema,
+} from "./types/module"
 import {
   ModuleActions,
   Provider,
@@ -84,6 +96,7 @@ import {
   registerCleanupFunction,
   sleep,
 } from "./util"
+import { TreeVersion } from "./vcs/base"
 import {
   autoReloadModules,
   computeAutoReloadDependants,
@@ -114,7 +127,6 @@ export type WrappedFromGarden = Pick<Garden,
   "vcs" |
   "clearBuilds" |
   "getEnvironment" |
-  "resolveModule" |
   "getModules" |
   "getModule" |
   "getServices" |
@@ -174,7 +186,11 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   runService: <T extends Module>(params: PluginContextServiceParams<RunServiceParams<T>>)
     => Promise<RunResult>,
 
+  invalidateCache: (context: CacheContext) => void
+  invalidateCacheUp: (context: CacheContext) => void
+  invalidateCacheDown: (context: CacheContext) => void
   getModuleBuildPath: (moduleName: string) => Promise<string>
+  getModuleVersion: (module: Module, force?: boolean) => Promise<TreeVersion>
   stageBuild: (moduleName: string) => Promise<void>
   getStatus: () => Promise<ContextStatus>
   processModules: (params: ProcessModulesParams) => Promise<TaskResults>
@@ -426,9 +442,16 @@ export function createPluginContext(garden: Garden): PluginContext {
     //region Helper Methods
     //===========================================================================
 
-    resolveModule: async (nameOrLocation: string) => {
-      const module = await garden.resolveModule(nameOrLocation)
-      return module || null
+    invalidateCache: (context: CacheContext) => {
+      garden.cache.invalidate(context)
+    },
+
+    invalidateCacheUp: (context: CacheContext) => {
+      garden.cache.invalidateUp(context)
+    },
+
+    invalidateCacheDown: (context: CacheContext) => {
+      garden.cache.invalidateDown(context)
     },
 
     stageBuild: async (moduleName: string) => {
@@ -439,6 +462,59 @@ export function createPluginContext(garden: Garden): PluginContext {
     getModuleBuildPath: async (moduleName: string) => {
       const module = await garden.getModule(moduleName)
       return await garden.buildDir.buildPath(module)
+    },
+
+    getModuleVersion: async (module: Module, force = false) => {
+      const cacheKey = ["moduleVersions", module.name]
+
+      if (!force) {
+        const cached = <TreeVersion>garden.cache.get(cacheKey)
+
+        if (cached) {
+          return cached
+        }
+      }
+
+      const buildDependencies = await module.getBuildDependencies()
+      const cacheContexts = buildDependencies.concat([module]).map(m => m.getCacheContext())
+      const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
+
+      if (await pathExists(versionFilePath)) {
+        // this is used internally to specify version outside of source control
+        const versionFileContents = (await readFile(versionFilePath)).toString().trim()
+
+        if (!!versionFileContents) {
+          try {
+            const fileVersion = validate(JSON.parse(versionFileContents), versionFileSchema)
+            garden.cache.set(cacheKey, fileVersion, ...cacheContexts)
+            return fileVersion
+          } catch (err) {
+            throw new ConfigurationError(
+              `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${module.path}`,
+              {
+                modulePath: module.path,
+                versionFilePath,
+                versionFileContents,
+              },
+            )
+          }
+        }
+      }
+
+      const treeVersion = await garden.vcs.getTreeVersion([module.path])
+
+      const versionChain: TreeVersion[] = await Bluebird.map(
+        buildDependencies,
+        async (m: Module) => await m.getVersion(),
+      )
+      versionChain.push(treeVersion)
+
+      // The module version is the latest of any of the dependency modules or itself.
+      const sortedVersions = await garden.vcs.sortVersions(versionChain)
+      const version = sortedVersions[0]
+
+      garden.cache.set(cacheKey, version, ...cacheContexts)
+      return version
     },
 
     getStatus: async () => {
@@ -497,7 +573,7 @@ export function createPluginContext(garden: Garden): PluginContext {
         }
       }
 
-      const watcher = new FSWatcher(ctx.projectRoot)
+      const watcher = new FSWatcher(ctx)
 
       // TODO: should the prefix here be different or set explicitly per run?
       await watcher.watchModules(modulesToWatch, "addTasksForAutoReload/",
