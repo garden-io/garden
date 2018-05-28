@@ -4,13 +4,26 @@ import { expect } from "chai"
 import { LogLevel, EntryStatus, LogSymbolType, EntryStyle } from "../../src/logger/types"
 import { BasicTerminalWriter } from "../../src/logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../../src/logger/writers/fancy-terminal-writer"
-import { RootLogNode } from "../../src/logger"
+import { RootLogNode, getLogger } from "../../src/logger"
 import { getChildNodes } from "../../src/logger/util"
 
+let logger
+// A fail-safe in case the logger has already been initialised (it's a singleton
+// class that can only be initialised once)
+try {
+  logger = RootLogNode.initialize({ level: LogLevel.info })
+} catch (_) {
+  logger = getLogger()
+}
+
+beforeEach(() => {
+  logger["children"] = []
+})
+
 describe("LogNode", () => {
+
   describe("findById", () => {
     it("should return the first log entry with a matching id and undefined otherwise", () => {
-      const logger = new RootLogNode({ level: LogLevel.info })
       logger.info({msg: "0"})
       logger.info({msg: "a1", id: "a"})
       logger.info({msg: "a2", id: "a"})
@@ -21,7 +34,6 @@ describe("LogNode", () => {
 
   describe("filterBySection", () => {
     it("should return an array of all entries with the matching section name", () => {
-      const logger = new RootLogNode({ level: LogLevel.info })
       logger.info({section: "s0"})
       logger.info({section: "s1", id: "a"})
       logger.info({section: "s2"})
@@ -36,17 +48,15 @@ describe("LogNode", () => {
 })
 
 describe("RootLogNode", () => {
-  const logger = new RootLogNode({ level: LogLevel.info })
-
-  logger.error("error")
-  logger.warn("warn")
-  logger.info("info")
-  logger.verbose("verbose")
-  logger.debug("debug")
-  logger.silly("silly")
-
   describe("getLogEntries", () => {
     it("should return an ordered list of log entries", () => {
+      logger.error("error")
+      logger.warn("warn")
+      logger.info("info")
+      logger.verbose("verbose")
+      logger.debug("debug")
+      logger.silly("silly")
+
       const entries = logger.getLogEntries()
       const levels = entries.map(e => e.level)
 
@@ -64,6 +74,13 @@ describe("RootLogNode", () => {
 
   describe("addNode", () => {
     it("should add new child entries to the respective node", () => {
+      logger.error("error")
+      logger.warn("warn")
+      logger.info("info")
+      logger.verbose("verbose")
+      logger.debug("debug")
+      logger.silly("silly")
+
       const prevLength = logger.children.length
       const entry = logger.children[0]
       const nested = entry.info("nested")
@@ -81,28 +98,24 @@ describe("RootLogNode", () => {
 
 describe("BasicTerminalWriter.render", () => {
   it("should return a string if level is geq than entry level and entry contains a message", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     const writer = new BasicTerminalWriter()
     const entry = logger.info("")
     const out = writer.render(entry, logger)
     expect(out).to.eql("\n")
   })
   it("should override root level if level is set", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     const writer = new BasicTerminalWriter({ level: LogLevel.verbose })
     const entry = logger.verbose("")
     const out = writer.render(entry, logger)
     expect(out).to.eql("\n")
   })
   it("should return null if entry level is geq to writer level", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     const writer = new BasicTerminalWriter()
     const entry = logger.verbose("")
     const out = writer.render(entry, logger)
     expect(out).to.eql(null)
   })
   it("should return null if entry has no message", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     const writer = new BasicTerminalWriter()
     const entry = logger.info({})
     const out = writer.render(entry, logger)
@@ -116,7 +129,6 @@ describe("FancyTerminalWriter.toTerminalEntries", () => {
   writer.stop()
   verboseWriter.stop()
   it("should map a LogNode into an array of entries with line numbers and spinner positions", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     logger.info("1 line") // 0
     logger.info("2 lines\n") // 1
     logger.info("1 line") // 3
@@ -130,19 +142,16 @@ describe("FancyTerminalWriter.toTerminalEntries", () => {
     expect(spinners).to.eql([[0, 7], [3, 8]])
   })
   it("should override root level if level is set", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     const entry = logger.verbose("")
     const terminalEntries = verboseWriter.toTerminalEntries(logger)
     expect(terminalEntries[0].key).to.eql(entry.key)
   })
   it("should skip entry if entry level is geq to writer level", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     const entry = logger.verbose("")
     const terminalEntries = writer.toTerminalEntries(logger)
     expect(terminalEntries).to.eql([])
   })
   it("should skip entry if entry has no message", () => {
-    const logger = new RootLogNode({ level: LogLevel.info })
     const entry = logger.info({})
     const terminalEntries = writer.toTerminalEntries(logger)
     expect(terminalEntries).to.eql([])
@@ -150,7 +159,6 @@ describe("FancyTerminalWriter.toTerminalEntries", () => {
 })
 
 describe("LogEntry", () => {
-  const logger = new RootLogNode({ level: LogLevel.info })
   const entry = logger.info("")
   describe("setState", () => {
     it("should update entry state and optionally append new msg to previous msg", () => {

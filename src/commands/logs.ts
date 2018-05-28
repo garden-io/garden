@@ -19,6 +19,7 @@ import { ServiceLogEntry } from "../types/plugin/outputs"
 import Bluebird = require("bluebird")
 import { Service } from "../types/service"
 import Stream from "ts-stream"
+import { LoggerType } from "../logger/types"
 
 export const logsArgs = {
   service: new StringParameter({
@@ -42,6 +43,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
 
   arguments = logsArgs
   options = logsOpts
+  loggerType = LoggerType.basic
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<ServiceLogEntry[]>> {
     const names = args.service ? args.service.split(",") : undefined

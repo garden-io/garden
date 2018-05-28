@@ -1,0 +1,145 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import chalk from "chalk"
+import { flatten, reduce } from "lodash"
+import {
+  ChoicesParameter,
+  ParameterValues,
+  Parameter,
+} from "../commands/base"
+import {
+  InternalError,
+} from "../exceptions"
+
+// Parameter types T which map between the Parameter<T> class and the Sywac cli library.
+// In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
+const VALID_PARAMETER_TYPES = ["boolean", "number", "choice", "string"]
+
+export const styleConfig = {
+  usagePrefix: str => (
+    `
+${chalk.bold(str.slice(0, 5).toUpperCase())}
+
+  ${chalk.italic(str.slice(7))}`
+  ),
+  usageCommandPlaceholder: str => chalk.blue(str),
+  usagePositionals: str => chalk.magenta(str),
+  usageArgsPlaceholder: str => chalk.magenta(str),
+  usageOptionsPlaceholder: str => chalk.yellow(str),
+  group: (str: string) => {
+    const cleaned = str.endsWith(":") ? str.slice(0, -1) : str
+    return chalk.bold(cleaned.toUpperCase()) + "\n"
+  },
+  flags: (str, _type) => {
+    const style = str.startsWith("-") ? chalk.green : chalk.magenta
+    return style(str)
+  },
+  hints: str => chalk.gray(str),
+  groupError: str => chalk.red.bold(str),
+  flagsError: str => chalk.red.bold(str),
+  descError: str => chalk.yellow.bold(str),
+  hintsError: str => chalk.red(str),
+  messages: str => chalk.red.bold(str), // these are error messages
+}
+
+// Helper functions
+export const getKeys = (obj): string[] => Object.keys(obj || {})
+export const filterByArray = (obj: any, arr: string[]): any => {
+  return arr.reduce((memo, key) => {
+    if (obj[key]) {
+      memo[key] = obj[key]
+    }
+    return memo
+  }, {})
+}
+
+export function getAliases(params: ParameterValues<any>) {
+  return flatten(Object.entries(params)
+    .map(([key, param]) => param.alias ? [key, param.alias] : [key]))
+}
+
+export type FalsifiedParams = { [key: string]: false }
+
+/**
+ * Returns the params that need to be overridden set to false
+ */
+export function falsifyConflictingParams(argv, params: ParameterValues<any>): FalsifiedParams {
+  return reduce(argv, (acc: {}, val: any, key: string) => {
+    const param = params[key]
+    const overrides = (param || {}).overrides || []
+    // argv always contains the "_" key which is irrelevant here
+    if (key === "_" || !param || !val || !(overrides.length > 0)) {
+      return acc
+    }
+    const withAliases = overrides.reduce((_, keyToOverride: string): string[] => {
+      if (!params[keyToOverride]) {
+        throw new InternalError(`Cannot override non-existing parameter: ${keyToOverride}`, {
+          keyToOverride,
+          availableKeys: Object.keys(params),
+        })
+      }
+      return [keyToOverride, ...params[keyToOverride].alias]
+    }, [])
+
+    withAliases.forEach(keyToOverride => acc[keyToOverride] = false)
+    return acc
+  }, {})
+}
+
+// Sywac transformers
+export function getOptionSynopsis(key: string, param: Parameter<any>): string {
+  return param.alias ? `-${param.alias}, --${key}` : `--${key}`
+}
+
+export function getArgSynopsis(key: string, param: Parameter<any>) {
+  return param.required ? `<${key}>` : `[${key}]`
+}
+
+export function prepareArgConfig(param: Parameter<any>) {
+  return {
+    desc: param.help,
+    params: [prepareOptionConfig(param)],
+  }
+}
+
+export interface SywacOptionConfig {
+  desc: string | string[]
+  type: string
+  defaultValue?: any
+  choices?: any[]
+  required?: boolean
+  strict: true
+}
+
+export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
+  const {
+    defaultValue,
+    help: desc,
+    required,
+    type,
+  } = param
+  if (!VALID_PARAMETER_TYPES.includes(type)) {
+    throw new InternalError(`Invalid parameter type for cli: ${type}`, {
+      type,
+      validParameterTypes: VALID_PARAMETER_TYPES,
+    })
+  }
+  let config: SywacOptionConfig = {
+    defaultValue,
+    desc,
+    required,
+    type,
+    strict: true,
+  }
+  if (type === "choice") {
+    config.type = "enum"
+    config.choices = (<ChoicesParameter>param).choices
+  }
+  return config
+}

@@ -12,6 +12,7 @@ import {
 } from "../exceptions"
 import { PluginContext } from "../plugin-context"
 import { TaskResults } from "../task-graph"
+import { LoggerType } from "../logger/types"
 
 export class ValidationError extends Error { }
 
@@ -135,6 +136,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   abstract help: string
 
   alias?: string
+  loggerType?: LoggerType
 
   arguments: T
   options: U
