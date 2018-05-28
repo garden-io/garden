@@ -17,7 +17,7 @@ import {
   shutdown,
   sleep,
 } from "./util"
-import { merge, intersection, reduce } from "lodash"
+import { difference, flatten, merge, intersection, reduce } from "lodash"
 import {
   BooleanParameter,
   Command,
@@ -33,6 +33,7 @@ import {
   GardenError,
   InternalError,
   PluginError,
+  toGardenError,
 } from "./exceptions"
 import { Garden } from "./garden"
 import { FileWriter } from "./logger/writers/file-writer"
@@ -194,6 +195,11 @@ function makeOptConfig(param: Parameter<any>): OptConfig {
   return config
 }
 
+function getAliases(params: ParameterValues<any>) {
+  return flatten(Object.entries(params)
+    .map(([key, param]) => param.alias ? [key, param.alias] : [key]))
+}
+
 /**
  * Returns the params that need to be overridden set to false
  */
@@ -239,7 +245,7 @@ export class GardenCli {
         implicitCommand: false,
       })
       .showHelpByDefault()
-      .check((argv, _context) => {
+      .check((argv, _ctx) => {
         // NOTE: Need to mutate argv!
         merge(argv, falsifyConflictingParams(argv, GLOBAL_OPTIONS))
       })
@@ -262,6 +268,7 @@ export class GardenCli {
       new TestCommand(),
       new ValidateCommand(),
     ]
+
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
     commands.forEach(command => this.addCommand(command, this.program))
@@ -285,8 +292,8 @@ export class GardenCli {
 
     this.commands[fullName] = command
 
-    const args = command.arguments as Parameter<any>
-    const options = command.options as Parameter<any>
+    const args = <ParameterValues<any>>command.arguments || {}
+    const options = <ParameterValues<any>>command.options || {}
     const subCommands = command.subCommands || []
     const argKeys = getKeys(args)
     const optKeys = getKeys(options)
@@ -304,15 +311,43 @@ export class GardenCli {
       const root = resolve(process.cwd(), optsForAction.root)
       const env = optsForAction.env
 
-      // Update logger
+      // Validate options (feels like the parser should handle this)
+      const builtinOptions = ["help", "h", "version", "v"]
+      const availableOptions = [...getAliases(options), ...getAliases(GLOBAL_OPTIONS), ...builtinOptions]
+      const passedOptions = cliContext.args
+        .filter(str => str.startsWith("-") || str.startsWith("--"))
+        .map(str => str.startsWith("--") ? str.slice(2) : str.slice(1))
+        .map(str => str.split("=")[0])
+      const invalid = difference(passedOptions, availableOptions)
+      if (invalid.length > 0) {
+        cliContext.cliMessage(`Received invalid flag(s): ${invalid.join(" ")}`)
+        return
+      }
+
+      // Configure logger
       const logger = this.logger
       const { loglevel, silent, output } = optsForAction
       const level = LogLevel[<string>loglevel]
       logger.level = level
       if (!silent && !output) {
         logger.writers.push(
-          new FileWriter({ level, root }),
-          new FileWriter({ level: LogLevel.error, filename: ERROR_LOG_FILENAME, root }),
+          await FileWriter.factory({
+            root,
+            level,
+            filename: "development.log",
+          }),
+          await FileWriter.factory({
+            root,
+            filename: ERROR_LOG_FILENAME,
+            level: LogLevel.error,
+          }),
+          await FileWriter.factory({
+            root,
+            logDirPath: ".",
+            filename: ERROR_LOG_FILENAME,
+            level: LogLevel.error,
+            truncatePrevious: true,
+          }),
         )
       } else {
         logger.writers = []
@@ -346,28 +381,28 @@ export class GardenCli {
 
   async parse(): Promise<ParseResults> {
     const parseResult: SywacParseResults = await this.program.parse()
-    const { argv, details, errors: parseErrors, output: cliOutput } = parseResult
+    const { argv, details, errors, output: cliOutput } = parseResult
     const commandResult = details.result
     const { output } = argv
 
     let code = parseResult.code
 
     // --help or --version options were called so we log the cli output and exit
-    if (cliOutput && parseErrors.length < 1) {
+    if (cliOutput && errors.length < 1) {
       this.logger.stop()
       console.log(cliOutput)
       process.exit(parseResult.code)
     }
 
-    const errors: GardenError[] = parseErrors
-      .map(e => ({ type: "parameter", message: e.toString() }))
+    const gardenErrors: GardenError[] = errors
+      .map(toGardenError)
       .concat((commandResult && commandResult.errors) || [])
 
     // --output option set
     if (output) {
       const renderer = OUTPUT_RENDERERS[output]
-      if (errors.length > 0) {
-        console.error(renderer({ success: false, errors }))
+      if (gardenErrors.length > 0) {
+        console.error(renderer({ success: false, errors: gardenErrors }))
       } else {
         console.log(renderer({ success: true, ...commandResult }))
       }
@@ -375,8 +410,11 @@ export class GardenCli {
       await sleep(100)
     }
 
-    if (errors.length > 0) {
-      errors.forEach(err => this.logger.error({ msg: err.message, error: err }))
+    if (gardenErrors.length > 0) {
+      gardenErrors.forEach(error => this.logger.error({
+        msg: error.message,
+        error,
+      }))
 
       if (this.logger.writers.find(w => w instanceof FileWriter)) {
         this.logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)

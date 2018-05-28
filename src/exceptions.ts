@@ -23,7 +23,7 @@ export abstract class GardenBaseError extends Error implements GardenError {
   }
 }
 
-export function toGardenError(err: Error): GardenError {
+export function toGardenError(err: Error | GardenError): GardenError {
   if (err instanceof GardenBaseError) {
     return err
   } else {

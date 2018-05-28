@@ -59,7 +59,7 @@ export interface LogEntryOpts {
   append?: boolean
   fromStdStream?: boolean
   showDuration?: boolean
-  error?: GardenError | Error
+  error?: GardenError
   id?: string
   unindentChildren?: boolean
 }
