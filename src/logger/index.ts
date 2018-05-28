@@ -25,24 +25,28 @@ import {
   LogEntryOpts,
   LogSymbolType,
 } from "./types"
+import { Writer } from "./writers/base"
+import { ParameterError, InternalError } from "../exceptions"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
-import { Writer } from "./writers/base"
-import { ParameterError } from "../exceptions"
 
 const ROOT_DEPTH = -1
-const CONFIG_TYPES: { [key in LoggerType]: LoggerConfig } = {
-  [LoggerType.fancy]: {
-    level: LogLevel.info,
-    writers: [new FancyTerminalWriter()],
-  },
-  [LoggerType.basic]: {
-    level: LogLevel.info,
-    writers: [new BasicTerminalWriter()],
-  },
-  [LoggerType.quiet]: {
-    level: LogLevel.info,
-  },
+
+function getCommonConfig(loggerType: LoggerType): LoggerConfig {
+  const configs: { [key in LoggerType]: LoggerConfig } = {
+    [LoggerType.fancy]: {
+      level: LogLevel.info,
+      writers: [new FancyTerminalWriter()],
+    },
+    [LoggerType.basic]: {
+      level: LogLevel.info,
+      writers: [new BasicTerminalWriter()],
+    },
+    [LoggerType.quiet]: {
+      level: LogLevel.info,
+    },
+  }
+  return configs[loggerType]
 }
 
 export interface LoggerConfig {
@@ -58,10 +62,6 @@ export interface LogEntryConstructor {
   key: string
   parentEntry?: LogEntry
 }
-
-let loggerInstance: RootLogNode
-let loggerType: LoggerType = LoggerType.fancy
-let loggerConfig: LoggerConfig = CONFIG_TYPES[loggerType]
 
 function createLogEntry(level: LogLevel, opts: LogEntryOpts, parentNode: LogNode): LogEntry {
   const { depth, root } = parentNode
@@ -86,16 +86,16 @@ export type CreateLogEntry = (entryVal: CreateLogEntryParam) => LogEntry
 export type UpdateLogEntryParam = string | LogEntryOpts | undefined
 export type UpdateLogEntry = (entryVal?: UpdateLogEntryParam) => LogEntry
 
-function makeLogOpts(entryVal: CreateLogEntryParam | UpdateLogEntryParam): LogEntryOpts {
+function prepareLogOpts(entryVal: CreateLogEntryParam | UpdateLogEntryParam): LogEntryOpts {
   return typeof entryVal === "string" ? { msg: entryVal } : entryVal || {}
 }
 
 export abstract class LogNode {
-  public root: RootLogNode
-  public timestamp: number
-  public level: LogLevel
-  public depth: number
-  public children: LogEntry[]
+  public readonly root: RootLogNode
+  public readonly timestamp: number
+  public readonly level: LogLevel
+  public readonly depth: number
+  public readonly children: LogEntry[]
 
   constructor(level: LogLevel, depth: number) {
     this.timestamp = Date.now()
@@ -112,27 +112,27 @@ export abstract class LogNode {
   }
 
   public silly: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
-    return this.addNode(LogLevel.silly, makeLogOpts(entryVal))
+    return this.addNode(LogLevel.silly, prepareLogOpts(entryVal))
   }
 
   public debug: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
-    return this.addNode(LogLevel.debug, makeLogOpts(entryVal))
+    return this.addNode(LogLevel.debug, prepareLogOpts(entryVal))
   }
 
   public verbose: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
-    return this.addNode(LogLevel.verbose, makeLogOpts(entryVal))
+    return this.addNode(LogLevel.verbose, prepareLogOpts(entryVal))
   }
 
   public info: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
-    return this.addNode(LogLevel.info, makeLogOpts(entryVal))
+    return this.addNode(LogLevel.info, prepareLogOpts(entryVal))
   }
 
   public warn: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
-    return this.addNode(LogLevel.warn, makeLogOpts(entryVal))
+    return this.addNode(LogLevel.warn, prepareLogOpts(entryVal))
   }
 
   public error: CreateLogEntry = (entryVal: CreateLogEntryParam): LogEntry => {
-    return this.addNode(LogLevel.error, { ...makeLogOpts(entryVal), entryStyle: EntryStyle.error })
+    return this.addNode(LogLevel.error, { ...prepareLogOpts(entryVal), entryStyle: EntryStyle.error })
   }
 
   public findById(id: string): LogEntry | void {
@@ -148,13 +148,13 @@ export abstract class LogNode {
 export class LogEntry extends LogNode {
   public opts: LogEntryOpts
   public status: EntryStatus
-  public root: RootLogNode
-  public timestamp: number
-  public level: LogLevel
-  public depth: number
-  public key: string
-  public parentEntry: LogEntry | undefined
-  public children: LogEntry[]
+  public readonly root: RootLogNode
+  public readonly timestamp: number
+  public readonly level: LogLevel
+  public readonly depth: number
+  public readonly key: string
+  public readonly parentEntry: LogEntry | undefined
+  public readonly children: LogEntry[]
 
   constructor({ level, opts, depth, root, parentEntry, key }: LogEntryConstructor) {
     super(level, depth)
@@ -207,31 +207,31 @@ export class LogEntry extends LogNode {
 
   // Preserves status
   public setState: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
-    this.deepSetState(makeLogOpts(entryVal), this.status)
+    this.deepSetState(prepareLogOpts(entryVal), this.status)
     this.root.onGraphChange(this)
     return this
   }
 
   public setDone: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
-    this.deepSetState(makeLogOpts(entryVal), EntryStatus.DONE)
+    this.deepSetState(prepareLogOpts(entryVal), EntryStatus.DONE)
     this.root.onGraphChange(this)
     return this
   }
 
   public setSuccess: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
-    this.deepSetState({ ...makeLogOpts(entryVal), symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
+    this.deepSetState({ ...prepareLogOpts(entryVal), symbol: LogSymbolType.success }, EntryStatus.SUCCESS)
     this.root.onGraphChange(this)
     return this
   }
 
   public setError: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
-    this.deepSetState({ ...makeLogOpts(entryVal), symbol: LogSymbolType.error }, EntryStatus.ERROR)
+    this.deepSetState({ ...prepareLogOpts(entryVal), symbol: LogSymbolType.error }, EntryStatus.ERROR)
     this.root.onGraphChange(this)
     return this
   }
 
   public setWarn: UpdateLogEntry = (entryVal: UpdateLogEntryParam = {}): LogEntry => {
-    this.deepSetState({ ...makeLogOpts(entryVal), symbol: LogSymbolType.warn }, EntryStatus.WARN)
+    this.deepSetState({ ...prepareLogOpts(entryVal), symbol: LogSymbolType.warn }, EntryStatus.WARN)
     this.root.onGraphChange(this)
     return this
   }
@@ -260,10 +260,47 @@ export class LogEntry extends LogNode {
 }
 
 export class RootLogNode extends LogNode {
-  public root: RootLogNode
-  public writers: Writer[]
+  public readonly root: RootLogNode
+  public readonly writers: Writer[]
 
-  constructor(config: LoggerConfig) {
+  private static instance: RootLogNode
+
+  static getInstance() {
+    if (!RootLogNode.instance) {
+      throw new InternalError("Logger not initialized", {})
+    }
+    return RootLogNode.instance
+  }
+
+  static initialize(config: LoggerConfig) {
+    if (RootLogNode.instance) {
+      throw new InternalError("Logger already initialized", {})
+    }
+
+    let instance
+
+    // If GARDEN_LOGGER_TYPE env variable is set it takes precedence over the config param
+    if (process.env.GARDEN_LOGGER_TYPE) {
+      const loggerType = LoggerType[process.env.GARDEN_LOGGER_TYPE]
+
+      if (!loggerType) {
+        throw new ParameterError(`Invalid logger type specified: ${process.env.GARDEN_LOGGER_TYPE}`, {
+          loggerType: process.env.GARDEN_LOGGER_TYPE,
+          availableTypes: Object.keys(LoggerType),
+        })
+      }
+
+      instance = new RootLogNode(getCommonConfig(loggerType))
+      instance.debug(`Setting logger type to ${loggerType} (from GARDEN_LOGGER_TYPE)`)
+    } else {
+      instance = new RootLogNode(config)
+    }
+
+    RootLogNode.instance = instance
+    return instance
+  }
+
+  private constructor(config: LoggerConfig) {
     super(config.level, ROOT_DEPTH)
     this.root = this
     this.writers = config.writers || []
@@ -309,31 +346,5 @@ export class RootLogNode extends LogNode {
 }
 
 export function getLogger() {
-  if (!loggerInstance) {
-    loggerInstance = new RootLogNode(loggerConfig)
-  }
-
-  return loggerInstance
-}
-
-export function setLoggerType(type: LoggerType) {
-  loggerType = type
-  loggerConfig = CONFIG_TYPES[type]
-}
-
-// allow configuring logger type via environment variable
-// TODO: we may want a more generalized mechanism for these types of env flags
-if (process.env.GARDEN_LOGGER_TYPE) {
-  const type = LoggerType[process.env.GARDEN_LOGGER_TYPE]
-
-  if (!type) {
-    throw new ParameterError(`Invalid logger type specified: ${process.env.GARDEN_LOGGER_TYPE}`, {
-      loggerType: process.env.GARDEN_LOGGER_TYPE,
-      availableTypes: Object.keys(LoggerType),
-    })
-  }
-
-  setLoggerType(type)
-
-  getLogger().debug(`Setting logger type to ${type} (from GARDEN_LOGGER_TYPE)`)
+  return RootLogNode.getInstance()
 }

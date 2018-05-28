@@ -22,9 +22,9 @@ export enum LogLevel {
 }
 
 export enum LoggerType {
+  quiet = "quiet",
   basic = "basic",
   fancy = "fancy",
-  quiet = "quiet",
 }
 
 export enum EntryStyle {

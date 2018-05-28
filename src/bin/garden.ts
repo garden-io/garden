@@ -7,6 +7,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { run } from "../cli"
+import { run } from "../cli/cli"
 
 run()
