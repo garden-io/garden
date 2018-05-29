@@ -35,6 +35,10 @@ export class CallCommand extends Command<typeof callArgs> {
   name = "call"
   help = "Call a service endpoint"
 
+  description = `
+    This resolves the external endpoint for the given service and path, calls the given endpoint and outputs the result.
+  `
+
   arguments = callArgs
 
   async action(ctx: PluginContext, args: Args): Promise<CommandResult> {
