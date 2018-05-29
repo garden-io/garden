@@ -7,7 +7,7 @@
  */
 
 import * as sywac from "sywac"
-import { difference, merge, intersection } from "lodash"
+import { merge, intersection } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
 import stringify = require("json-stringify-safe")
@@ -59,7 +59,7 @@ import { Writer } from "../logger/writers/base"
 
 import {
   falsifyConflictingParams,
-  getAliases,
+  failOnInvalidOptions,
   getArgSynopsis,
   getKeys,
   getOptionSynopsis,
@@ -204,19 +204,6 @@ export class GardenCli {
       const root = resolve(process.cwd(), parsedOpts.root)
       const { env, loglevel, silent, output } = parsedOpts
 
-      // Validate options (feels like the parser should handle this)
-      const builtinOptions = ["help", "h", "version", "v"]
-      const availableOptions = [...getAliases(options), ...getAliases(GLOBAL_OPTIONS), ...builtinOptions]
-      const passedOptions = cliContext.args
-        .filter(str => str.startsWith("-") || str.startsWith("--"))
-        .map(str => str.startsWith("--") ? str.slice(2) : str.slice(1))
-        .map(str => str.split("=")[0])
-      const invalid = difference(passedOptions, availableOptions)
-      if (invalid.length > 0) {
-        cliContext.cliMessage(`Received invalid flag(s): ${invalid.join(" ")}`)
-        return
-      }
-
       // Init logger
       const level = LogLevel[<string>loglevel]
       let writers: Writer[] = []
@@ -264,16 +251,23 @@ export class GardenCli {
       subCommands.forEach(subCommandCls => this.addCommand(new subCommandCls(command), parser))
       argKeys.forEach(key => parser.positional(getArgSynopsis(key, args[key]), prepareArgConfig(args[key])))
       optKeys.forEach(key => parser.option(getOptionSynopsis(key, options[key]), prepareOptionConfig(options[key])))
+
+      // We only check for invalid flags for the last command since it might contain flags that
+      // the parent is unaware of, thus causing the check to fail for the parent
+      if (subCommands.length < 1) {
+        parser.check(failOnInvalidOptions)
+      }
+      return parser
     }
 
-    const commandOpts = {
+    const commandConfig = {
       setup,
       aliases: command.alias,
       desc: command.help,
       run: action,
     }
 
-    program.command(command.name, commandOpts)
+    program.command(command.name, commandConfig)
   }
 
   async parse(): Promise<ParseResults> {

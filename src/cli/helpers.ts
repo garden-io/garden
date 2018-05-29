@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { flatten, reduce } from "lodash"
+import { difference, flatten, reduce } from "lodash"
 import {
   ChoicesParameter,
   ParameterValues,
@@ -59,11 +59,6 @@ export const filterByArray = (obj: any, arr: string[]): any => {
   }, {})
 }
 
-export function getAliases(params: ParameterValues<any>) {
-  return flatten(Object.entries(params)
-    .map(([key, param]) => param.alias ? [key, param.alias] : [key]))
-}
-
 export type FalsifiedParams = { [key: string]: false }
 
 /**
@@ -92,7 +87,7 @@ export function falsifyConflictingParams(argv, params: ParameterValues<any>): Fa
   }, {})
 }
 
-// Sywac transformers
+// Sywac specific transformers and helpers
 export function getOptionSynopsis(key: string, param: Parameter<any>): string {
   return param.alias ? `-${param.alias}, --${key}` : `--${key}`
 }
@@ -142,4 +137,17 @@ export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
     config.choices = (<ChoicesParameter>param).choices
   }
   return config
+}
+
+export function failOnInvalidOptions(argv, ctx) {
+  const validOptions = flatten(
+    ctx.details.types
+      .filter(t => t.datatype !== "command")
+      .map(t => t.aliases),
+  )
+  const receivedOptions = Object.keys(argv)
+  const invalid = difference(receivedOptions, validOptions)
+  if (invalid.length > 0) {
+    ctx.cliMessage(`Received invalid flag(s): ${invalid.join(", ")}`)
+  }
 }
