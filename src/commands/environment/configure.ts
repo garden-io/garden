@@ -16,7 +16,7 @@ import {
 } from "../base"
 
 export const options = {
-  force: new BooleanParameter({ help: "Force reconfiguration of module(s)" }),
+  force: new BooleanParameter({ help: "Force reconfiguration of environment" }),
 }
 
 export type Opts = ParameterValues<typeof options>
