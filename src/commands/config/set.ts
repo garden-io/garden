@@ -16,6 +16,7 @@ import {
 } from "../base"
 
 export const configSetArgs = {
+  // TODO: specify and validate config key schema here
   key: new StringParameter({
     help: "The key of the configuration variable. Separate with dots to set a nested key (e.g. key.nested)",
     required: true,

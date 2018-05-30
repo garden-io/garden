@@ -25,7 +25,7 @@ import {
 } from "./common"
 import { Module } from "./module"
 
-export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy"
+export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "unknown"
 
 export type ServiceProtocol = "http" | "https" | "tcp" | "udp"
 
@@ -37,13 +37,25 @@ export interface ServiceEndpoint {
   paths?: string[]
 }
 
-export const serviceEndpointSchema = Joi.object().keys({
-  protocol: Joi.string().only("http", "https", "tcp", "udp").required(),
-  hostname: Joi.string().required(),
-  port: Joi.number(),
-  url: Joi.string().required(),
-  paths: Joi.array().items(Joi.string()),
-})
+export const serviceEndpointSchema = Joi.object()
+  .keys({
+    protocol: Joi.string()
+      .only("http", "https", "tcp", "udp")
+      .required()
+      .description("The protocol to use for the endpoint."),
+    hostname: Joi.string()
+      .required()
+      .description("The external hostname of the service endpoint."),
+    port: Joi.number()
+      .description("The port number that the service is exposed on."),
+    url: Joi.string()
+      .uri()
+      .required()
+      .description("The full URL of the service endpoint."),
+    paths: Joi.array().items(Joi.string())
+      .description("The paths that are available on the service endpoint (defaults to any path)."),
+  })
+  .description("A description of a deployed service endpoint.")
 
 export interface ServiceSpec { }
 
@@ -58,19 +70,26 @@ export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
 export const baseServiceSchema = Joi.object()
   .keys({
     name: joiIdentifier().required(),
-    dependencies: joiArray(joiIdentifier()),
+    dependencies: joiArray(joiIdentifier())
+      .description("The names of services that this service depends on at runtime."),
     outputs: serviceOutputsSchema,
   })
   .unknown(true)
+  .meta({ extendable: true })
+  .description("The required attributes of a service. This is generally further defined by plugins.")
 
 export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends BaseServiceSpec {
   // Plugins can add custom fields that are kept here
   spec: T
 }
 
-export const serviceConfigSchema = baseServiceSchema.keys({
-  spec: Joi.object(),
-})
+export const serviceConfigSchema = baseServiceSchema
+  .keys({
+    spec: Joi.object()
+      .meta({ extendable: true })
+      .description("The service's specification, as defined by its provider plugin."),
+  })
+  .description("The configuration for a module's service.")
 
 // TODO: revise this schema
 export interface ServiceStatus {
@@ -87,19 +106,36 @@ export interface ServiceStatus {
   detail?: any
 }
 
-export const serviceStatusSchema = Joi.object().keys({
-  providerId: Joi.string(),
-  providerVersion: Joi.string(),
-  version: Joi.string(),
-  state: Joi.string(),
-  runningReplicas: Joi.number(),
-  endpoints: Joi.array().items(serviceEndpointSchema),
-  lastMessage: Joi.string().allow(""),
-  lastError: Joi.string(),
-  createdAt: Joi.string(),
-  updatedAt: Joi.string(),
-  detail: Joi.object(),
-})
+export const serviceStatusSchema = Joi.object()
+  .keys({
+    providerId: Joi.string()
+      .description("The ID used for the service by the provider (if not the same as the service name)."),
+    providerVersion: Joi.string()
+      .description("The provider version of the deployed service (if different from the Garden module version."),
+    version: Joi.string()
+      .description("The Garden module version of the deployed service."),
+    state: Joi.string()
+      .only("ready", "deploying", "stopped", "unhealthy", "unknown")
+      .default("unknown")
+      .description("The current deployment status of the service."),
+    runningReplicas: Joi.number()
+      .description("How many replicas of the service are currently running."),
+    endpoints: Joi.array()
+      .items(serviceEndpointSchema)
+      .description("List of currently deployed endpoints for the service."),
+    lastMessage: Joi.string()
+      .allow("")
+      .description("Latest status message of the service (if any)."),
+    lastError: Joi.string()
+      .description("Latest error status message of the service (if any)."),
+    createdAt: Joi.string()
+      .description("When the service was first deployed by the provider."),
+    updatedAt: Joi.string()
+      .description("When the service was last updated by the provider."),
+    detail: Joi.object()
+      .meta({ extendable: true })
+      .description("Additional detail, specific to the provider."),
+  })
 
 export type RuntimeContext = {
   envVars: PrimitiveMap
