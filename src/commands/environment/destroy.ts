@@ -13,11 +13,21 @@ import {
   CommandResult,
 } from "../base"
 import { EnvironmentStatusMap } from "../../types/plugin/outputs"
+import dedent = require("dedent")
 
 export class EnvironmentDestroyCommand extends Command {
   name = "destroy"
   alias = "d"
-  help = "Destroy environment"
+  help = "Destroy an environment."
+
+  description = dedent`
+    Generally not as dramatic as it sounds :) This will trigger providers clear up any deployments in a
+    Garden environment and reset it. When you then run \`garden env configure\` or any deployment command,
+    the environment will be reconfigured.
+
+    This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
+    resources.
+  `
 
   async action(ctx: PluginContext): Promise<CommandResult<EnvironmentStatusMap>> {
     const { name } = ctx.getEnvironment()

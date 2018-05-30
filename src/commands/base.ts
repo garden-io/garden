@@ -152,10 +152,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   }
 
   describe() {
-    const { name, help } = this
-    const description = this.description
-      ? this.description.trim().split("\n").map(l => l.trim()).join("\n")
-      : null
+    const { name, help, description } = this
 
     return {
       name,

@@ -11,10 +11,15 @@ import {
   Command,
   CommandResult,
 } from "./base"
+import dedent = require("dedent")
 
 export class ValidateCommand extends Command {
   name = "validate"
-  help = "Check your garden configuration for errors"
+  help = "Check your garden configuration for errors."
+
+  description = dedent`
+    Throws an error and exits with code 1 if something's not right in your garden.yml files.
+  `
 
   async action(ctx: PluginContext): Promise<CommandResult> {
 
