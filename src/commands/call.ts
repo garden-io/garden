@@ -21,10 +21,11 @@ import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
 import { pick } from "lodash"
 import { PluginContext } from "../plugin-context"
+import dedent = require("dedent")
 
 export const callArgs = {
   serviceAndPath: new StringParameter({
-    help: "The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath)",
+    help: "The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath).",
     required: true,
   }),
 }
@@ -33,10 +34,18 @@ export type Args = ParameterValues<typeof callArgs>
 
 export class CallCommand extends Command<typeof callArgs> {
   name = "call"
-  help = "Call a service endpoint"
+  help = "Call a service endpoint."
 
-  description = `
-    This resolves the external endpoint for the given service and path, calls the given endpoint and outputs the result.
+  description = dedent`
+    This command resolves the deployed external endpoint for the given service and path, calls the given endpoint and
+    outputs the result.
+
+    Examples:
+
+        garden call my-container
+        garden call my-container/some-path
+
+    Note: Currently only supports HTTP/HTTPS endpoints.
   `
 
   arguments = callArgs

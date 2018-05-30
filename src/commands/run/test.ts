@@ -23,24 +23,25 @@ import {
   StringParameter,
 } from "../base"
 import { printRuntimeContext } from "./index"
+import dedent = require("dedent")
 
 export const runArgs = {
   module: new StringParameter({
-    help: "The name of the module to run",
+    help: "The name of the module to run.",
     required: true,
   }),
   test: new StringParameter({
-    help: "The name of the test to run in the module",
+    help: "The name of the test to run in the module.",
     required: true,
   }),
 }
 
 export const runOpts = {
   interactive: new BooleanParameter({
-    help: "Set to false to skip interactive mode and just output the command result",
+    help: "Set to false to skip interactive mode and just output the command result.",
     defaultValue: true,
   }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module" }),
+  "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
 }
 
 export type Args = ParameterValues<typeof runArgs>
@@ -49,7 +50,16 @@ export type Opts = ParameterValues<typeof runOpts>
 export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
   name = "test"
   alias = "t"
-  help = "Run the specified module test"
+  help = "Run the specified module test."
+
+  description = dedent`
+    This can be useful for debugging tests, particularly integration/end-to-end tests.
+
+    Examples:
+
+        garden run test my-module integ            # run the test named 'integ' in my-module
+        garden run test my-module integ --i=false  # do not attach to the test run, just output results when completed
+  `
 
   arguments = runArgs
   options = runOpts

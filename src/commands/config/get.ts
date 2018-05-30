@@ -14,10 +14,11 @@ import {
   ParameterValues,
   StringParameter,
 } from "../base"
+import dedent = require("dedent")
 
 export const configGetArgs = {
   key: new StringParameter({
-    help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested)",
+    help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).",
     required: true,
   }),
 }
@@ -28,7 +29,16 @@ export type GetArgs = ParameterValues<typeof configGetArgs>
 
 export class ConfigGetCommand extends Command<typeof configGetArgs> {
   name = "get"
-  help = "Get a configuration variable"
+  help = "Get a configuration variable from the environment."
+
+  description = dedent`
+    Returns with an error if the provided key could not be found in the configuration.
+
+    Examples:
+
+        garden get somekey
+        garden get some.nested.key
+  `
 
   arguments = configGetArgs
 

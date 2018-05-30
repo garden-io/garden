@@ -14,15 +14,16 @@ import {
   ParameterValues,
   StringParameter,
 } from "../base"
+import dedent = require("dedent")
 
 export const configSetArgs = {
   // TODO: specify and validate config key schema here
   key: new StringParameter({
-    help: "The key of the configuration variable. Separate with dots to set a nested key (e.g. key.nested)",
+    help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).",
     required: true,
   }),
   value: new StringParameter({
-    help: "The value of the configuration variable",
+    help: "The value of the configuration variable.",
     required: true,
   }),
 }
@@ -33,7 +34,18 @@ export type SetArgs = ParameterValues<typeof configSetArgs>
 
 export class ConfigSetCommand extends Command<typeof configSetArgs> {
   name = "set"
-  help = "Set a configuration variable"
+  help = "Set a configuration variable in the environment."
+
+  description = dedent`
+    These configuration values can be referenced in module templates, for example as environment variables.
+
+    _Note: The value is always stored as a string._
+
+    Examples:
+
+        garden set somekey myvalue
+        garden set some.nested.key myvalue
+  `
 
   arguments = configSetArgs
 

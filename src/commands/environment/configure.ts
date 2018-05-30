@@ -14,9 +14,10 @@ import {
   CommandResult,
   ParameterValues,
 } from "../base"
+import dedent = require("dedent")
 
 export const options = {
-  force: new BooleanParameter({ help: "Force reconfiguration of environment" }),
+  force: new BooleanParameter({ help: "Force reconfiguration of environment, ignoring the environment status check." }),
 }
 
 export type Opts = ParameterValues<typeof options>
@@ -24,7 +25,18 @@ export type Opts = ParameterValues<typeof options>
 export class EnvironmentConfigureCommand extends Command<any, Opts> {
   name = "configure"
   alias = "config"
-  help = "Configures your environment"
+  help = "Configures your environment."
+
+  description = dedent`
+    Generally, environments are configured automatically as part of other commands that you run.
+    However, this command is useful if you want to make sure the environment is ready before running
+    another command, or if you need to force a reconfiguration using the --force flag.
+
+    Examples:
+
+        garden env configure
+        garden env configure --force
+  `
 
   options = options
 

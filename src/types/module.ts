@@ -304,12 +304,12 @@ export class Module<
   }
 
   async getTestTasks(
-    { group, force = false, forceBuild = false }: { group?: string, force?: boolean, forceBuild?: boolean },
+    { name, force = false, forceBuild = false }: { name?: string, force?: boolean, forceBuild?: boolean },
   ) {
     const tasks: Promise<TestTask>[] = []
 
     for (const test of this.tests) {
-      if (group && test.name !== group) {
+      if (name && test.name !== name) {
         continue
       }
       tasks.push(TestTask.factory({
