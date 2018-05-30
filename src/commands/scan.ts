@@ -21,7 +21,7 @@ import {
 
 export class ScanCommand extends Command {
   name = "scan"
-  help = "Scans your project and outputs an overview of all modules"
+  help = "Scans your project and outputs an overview of all modules."
 
   async action(ctx: PluginContext): Promise<CommandResult<DeepPrimitiveMap>> {
     const modules = await ctx.getModules()

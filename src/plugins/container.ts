@@ -95,47 +95,86 @@ export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const endpointSchema = Joi.object()
   .keys({
-    paths: Joi.array().items(Joi.string().uri(<any>{ relativeOnly: true })),
+    paths: Joi.array()
+      .items(Joi.string().uri(<any>{ relativeOnly: true }))
+      .description("The paths which should be routed to the service."),
     // hostname: Joi.string(),
-    port: Joi.string().required(),
+    port: Joi.string()
+      .required()
+      .description("The name of the container port where the specified paths should be routed."),
   })
 
 const healthCheckSchema = Joi.object()
   .keys({
-    httpGet: Joi.object().keys({
-      path: Joi.string().required(),
-      port: Joi.string().required(),
-      scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
-    }),
-    command: Joi.array().items(Joi.string()),
-    tcpPort: Joi.string(),
+    httpGet: Joi.object()
+      .keys({
+        path: Joi.string()
+          .uri(<any>{ relativeOnly: true })
+          .required()
+          .description("The path of the service's health check endpoint."),
+        port: Joi.string()
+          .required()
+          .description("The name of the port where the service's health check endpoint should be available."),
+        scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+      })
+      .description("Set this to check the service's health by making an HTTP request"),
+    command: Joi.array().items(Joi.string())
+      .description("Set this to check the service's health by running a command in its container."),
+    tcpPort: Joi.string()
+      .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
   }).xor("httpGet", "command", "tcpPort")
 
 const portSchema = Joi.object()
   .keys({
-    name: joiIdentifier().required(),
-    protocol: Joi.string().allow("TCP", "UDP").default(DEFAULT_PORT_PROTOCOL),
-    containerPort: Joi.number().required(),
-    hostPort: Joi.number(),
-    nodePort: Joi.number(),
+    name: joiIdentifier()
+      .required()
+      .description("The name of the port (used when referencing the port elsewhere in the service configuration."),
+    protocol: Joi.string()
+      .allow("TCP", "UDP")
+      .default(DEFAULT_PORT_PROTOCOL)
+      .description("The protocol of the service container port."),
+    containerPort: Joi.number()
+      .required()
+      .description("The port number on the service container."),
+    hostPort: Joi.number()
+      .meta({ deprecated: true }),
+    nodePort: Joi.number()
+      .description(
+        "Set this to expose the service on the specified port on the host node " +
+        "(may not be supported by all providers).",
+    ),
   })
   .required()
 
 const volumeSchema = Joi.object()
   .keys({
-    name: joiIdentifier().required(),
-    containerPath: Joi.string().required(),
-    hostPath: Joi.string(),
+    name: joiIdentifier()
+      .required()
+      .description("The name of the allocated volume."),
+    containerPath: Joi.string()
+      .required()
+      .description("The path where the volume should be mounted in the container."),
+    hostPath: Joi.string()
+      .meta({ deprecated: true }),
   })
 
 const serviceSchema = baseServiceSchema
   .keys({
-    command: Joi.array().items(Joi.string()),
-    daemon: Joi.boolean().default(false),
-    endpoints: joiArray(endpointSchema),
-    healthCheck: healthCheckSchema,
-    ports: joiArray(portSchema).unique("name"),
-    volumes: joiArray(volumeSchema).unique("name"),
+    command: Joi.array().items(Joi.string())
+      .description("The arguments to run the container with when starting the service."),
+    daemon: Joi.boolean()
+      .default(false)
+      .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
+    endpoints: joiArray(endpointSchema)
+      .description("List of endpoints that the service exposes."),
+    healthCheck: healthCheckSchema
+      .description("Specify how the service's health should be checked after deploying."),
+    ports: joiArray(portSchema)
+      .unique("name")
+      .description("List of ports that the service container exposes."),
+    volumes: joiArray(volumeSchema)
+      .unique("name")
+      .description("List of volumes that should be mounted when deploying the container."),
   })
 
 export interface ContainerModuleSpec extends GenericModuleSpec {
@@ -146,11 +185,24 @@ export interface ContainerModuleSpec extends GenericModuleSpec {
 
 export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
 
-export const containerModuleSpecSchema = genericModuleSpecSchema.keys({
-  buildArgs: Joi.object().pattern(/.+/, joiPrimitive()).default(() => ({}), "{}"),
-  image: Joi.string(),
-  services: joiArray(serviceSchema).unique("name"),
-})
+export const containerModuleSpecSchema = genericModuleSpecSchema
+  .keys({
+    buildArgs: Joi.object()
+      .pattern(/.+/, joiPrimitive())
+      .default(() => ({}), "{}")
+      .description("Specify build arguments when building the container image."),
+    // TODO: validate the image name format
+    image: Joi.string()
+      .description(
+        "Specify the image name for the container. Should be a valid docker image identifier. If specified and " +
+        "the module does not contain a Dockerfile, this image will be used to deploy the container services. " +
+        "If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.",
+    ),
+    services: joiArray(serviceSchema)
+      .unique("name")
+      .description("List of services to deploy from this container module."),
+  })
+  .description("Configuration for a container module.")
 
 export class ContainerService extends Service<ContainerModule> { }
 

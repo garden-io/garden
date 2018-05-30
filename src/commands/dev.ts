@@ -22,9 +22,20 @@ import moment = require("moment")
 const imgcatPath = join(STATIC_DIR, "imgcat")
 const bannerPath = join(STATIC_DIR, "garden-banner-1-half.png")
 
+// TODO: allow limiting to certain modules and/or services
 export class DevCommand extends Command {
   name = "dev"
-  help = "Starts the garden development console"
+  help = "Starts the garden development console."
+
+  description = `
+    The Garden dev console is a combination of the \`build\`, \`deploy\` and \`test\` commands.
+    It builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests
+    as you modify the code.
+
+    Examples:
+
+        garden dev
+  `
 
   async action(ctx: PluginContext): Promise<CommandResult> {
     try {

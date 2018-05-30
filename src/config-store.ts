@@ -167,15 +167,19 @@ export interface LocalConfig {
   kubernetes?: KubernetesLocalConfig
 }
 
-const kubernetesLocalConfigSchema = Joi.object().keys({
-  username: joiIdentifier().allow("").optional(),
-  "previous-usernames": Joi.array().items(joiIdentifier()).optional(),
-})
+const kubernetesLocalConfigSchema = Joi.object()
+  .keys({
+    username: joiIdentifier().allow("").optional(),
+    "previous-usernames": Joi.array().items(joiIdentifier()).optional(),
+  })
+  .meta({ internal: true })
 
 // TODO: Dynamically populate schema with all possible provider keys?
-const localConfigSchema = Joi.object().keys({
-  kubernetes: kubernetesLocalConfigSchema,
-})
+const localConfigSchema = Joi.object()
+  .keys({
+    kubernetes: kubernetesLocalConfigSchema,
+  })
+  .meta({ internal: true })
 
 export class LocalConfigStore extends ConfigStore<LocalConfig> {
 

@@ -22,15 +22,16 @@ import {
   flatten,
 } from "lodash"
 import { printRuntimeContext } from "./index"
+import dedent = require("dedent")
 
 export const runArgs = {
   module: new StringParameter({
-    help: "The name of the module to run",
+    help: "The name of the module to run.",
     required: true,
   }),
   // TODO: make this a variadic arg
   command: new StringParameter({
-    help: "The command to run in the module",
+    help: "The command to run in the module.",
   }),
 }
 
@@ -38,10 +39,10 @@ export const runOpts = {
   // TODO: we could provide specific parameters like this by adding commands for specific modules, via plugins
   //entrypoint: new StringParameter({ help: "Override default entrypoint in module" }),
   interactive: new BooleanParameter({
-    help: "Set to false to skip interactive mode and just output the command result",
+    help: "Set to false to skip interactive mode and just output the command result.",
     defaultValue: true,
   }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module" }),
+  "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
 }
 
 export type Args = ParameterValues<typeof runArgs>
@@ -50,7 +51,17 @@ export type Opts = ParameterValues<typeof runOpts>
 export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
   name = "module"
   alias = "m"
-  help = "Run the specified module"
+  help = "Run an ad-hoc instance of a module."
+
+  description = dedent`
+    This is useful for debugging or ad-hoc experimentation with modules.
+
+    Examples:
+
+        garden run module my-container           # run an ad-hoc instance of a my-container container and attach to it
+        garden run module my-container /bin/sh   # run an interactive shell in a new my-container container
+        garden run module my-container --i=false /some/script  # execute a script in my-container and return the output
+  `
 
   arguments = runArgs
   options = runOpts

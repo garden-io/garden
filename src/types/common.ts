@@ -27,6 +27,7 @@ export const enumToArray = Enum => (
 )
 
 export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.string(), Joi.boolean())
+  .description("Number, string or boolean")
 
 export const identifierRegex = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^[a-zA-Z_][a-zA-Z0-9_]*$/
@@ -34,25 +35,30 @@ export const envVarRegex = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 export const joiIdentifier = () => Joi
   .string().regex(identifierRegex)
   .description(
-    "may contain lowercase letters, numbers and dashes, must start with a letter, " +
-    "cannot contain consecutive dashes and cannot end with a dash",
+    "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
+    "and cannot end with a dash) and additionally cannot contain consecutive dashes",
 )
 
 export const joiIdentifierMap = (valueSchema: JoiObject) => Joi
   .object().pattern(identifierRegex, valueSchema)
   .default(() => ({}), "{}")
+  .description("Key/value map, keys must be valid identifiers.")
 
 export const joiVariables = () => Joi
   .object().pattern(/[\w\d]+/i, joiPrimitive())
   .default(() => ({}), "{}")
+  .description("Key/value map, keys may contain letters and numbers, and values must be primitives.")
 
 export const joiEnvVarName = () => Joi
   .string().regex(envVarRegex)
-  .description("may contain letters and numbers, cannot start with a number")
+  .description(
+    "Valid POSIX environment variable name (may contain letters, numbers and underscores and must start with a letter.",
+)
 
 export const joiEnvVars = () => Joi
   .object().pattern(envVarRegex, joiPrimitive())
   .default(() => ({}), "{}")
+  .description("Key/value map, keys must be valid POSIX environment variable names, and values must be primitives.")
 
 export const joiArray = (schema) => Joi
   .array().items(schema)
