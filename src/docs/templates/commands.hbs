@@ -24,12 +24,14 @@ The following option flags can be used with any of the CLI commands:
 
 {{#if description}}{{description}}
 {{/if}}
+
 ##### Usage
 
     garden {{fullName}} {{#each arguments}}{{{usageName}}} {{/each}}{{#if options}}[options]{{/if}}
 
 {{#if arguments}}
 ##### Arguments
+
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
 {{#each arguments}}
@@ -39,6 +41,7 @@ The following option flags can be used with any of the CLI commands:
 {{/if}}
 {{#if options}}
 ##### Options
+
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
 {{#each options}}

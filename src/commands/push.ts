@@ -19,6 +19,7 @@ import { Module } from "../types/module"
 import { PushTask } from "../tasks/push"
 import { RuntimeError } from "../exceptions"
 import { TaskResults } from "../task-graph"
+import dedent = require("dedent")
 
 export const pushArgs = {
   module: new StringParameter({
@@ -29,10 +30,10 @@ export const pushArgs = {
 
 export const pushOpts = {
   "force-build": new BooleanParameter({
-    help: "Force rebuild of module(s) before pushing",
+    help: "Force rebuild of module(s) before pushing.",
   }),
   "allow-dirty": new BooleanParameter({
-    help: "Allow pushing dirty builds (with untracked/uncommitted files)",
+    help: "Allow pushing dirty builds (with untracked/uncommitted files).",
   }),
 }
 
@@ -41,7 +42,19 @@ export type Opts = ParameterValues<typeof pushOpts>
 
 export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
   name = "push"
-  help = "Build and push module(s) to remote registry"
+  help = "Build and push built module(s) to remote registry."
+
+  description = dedent`
+    Pushes built module artifacts for all or specified modules.
+    Also builds modules and dependencies if needed.
+
+    Examples:
+
+        garden push                # push artifacts for all modules in the project
+        garden push my-container   # only push my-container
+        garden push --force-build  # force re-build of modules before pushing artifacts
+        garden push --allow-dirty  # allow pushing dirty builds (which usually triggers error)
+  `
 
   arguments = pushArgs
   options = pushOpts

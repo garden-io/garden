@@ -13,10 +13,17 @@ import {
 import { EntryStyle } from "../logger/types"
 import { PluginContext } from "../plugin-context"
 import { LoginStatusMap } from "../types/plugin/outputs"
+import dedent = require("dedent")
 
 export class LogoutCommand extends Command {
   name = "logout"
-  help = "Log into the Garden framework"
+  help = "Log out of configured providers for this project and environment."
+
+  description = dedent`
+    Examples:
+
+         garden logout
+  `
 
   async action(ctx: PluginContext): Promise<CommandResult<LoginStatusMap>> {
 

@@ -66,25 +66,25 @@ const OUTPUT_RENDERERS = {
 export const GLOBAL_OPTIONS = {
   root: new StringParameter({
     alias: "r",
-    help: "override project root directory (defaults to working directory)",
+    help: "Override project root directory (defaults to working directory).",
     defaultValue: process.cwd(),
   }),
   silent: new BooleanParameter({
     alias: "s",
-    help: "suppress log output",
+    help: "Suppress log output.",
     defaultValue: false,
   }),
   env: new EnvironmentOption(),
   loglevel: new ChoicesParameter({
     alias: "log",
     choices: enumToArray(LogLevel),
-    help: "set logger level",
+    help: "Set logger level.",
     defaultValue: LogLevel[LogLevel.info],
   }),
   output: new ChoicesParameter({
     alias: "o",
     choices: Object.keys(OUTPUT_RENDERERS),
-    help: "output command result in specified format (note: disables progress logging)",
+    help: "Output command result in specified format (note: disables progress logging).",
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"

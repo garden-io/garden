@@ -29,6 +29,7 @@
     "cli-cursor": "^2.1.0",
     "cli-highlight": "^2.0.0",
     "cryo": "0.0.6",
+    "dedent": "^0.7.0",
     "deep-map": "^1.5.0",
     "dockerode": "^2.5.5",
     "elegant-spinner": "^1.0.1",
@@ -63,6 +64,7 @@
   "devDependencies": {
     "@types/bluebird": "^3.5.20",
     "@types/chai": "^4.1.3",
+    "@types/dedent": "^0.7.0",
     "@types/dockerode": "^2.5.4",
     "@types/fs-extra": "^5.0.2",
     "@types/gulp": "^4.0.5",

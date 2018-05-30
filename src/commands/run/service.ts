@@ -18,6 +18,7 @@ import {
   StringParameter,
 } from "../base"
 import { printRuntimeContext } from "./index"
+import dedent = require("dedent")
 
 export const runArgs = {
   service: new StringParameter({
@@ -27,10 +28,6 @@ export const runArgs = {
 }
 
 export const runOpts = {
-  interactive: new BooleanParameter({
-    help: "Set to false to skip interactive mode and just output the command result",
-    defaultValue: true,
-  }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module" }),
 }
 
@@ -41,6 +38,14 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
   name = "service"
   alias = "s"
   help = "Run an ad-hoc instance of the specified service"
+
+  description = dedent`
+    This can be useful for debugging or ad-hoc experimentation with services.
+
+    Examples:
+
+        garden run service my-service   # run an ad-hoc instance of a my-service and attach to it
+  `
 
   arguments = runArgs
   options = runOpts
@@ -66,7 +71,7 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
 
     printRuntimeContext(ctx, runtimeContext)
 
-    const result = await ctx.runService({ serviceName, runtimeContext, silent: false, interactive: opts.interactive })
+    const result = await ctx.runService({ serviceName, runtimeContext, silent: false, interactive: true })
 
     return { result }
   }

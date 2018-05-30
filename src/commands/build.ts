@@ -17,6 +17,7 @@ import {
 } from "./base"
 import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
+import dedent = require("dedent")
 
 export const buildArguments = {
   module: new StringParameter({
@@ -25,8 +26,8 @@ export const buildArguments = {
 }
 
 export const buildOptions = {
-  force: new BooleanParameter({ help: "Force rebuild of module(s)" }),
-  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-build", alias: "w" }),
+  force: new BooleanParameter({ help: "Force rebuild of module(s)." }),
+  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-build.", alias: "w" }),
 }
 
 export type BuildArguments = ParameterValues<typeof buildArguments>
@@ -34,7 +35,19 @@ export type BuildOptions = ParameterValues<typeof buildOptions>
 
 export class BuildCommand extends Command<typeof buildArguments, typeof buildOptions> {
   name = "build"
-  help = "Build your modules"
+  help = "Build your modules."
+
+  description = dedent`
+    Builds all or specified modules, taking into account build dependency order.
+    Optionally stays running and automatically builds modules if their source (or their dependencies' sources) change.
+
+    Examples:
+
+        garden build            # build all modules in the project
+        garden build my-module  # only build my-module
+        garden build --force    # force rebuild of modules
+        garden build --watch    # watch for changes to code
+  `
 
   arguments = buildArguments
   options = buildOptions

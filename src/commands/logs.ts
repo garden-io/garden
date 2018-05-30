@@ -20,6 +20,7 @@ import Bluebird = require("bluebird")
 import { Service } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType } from "../logger/types"
+import dedent = require("dedent")
 
 export const logsArgs = {
   service: new StringParameter({
@@ -29,7 +30,7 @@ export const logsArgs = {
 }
 
 export const logsOpts = {
-  tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s)", alias: "t" }),
+  tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s).", alias: "t" }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
 }
@@ -39,7 +40,17 @@ export type Opts = ParameterValues<typeof logsOpts>
 
 export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   name = "logs"
-  help = "Retrieves the most recent logs for the specified service(s)"
+  help = "Retrieves the most recent logs for the specified service(s)."
+
+  description = dedent`
+    Outputs logs for all or specified services, and optionally waits for news logs to come in.
+
+    Examples:
+
+        garden logs               # prints latest logs from all services
+        garden logs my-service    # prints latest logs for my-service
+        garden logs -t            # keeps running and streams all incoming logs to the console
+  `
 
   arguments = logsArgs
   options = logsOpts

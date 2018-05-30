@@ -23,7 +23,7 @@ describe("RunServiceCommand", () => {
     const { result } = await cmd.action(
       ctx,
       { service: "testService" },
-      { interactive: false, "force-build": false },
+      { "force-build": false },
     )
 
     const expected: RunResult = {
