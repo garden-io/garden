@@ -31,6 +31,7 @@ import {
 import { getNames } from "../util"
 import { TreeVersion } from "../vcs/base"
 import {
+  joiArray,
   joiEnvVars,
   joiIdentifier,
   joiVariables,
@@ -55,11 +56,17 @@ export interface BuildCopySpec {
 }
 
 // TODO: allow : delimited string (e.g. some.file:some-dir/)
-const copySchema = Joi.object().keys({
-  // TODO: allow array of strings here
-  source: Joi.string().uri(<any>{ relativeOnly: true }).required(),
-  target: Joi.string().uri(<any>{ relativeOnly: true }).default(""),
-})
+const copySchema = Joi.object()
+  .keys({
+    // TODO: allow array of strings here
+    // TODO: disallow paths outside of the module root
+    source: Joi.string().uri(<any>{ relativeOnly: true }).required()
+      .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
+    target: Joi.string().uri(<any>{ relativeOnly: true }).default("")
+      .description(
+        "POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).",
+    ),
+  })
 
 export interface BuildDependencyConfig {
   name: string
@@ -68,9 +75,13 @@ export interface BuildDependencyConfig {
 }
 
 export const buildDependencySchema = Joi.object().keys({
-  name: joiIdentifier().required(),
-  plugin: joiIdentifier(),
-  copy: Joi.array().items(copySchema).default(() => [], "[]"),
+  name: joiIdentifier().required()
+    .description("Module name to build ahead of this module"),
+  plugin: joiIdentifier()
+    .meta({ internal: true })
+    .description("The name of plugin that provides the build dependency."),
+  copy: joiArray(copySchema)
+    .description("Specify one or more files or directories to copy from the built dependency to this module."),
 })
 
 export interface BuildConfig {
@@ -79,11 +90,13 @@ export interface BuildConfig {
   dependencies: BuildDependencyConfig[],
 }
 
-const versionFileSchema = Joi.object().keys({
-  versionString: Joi.string().required(),
-  latestCommit: Joi.string().required(),
-  dirtyTimestamp: Joi.number().allow(null).required(),
-})
+const versionFileSchema = Joi.object()
+  .keys({
+    versionString: Joi.string().required(),
+    latestCommit: Joi.string().required(),
+    dirtyTimestamp: Joi.number().allow(null).required(),
+  })
+  .meta({ internal: true })
 
 export interface ModuleSpec { }
 
@@ -97,27 +110,39 @@ export interface BaseModuleSpec {
   variables: PrimitiveMap
 }
 
-export const baseModuleSpecSchema = Joi.object().keys({
-  type: joiIdentifier().required(),
-  name: joiIdentifier(),
-  description: Joi.string(),
-  variables: joiVariables(),
-  allowPush: Joi.boolean()
-    .default(true, "Set to false to disable pushing this module to remote registries"),
-  build: Joi.object().keys({
-    command: Joi.string(),
-    dependencies: Joi.array().items(buildDependencySchema).default(() => [], "[]"),
-  }).default(() => ({ dependencies: [] }), "{}"),
-}).required().unknown(true)
+export const baseModuleSpecSchema = Joi.object()
+  .keys({
+    type: joiIdentifier().required().description("The type of this module (e.g. container)."),
+    name: joiIdentifier(),
+    description: Joi.string(),
+    variables: joiVariables()
+      .description("Variables that this module can reference and expose as environment variables."),
+    allowPush: Joi.boolean()
+      .default(true)
+      .description("Set to false to disable pushing this module to remote registries."),
+    build: Joi.object().keys({
+      command: Joi.string()
+        .description("The command to run inside the module directory to perform the build."),
+      dependencies: joiArray(buildDependencySchema)
+        .description("A list of modules that must be built before this module is built."),
+    }).default(() => ({ dependencies: [] }), "{}"),
+  })
+  .required()
+  .unknown(true)
+  .meta({ extendable: true })
 
 export interface ModuleConfig<T extends ModuleSpec = any> extends BaseModuleSpec {
   // Plugins can add custom fields that are kept here
   spec: T
 }
 
-export const moduleConfigSchema = baseModuleSpecSchema.keys({
-  spec: Joi.object(),
-})
+export const moduleConfigSchema = baseModuleSpecSchema
+  .keys({
+    spec: Joi.object()
+      .meta({ extendable: true })
+      .description("The module spec, as defined by the provider plugin."),
+  })
+  .description("The configuration for a module.")
 
 export interface ModuleConstructor<
   M extends ModuleSpec = ModuleSpec,

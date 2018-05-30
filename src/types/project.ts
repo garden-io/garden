@@ -52,14 +52,27 @@ export const defaultEnvironments: EnvironmentConfig[] = [
   },
 ]
 
-export const providerConfigBase = Joi.object().keys({
-  name: joiIdentifier().required(),
-}).unknown(true)
+export const providerConfigBase = Joi.object()
+  .keys({
+    name: joiIdentifier().required()
+      .description("The name of the provider plugin to configure.")
+      .example("local-kubernetes"),
+  })
+  .unknown(true)
+  .meta({ extendable: true })
 
 export const environmentSchema = Joi.object().keys({
-  configurationHandler: joiIdentifier(),
-  providers: joiArray(providerConfigBase).unique("name"),
-  variables: joiVariables(),
+  configurationHandler: joiIdentifier()
+    .description(
+      "Specify the provider that should store configuration variables for this environment. " +
+      "Use this when you configure multiple providers that can manage configuration.",
+  ),
+  providers: joiArray(providerConfigBase)
+    .unique("name")
+    .description("A list of providers that should be used for this environment, and their configuration.")
+    .example(defaultProviders),
+  variables: joiVariables()
+    .description("A key/value map of variables that modules can reference when using this environment."),
 })
 
 const defaultGlobal = {
@@ -67,11 +80,26 @@ const defaultGlobal = {
   variables: {},
 }
 
-export const projectSchema = Joi.object().keys({
-  name: joiIdentifier().required(),
-  defaultEnvironment: Joi.string().default("", "<first specified environment>"),
-  global: environmentSchema.default(() => defaultGlobal, JSON.stringify(defaultGlobal)),
-  environments: joiArray(environmentSchema.keys({ name: joiIdentifier().required() }))
-    .unique("name")
-    .default(() => ({ ...defaultEnvironments }), JSON.stringify(defaultEnvironments)),
-}).required()
+export const projectSchema = Joi.object()
+  .keys({
+    name: joiIdentifier()
+      .required()
+      .description("The name of the project."),
+    defaultEnvironment: Joi.string()
+      .default("", "<first specified environment>")
+      .description("The default environment to use when calling commands without the `--env` parameter."),
+    global: environmentSchema
+      .default(() => defaultGlobal, JSON.stringify(defaultGlobal))
+      .description(
+        "Default environment settings, that are inherited (but can be overridden) by each configured environment",
+    ),
+    environments: joiArray(environmentSchema.keys({ name: joiIdentifier().required() }))
+      .unique("name")
+      .default(() => ({ ...defaultEnvironments }), JSON.stringify(defaultEnvironments))
+      .description("A list of environments to configure for the project.")
+      .example(defaultEnvironments),
+  })
+  .required()
+  .description(
+    "The configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
+)

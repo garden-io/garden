@@ -47,17 +47,24 @@ export interface GenericTestSpec extends BaseTestSpec {
   command: string[],
 }
 
-export const genericTestSchema = baseTestSpecSchema.keys({
-  command: Joi.array().items(Joi.string()),
-})
+export const genericTestSchema = baseTestSpecSchema
+  .keys({
+    command: Joi.array().items(Joi.string())
+      .description("The command to run in the module build context in order to test it."),
+  })
+  .description("The test specification of a generic module.")
 
 export interface GenericModuleSpec extends ModuleSpec {
   tests: GenericTestSpec[],
 }
 
-export const genericModuleSpecSchema = Joi.object().keys({
-  tests: joiArray(genericTestSchema),
-}).unknown(false)
+export const genericModuleSpecSchema = Joi.object()
+  .keys({
+    tests: joiArray(genericTestSchema)
+      .description("A list of tests to run in the module."),
+  })
+  .unknown(false)
+  .description("The module specification for a generic module.")
 
 export class GenericModule extends Module<GenericModuleSpec, ServiceConfig, GenericTestSpec> { }
 
