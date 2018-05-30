@@ -10,6 +10,7 @@ import * as Joi from "joi"
 import { mapValues } from "lodash"
 import {
   DeepPrimitiveMap,
+  joiArray,
   joiIdentifier,
   joiIdentifierMap,
   PrimitiveMap,
@@ -171,16 +172,35 @@ export interface PluginFactory {
 }
 export type RegisterPluginParam = string | PluginFactory
 
-export const pluginSchema = Joi.object().keys({
-  config: Joi.object(),
-  modules: Joi.array().items(Joi.string()),
-  actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func())),
-  moduleActions: joiIdentifierMap(
-    Joi.object().keys(mapValues(moduleActionDescriptions, () => Joi.func())),
-  ),
-})
+export const pluginSchema = Joi.object()
+  .keys({
+    config: Joi.object()
+      .meta({ extendable: true })
+      .description(
+        "Plugins may use this key to override or augment their configuration " +
+        "(as specified in the garden.yml provider configuration.",
+    ),
+    modules: joiArray(Joi.string())
+      .description(
+        "Plugins may optionally provide paths to Garden modules that are loaded as part of the plugin. " +
+        "This is useful, for example, to provide build dependencies for other modules " +
+        "or as part of the plugin operation.",
+    ),
+    // TODO: document plugin actions further
+    actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func()))
+      .description("A map of plugin action handlers provided by the plugin."),
+    moduleActions: joiIdentifierMap(
+      Joi.object().keys(mapValues(moduleActionDescriptions, () => Joi.func()),
+      ).description("A map of module names and module action handlers provided by the plugin."),
+    ),
+  })
+  .description("The schema for Garden plugins.")
 
-export const pluginModuleSchema = Joi.object().keys({
-  name: joiIdentifier(),
-  gardenPlugin: Joi.func().required(),
-}).unknown(true)
+export const pluginModuleSchema = Joi.object()
+  .keys({
+    name: joiIdentifier(),
+    gardenPlugin: Joi.func().required()
+      .description("The initialization function for the plugin. Should return a valid Garden plugin object."),
+  })
+  .unknown(true)
+  .description("A module containing a Garden plugin.")

@@ -50,14 +50,29 @@ export interface KubernetesConfig extends ProviderConfig {
 
 export interface KubernetesProvider extends Provider<KubernetesConfig> { }
 
-const configSchema = providerConfigBase.keys({
-  context: Joi.string().required(),
-  ingressHostname: Joi.string().hostname().required(),
-  ingressPort: Joi.number().default(80),
-  ingressClass: Joi.string(),
-  forceSsl: Joi.boolean().default(true),
-  _system: Joi.any(),
-})
+const kubernetesConfigBase = providerConfigBase
+  .keys({
+    context: Joi.string()
+      .required()
+      .description("The kubectl context to use to connect to the Kubernetes cluster."),
+    ingressHostname: Joi.string()
+      .hostname()
+      .required()
+      .description("The external hostname of the cluster's ingress controller."),
+  })
+
+const configSchema = kubernetesConfigBase
+  .keys({
+    ingressPort: Joi.number()
+      .default(80)
+      .description("The external port of the cluster's ingress controller."),
+    ingressClass: Joi.string()
+      .description("The ingress class to use on configured Ingresses when deploying services."),
+    forceSsl: Joi.boolean()
+      .default(true)
+      .description("Whether to force use of SSL in configured Ingresses when deploying services."),
+    _system: Joi.any().meta({ internal: true }),
+  })
 
 export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPlugin {
   config = validate(config, configSchema, { context: "kubernetes provider config" })
