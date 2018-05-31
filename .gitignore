@@ -30,3 +30,4 @@ src/**/*.map
 src/**/*.d.ts
 test/**/*.js
 test/**/*.map
+*.tgz
