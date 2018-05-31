@@ -1,7 +1,7 @@
 {
   "github": {
     "release": true,
-    "tokenRef": "GITHUB_TOKEN",
+    "tokenRef": "GITHUB_TOKEN"
   },
   "npm": {
     "publish": true
