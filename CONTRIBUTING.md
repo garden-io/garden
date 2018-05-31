@@ -64,17 +64,22 @@ automatically add the header to new sources using `npm run add-licenses`.
   
 ### Release process
 
-We use [Release It!](https://github.com/webpro/release-it) to automate the release process.
+We use [Lerna](https://github.com/lerna/lerna) to automate the release process.
 
-To set up, first make sure you're logged in to npm (`npm login`). You'll also need to get a 
-[Github token](https://github.com/settings/tokens) for the repository with "repo" access to 
-the repository ("admin" scope is not necessary) and expose it as an environment variable:
+To set it up, first make sure you have [yarn](https://yarnpkg.com/lang/en/docs/install/#mac-stable) installed
+(we rely on `yarn` for publishing because of some issues with `npm`) and you're logged in to yarn (`yarn login`).
+Then install lerna using `npm install -g lerna` or `yarn global add lerna`. 
 
-    export GITHUB_TOKEN="f941e0..."
+Depending on what type of release you're making, you can use one of the following commands:
+
+    # publish a new minor release (e.g. 0.1.0, 0.2.0 etc. - we will use this most often)
+    lerna publish   
     
-Then to start the release process, use any of the following commands:
-
-    npm run release-major  # for major (potentially breaking) updates, e.g. 2.0.0 
-    npm run release-minor  # for minor releases, e.g. 0.10.0
-    npm run release-patch  # for bugfix releases, e.g. 0.10.1 
-
+    # publish an alpha/canary release (e.g. 0.2.0-alpha.48f816f28)
+    lerna publish --canary
+    
+    # publish a pre-release (beta) version
+    lerna publish --npm-tag=beta
+    
+See more details about `lerna publish` [in their docs](https://github.com/lerna/lerna#publish).
+    
