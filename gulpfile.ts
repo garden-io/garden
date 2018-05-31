@@ -7,6 +7,7 @@ import {
   join,
   relative,
 } from "path"
+import { generateDocs } from "./src/docs/generate"
 
 const gulp = require("gulp")
 const cached = require("gulp-cached")
@@ -114,6 +115,11 @@ gulp.task("check-licenses", (cb) =>
   spawn("./bin/check-licenses", [], cb),
 )
 
+gulp.task("generate-docs", (cb) => {
+  generateDocs("docs")
+  cb()
+})
+
 gulp.task("mocha", (cb) =>
   spawn("node_modules/.bin/nyc", ["node_modules/.bin/mocha"], cb),
 )
@@ -164,18 +170,6 @@ gulp.task("tsfmt", (cb) => {
   spawn("node_modules/.bin/tsfmt", ["--verify"], cb)
 })
 
-gulp.task("tsfmt-watch", () => {
-  const verify = (path) => {
-    try {
-      _spawn("node_modules/.bin/tsfmt", ["--verify", path], { stdio: "inherit" })
-    } catch (_) { }
-  }
-
-  return gulp.watch([tsSources, testTsSources])
-    .on("add", verify)
-    .on("change", verify)
-})
-
 gulp.task("tslint", () =>
   gulp.src(tsSources)
     .pipe(cached("tslint"))
@@ -195,16 +189,27 @@ gulp.task("tslint-tests", () =>
     .pipe(gulpTslint.report()),
 )
 
-gulp.task("tslint-watch", () =>
-  gulp.watch([tsSources, testTsSources], gulp.parallel("tslint", "tslint-tests")),
-)
+gulp.task("watch-code", () => {
+  const verify = (path) => {
+    try {
+      _spawn("node_modules/.bin/tsfmt", ["--verify", path], { stdio: "inherit" })
+    } catch (_) { }
+  }
+
+  return gulp.watch([tsSources, testTsSources], gulp.parallel("generate-docs", "tslint", "tslint-tests"))
+    .on("add", verify)
+    .on("change", verify)
+})
 
 gulp.task("lint", gulp.parallel("check-licenses", "tslint", "tslint-tests", "tsfmt"))
-gulp.task("build", gulp.series(gulp.parallel("pegjs", "static", "tsc"), "add-version-files"))
+gulp.task("build", gulp.series(
+  gulp.parallel("generate-docs", "pegjs", "static", "tsc"),
+  "add-version-files",
+))
 gulp.task("dist", gulp.series((done) => { setDestDir("dist"); done() }, "lint", "build"))
 gulp.task("test", gulp.parallel("build", "lint", "mocha"))
 gulp.task("watch", gulp.series(
   "build",
-  gulp.parallel("pegjs-watch", "static-watch", "tsc-watch", "tsfmt-watch", "tslint-watch")),
-)
+  gulp.parallel("pegjs-watch", "static-watch", "tsc-watch", "watch-code"),
+))
 gulp.task("default", gulp.series("watch"))

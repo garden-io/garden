@@ -35,7 +35,7 @@ export interface TaskResults {
 
 interface LogEntryMap { [key: string]: LogEntry }
 
-const DEFAULT_CONCURRENCY = 4
+export const DEFAULT_CONCURRENCY = 4
 
 const taskStyle = chalk.cyan.bold
 

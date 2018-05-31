@@ -50,11 +50,22 @@ export interface GcfServiceSpec extends GoogleCloudServiceSpec {
   path: string,
 }
 
-export const gcfServicesSchema = joiArray(baseServiceSchema.keys({
-  entrypoint: Joi.string(),
-  path: Joi.string().default("."),
-  project: Joi.string(),
-})).unique("name")
+const gcfServiceSchema = baseServiceSchema
+  .keys({
+    entrypoint: Joi.string()
+      .description("The entrypoint for the function (exported name in the function's module)"),
+    path: Joi.string()
+      .default(".")
+      .description("The path of the module that contains the function."),
+    project: Joi.string()
+      .description("The Google Cloud project name of the function."),
+  })
+  .description("Configuration for a Google Cloud Function.")
+
+export const gcfServicesSchema = joiArray(gcfServiceSchema)
+  .min(1)
+  .unique("name")
+  .description("List of configurations for one or more Google Cloud Functions.")
 
 export interface GcfModuleSpec extends ModuleSpec {
   functions: GcfServiceSpec[],

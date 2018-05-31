@@ -8,6 +8,7 @@
 
 import * as Joi from "joi"
 import {
+  joiArray,
   joiIdentifier,
   joiVariables,
   PrimitiveMap,
@@ -22,18 +23,31 @@ export interface BaseTestSpec extends TestSpec {
   timeout: number | null
 }
 
-export const baseTestSpecSchema = Joi.object().keys({
-  name: joiIdentifier().required(),
-  dependencies: Joi.array().items(Joi.string()).default(() => [], "[]"),
-  variables: joiVariables(),
-  timeout: Joi.number().allow(null).default(null),
-})
+export const baseTestSpecSchema = Joi.object()
+  .keys({
+    name: joiIdentifier()
+      .required()
+      .description("The name of the test."),
+    dependencies: joiArray(Joi.string())
+      .description("The names of services that must be running before the test is run."),
+    variables: joiVariables()
+      .description("Map of key/value pairs that are available during the test execution."),
+    timeout: Joi.number()
+      .allow(null)
+      .default(null)
+      .description("Maximum duration (in seconds) of the test run."),
+  })
+  .description("Required configuration for module tests.")
 
 export interface TestConfig<T extends TestSpec = TestSpec> extends BaseTestSpec {
   // Plugins can add custom fields that are kept here
   spec: T
 }
 
-export const testConfigSchema = baseTestSpecSchema.keys({
-  spec: Joi.object(),
-})
+export const testConfigSchema = baseTestSpecSchema
+  .keys({
+    spec: Joi.object()
+      .meta({ extendable: true })
+      .description("The configuration for the test, as specified by its module's provider."),
+  })
+  .description("Configuration for a module test.")

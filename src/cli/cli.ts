@@ -10,6 +10,7 @@ import * as sywac from "sywac"
 import { merge, intersection } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
+import { coreCommands } from "../commands"
 import stringify = require("json-stringify-safe")
 
 import { DeepPrimitiveMap } from "../types/common"
@@ -33,22 +34,6 @@ import {
   toGardenError,
 } from "../exceptions"
 import { Garden } from "../garden"
-
-import { BuildCommand } from "../commands/build"
-import { CallCommand } from "../commands/call"
-import { ConfigCommand } from "../commands/config"
-import { DeployCommand } from "../commands/deploy"
-import { DevCommand } from "../commands/dev"
-import { EnvironmentCommand } from "../commands/environment/index"
-import { PushCommand } from "../commands/push"
-import { LoginCommand } from "../commands/login"
-import { LogoutCommand } from "../commands/logout"
-import { LogsCommand } from "../commands/logs"
-import { RunCommand } from "../commands/run"
-import { ScanCommand } from "../commands/scan"
-import { StatusCommand } from "../commands/status"
-import { TestCommand } from "../commands/test"
-import { ValidateCommand } from "../commands/validate"
 
 import { RootLogNode, getLogger } from "../logger"
 import { LogLevel, LoggerType } from "../logger/types"
@@ -78,28 +63,28 @@ const OUTPUT_RENDERERS = {
   },
 }
 
-const GLOBAL_OPTIONS = {
+export const GLOBAL_OPTIONS = {
   root: new StringParameter({
     alias: "r",
-    help: "override project root directory (defaults to working directory)",
+    help: "Override project root directory (defaults to working directory).",
     defaultValue: process.cwd(),
   }),
   silent: new BooleanParameter({
     alias: "s",
-    help: "suppress log output",
+    help: "Suppress log output.",
     defaultValue: false,
   }),
   env: new EnvironmentOption(),
   loglevel: new ChoicesParameter({
     alias: "log",
     choices: enumToArray(LogLevel),
-    help: "set logger level",
+    help: "Set logger level.",
     defaultValue: LogLevel[LogLevel.info],
   }),
   output: new ChoicesParameter({
     alias: "o",
     choices: Object.keys(OUTPUT_RENDERERS),
-    help: "output command result in specified format (note: disables progress logging)",
+    help: "Output command result in specified format (note: disables progress logging).",
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
@@ -140,23 +125,7 @@ export class GardenCli {
       })
       .style(styleConfig)
 
-    const commands = [
-      new BuildCommand(),
-      new CallCommand(),
-      new ConfigCommand(),
-      new DeployCommand(),
-      new DevCommand(),
-      new EnvironmentCommand(),
-      new LoginCommand(),
-      new LogoutCommand(),
-      new LogsCommand(),
-      new PushCommand(),
-      new RunCommand(),
-      new ScanCommand(),
-      new StatusCommand(),
-      new TestCommand(),
-      new ValidateCommand(),
-    ]
+    const commands = coreCommands
 
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
@@ -185,7 +154,7 @@ export class GardenCli {
       arguments: args = {},
       loggerType = DEFAULT_CLI_LOGGER_TYPE,
       options = {},
-      subCommands = [],
+      subCommands,
     } = command
 
     const argKeys = getKeys(args)

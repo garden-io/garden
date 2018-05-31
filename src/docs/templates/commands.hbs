@@ -1,0 +1,52 @@
+## Garden CLI commands
+
+Below is a list of Garden CLI commands and usage information.
+
+The commands should be run in a Garden project root, and are always scoped to that project.
+
+Note: You can get a list of commands in the CLI by running `garden -h/--help`,
+and detailed help for each command using `garden <command> -h/--help`
+
+##### Global options
+
+The following option flags can be used with any of the CLI commands:
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+{{#each globalOptions}}
+  | `--{{name}}` | {{#if alias}}`-{{alias}}`{{/if}} | {{> argType}} | {{help}}
+{{/each}}
+
+{{#each commands}}
+### garden {{fullName}}
+
+{{help}}.
+
+{{#if description}}{{description}}
+{{/if}}
+
+##### Usage
+
+    garden {{fullName}} {{#each arguments}}{{{usageName}}} {{/each}}{{#if options}}[options]{{/if}}
+
+{{#if arguments}}
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+{{#each arguments}}
+  | `{{name}}` | {{#if required}}Yes{{else}}No{{/if}} | {{help}}
+{{/each}}
+
+{{/if}}
+{{#if options}}
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+{{#each options}}
+  | `--{{name}}` | {{#if alias}}`-{{alias}}`{{/if}} | {{> argType}} | {{help}}
+{{/each}}
+
+{{/if}}
+{{/each}}

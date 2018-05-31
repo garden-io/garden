@@ -135,18 +135,33 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   abstract name: string
   abstract help: string
 
+  description?: string
+
   alias?: string
   loggerType?: LoggerType
 
-  arguments: T
-  options: U
+  arguments?: T
+  options?: U
 
-  subCommands?: CommandConstructor[]
+  subCommands: CommandConstructor[] = []
 
   constructor(private parent?: Command) { }
 
   getFullName() {
     return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
+  }
+
+  describe() {
+    const { name, help, description } = this
+
+    return {
+      name,
+      fullName: this.getFullName(),
+      help,
+      description,
+      arguments: describeParameters(this.arguments),
+      options: describeParameters(this.options),
+    }
   }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
@@ -171,4 +186,13 @@ export async function handleTaskResults(
     ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
     return { result }
   }
+}
+
+export function describeParameters(args?: Parameters) {
+  if (!args) { return }
+  return Object.entries(args).map(([argName, arg]) => ({
+    name: argName,
+    usageName: arg.required ? `<${argName}>` : `[${argName}]`,
+    ...arg,
+  }))
 }
