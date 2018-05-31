@@ -139,12 +139,18 @@ export interface LocalKubernetesConfig extends KubernetesConfig {
   _systemServices?: string[]
 }
 
-const configSchema = providerConfigBase.keys({
-  context: Joi.string(),
-  ingressHostname: Joi.string(),
-  _system: Joi.any(),
-  _systemServices: Joi.array().items(Joi.string()),
-})
+const configSchema = providerConfigBase
+  .keys({
+    context: Joi.string()
+      .description("The kubectl context to use to connect to the Kubernetes cluster."),
+    ingressHostname: Joi.string()
+      .description("The hostname of the cluster's ingress controller."),
+    _system: Joi.any().meta({ internal: true }),
+    _systemServices: Joi.array().items(Joi.string())
+      .meta({ internal: true })
+      .description("The system services which should be automatically deployed to the cluster."),
+  })
+  .description("The provider configuration for the local-kubernetes plugin.")
 
 export const name = "local-kubernetes"
 

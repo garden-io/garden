@@ -25,13 +25,13 @@ export const testArgs = {
 }
 
 export const testOpts = {
-  group: new StringParameter({
-    help: "Only run tests with the specfied group (e.g. unit or integ)",
-    alias: "g",
+  name: new StringParameter({
+    help: "Only run tests with the specfied name (e.g. unit or integ).",
+    alias: "n",
   }),
-  force: new BooleanParameter({ help: "Force re-test of module(s)", alias: "f" }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module(s)" }),
-  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-test", alias: "w" }),
+  force: new BooleanParameter({ help: "Force re-test of module(s).", alias: "f" }),
+  "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
+  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-test.", alias: "w" }),
 }
 
 export type Args = ParameterValues<typeof testArgs>
@@ -39,7 +39,23 @@ export type Opts = ParameterValues<typeof testOpts>
 
 export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   name = "test"
-  help = "Test all or specified modules"
+  help = "Test all or specified modules."
+
+  description = `
+    Runs all or specified tests defined in the project. Also builds modules and dependencies,
+    and deploy service dependencies if needed.
+
+    Optionally stays running and automatically re-runs tests if their module source
+    (or their dependencies' sources) change.
+
+    Examples:
+
+        garden test              # run all tests in the project
+        garden test my-module    # run all tests in the my-module module
+        garden test -n integ     # run all tests with the name 'integ' in the project
+        garden test --force      # force tests to be re-run, even if they're already run successfully
+        garden test --watch      # watch for changes to code
+  `
 
   arguments = testArgs
   options = testOpts
@@ -55,14 +71,14 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
 
     await ctx.configureEnvironment({})
 
-    const group = opts.group
+    const name = opts.name
     const force = opts.force
     const forceBuild = opts["force-build"]
 
     const results = await ctx.processModules({
       modules,
       watch: opts.watch,
-      process: async (module) => module.getTestTasks({ group, force, forceBuild }),
+      process: async (module) => module.getTestTasks({ name, force, forceBuild }),
     })
 
     return handleTaskResults(ctx, "test", results)

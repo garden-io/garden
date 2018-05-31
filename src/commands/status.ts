@@ -20,7 +20,7 @@ import { highlightYaml } from "../util"
 export class StatusCommand extends Command {
   name = "status"
   alias = "s"
-  help = "Outputs the status of your environment"
+  help = "Outputs the status of your environment."
 
   async action(ctx: PluginContext): Promise<CommandResult<ContextStatus>> {
     const status = await ctx.getStatus()

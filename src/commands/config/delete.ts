@@ -15,10 +15,11 @@ import {
   StringParameter,
 } from "../base"
 import { NotFoundError } from "../../exceptions"
+import dedent = require("dedent")
 
 export const configDeleteArgs = {
   key: new StringParameter({
-    help: "The key of the configuration variable",
+    help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).",
     required: true,
   }),
 }
@@ -30,7 +31,16 @@ export type DeleteArgs = ParameterValues<typeof configDeleteArgs>
 export class ConfigDeleteCommand extends Command<typeof configDeleteArgs> {
   name = "delete"
   alias = "del"
-  help = "Delete a configuration variable"
+  help = "Delete a configuration variable from the Garden environment."
+
+  description = dedent`
+    Returns with an error if the provided key could not be found in the configuration.
+
+    Examples:
+
+        garden delete somekey
+        garden delete some.nested.key
+  `
 
   arguments = configDeleteArgs
 

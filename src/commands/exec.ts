@@ -17,14 +17,15 @@ import {
   ParameterValues,
   StringParameter,
 } from "./base"
+import dedent = require("dedent")
 
 export const runArgs = {
   service: new StringParameter({
-    help: "The service to exec the command in",
+    help: "The service to exec the command in.",
     required: true,
   }),
   command: new StringParameter({
-    help: "The command to run",
+    help: "The command to run.",
     required: true,
   }),
 }
@@ -42,7 +43,18 @@ export type Args = ParameterValues<typeof runArgs>
 export class ExecCommand extends Command<typeof runArgs, typeof runOpts> {
   name = "exec"
   alias = "e"
-  help = "Executes a command (such as an interactive shell) in a running service"
+  help = "Executes a command (such as an interactive shell) in a running service."
+
+  description = dedent`
+    Finds an active container for a deployed service and executes the given command within the container.
+    Supports interactive shells.
+
+    _NOTE: This command may not be supported for all module types.
+
+    Examples:
+
+         garden exec my-service /bin/sh   # runs a shell in the my-service container
+  `
 
   arguments = runArgs
   options = runOpts

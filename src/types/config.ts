@@ -33,14 +33,18 @@ export interface GardenConfig {
 export const configSchema = Joi.object()
   .keys({
     // TODO: should this be called apiVersion?
-    version: Joi.string().default("0").only("0"),
-    dirname: Joi.string(),
-    path: Joi.string(),
+    version: Joi.string()
+      .default("0")
+      .only("0")
+      .description("The schema version of the config file (currently not used)."),
+    dirname: Joi.string().meta({ internal: true }),
+    path: Joi.string().meta({ internal: true }),
     module: baseModuleSpecSchema,
     project: projectSchema,
   })
   .optionalKeys(["module", "project"])
   .required()
+  .description("The garden.yml config file.")
 
 const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children)
 

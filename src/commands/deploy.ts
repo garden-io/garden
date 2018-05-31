@@ -26,9 +26,9 @@ export const deployArgs = {
 }
 
 export const deployOpts = {
-  force: new BooleanParameter({ help: "Force redeploy of service(s)" }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module(s)" }),
-  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-deploy", alias: "w" }),
+  force: new BooleanParameter({ help: "Force redeploy of service(s)." }),
+  "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
+  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-deploy.", alias: "w" }),
 }
 
 export type Args = ParameterValues<typeof deployArgs>
@@ -36,7 +36,23 @@ export type Opts = ParameterValues<typeof deployOpts>
 
 export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts> {
   name = "deploy"
-  help = "Deploy service(s) to the specified environment"
+  help = "Deploy service(s) to your environment."
+
+  description = `
+    Deploys all or specified services, taking into account service dependency order.
+    Also builds modules and dependencies if needed.
+
+    Optionally stays running and automatically re-builds and re-deploys services if their module source
+    (or their dependencies' sources) change.
+
+    Examples:
+
+        garden deploy              # deploy all modules in the project
+        garden deploy my-service   # only deploy my-service
+        garden deploy --force      # force re-deploy of modules, even if they're already deployed
+        garden deploy --watch      # watch for changes to code
+        garden deploy --env stage  # deploy your services to an environment called stage
+  `
 
   arguments = deployArgs
   options = deployOpts
