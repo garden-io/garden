@@ -167,7 +167,7 @@ export const runResultSchema = Joi.object().keys({
   success: Joi.boolean().required(),
   startedAt: Joi.date().required(),
   completedAt: Joi.date().required(),
-  output: Joi.string().required(),
+  output: Joi.string().required().allow(""),
 })
 
 export interface TestResult extends RunResult {
