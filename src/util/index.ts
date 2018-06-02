@@ -29,7 +29,9 @@ import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 
 // shim to allow async generator functions
-(<any>Symbol).asyncIterator = (<any>Symbol).asyncIterator || Symbol.for("Symbol.asyncIterator")
+if (typeof (Symbol as any).asyncIterator === "undefined") {
+  (Symbol as any).asyncIterator = Symbol("asyncIterator")
+}
 
 export type HookCallback = (callback?: () => void) => void
 
