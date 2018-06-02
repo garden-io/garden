@@ -14,7 +14,7 @@
   },
   "preferGlobal": true,
   "bin": {
-    "garden": "./src/bin/garden.js"
+    "garden": "./dist/src/bin/garden.js"
   },
   "files": [
     "dist"
