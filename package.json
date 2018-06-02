@@ -97,7 +97,7 @@
     "handlebars": "^4.0.11",
     "husky": "^0.15.0-rc.13",
     "json-schema-to-typescript": "^5.5.0",
-    "lerna": "^2.11.0",
+    "lerna": "^3.0.0-beta.21",
     "license-checker": "^19.0.0",
     "mocha": "^5.1.1",
     "nock": "^9.2.5",
