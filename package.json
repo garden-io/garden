@@ -126,6 +126,7 @@
     "integ": "./test/integ/run",
     "lint": "gulp lint",
     "prepare": "npm run snyk-protect",
+    "prepublish": "npm run dist",
     "preversion": "npm test",
     "snyk-protect": "snyk protect",
     "test": "gulp test",
