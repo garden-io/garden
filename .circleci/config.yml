@@ -39,6 +39,8 @@ jobs:
           - v2-dependencies-
 
       - run: npm install
+      # make sure package lock is up to date
+      - run: npm run check-package-lock
 
       - save_cache:
           paths:

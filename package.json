@@ -118,6 +118,7 @@
   "scripts": {
     "build": "gulp build",
     "check-licenses": "gulp check-licenses",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "rm -rf build && rm -rf dist && git clean -X -f",
     "dev": "gulp build && cd build && npm link && cd .. && gulp watch",
     "dist": "npm run clean && ./bin/check-if-clean && gulp dist",
@@ -137,7 +138,7 @@
   "husky": {
     "hooks": {
       "commit-msg": "validate-commit-msg -p angular",
-      "pre-push": "npm test && npm run integ"
+      "pre-push": "npm run check-package-lock && npm test && npm run integ"
     }
   },
   "snyk": true
