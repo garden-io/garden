@@ -38,7 +38,11 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v2-dependencies-
 
+      # pin npm version to avoid conflicts with package-lock.json
+      - run: sudo npm install -g npm@6.1
+
       - run: npm install
+
       # make sure package lock is up to date
       - run: npm run check-package-lock
 
