@@ -17,7 +17,6 @@ import {
 import {
   emptyDir,
   ensureDir,
-  ensureDirSync,
 } from "fs-extra"
 import * as Rsync from "rsync"
 import { GARDEN_DIR_NAME } from "./constants"
@@ -34,15 +33,12 @@ import { zip } from "lodash"
 const buildDirRelPath = join(GARDEN_DIR_NAME, "build")
 
 export class BuildDir {
-  buildDirPath: string
+  constructor(private projectRoot: string, public buildDirPath: string) { }
 
-  constructor(private projectRoot: string) {
-    this.buildDirPath = join(projectRoot, buildDirRelPath)
-  }
-
-  // Synchronous, so it can run in Garden's constructor.
-  init() {
-    ensureDirSync(this.buildDirPath)
+  static async factory(projectRoot: string) {
+    const buildDirPath = join(projectRoot, buildDirRelPath)
+    await ensureDir(buildDirPath)
+    return new BuildDir(projectRoot, buildDirPath)
   }
 
   async syncFromSrc(module: Module) {

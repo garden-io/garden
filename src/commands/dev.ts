@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as execa from "execa"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "../tasks/build"
 import { Task } from "../types/task"
@@ -15,7 +16,6 @@ import {
 } from "./base"
 import { join } from "path"
 import { STATIC_DIR } from "../constants"
-import { spawnSync } from "child_process"
 import chalk from "chalk"
 import moment = require("moment")
 
@@ -39,7 +39,7 @@ export class DevCommand extends Command {
 
   async action(ctx: PluginContext): Promise<CommandResult> {
     try {
-      spawnSync(imgcatPath, [bannerPath], {
+      await execa(imgcatPath, [bannerPath], {
         stdio: "inherit",
       })
     } catch (_) {

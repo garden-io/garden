@@ -6,8 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { execSync } from "child_process"
-import { readFileSync } from "fs"
+import * as execa from "execa"
 import { safeLoad } from "js-yaml"
 import {
   every,
@@ -39,6 +38,7 @@ import {
   getSystemGarden,
   isSystemGarden,
 } from "./system"
+import { readFile } from "fs-extra"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -116,16 +116,16 @@ async function configureLocalEnvironment(
   return {}
 }
 
-function getKubeConfig(): any {
+async function getKubeConfig(): Promise<any> {
   try {
-    return safeLoad(readFileSync(kubeConfigPath).toString())
+    return safeLoad((await readFile(kubeConfigPath)).toString())
   } catch {
     return {}
   }
 }
 
-function setMinikubeDockerEnv() {
-  const minikubeEnv = execSync("minikube docker-env --shell=bash").toString()
+async function setMinikubeDockerEnv() {
+  const minikubeEnv = await execa.stdout("minikube docker-env --shell=bash")
   for (const line of minikubeEnv.split("\n")) {
     const matched = line.match(/^export (\w+)="(.+)"$/)
     if (matched) {
@@ -154,7 +154,7 @@ const configSchema = providerConfigBase
 
 export const name = "local-kubernetes"
 
-export function gardenPlugin({ config, logEntry }): GardenPlugin {
+export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> {
   config = validate(config, configSchema, { context: "kubernetes provider config" })
 
   let context = config.context
@@ -164,7 +164,7 @@ export function gardenPlugin({ config, logEntry }): GardenPlugin {
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
-    const kubeConfig = getKubeConfig()
+    const kubeConfig = await getKubeConfig()
     const currentContext = kubeConfig["current-context"]
 
     if (currentContext && supportedContexts.includes(currentContext)) {
@@ -190,13 +190,13 @@ export function gardenPlugin({ config, logEntry }): GardenPlugin {
   }
 
   if (context === "minikube") {
-    execSync("minikube addons enable ingress")
+    await execa("minikube addons enable ingress")
 
     ingressHostname = config.ingressHostname
 
     if (!ingressHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
-      const minikubeIp = execSync("minikube ip").toString().trim()
+      const minikubeIp = await execa.stdout("minikube ip")
       ingressHostname = minikubeIp + ".nip.io"
     }
 
@@ -205,7 +205,7 @@ export function gardenPlugin({ config, logEntry }): GardenPlugin {
 
     // automatically set docker environment variables for minikube
     // TODO: it would be better to explicitly provide those to docker instead of using process.env
-    setMinikubeDockerEnv()
+    await setMinikubeDockerEnv()
   } else {
     ingressHostname = config.ingressHostname || "local.app.garden"
     ingressPort = 32000

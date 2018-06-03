@@ -10,7 +10,7 @@ import { exec } from "child-process-promise"
 import { NEW_MODULE_VERSION, TreeVersion, VcsHandler } from "./base"
 import { join } from "path"
 import { sortBy } from "lodash"
-import { existsSync, statSync } from "fs"
+import { pathExists, stat } from "fs-extra"
 import Bluebird = require("bluebird")
 
 export class GitHandler extends VcsHandler {
@@ -35,18 +35,16 @@ export class GitHandler extends VcsHandler {
         `diff-index --name-only HEAD ${directory} && git ls-files --other --exclude-standard ${directory}`,
       )
 
-      const dirtyFiles = res.stdout.trim().split("\n").filter((f) => f.length > 0)
+      const dirtyFiles: string[] = res.stdout.trim().split("\n").filter((f) => f.length > 0)
       const repoRoot = await this.getRepoRoot()
 
       if (dirtyFiles.length) {
         // for dirty trees, we append the last modified time of last modified or added file
-        let stats = dirtyFiles
-          .map((file) => {
-            const filePath = join(repoRoot, file)
-            return existsSync(filePath) ? statSync(filePath) : null
-          })
-          .filter((stat) => !!stat)
-        let mtimes = stats.map((stat) => Math.round(stat.mtime.getTime() / 1000))
+        const stats = await Bluebird.map(dirtyFiles, file => join(repoRoot, file))
+          .filter(pathExists)
+          .map(stat)
+
+        let mtimes = stats.map((s) => Math.round(s.mtime.getTime() / 1000))
         let latest = mtimes.sort().slice(-1)[0]
 
         if (latest > latestDirty) {

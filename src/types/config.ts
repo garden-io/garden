@@ -16,7 +16,7 @@ import { joiIdentifier, validate } from "./common"
 import { ConfigurationError } from "../exceptions"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
-import { readFileSync } from "fs"
+import { readFile } from "fs-extra"
 import { defaultEnvironments, ProjectConfig, projectSchema } from "./project"
 import { omit } from "lodash"
 
@@ -55,7 +55,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   let spec: any
 
   try {
-    fileData = readFileSync(absPath)
+    fileData = await readFile(absPath)
   } catch (err) {
     throw new ConfigurationError(`Could not find ${CONFIG_FILENAME} in directory ${path}`, err)
   }

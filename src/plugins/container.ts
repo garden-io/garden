@@ -21,7 +21,7 @@ import {
   PrimitiveMap,
   joiPrimitive,
 } from "../types/common"
-import { existsSync } from "fs"
+import { pathExists } from "fs-extra"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
 import {
@@ -218,7 +218,7 @@ export async function getImage(module: ContainerModule) {
 
 export const helpers = {
   async getLocalImageId(module: ContainerModule) {
-    if (helpers.hasDockerfile(module)) {
+    if (await helpers.hasDockerfile(module)) {
       const { versionString } = await module.getVersion()
       return `${module.name}:${versionString}`
     } else {
@@ -263,8 +263,8 @@ export const helpers = {
     return childProcess.exec("docker " + args, { cwd: await module.getBuildPath(), maxBuffer: 1024 * 1024 })
   },
 
-  hasDockerfile(module: ContainerModule) {
-    return existsSync(join(module.path, "Dockerfile"))
+  async hasDockerfile(module: ContainerModule) {
+    return pathExists(join(module.path, "Dockerfile"))
   },
 }
 
@@ -330,7 +330,7 @@ export async function parseContainerModule({ ctx, moduleConfig }: ParseModulePar
   const module = new ContainerModule(ctx, moduleConfig, services, tests)
 
   // make sure we can build the thing
-  if (!(await getImage(module)) && !helpers.hasDockerfile(module)) {
+  if (!(await getImage(module)) && !(await helpers.hasDockerfile(module))) {
     throw new ConfigurationError(
       `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
       {},
@@ -366,10 +366,9 @@ export const gardenPlugin = (): GardenPlugin => ({
 
       async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
         const buildPath = await module.getBuildPath()
-        const dockerfilePath = join(buildPath, "Dockerfile")
         const image = await getImage(module)
 
-        if (!!image && !existsSync(dockerfilePath)) {
+        if (!!image && !(await helpers.hasDockerfile(module))) {
           if (await helpers.imageExistsLocally(module)) {
             return { fresh: false }
           }
@@ -396,7 +395,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       },
 
       async pushModule({ module, logEntry }: PushModuleParams<ContainerModule>) {
-        if (!helpers.hasDockerfile(module)) {
+        if (!(await helpers.hasDockerfile(module))) {
           logEntry && logEntry.setState({ msg: `Nothing to push` })
           return { pushed: false }
         }

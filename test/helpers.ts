@@ -160,8 +160,8 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
 }
 testPlugin.pluginName = "test-plugin"
 
-export const testPluginB: PluginFactory = (params) => {
-  const plugin = testPlugin(params)
+export const testPluginB: PluginFactory = async (params) => {
+  const plugin = await testPlugin(params)
   plugin.moduleActions = {
     test: plugin.moduleActions!.test,
   }
@@ -169,8 +169,8 @@ export const testPluginB: PluginFactory = (params) => {
 }
 testPluginB.pluginName = "test-plugin-b"
 
-export const testPluginC: PluginFactory = (params) => {
-  const plugin = testPlugin(params)
+export const testPluginC: PluginFactory = async (params) => {
+  const plugin = await testPlugin(params)
   plugin.moduleActions = {
     "test-c": plugin.moduleActions!.test,
   }

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { readFileSync } from "fs"
+import { readFile } from "fs-extra"
 import { resolve } from "path"
 import Bluebird = require("bluebird")
 import { isPrimitive, Primitive } from "./types/common"
@@ -27,7 +27,7 @@ class TemplateStringError extends GardenBaseError {
 
 let _parser: any
 
-function getParser() {
+async function getParser() {
   if (!_parser) {
     try {
       _parser = require("./template-string-parser")
@@ -35,7 +35,7 @@ function getParser() {
       // fallback for when running with ts-node or mocha
       const peg = require("pegjs")
       const pegFilePath = resolve(__dirname, "template-string-parser.pegjs")
-      const grammar = readFileSync(pegFilePath)
+      const grammar = await readFile(pegFilePath)
       _parser = peg.generate(grammar.toString(), { trace: false })
     }
   }
@@ -60,7 +60,7 @@ export interface TemplateOpts {
 export async function resolveTemplateString(
   string: string, context: TemplateStringContext, { ignoreMissingKeys = false }: TemplateOpts = {},
 ) {
-  const parser = getParser()
+  const parser = await getParser()
   const parsed = parser.parse(string, {
     getKey: genericResolver(context, ignoreMissingKeys),
     // need this to allow nested template strings

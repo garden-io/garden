@@ -66,7 +66,7 @@ describe("container", () => {
           },
         })
 
-        td.replace(helpers, "hasDockerfile", () => true)
+        td.replace(helpers, "hasDockerfile", async () => true)
         td.replace(module, "getVersion", async () => ({ versionString: "1234" }))
 
         expect(await helpers.getLocalImageId(module)).to.equal("test:1234")
@@ -91,7 +91,7 @@ describe("container", () => {
           },
         })
 
-        td.replace(helpers, "hasDockerfile", () => false)
+        td.replace(helpers, "hasDockerfile", async () => false)
 
         expect(await helpers.getLocalImageId(module)).to.equal("some/image:1.1")
       })
@@ -422,6 +422,7 @@ describe("container", () => {
         td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.when(module.getBuildPath()).thenResolve("/tmp/jaoigjwaeoigjweaoglwaeghe")
 
+        td.replace(helpers, "hasDockerfile", async () => false)
         td.replace(helpers, "pullImage", async () => null)
         td.replace(helpers, "imageExistsLocally", async () => false)
 
@@ -489,7 +490,7 @@ describe("container", () => {
 
         td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
 
-        td.replace(helpers, "hasDockerfile", () => false)
+        td.replace(helpers, "hasDockerfile", async () => false)
 
         const result = await pushModule({ ctx, env, provider, module })
         expect(result).to.eql({ pushed: false })
@@ -516,7 +517,7 @@ describe("container", () => {
 
         td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
 
-        td.replace(helpers, "hasDockerfile", () => true)
+        td.replace(helpers, "hasDockerfile", async () => true)
         td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
         td.replace(helpers, "getRemoteImageId", async () => "some/image:12345")
 
@@ -550,7 +551,7 @@ describe("container", () => {
 
         td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
 
-        td.replace(helpers, "hasDockerfile", () => true)
+        td.replace(helpers, "hasDockerfile", async () => true)
         td.replace(helpers, "getLocalImageId", () => "some/image:12345")
         td.replace(helpers, "getRemoteImageId", () => "some/image:1.1")
 

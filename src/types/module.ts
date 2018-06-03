@@ -8,9 +8,9 @@
 
 import * as Bluebird from "bluebird"
 import {
-  existsSync,
-  readFileSync,
-} from "fs"
+  pathExists,
+  readFile,
+} from "fs-extra"
 import * as Joi from "joi"
 import {
   flatten,
@@ -212,9 +212,9 @@ export class Module<
   async getVersion(): Promise<TreeVersion> {
     const versionFilePath = join(this.path, GARDEN_VERSIONFILE_NAME)
 
-    if (existsSync(versionFilePath)) {
+    if (await pathExists(versionFilePath)) {
       // this is used internally to specify version outside of source control
-      const versionFileContents = readFileSync(versionFilePath).toString().trim()
+      const versionFileContents = await readFile(versionFilePath).toString().trim()
 
       if (!!versionFileContents) {
         try {
