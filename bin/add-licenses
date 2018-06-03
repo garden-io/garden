@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-copyright-header \
-  --add-path $(find src -name "*.ts" -not -name '*.d.ts' | tr "\n" ":" | sed "s/:$//g") \
-  --license-file static/license-header.txt \
-  --syntax static/license-syntax.yaml \
-  --output-dir . \
-  "$@"

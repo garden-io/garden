@@ -59,8 +59,7 @@ the build locally.
 ### License/copyright headers
 
 Every source file must include the contents of `static/license-header.txt` at the top. This is 
-automatically checked during CI. You can run the check with `npm run check-licenses` and you can
-automatically add the header to new sources using `npm run add-licenses`. 
+automatically checked during CI. You can run the check with `npm run check-licenses`.
   
 ### Release process
 

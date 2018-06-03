@@ -90,6 +90,7 @@
     "gulp-debug": "^4.0.0",
     "gulp-exclude-gitignore": "^1.2.0",
     "gulp-exec": "^3.0.1",
+    "gulp-license-check": "^1.2.1",
     "gulp-pegjs": "^0.1.0",
     "gulp-sourcemaps": "^2.6.4",
     "gulp-tslint": "^8.1.3",
@@ -115,9 +116,8 @@
     "validate-commit": "^3.4.0"
   },
   "scripts": {
-    "add-licenses": "./bin/add-licenses",
     "build": "gulp build",
-    "check-licenses": "./bin/check-licenses",
+    "check-licenses": "gulp check-licenses",
     "clean": "rm -rf build && rm -rf dist && git clean -X -f",
     "dev": "gulp build && cd build && npm link && cd .. && gulp watch",
     "dist": "npm run clean && ./bin/check-if-clean && gulp dist",

@@ -11,6 +11,7 @@ import { generateDocs } from "./src/docs/generate"
 
 const gulp = require("gulp")
 const cached = require("gulp-cached")
+const checkLicense = require("gulp-license-check")
 const excludeGitIgnore = require("gulp-exclude-gitignore")
 // const debug = require("gulp-debug")
 // const exec = require("gulp-exec")
@@ -30,6 +31,7 @@ const testTsSources = "test/**/*.ts"
 const pegjsSources = "src/*.pegjs"
 
 const staticFiles = ["package.json", "package-lock.json", "static/**/*", ".snyk"]
+const licenseHeaderPath = "static/license-header.txt"
 
 let destDir = "build"
 
@@ -111,8 +113,14 @@ gulp.task("add-version-files", (cb) => {
   })
 })
 
-gulp.task("check-licenses", (cb) =>
-  spawn("./bin/check-licenses", [], cb),
+gulp.task("check-licenses", () =>
+  gulp.src([tsSources, pegjsSources])
+    .pipe(checkLicense({
+      path: licenseHeaderPath,
+      blocking: true,
+      logInfo: false,
+      logError: true,
+    })),
 )
 
 gulp.task("generate-docs", (cb) => {
