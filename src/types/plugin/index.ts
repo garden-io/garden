@@ -167,7 +167,7 @@ export interface GardenPlugin {
 }
 
 export interface PluginFactory {
-  ({ config: object, logEntry: LogEntry }): GardenPlugin
+  ({ config: object, logEntry: LogEntry }): GardenPlugin | Promise<GardenPlugin>
   pluginName?: string
 }
 export type RegisterPluginParam = string | PluginFactory

@@ -7,7 +7,6 @@
  */
 
 import Bluebird = require("bluebird")
-import { readFile } from "fs-extra"
 import * as pty from "node-pty"
 import * as exitHook from "async-exit-hook"
 import * as ignore from "ignore/ignore"
@@ -15,7 +14,7 @@ import * as klaw from "klaw"
 import * as yaml from "js-yaml"
 import * as Cryo from "cryo"
 import { spawn as _spawn } from "child_process"
-import { existsSync, readFileSync, writeFileSync } from "fs"
+import { pathExists, readFile, writeFile } from "fs-extra"
 import { join } from "path"
 import { find } from "lodash"
 import {
@@ -117,18 +116,18 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
   }
 }
 
-export function getIgnorer(rootPath: string) {
+export async function getIgnorer(rootPath: string) {
   // TODO: this doesn't handle nested .gitignore files, we should revisit
   const gitignorePath = join(rootPath, ".gitignore")
   const gardenignorePath = join(rootPath, ".gardenignore")
   const ig = ignore()
 
-  if (existsSync(gitignorePath)) {
-    ig.add(readFileSync(gitignorePath).toString())
+  if (await pathExists(gitignorePath)) {
+    ig.add((await readFile(gitignorePath)).toString())
   }
 
-  if (existsSync(gardenignorePath)) {
-    ig.add(readFileSync(gardenignorePath).toString())
+  if (await pathExists(gardenignorePath)) {
+    ig.add((await readFile(gardenignorePath)).toString())
   }
 
   // should we be adding this (or more) by default?
@@ -307,8 +306,8 @@ export function spawnPty(
   })
 }
 
-export function dumpYaml(yamlPath, data) {
-  writeFileSync(yamlPath, yaml.safeDump(data, { noRefs: true }))
+export async function dumpYaml(yamlPath, data) {
+  return writeFile(yamlPath, yaml.safeDump(data, { noRefs: true }))
 }
 
 /**

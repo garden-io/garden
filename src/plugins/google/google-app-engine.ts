@@ -85,7 +85,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
         // write app.yaml to build context
         const appYamlPath = join(service.module.path, "app.yaml")
-        dumpYaml(appYamlPath, appYaml)
+        await dumpYaml(appYamlPath, appYaml)
 
         // deploy to GAE
         const project = getProject(service, provider)

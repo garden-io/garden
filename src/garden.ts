@@ -135,7 +135,6 @@ export interface ContextOpts {
 }
 
 export class Garden {
-  public buildDir: BuildDir
   public readonly log: RootLogNode
   public readonly actionHandlers: PluginActionMap
   public readonly moduleActionHandlers: ModuleActionMap
@@ -158,13 +157,13 @@ export class Garden {
     private readonly namespace: string,
     public readonly config: EnvironmentConfig,
     public readonly localConfigStore: LocalConfigStore,
+    public readonly buildDir: BuildDir,
     logger?: RootLogNode,
   ) {
     this.modulesScanned = false
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this.projectRoot)
-    this.buildDir = new BuildDir(this.projectRoot)
 
     this.modules = {}
     this.services = {}
@@ -172,8 +171,6 @@ export class Garden {
     this.registeredPlugins = {}
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
     this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
-
-    this.buildDir.init()
 
     this.config = config
 
@@ -259,11 +256,16 @@ export class Garden {
       variables: merge({}, globalConfig.variables, envConfig.variables),
     }
 
+    const buildDir = await BuildDir.factory(projectRoot)
+
     const garden = new Garden(
-      projectRoot, projectName,
-      environment, namespace,
+      projectRoot,
+      projectName,
+      environment,
+      namespace,
       projectEnvConfig,
       localConfigStore,
+      buildDir,
       logger,
     )
 
@@ -381,7 +383,7 @@ export class Garden {
     let plugin
 
     try {
-      plugin = factory({
+      plugin = await factory({
         config,
         logEntry: this.log,
       })
@@ -585,7 +587,7 @@ export class Garden {
     Scans the project root for modules and adds them to the context.
    */
   async scanModules() {
-    const ignorer = getIgnorer(this.projectRoot)
+    const ignorer = await getIgnorer(this.projectRoot)
     const scanOpts = {
       filter: (path) => {
         const relPath = relative(this.projectRoot, path)
