@@ -214,7 +214,7 @@ export class Module<
 
     if (await pathExists(versionFilePath)) {
       // this is used internally to specify version outside of source control
-      const versionFileContents = await readFile(versionFilePath).toString().trim()
+      const versionFileContents = (await readFile(versionFilePath)).toString().trim()
 
       if (!!versionFileContents) {
         try {

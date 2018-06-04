@@ -44,19 +44,19 @@
     "js-yaml": "^3.11.0",
     "json-stringify-safe": "^5.0.1",
     "klaw": "^2.1.1",
-    "kubernetes-client": "^5.2.0",
+    "kubernetes-client": "^5.3.0",
     "log-symbols": "^2.2.0",
     "moment": "^2.22.1",
     "node-emoji": "^1.8.1",
     "node-pty": "^0.7.4",
     "rsync": "^0.6.1",
-    "snyk": "^1.80.0",
+    "snyk": "^1.82.1",
     "split": "^1.0.1",
     "strip-ansi": "^4.0.0",
     "sywac": "^1.2.0",
     "ts-stream": "^1.0.1",
     "typescript-memoize": "^1.0.0-alpha.3",
-    "uniqid": "^4.1.1",
+    "uniqid": "^5.0.2",
     "uuid": "^3.2.1",
     "winston": "^3.0.0-rc3",
     "wrap-ansi": "^3.0.1"
@@ -118,15 +118,16 @@
   "scripts": {
     "build": "gulp build",
     "check-licenses": "gulp check-licenses",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "rm -rf build && rm -rf dist && git clean -X -f",
-    "dev": "gulp build && cd build && npm link && cd .. && gulp watch",
+    "dev": "gulp dist && npm link && gulp watch-dist",
     "dist": "npm run clean && ./bin/check-if-clean && gulp dist",
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
     "generate-docs": "gulp generate-docs",
     "integ": "./test/integ/run",
     "lint": "gulp lint",
     "prepare": "npm run snyk-protect",
-    "prepublish": "npm run dist",
+    "prepublishOnly": "npm run dist",
     "preversion": "npm test",
     "snyk-protect": "snyk protect",
     "test": "gulp test",
@@ -137,7 +138,7 @@
   "husky": {
     "hooks": {
       "commit-msg": "validate-commit-msg -p angular",
-      "pre-push": "npm test && npm run integ"
+      "pre-push": "npm run check-package-lock && npm test && npm run integ"
     }
   },
   "snyk": true
