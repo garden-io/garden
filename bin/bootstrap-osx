@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="cmake git kubectl stern rsync ruby watchman icu4c pkg-config yarn"
+BREW_DEPS="cmake git kubectl stern rsync watchman icu4c pkg-config yarn"
 
 brew update
 brew install ${BREW_DEPS}
@@ -20,7 +20,6 @@ nvm alias default 9.4
 
 # install/update global packages
 npm install -g gulp-cli@4.0.0
-gem install --no-document copyright-header
 
 # install CircleCI CLI
 curl -o /usr/local/bin/circleci https://circle-downloads.s3.amazonaws.com/releases/build_agent_wrapper/circleci

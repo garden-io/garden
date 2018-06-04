@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /*
  * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
  *
