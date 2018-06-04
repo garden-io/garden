@@ -1,4 +1,4 @@
-## Glossary
+# Glossary
 
 #### Environment
 Represents the current configuration and status of any running services in the [project](#project), which may be 
