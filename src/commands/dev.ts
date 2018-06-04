@@ -18,6 +18,7 @@ import { join } from "path"
 import { STATIC_DIR } from "../constants"
 import chalk from "chalk"
 import moment = require("moment")
+import { processModules } from "../process"
 
 const imgcatPath = join(STATIC_DIR, "imgcat")
 const bannerPath = join(STATIC_DIR, "garden-banner-1-half.png")
@@ -60,8 +61,9 @@ export class DevCommand extends Command {
       return {}
     }
 
-    await ctx.processModules({
+    await processModules({
       modules,
+      pluginContext: ctx,
       watch: true,
       process: async (module) => {
         const testTasks: Task[] = await module.getTestTasks({})

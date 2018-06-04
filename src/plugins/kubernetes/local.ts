@@ -39,6 +39,7 @@ import {
   isSystemGarden,
 } from "./system"
 import { readFile } from "fs-extra"
+import { processServices } from "../../process"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -96,15 +97,16 @@ async function configureLocalEnvironment(
 
     const services = await sysCtx.getServices(provider.config._systemServices)
 
-    const results = await sysCtx.processServices({
+    const results = await processServices({
       services,
+      pluginContext: ctx,
       watch: false,
       process: async (service) => {
         return [await DeployTask.factory({ ctx: sysCtx, service, force, forceBuild: false })]
       },
     })
 
-    const failed = values(results).filter(r => !!r.error).length
+    const failed = values(results.taskResults).filter(r => !!r.error).length
 
     if (failed) {
       throw new PluginError(`local-kubernetes: ${failed} errors occurred when configuring environments`, {

@@ -6,62 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { map as bluebirdMap } from "bluebird"
 import { Client } from "fb-watchman"
-import { keyBy, uniqBy, values } from "lodash"
-import { relative, resolve } from "path"
+import {
+  findKey,
+  mapValues,
+  pick,
+  set,
+  uniqBy,
+  values,
+} from "lodash"
+import { basename, join, relative } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
+import { KeyedSet } from "./util/keyed-set"
 import { PluginContext } from "./plugin-context"
 
-export type AutoReloadDependants = { [key: string]: Set<Module> }
+export type AutoReloadDependants = { [key: string]: Module[] }
 
-export interface OnChangeHandler {
-  (ctx: PluginContext, module: Module): Promise<void>
-}
-
-/*
-  Resolves to modules and their build & service dependency modules (recursively).
-  Each module is represented at most once in the output.
-*/
-export async function autoReloadModules(modules: Module[]): Promise<Module[]> {
-  const modulesByName = {}
-
-  const scanner = async (module: Module, byName: object) => {
-    byName[module.name] = module
-    for (const dep of await uniqueDependencyModules(module)) {
-      if (!byName[dep.name]) {
-        await scanner(dep, byName)
-      }
-    }
-  }
-
-  for (const m of modules) {
-    await scanner(m, modulesByName)
-  }
-
-  return values(modulesByName)
-}
-
-export async function computeAutoReloadDependants(ctx: PluginContext):
-  Promise<AutoReloadDependants> {
-  const dependants = {}
-
-  for (const module of await ctx.getModules()) {
-    const depModules: Module[] = await uniqueDependencyModules(module)
-    for (const dep of depModules) {
-      dependants[dep.name] = (dependants[dep.name] || new Set()).add(module)
-    }
-  }
-
-  return dependants
-}
-
-async function uniqueDependencyModules(module: Module): Promise<Module[]> {
-  const buildDepModules = await module.getBuildDependencies()
-  const serviceDepModules = (await module.getServiceDependencies()).map(s => s.module)
-  return uniqBy(buildDepModules.concat(serviceDepModules), m => m.name)
-}
+export type ChangeHandler = (modules: Module[], configChanged: boolean) => Promise<void>
 
 export type CapabilityOptions = { required?: string[], optional?: string[] }
 export type CapabilityResponse = { error: Error, response: { capabilities: { string: boolean } } }
@@ -79,15 +41,88 @@ export type SubscriptionResponse = {
   files: ChangedFile[],
 }
 
+type RelativeModuleRoots = {
+  [key: string]: string,
+}
+
+type ProcessedChanges = {
+  configChanged: boolean,
+  changedModuleNames: string[],
+}
+
+/*
+  Resolves to modules and their build & service dependency modules (recursively).
+  Each module is represented at most once in the output.
+*/
+export async function autoReloadModules(modules: Module[]): Promise<Module[]> {
+  const moduleSet = new KeyedSet<Module>(m => m.name)
+
+  const scanner = async (module: Module) => {
+    moduleSet.add(module)
+    for (const dep of await uniqueDependencyModules(module)) {
+      if (!moduleSet.has(dep)) {
+        await scanner(dep)
+      }
+    }
+  }
+
+  for (const m of modules) {
+    await scanner(m)
+  }
+
+  return moduleSet.entries()
+}
+
+/*
+  Similar to autoReloadModules above, but uses pre-computed auto reload dependants
+  instead of traversing module configs (and thus doesn't need to be async).
+*/
+export function withDependants(modules: Module[], autoReloadDependants: AutoReloadDependants): Module[] {
+  const moduleSet = new KeyedSet<Module>(m => m.name)
+
+  const scanner = (module: Module) => {
+    moduleSet.add(module)
+    for (const dependant of (autoReloadDependants[module.name] || [])) {
+      if (!moduleSet.has(dependant)) {
+        scanner(dependant)
+      }
+    }
+  }
+
+  for (const m of modules) {
+    scanner(m)
+  }
+
+  return moduleSet.entries()
+}
+
+export async function computeAutoReloadDependants(ctx: PluginContext):
+  Promise<AutoReloadDependants> {
+  const dependants = {}
+
+  for (const module of await ctx.getModules()) {
+    const depModules: Module[] = await uniqueDependencyModules(module)
+    for (const dep of depModules) {
+      set(dependants, [dep.name, module.name], module)
+    }
+  }
+
+  return mapValues(dependants, values)
+}
+
+async function uniqueDependencyModules(module: Module): Promise<Module[]> {
+  const buildDepModules = await module.getBuildDependencies()
+  const serviceDepModules = (await module.getServiceDependencies()).map(s => s.module)
+  return uniqBy(buildDepModules.concat(serviceDepModules), m => m.name)
+}
+
 export class FSWatcher {
   private readonly client
   private capabilityCheckComplete: boolean
-  private projectRoot: string
 
   constructor(private ctx: PluginContext) {
     this.client = new Client()
     this.capabilityCheckComplete = false
-    this.projectRoot = ctx.projectRoot
   }
 
   /*
@@ -101,8 +136,7 @@ export class FSWatcher {
     return new Promise((res, rej) => {
       this.client.command(args, (error: Error, result: object) => {
         if (error) {
-          // TODO: Error logging
-          console.error(error)
+          this.ctx.log.error(`Error while executing watcher.command, args were ${args}, error is: ${error}`)
           rej(error)
         }
 
@@ -111,49 +145,52 @@ export class FSWatcher {
     })
   }
 
-  // WIP
   async watchModules(
     modules: Module[], subscriptionPrefix: string,
-    changeHandler: (module: Module, response: SubscriptionResponse) => Promise<void>,
+    changeHandler: ChangeHandler,
   ) {
+
     const _this = this
 
     if (!this.capabilityCheckComplete) {
       await this.capabilityCheck({ optional: [], required: ["relative_root"] })
     }
 
-    const modulesBySubscriptionKey = keyBy(modules, (m) => FSWatcher.subscriptionKey(subscriptionPrefix, m))
+    const watchResult = await this.command(["watch-project", this.ctx.projectRoot])
 
-    await bluebirdMap(modules || [], async (module) => {
-      const subscriptionKey = FSWatcher.subscriptionKey(subscriptionPrefix, module)
-      const modulePath = resolve(this.projectRoot, module.path)
+    const subscriptionRequest = {
+      since: (await this.command(["clock", watchResult.watch])).clock,
+    }
 
-      const result = await this.command(["watch-project", modulePath])
-      const relModulePath = relative(result.watch, modulePath)
+    // Needed when this.ctx.projectRoot is a subdir of the dir where .git is located.
+    const prefix = relative(watchResult.watch, this.ctx.projectRoot)
 
-      const subscriptionRequest = {
-        expression: ["dirname", relModulePath, ["depth", "ge", 0]],
-      }
+    const modulesByName = {}
+    const relModuleRoots: RelativeModuleRoots = {}
 
-      await this.command([
-        "subscribe",
-        result.watch,
-        subscriptionKey,
-        subscriptionRequest])
+    modules.forEach(m => {
+      modulesByName[m.name] = m
+      relModuleRoots[m.name] = join(prefix, relative(this.ctx.projectRoot, m.path))
     })
 
-    this.on("subscription", async (response) => {
-      const changedModule = modulesBySubscriptionKey[response.subscription]
-      if (!changedModule) {
-        console.log("no module found for changed file, skipping auto-rebuild")
-        return
+    await this.command([
+      "subscribe",
+      watchResult.watch,
+      FSWatcher.subscriptionKey(subscriptionPrefix),
+      subscriptionRequest,
+    ])
+
+    this.on("subscription", async (response: SubscriptionResponse) => {
+      const { configChanged, changedModuleNames } = this.processChangedFiles(response.files, relModuleRoots)
+      const changedModules: Module[] = values(pick(modulesByName, changedModuleNames))
+
+      for (const changedModule of changedModules) {
+        // invalidate the cache for anything attached to the module path or upwards in the directory tree
+        const cacheContext = pathToCacheContext(changedModule.path)
+        _this.ctx.invalidateCacheUp(cacheContext)
       }
 
-      // invalidate the cache for anything attached to the module path or upwards in the directory tree
-      const cacheContext = pathToCacheContext(changedModule.path)
-      _this.ctx.invalidateCacheUp(cacheContext)
-
-      await changeHandler(changedModule, response)
+      await changeHandler(changedModules, configChanged)
     })
   }
 
@@ -182,7 +219,29 @@ export class FSWatcher {
     this.client.end()
   }
 
-  private static subscriptionKey(prefix: string, module: Module) {
-    return `${prefix}${module.name}Subscription`
+  private processChangedFiles(files: ChangedFile[], relModuleRoots: RelativeModuleRoots): ProcessedChanges {
+    let configChanged = false
+    let changedModuleNames: Set<string> = new Set()
+    for (const f of files) {
+
+      if (basename(f.name) === "garden.yml") {
+        configChanged = true
+        changedModuleNames.clear() // A Garden-level restart will be triggered, so these are irrelevant
+        break
+      }
+
+      const changedModuleName = findKey(relModuleRoots,
+        (relPath) => f.name.startsWith(relPath))
+
+      if (changedModuleName) {
+        changedModuleNames.add(changedModuleName)
+      }
+
+    }
+    return { configChanged, changedModuleNames: Array.from(changedModuleNames) }
+  }
+
+  private static subscriptionKey(prefix: string) {
+    return `${prefix}Subscription`
   }
 }

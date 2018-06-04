@@ -65,9 +65,9 @@ export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
     const names = args.module ? args.module.split(",") : undefined
     const modules = await ctx.getModules(names)
 
-    const result = await pushModules(ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
+    const results = await pushModules(ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
-    return handleTaskResults(ctx, "push", result)
+    return handleTaskResults(ctx, "push", { taskResults: results })
   }
 }
 

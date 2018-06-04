@@ -18,6 +18,7 @@ import {
 import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
+import { processModules } from "../process"
 
 export const buildArguments = {
   module: new StringParameter({
@@ -59,8 +60,9 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
 
     ctx.log.header({ emoji: "hammer", command: "Build" })
 
-    const results = await ctx.processModules({
+    const results = await processModules({
       modules,
+      pluginContext: ctx,
       watch: opts.watch,
       process: async (module) => {
         return [await BuildTask.factory({ ctx, module, force: opts.force })]
