@@ -220,4 +220,5 @@ gulp.task("watch", gulp.series(
   "build",
   gulp.parallel("pegjs-watch", "static-watch", "tsc-watch", "watch-code"),
 ))
+gulp.task("watch-dist", gulp.series((done) => { setDestDir("dist"); done() }, "watch"))
 gulp.task("default", gulp.series("watch"))
