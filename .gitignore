@@ -28,6 +28,7 @@ gulpfile.js
 src/**/*.js
 src/**/*.map
 src/**/*.d.ts
+static/bin/garden.js
 test/**/*.js
 test/**/*.map
 *.tgz

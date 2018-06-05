@@ -80,7 +80,7 @@ process.on("SIGINT", die)
 process.on("SIGTERM", die)
 
 gulp.task("add-version-files", (cb) => {
-  const gardenBinPath = join(destDir, "src", "bin", "garden.js")
+  const gardenBinPath = join(destDir, "static", "bin", "garden")
   const proc = _spawn("node", [gardenBinPath, "scan", "--output=json"])
 
   proc.on("error", err => cb(err))
