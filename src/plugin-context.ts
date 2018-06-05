@@ -486,15 +486,15 @@ export function createPluginContext(garden: Garden): PluginContext {
 
     getStatus: async () => {
       const envStatus: EnvironmentStatusMap = await ctx.getEnvironmentStatus({})
-      const services = await ctx.getServices()
+      const services = keyBy(await ctx.getServices(), "name")
 
-      const serviceStatus = await Bluebird.map(
-        services, (service: Service<any>) => ctx.getServiceStatus({ serviceName: service.name }),
-      )
+      const serviceStatus = await Bluebird.props(mapValues(services,
+        (service: Service<any>) => ctx.getServiceStatus({ serviceName: service.name }),
+      ))
 
       return {
         providers: envStatus,
-        services: keyBy(serviceStatus, "name"),
+        services: serviceStatus,
       }
     },
 
