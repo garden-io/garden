@@ -38,11 +38,18 @@ export class GitHandler extends VcsHandler {
       const dirtyFiles: string[] = res.stdout.trim().split("\n").filter((f) => f.length > 0)
       const repoRoot = await this.getRepoRoot()
 
+      // for dirty trees, we append the last modified time of last modified or added file
       if (dirtyFiles.length) {
-        // for dirty trees, we append the last modified time of last modified or added file
+
+        const safelyCallStat = (f: string) => stat(f)
+
         const stats = await Bluebird.map(dirtyFiles, file => join(repoRoot, file))
           .filter(pathExists)
-          .map(stat)
+          // NOTE: We need to explicitly use an arrow function when calling stat in the context of a Bluebird.map!
+          // Looks like a bug in fs or fs-extra.
+          // Works: map((f: string) => stat(f))
+          // Fails silenty: map(stat)
+          .map(safelyCallStat)
 
         let mtimes = stats.map((s) => Math.round(s.mtime.getTime() / 1000))
         let latest = mtimes.sort().slice(-1)[0]
