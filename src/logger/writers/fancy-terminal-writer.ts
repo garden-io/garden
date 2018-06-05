@@ -26,7 +26,7 @@ import { sleep } from "../../util"
 import { getChildEntries, getTerminalWidth, interceptStream, validate } from "../util"
 import { Writer, WriterConfig } from "./base"
 
-const FANCY_LOGGER_UPDATE_FREQUENCY_MS = 100
+const FANCY_LOGGER_UPDATE_FREQUENCY_MS = 60
 const FANCY_LOGGER_THROTTLE_MS = 600
 
 const spinnerStyle = chalk.cyan
@@ -89,24 +89,27 @@ export class FancyTerminalWriter extends Writer {
     return stream
   }
 
+  private spin(entries: TerminalEntryWithSpinner[], totalLines: number): void {
+    entries.forEach(e => {
+      let out = ""
+      const [x, y] = e.spinnerCoords
+      const termX = x === 0 ? x : x + 1
+      const termY = -(totalLines - y - 1)
+      out += ansiEscapes.cursorSavePosition
+      out += ansiEscapes.cursorTo(0) // Ensure cursor is to the left
+      out += ansiEscapes.cursorMove(termX, termY)
+      out += spinnerStyle(this.tickSpinner(e.key))
+      out += ansiEscapes.cursorRestorePosition
+      this.stream.write(out)
+    })
+  }
+
   private startLoop(entries: TerminalEntryWithSpinner[], totalLines: number): void {
-    const updateSpinners = () => {
-      entries.forEach(e => {
-        let out = ""
-        const [x, y] = e.spinnerCoords
-        const termX = x === 0 ? x : x + 1
-        const termY = -(totalLines - y - 1)
-        out += ansiEscapes.cursorSavePosition
-        out += ansiEscapes.cursorTo(0) // Ensure cursor is to the left
-        out += ansiEscapes.cursorMove(termX, termY)
-        out += spinnerStyle(this.tickSpinner(e.key))
-        out += ansiEscapes.cursorRestorePosition
-        this.stream.write(out)
-      })
-    }
-    if (!this.intervalID) {
-      this.intervalID = setInterval(updateSpinners, FANCY_LOGGER_UPDATE_FREQUENCY_MS)
-    }
+    this.stopLoop()
+    this.intervalID = setInterval(
+      () => this.spin(entries, totalLines),
+      FANCY_LOGGER_UPDATE_FREQUENCY_MS,
+    )
   }
 
   private stopLoop(): void {
@@ -134,7 +137,6 @@ export class FancyTerminalWriter extends Writer {
   }
 
   private handleGraphChange(logEntry: LogEntry, rootLogNode: RootLogNode, didWrite: boolean = false) {
-    this.stopLoop()
     this.updatePending = false
 
     // Suspend processing and write immediately if a lot of data is being intercepted, e.g. when user is typing in input
@@ -144,6 +146,7 @@ export class FancyTerminalWriter extends Writer {
       this.lastInterceptAt = now
 
       if (throttleProcessing) {
+        this.stopLoop()
         this.stream.write(renderMsg(logEntry))
         this.updatePending = true
 
@@ -176,6 +179,8 @@ export class FancyTerminalWriter extends Writer {
 
     if (entriesWithspinner.length > 0) {
       this.startLoop(entriesWithspinner, output.length)
+    } else {
+      this.stopLoop()
     }
 
     this.prevOutput = output
