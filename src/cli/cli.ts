@@ -76,7 +76,7 @@ export const GLOBAL_OPTIONS = {
   }),
   env: new EnvironmentOption(),
   loglevel: new ChoicesParameter({
-    alias: "log",
+    alias: "l",
     choices: enumToArray(LogLevel),
     help: "Set logger level.",
     defaultValue: LogLevel[LogLevel.info],
@@ -300,6 +300,15 @@ export class GardenCli {
 }
 
 export async function run(): Promise<void> {
-  const cli = new GardenCli()
-  return cli.parse().then(result => shutdown(result.code))
+  let code
+  try {
+    const cli = new GardenCli()
+    const result = await cli.parse()
+    code = result.code
+  } catch (err) {
+    console.log(err)
+    code = 1
+  } finally {
+    shutdown(code)
+  }
 }

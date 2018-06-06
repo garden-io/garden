@@ -88,8 +88,14 @@ export function falsifyConflictingParams(argv, params: ParameterValues<any>): Fa
 }
 
 // Sywac specific transformers and helpers
-export function getOptionSynopsis(key: string, param: Parameter<any>): string {
-  return param.alias ? `-${param.alias}, --${key}` : `--${key}`
+export function getOptionSynopsis(key: string, { alias }: Parameter<any>): string {
+  if (alias && alias.length > 1) {
+    throw new InternalError("Option aliases can only be a single character", {
+      optionName: key,
+      alias,
+    })
+  }
+  return alias ? `-${alias}, --${key}` : `--${key}`
 }
 
 export function getArgSynopsis(key: string, param: Parameter<any>) {
