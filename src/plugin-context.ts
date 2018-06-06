@@ -451,7 +451,7 @@ export function createPluginContext(garden: Garden): PluginContext {
           .then( svc => {
             svc["name"] = service.name
             return svc
-          })
+          }),
       )
 
       return {
