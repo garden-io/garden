@@ -21,6 +21,7 @@ import {
 import { padEnd, values, flatten } from "lodash"
 import { getNames, registerCleanupFunction } from "./util/util"
 import { PluginContext } from "./plugin-context"
+import { toGardenError } from "./exceptions"
 
 export type ProcessModule = (module: Module) => Promise<Task[]>
 export type ProcessService = (service: Service) => Promise<Task[]>
@@ -52,11 +53,10 @@ export async function processModules({ pluginContext, modules, watch, process }:
   const logErrors = (taskResults: TaskResults) => {
     for (const result of values(taskResults).filter(r => !!r.error)) {
       const divider = padEnd("", 80, "—")
+      const error = toGardenError(result.error!)
+      const msg = `\nFailed ${result.description}. Here is the output:\n${divider}\n${error.message}\n${divider}\n`
 
-      ctx.log.error(`\nFailed ${result.description}. Here is the output:`)
-      ctx.log.error(divider)
-      ctx.log.error(result.error + "")
-      ctx.log.error(divider + "\n")
+      ctx.log.error({ msg, error })
     }
   }
 
