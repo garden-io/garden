@@ -87,7 +87,11 @@ export class Kubectl {
       const _reject = (msg: string) => {
         const dataStr = data ? data.toString() : null
         const details = extend({ args, preparedArgs, msg, data: dataStr }, <any>out)
-        const err = new RuntimeError(`Failed running 'kubectl ${args.join(" ")}'`, details)
+
+        const err = new RuntimeError(
+          `Failed running 'kubectl ${preparedArgs.join(" ")}': ${out.output}`,
+          details,
+        )
         reject(err)
       }
 
