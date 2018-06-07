@@ -75,7 +75,7 @@ Once you have the above dependencies set up, simply run
 
     npm install -g garden-cli
 
-Then go on to our [getting started guide](docs/getting-started.md), or try out the simple hello-world 
+Then go on to our [getting started guide](docs/introduction/getting-started.md), or try out the simple hello-world 
 example below to kick things off.
 
 
@@ -94,7 +94,7 @@ Once you've deployed the `hello-world` project, you can try querying the `/hello
 
     garden call hello-container/hello
     
-For more details, please head over to our [getting started guide](docs/getting-started.md).
+For more details, please head over to our [getting started guide](docs/introduction/getting-started.md).
 
 
 ## Contributing
