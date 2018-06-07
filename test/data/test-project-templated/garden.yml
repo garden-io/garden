@@ -1,6 +1,6 @@
 project:
   name: test-project-templated
-  global:
+  environmentDefaults:
     variables:
       some: ${local.env.TEST_VARIABLE}
       service-a-build-command: echo OK

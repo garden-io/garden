@@ -1,6 +1,6 @@
 project:
   name: hello-world
-  global:
+  environmentDefaults:
     providers:
       - name: container
       - name: npm-package

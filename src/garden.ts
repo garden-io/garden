@@ -215,7 +215,7 @@ export class Garden {
     }
 
     const projectName = parsedConfig.project.name
-    const globalConfig = parsedConfig.project.global || {}
+    const environmentDefaults = parsedConfig.project.environmentDefaults || {}
 
     const parts = env.split(".")
     const environment = parts[0]
@@ -248,7 +248,7 @@ export class Garden {
 
     const mergedProviders = merge(
       {},
-      keyBy(globalConfig.providers, "name"),
+      keyBy(environmentDefaults.providers, "name"),
       keyBy(envConfig.providers, "name"),
     )
 
@@ -256,7 +256,7 @@ export class Garden {
     const projectEnvConfig: EnvironmentConfig = {
       name: environment,
       providers: values(mergedProviders),
-      variables: merge({}, globalConfig.variables, envConfig.variables),
+      variables: merge({}, environmentDefaults.variables, envConfig.variables),
     }
 
     const buildDir = await BuildDir.factory(projectRoot)

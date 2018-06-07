@@ -1,6 +1,6 @@
 project:
   name: test-project-b
-  global:
+  environmentDefaults:
     providers: []
   environments:
     - name: local

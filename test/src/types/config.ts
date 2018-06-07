@@ -14,7 +14,7 @@ describe("loadConfig", () => {
     expect(parsed.project).to.eql({
       name: "test-project-a",
       defaultEnvironment: "local",
-      global: {
+      environmentDefaults: {
         providers: [],
         variables: { some: "variable" },
       },
