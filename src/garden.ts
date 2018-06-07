@@ -22,6 +22,7 @@ import {
   keyBy,
 } from "lodash"
 import * as Joi from "joi"
+import { TreeCache } from "./cache"
 import {
   PluginContext,
   createPluginContext,
@@ -148,7 +149,8 @@ export class Garden {
   private taskGraph: TaskGraph
   private readonly configKeyNamespaces: string[]
 
-  vcs: VcsHandler
+  public readonly vcs: VcsHandler
+  public readonly cache: TreeCache
 
   constructor(
     public readonly projectRoot: string,
@@ -164,6 +166,7 @@ export class Garden {
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this.projectRoot)
+    this.cache = new TreeCache()
 
     this.modules = {}
     this.services = {}

@@ -7,10 +7,6 @@
  */
 
 import * as Bluebird from "bluebird"
-import {
-  pathExists,
-  readFile,
-} from "fs-extra"
 import * as Joi from "joi"
 import {
   flatten,
@@ -18,8 +14,6 @@ import {
   set,
   uniq,
 } from "lodash"
-import { join } from "path"
-import { GARDEN_VERSIONFILE_NAME } from "../constants"
 import { ConfigurationError } from "../exceptions"
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
@@ -49,6 +43,7 @@ import {
   TestConfig,
   TestSpec,
 } from "./test"
+import { pathToCacheContext } from "../cache"
 
 export interface BuildCopySpec {
   source: string
@@ -90,7 +85,7 @@ export interface BuildConfig {
   dependencies: BuildDependencyConfig[],
 }
 
-const versionFileSchema = Joi.object()
+export const versionFileSchema = Joi.object()
   .keys({
     versionString: Joi.string().required(),
     latestCommit: Joi.string().required(),
@@ -209,41 +204,12 @@ export class Module<
     set(this.config, key, value)
   }
 
-  async getVersion(): Promise<TreeVersion> {
-    const versionFilePath = join(this.path, GARDEN_VERSIONFILE_NAME)
+  getCacheContext() {
+    return pathToCacheContext(this.path)
+  }
 
-    if (await pathExists(versionFilePath)) {
-      // this is used internally to specify version outside of source control
-      const versionFileContents = (await readFile(versionFilePath)).toString().trim()
-
-      if (!!versionFileContents) {
-        try {
-          return validate(JSON.parse(versionFileContents), versionFileSchema)
-        } catch (err) {
-          throw new ConfigurationError(
-            `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${this.path}`,
-            {
-              modulePath: this.path,
-              versionFilePath,
-              versionFileContents,
-            },
-          )
-        }
-      }
-    }
-
-    const treeVersion = await this.ctx.vcs.getTreeVersion([this.path])
-
-    const versionChain: TreeVersion[] = await Bluebird.map(
-      await this.getBuildDependencies(),
-      async (m: Module) => await m.getVersion(),
-    )
-    versionChain.push(treeVersion)
-
-    // The module version is the latest of any of the dependency modules or itself.
-    const sortedVersions = await this.ctx.vcs.sortVersions(versionChain)
-
-    return sortedVersions[0]
+  async getVersion(force?: boolean): Promise<TreeVersion> {
+    return this.ctx.getModuleVersion(this, force)
   }
 
   async getBuildPath() {

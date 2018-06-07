@@ -79,17 +79,6 @@ async function getTestContext() {
 
 describe("PushCommand", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
-
-  beforeEach(() => {
-    td.replace(Module.prototype, "getVersion", async (): Promise<TreeVersion> => {
-      return {
-        versionString: "12345",
-        latestCommit: "12345",
-        dirtyTimestamp: null,
-      }
-    })
-  })
-
   it("should build and push modules in a project", async () => {
     const ctx = await getTestContext()
     const command = new PushCommand()
@@ -201,56 +190,54 @@ describe("PushCommand", () => {
     })
   })
 
-  it("should throw if module is dirty", async () => {
-    td.replace(Module.prototype, "getVersion", async (): Promise<TreeVersion> => {
-      return {
-        versionString: "12345",
-        latestCommit: "12345",
-        dirtyTimestamp: 12345,
-      }
+  context("module is dirty", () => {
+    beforeEach(() => {
+      td.replace(Module.prototype, "getVersion", async (): Promise<TreeVersion> => {
+        return {
+          versionString: "012345",
+          latestCommit: "012345",
+          dirtyTimestamp: 12345,
+        }
+      })
     })
 
-    const ctx = await getTestContext()
-    const command = new PushCommand()
+    afterEach(() => td.reset())
 
-    await expectError(() => command.action(
-      ctx,
-      {
-        module: "module-a",
-      },
-      {
-        "allow-dirty": false,
-        "force-build": false,
-      },
-    ), "runtime")
-  })
+    it("should throw if module is dirty", async () => {
+      const ctx = await getTestContext()
+      const command = new PushCommand()
 
-  it("should optionally allow pushing dirty commits", async () => {
-    td.replace(Module.prototype, "getVersion", async (): Promise<TreeVersion> => {
-      return {
-        versionString: "12345",
-        latestCommit: "12345",
-        dirtyTimestamp: 12345,
-      }
+      await expectError(() => command.action(
+        ctx,
+        {
+          module: "module-a",
+        },
+        {
+          "allow-dirty": false,
+          "force-build": false,
+        },
+      ), "runtime")
     })
 
-    const ctx = await getTestContext()
-    const command = new PushCommand()
+    it("should optionally allow pushing dirty commits", async () => {
+      const ctx = await getTestContext()
+      const command = new PushCommand()
 
-    const { result } = await command.action(
-      ctx,
-      {
-        module: "module-a",
-      },
-      {
-        "allow-dirty": true,
-        "force-build": true,
-      },
-    )
+      const { result } = await command.action(
+        ctx,
+        {
+          module: "module-a",
+        },
+        {
+          "allow-dirty": true,
+          "force-build": true,
+        },
+      )
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true },
-      "push.module-a": { pushed: true },
+      expect(taskResultOutputs(result!)).to.eql({
+        "build.module-a": { fresh: true },
+        "push.module-a": { pushed: true },
+      })
     })
   })
 })

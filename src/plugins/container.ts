@@ -8,7 +8,6 @@
 
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
-import { PluginContext } from "../plugin-context"
 import {
   Module,
   ModuleConfig,
@@ -245,10 +244,8 @@ export const helpers = {
     }
   },
 
-  async pullImage(ctx: PluginContext, module: ContainerModule) {
+  async pullImage(module: ContainerModule) {
     const identifier = await helpers.getRemoteImageId(module)
-
-    ctx.log.info({ section: module.name, msg: `pulling image ${identifier}...` })
     await helpers.dockerCli(module, `pull ${identifier}`)
   },
 
@@ -264,11 +261,12 @@ export const helpers = {
   },
 
   async hasDockerfile(module: ContainerModule) {
-    return pathExists(join(module.path, "Dockerfile"))
+    const buildPath = await module.getBuildPath()
+    return pathExists(join(buildPath, "Dockerfile"))
   },
 }
 
-export async function parseContainerModule({ ctx, moduleConfig }: ParseModuleParams<ContainerModule>) {
+export async function parseContainerModule({ moduleConfig }: ParseModuleParams<ContainerModule>) {
   moduleConfig.spec = validate(moduleConfig.spec, containerModuleSpecSchema, { context: `module ${moduleConfig.name}` })
 
   // validate services
@@ -327,10 +325,8 @@ export async function parseContainerModule({ ctx, moduleConfig }: ParseModulePar
     variables: <PrimitiveMap>t.variables,
   }))
 
-  const module = new ContainerModule(ctx, moduleConfig, services, tests)
-
   // make sure we can build the thing
-  if (!(await getImage(module)) && !(await helpers.hasDockerfile(module))) {
+  if (!moduleConfig.spec.image && !(await pathExists(join(moduleConfig.path, "Dockerfile")))) {
     throw new ConfigurationError(
       `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
       {},
@@ -364,7 +360,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { ready: !!identifier }
       },
 
-      async buildModule({ ctx, module, logEntry }: BuildModuleParams<ContainerModule>) {
+      async buildModule({ module, logEntry }: BuildModuleParams<ContainerModule>) {
         const buildPath = await module.getBuildPath()
         const image = await getImage(module)
 
@@ -373,7 +369,7 @@ export const gardenPlugin = (): GardenPlugin => ({
             return { fresh: false }
           }
           logEntry && logEntry.setState(`Pulling image ${image}...`)
-          await helpers.pullImage(ctx, module)
+          await helpers.pullImage(module)
           return { fetched: true }
         }
 
