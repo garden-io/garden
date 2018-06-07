@@ -44,7 +44,6 @@ import {
   GetServiceLogsResult,
   LoginStatusMap,
   ModuleActionOutputs,
-  ParseModuleResult,
   PushResult,
   RunResult,
   ServiceActionOutputs,
@@ -63,7 +62,6 @@ import {
   GetServiceStatusParams,
   GetTestResultParams,
   ModuleActionParams,
-  ParseModuleParams,
   PluginActionContextParams,
   PluginActionParams,
   PluginActionParamsBase,
@@ -113,7 +111,7 @@ export interface ContextStatus {
 }
 
 export type PluginContextParams<T extends PluginActionParamsBase> = Omit<T, keyof PluginActionContextParams>
-export type PluginContextModuleParams<T extends PluginModuleActionParamsBase | ParseModuleParams> =
+export type PluginContextModuleParams<T extends PluginModuleActionParamsBase> =
   Omit<T, "module" | keyof PluginActionContextParams> & { moduleName: string }
 export type PluginContextServiceParams<T extends PluginServiceActionParamsBase> =
   Omit<T, "module" | "service" | keyof PluginActionContextParams> & { serviceName: string }
@@ -157,8 +155,6 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getLoginStatus: (params: {}) => Promise<LoginStatusMap>
   login: (params: {}) => Promise<LoginStatusMap>
   logout: (params: {}) => Promise<LoginStatusMap>
-
-  parseModule: (params: PluginContextModuleParams<ParseModuleParams>) => Promise<ParseModuleResult>
 
   getModuleBuildStatus: <T extends Module>(params: PluginContextModuleParams<GetModuleBuildStatusParams<T>>)
     => Promise<BuildStatus>
@@ -234,8 +230,10 @@ export function createPluginContext(garden: Garden): PluginContext {
     }
   }
 
-  async function callModuleHandler<T extends keyof ModuleActions>(
-    params: PluginContextModuleParams<ModuleActionParams[T]>, actionType: T, defaultHandler?: ModuleActions[T],
+  async function callModuleHandler<T extends keyof Omit<ModuleActions, "parseModule">>(
+    params: PluginContextModuleParams<ModuleActionParams[T]>,
+    actionType: T,
+    defaultHandler?: ModuleActions[T],
   ): Promise<ModuleActionOutputs[T]> {
     const { module, handler } = await getModuleAndHandler(params.moduleName, actionType, defaultHandler)
     const handlerParams: ModuleActionParams[T] = {
@@ -369,11 +367,6 @@ export function createPluginContext(garden: Garden): PluginContext {
     //===========================================================================
     //region Module Actions
     //===========================================================================
-
-    parseModule: async <T extends Module>({ moduleConfig }: PluginContextModuleParams<ParseModuleParams<T>>) => {
-      const handler = garden.getModuleActionHandler("parseModule", moduleConfig.type)
-      return handler({ ...commonParams(handler), moduleConfig })
-    },
 
     getModuleBuildStatus: async <T extends Module>(
       params: PluginContextModuleParams<GetModuleBuildStatusParams<T>>,

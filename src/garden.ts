@@ -40,6 +40,7 @@ import {
   pluginActionDescriptions,
   pluginModuleSchema,
   pluginSchema,
+  Provider,
   RegisterPluginParam,
 } from "./types/plugin"
 import { EnvironmentConfig } from "./types/project"
@@ -708,9 +709,14 @@ export class Garden {
       return null
     }
 
-    const moduleName = moduleConfig.name
+    const parseHandler = await this.getModuleActionHandler("parseModule", moduleConfig.type)
+    const env = this.getEnvironment()
+    const provider: Provider = {
+      name: parseHandler["pluginName"],
+      config: this.config.providers[parseHandler["pluginName"]],
+    }
 
-    const { module, services, tests } = await this.pluginContext.parseModule({ moduleName, moduleConfig })
+    const { module, services, tests } = await parseHandler({ env, provider, moduleConfig })
 
     return new Module(this.pluginContext, module, services, tests)
   }

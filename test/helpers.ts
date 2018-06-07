@@ -97,7 +97,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
       test: {
         testModule: testGenericModule,
 
-        async parseModule({ ctx, moduleConfig }: ParseModuleParams<TestModule>) {
+        async parseModule({ moduleConfig }: ParseModuleParams<TestModule>) {
           moduleConfig.spec = validate(
             moduleConfig.spec,
             containerModuleSpecSchema,
