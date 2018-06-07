@@ -125,7 +125,7 @@ async function getKubeConfig(): Promise<any> {
 }
 
 async function setMinikubeDockerEnv() {
-  const minikubeEnv = await execa.stdout("minikube docker-env --shell=bash")
+  const minikubeEnv = await execa.stdout("minikube", ["docker-env", "--shell=bash"])
   for (const line of minikubeEnv.split("\n")) {
     const matched = line.match(/^export (\w+)="(.+)"$/)
     if (matched) {
@@ -190,13 +190,13 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
   }
 
   if (context === "minikube") {
-    await execa("minikube addons enable ingress")
+    await execa("minikube", ["addons", "enable", "ingress"])
 
     ingressHostname = config.ingressHostname
 
     if (!ingressHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
-      const minikubeIp = await execa.stdout("minikube ip")
+      const minikubeIp = await execa.stdout("minikube", ["ip"])
       ingressHostname = minikubeIp + ".nip.io"
     }
 
