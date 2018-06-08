@@ -11,4 +11,6 @@
   * [Glossary](./guides/glossary.md)
 * [Reference](./reference/README.md)
   * [Commands](./reference/commands.md)
+* [Examples](./examples/README.md)
+  * [Simple Project](./examples/simple-project.md)
 

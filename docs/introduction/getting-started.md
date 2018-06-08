@@ -44,8 +44,11 @@ and note the name of the driver.
  
 Once Minikube and the appropriate driver for your OS is installed, you can start it by running:
 
-    minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
-    
+
+```sh
+minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
+```
+
 Finally, you will need to configure a [kubectl context](https://kubernetes.io/docs/reference/kubectl/cheatsheet/#kubectl-context-and-configuration)
 to point to your local instance.
 
@@ -60,33 +63,39 @@ Other dependencies can be installed with the package manager of your choice
 
 Once you have the dependencies set up, simply run:
 
-    npm install -g garden-cli
+```sh
+npm install -g garden-cli
+```
 
 ## Using the CLI
 
-With the CLI installed, we can now try out a few commands using the [hello-world](https://github.com/garden-io/garden/tree/master/examples/hello-world) example from this repository. The example consists of a container service that runs an [Express](http://expressjs.com/) app, a serverless function, and an npm library package.
+With the CLI installed, we can now try out a few commands using the [hello-world](https://github.com/garden-io/garden-examples/tree/master/hello-world) project from our Github [examples repository](https://github.com/garden-io/garden-examples). The example consists of a container service that runs an [Express](http://expressjs.com/) app, a serverless function, and an npm library package.
 
 _Note: check if Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
 
-Clone the repo and change into the `examples/hello-world`  directory:
+Clone the repo and change into the `hello-world`  directory:
 
-    git clone https://github.com/garden-io/garden.git &&
-    cd garden/examples/hello-world
+```sh
+$ git clone https://github.com/garden-io/garden-examples.git
+$ cd examples/hello-world
+```
 
 First, let's check the environment status by running the following from the project root:
 
-    garden status
+```sh
+$ garden status
+```
 
 The response tells us how the environment is configured and the status of the providers. Next, we'll deploy the services with:
 
-    garden deploy
+```sh
+$ garden deploy
+```
 
 And that's it! The services are now running on the Garden framework. You can see for yourself by querying the `/hello` endpoint of the container with:
 
-    garden call hello-container/hello
+```sh
+$ garden call hello-container/hello
+```
 
-Check out our [Commands](../guides/commands.md) guide for other features like auto-reload, streaming service logs, running tests, and lots more. 
-
-## What's next
-
-Kick the tires of our [examples](https://github.com/garden-io/garden/tree/master/examples/hello-world) to get a feel for how projects are configured, or head to the [Guides](../guides/README.md) section for a deep dive into the Garden framework.
+Check out our [Commands guide](../guides/commands.md) for other features like auto-reload, streaming service logs, running tests and lots more, or see how a Garden project is configured from scratch in our [Simple Project](../guides/simple-project.md) guide.
