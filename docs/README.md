@@ -1,7 +1,9 @@
 # Table of Contents
 
 * [Read Me](../README.md)
-* [Getting Started](./getting-started/README.md)
+* [Introduction](./introduction/README.md)
+  * [Getting Started](./introduction/getting-started.md)
+  * [Motivation](./introduction/motivation.md)
 * [Guides](./guides/README.md)
   * [Configuration](./guides/configuration.md)
   * [Using Garden with Minikube](./guides/minikube.md)
