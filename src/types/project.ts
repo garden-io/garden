@@ -32,7 +32,7 @@ export interface EnvironmentConfig extends CommonEnvironmentConfig {
 export interface ProjectConfig {
   name: string
   defaultEnvironment: string
-  global: CommonEnvironmentConfig
+  environmentDefaults: CommonEnvironmentConfig
   environments: EnvironmentConfig[]
 }
 
@@ -75,7 +75,7 @@ export const environmentSchema = Joi.object().keys({
     .description("A key/value map of variables that modules can reference when using this environment."),
 })
 
-const defaultGlobal = {
+const environmentDefaults = {
   providers: defaultProviders,
   variables: {},
 }
@@ -88,8 +88,8 @@ export const projectSchema = Joi.object()
     defaultEnvironment: Joi.string()
       .default("", "<first specified environment>")
       .description("The default environment to use when calling commands without the `--env` parameter."),
-    global: environmentSchema
-      .default(() => defaultGlobal, JSON.stringify(defaultGlobal))
+    environmentDefaults: environmentSchema
+      .default(() => environmentDefaults, JSON.stringify(environmentDefaults))
       .description(
         "Default environment settings, that are inherited (but can be overridden) by each configured environment",
     ),

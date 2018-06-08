@@ -1,6 +1,6 @@
 project:
   name: test-project-a
-  global:
+  environmentDefaults:
     variables:
       some: variable
   environments:
