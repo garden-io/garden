@@ -5,7 +5,7 @@ Represents the current configuration and status of any running services in the [
 inspected and modified via the Garden CLI's `environment` command.
 
 Several named environment configurations may be defined (e.g. _dev_, _testing_, ...) in the [project's 
-`garden.yml`](../guides/configuration.md#projects).
+`garden.yml`](../guides/configuration.md#project-configuration).
 
 #### Module
 The basic unit of configuration in Garden. A module is defined by its
@@ -14,7 +14,7 @@ directory,
 which 
 is a subdirectory of the [project](#project) repository's top-level directory.
 
-Each module has a [plugin](#plugin) type, and may define one or more [services](#sevice).
+Each module has a [plugin](#plugin) type, and may define one or more [services](#service).
 
 Essentially, a project is organized into modules at the granularity of its *build* steps. A module's build step may 
 depend on one or more other modules, as specified in its `garden.yml`, in which case those modules will be built 
@@ -26,7 +26,7 @@ A [module's](#module) plugin type defines its behavior when it is built, deploye
 (such as NPM modules) are under development.
 
 #### Project
-The top-level unit of organization in Garden. A project consists of one or more [modules](#modules), along with a 
+The top-level unit of organization in Garden. A project consists of one or more [modules](#module), along with a 
 project-level [`garden.yml` configuration file](../guides/configuration.md#project-configuration).
 
 Garden CLI commands are run in the context of a project, and are aware of all its modules and services.
