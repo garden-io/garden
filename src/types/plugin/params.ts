@@ -46,8 +46,10 @@ export interface PluginServiceActionParamsBase<T extends Module = Module> extend
   runtimeContext?: RuntimeContext
 }
 
-export interface ParseModuleParams<T extends Module = Module> extends PluginActionParamsBase {
-  module?: T
+export interface ParseModuleParams<T extends Module = Module> {
+  env: Environment
+  provider: Provider
+  logEntry?: LogEntry
   moduleConfig: T["_ConfigType"]
 }
 

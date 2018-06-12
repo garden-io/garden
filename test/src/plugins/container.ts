@@ -41,7 +41,7 @@ describe("container", () => {
   const provider = { name: "container", config: {} }
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-    const parseResults = await parseModule!({ ctx, env, provider, moduleConfig })
+    const parseResults = await parseModule!({ env, provider, moduleConfig })
     return new ContainerModule(ctx, parseResults.module, parseResults.services, parseResults.tests)
   }
 
@@ -220,7 +220,7 @@ describe("container", () => {
           },
         }
 
-        await parseModule({ ctx, env, provider, moduleConfig })
+        await parseModule({ env, provider, moduleConfig })
       })
 
       it("should fail with invalid port in endpoint spec", async () => {
@@ -263,7 +263,7 @@ describe("container", () => {
         }
 
         await expectError(
-          () => parseModule({ ctx, env, provider, moduleConfig }),
+          () => parseModule({ env, provider, moduleConfig }),
           "configuration",
         )
       })
@@ -303,7 +303,7 @@ describe("container", () => {
         }
 
         await expectError(
-          () => parseModule({ ctx, env, provider, moduleConfig }),
+          () => parseModule({ env, provider, moduleConfig }),
           "configuration",
         )
       })
@@ -340,7 +340,7 @@ describe("container", () => {
         }
 
         await expectError(
-          () => parseModule({ ctx, env, provider, moduleConfig }),
+          () => parseModule({ env, provider, moduleConfig }),
           "configuration",
         )
       })
