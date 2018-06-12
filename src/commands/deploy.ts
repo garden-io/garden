@@ -17,6 +17,7 @@ import {
   StringParameter,
 } from "./base"
 import { TaskResults } from "../task-graph"
+import { processServices } from "../process"
 
 export const deployArgs = {
   service: new StringParameter({
@@ -75,9 +76,10 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     const force = opts.force
     const forceBuild = opts["force-build"]
 
-    const results = await ctx.processServices({
+    const results = await processServices({
       services,
       watch,
+      pluginContext: ctx,
       process: async (service) => {
         return [await DeployTask.factory({ ctx, service, force, forceBuild })]
       },

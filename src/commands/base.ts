@@ -13,6 +13,7 @@ import {
 import { PluginContext } from "../plugin-context"
 import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/types"
+import { ProcessResults } from "../process"
 
 export class ValidationError extends Error { }
 
@@ -128,6 +129,7 @@ export interface CommandConstructor {
 
 export interface CommandResult<T = any> {
   result?: T
+  restartRequired?: boolean
   errors?: GardenError[]
 }
 
@@ -172,19 +174,24 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 }
 
 export async function handleTaskResults(
-  ctx: PluginContext, taskType: string, result: TaskResults,
+  ctx: PluginContext, taskType: string, results: ProcessResults,
 ): Promise<CommandResult<TaskResults>> {
-  const failed = Object.values(result).filter(r => !!r.error).length
+  const failed = Object.values(results).filter(r => !!r.error).length
 
   if (failed) {
     const error = new RuntimeError(`${failed} ${taskType} task(s) failed!`, {
-      result,
+      results,
     })
     return { errors: [error] }
-  } else {
-    ctx.log.info("")
+  }
+
+  ctx.log.info("")
+  if (!results.restartRequired) {
     ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
-    return { result }
+  }
+  return {
+    result: results.taskResults,
+    restartRequired: results.restartRequired,
   }
 }
 

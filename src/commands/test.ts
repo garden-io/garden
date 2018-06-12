@@ -16,6 +16,7 @@ import {
   CommandResult,
 } from "./base"
 import { TaskResults } from "../task-graph"
+import { processModules } from "../process"
 
 export const testArgs = {
   module: new StringParameter({
@@ -75,8 +76,9 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
     const force = opts.force
     const forceBuild = opts["force-build"]
 
-    const results = await ctx.processModules({
+    const results = await processModules({
       modules,
+      pluginContext: ctx,
       watch: opts.watch,
       process: async (module) => module.getTestTasks({ name, force, forceBuild }),
     })

@@ -206,10 +206,13 @@ export class GardenCli {
       }
 
       const logger = RootLogNode.initialize({ level, writers })
-      const garden = await Garden.factory(root, { env, logger })
-
-      // TODO: enforce that commands always output DeepPrimitiveMap
-      const result = await command.action(garden.pluginContext, parsedArgs, parsedOpts)
+      let garden
+      let result
+      do {
+        garden = await Garden.factory(root, { env, logger })
+        // TODO: enforce that commands always output DeepPrimitiveMap
+        result = await command.action(garden.pluginContext, parsedArgs, parsedOpts)
+      } while (result.restartRequired)
 
       // We attach the action result to cli context so that we can process it in the parse method
       cliContext.details.result = result

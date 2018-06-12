@@ -20,7 +20,6 @@ import {
   Garden,
 } from "./garden"
 import { EntryStyle } from "./logger/types"
-import { TaskResults } from "./task-graph"
 import {
   PrimitiveMap,
   validate,
@@ -82,24 +81,13 @@ import {
   mapValues,
   toPairs,
   values,
-  padEnd,
   keyBy,
   omit,
-  flatten,
 } from "lodash"
-import { Task } from "./types/task"
 import {
-  getNames,
   Omit,
-  registerCleanupFunction,
-  sleep,
 } from "./util"
 import { TreeVersion } from "./vcs/base"
-import {
-  autoReloadModules,
-  computeAutoReloadDependants,
-  FSWatcher,
-} from "./watch"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -132,18 +120,6 @@ export type WrappedFromGarden = Pick<Garden,
   "getTemplateContext" |
   "addTask" |
   "processTasks">
-
-export interface ProcessModulesParams {
-  modules: Module[],
-  watch: boolean,
-  process: (module: Module) => Promise<Task[]>,
-}
-
-export interface ProcessServicesParams {
-  services: Service[],
-  watch: boolean,
-  process: (service: Service) => Promise<Task[]>,
-}
 
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getEnvironmentStatus: (params: {}) => Promise<EnvironmentStatusMap>
@@ -189,8 +165,6 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getModuleVersion: (module: Module, force?: boolean) => Promise<TreeVersion>
   stageBuild: (moduleName: string) => Promise<void>
   getStatus: () => Promise<ContextStatus>
-  processModules: (params: ProcessModulesParams) => Promise<TaskResults>
-  processServices: (params: ProcessServicesParams) => Promise<TaskResults>
 }
 
 export function createPluginContext(garden: Garden): PluginContext {
@@ -522,83 +496,6 @@ export function createPluginContext(garden: Garden): PluginContext {
         providers: envStatus,
         services: keyBy(serviceStatus, "name"),
       }
-    },
-
-    processModules: async ({ modules, watch, process }: ProcessModulesParams) => {
-      // TODO: log errors as they happen, instead of after processing all tasks
-      const logErrors = (taskResults: TaskResults) => {
-        for (const result of values(taskResults).filter(r => !!r.error)) {
-          const divider = padEnd("", 80, "—")
-
-          ctx.log.error(`\nFailed ${result.description}. Here is the output:`)
-          ctx.log.error(divider)
-          ctx.log.error(result.error + "")
-          ctx.log.error(divider + "\n")
-        }
-      }
-
-      for (const module of modules) {
-        const tasks = await process(module)
-        await Bluebird.map(tasks, ctx.addTask)
-      }
-
-      const results = await ctx.processTasks()
-      logErrors(results)
-
-      if (!watch) {
-        return results
-      }
-
-      const modulesToWatch = await autoReloadModules(modules)
-      const autoReloadDependants = await computeAutoReloadDependants(ctx)
-
-      async function handleChanges(module: Module) {
-        const tasks = await process(module)
-        await Bluebird.map(tasks, ctx.addTask)
-
-        const dependantsForModule = autoReloadDependants[module.name]
-        if (!dependantsForModule) {
-          return
-        }
-
-        for (const dependant of dependantsForModule) {
-          await handleChanges(dependant)
-        }
-      }
-
-      const watcher = new FSWatcher(ctx)
-
-      // TODO: should the prefix here be different or set explicitly per run?
-      await watcher.watchModules(modulesToWatch, "addTasksForAutoReload/",
-        async (changedModule) => {
-          ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
-          await handleChanges(changedModule)
-          logErrors(await ctx.processTasks())
-        })
-
-      registerCleanupFunction("clearAutoReloadWatches", () => {
-        watcher.end()
-        ctx.log.info({ msg: "\nDone!" })
-      })
-
-      while (true) {
-        await sleep(1000)
-      }
-    },
-
-    processServices: async ({ services, watch, process }: ProcessServicesParams) => {
-      const serviceNames = getNames(services)
-      const modules = Array.from(new Set(services.map(s => s.module)))
-
-      return ctx.processModules({
-        modules,
-        watch,
-        process: async (module) => {
-          const moduleServices = await module.getServices()
-          const servicesToDeploy = moduleServices.filter(s => serviceNames.includes(s.name))
-          return flatten(await Bluebird.map(servicesToDeploy, process))
-        },
-      })
     },
 
     //endregion
