@@ -2,10 +2,11 @@
 
 Garden is configured via `garden.yml` configuration files.
 
-The [project-wide](#project) `garden.yml` file should be located in the top-level directory of the project's Git 
+The [project-wide](#project-configuration) `garden.yml` file should be located in the top-level directory of the 
+project's Git 
 repository.
 
-In addition, each of the project's [modules](../other/glossary#module)' `garden.yml` should be located in that module's 
+In addition, each of the project's [modules](../guides/glossary.md#module)' `garden.yml` should be located in that module's 
 top-level 
 directory.
 
@@ -48,8 +49,8 @@ project:
           default-project: garden-hello-world
 ```
 The project-wide `garden.yml` defines the project's name, the default providers used for each
-[plugin](../other/glossary#plugin) the project requires (via the `global` directive), and
-[environment](../other/glossary#environment)-specific provider overrides as is appropriate for each of the project's
+[plugin](../guides/glossary.md#plugin) the project requires (via the `global` directive), and
+[environment](../guides/glossary.md#environment)-specific provider overrides as is appropriate for each of the project's
 configured environments (`local` and `dev` under the `environments` directive above).
 
 Here, project-wide configuration variables can also be specified (global, and/or environment-specific). These are 
@@ -86,7 +87,7 @@ Note that module names must be unique within a given project. An error will be t
 modules use the same name.
 
 #### type
-A [module](../other/glossary.md#module)'s `type` specifies its plugin type. Garden interprets this according to the 
+A [module](../guides/glossary.md#module)'s `type` specifies its plugin type. Garden interprets this according to the 
 active environment's configured provider for the specified plugin type.
 
 For example,
@@ -100,7 +101,7 @@ A module's build configuration is specified via the `build` directive.
 Under `build`, the `command` subdirective sets the CLI command run during builds. A module's build command is executed 
 with its working directory set to a copy of the module's top-level directory, located at
 `[project-root]/.garden/build/[module-name]`. This internal directory is referred to as the module's
-[build directory](../other/glossary.md#build-directory).
+[build directory](../guides/glossary.md#build-directory).
 
 The `.garden` directory should not be modified by users, since this may lead to unexpected errors when the Garden CLI
 tools are used in the project.
