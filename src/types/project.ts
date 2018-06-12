@@ -7,6 +7,7 @@
  */
 
 import * as Joi from "joi"
+import { safeDump } from "js-yaml"
 import {
   joiArray,
   joiIdentifier,
@@ -69,7 +70,10 @@ export const environmentSchema = Joi.object().keys({
   ),
   providers: joiArray(providerConfigBase)
     .unique("name")
-    .description("A list of providers that should be used for this environment, and their configuration.")
+    .description(
+      "A list of providers that should be used for this environment, and their configuration. " +
+      "Please refer to individual plugins/providers for details on how to configure them.",
+  )
     .example(defaultProviders),
   variables: joiVariables()
     .description("A key/value map of variables that modules can reference when using this environment."),
@@ -84,18 +88,20 @@ export const projectSchema = Joi.object()
   .keys({
     name: joiIdentifier()
       .required()
-      .description("The name of the project."),
+      .description("The name of the project.")
+      .example("my-sweet-project"),
     defaultEnvironment: Joi.string()
       .default("", "<first specified environment>")
       .description("The default environment to use when calling commands without the `--env` parameter."),
     environmentDefaults: environmentSchema
-      .default(() => environmentDefaults, JSON.stringify(environmentDefaults))
+      .default(() => environmentDefaults, safeDump(environmentDefaults))
+      .example(environmentDefaults)
       .description(
         "Default environment settings, that are inherited (but can be overridden) by each configured environment",
     ),
     environments: joiArray(environmentSchema.keys({ name: joiIdentifier().required() }))
       .unique("name")
-      .default(() => ({ ...defaultEnvironments }), JSON.stringify(defaultEnvironments))
+      .default(() => ({ ...defaultEnvironments }), safeDump(defaultEnvironments))
       .description("A list of environments to configure for the project.")
       .example(defaultEnvironments),
   })
