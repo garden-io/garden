@@ -19,15 +19,14 @@ import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
 
 export async function createNamespace(context: string, namespace: string) {
-  await coreApi(context).namespaces.post({
-    body: {
-      apiVersion: "v1",
-      kind: "Namespace",
-      metadata: {
-        name: namespace,
-        annotations: {
-          "garden.io/generated": "true",
-        },
+  // TODO: the types for all the create functions in the library are currently broken
+  await coreApi(context).createNamespace(<any>{
+    apiVersion: "v1",
+    kind: "Namespace",
+    metadata: {
+      name: namespace,
+      annotations: {
+        "garden.io/generated": "true",
       },
     },
   })
@@ -62,8 +61,8 @@ export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesPro
 }
 
 export async function getAllAppNamespaces(context: string): Promise<string[]> {
-  const allNamespaces = await coreApi(context).namespaces.get()
-  return allNamespaces.items
+  const allNamespaces = await coreApi(context).listNamespace()
+  return allNamespaces.body.items
     .map(n => n.metadata.name)
     .filter(n => n.startsWith("garden--"))
 }

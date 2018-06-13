@@ -6,54 +6,65 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as K8s from "kubernetes-client"
+import { KubeConfig, Core_v1Api, Extensions_v1beta1Api, RbacAuthorization_v1Api } from "@kubernetes/client-node"
+import { join } from "path"
+import { readFileSync } from "fs"
+import { safeLoad } from "js-yaml"
+import { zip } from "lodash"
 
-const cachedParams = {}
+let kubeConfigStr: string
+let kubeConfig: any
 
-function getParams(context: string, namespace?: string) {
-  let params = cachedParams[namespace || ""]
+const configs: { [context: string]: KubeConfig } = {}
 
-  if (!params) {
-    const config = K8s.config.loadKubeconfig()
-    params = <any>K8s.config.fromKubeconfig(config, context)
+// NOTE: be warned, the API of the client library is very likely to change
 
-    params.promises = true
-    params.namespace = namespace
-
-    cachedParams[namespace || ""] = params
+function getConfig(context: string): KubeConfig {
+  if (!kubeConfigStr) {
+    kubeConfigStr = readFileSync(process.env.KUBECONFIG || join(process.env.HOME || "/home", ".kube", "config"))
+      .toString()
+    kubeConfig = safeLoad(kubeConfigStr)
   }
 
-  return params
-}
+  if (!configs[context]) {
+    const kc = new KubeConfig()
 
-export function coreApi(context: string, namespace?: string): any {
-  return new K8s.Core(getParams(context, namespace))
-}
+    kc.loadFromString(kubeConfigStr)
+    kc.setCurrentContext(context)
 
-export function extensionsApi(context: string, namespace?: string): any {
-  return new K8s.Extensions(getParams(context, namespace))
-}
-
-export async function apiPostOrPut(api: any, name: string, body: object) {
-  try {
-    await api.post(body)
-  } catch (err) {
-    if (err.code === 409) {
-      await api(name).put(body)
-    } else {
-      throw err
+    // FIXME: need to patch a bug in the library here (https://github.com/kubernetes-client/javascript/pull/54)
+    for (const [a, b] of zip(kubeConfig["clusters"] || [], kc.clusters)) {
+      if (a && a["cluster"]["insecure-skip-tls-verify"] === true) {
+        (<any>b).skipTLSVerify = true
+      }
     }
+
+    configs[context] = kc
   }
+
+  return configs[context]
 }
 
-export async function apiGetOrNull(api: any, name: string) {
-  try {
-    return await api(name).get()
-  } catch (err) {
-    if (err.code === 404) {
-      return null
-    } else {
-      throw err
-    }
-  }
+export function coreApi(context: string) {
+  const config = getConfig(context)
+  const k8sApi = new Core_v1Api(config.getCurrentCluster().server)
+  k8sApi.setDefaultAuthentication(config)
+
+  return k8sApi
+}
+
+export function extensionsApi(context: string) {
+  const config = getConfig(context)
+  const k8sApi = new Extensions_v1beta1Api(config.getCurrentCluster().server)
+  k8sApi.setDefaultAuthentication(config)
+
+  return k8sApi
+}
+
+export function rbacApi(context: string) {
+  const config = getConfig(context)
+  const k8sApi = new RbacAuthorization_v1Api(config.getCurrentCluster().server)
+  k8sApi.setDefaultAuthentication(config)
+
+  return k8sApi
 }

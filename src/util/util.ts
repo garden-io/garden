@@ -339,7 +339,7 @@ export function omitUndefined(o: object) {
   return pickBy(o, (v: any) => v !== undefined)
 }
 
-export function serializeObject(o: object) {
+export function serializeObject(o: any): string {
   return Buffer.from(Cryo.stringify(o)).toString("base64")
 }
 
@@ -347,11 +347,11 @@ export function deserializeObject(s: string) {
   return Cryo.parse(Buffer.from(s, "base64"))
 }
 
-export function serializeKeys(o: object) {
+export function serializeValues(o: { [key: string]: any }): { [key: string]: string } {
   return mapValues(o, serializeObject)
 }
 
-export function deserializeKeys(o: object) {
+export function deserializeValues(o: object) {
   return mapValues(o, deserializeObject)
 }
 

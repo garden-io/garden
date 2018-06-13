@@ -40,12 +40,10 @@ import {
   helpers,
 } from "../container"
 import { values, every, uniq } from "lodash"
-import { deserializeKeys, serializeKeys, splitFirst, sleep } from "../../util/util"
+import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
 import { ServiceStatus } from "../../types/service"
 import { joiIdentifier } from "../../types/common"
 import {
-  apiGetOrNull,
-  apiPostOrPut,
   coreApi,
 } from "./api"
 import {
@@ -97,10 +95,10 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
   }
 
   const metadataNamespace = getMetadataNamespace(ctx, provider)
-  const namespacesStatus = await coreApi(context).namespaces.get()
+  const namespacesStatus = await coreApi(context).listNamespace()
   const namespace = await getAppNamespace(ctx, provider)
 
-  for (const n of namespacesStatus.items) {
+  for (const n of namespacesStatus.body.items) {
     if (n.metadata.name === namespace && n.status.phase === "Active") {
       statusDetail.namespaceReady = true
     }
@@ -154,7 +152,8 @@ export async function destroyEnvironment({ ctx, provider, env }: DestroyEnvironm
 
   try {
     // Note: Need to call the delete method with an empty object
-    await coreApi(context).namespaces(namespace).delete({})
+    // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
+    await coreApi(context).deleteNamespace(namespace, <any>{})
   } catch (err) {
     entry.setError(err.message)
     const availableNamespaces = await getAllAppNamespaces(context)
@@ -207,12 +206,16 @@ export async function execInService(
   }
 
   // get a running pod
-  let res = await coreApi(context).namespaces(namespace).pods.get({
-    qs: {
-      labelSelector: `service=${service.name}`,
-    },
-  })
-  const pod = res.items[0]
+  // NOTE: the awkward function signature called out here: https://github.com/kubernetes-client/javascript/issues/53
+  const podsRes = await coreApi(context).listNamespacedPod(
+    namespace,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    `service=${service.name}`,
+  )
+  const pod = podsRes.body.items[0]
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure
@@ -222,7 +225,7 @@ export async function execInService(
   }
 
   // exec in the pod via kubectl
-  res = await kubectl(context, namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
+  const res = await kubectl(context, namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
 
   return { code: res.code, output: res.output }
 }
@@ -301,21 +304,26 @@ export async function testModule(
   const ns = getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, result.version)
   const body = {
-    body: {
-      apiVersion: "v1",
-      kind: "ConfigMap",
-      metadata: {
-        name: resultKey,
-        annotations: {
-          "garden.io/generated": "true",
-        },
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    metadata: {
+      name: resultKey,
+      annotations: {
+        "garden.io/generated": "true",
       },
-      type: "generic",
-      data: serializeKeys(testResult),
     },
+    data: serializeValues(testResult),
   }
 
-  await apiPostOrPut(coreApi(context).namespaces(ns).configmaps, resultKey, body)
+  try {
+    await coreApi(context).createNamespacedConfigMap(ns, <any>body)
+  } catch (err) {
+    if (err.response && err.response.statusCode === 409) {
+      await coreApi(context).patchNamespacedConfigMap(resultKey, ns, body)
+    } else {
+      throw err
+    }
+  }
 
   return testResult
 }
@@ -326,8 +334,17 @@ export async function getTestResult(
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, version)
-  const res = await apiGetOrNull(coreApi(context).namespaces(ns).configmaps, resultKey)
-  return res && <TestResult>deserializeKeys(res.data)
+
+  try {
+    const res = await coreApi(context).readNamespacedConfigMap(resultKey, ns)
+    return <TestResult>deserializeValues(res.body.data)
+  } catch (err) {
+    if (err.response && err.response.statusCode === 404) {
+      return null
+    } else {
+      throw err
+    }
+  }
 }
 
 export async function getServiceLogs(
@@ -373,21 +390,30 @@ export async function getServiceLogs(
 export async function getConfig({ ctx, provider, key }: GetConfigParams) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
-  const res = await apiGetOrNull(coreApi(context).namespaces(ns).secrets, key.join("."))
-  const value = res && Buffer.from(res.data.value, "base64").toString()
-  return { value }
+
+  try {
+    const res = await coreApi(context).readNamespacedSecret(key.join("."), ns)
+    return { value: Buffer.from(res.body.data.value, "base64").toString() }
+  } catch (err) {
+    if (err.response && err.response.statusCode === 404) {
+      return { value: null }
+    } else {
+      throw err
+    }
+  }
 }
 
 export async function setConfig({ ctx, provider, key, value }: SetConfigParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
+  const name = key.join(".")
   const body = {
     body: {
       apiVersion: "v1",
       kind: "Secret",
       metadata: {
-        name: key,
+        name,
         annotations: {
           "garden.io/generated": "true",
         },
@@ -397,7 +423,15 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
     },
   }
 
-  await apiPostOrPut(coreApi(context).namespaces(ns).secrets, key.join("."), body)
+  try {
+    await coreApi(context).createNamespacedSecret(ns, <any>body)
+  } catch (err) {
+    if (err.response && err.response.statusCode === 409) {
+      await coreApi(context).patchNamespacedSecret(name, ns, body)
+    } else {
+      throw err
+    }
+  }
 
   return {}
 }
@@ -405,10 +439,12 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
 export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
   const context = provider.config.context
   const ns = getMetadataNamespace(ctx, provider)
+  const name = key.join(".")
+
   try {
-    await coreApi(context).namespaces(ns).secrets(key.join(".")).delete()
+    await coreApi(context).deleteNamespacedSecret(name, ns, <any>{})
   } catch (err) {
-    if (err.code === 404) {
+    if (err.response && err.response.statusCode === 404) {
       return { found: false }
     } else {
       throw err

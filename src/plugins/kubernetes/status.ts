@@ -34,7 +34,6 @@ export async function checkDeploymentStatus(
     { ctx: PluginContext, provider: Provider, service: ContainerService, resourceVersion?: number },
 ): Promise<ServiceStatus> {
   const context = provider.config.context
-  const type = service.spec.daemon ? "daemonsets" : "deployments"
   const hostname = getServiceHostname(ctx, provider, service)
   const namespace = await getAppNamespace(ctx, provider)
 
@@ -61,10 +60,15 @@ export async function checkDeploymentStatus(
   let statusRes
   let status
 
+  const extApi = extensionsApi(context)
+  const apiFunc = service.spec.daemon
+    ? extApi.readNamespacedDaemonSet
+    : extApi.readNamespacedDeployment
+
   try {
-    statusRes = await extensionsApi(context).namespaces(namespace)[type](service.name).get()
+    statusRes = (await apiFunc.apply(extApi, [service.name, namespace])).body
   } catch (err) {
-    if (err.code === 404) {
+    if (err.response && err.response.statusCode === 404) {
       // service is not running
       return out
     } else {
@@ -82,7 +86,7 @@ export async function checkDeploymentStatus(
 
   // TODO: try to come up with something more efficient. may need to wait for newer k8s version.
   // note: the resourceVersion parameter does not appear to work...
-  const eventsRes = await coreApi(context).namespaces(namespace).events.get()
+  const eventsRes = await coreApi(context).listNamespacedEvent(namespace)
 
   // const eventsRes = await this.kubeApi(
   //   "GET",
@@ -96,7 +100,7 @@ export async function checkDeploymentStatus(
   // )
 
   // look for errors and warnings in the events for the service, abort if we find any
-  const events = eventsRes.items
+  const events = eventsRes.body.items
 
   for (let event of events) {
     const eventVersion = parseInt(event.metadata.resourceVersion, 10)
