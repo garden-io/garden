@@ -120,10 +120,10 @@ export function genericResolver(context: TemplateStringContext, ignoreMissingKey
  * Recursively parses and resolves all templated strings in the given object.
  */
 export async function resolveTemplateStrings<T extends object>(
-  o: T, context: TemplateStringContext, opts?: TemplateOpts,
+  obj: T, context: TemplateStringContext, opts?: TemplateOpts,
 ): Promise<T> {
-  const mapped = deepMap(o, (v) => typeof v === "string" ? resolveTemplateString(v, context, opts) : v)
-  return deepResolve(mapped)
+  const mapped = deepMap(obj, (v) => typeof v === "string" ? resolveTemplateString(v, context, opts) : v)
+  return <T>deepResolve(mapped)
 }
 
 export async function getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
