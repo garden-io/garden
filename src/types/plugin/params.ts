@@ -7,7 +7,7 @@
  */
 
 import Stream from "ts-stream"
-import { LogEntry } from "../../logger"
+import { LogEntry } from "../../logger/logger"
 import { PluginContext } from "../../plugin-context"
 import { TreeVersion } from "../../vcs/base"
 import {
@@ -21,7 +21,7 @@ import {
 } from "../service"
 import {
   Provider,
-} from "./index"
+} from "./plugin"
 import {
   EnvironmentStatus,
   ServiceLogEntry,

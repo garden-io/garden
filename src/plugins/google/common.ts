@@ -20,7 +20,7 @@ import { GenericTestSpec } from "../generic"
 import { GCloud } from "./gcloud"
 import {
   Provider,
-} from "../../types/plugin"
+} from "../../types/plugin/plugin"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 

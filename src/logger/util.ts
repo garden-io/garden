@@ -7,7 +7,7 @@
  */
 
 import { LogEntryOpts, LogLevel } from "./types"
-import { LogEntry, LogNode } from "."
+import { LogEntry, LogNode } from "./logger"
 
 export interface Node {
   children: any[]

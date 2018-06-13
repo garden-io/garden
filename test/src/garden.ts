@@ -12,7 +12,7 @@ import {
   testPlugin,
   testPluginB,
 } from "../helpers"
-import { getNames } from "../../src/util"
+import { getNames } from "../../src/util/util"
 
 describe("Garden", () => {
   describe("factory", () => {

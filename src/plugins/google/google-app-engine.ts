@@ -26,10 +26,10 @@ import {
   ContainerModuleSpec,
   ContainerServiceSpec,
 } from "../container"
-import { dumpYaml } from "../../util"
+import { dumpYaml } from "../../util/util"
 import {
   GardenPlugin,
-} from "../../types/plugin"
+} from "../../types/plugin/plugin"
 
 export interface GoogleAppEngineServiceSpec extends ContainerServiceSpec {
   project?: string

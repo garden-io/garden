@@ -3,7 +3,7 @@ import { join } from "path"
 
 import {
   PluginFactory,
-} from "../../../../src/types/plugin"
+} from "../../../../src/types/plugin/plugin"
 import { EnvironmentDestroyCommand } from "../../../../src/commands/environment/destroy"
 import { Garden } from "../../../../src/garden"
 import { EnvironmentStatus } from "../../../../src/types/plugin/outputs"

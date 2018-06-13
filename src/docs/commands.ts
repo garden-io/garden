@@ -13,7 +13,7 @@ import {
 import * as handlebars from "handlebars"
 import { resolve } from "path"
 import { GLOBAL_OPTIONS } from "../cli/cli"
-import { coreCommands } from "../commands"
+import { coreCommands } from "../commands/commands"
 import { flatten } from "lodash"
 import { describeParameters } from "../commands/base"
 

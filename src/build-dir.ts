@@ -21,7 +21,7 @@ import {
 import * as Rsync from "rsync"
 import { GARDEN_DIR_NAME } from "./constants"
 import { ConfigurationError } from "./exceptions"
-import { execRsyncCmd } from "./util"
+import { execRsyncCmd } from "./util/util"
 import {
   BuildCopySpec,
   Module,

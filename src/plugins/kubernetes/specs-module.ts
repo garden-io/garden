@@ -17,7 +17,7 @@ import {
   Module,
   ModuleSpec,
 } from "../../types/module"
-import { ModuleActions } from "../../types/plugin"
+import { ModuleActions } from "../../types/plugin/plugin"
 import {
   ParseModuleResult,
 } from "../../types/plugin/outputs"

@@ -10,12 +10,12 @@ import { PluginContext } from "../../plugin-context"
 import {
   coreApi,
 } from "./api"
-import { KubernetesProvider } from "./index"
+import { KubernetesProvider } from "./kubernetes"
 import {
   GARDEN_SYSTEM_NAMESPACE,
   isSystemGarden,
 } from "./system"
-import { name as providerName } from "./index"
+import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
 
 export async function createNamespace(context: string, namespace: string) {

@@ -7,9 +7,9 @@
  */
 
 import { PluginContext } from "../../plugin-context"
-import { findByName } from "../../util"
+import { findByName } from "../../util/util"
 import { ContainerService } from "../container"
-import { KubernetesProvider } from "./index"
+import { KubernetesProvider } from "./kubernetes"
 
 export async function createIngress(ctx: PluginContext, provider: KubernetesProvider, service: ContainerService) {
   // FIXME: ingresses don't get updated when deployment is already running (rethink status check)

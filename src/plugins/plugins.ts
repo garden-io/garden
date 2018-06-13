@@ -8,7 +8,7 @@
 
 import { resolve } from "path"
 // TODO: these should be configured, either explicitly or as dependencies of other plugins
-import { RegisterPluginParam } from "../types/plugin"
+import { RegisterPluginParam } from "../types/plugin/plugin"
 
 // These plugins are always registered
 export const builtinPlugins: RegisterPluginParam[] = [
@@ -16,7 +16,7 @@ export const builtinPlugins: RegisterPluginParam[] = [
   "./container",
   "./google/google-cloud-functions",
   "./local/local-google-cloud-functions",
-  "./kubernetes",
+  "./kubernetes/kubernetes",
   "./kubernetes/local",
   "./npm-package",
   "./google/google-app-engine",

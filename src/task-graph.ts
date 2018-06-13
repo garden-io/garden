@@ -12,7 +12,7 @@ import { merge, pick } from "lodash"
 import { Task, TaskDefinitionError } from "./types/task"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
-import { LogEntry } from "./logger"
+import { LogEntry } from "./logger/logger"
 import { PluginContext } from "./plugin-context"
 
 class TaskGraphError extends Error { }

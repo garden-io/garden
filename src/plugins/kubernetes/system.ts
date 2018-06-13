@@ -9,7 +9,7 @@
 import { join } from "path"
 import { STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
-import { KubernetesProvider } from "./index"
+import { KubernetesProvider } from "./kubernetes"
 
 export const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 

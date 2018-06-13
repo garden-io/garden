@@ -21,8 +21,8 @@ import {
   leftPad,
   renderMsg,
 } from "../renderers"
-import { LogEntry, RootLogNode } from "../index"
-import { sleep } from "../../util"
+import { LogEntry, RootLogNode } from "../logger"
+import { sleep } from "../../util/util"
 import { getChildEntries, getTerminalWidth, interceptStream, validate } from "../util"
 import { Writer, WriterConfig } from "./base"
 

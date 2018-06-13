@@ -22,7 +22,7 @@ import {
   resolveTemplateStrings,
   TemplateStringContext,
 } from "../template-string"
-import { getNames } from "../util"
+import { getNames } from "../util/util"
 import { TreeVersion } from "../vcs/base"
 import {
   joiArray,

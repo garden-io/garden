@@ -15,7 +15,7 @@ import {
   TemplateOpts,
   TemplateStringContext,
 } from "../template-string"
-import { findByName } from "../util"
+import { findByName } from "../util/util"
 import {
   joiArray,
   joiIdentifier,

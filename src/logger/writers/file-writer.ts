@@ -14,7 +14,7 @@ import { ensureDir, truncate } from "fs-extra"
 import {
   LogLevel,
 } from "../types"
-import { LogEntry } from "../index"
+import { LogEntry } from "../logger"
 import { Writer } from "./base"
 import { validate } from "../util"
 import {

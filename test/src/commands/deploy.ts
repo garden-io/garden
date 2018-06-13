@@ -5,7 +5,7 @@ import { expect } from "chai"
 import { parseContainerModule } from "../../../src/plugins/container"
 import {
   PluginFactory,
-} from "../../../src/types/plugin"
+} from "../../../src/types/plugin/plugin"
 import {
   DeployServiceParams,
   GetServiceStatusParams,

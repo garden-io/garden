@@ -30,7 +30,7 @@ import {
 import {
   builtinPlugins,
   fixedPlugins,
-} from "./plugins"
+} from "./plugins/plugins"
 import {
   Module,
 } from "./types/module"
@@ -42,14 +42,14 @@ import {
   pluginSchema,
   Provider,
   RegisterPluginParam,
-} from "./types/plugin"
+} from "./types/plugin/plugin"
 import { EnvironmentConfig } from "./types/project"
 import {
   findByName,
   getIgnorer,
   getNames,
   scanDirectory,
-} from "./util"
+} from "./util/util"
 import {
   DEFAULT_NAMESPACE,
   MODULE_CONFIG_FILENAME,
@@ -69,14 +69,14 @@ import {
 import {
   getLogger,
   RootLogNode,
-} from "./logger"
+} from "./logger/logger"
 import {
   pluginActionNames,
   PluginActions,
   PluginFactory,
   GardenPlugin,
   ModuleActions,
-} from "./types/plugin"
+} from "./types/plugin/plugin"
 import {
   Environment,
   joiIdentifier,

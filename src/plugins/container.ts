@@ -25,7 +25,7 @@ import { join } from "path"
 import { ConfigurationError } from "../exceptions"
 import {
   GardenPlugin,
-} from "../types/plugin"
+} from "../types/plugin/plugin"
 import {
   BuildModuleParams,
   GetModuleBuildStatusParams,
@@ -40,7 +40,7 @@ import {
   ServiceConfig,
 } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
-import { splitFirst } from "../util"
+import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
 import {
   genericModuleSpecSchema,

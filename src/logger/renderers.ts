@@ -15,7 +15,7 @@ import hasAnsi = require("has-ansi")
 
 import { duration } from "./util"
 import { LogSymbolType, EntryStyle } from "./types"
-import { LogEntry } from "./index"
+import { LogEntry } from "./logger"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]

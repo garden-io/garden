@@ -1,4 +1,4 @@
-import { RunCommand } from "../../../../src/commands/run"
+import { RunCommand } from "../../../../src/commands/run/run"
 import { expect } from "chai"
 
 describe("RunCommand", () => {

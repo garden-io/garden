@@ -12,7 +12,7 @@ import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import {
   GardenPlugin,
-} from "../../types/plugin"
+} from "../../types/plugin/plugin"
 import {
   DeployServiceParams,
   ExecInServiceParams,
@@ -27,7 +27,7 @@ import {
   map,
   sortBy,
 } from "lodash"
-import { sleep } from "../../util"
+import { sleep } from "../../util/util"
 import { ServiceState, ServiceStatus } from "../../types/service"
 
 // should this be configurable and/or global across providers?

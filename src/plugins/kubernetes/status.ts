@@ -7,16 +7,16 @@
  */
 
 import { DeploymentError } from "../../exceptions"
-import { LogEntry } from "../../logger"
+import { LogEntry } from "../../logger/logger"
 import { LogSymbolType } from "../../logger/types"
 import { PluginContext } from "../../plugin-context"
 import { Environment } from "../../types/common"
-import { Provider } from "../../types/plugin"
+import { Provider } from "../../types/plugin/plugin"
 import {
   ServiceProtocol,
   ServiceStatus,
 } from "../../types/service"
-import { sleep } from "../../util"
+import { sleep } from "../../util/util"
 import {
   ContainerService,
   ServiceEndpointSpec,

@@ -32,7 +32,7 @@ import {
   ModuleActions,
   Provider,
   ServiceActions,
-} from "./types/plugin"
+} from "./types/plugin/plugin"
 import {
   BuildResult,
   BuildStatus,
@@ -86,7 +86,7 @@ import {
 } from "lodash"
 import {
   Omit,
-} from "./util"
+} from "./util/util"
 import { TreeVersion } from "./vcs/base"
 
 export type PluginContextGuard = {

@@ -9,7 +9,7 @@
 import { safeDump } from "js-yaml"
 import { PluginContext } from "../plugin-context"
 import { DeepPrimitiveMap } from "../types/common"
-import { highlightYaml } from "../util"
+import { highlightYaml } from "../util/util"
 import {
   Command,
   CommandResult,

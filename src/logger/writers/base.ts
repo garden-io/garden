@@ -10,7 +10,7 @@ import {
   LogLevel,
 } from "../types"
 
-import { LogEntry, RootLogNode } from "../index"
+import { LogEntry, RootLogNode } from "../logger"
 
 export interface WriterConfig {
   level?: LogLevel

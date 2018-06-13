@@ -20,7 +20,7 @@ import {
 } from "../google/google-cloud-functions"
 import {
   GardenPlugin,
-} from "../../types/plugin"
+} from "../../types/plugin/plugin"
 import { STATIC_DIR } from "../../constants"
 import {
   ContainerModuleSpec,

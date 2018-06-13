@@ -42,7 +42,7 @@ import {
 } from "./common"
 import {
   GardenPlugin,
-} from "../../types/plugin"
+} from "../../types/plugin/plugin"
 
 export interface GcfServiceSpec extends GoogleCloudServiceSpec {
   function: string,

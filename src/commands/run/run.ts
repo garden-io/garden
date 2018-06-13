@@ -9,7 +9,7 @@
 import { safeDump } from "js-yaml"
 import { PluginContext } from "../../plugin-context"
 import { RuntimeContext } from "../../types/service"
-import { highlightYaml } from "../../util"
+import { highlightYaml } from "../../util/util"
 import { Command } from "../base"
 import { RunModuleCommand } from "./module"
 import { RunServiceCommand } from "./service"
