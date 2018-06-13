@@ -6,43 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  readFileSync,
-  writeFileSync,
-} from "fs"
-import * as handlebars from "handlebars"
 import { resolve } from "path"
-import { GLOBAL_OPTIONS } from "../cli/cli"
-import { coreCommands } from "../commands"
-import { flatten } from "lodash"
-import { describeParameters } from "../commands/base"
-
-function generateCommandReferenceDocs(docsRoot: string) {
-  const referenceDir = resolve(docsRoot, "reference")
-  const outputPath = resolve(referenceDir, "commands.md")
-
-  const commands = flatten(coreCommands.map(cmd => {
-    if (cmd.subCommands && cmd.subCommands.length) {
-      return cmd.subCommands.map(subCommandCls => new subCommandCls(cmd).describe())
-    } else {
-      return [cmd.describe()]
-    }
-  }))
-
-  const globalOptions = describeParameters(GLOBAL_OPTIONS)
-
-  const templatePath = resolve(__dirname, "templates", "commands.hbs")
-  handlebars.registerPartial(
-    "argType",
-    "{{#if choices}}{{#each choices}}`{{.}}` {{/each}}{{else}}{{type}}{{/if}}",
-  )
-  const template = handlebars.compile(readFileSync(templatePath).toString())
-  const markdown = template({ commands, globalOptions })
-
-  writeFileSync(outputPath, markdown)
-}
+import { generateCommandReferenceDocs } from "./commands"
+import { generateConfigReferenceDocs } from "./config"
+import { argv } from "process"
 
 export function generateDocs(targetDir: string) {
   const docsRoot = resolve(process.cwd(), targetDir)
   generateCommandReferenceDocs(docsRoot)
+  generateConfigReferenceDocs(docsRoot)
+}
+
+if (require.main === module) {
+  generateDocs(argv[2])
 }

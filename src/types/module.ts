@@ -107,23 +107,33 @@ export interface BaseModuleSpec {
 
 export const baseModuleSpecSchema = Joi.object()
   .keys({
-    type: joiIdentifier().required().description("The type of this module (e.g. container)."),
-    name: joiIdentifier(),
+    type: joiIdentifier()
+      .required()
+      .description("The type of this module.")
+      .example("container"),
+    name: joiIdentifier()
+      .default(() => null, "<name of module directory>"),
     description: Joi.string(),
     variables: joiVariables()
-      .description("Variables that this module can reference and expose as environment variables."),
+      .description("Variables that this module can reference and expose as environment variables.")
+      .example({ "my-variable": "some-value" }),
     allowPush: Joi.boolean()
       .default(true)
       .description("Set to false to disable pushing this module to remote registries."),
     build: Joi.object().keys({
       command: Joi.string()
-        .description("The command to run inside the module directory to perform the build."),
+        .description("The command to run inside the module directory to perform the build.")
+        .example("npm run build"),
       dependencies: joiArray(buildDependencySchema)
-        .description("A list of modules that must be built before this module is built."),
-    }).default(() => ({ dependencies: [] }), "{}"),
+        .description("A list of modules that must be built before this module is built.")
+        .example([{ name: "some-other-module-name" }]),
+    })
+      .default(() => ({ dependencies: [] }), "{}")
+      .description("Specify how to build the module. Note that plugins may specify additional keys on this object."),
   })
   .required()
   .unknown(true)
+  .description("Configure a module whose sources are located in this directory.")
   .meta({ extendable: true })
 
 export interface ModuleConfig<T extends ModuleSpec = any> extends BaseModuleSpec {
