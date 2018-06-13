@@ -16,7 +16,7 @@ import * as Joi from "joi"
 import { join } from "path"
 import { PluginError } from "../../exceptions"
 import { DeployTask } from "../../tasks/deploy"
-import { validate } from "../../types/common"
+import { Environment, validate } from "../../types/common"
 import {
   GardenPlugin,
 } from "../../types/plugin/plugin"
@@ -33,6 +33,7 @@ import {
 import {
   gardenPlugin as k8sPlugin,
   KubernetesConfig,
+  KubernetesProvider,
 } from "./kubernetes"
 import {
   getSystemGarden,
@@ -40,6 +41,7 @@ import {
 } from "./system"
 import { readFile } from "fs-extra"
 import { processServices } from "../../process"
+import { LogEntry } from "../../logger/logger"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -67,52 +69,61 @@ export async function getLocalEnvironmentStatus(
   return status
 }
 
+async function configureSystemEnvironment(
+  { provider, env, force, logEntry }:
+    { provider: KubernetesProvider, env: Environment, force: boolean, logEntry?: LogEntry },
+) {
+  const sysGarden = await getSystemGarden(provider)
+  const sysCtx = sysGarden.pluginContext
+  const sysProvider: KubernetesProvider = {
+    name: provider.name,
+    config: <KubernetesConfig>findByName(sysGarden.config.providers, provider.name)!,
+  }
+
+  await execa("helm", ["init", "--client-only"])
+
+  const sysStatus = await getEnvironmentStatus({
+    ctx: sysCtx,
+    provider: sysProvider,
+    env,
+  })
+
+  await configureEnvironment({
+    ctx: sysCtx,
+    env: sysGarden.getEnvironment(),
+    provider: sysProvider,
+    force,
+    status: sysStatus,
+    logEntry,
+  })
+
+  const services = await sysCtx.getServices(provider.config._systemServices)
+
+  const results = await processServices({
+    services,
+    pluginContext: sysCtx,
+    watch: false,
+    process: async (service) => {
+      return [await DeployTask.factory({ ctx: sysCtx, service, force, forceBuild: false })]
+    },
+  })
+
+  const failed = values(results.taskResults).filter(r => !!r.error).length
+
+  if (failed) {
+    throw new PluginError(`local-kubernetes: ${failed} errors occurred when configuring environment`, {
+      results,
+    })
+  }
+}
+
 async function configureLocalEnvironment(
   { ctx, provider, env, force, status, logEntry }: ConfigureEnvironmentParams,
 ) {
   await configureEnvironment({ ctx, provider, env, force, status, logEntry })
 
   if (!isSystemGarden(provider)) {
-    const sysGarden = await getSystemGarden(provider)
-    const sysCtx = sysGarden.pluginContext
-    const sysProvider = {
-      name: provider.name,
-      config: findByName(sysGarden.config.providers, provider.name)!,
-    }
-
-    const sysStatus = await getEnvironmentStatus({
-      ctx: sysCtx,
-      provider: sysProvider,
-      env,
-    })
-
-    await configureEnvironment({
-      ctx: sysCtx,
-      env: sysGarden.getEnvironment(),
-      provider: sysProvider,
-      force,
-      status: sysStatus,
-      logEntry,
-    })
-
-    const services = await sysCtx.getServices(provider.config._systemServices)
-
-    const results = await processServices({
-      services,
-      pluginContext: ctx,
-      watch: false,
-      process: async (service) => {
-        return [await DeployTask.factory({ ctx: sysCtx, service, force, forceBuild: false })]
-      },
-    })
-
-    const failed = values(results.taskResults).filter(r => !!r.error).length
-
-    if (failed) {
-      throw new PluginError(`local-kubernetes: ${failed} errors occurred when configuring environments`, {
-        results,
-      })
-    }
+    await configureSystemEnvironment({ provider, env, force, logEntry })
   }
 
   return {}
@@ -126,6 +137,10 @@ async function getKubeConfig(): Promise<any> {
   }
 }
 
+/**
+ * Automatically set docker environment variables for minikube
+ * TODO: it would be better to explicitly provide those to docker instead of using process.env
+ */
 async function setMinikubeDockerEnv() {
   const minikubeEnv = await execa.stdout("minikube", ["docker-env", "--shell=bash"])
   for (const line of minikubeEnv.split("\n")) {
@@ -192,7 +207,7 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
   }
 
   if (context === "minikube") {
-    await execa("minikube", ["addons", "enable", "ingress"])
+    await execa("minikube", ["config", "set", "WantUpdateNotification", "false"])
 
     ingressHostname = config.ingressHostname
 
@@ -202,12 +217,13 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
       ingressHostname = minikubeIp + ".nip.io"
     }
 
+    await Promise.all([
+      execa("minikube", ["addons", "enable", "ingress"]),
+      setMinikubeDockerEnv(),
+    ])
+
     ingressPort = 80
     systemServices = []
-
-    // automatically set docker environment variables for minikube
-    // TODO: it would be better to explicitly provide those to docker instead of using process.env
-    await setMinikubeDockerEnv()
   } else {
     ingressHostname = config.ingressHostname || "local.app.garden"
     ingressPort = 32000

@@ -27,6 +27,7 @@ import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 import hasAnsi = require("has-ansi")
+import { safeDump } from "js-yaml"
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -309,6 +310,20 @@ export function spawnPty(
 
 export async function dumpYaml(yamlPath, data) {
   return writeFile(yamlPath, yaml.safeDump(data, { noRefs: true }))
+}
+
+/**
+ * Encode multiple objects as one multi-doc YAML file
+ */
+export function encodeYamlMulti(objects: object[]) {
+  return objects.map(s => safeDump(s) + "---\n").join("")
+}
+
+/**
+ * Encode and write multiple objects as a multi-doc YAML file
+ */
+export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
+  return writeFile(yamlPath, encodeYamlMulti(objects))
 }
 
 /**

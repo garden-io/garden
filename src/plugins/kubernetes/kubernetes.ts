@@ -37,6 +37,7 @@ import {
 } from "./actions"
 import { deployService } from "./deployment"
 import { kubernetesSpecHandlers } from "./specs-module"
+import { helmHandlers } from "./helm"
 
 export const name = "kubernetes"
 
@@ -102,6 +103,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
         getServiceLogs,
       },
       "kubernetes-specs": kubernetesSpecHandlers,
+      helm: helmHandlers,
     },
   }
 }
