@@ -7,6 +7,7 @@
  */
 
 import Bluebird = require("bluebird")
+import { ResolvableProps } from "bluebird"
 import * as pty from "node-pty"
 import * as exitHook from "async-exit-hook"
 import * as ignore from "ignore/ignore"
@@ -321,17 +322,16 @@ export function splitFirst(s: string, delimiter: string) {
 /**
  * Recursively resolves all promises in the given input,
  * walking through all object keys and array items.
- *
- * @param v: T
- * @returns {Promise<T>}
  */
-export async function deepResolve<T>(v: T) {
-  if (isArray(v)) {
-    return await Bluebird.map(v, deepResolve)
-  } else if (isPlainObject(v)) {
-    return await Bluebird.props(mapValues(v, deepResolve))
+export async function deepResolve<T>(
+  value: T | Iterable<T> | Iterable<PromiseLike<T>> | ResolvableProps<T>,
+): Promise<T | Iterable<T> | { [K in keyof T]: T[K] }> {
+  if (isArray(value)) {
+    return await Bluebird.map(value, deepResolve)
+  } else if (isPlainObject(value)) {
+    return await Bluebird.props(<ResolvableProps<T>>mapValues(<ResolvableProps<T>>value, deepResolve))
   } else {
-    return Promise.resolve(v)
+    return Promise.resolve(<T>value)
   }
 }
 

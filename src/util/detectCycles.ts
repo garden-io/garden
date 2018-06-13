@@ -8,7 +8,9 @@
 
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { Module } from "../types/module"
-import { ConfigurationError } from "../exceptions"
+import {
+  ConfigurationError,
+} from "../exceptions"
 import { Service } from "../types/service"
 
 export type Cycle = string[]
@@ -81,10 +83,10 @@ export function detectCycles(graph, vertices: string[]): Cycle[] {
   const cycleVertices = vertices.filter(v => next(graph, v, v))
   const cycles: Cycle[] = cycleVertices.map(v => {
     const cycle = [v]
-    let nextInCycle = next(graph, v, v)
+    let nextInCycle = next(graph, v, v)!
     while (nextInCycle !== v) {
       cycle.push(nextInCycle)
-      nextInCycle = next(graph, nextInCycle, v)
+      nextInCycle = next(graph, nextInCycle, v)!
     }
     return cycle
   })
@@ -98,7 +100,7 @@ function distance(graph, source, destination): number {
   return get(graph, [source, destination, "distance"], Infinity)
 }
 
-function next(graph, source, destination): string {
+function next(graph, source, destination): string | undefined {
   return get(graph, [source, destination, "next"])
 }
 
