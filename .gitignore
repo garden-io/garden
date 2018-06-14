@@ -12,6 +12,7 @@ node_modules
 
 # Runtime files
 .garden
+.garden-version
 tmp/
 
 # TS cache on the CI

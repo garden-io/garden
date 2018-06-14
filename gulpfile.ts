@@ -12,7 +12,6 @@ import { generateDocs } from "./src/docs/generate"
 const gulp = require("gulp")
 const cached = require("gulp-cached")
 const checkLicense = require("gulp-license-check")
-const excludeGitIgnore = require("gulp-exclude-gitignore")
 // const debug = require("gulp-debug")
 // const exec = require("gulp-exec")
 const pegjs = require("gulp-pegjs")
@@ -30,19 +29,14 @@ const tsSources = "src/**/*.ts"
 const testTsSources = "test/**/*.ts"
 const pegjsSources = "src/*.pegjs"
 
-const staticFiles = ["package.json", "package-lock.json", "static/**/*", ".snyk"]
 const licenseHeaderPath = "static/license-header.txt"
 
-let destDir = "build"
+const destDir = "build"
 
 class TaskError extends Error {
   toString() {
     return this.message
   }
-}
-
-function setDestDir(path) {
-  destDir = path
 }
 
 const children: ChildProcess[] = []
@@ -80,7 +74,7 @@ process.on("SIGINT", die)
 process.on("SIGTERM", die)
 
 gulp.task("add-version-files", (cb) => {
-  const gardenBinPath = join(destDir, "static", "bin", "garden")
+  const gardenBinPath = join("static", "bin", "garden")
   const proc = _spawn("node", [gardenBinPath, "scan", "--output=json"])
 
   proc.on("error", err => cb(err))
@@ -105,7 +99,7 @@ gulp.task("add-version-files", (cb) => {
 
     for (const module of <any>results.result) {
       const relPath = relative(__dirname, module.path)
-      const versionFilePath = join(__dirname, destDir, relPath, ".garden-version")
+      const versionFilePath = join(__dirname, relPath, ".garden-version")
       writeFileSync(versionFilePath, JSON.stringify(module.version))
     }
 
@@ -135,23 +129,12 @@ gulp.task("mocha", (cb) =>
 gulp.task("pegjs", () =>
   gulp.src(pegjsSources)
     .pipe(pegjs({ format: "commonjs" }))
-    .pipe(gulp.dest(join(destDir, "src"))),
+    .pipe(gulp.dest(destDir)),
 )
 
 gulp.task("pegjs-watch", () =>
   gulp.watch(pegjsSources, gulp.parallel("pegjs")),
 )
-
-gulp.task("static", () => {
-  return gulp.src(staticFiles, { base: "./" })
-    .pipe(excludeGitIgnore())
-    .pipe(cached("static"))
-    .pipe(gulp.dest(destDir))
-})
-
-gulp.task("static-watch", () => {
-  return gulp.watch(staticFiles, gulp.series("static", "add-version-files"))
-})
 
 gulp.task("tsc", () =>
   tsProject.src()
@@ -159,7 +142,7 @@ gulp.task("tsc", () =>
     .pipe(tsProject(reporter))
     .on("error", die)
     .pipe(sourcemaps.write())
-    .pipe(gulp.dest(join(destDir, "src"))),
+    .pipe(gulp.dest(destDir)),
 )
 
 gulp.task("tsc-watch", () =>
@@ -168,7 +151,7 @@ gulp.task("tsc-watch", () =>
       "--pretty",
       "--declaration",
       "-p", __dirname,
-      "--outDir", join(destDir, "src"),
+      "--outDir", destDir,
     ],
     { stdio: "inherit" },
   ),
@@ -211,14 +194,12 @@ gulp.task("watch-code", () => {
 
 gulp.task("lint", gulp.parallel("check-licenses", "tslint", "tslint-tests", "tsfmt"))
 gulp.task("build", gulp.series(
-  gulp.parallel("generate-docs", "pegjs", "static", "tsc"),
+  gulp.parallel("generate-docs", "pegjs", "tsc"),
   "add-version-files",
 ))
-gulp.task("dist", gulp.series((done) => { setDestDir("dist"); done() }, "lint", "build"))
 gulp.task("test", gulp.parallel("build", "lint", "mocha"))
 gulp.task("watch", gulp.series(
   "build",
-  gulp.parallel("pegjs-watch", "static-watch", "tsc-watch", "watch-code"),
+  gulp.parallel("pegjs-watch", "tsc-watch", "watch-code"),
 ))
-gulp.task("watch-dist", gulp.series((done) => { setDestDir("dist"); done() }, "watch"))
 gulp.task("default", gulp.series("watch"))
