@@ -19,13 +19,13 @@ import { DeployTask } from "../../tasks/deploy"
 import { validate } from "../../types/common"
 import {
   GardenPlugin,
-} from "../../types/plugin"
+} from "../../types/plugin/plugin"
 import {
   ConfigureEnvironmentParams,
   GetEnvironmentStatusParams,
 } from "../../types/plugin/params"
 import { providerConfigBase } from "../../types/project"
-import { findByName } from "../../util"
+import { findByName } from "../../util/util"
 import {
   configureEnvironment,
   getEnvironmentStatus,
@@ -33,7 +33,7 @@ import {
 import {
   gardenPlugin as k8sPlugin,
   KubernetesConfig,
-} from "./index"
+} from "./kubernetes"
 import {
   getSystemGarden,
   isSystemGarden,

@@ -1,6 +1,4 @@
 import * as td from "testdouble"
-import { LogLevel } from "../src/logger/types"
-import { RootLogNode } from "../src/logger"
 import { Module } from "../src/types/module"
 
 // Global before hooks

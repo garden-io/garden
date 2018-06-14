@@ -40,7 +40,7 @@ import {
   helpers,
 } from "../container"
 import { values, every, uniq } from "lodash"
-import { deserializeKeys, serializeKeys, splitFirst, sleep } from "../../util"
+import { deserializeKeys, serializeKeys, splitFirst, sleep } from "../../util/util"
 import { ServiceStatus } from "../../types/service"
 import { joiIdentifier } from "../../types/common"
 import {
@@ -66,7 +66,7 @@ import {
   checkDeploymentStatus,
 } from "./status"
 
-import { name as providerName } from "./index"
+import { name as providerName } from "./kubernetes"
 
 const MAX_STORED_USERNAMES = 5
 

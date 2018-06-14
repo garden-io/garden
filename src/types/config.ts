@@ -10,7 +10,7 @@ import { join, parse, relative, sep } from "path"
 import {
   findByName,
   getNames,
-} from "../util"
+} from "../util/util"
 import { baseModuleSpecSchema, ModuleConfig } from "./module"
 import { joiIdentifier, validate } from "./common"
 import { ConfigurationError } from "../exceptions"

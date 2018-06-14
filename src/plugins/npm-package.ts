@@ -7,7 +7,7 @@
  */
 
 import { ModuleConfig } from "../types/module"
-import { GardenPlugin } from "../types/plugin"
+import { GardenPlugin } from "../types/plugin/plugin"
 import { ServiceConfig } from "../types/service"
 import {
   genericPlugin,

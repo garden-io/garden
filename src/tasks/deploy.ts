@@ -8,7 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { LogEntry } from "../logger"
+import { LogEntry } from "../logger/logger"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
 import { Task, TaskParams, TaskVersion } from "../types/task"

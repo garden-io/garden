@@ -21,7 +21,7 @@ import {
   uniq,
   flatten,
 } from "lodash"
-import { printRuntimeContext } from "./index"
+import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 
 export const runArgs = {

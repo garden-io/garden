@@ -16,7 +16,7 @@ import {
   ParameterValues,
   StringParameter,
 } from "./base"
-import { splitFirst } from "../util"
+import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
 import { pick } from "lodash"

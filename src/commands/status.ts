@@ -15,7 +15,7 @@ import {
   Command,
   CommandResult,
 } from "./base"
-import { highlightYaml } from "../util"
+import { highlightYaml } from "../util/util"
 
 export class StatusCommand extends Command {
   name = "status"

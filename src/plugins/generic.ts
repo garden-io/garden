@@ -14,7 +14,7 @@ import {
 } from "../types/common"
 import {
   GardenPlugin,
-} from "../types/plugin"
+} from "../types/plugin/plugin"
 import {
   Module,
   ModuleConfig,
@@ -39,7 +39,7 @@ import {
   BaseTestSpec,
   baseTestSpecSchema,
 } from "../types/test"
-import { spawn } from "../util"
+import { spawn } from "../util/util"
 
 export const name = "generic"
 

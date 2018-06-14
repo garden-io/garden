@@ -19,7 +19,7 @@ import {
   withDependants,
 } from "./watch"
 import { padEnd, values, flatten } from "lodash"
-import { getNames, registerCleanupFunction } from "./util"
+import { getNames, registerCleanupFunction } from "./util/util"
 import { PluginContext } from "./plugin-context"
 
 export type ProcessModule = (module: Module) => Promise<Task[]>

@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { join } from "path"
-import { scanDirectory } from "../../src/util"
+import { scanDirectory } from "../../src/util/util"
 
 describe("util", () => {
   describe("scanDirectory", () => {

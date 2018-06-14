@@ -8,7 +8,7 @@
 
 import { spawn } from "child_process"
 import { extend } from "lodash"
-import { spawnPty } from "../../util"
+import { spawnPty } from "../../util/util"
 
 export interface GCloudParams {
   data?: Buffer,

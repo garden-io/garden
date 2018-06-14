@@ -13,7 +13,7 @@ import * as yaml from "js-yaml"
 import { get, isPlainObject, unset } from "lodash"
 import { joiIdentifier, Primitive, validate } from "./types/common"
 import { LocalConfigError } from "./exceptions"
-import { dumpYaml } from "./util"
+import { dumpYaml } from "./util/util"
 
 export type ConfigValue = Primitive | Primitive[]
 

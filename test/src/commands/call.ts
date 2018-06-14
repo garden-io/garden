@@ -3,7 +3,7 @@ import { Garden } from "../../../src/garden"
 import { CallCommand } from "../../../src/commands/call"
 import { expect } from "chai"
 import { parseContainerModule } from "../../../src/plugins/container"
-import { PluginFactory } from "../../../src/types/plugin"
+import { PluginFactory } from "../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../src/types/plugin/params"
 import { ServiceStatus } from "../../../src/types/service"
 import nock = require("nock")

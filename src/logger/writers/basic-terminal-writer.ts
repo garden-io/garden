@@ -12,7 +12,7 @@ import {
 import {
   formatForTerminal,
 } from "../renderers"
-import { LogEntry, RootLogNode } from "../index"
+import { LogEntry, RootLogNode } from "../logger"
 import { validate } from "../util"
 import { Writer } from "./base"
 

@@ -10,7 +10,7 @@ import * as sywac from "sywac"
 import { merge, intersection } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
-import { coreCommands } from "../commands"
+import { coreCommands } from "../commands/commands"
 import stringify = require("json-stringify-safe")
 
 import { DeepPrimitiveMap } from "../types/common"
@@ -18,7 +18,7 @@ import {
   enumToArray,
   shutdown,
   sleep,
-} from "../util"
+} from "../util/util"
 import {
   BooleanParameter,
   Command,
@@ -35,7 +35,7 @@ import {
 } from "../exceptions"
 import { Garden } from "../garden"
 
-import { RootLogNode, getLogger } from "../logger"
+import { RootLogNode, getLogger } from "../logger/logger"
 import { LogLevel, LoggerType } from "../logger/types"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../logger/writers/fancy-terminal-writer"

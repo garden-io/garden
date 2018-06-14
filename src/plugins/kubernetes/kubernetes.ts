@@ -11,7 +11,7 @@ import { validate } from "../../types/common"
 import {
   GardenPlugin,
   Provider,
-} from "../../types/plugin"
+} from "../../types/plugin/plugin"
 import {
   ProviderConfig,
   providerConfigBase,

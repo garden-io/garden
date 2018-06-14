@@ -10,7 +10,7 @@ import { readFile } from "fs-extra"
 import { resolve } from "path"
 import Bluebird = require("bluebird")
 import { isPrimitive, Primitive } from "./types/common"
-import { deepResolve } from "./util"
+import { deepResolve } from "./util/util"
 import * as deepMap from "deep-map"
 import { GardenBaseError } from "./exceptions"
 

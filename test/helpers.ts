@@ -18,7 +18,7 @@ import {
   PluginActions,
   PluginFactory,
   ModuleActions,
-  } from "../src/types/plugin"
+  } from "../src/types/plugin/plugin"
 import { Garden } from "../src/garden"
 import {
   ModuleConfig,

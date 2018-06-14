@@ -6,7 +6,7 @@ import { Garden } from "../../../src/garden"
 import { parseContainerModule } from "../../../src/plugins/container"
 import {
   PluginFactory,
-} from "../../../src/types/plugin"
+} from "../../../src/types/plugin/plugin"
 import { Module } from "../../../src/types/module"
 import { PushCommand } from "../../../src/commands/push"
 import { TreeVersion } from "../../../src/vcs/base"

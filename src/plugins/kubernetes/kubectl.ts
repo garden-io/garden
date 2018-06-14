@@ -9,9 +9,9 @@
 import chalk from "chalk"
 import { ChildProcess, spawn } from "child_process"
 import { extend } from "lodash"
-import { spawnPty } from "../../util"
+import { spawnPty } from "../../util/util"
 import { RuntimeError } from "../../exceptions"
-import { getLogger } from "../../logger"
+import { getLogger } from "../../logger/logger"
 import hasAnsi = require("has-ansi")
 
 export interface KubectlParams {

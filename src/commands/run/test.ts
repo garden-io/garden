@@ -14,7 +14,7 @@ import { RunResult } from "../../types/plugin/outputs"
 import {
   findByName,
   getNames,
-} from "../../util"
+} from "../../util/util"
 import {
   BooleanParameter,
   Command,
@@ -22,7 +22,7 @@ import {
   ParameterValues,
   StringParameter,
 } from "../base"
-import { printRuntimeContext } from "./index"
+import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 
 export const runArgs = {

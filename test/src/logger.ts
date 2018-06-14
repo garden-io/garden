@@ -4,7 +4,7 @@ import { expect } from "chai"
 import { LogLevel, EntryStatus, LogSymbolType, EntryStyle } from "../../src/logger/types"
 import { BasicTerminalWriter } from "../../src/logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../../src/logger/writers/fancy-terminal-writer"
-import { RootLogNode, getLogger } from "../../src/logger"
+import { RootLogNode, getLogger } from "../../src/logger/logger"
 import { getChildNodes } from "../../src/logger/util"
 
 let logger
