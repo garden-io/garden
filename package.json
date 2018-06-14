@@ -138,6 +138,7 @@
     "snyk-protect": "snyk protect",
     "test": "npm run clean && gulp test",
     "update-submodules": "git submodule update --init --recursive --jobs 4",
+    "version": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0 && git add CHANGELOG.md",
     "view-report": "open coverage/index.html",
     "watch": "gulp watch"
   },
