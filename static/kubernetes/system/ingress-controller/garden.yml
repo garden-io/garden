@@ -2,7 +2,7 @@ module:
   description: Ingress controller for garden development
   name: k8s-ingress-controller
   type: container
-  image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.9.0-beta.19
+  image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.15.0
   services:
     - name: ingress-controller
       command:

@@ -10,6 +10,7 @@ You need the following dependencies on your local machine to use Garden:
 * Git
 * rsync
 * [Watchman](https://facebook.github.io/watchman/docs/install.html)
+* [Helm](https://github.com/kubernetes/helm)
 * Local installation of Kubernetes
 
 ### OSX

@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { ChildProcess, spawn } from "child_process"
 import { extend } from "lodash"
-import { spawnPty } from "../../util/util"
+import { encodeYamlMulti, spawnPty } from "../../util/util"
 import { RuntimeError } from "../../exceptions"
 import { getLogger } from "../../logger/logger"
 import hasAnsi = require("has-ansi")
@@ -27,6 +27,13 @@ export interface KubectlOutput {
   output: string,
   stdout?: string,
   stderr?: string,
+}
+
+export interface ApplyOptions {
+  dryRun?: boolean,
+  force?: boolean,
+  pruneSelector?: string,
+  namespace?: string,
 }
 
 export const KUBECTL_DEFAULT_TIMEOUT = 600
@@ -87,7 +94,11 @@ export class Kubectl {
       const _reject = (msg: string) => {
         const dataStr = data ? data.toString() : null
         const details = extend({ args, preparedArgs, msg, data: dataStr }, <any>out)
-        const err = new RuntimeError(`Failed running 'kubectl ${args.join(" ")}'`, details)
+
+        const err = new RuntimeError(
+          `Failed running 'kubectl ${preparedArgs.join(" ")}': ${out.output}`,
+          details,
+        )
         reject(err)
       }
 
@@ -152,18 +163,21 @@ export function kubectl(context: string, namespace?: string) {
   return new Kubectl({ context, namespace })
 }
 
-export async function apply(
-  context: string, obj: any,
-  { dryRun = false, force = false, namespace }: { dryRun?: boolean, force?: boolean, namespace?: string } = {},
+export async function apply(context: string, spec: object, params: ApplyOptions) {
+  return applyMany(context, [spec], params)
+}
+
+export async function applyMany(
+  context: string, specs: object[],
+  { dryRun = false, force = false, namespace, pruneSelector }: ApplyOptions = {},
 ) {
-  const data = Buffer.from(JSON.stringify(obj))
+  const data = Buffer.from(encodeYamlMulti(specs))
 
   let args = ["apply"]
   dryRun && args.push("--dry-run")
   force && args.push("--force")
-  args.push("--output=json")
-  args.push("-f")
-  args.push("-")
+  pruneSelector && args.push("--prune", "--selector", pruneSelector)
+  args.push("--output=json", "-f", "-")
 
   const result = await kubectl(context, namespace).call(args, { data })
 

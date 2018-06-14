@@ -7,8 +7,16 @@
  */
 
 import Bluebird = require("bluebird")
+import {
+  isEqual,
+  set,
+  zip,
+} from "lodash"
 import * as Joi from "joi"
-import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
+import {
+  GARDEN_ANNOTATION_KEYS_SERVICE,
+  GARDEN_ANNOTATION_KEYS_VERSION,
+} from "../../constants"
 import {
   joiIdentifier,
   validate,
@@ -17,7 +25,6 @@ import {
   Module,
   ModuleSpec,
 } from "../../types/module"
-import { ModuleActions } from "../../types/plugin/plugin"
 import {
   ParseModuleResult,
 } from "../../types/plugin/outputs"
@@ -27,25 +34,44 @@ import {
   ParseModuleParams,
 } from "../../types/plugin/params"
 import {
+  Service,
   ServiceConfig,
-  ServiceSpec,
   ServiceStatus,
 } from "../../types/service"
 import {
   TestConfig,
   TestSpec,
 } from "../../types/test"
+import { TreeVersion } from "../../vcs/base"
 import {
-  apply,
+  applyMany,
 } from "./kubectl"
 import { getAppNamespace } from "./namespace"
+import { coreApi, extensionsApi, rbacApi } from "./api"
+import { KubernetesProvider } from "./kubernetes"
+import { PluginContext } from "../../plugin-context"
+import { ConfigurationError } from "../../exceptions"
 
 export interface KubernetesSpecsModuleSpec extends ModuleSpec {
   specs: any[],
 }
 
-export class KubernetesSpecsModule extends Module<KubernetesSpecsModuleSpec> { }
+export interface KubernetesSpecsServiceSpec extends KubernetesSpecsModuleSpec { }
 
+export class KubernetesSpecsModule extends Module<KubernetesSpecsModuleSpec, KubernetesSpecsServiceSpec> { }
+
+export interface K8sSpec {
+  apiVersion: string
+  kind: string
+  metadata: {
+    annotations?: object,
+    name: string,
+    namespace?: string,
+    labels?: object,
+  }
+}
+
+// TODO: use actual k8s swagger schemas from @kubernetes/client-node to validate
 const k8sSpecSchema = Joi.object().keys({
   apiVersion: Joi.string().required(),
   kind: Joi.string().required(),
@@ -59,10 +85,10 @@ const k8sSpecSchema = Joi.object().keys({
 
 const k8sSpecsSchema = Joi.array().items(k8sSpecSchema).min(1)
 
-export const kubernetesSpecHandlers: Partial<ModuleActions> = {
+export const kubernetesSpecHandlers = {
   async parseModule({ moduleConfig }: ParseModuleParams<KubernetesSpecsModule>): Promise<ParseModuleResult> {
     // TODO: check that each spec namespace is the same as on the project, if specified
-    const services: ServiceConfig<ServiceSpec>[] = [{
+    const services: ServiceConfig<KubernetesSpecsServiceSpec>[] = [{
       name: moduleConfig.name,
       dependencies: [],
       outputs: {},
@@ -83,20 +109,18 @@ export const kubernetesSpecHandlers: Partial<ModuleActions> = {
   getServiceStatus: async (
     { ctx, provider, service }: GetServiceStatusParams<KubernetesSpecsModule>,
   ): Promise<ServiceStatus> => {
-    const context = provider.config.context
     const namespace = await getAppNamespace(ctx, provider)
     const currentVersion = await service.module.getVersion()
+    const specs = await prepareSpecs(service, namespace, currentVersion)
 
-    const dryRunOutputs = await Bluebird.map(
-      service.module.spec.specs,
-      (spec) => apply(context, spec, { dryRun: true, namespace }),
-    )
+    const existingSpecs = await Bluebird.map(specs, spec => getSpec(ctx, provider, spec))
 
-    for (const dryRunOutput of dryRunOutputs) {
-      const annotations = dryRunOutput.metadata.annotations || {}
-      const version: string = annotations[GARDEN_ANNOTATION_KEYS_VERSION]
+    for (const [spec, existingSpec] of zip(specs, existingSpecs)) {
+      const lastApplied = existingSpec && JSON.parse(
+        existingSpec.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"],
+      )
 
-      if (!version || version !== currentVersion.versionString) {
+      if (!isEqual(spec, lastApplied)) {
         // TODO: return more complete information. for now we just need to signal whether the deployed specs are current
         return {}
       }
@@ -109,22 +133,92 @@ export const kubernetesSpecHandlers: Partial<ModuleActions> = {
     const context = provider.config.context
     const namespace = await getAppNamespace(ctx, provider)
     const currentVersion = await service.module.getVersion()
+    const specs = await prepareSpecs(service, namespace, currentVersion)
 
-    await Bluebird.each(service.module.spec.specs, async (spec) => {
-      const annotatedSpec = {
-        metadata: <any>{},
-        ...spec,
-      }
-
-      if (!annotatedSpec.metadata.annotations) {
-        annotatedSpec.metadata.annotations = { [GARDEN_ANNOTATION_KEYS_VERSION]: currentVersion.versionString }
-      } else {
-        annotatedSpec.metadata.annotations[GARDEN_ANNOTATION_KEYS_VERSION] = currentVersion.versionString
-      }
-
-      await apply(context, annotatedSpec, { namespace })
-    })
+    await applyMany(context, specs, { namespace, pruneSelector: `${GARDEN_ANNOTATION_KEYS_SERVICE}=${service.name}` })
 
     return {}
   },
+}
+
+async function prepareSpecs(service: Service<KubernetesSpecsModule>, namespace: string, version: TreeVersion) {
+  return service.module.spec.specs.map((rawSpec) => {
+    const spec = {
+      metadata: {},
+      ...rawSpec,
+    }
+
+    spec.metadata.namespace = namespace
+
+    set(spec, ["metadata", "annotations", GARDEN_ANNOTATION_KEYS_VERSION], version.versionString)
+    set(spec, ["metadata", "annotations", GARDEN_ANNOTATION_KEYS_SERVICE], service.name)
+    set(spec, ["metadata", "labels", GARDEN_ANNOTATION_KEYS_SERVICE], service.name)
+
+    return spec
+  })
+}
+
+async function apiReadBySpec(ctx: PluginContext, provider: KubernetesProvider, spec: K8sSpec) {
+  // this is just awful, sorry. any better ideas? - JE
+  const context = provider.config.context
+  const namespace = await getAppNamespace(ctx, provider)
+  const name = spec.metadata.name
+
+  const core = coreApi(context)
+  const ext = extensionsApi(context)
+  const rbac = rbacApi(context)
+
+  switch (spec.kind) {
+    case "ConfigMap":
+      return core.readNamespacedConfigMap(name, namespace)
+    case "Endpoints":
+      return core.readNamespacedEndpoints(name, namespace)
+    case "LimitRange":
+      return core.readNamespacedLimitRange(name, namespace)
+    case "PersistentVolumeClaim":
+      return core.readNamespacedPersistentVolumeClaim(name, namespace)
+    case "Pod":
+      return core.readNamespacedPod(name, namespace)
+    case "PodTemplate":
+      return core.readNamespacedPodTemplate(name, namespace)
+    case "ReplicationController":
+      return core.readNamespacedReplicationController(name, namespace)
+    case "ResourceQuota":
+      return core.readNamespacedResourceQuota(name, namespace)
+    case "Secret":
+      return core.readNamespacedSecret(name, namespace)
+    case "Service":
+      return core.readNamespacedService(name, namespace)
+    case "ServiceAccount":
+      return core.readNamespacedServiceAccount(name, namespace)
+    case "DaemonSet":
+      return ext.readNamespacedDaemonSet(name, namespace)
+    case "Deployment":
+      return ext.readNamespacedDeployment(name, namespace)
+    case "Ingress":
+      return ext.readNamespacedIngress(name, namespace)
+    case "ReplicaSet":
+      return ext.readNamespacedReplicaSet(name, namespace)
+    case "Role":
+      return rbac.readNamespacedRole(name, namespace)
+    case "RoleBinding":
+      return rbac.readNamespacedRoleBinding(name, namespace)
+    default:
+      throw new ConfigurationError(`Unsupported Kubernetes spec kind: ${spec.kind}`, {
+        spec,
+      })
+  }
+}
+
+async function getSpec(ctx: PluginContext, provider: KubernetesProvider, spec: K8sSpec) {
+  try {
+    const res = await apiReadBySpec(ctx, provider, spec)
+    return res.body
+  } catch (err) {
+    if (err.response && err.response.statusCode === 404) {
+      return null
+    } else {
+      throw err
+    }
+  }
 }

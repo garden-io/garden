@@ -27,6 +27,7 @@ import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 import hasAnsi = require("has-ansi")
+import { safeDump } from "js-yaml"
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -312,6 +313,20 @@ export async function dumpYaml(yamlPath, data) {
 }
 
 /**
+ * Encode multiple objects as one multi-doc YAML file
+ */
+export function encodeYamlMulti(objects: object[]) {
+  return objects.map(s => safeDump(s) + "---\n").join("")
+}
+
+/**
+ * Encode and write multiple objects as a multi-doc YAML file
+ */
+export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
+  return writeFile(yamlPath, encodeYamlMulti(objects))
+}
+
+/**
  * Splits the input string on the first occurrence of `delimiter`.
  */
 export function splitFirst(s: string, delimiter: string) {
@@ -339,7 +354,7 @@ export function omitUndefined(o: object) {
   return pickBy(o, (v: any) => v !== undefined)
 }
 
-export function serializeObject(o: object) {
+export function serializeObject(o: any): string {
   return Buffer.from(Cryo.stringify(o)).toString("base64")
 }
 
@@ -347,11 +362,11 @@ export function deserializeObject(s: string) {
   return Cryo.parse(Buffer.from(s, "base64"))
 }
 
-export function serializeKeys(o: object) {
+export function serializeValues(o: { [key: string]: any }): { [key: string]: string } {
   return mapValues(o, serializeObject)
 }
 
-export function deserializeKeys(o: object) {
+export function deserializeValues(o: object) {
   return mapValues(o, deserializeObject)
 }
 
