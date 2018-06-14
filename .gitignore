@@ -30,6 +30,9 @@ src/**/*.js
 src/**/*.map
 src/**/*.d.ts
 static/bin/garden.js
+support/**/*.js
+support/**/*.map
+support/**/*.d.ts
 test/**/*.js
 test/**/*.map
 *.tgz

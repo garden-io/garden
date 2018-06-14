@@ -20,8 +20,7 @@ All that said, Garden can already be highly useful if the following applies to y
 * **You keep all your services in a single repository** _(multi-repo support coming soon!)._
 * **You really don't want to spend your precious hours building your own developer tooling!**
 
-If that sounds right for you, please give it a go and don't hesitate to report issues or come right over 
-to our [Gitter](https://gitter.im/garden-io/Lobby#) for a chat!
+If that sounds right for you, please give it a go and don't hesitate to report issues.
 
 
 ## Features
@@ -41,60 +40,15 @@ Garden is also designed to be pluggable and modular, with Kubernetes being just 
 Over time we will add native support for a variety of platforms, including AWS (Lambda, ECS, Fargate and more), 
 GCP, Heroku, OpenFaaS... and the list will continue growing.
 
-
-## Setup
-
-### Dependencies
-
-You need to set up the following on your local machine to use garden:
-* Node.js >= 8.x
-* Docker
-* Git
-* rsync
-* [Watchman](https://facebook.github.io/watchman/docs/install.html)
-* Local installation of Kubernetes
-
-To install Kubernetes, we recommend [Docker for Mac/Windows (edge version)](https://docs.docker.com/engine/installation/) 
-on Mac/Windows, and you can use [Minikube](https://github.com/kubernetes/minikube) on any supported platform.
-You'll just need to configure a [kubectl context](https://kubernetes.io/docs/reference/kubectl/cheatsheet/#kubectl-context-and-configuration)
-to point to your local instance.
-
-<!--- TODO: explain kubectl contexts somewhere in more detail --->
-
-On Mac, we recommend using Homebrew on Mac to install everything except Docker, but use whatever works for you! 
-
-Note that you need to install the _edge version_ of Docker for Mac/Windows in 
-order to enable Kubernetes support. Once installed, you need to open the 
-Docker preferences, go to the Kubernetes section, tick `Enable Kubernetes` and 
-save. For more information, see [here for Mac](https://docs.docker.com/docker-for-mac/kubernetes/)
-or [here for Windows](https://docs.docker.com/docker-for-windows/kubernetes/).
-
-### Installation
-
-Once you have the above dependencies set up, simply run
-
-    npm install -g garden-cli
-
-Then go on to our [getting started guide](docs/introduction/getting-started.md), or try out the simple hello-world 
-example below to kick things off.
+Please read the [Motivation](https://docs.garden.io/introduction/motivation) section in our documentation
+for a brief discussion on why we're building Garden.
 
 
-## Examples
+## Usage
 
-The `examples/` directory contains usage examples for the framework. You might want to start with
-the `hello-world` example project, to see an example of basic build, deployment and interaction
-flows. Take a look around the projects, taking special note of the `garden.yml` files - 
-it's pretty straightforward, we promise :)
-
-To spin it up, `cd` to any of the directories under `examples/` and run:
-
-    garden deploy
-    
-Once you've deployed the `hello-world` project, you can try querying the `/hello` endpoint:
-
-    garden call hello-container/hello
-    
-For more details, please head over to our [getting started guide](docs/introduction/getting-started.md).
+Head over to our [Getting Started guide](https://docs.garden.io/introduction/getting-started) for details
+on how to set up and use Garden, or look through our [Simple Project](https://docs.garden.io/examples/simple-project)
+guide to get a quick sense of how it works.
 
 
 ## Contributing

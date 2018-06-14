@@ -1,72 +1,81 @@
 # Getting Started
 
-This guide will walk you through setting up the Garden framework. 
+This guide will walk you through setting up the Garden framework.
 
-## Install dependencies  
+
+## Installation
+
+### macOS
+
+For Mac, we recommend the following steps to install Garden. You can also follow the manual installation
+steps below if you prefer.
+
+#### Step 1: Install homebrew
+
+If you haven't already set up homebrew, please follow [their instructions](https://brew.sh/) to set it up.
+
+#### Step 2: Docker and local Kubernetes
+To install Docker, Kubernetes and kubectl, we strongly recommend Docker for Mac (edge version). 
+
+_Note: you need to install the **edge version** of Docker for Mac in 
+order to enable Kubernetes support._
+
+Once installed, open the Docker for Mac preferences, go to the Kubernetes section, 
+tick `Enable Kubernetes` and save. Please refer to their 
+[installation guide](https://docs.docker.com/engine/installation/) for details.
+
+Alternatively, you can use Minikube. We generally find it less stable and more hassle to 
+configure and use, but we do fully support it on Mac if you have it running. Please look at our
+[Minikube guide](../guides/minikube.md) for details.
+
+#### Step 3: Install `garden-cli`
+
+We have a Homebrew tap and package that you can use to easily install `garden-cli` and all dependencies:
+
+```sh
+brew tap garden-io/garden
+brew install garden-cli
+```
+
+To later upgrade to the newest version, simply run `brew update` and then `brew upgrade garden-cli` 
+(or `brew upgrade` to upgrade all your Homebrew packages).
+
+
+### Linux / manual installation
 
 You need the following dependencies on your local machine to use Garden:
+
 * Node.js >= 8.x
 * [Docker](https://docs.docker.com/)
 * Git
 * rsync
 * [Watchman](https://facebook.github.io/watchman/docs/install.html)
 * [Helm](https://github.com/kubernetes/helm)
-* Local installation of Kubernetes
-
-### OSX
-
-#### Step 1: Docker and local Kubernetes
-To install Docker and Kubernetes, we recommend [Docker for Mac (edge version)](https://docs.docker.com/engine/installation/).
-
-_Note: you need to install the _edge version_ of Docker for Mac in 
-order to enable Kubernetes support._
-
-Once installed, open the 
-Docker preferences, go to the Kubernetes section, tick `Enable Kubernetes` and 
-save.
-
-Alternatively, you can use [Minikube](../guides/minikube.md) on any supported platform.
-
-#### Step 2: Other dependencies
-For installing the other dependencies, we recommend using Homebrew.
-
-### Linux
+* Local installation of Kubernetes and kubectl
 
 #### Step 1: Docker
-To install Docker, please follow the instructions in the [official documentation](https://docs.docker.com/install/linux/docker-ce/ubuntu/).
+To install Docker, please follow the instructions in the [official documentation](https://docs.docker.com/install/).
 
 #### Step 2: Local Kubernetes
-For local Kubernetes, you can use Minikube. Please see the 
-[official installation guide](https://github.com/kubernetes/minikube#installation) for instructions.
+For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minikube). Please see our 
+[Minikube guide](../guides/minikube.md) for instructions.
 
-You'll likely also need to install a driver to run the Minikube VM. Please follow the 
-[instructions here](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver),
-and note the name of the driver.
- 
-Once Minikube and the appropriate driver for your OS is installed, you can start it by running:
+#### Step 3: Install other dependencies
 
+Use your preferred method or package manager to install `node` (version 8.x or higher), `git`, `rsync`, 
+[Watchman](https://facebook.github.io/watchman/docs/install.html) and
+[Helm](https://github.com/kubernetes/helm).
 
-```sh
-minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
-```
+#### Step 4: Install `garden-cli`
 
-Finally, you will need to configure a [kubectl context](https://kubernetes.io/docs/reference/kubectl/cheatsheet/#kubectl-context-and-configuration)
-to point to your local instance.
-
-<!-- More detailed docs for configuring kubectl context -->
-
-Check out our [Minikube guide](../guides/minikube.md) for further information on using Garden with Minikube.
-
-#### Step 3: Other dependencies
-Other dependencies can be installed with the package manager of your choice
-
-## Install the Garden CLI
-
-Once you have the dependencies set up, simply run:
+Once you have the dependencies set up, install the Garden CLI via `npm`:
 
 ```sh
 npm install -g garden-cli
 ```
+
+To later upgrade to the newest version, run `npm install -g -U garden-cli`.
+
 
 ## Using the CLI
 

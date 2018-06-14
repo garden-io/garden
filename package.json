@@ -131,6 +131,7 @@
     "generate-docs": "gulp generate-docs",
     "integ": "./test/integ/run",
     "lint": "gulp lint",
+    "postpublish": "gulp update-brew",
     "prepare": "npm run snyk-protect",
     "prepublishOnly": "npm run dist",
     "preversion": "npm test",
