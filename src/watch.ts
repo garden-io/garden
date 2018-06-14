@@ -6,49 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Client } from "fb-watchman"
+import { watch } from "chokidar"
 import {
-  findKey,
   mapValues,
-  pick,
   set,
   uniqBy,
   values,
 } from "lodash"
-import { basename, join, relative } from "path"
+import { basename, parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
 import { KeyedSet } from "./util/keyed-set"
 import { PluginContext } from "./plugin-context"
+import { getIgnorer, scanDirectory } from "./util/util"
+import { MODULE_CONFIG_FILENAME } from "./constants"
 
 export type AutoReloadDependants = { [key: string]: Module[] }
 
-export type ChangeHandler = (modules: Module[], configChanged: boolean) => Promise<void>
-
-export type CapabilityOptions = { required?: string[], optional?: string[] }
-export type CapabilityResponse = { error: Error, response: { capabilities: { string: boolean } } }
-
-export type ChangedFile = {
-  name: string, // path to the changed file or dir
-  size: number,
-  exists: boolean,
-  type: string,
-}
-
-export type SubscriptionResponse = {
-  root: string,
-  subscription: string,
-  files: ChangedFile[],
-}
-
-type RelativeModuleRoots = {
-  [key: string]: string,
-}
-
-type ProcessedChanges = {
-  configChanged: boolean,
-  changedModuleNames: string[],
-}
+export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
 /*
   Resolves to modules and their build & service dependency modules (recursively).
@@ -117,131 +92,145 @@ async function uniqueDependencyModules(module: Module): Promise<Module[]> {
 }
 
 export class FSWatcher {
-  private readonly client
-  private capabilityCheckComplete: boolean
+  private watcher
 
   constructor(private ctx: PluginContext) {
-    this.client = new Client()
-    this.capabilityCheckComplete = false
   }
 
-  /*
-    Wrapper around Facebook's Watchman library.
+  async watchModules(modules: Module[], changeHandler: ChangeHandler) {
 
-    See also: https://facebook.github.io/watchman/docs/nodejs.html
-    for further documentation.
-   */
+    const projectRoot = this.ctx.projectRoot
+    const ignorer = await getIgnorer(this.ctx.projectRoot)
 
-  command(args: any[]): Promise<any> {
-    return new Promise((res, rej) => {
-      this.client.command(args, (error: Error, result: object) => {
-        if (error) {
-          this.ctx.log.error(`Error while executing watcher.command, args were ${args}, error is: ${error}`)
-          rej(error)
-        }
+    const onFileChanged = this.makeFileChangedHandler(modules, changeHandler)
 
-        res(result)
-      })
+    this.watcher = watch(projectRoot, {
+      ignored: (path, _) => {
+        const relpath = relative(this.ctx.projectRoot, path)
+        return relpath && ignorer.ignores(relpath)
+      },
+      ignoreInitial: true,
+      persistent: true,
     })
+
+    this.watcher
+      .on("add", onFileChanged)
+      .on("change", onFileChanged)
+      .on("unlink", onFileChanged)
+
+    this.watcher
+      .on("addDir", await this.makeDirAddedHandler(modules, changeHandler, ignorer))
+      .on("unlinkDir", this.makeDirRemovedHandler(modules, changeHandler))
+
   }
 
-  async watchModules(
-    modules: Module[], subscriptionPrefix: string,
-    changeHandler: ChangeHandler,
-  ) {
+  private makeFileChangedHandler(modules: Module[], changeHandler: ChangeHandler) {
 
-    const _this = this
+    return async (filePath: string) => {
 
-    if (!this.capabilityCheckComplete) {
-      await this.capabilityCheck({ optional: [], required: ["relative_root"] })
-    }
-
-    const watchResult = await this.command(["watch-project", this.ctx.projectRoot])
-
-    const subscriptionRequest = {
-      since: (await this.command(["clock", watchResult.watch])).clock,
-    }
-
-    // Needed when this.ctx.projectRoot is a subdir of the dir where .git is located.
-    const prefix = relative(watchResult.watch, this.ctx.projectRoot)
-
-    const modulesByName = {}
-    const relModuleRoots: RelativeModuleRoots = {}
-
-    modules.forEach(m => {
-      modulesByName[m.name] = m
-      relModuleRoots[m.name] = join(prefix, relative(this.ctx.projectRoot, m.path))
-    })
-
-    await this.command([
-      "subscribe",
-      watchResult.watch,
-      FSWatcher.subscriptionKey(subscriptionPrefix),
-      subscriptionRequest,
-    ])
-
-    this.on("subscription", async (response: SubscriptionResponse) => {
-      const { configChanged, changedModuleNames } = this.processChangedFiles(response.files, relModuleRoots)
-      const changedModules: Module[] = values(pick(modulesByName, changedModuleNames))
-
-      for (const changedModule of changedModules) {
-        // invalidate the cache for anything attached to the module path or upwards in the directory tree
-        const cacheContext = pathToCacheContext(changedModule.path)
-        _this.ctx.invalidateCacheUp(cacheContext)
+      const filename = basename(filePath)
+      if (filename === "garden.yml" || filename === ".gitignore" || filename === ".gardenignore") {
+        await this.invalidateCachedForAll()
+        return changeHandler(null, true)
       }
 
-      await changeHandler(changedModules, configChanged)
-    })
-  }
+      const changedModule = modules.find(m => filePath.startsWith(m.path)) || null
 
-  capabilityCheck(options: CapabilityOptions): Promise<CapabilityResponse> {
-    return new Promise((res, rej) => {
-      this.client.capabilityCheck(options, (error: Error, response: CapabilityResponse) => {
-        if (error) {
-          // TODO: Error logging
-          rej(error)
-        }
-
-        if ("warning" in response) {
-          // TODO: Warning logging
-        }
-
-        res(response)
-      })
-    })
-  }
-
-  on(eventType: string, handler: (response: SubscriptionResponse) => void): void {
-    this.client.on(eventType, handler)
-  }
-
-  end(): void {
-    this.client.end()
-  }
-
-  private processChangedFiles(files: ChangedFile[], relModuleRoots: RelativeModuleRoots): ProcessedChanges {
-    let configChanged = false
-    let changedModuleNames: Set<string> = new Set()
-    for (const f of files) {
-
-      if (basename(f.name) === "garden.yml") {
-        configChanged = true
-        changedModuleNames.clear() // A Garden-level restart will be triggered, so these are irrelevant
-        break
+      if (changedModule) {
+        this.invalidateCached(changedModule)
       }
 
-      const changedModuleName = findKey(relModuleRoots,
-        (relPath) => f.name.startsWith(relPath))
+      return changeHandler(changedModule, false)
 
-      if (changedModuleName) {
-        changedModuleNames.add(changedModuleName)
+    }
+
+  }
+
+  private async makeDirAddedHandler(modules: Module[], changeHandler: ChangeHandler, ignorer) {
+
+    const scanOpts = {
+      filter: (path) => {
+        const relPath = relative(this.ctx.projectRoot, path)
+        return !ignorer.ignores(relPath)
+      },
+    }
+
+    return async (dirPath: string) => {
+
+      let configChanged = false
+
+      for await (const node of scanDirectory(dirPath, scanOpts)) {
+        if (!node) {
+          continue
+        }
+
+        if (parse(node.path).base === MODULE_CONFIG_FILENAME) {
+          configChanged = true
+        }
+      }
+
+      if (configChanged) {
+        // The added/removed dir contains one or more garden.yml files
+        this.invalidateCachedForAll()
+        return changeHandler(null, true)
+      }
+
+      const changedModule = modules.find(m => dirPath.startsWith(m.path)) || null
+
+      if (changedModule) {
+        this.invalidateCached(changedModule)
+        return changeHandler(changedModule, false)
       }
 
     }
-    return { configChanged, changedModuleNames: Array.from(changedModuleNames) }
+
   }
 
-  private static subscriptionKey(prefix: string) {
-    return `${prefix}Subscription`
+  private makeDirRemovedHandler(modules: Module[], changeHandler: ChangeHandler) {
+
+    return async (dirPath: string) => {
+
+      let changedModule: Module | null = null
+
+      for (const module of modules) {
+
+        if (module.path.startsWith(dirPath)) {
+          // at least one module's root dir was removed
+          await this.invalidateCachedForAll()
+          return changeHandler(null, true)
+        }
+
+        if (dirPath.startsWith(module.path)) {
+          // removed dir is a subdir of changedModule's root dir
+          if (!changedModule || module.path.startsWith(changedModule.path)) {
+            changedModule = module
+          }
+        }
+
+      }
+
+      if (changedModule) {
+        this.invalidateCached(changedModule)
+        return changeHandler(changedModule, false)
+      }
+    }
+
   }
+
+  private invalidateCached(module: Module) {
+    // invalidate the cache for anything attached to the module path or upwards in the directory tree
+    const cacheContext = pathToCacheContext(module.path)
+    this.ctx.invalidateCacheUp(cacheContext)
+  }
+
+  private async invalidateCachedForAll() {
+    for (const module of await this.ctx.getModules()) {
+      this.invalidateCached(module)
+    }
+  }
+
+  close(): void {
+    this.watcher.close()
+  }
+
 }

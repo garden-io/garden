@@ -45,6 +45,25 @@ export interface ProcessResults {
   restartRequired?: boolean
 }
 
+export async function processServices({ pluginContext, services, watch, process }: ProcessServicesParams):
+  Promise<ProcessResults> {
+
+  const serviceNames = getNames(services)
+  const modules = Array.from(new Set(services.map(s => s.module)))
+
+  return processModules({
+    pluginContext,
+    modules,
+    watch,
+    process: async (module) => {
+      const moduleServices = await module.getServices()
+      const servicesToDeploy = moduleServices.filter(s => serviceNames.includes(s.name))
+      return flatten(await Bluebird.map(servicesToDeploy, process))
+    },
+  })
+
+}
+
 export async function processModules({ pluginContext, modules, watch, process }: ProcessModulesParams):
   Promise<ProcessResults> {
 
@@ -83,11 +102,13 @@ export async function processModules({ pluginContext, modules, watch, process }:
   const restartPromise = new Promise(async (resolve) => {
 
     // TODO: should the prefix here be different or set explicitly per run?
-    await watcher.watchModules(modulesToWatch, "addTasksForAutoReload/",
-      async (changedModules: Module[], configChanged: boolean) => {
+    await watcher.watchModules(modulesToWatch,
+      async (changedModule: Module | null, configChanged: boolean) => {
 
-        ctx.log.debug({ msg: `Files changed for modules ${changedModules.map(m => m.name).join(", ")}` })
-        const restartNeeded = await handleChanges(ctx, autoReloadDependants, process, changedModules, configChanged)
+        if (changedModule) {
+          ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
+        }
+        const restartNeeded = await handleChanges(ctx, autoReloadDependants, process, changedModule, configChanged)
 
         if (restartNeeded) {
           resolve()
@@ -98,13 +119,13 @@ export async function processModules({ pluginContext, modules, watch, process }:
       })
 
     registerCleanupFunction("clearAutoReloadWatches", () => {
-      watcher.end()
+      watcher.close()
     })
 
   })
 
   await restartPromise
-  watcher.end()
+  watcher.close()
 
   return {
     taskResults: {}, // TODO: Return latest results for each task baseKey processed between restarts?
@@ -118,7 +139,7 @@ export async function handleChanges(
   pluginContext: PluginContext,
   autoReloadDependants: AutoReloadDependants,
   process: ProcessModule,
-  modules: Module[],
+  module: Module | null,
   configChanged: boolean): Promise<boolean> {
 
   const ctx = pluginContext
@@ -128,29 +149,14 @@ export async function handleChanges(
     return true
   }
 
-  for (const module of await withDependants(modules, autoReloadDependants)) {
-    await Bluebird.map(process(module), ctx.addTask)
+  if (!module) {
+    return false
+  }
+
+  for (const m of await withDependants([module], autoReloadDependants)) {
+    await Bluebird.map(process(m), ctx.addTask)
   }
 
   return false
-
-}
-
-export async function processServices({ pluginContext, services, watch, process }: ProcessServicesParams):
-  Promise<ProcessResults> {
-
-  const serviceNames = getNames(services)
-  const modules = Array.from(new Set(services.map(s => s.module)))
-
-  return processModules({
-    pluginContext,
-    modules,
-    watch,
-    process: async (module) => {
-      const moduleServices = await module.getServices()
-      const servicesToDeploy = moduleServices.filter(s => serviceNames.includes(s.name))
-      return flatten(await Bluebird.map(servicesToDeploy, process))
-    },
-  })
 
 }

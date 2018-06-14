@@ -96,6 +96,10 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
   exitHook(func)
 }
 
+/*
+  Warning: Don't make any async calls in the loop body when using this function, since this may cause
+  funky concurrency behavior.
+  */
 export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIterableIterator<klaw.Item> {
   let done = false
   let resolver
