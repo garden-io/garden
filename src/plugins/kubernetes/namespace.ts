@@ -33,22 +33,31 @@ export async function createNamespace(context: string, namespace: string) {
 }
 
 export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
+  let namespace
+
   if (isSystemGarden(provider)) {
-    return GARDEN_SYSTEM_NAMESPACE
+    namespace = GARDEN_SYSTEM_NAMESPACE
+  } else {
+    const localConfig = await ctx.localConfigStore.get()
+    const k8sConfig = localConfig.kubernetes || {}
+    let { username, ["previous-usernames"]: previousUsernames } = k8sConfig
+
+    if (!username) {
+      username = provider.config.defaultUsername
+    }
+
+    if (!username) {
+      throw new AuthenticationError(
+        `User not logged into provider ${providerName}. Please specify defaultUsername in provider ` +
+        `config or run garden login.`,
+        { previousUsernames, provider: providerName },
+      )
+    }
+
+    namespace = `garden--${username}--${ctx.projectName}`
   }
 
-  const localConfig = await ctx.localConfigStore.get()
-  const k8sConfig = localConfig.kubernetes || {}
-  const { username, ["previous-usernames"]: previousUsernames } = k8sConfig
-
-  if (!username) {
-    throw new AuthenticationError(
-      `User not logged into provider ${providerName}. Please run garden login.`,
-      { previousUsernames, provider: providerName },
-    )
-  }
-
-  return `garden--${username}--${ctx.projectName}`
+  return namespace
 }
 
 export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesProvider) {

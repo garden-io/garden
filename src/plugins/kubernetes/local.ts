@@ -237,6 +237,7 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
     ingressClass: "nginx",
     // TODO: support SSL on local deployments
     forceSsl: false,
+    defaultUsername: "default",
     _system: config._system,
     _systemServices: systemServices,
   }
