@@ -32,7 +32,7 @@ export async function createNamespace(context: string, namespace: string) {
   })
 }
 
-export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
+export async function getNamespace(ctx: PluginContext, provider: KubernetesProvider, suffix?: string) {
   let namespace
 
   if (isSystemGarden(provider)) {
@@ -57,16 +57,15 @@ export async function getAppNamespace(ctx: PluginContext, provider: KubernetesPr
     namespace = `garden--${username}--${ctx.projectName}`
   }
 
-  return namespace
+  return suffix ? `${namespace}--${suffix}` : namespace
+}
+
+export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
+  return getNamespace(ctx, provider)
 }
 
 export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  if (isSystemGarden(provider)) {
-    return GARDEN_SYSTEM_NAMESPACE + "--metadata"
-  }
-
-  const env = ctx.getEnvironment()
-  return `garden-metadata--${ctx.projectName}--${env.namespace}`
+  return getNamespace(ctx, provider, "metadata")
 }
 
 export async function getAllGardenNamespaces(context: string): Promise<string[]> {

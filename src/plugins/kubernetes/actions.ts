@@ -94,7 +94,7 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
     metadataNamespaceReady: false,
   }
 
-  const metadataNamespace = getMetadataNamespace(ctx, provider)
+  const metadataNamespace = await getMetadataNamespace(ctx, provider)
   const namespacesStatus = await coreApi(context).listNamespace()
   const namespace = await getAppNamespace(ctx, provider)
 
@@ -128,7 +128,7 @@ export async function configureEnvironment(
   }
 
   if (!status.detail.metadataNamespaceReady) {
-    const ns = getMetadataNamespace(ctx, provider)
+    const ns = await getMetadataNamespace(ctx, provider)
     logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
     await createNamespace(context, ns)
   }
@@ -299,7 +299,7 @@ export async function testModule(
     testName,
   }
 
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, result.version)
   const body = {
     apiVersion: "v1",
@@ -330,7 +330,7 @@ export async function getTestResult(
   { ctx, provider, module, testName, version }: GetTestResultParams<ContainerModule>,
 ) {
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, version)
 
   try {
@@ -387,7 +387,7 @@ export async function getServiceLogs(
 
 export async function getConfig({ ctx, provider, key }: GetConfigParams) {
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
 
   try {
     const res = await coreApi(context).readNamespacedSecret(key.join("."), ns)
@@ -404,7 +404,7 @@ export async function getConfig({ ctx, provider, key }: GetConfigParams) {
 export async function setConfig({ ctx, provider, key, value }: SetConfigParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const name = key.join(".")
   const body = {
     body: {
@@ -436,7 +436,7 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
 
 export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const name = key.join(".")
 
   try {
