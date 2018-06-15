@@ -18,18 +18,33 @@ import {
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
 
-export async function createNamespace(context: string, namespace: string) {
-  // TODO: the types for all the create functions in the library are currently broken
-  await coreApi(context).createNamespace(<any>{
-    apiVersion: "v1",
-    kind: "Namespace",
-    metadata: {
-      name: namespace,
-      annotations: {
-        "garden.io/generated": "true",
-      },
-    },
-  })
+const created: { [name: string]: boolean } = {}
+
+export async function ensureNamespace(context: string, namespace: string) {
+  if (!created[namespace]) {
+    const namespacesStatus = await coreApi(context).listNamespace()
+
+    for (const n of namespacesStatus.body.items) {
+      if (n.status.phase === "Active") {
+        created[n.metadata.name] = true
+      }
+    }
+
+    if (!created[namespace]) {
+      // TODO: the types for all the create functions in the library are currently broken
+      await coreApi(context).createNamespace(<any>{
+        apiVersion: "v1",
+        kind: "Namespace",
+        metadata: {
+          name: namespace,
+          annotations: {
+            "garden.io/generated": "true",
+          },
+        },
+      })
+      created[namespace] = true
+    }
+  }
 }
 
 export async function getNamespace(ctx: PluginContext, provider: KubernetesProvider, suffix?: string) {
@@ -57,7 +72,13 @@ export async function getNamespace(ctx: PluginContext, provider: KubernetesProvi
     namespace = `garden--${username}--${ctx.projectName}`
   }
 
-  return suffix ? `${namespace}--${suffix}` : namespace
+  if (suffix) {
+    namespace = `${namespace}--${suffix}`
+  }
+
+  await ensureNamespace(provider.config.context, namespace)
+
+  return namespace
 }
 
 export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {

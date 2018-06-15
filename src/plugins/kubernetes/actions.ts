@@ -39,7 +39,7 @@ import {
   ContainerModule,
   helpers,
 } from "../container"
-import { values, every, uniq } from "lodash"
+import { uniq } from "lodash"
 import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
 import { ServiceStatus } from "../../types/service"
 import { joiIdentifier } from "../../types/common"
@@ -47,7 +47,6 @@ import {
   coreApi,
 } from "./api"
 import {
-  createNamespace,
   getAppNamespace,
   getMetadataNamespace,
   getAllGardenNamespaces,
@@ -89,50 +88,17 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
     throw err
   }
 
-  const statusDetail: { [key: string]: boolean } = {
-    namespaceReady: false,
-    metadataNamespaceReady: false,
-  }
-
-  const metadataNamespace = await getMetadataNamespace(ctx, provider)
-  const namespacesStatus = await coreApi(context).listNamespace()
-  const namespace = await getAppNamespace(ctx, provider)
-
-  for (const n of namespacesStatus.body.items) {
-    if (n.metadata.name === namespace && n.status.phase === "Active") {
-      statusDetail.namespaceReady = true
-    }
-
-    if (n.metadata.name === metadataNamespace && n.status.phase === "Active") {
-      statusDetail.metadataNamespaceReady = true
-    }
-  }
-
-  let configured = every(values(statusDetail))
+  await getMetadataNamespace(ctx, provider)
+  await getAppNamespace(ctx, provider)
 
   return {
-    configured,
-    detail: statusDetail,
+    configured: true,
+    detail: <any>{},
   }
 }
 
-export async function configureEnvironment(
-  { ctx, provider, status, logEntry }: ConfigureEnvironmentParams,
-) {
-  const context = provider.config.context
-
-  if (!status.detail.namespaceReady) {
-    const ns = await getAppNamespace(ctx, provider)
-    logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
-    await createNamespace(context, ns)
-  }
-
-  if (!status.detail.metadataNamespaceReady) {
-    const ns = await getMetadataNamespace(ctx, provider)
-    logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
-    await createNamespace(context, ns)
-  }
-
+export async function configureEnvironment({ }: ConfigureEnvironmentParams) {
+  // this happens implicitly in the `getEnvironmentStatus()` function
   return {}
 }
 

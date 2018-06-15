@@ -9,7 +9,7 @@
 import * as Joi from "joi"
 import {
   joiIdentifier,
-  validate
+  validate,
 } from "../../types/common"
 import {
   GardenPlugin,
