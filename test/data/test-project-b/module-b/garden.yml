@@ -1,7 +1,6 @@
 module:
   name: module-b
   type: container
-  image: scratch
   services:
     - name: service-b
       endpoints:

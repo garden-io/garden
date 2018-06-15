@@ -1,4 +1,5 @@
 import chalk from "chalk"
+import { it } from "mocha"
 import { join } from "path"
 import { expect } from "chai"
 import * as td from "testdouble"
@@ -12,6 +13,7 @@ import { PushCommand } from "../../../src/commands/push"
 import { ModuleVersion } from "../../../src/vcs/base"
 import {
   expectError,
+  makeTestContextA,
   taskResultOutputs,
 } from "../../helpers"
 
@@ -168,8 +170,7 @@ describe("PushCommand", () => {
   })
 
   it("should fail gracefully if module does not have a provider for push", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProviderNoPush, testProviderB] })
-    const ctx = garden.pluginContext
+    const ctx = await makeTestContextA()
 
     const command = new PushCommand()
 
@@ -185,8 +186,11 @@ describe("PushCommand", () => {
     )
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: false },
-      "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type container") },
+      "build.module-a": {
+        buildLog: "A\n",
+        fresh: true,
+      },
+      "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type test") },
     })
   })
 

@@ -110,8 +110,7 @@ project:
   # environment
   # 
   # Example:
-  #   providers:
-  #     - name: container
+  #   providers: []
   #   variables: {}
   # 
   # Optional.
@@ -124,9 +123,6 @@ project:
     
     # A list of providers that should be used for this environment, and their configuration.
     # Please refer to individual plugins/providers for details on how to configure them.
-    # 
-    # Example:
-    #   - name: container
     # 
     # Optional.
     providers: 
@@ -162,9 +158,6 @@ project:
       
       # A list of providers that should be used for this environment, and their configuration.
       # Please refer to individual plugins/providers for details on how to configure them.
-      # 
-      # Example:
-      #   - name: container
       # 
       # Optional.
       providers: 

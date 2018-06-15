@@ -25,4 +25,6 @@ export const builtinPlugins: RegisterPluginParam[] = [
 // These plugins are always loaded
 export const fixedPlugins = [
   "generic",
+  "container",
+  "npm-package",
 ]

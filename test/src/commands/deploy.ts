@@ -3,6 +3,7 @@ import { Garden } from "../../../src/garden"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
 import { parseContainerModule } from "../../../src/plugins/container"
+import { buildGenericModule } from "../../../src/plugins/generic"
 import {
   PluginFactory,
 } from "../../../src/types/plugin/plugin"
@@ -46,14 +47,19 @@ const testProvider: PluginFactory = () => {
 
   return {
     moduleActions: {
-      container: { parseModule: parseContainerModule, deployService, getServiceStatus },
+      container: {
+        parseModule: parseContainerModule,
+        buildModule: buildGenericModule,
+        deployService,
+        getServiceStatus,
+      },
     },
   }
 }
 
 testProvider.pluginName = "test-plugin"
 
-describe("commands.deploy", () => {
+describe("DeployCommand", () => {
   const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
