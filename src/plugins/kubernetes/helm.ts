@@ -63,6 +63,7 @@ import { GARDEN_SYSTEM_NAMESPACE } from "./system"
 
 export interface HelmServiceSpec extends ServiceSpec {
   chart: string
+  repo?: string
   dependencies: string[]
   version?: string
   parameters: { [key: string]: Primitive }
@@ -83,6 +84,8 @@ const helmModuleSpecSchema = Joi.object().keys({
   chart: Joi.string()
     .required()
     .description("A valid Helm chart name or URI."),
+  repo: Joi.string()
+    .description("The repository URL to fetch the chart from."),
   dependencies: joiArray(joiIdentifier())
     .description("List of names of services that should be deployed before this chart."),
   version: Joi.string()
@@ -160,6 +163,9 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
   const fetchArgs = ["fetch", "--destination", resolve(buildPath, ".."), "--untar", config.spec.chart]
   if (config.spec.version) {
     fetchArgs.push("--version", config.spec.version)
+  }
+  if (config.spec.repo) {
+    fetchArgs.push("--repo", config.spec.repo)
   }
   logEntry && logEntry.setState("Fetching chart...")
   await helm(provider, ...fetchArgs)
