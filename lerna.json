@@ -1,6 +1,11 @@
 {
   "lerna": "2.11.0",
   "npmClient": "yarn",
+  "command": {
+    "publish": {
+      "message": "chore(release): publish %s"
+    }
+  },
   "packages": [
     "."
   ],
