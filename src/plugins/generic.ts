@@ -8,6 +8,7 @@
 
 import { exec } from "child-process-promise"
 import * as Joi from "joi"
+import { join } from "path"
 import {
   joiArray,
   joiEnvVars,
@@ -42,8 +43,10 @@ import {
   baseTestSpecSchema,
 } from "../types/test"
 import { spawn } from "../util/util"
+import { TreeVersion, writeVersionFile, readVersionFile } from "../vcs/base"
 
 export const name = "generic"
+export const buildVersionFilename = ".garden-build-version"
 
 export interface GenericTestSpec extends BaseTestSpec {
   command: string[],
@@ -92,8 +95,6 @@ export async function parseGenericModule(
 }
 
 export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
-  // By default we run the specified build command in the module root, if any.
-  // TODO: Keep track of which version has been built (needs local data store/cache).
   const config: ModuleConfig = module.config
 
   if (config.build.command) {
@@ -101,6 +102,14 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
     const result = await exec(config.build.command, {
       cwd: buildPath,
       env: { ...process.env, ...module.spec.env },
+    })
+
+    // keep track of which version has been built
+    const buildVersionFilePath = join(buildPath, buildVersionFilename)
+    const version = await module.getVersion()
+    await writeVersionFile(buildVersionFilePath, {
+      latestCommit: version.versionString,
+      dirtyTimestamp: version.dirtyTimestamp,
     })
 
     return {
@@ -146,9 +155,19 @@ export const genericPlugin: GardenPlugin = {
       testModule: testGenericModule,
 
       async getModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
-        // Each module handler should keep track of this for now.
-        // Defaults to return false if a build command is specified.
-        return { ready: !module.config.build.command }
+        if (!module.config.build.command) {
+          return { ready: true }
+        }
+
+        const buildVersionFilePath = join(await module.getBuildPath(), buildVersionFilename)
+        const builtVersion = await readVersionFile(buildVersionFilePath)
+        const moduleVersion = await module.getVersion()
+
+        if (builtVersion && builtVersion.latestCommit === moduleVersion.versionString) {
+          return { ready: true }
+        }
+
+        return { ready: false }
       },
     },
   },

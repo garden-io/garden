@@ -319,5 +319,3 @@ export class Module<
     }
   }
 }
-
-export type ModuleConfigType<M extends Module> = M["_ConfigType"]

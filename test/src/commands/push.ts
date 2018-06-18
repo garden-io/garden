@@ -76,11 +76,13 @@ testProviderNoPush.pluginName = "test-plugin"
 
 async function getTestContext() {
   const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+  await garden.clearBuilds()
   return garden.pluginContext
 }
 
 describe("PushCommand", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
+
   it("should build and push modules in a project", async () => {
     const ctx = await getTestContext()
     const command = new PushCommand()
@@ -171,6 +173,7 @@ describe("PushCommand", () => {
 
   it("should fail gracefully if module does not have a provider for push", async () => {
     const ctx = await makeTestContextA()
+    await ctx.clearBuilds()
 
     const command = new PushCommand()
 
