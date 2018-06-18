@@ -6,17 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../../plugin-context"
-import { SetConfigResult } from "../../types/plugin/outputs"
+import { PluginContext } from "../plugin-context"
+import { SetConfigResult } from "../types/plugin/outputs"
 import {
   Command,
   CommandResult,
   ParameterValues,
   StringParameter,
-} from "../base"
+} from "./base"
 import dedent = require("dedent")
 
-export const configSetArgs = {
+export class SetCommand extends Command {
+  name = "set"
+  help = "Set or modify data, e.g. configuration variables."
+
+  subCommands = [
+    SetConfigCommand,
+  ]
+
+  async action() { return {} }
+}
+
+export const setConnfigArgs = {
   // TODO: specify and validate config key schema here
   key: new StringParameter({
     help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).",
@@ -28,12 +39,12 @@ export const configSetArgs = {
   }),
 }
 
-export type SetArgs = ParameterValues<typeof configSetArgs>
+export type SetArgs = ParameterValues<typeof setConnfigArgs>
 
 // TODO: allow reading key/value pairs from a file
 
-export class ConfigSetCommand extends Command<typeof configSetArgs> {
-  name = "set"
+export class SetConfigCommand extends Command<typeof setConnfigArgs> {
+  name = "config"
   help = "Set a configuration variable in the environment."
 
   description = dedent`
@@ -43,11 +54,11 @@ export class ConfigSetCommand extends Command<typeof configSetArgs> {
 
     Examples:
 
-        garden set somekey myvalue
-        garden set some.nested.key myvalue
+        garden set config somekey myvalue
+        garden set config some.nested.key myvalue
   `
 
-  arguments = configSetArgs
+  arguments = setConnfigArgs
 
   async action(ctx: PluginContext, args: SetArgs): Promise<CommandResult<SetConfigResult>> {
     const key = args.key.split(".")

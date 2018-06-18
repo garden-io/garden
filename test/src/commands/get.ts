@@ -1,11 +1,11 @@
 import { expect } from "chai"
-import { expectError, makeTestContextA } from "../../../helpers"
-import { ConfigGetCommand } from "../../../../src/commands/config/get"
+import { expectError, makeTestContextA } from "../../helpers"
+import { GetConfigCommand } from "../../../src/commands/get"
 
-describe("ConfigGetCommand", () => {
+describe("GetConfigCommand", () => {
   it("should get a config variable", async () => {
     const ctx = await makeTestContextA()
-    const command = new ConfigGetCommand()
+    const command = new GetConfigCommand()
 
     await ctx.setConfig({ key: ["project", "mykey"], value: "myvalue" })
 
@@ -16,7 +16,7 @@ describe("ConfigGetCommand", () => {
 
   it("should throw on invalid key", async () => {
     const ctx = await makeTestContextA()
-    const command = new ConfigGetCommand()
+    const command = new GetConfigCommand()
 
     await expectError(
       async () => await command.action(ctx, { key: "bla.mykey" }),
@@ -26,7 +26,7 @@ describe("ConfigGetCommand", () => {
 
   it("should throw on missing key", async () => {
     const ctx = await makeTestContextA()
-    const command = new ConfigGetCommand()
+    const command = new GetConfigCommand()
 
     await expectError(
       async () => await command.action(ctx, { key: "project.mykey" }),

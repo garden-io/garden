@@ -74,65 +74,20 @@ Note: Currently only supports HTTP/HTTPS endpoints.
 | -------- | -------- | ----------- |
   | `serviceAndPath` | Yes | The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath).
 
-### garden config get
+### garden delete config
 
-Get a configuration variable from the environment..
-
-Returns with an error if the provided key could not be found in the configuration.
-
-Examples:
-
-    garden get somekey
-    garden get some.nested.key
-
-##### Usage
-
-    garden config get <key> 
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
-
-### garden config set
-
-Set a configuration variable in the environment..
-
-These configuration values can be referenced in module templates, for example as environment variables.
-
-_Note: The value is always stored as a string._
-
-Examples:
-
-    garden set somekey myvalue
-    garden set some.nested.key myvalue
-
-##### Usage
-
-    garden config set <key> <value> 
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
-  | `value` | Yes | The value of the configuration variable.
-
-### garden config delete
-
-Delete a configuration variable from the Garden environment..
+Delete a configuration variable from the environment..
 
 Returns with an error if the provided key could not be found in the configuration.
 
 Examples:
 
-    garden delete somekey
-    garden delete some.nested.key
+    garden delete config somekey
+    garden del config some.nested.key
 
 ##### Usage
 
-    garden config delete <key> 
+    garden delete config <key> 
 
 ##### Arguments
 
@@ -196,43 +151,58 @@ Starts the garden development console..
 
     garden dev 
 
-### garden environment configure
+### garden get config
 
-Configures your environment..
+Get a configuration variable from the environment..
 
-Generally, environments are configured automatically as part of other commands that you run.
-However, this command is useful if you want to make sure the environment is ready before running
-another command, or if you need to force a reconfiguration using the --force flag.
+Returns with an error if the provided key could not be found in the configuration.
 
 Examples:
 
-    garden env configure
-    garden env configure --force
+    garden get config somekey
+    garden get config some.nested.key
 
 ##### Usage
 
-    garden environment configure [options]
+    garden get config <key> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
+
+### garden get status
+
+Outputs the status of your environment..
+
+
+##### Usage
+
+    garden get status 
+
+### garden init environment
+
+Initializes your environment..
+
+Generally, environments are initialized automatically as part of other commands that you run.
+However, this command is useful if you want to make sure the environment is ready before running
+another command, or if you need to force a re-initialization using the --force flag.
+
+Examples:
+
+    garden init env
+    garden init env --force
+
+##### Usage
+
+    garden init environment [options]
 
 ##### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force reconfiguration of environment, ignoring the environment status check.
-
-### garden environment destroy
-
-Destroy an environment..
-
-Generally not as dramatic as it sounds :) This will trigger providers clear up any deployments in a
-Garden environment and reset it. When you then run &#x60;garden env configure&#x60; or any deployment command,
-the environment will be reconfigured.
-
-This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
-resources.
-
-##### Usage
-
-    garden environment destroy 
+  | `--force` |  | boolean | Force initalization of environment, ignoring the environment status check.
 
 ### garden login
 
@@ -413,14 +383,29 @@ Scans your project and outputs an overview of all modules..
 
     garden scan 
 
-### garden status
+### garden set config
 
-Outputs the status of your environment..
+Set a configuration variable in the environment..
 
+These configuration values can be referenced in module templates, for example as environment variables.
+
+_Note: The value is always stored as a string._
+
+Examples:
+
+    garden set config somekey myvalue
+    garden set config some.nested.key myvalue
 
 ##### Usage
 
-    garden status 
+    garden set config <key> <value> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
+  | `value` | Yes | The value of the configuration variable.
 
 ### garden test
 
