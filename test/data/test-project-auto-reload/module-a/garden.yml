@@ -11,4 +11,4 @@ module:
         - name: http
           containerPort: 8080
   build:
-    command: echo A
+    command: [echo, A]

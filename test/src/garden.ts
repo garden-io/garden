@@ -81,7 +81,7 @@ describe("Garden", () => {
         ],
         variables: {
           some: "banana",
-          "service-a-build-command": "echo OK",
+          "service-a-build-command": "OK",
         },
       })
     })

@@ -76,8 +76,7 @@ export const buildDependencySchema = Joi.object().keys({
 })
 
 export interface BuildConfig {
-  // TODO: this should be a string array, to match other command specs
-  command?: string,
+  command: string[],
   dependencies: BuildDependencyConfig[],
 }
 
@@ -109,9 +108,9 @@ export const baseModuleSpecSchema = Joi.object()
       .default(true)
       .description("Set to false to disable pushing this module to remote registries."),
     build: Joi.object().keys({
-      command: Joi.string()
+      command: joiArray(Joi.string())
         .description("The command to run inside the module directory to perform the build.")
-        .example("npm run build"),
+        .example(["npm", "run", "build"]),
       dependencies: joiArray(buildDependencySchema)
         .description("A list of modules that must be built before this module is built.")
         .example([{ name: "some-other-module-name" }]),

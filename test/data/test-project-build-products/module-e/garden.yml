@@ -2,7 +2,7 @@ module:
   name: module-e
   type: test
   build:
-    command: "echo E"
+    command: [echo, E]
     dependencies:
       - name: module-d
         copy:

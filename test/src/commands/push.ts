@@ -190,7 +190,7 @@ describe("PushCommand", () => {
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": {
-        buildLog: "A\n",
+        buildLog: "A",
         fresh: true,
       },
       "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type test") },

@@ -2,4 +2,4 @@ module:
   name: module-a
   type: generic
   build:
-    command: echo A
+    command: [echo, A]

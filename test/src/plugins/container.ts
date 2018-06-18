@@ -51,6 +51,7 @@ describe("container", () => {
         const module = await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -76,6 +77,7 @@ describe("container", () => {
         const module = await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -102,6 +104,7 @@ describe("container", () => {
         const module = await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -124,6 +127,7 @@ describe("container", () => {
         const module = await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -148,6 +152,7 @@ describe("container", () => {
         const module = await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -175,7 +180,7 @@ describe("container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
-            command: "echo OK",
+            command: ["echo", "OK"],
             dependencies: [],
           },
           name: "module-a",
@@ -228,7 +233,7 @@ describe("container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
-            command: "echo OK",
+            command: ["echo", "OK"],
             dependencies: [],
           },
           name: "module-a",
@@ -274,7 +279,7 @@ describe("container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
-            command: "echo OK",
+            command: ["echo", "OK"],
             dependencies: [],
           },
           name: "module-a",
@@ -315,7 +320,7 @@ describe("container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
-            command: "echo OK",
+            command: ["echo", "OK"],
             dependencies: [],
           },
           name: "module-a",
@@ -355,6 +360,7 @@ describe("container", () => {
         const module = td.object(await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -380,6 +386,7 @@ describe("container", () => {
         const module = td.object(await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -407,6 +414,7 @@ describe("container", () => {
         const module = td.object(await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -439,6 +447,7 @@ describe("container", () => {
         const module = td.object(await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -477,6 +486,7 @@ describe("container", () => {
         const module = td.object(await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -504,6 +514,7 @@ describe("container", () => {
         const module = td.object(await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",
@@ -538,6 +549,7 @@ describe("container", () => {
         const module = td.object(await getTestModule({
           allowPush: false,
           build: {
+            command: [],
             dependencies: [],
           },
           name: "test",

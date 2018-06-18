@@ -15,4 +15,4 @@ module:
   build:
     dependencies:
       - module-b
-    command: echo E
+    command: [echo, E]

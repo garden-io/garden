@@ -12,6 +12,6 @@ module:
       dependencies:
         - service-a
   build:
-    command: echo B
+    command: [echo, B]
     dependencies:
       - module-a

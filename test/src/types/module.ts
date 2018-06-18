@@ -20,7 +20,7 @@ describe("Module", () => {
     expect(module.config).to.eql({
       allowPush: true,
       build: {
-        command: "echo A",
+        command: ["echo", "A"],
         dependencies: [],
       },
       description: undefined,
@@ -59,7 +59,7 @@ describe("Module", () => {
       expect(module.name).to.equal("module-a")
       expect(resolved.config).to.eql({
         allowPush: true,
-        build: { command: "echo OK", dependencies: [] },
+        build: { command: ["echo", "OK"], dependencies: [] },
         description: undefined,
         name: "module-a",
         path: module.path,

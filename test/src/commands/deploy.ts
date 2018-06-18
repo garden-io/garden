@@ -82,8 +82,8 @@ describe("DeployCommand", () => {
     )
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A\n" },
-      "build.module-b": { fresh: true, buildLog: "B\n" },
+      "build.module-a": { fresh: true, buildLog: "A" },
+      "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
@@ -109,8 +109,8 @@ describe("DeployCommand", () => {
     )
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A\n" },
-      "build.module-b": { fresh: true, buildLog: "B\n" },
+      "build.module-a": { fresh: true, buildLog: "A" },
+      "build.module-b": { fresh: true, buildLog: "B" },
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
     })

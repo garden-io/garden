@@ -20,6 +20,7 @@ import {
   merge,
   pick,
   keyBy,
+  cloneDeep,
 } from "lodash"
 import * as Joi from "joi"
 import { TreeCache } from "./cache"
@@ -703,7 +704,7 @@ export class Garden {
     // Looks like a path
     const path = resolve(this.projectRoot, nameOrLocation)
     const config = await loadConfig(this.projectRoot, path)
-    const moduleConfig = config.module
+    const moduleConfig = cloneDeep(config.module)
 
     if (!moduleConfig) {
       return null

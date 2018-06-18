@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec } from "child-process-promise"
 import * as Joi from "joi"
+import { mapValues } from "lodash"
 import { join } from "path"
 import {
   joiArray,
@@ -43,7 +43,8 @@ import {
   baseTestSpecSchema,
 } from "../types/test"
 import { spawn } from "../util/util"
-import { TreeVersion, writeVersionFile, readVersionFile } from "../vcs/base"
+import { writeVersionFile, readVersionFile } from "../vcs/base"
+import execa = require("execa")
 
 export const name = "generic"
 export const buildVersionFilename = ".garden-build-version"
@@ -97,12 +98,15 @@ export async function parseGenericModule(
 export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
   const config: ModuleConfig = module.config
 
-  if (config.build.command) {
+  if (config.build.command.length) {
     const buildPath = await module.getBuildPath()
-    const result = await exec(config.build.command, {
-      cwd: buildPath,
-      env: { ...process.env, ...module.spec.env },
-    })
+    const result = await execa.shell(
+      config.build.command.join(" "),
+      {
+        cwd: buildPath,
+        env: { ...process.env, ...mapValues(module.spec.env, v => v.toString()) },
+      },
+    )
 
     // keep track of which version has been built
     const buildVersionFilePath = join(buildPath, buildVersionFilename)
@@ -155,7 +159,7 @@ export const genericPlugin: GardenPlugin = {
       testModule: testGenericModule,
 
       async getModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
-        if (!module.config.build.command) {
+        if (!module.config.build.command.length) {
           return { ready: true }
         }
 

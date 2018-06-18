@@ -55,10 +55,15 @@ module:
   build: 
     # The command to run inside the module directory to perform the build.
     # 
-    # Example: "npm run build"
+    # Example:
+    #   - npm
+    #   - run
+    #   - build
     # 
     # Optional.
     command: 
+      - 
+      
     
     # A list of modules that must be built before this module is built.
     # 
@@ -230,10 +235,15 @@ module:
   build: 
     # The command to run inside the module directory to perform the build.
     # 
-    # Example: "npm run build"
+    # Example:
+    #   - npm
+    #   - run
+    #   - build
     # 
     # Optional.
     command: 
+      - 
+      
     
     # A list of modules that must be built before this module is built.
     # 
@@ -355,10 +365,15 @@ module:
   build: 
     # The command to run inside the module directory to perform the build.
     # 
-    # Example: "npm run build"
+    # Example:
+    #   - npm
+    #   - run
+    #   - build
     # 
     # Optional.
     command: 
+      - 
+      
     
     # A list of modules that must be built before this module is built.
     # 

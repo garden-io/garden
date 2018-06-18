@@ -80,6 +80,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const module: ModuleConfig<ContainerModuleSpec> = {
           allowPush: true,
           build: {
+            command: [],
             dependencies: parsed.module.build.dependencies.concat([{
               name: emulatorModuleName,
               plugin: pluginName,
