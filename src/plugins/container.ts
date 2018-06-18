@@ -11,6 +11,7 @@ import * as childProcess from "child-process-promise"
 import {
   Module,
   ModuleConfig,
+  ModuleSpec,
 } from "../types/module"
 import { LogSymbolType } from "../logger/types"
 import {
@@ -46,6 +47,7 @@ import {
   genericModuleSpecSchema,
   GenericModuleSpec,
   GenericTestSpec,
+  genericTestSchema,
 } from "./generic"
 
 export interface ServiceEndpointSpec {
@@ -176,15 +178,16 @@ const serviceSchema = baseServiceSchema
       .description("List of volumes that should be mounted when deploying the container."),
   })
 
-export interface ContainerModuleSpec extends GenericModuleSpec {
+export interface ContainerModuleSpec extends ModuleSpec {
   buildArgs: PrimitiveMap,
   image?: string,
   services: ContainerServiceSpec[],
+  tests: GenericTestSpec[],
 }
 
 export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
 
-export const containerModuleSpecSchema = genericModuleSpecSchema
+export const containerModuleSpecSchema = Joi.object()
   .keys({
     buildArgs: Joi.object()
       .pattern(/.+/, joiPrimitive())
@@ -200,6 +203,8 @@ export const containerModuleSpecSchema = genericModuleSpecSchema
     services: joiArray(serviceSchema)
       .unique("name")
       .description("List of services to deploy from this container module."),
+    tests: joiArray(genericTestSchema)
+      .description("A list of tests to run in the module."),
   })
   .description("Configuration for a container module.")
 

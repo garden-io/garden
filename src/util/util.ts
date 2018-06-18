@@ -28,6 +28,7 @@ import highlight from "cli-highlight"
 import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 import { safeDump } from "js-yaml"
+import { PrimitiveMap } from "../types/common"
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -148,6 +149,7 @@ export interface SpawnParams {
   cwd?: string
   data?: Buffer
   ignoreError?: boolean
+  env?: object
 }
 
 export interface SpawnPtyParams extends SpawnParams {
@@ -166,9 +168,9 @@ export interface SpawnOutput {
 
 export function spawn(
   cmd: string, args: string[],
-  { timeout = 0, cwd, data, ignoreError = false }: SpawnParams = {},
+  { timeout = 0, cwd, data, ignoreError = false, env }: SpawnParams = {},
 ) {
-  const proc = _spawn(cmd, args, { cwd })
+  const proc = _spawn(cmd, args, { cwd, env })
 
   const result: SpawnOutput = {
     code: 0,
