@@ -1,4 +1,5 @@
 import { expect } from "chai"
+import * as os from "os"
 import { join } from "path"
 import { Garden } from "../../src/garden"
 import { detectCycles } from "../../src/util/detectCycles"
@@ -396,7 +397,7 @@ describe("Garden", () => {
       expect(Object.keys(result).length).to.equal(4)
       expect(result.config).to.be.a("function")
       expect(result.variables).to.eql({ some: "variable" })
-      expect(result.local).to.eql({ env: process.env })
+      expect(result.local).to.eql({ env: process.env, platform: os.platform() })
       expect(result.environment).to.eql({
         name: "local",
         config: {
@@ -420,7 +421,7 @@ describe("Garden", () => {
       expect(Object.keys(result).length).to.equal(5)
       expect(result.config).to.be.a("function")
       expect(result.variables).to.eql({ some: "variable" })
-      expect(result.local).to.eql({ env: process.env })
+      expect(result.local).to.eql({ env: process.env, platform: os.platform() })
       expect(result.environment).to.eql({
         name: "local",
         config: {
