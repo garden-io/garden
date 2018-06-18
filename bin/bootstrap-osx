@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="cmake git kubectl kubernetes-helm stern rsync watchman icu4c pkg-config yarn"
+BREW_DEPS="cmake git kubectl kubernetes-helm stern rsync watchman icu4c pkg-config"
 
 brew update
 brew install ${BREW_DEPS}

@@ -64,10 +64,7 @@ automatically checked during CI. You can run the check with `npm run check-licen
 ### Release process
 
 We use [Lerna](https://github.com/lerna/lerna) to automate the release process.
-
-To set it up, first make sure you have [yarn](https://yarnpkg.com/lang/en/docs/install/#mac-stable) installed
-(we rely on `yarn` for publishing because of some issues with `npm`) and you're logged in to yarn (`yarn login`).
-Then install lerna using `npm install -g lerna` or `yarn global add lerna`. 
+Install lerna using `npm install -g lerna`.
 
 Depending on what type of release you're making, you can use one of the following commands:
 

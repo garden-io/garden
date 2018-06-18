@@ -6,9 +6,13 @@ Garden can be used with [Minikube](https://github.com/kubernetes/minikube) on su
 
 For Minikube installation instructions, please see the 
 [official guide](https://github.com/kubernetes/minikube#installation).
+
 You'll likely also need to install a driver to run the Minikube VM, please follow the 
-[instructions here](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
-and note the name of the driver.
+[instructions here](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md)
+and note the name of the driver you use. The driver you choose will likely vary depending on your
+OS/platform. We recommend [hyperkit](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver) 
+for macOS and [kvm2](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#kvm2-driver) on most Linux
+platforms.
  
 Once Minikube and the appropriate driver for your OS is installed, you can start it by running:
 
