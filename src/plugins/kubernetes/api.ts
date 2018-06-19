@@ -10,7 +10,12 @@ import { KubeConfig, Core_v1Api, Extensions_v1beta1Api, RbacAuthorization_v1Api 
 import { join } from "path"
 import { readFileSync } from "fs"
 import { safeLoad } from "js-yaml"
-import { zip } from "lodash"
+import {
+  zip,
+  isFunction,
+  omitBy,
+} from "lodash"
+import { GardenBaseError } from "../../exceptions"
 
 let kubeConfigStr: string
 let kubeConfig: any
@@ -48,23 +53,74 @@ function getConfig(context: string): KubeConfig {
 export function coreApi(context: string) {
   const config = getConfig(context)
   const k8sApi = new Core_v1Api(config.getCurrentCluster().server)
-  k8sApi.setDefaultAuthentication(config)
-
-  return k8sApi
+  return proxyApi(k8sApi, config)
 }
 
 export function extensionsApi(context: string) {
   const config = getConfig(context)
   const k8sApi = new Extensions_v1beta1Api(config.getCurrentCluster().server)
-  k8sApi.setDefaultAuthentication(config)
-
-  return k8sApi
+  return proxyApi(k8sApi, config)
 }
 
 export function rbacApi(context: string) {
   const config = getConfig(context)
   const k8sApi = new RbacAuthorization_v1Api(config.getCurrentCluster().server)
-  k8sApi.setDefaultAuthentication(config)
+  return proxyApi(k8sApi, config)
+}
 
-  return k8sApi
+export class KubernetesError extends GardenBaseError {
+  type = "kubernetes"
+
+  code?: number
+  response?: any
+}
+
+/**
+ * Wrapping the API objects to deal with bugs.
+ */
+function proxyApi<T extends Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api>(
+  api: T, config: KubeConfig,
+): T {
+  api.setDefaultAuthentication(config)
+
+  const wrapError = err => {
+    if (!err.message) {
+      const wrapped = new KubernetesError(`Got error from Kubernetes API - ${err.body.message}`, {
+        body: err.body,
+        request: omitBy(err.response.request, (v, k) => isFunction(v) || k[0] === "_"),
+      })
+      wrapped.code = err.response.statusCode
+      wrapped.response = err.response
+      throw wrapped
+    } else {
+      throw err
+    }
+  }
+
+  return new Proxy(api, {
+    get: (target: T, name: string, receiver) => {
+      if (name in Object.getPrototypeOf(target)) { // assume methods live on the prototype
+        return function(...args) {
+          const defaultHeaders = target["defaultHeaders"]
+
+          if (name.startsWith("patch")) {
+            // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
+            target["defaultHeaders"] = { ...defaultHeaders, "content-type": "application/strategic-merge-patch+json" }
+          }
+
+          const output = target[name](...args)
+          target["defaultHeaders"] = defaultHeaders
+
+          if (typeof output.then === "function") {
+            // the API errors are not properly formed Error objects
+            return output.catch(wrapError)
+          } else {
+            return output
+          }
+        }
+      } else { // assume instance vars live on the target
+        return Reflect.get(target, name, receiver)
+      }
+    },
+  })
 }
