@@ -219,7 +219,7 @@ export class Module<
   }
 
   async getVersion(force?: boolean): Promise<TreeVersion> {
-    return this.ctx.getModuleVersion(this, force)
+    return this.ctx.getModuleVersion(this.name, force)
   }
 
   async getBuildPath() {

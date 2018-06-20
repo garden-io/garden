@@ -1,0 +1,11 @@
+module:
+  name: module-a
+  type: test
+  services:
+    - name: service-a
+      command: [echo, OK]
+  tests:
+    - name: integ
+      dependencies:
+        - service-b
+      command: [echo, OK]

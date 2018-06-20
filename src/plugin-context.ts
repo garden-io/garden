@@ -162,7 +162,8 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   invalidateCacheUp: (context: CacheContext) => void
   invalidateCacheDown: (context: CacheContext) => void
   getModuleBuildPath: (moduleName: string) => Promise<string>
-  getModuleVersion: (module: Module, force?: boolean) => Promise<TreeVersion>
+  getModuleVersion: (moduleName: string, force?: boolean) => Promise<TreeVersion>
+  getLatestVersion: (versions: TreeVersion[]) => Promise<TreeVersion>
   stageBuild: (moduleName: string) => Promise<void>
   getStatus: () => Promise<ContextStatus>
 }
@@ -431,7 +432,8 @@ export function createPluginContext(garden: Garden): PluginContext {
       return await garden.buildDir.buildPath(module)
     },
 
-    getModuleVersion: async (module: Module, force = false) => {
+    getModuleVersion: async (moduleName: string, force = false) => {
+      const module = await ctx.getModule(moduleName)
       const cacheKey = ["moduleVersions", module.name]
 
       if (!force) {
@@ -444,44 +446,47 @@ export function createPluginContext(garden: Garden): PluginContext {
 
       const buildDependencies = await module.getBuildDependencies()
       const cacheContexts = buildDependencies.concat([module]).map(m => m.getCacheContext())
+
       const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
+      const versionFileContents = await pathExists(versionFilePath)
+        && (await readFile(versionFilePath)).toString().trim()
 
-      if (await pathExists(versionFilePath)) {
+      let version: TreeVersion
+
+      if (!!versionFileContents) {
         // this is used internally to specify version outside of source control
-        const versionFileContents = (await readFile(versionFilePath)).toString().trim()
-
-        if (!!versionFileContents) {
-          try {
-            const fileVersion = validate(JSON.parse(versionFileContents), versionFileSchema)
-            garden.cache.set(cacheKey, fileVersion, ...cacheContexts)
-            return fileVersion
-          } catch (err) {
-            throw new ConfigurationError(
-              `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${module.path}`,
-              {
-                modulePath: module.path,
-                versionFilePath,
-                versionFileContents,
-              },
-            )
-          }
+        try {
+          version = validate(JSON.parse(versionFileContents), versionFileSchema)
+        } catch (err) {
+          throw new ConfigurationError(
+            `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${module.path}`,
+            {
+              modulePath: module.path,
+              versionFilePath,
+              versionFileContents,
+            },
+          )
         }
+      } else {
+        const treeVersion = await garden.vcs.getTreeVersion([module.path])
+
+        const versionChain: TreeVersion[] = await Bluebird.map(
+          buildDependencies,
+          async (m: Module) => await m.getVersion(),
+        )
+        versionChain.push(treeVersion)
+
+        // The module version is the latest of any of the dependency modules or itself.
+        version = await ctx.getLatestVersion(versionChain)
       }
-
-      const treeVersion = await garden.vcs.getTreeVersion([module.path])
-
-      const versionChain: TreeVersion[] = await Bluebird.map(
-        buildDependencies,
-        async (m: Module) => await m.getVersion(),
-      )
-      versionChain.push(treeVersion)
-
-      // The module version is the latest of any of the dependency modules or itself.
-      const sortedVersions = await garden.vcs.sortVersions(versionChain)
-      const version = sortedVersions[0]
 
       garden.cache.set(cacheKey, version, ...cacheContexts)
       return version
+    },
+
+    getLatestVersion: async (versions: TreeVersion[]) => {
+      const sortedVersions = await garden.vcs.sortVersions(versions)
+      return sortedVersions[0]
     },
 
     getStatus: async () => {

@@ -1,6 +1,5 @@
 import { expect } from "chai"
 import { resolve } from "path"
-import * as td from "testdouble"
 import {
   dataDir,
   makeTestGarden,
@@ -38,7 +37,6 @@ describe("DeployTask", () => {
     await task.process()
 
     const versionStringA = (await serviceA.module.getVersion()).versionString
-    const versionStringB = (await serviceB.module.getVersion()).versionString
 
     expect(actionParams.service.config).to.eql({
       name: "service-b",
