@@ -21,7 +21,7 @@ The following option flags can be used with any of the CLI commands:
 
 ### garden build
 
-Build your modules..
+Build your modules.
 
 Builds all or specified modules, taking into account build dependency order.
 Optionally stays running and automatically builds modules if their source (or their dependencies&#x27; sources) change.
@@ -52,7 +52,7 @@ Examples:
 
 ### garden call
 
-Call a service endpoint..
+Call a service endpoint.
 
 This command resolves the deployed external endpoint for the given service and path, calls the given endpoint and
 outputs the result.
@@ -76,7 +76,7 @@ Note: Currently only supports HTTP/HTTPS endpoints.
 
 ### garden delete config
 
-Delete a configuration variable from the environment..
+Delete a configuration variable from the environment.
 
 Returns with an error if the provided key could not be found in the configuration.
 
@@ -97,7 +97,7 @@ Examples:
 
 ### garden deploy
 
-Deploy service(s) to your environment..
+Deploy service(s) to your environment.
 
 
     Deploys all or specified services, taking into account service dependency order.
@@ -135,7 +135,7 @@ Deploy service(s) to your environment..
 
 ### garden dev
 
-Starts the garden development console..
+Starts the garden development console.
 
 
     The Garden dev console is a combination of the &#x60;build&#x60;, &#x60;deploy&#x60; and &#x60;test&#x60; commands.
@@ -153,7 +153,7 @@ Starts the garden development console..
 
 ### garden get config
 
-Get a configuration variable from the environment..
+Get a configuration variable from the environment.
 
 Returns with an error if the provided key could not be found in the configuration.
 
@@ -174,7 +174,7 @@ Examples:
 
 ### garden get status
 
-Outputs the status of your environment..
+Outputs the status of your environment.
 
 
 ##### Usage
@@ -183,7 +183,7 @@ Outputs the status of your environment..
 
 ### garden init environment
 
-Initializes your environment..
+Initializes your environment.
 
 Generally, environments are initialized automatically as part of other commands that you run.
 However, this command is useful if you want to make sure the environment is ready before running
@@ -206,7 +206,7 @@ Examples:
 
 ### garden login
 
-Log into configured providers for this project and environment..
+Log into configured providers for this project and environment.
 
 Executes the login flow for any provider that requires login (such as the &#x60;kubernetes&#x60; provider).
 
@@ -220,7 +220,7 @@ Examples:
 
 ### garden logout
 
-Log out of configured providers for this project and environment..
+Log out of configured providers for this project and environment.
 
 Examples:
 
@@ -232,7 +232,7 @@ Examples:
 
 ### garden logs
 
-Retrieves the most recent logs for the specified service(s)..
+Retrieves the most recent logs for the specified service(s).
 
 Outputs logs for all or specified services, and optionally waits for news logs to come in.
 
@@ -260,7 +260,7 @@ Examples:
 
 ### garden push
 
-Build and push built module(s) to remote registry..
+Build and push built module(s) to remote registry.
 
 Pushes built module artifacts for all or specified modules.
 Also builds modules and dependencies if needed.
@@ -291,7 +291,7 @@ Examples:
 
 ### garden run module
 
-Run an ad-hoc instance of a module..
+Run an ad-hoc instance of a module.
 
 This is useful for debugging or ad-hoc experimentation with modules.
 
@@ -321,7 +321,7 @@ Examples:
 
 ### garden run service
 
-Run an ad-hoc instance of the specified service.
+Run an ad-hoc instance of the specified service
 
 This can be useful for debugging or ad-hoc experimentation with services.
 
@@ -347,7 +347,7 @@ Examples:
 
 ### garden run test
 
-Run the specified module test..
+Run the specified module test.
 
 This can be useful for debugging tests, particularly integration/end-to-end tests.
 
@@ -376,7 +376,7 @@ Examples:
 
 ### garden scan
 
-Scans your project and outputs an overview of all modules..
+Scans your project and outputs an overview of all modules.
 
 
 ##### Usage
@@ -385,7 +385,7 @@ Scans your project and outputs an overview of all modules..
 
 ### garden set config
 
-Set a configuration variable in the environment..
+Set a configuration variable in the environment.
 
 These configuration values can be referenced in module templates, for example as environment variables.
 
@@ -409,7 +409,7 @@ Examples:
 
 ### garden test
 
-Test all or specified modules..
+Test all or specified modules.
 
 
     Runs all or specified tests defined in the project. Also builds modules and dependencies,
@@ -448,7 +448,7 @@ Test all or specified modules..
 
 ### garden validate
 
-Check your garden configuration for errors..
+Check your garden configuration for errors.
 
 Throws an error and exits with code 1 if something&#x27;s not right in your garden.yml files.
 
