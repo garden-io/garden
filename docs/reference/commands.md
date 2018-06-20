@@ -95,6 +95,20 @@ Examples:
 | -------- | -------- | ----------- |
   | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
 
+### garden delete environment
+
+Deletes a running environment.
+
+This will trigger providers to clear up any deployments in a Garden environment and reset it.
+When you then run &#x60;garden configure env&#x60; or any deployment command, the environment will be reconfigured.
+
+This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
+resources.
+
+##### Usage
+
+    garden delete environment 
+
 ### garden deploy
 
 Deploy service(s) to your environment.

@@ -27,6 +27,7 @@ export class DeleteCommand extends Command {
 
   subCommands = [
     DeleteConfigCommand,
+    DeleteEnvironmentCommand,
   ]
 
   async action() { return {} }
