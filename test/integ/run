@@ -23,4 +23,4 @@ ${garden_bin} scan
 ${garden_bin} build
 ${garden_bin} deploy
 ${garden_bin} test
-${garden_bin} env config
+${garden_bin} init environment
