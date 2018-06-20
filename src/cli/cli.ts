@@ -264,7 +264,13 @@ export class GardenCli {
     if (cliOutput && errors.length < 1) {
       logger.stop()
       console.log(cliOutput)
-      process.exit(parseResult.code)
+
+      // fix issue where sywac returns exit code 0 even when a command doesn't exist
+      if (!argv.h && !argv.help) {
+        code = 1
+      }
+
+      process.exit(code)
     }
 
     const gardenErrors: GardenError[] = errors
