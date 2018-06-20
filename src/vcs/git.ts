@@ -14,6 +14,8 @@ import { pathExists, stat } from "fs-extra"
 import Bluebird = require("bluebird")
 
 export class GitHandler extends VcsHandler {
+  private repoRoot: string
+
   async getTreeVersion(directories: string[]) {
     let res
     let commitHash
@@ -96,16 +98,24 @@ export class GitHandler extends VcsHandler {
   // }
 
   private async getOffsetFromHead(commitHash: string) {
-    let res = await this.git(`rev-list --left-right --count ${commitHash}...HEAD`)
+    const repoRoot = await this.getRepoRoot()
+    let res = await this.git(`rev-list --left-right --count ${commitHash}...HEAD`, repoRoot)
     return parseInt(res.stdout.trim().split("\t")[1], 10)
   }
 
   private async getRepoRoot() {
-    const res = await this.git(`rev-parse --show-toplevel`)
-    return res.stdout.trim()
+    if (!this.repoRoot) {
+      const res = await this.git(`rev-parse --show-toplevel`)
+      this.repoRoot = res.stdout.trim()
+    }
+
+    return this.repoRoot
   }
 
-  private async git(args) {
-    return exec("git " + args, { cwd: this.projectRoot })
+  private async git(args, cwd?: string) {
+    if (!cwd) {
+      cwd = this.projectRoot
+    }
+    return exec("git " + args, { cwd })
   }
 }
