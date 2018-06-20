@@ -8,9 +8,11 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
+import { uniqBy } from "lodash"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { TestConfig } from "../types/test"
+import { TreeVersion } from "../vcs/base"
 import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
@@ -50,7 +52,8 @@ export class TestTask extends Task {
   }
 
   static async factory(initArgs: TestTaskParams): Promise<TestTask> {
-    initArgs.version = await initArgs.module.getVersion()
+    const { ctx, module, testConfig } = initArgs
+    initArgs.version = await getTestVersion(ctx, module, testConfig)
     return new TestTask(<TestTaskParams & TaskVersion>initArgs)
   }
 
@@ -90,18 +93,16 @@ export class TestTask extends Task {
   }
 
   async process(): Promise<TestResult> {
-    if (!this.force) {
-      // find out if module has already been tested
-      const testResult = await this.getTestResult()
+    // find out if module has already been tested
+    const testResult = await this.getTestResult()
 
-      if (testResult && testResult.success) {
-        const passedEntry = this.ctx.log.info({
-          section: this.module.name,
-          msg: `${this.testConfig.name} tests`,
-        })
-        passedEntry.setSuccess({ msg: chalk.green("Already passed"), append: true })
-        return testResult
-      }
+    if (testResult && testResult.success) {
+      const passedEntry = this.ctx.log.info({
+        section: this.module.name,
+        msg: `${this.testConfig.name} tests`,
+      })
+      passedEntry.setSuccess({ msg: chalk.green("Already passed"), append: true })
+      return testResult
     }
 
     const entry = this.ctx.log.info({
@@ -110,7 +111,7 @@ export class TestTask extends Task {
       entryStyle: EntryStyle.activity,
     })
 
-    const dependencies = await this.ctx.getServices(this.testConfig.dependencies)
+    const dependencies = await getTestDependencies(this.ctx, this.testConfig)
     const runtimeContext = await this.module.prepareRuntimeContext(dependencies)
 
     const result = await this.ctx.testModule({
@@ -131,16 +132,29 @@ export class TestTask extends Task {
     return result
   }
 
-  async getTestResult() {
+  private async getTestResult() {
     if (this.force) {
       return null
     }
 
-    const testResult = await this.ctx.getTestResult({
+    return this.ctx.getTestResult({
       moduleName: this.module.name,
       testName: this.testConfig.name,
-      version: await this.module.getVersion(),
+      version: this.version,
     })
-    return testResult && testResult.success && testResult
   }
+}
+
+async function getTestDependencies(ctx: PluginContext, testConfig: TestConfig) {
+  return ctx.getServices(testConfig.dependencies)
+}
+
+/**
+ * Determine the version of the test run, based on the version of the module and each of its dependencies.
+ */
+async function getTestVersion(ctx: PluginContext, module: Module, testConfig: TestConfig): Promise<TreeVersion> {
+  const dependencies = await getTestDependencies(ctx, testConfig)
+  const moduleDeps = uniqBy(dependencies.map(d => d.module).concat([module]), m => m.name)
+  const versions = await Bluebird.map(moduleDeps, m => m.getVersion())
+  return ctx.getLatestVersion(versions)
 }
