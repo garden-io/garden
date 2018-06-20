@@ -9,34 +9,36 @@
 import { Command } from "./base"
 import { BuildCommand } from "./build"
 import { CallCommand } from "./call"
-import { ConfigCommand } from "./config/config"
+import { InitCommand } from "./init"
+import { DeleteCommand } from "./delete"
 import { DeployCommand } from "./deploy"
 import { DevCommand } from "./dev"
-import { EnvironmentCommand } from "./environment/environment"
+import { GetCommand } from "./get"
 import { LoginCommand } from "./login"
 import { LogoutCommand } from "./logout"
 import { LogsCommand } from "./logs"
 import { PushCommand } from "./push"
 import { RunCommand } from "./run/run"
 import { ScanCommand } from "./scan"
-import { StatusCommand } from "./status"
+import { SetCommand } from "./set"
 import { TestCommand } from "./test"
 import { ValidateCommand } from "./validate"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
   new CallCommand(),
-  new ConfigCommand(),
+  new DeleteCommand(),
   new DeployCommand(),
   new DevCommand(),
-  new EnvironmentCommand(),
+  new GetCommand(),
+  new InitCommand(),
   new LoginCommand(),
   new LogoutCommand(),
   new LogsCommand(),
   new PushCommand(),
   new RunCommand(),
   new ScanCommand(),
-  new StatusCommand(),
+  new SetCommand(),
   new TestCommand(),
   new ValidateCommand(),
 ]
