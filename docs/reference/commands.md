@@ -24,7 +24,7 @@ The following option flags can be used with any of the CLI commands:
 Build your modules.
 
 Builds all or specified modules, taking into account build dependency order.
-Optionally stays running and automatically builds modules if their source (or their dependencies&#x27; sources) change.
+Optionally stays running and automatically builds modules if their source (or their dependencies' sources) change.
 
 Examples:
 
@@ -100,7 +100,7 @@ Examples:
 Deletes a running environment.
 
 This will trigger providers to clear up any deployments in a Garden environment and reset it.
-When you then run &#x60;garden configure env&#x60; or any deployment command, the environment will be reconfigured.
+When you then run `garden configure env` or any deployment command, the environment will be reconfigured.
 
 This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
 resources.
@@ -118,13 +118,13 @@ Deploy service(s) to your environment.
     Also builds modules and dependencies if needed.
 
     Optionally stays running and automatically re-builds and re-deploys services if their module source
-    (or their dependencies&#x27; sources) change.
+    (or their dependencies' sources) change.
 
     Examples:
 
         garden deploy              # deploy all modules in the project
         garden deploy my-service   # only deploy my-service
-        garden deploy --force      # force re-deploy of modules, even if they&#x27;re already deployed
+        garden deploy --force      # force re-deploy of modules, even if they're already deployed
         garden deploy --watch      # watch for changes to code
         garden deploy --env stage  # deploy your services to an environment called stage
   
@@ -152,7 +152,7 @@ Deploy service(s) to your environment.
 Starts the garden development console.
 
 
-    The Garden dev console is a combination of the &#x60;build&#x60;, &#x60;deploy&#x60; and &#x60;test&#x60; commands.
+    The Garden dev console is a combination of the `build`, `deploy` and `test` commands.
     It builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests
     as you modify the code.
 
@@ -222,7 +222,7 @@ Examples:
 
 Log into configured providers for this project and environment.
 
-Executes the login flow for any provider that requires login (such as the &#x60;kubernetes&#x60; provider).
+Executes the login flow for any provider that requires login (such as the `kubernetes` provider).
 
 Examples:
 
@@ -313,7 +313,7 @@ Examples:
 
     garden run module my-container           # run an ad-hoc instance of a my-container container and attach to it
     garden run module my-container /bin/sh   # run an interactive shell in a new my-container container
-    garden run module my-container --i&#x3D;false /some/script  # execute a script in my-container and return the output
+    garden run module my-container --i=false /some/script  # execute a script in my-container and return the output
 
 ##### Usage
 
@@ -367,8 +367,8 @@ This can be useful for debugging tests, particularly integration/end-to-end test
 
 Examples:
 
-    garden run test my-module integ            # run the test named &#x27;integ&#x27; in my-module
-    garden run test my-module integ --i&#x3D;false  # do not attach to the test run, just output results when completed
+    garden run test my-module integ            # run the test named 'integ' in my-module
+    garden run test my-module integ --i=false  # do not attach to the test run, just output results when completed
 
 ##### Usage
 
@@ -430,14 +430,14 @@ Test all or specified modules.
     and deploy service dependencies if needed.
 
     Optionally stays running and automatically re-runs tests if their module source
-    (or their dependencies&#x27; sources) change.
+    (or their dependencies' sources) change.
 
     Examples:
 
         garden test              # run all tests in the project
         garden test my-module    # run all tests in the my-module module
-        garden test -n integ     # run all tests with the name &#x27;integ&#x27; in the project
-        garden test --force      # force tests to be re-run, even if they&#x27;re already run successfully
+        garden test -n integ     # run all tests with the name 'integ' in the project
+        garden test --force      # force tests to be re-run, even if they're already run successfully
         garden test --watch      # watch for changes to code
   
 
@@ -464,7 +464,7 @@ Test all or specified modules.
 
 Check your garden configuration for errors.
 
-Throws an error and exits with code 1 if something&#x27;s not right in your garden.yml files.
+Throws an error and exits with code 1 if something's not right in your garden.yml files.
 
 ##### Usage
 
