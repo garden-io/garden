@@ -8,11 +8,11 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { uniqBy } from "lodash"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { TestConfig } from "../types/test"
-import { TreeVersion } from "../vcs/base"
+import { getNames } from "../util/util"
+import { ModuleVersion } from "../vcs/base"
 import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
@@ -152,9 +152,8 @@ async function getTestDependencies(ctx: PluginContext, testConfig: TestConfig) {
 /**
  * Determine the version of the test run, based on the version of the module and each of its dependencies.
  */
-async function getTestVersion(ctx: PluginContext, module: Module, testConfig: TestConfig): Promise<TreeVersion> {
-  const dependencies = await getTestDependencies(ctx, testConfig)
-  const moduleDeps = uniqBy(dependencies.map(d => d.module).concat([module]), m => m.name)
-  const versions = await Bluebird.map(moduleDeps, m => m.getVersion())
-  return ctx.getLatestVersion(versions)
+async function getTestVersion(ctx: PluginContext, module: Module, testConfig: TestConfig): Promise<ModuleVersion> {
+  const buildDeps = await module.getBuildDependencies()
+  const moduleDeps = await ctx.resolveModuleDependencies(getNames(buildDeps), testConfig.dependencies)
+  return ctx.resolveVersion(module.name, getNames(moduleDeps))
 }

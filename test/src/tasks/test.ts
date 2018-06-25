@@ -1,57 +1,37 @@
 import { expect } from "chai"
 import { resolve } from "path"
-import {
-  replace,
-  when,
-} from "testdouble"
 import { TestTask } from "../../../src/tasks/test"
-import { Module } from "../../../src/types/module"
+import * as td from "testdouble"
 import {
   NEW_MODULE_VERSION,
-  TreeVersion,
+  ModuleVersion,
 } from "../../../src/vcs/base"
 import {
   dataDir,
   makeTestGarden,
 } from "../../helpers"
 
-const getVersion = Module.prototype.getVersion
-
 describe("TestTask", () => {
-  let stub: any
-
-  // remove the Module.getVersion() stub
-  beforeEach(() => {
-    stub = Module.prototype.getVersion
-    Module.prototype.getVersion = getVersion
-  })
-
-  afterEach(() => {
-    Module.prototype.getVersion = stub
-  })
-
   it("should correctly resolve version for tests with dependencies", async () => {
     process.env.TEST_VARIABLE = "banana"
 
     const garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
     const ctx = garden.pluginContext
 
-    const getModuleVersion = replace(ctx, "getModuleVersion")
+    const resolveVersion = td.replace(ctx, "resolveVersion")
 
-    when(getModuleVersion("module-a", undefined)).thenResolve(<TreeVersion>{
-      versionString: "1234512345",
-      latestCommit: NEW_MODULE_VERSION,
+    const version = {
+      versionString: "vd54c4e0fd7",
       dirtyTimestamp: null,
-    })
-
-    const dirtyTimestamp = 123456789
-    const moduleBVersion: TreeVersion = {
-      versionString: NEW_MODULE_VERSION + "-" + dirtyTimestamp,
-      latestCommit: NEW_MODULE_VERSION,
-      dirtyTimestamp,
+      dependencyVersions: {
+        "module-b": {
+          latestCommit: "8b8a6bdecf",
+          dirtyTimestamp: null,
+        },
+      },
     }
 
-    when(getModuleVersion("module-b", undefined)).thenResolve(moduleBVersion)
+    td.when(resolveVersion("module-a", ["module-b"])).thenResolve(version)
 
     const moduleA = await ctx.getModule("module-a")
     const testConfig = moduleA.tests[0]
@@ -64,6 +44,6 @@ describe("TestTask", () => {
       forceBuild: false,
     })
 
-    expect(task.version).to.eql(moduleBVersion)
+    expect(task.version).to.eql(version)
   })
 })

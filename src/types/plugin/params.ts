@@ -9,7 +9,7 @@
 import Stream from "ts-stream"
 import { LogEntry } from "../../logger/logger"
 import { PluginContext } from "../../plugin-context"
-import { TreeVersion } from "../../vcs/base"
+import { ModuleVersion } from "../../vcs/base"
 import {
   Environment,
   Primitive,
@@ -117,7 +117,7 @@ export interface TestModuleParams<T extends Module = Module> extends PluginModul
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   testName: string
-  version: TreeVersion
+  version: ModuleVersion
 }
 
 export interface GetServiceStatusParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {

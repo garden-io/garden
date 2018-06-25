@@ -12,7 +12,6 @@ node_modules
 
 # Runtime files
 .garden
-.garden-version
 tmp/
 
 # TS cache on the CI
@@ -30,6 +29,7 @@ src/**/*.js
 src/**/*.map
 src/**/*.d.ts
 static/bin/garden.js
+static/**/.garden-version
 support/**/*.js
 support/**/*.map
 support/**/*.d.ts

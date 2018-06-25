@@ -7,23 +7,23 @@
  */
 
 import { TaskResults } from "../task-graph"
-import { TreeVersion } from "../vcs/base"
+import { ModuleVersion } from "../vcs/base"
 import { v1 as uuidv1 } from "uuid"
 
 export class TaskDefinitionError extends Error { }
 
 export interface TaskVersion {
-  version: TreeVersion
+  version: ModuleVersion
 }
 
 export interface TaskParams {
-  version?: TreeVersion
+  version?: ModuleVersion
 }
 
 export abstract class Task {
   abstract type: string
   id: string
-  version: TreeVersion
+  version: ModuleVersion
 
   dependencies: Task[]
 

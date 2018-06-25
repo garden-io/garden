@@ -7,7 +7,7 @@
  */
 
 import * as Joi from "joi"
-import { TreeVersion } from "../../vcs/base"
+import { ModuleVersion, moduleVersionSchema } from "../../vcs/base"
 import {
   joiArray,
   PrimitiveMap,
@@ -194,28 +194,12 @@ export const pushModuleResultSchema = Joi.object()
 export interface RunResult {
   moduleName: string
   command: string[]
-  version: TreeVersion
+  version: ModuleVersion
   success: boolean
   startedAt: Date
   completedAt: Date
   output: string
 }
-
-export const treeVersionSchema = Joi.object()
-  .keys({
-    versionString: Joi.string()
-      .required()
-      .description("String representation of the module version."),
-    latestCommit: Joi.string()
-      .required()
-      .description("The latest commit hash of the module source."),
-    dirtyTimestamp: Joi.number()
-      .allow(null)
-      .required()
-      .description(
-        "Set to the last modified time (as UNIX timestamp) if the module contains uncommitted changes, otherwise null.",
-    ),
-  })
 
 export const runResultSchema = Joi.object()
   .keys({
@@ -224,7 +208,7 @@ export const runResultSchema = Joi.object()
     command: Joi.array().items(Joi.string())
       .required()
       .description("The command that was run in the module."),
-    version: treeVersionSchema,
+    version: moduleVersionSchema,
     success: Joi.boolean()
       .required()
       .description("Whether the module was successfully run."),

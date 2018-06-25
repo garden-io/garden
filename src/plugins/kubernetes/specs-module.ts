@@ -42,7 +42,7 @@ import {
   TestConfig,
   TestSpec,
 } from "../../types/test"
-import { TreeVersion } from "../../vcs/base"
+import { ModuleVersion } from "../../vcs/base"
 import {
   applyMany,
 } from "./kubectl"
@@ -141,7 +141,7 @@ export const kubernetesSpecHandlers = {
   },
 }
 
-async function prepareSpecs(service: Service<KubernetesSpecsModule>, namespace: string, version: TreeVersion) {
+async function prepareSpecs(service: Service<KubernetesSpecsModule>, namespace: string, version: ModuleVersion) {
   return service.module.spec.specs.map((rawSpec) => {
     const spec = {
       metadata: {},

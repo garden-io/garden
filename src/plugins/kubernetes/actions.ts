@@ -34,7 +34,7 @@ import {
   SetConfigParams,
   TestModuleParams,
 } from "../../types/plugin/params"
-import { TreeVersion } from "../../vcs/base"
+import { ModuleVersion } from "../../vcs/base"
 import {
   ContainerModule,
   helpers,
@@ -543,6 +543,6 @@ export async function logout({ ctx }: PluginActionParamsBase): Promise<LoginStat
   return { loggedIn: false }
 }
 
-function getTestResultKey(module: ContainerModule, testName: string, version: TreeVersion) {
+function getTestResultKey(module: ContainerModule, testName: string, version: ModuleVersion) {
   return `test-result--${module.name}--${testName}--${version.versionString}`
 }

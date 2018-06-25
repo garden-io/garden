@@ -9,7 +9,7 @@ import {
 } from "../../../src/types/plugin/plugin"
 import { Module } from "../../../src/types/module"
 import { PushCommand } from "../../../src/commands/push"
-import { TreeVersion } from "../../../src/vcs/base"
+import { ModuleVersion } from "../../../src/vcs/base"
 import {
   expectError,
   taskResultOutputs,
@@ -192,11 +192,11 @@ describe("PushCommand", () => {
 
   context("module is dirty", () => {
     beforeEach(() => {
-      td.replace(Module.prototype, "getVersion", async (): Promise<TreeVersion> => {
+      td.replace(Module.prototype, "getVersion", async (): Promise<ModuleVersion> => {
         return {
           versionString: "012345",
-          latestCommit: "012345",
           dirtyTimestamp: 12345,
+          dependencyVersions: {},
         }
       })
     })

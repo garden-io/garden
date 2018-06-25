@@ -24,10 +24,8 @@ import {
   PrimitiveMap,
   validate,
 } from "./types/common"
-import {
-  Module,
-  versionFileSchema,
-} from "./types/module"
+import { Module } from "./types/module"
+import { moduleVersionSchema } from "./vcs/base"
 import {
   ModuleActions,
   Provider,
@@ -83,11 +81,15 @@ import {
   values,
   keyBy,
   omit,
+  flatten,
+  uniqBy,
+  sortBy,
 } from "lodash"
 import {
+  getNames,
   Omit,
 } from "./util/util"
-import { TreeVersion } from "./vcs/base"
+import { ModuleVersion } from "./vcs/base"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -162,8 +164,9 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   invalidateCacheUp: (context: CacheContext) => void
   invalidateCacheDown: (context: CacheContext) => void
   getModuleBuildPath: (moduleName: string) => Promise<string>
-  getModuleVersion: (moduleName: string, force?: boolean) => Promise<TreeVersion>
-  getLatestVersion: (versions: TreeVersion[]) => Promise<TreeVersion>
+  getModuleVersion: (moduleName: string, force?: boolean) => Promise<ModuleVersion>
+  resolveVersion: (moduleName: string, moduleDependencies: string[], force?: boolean) => Promise<ModuleVersion>
+  resolveModuleDependencies: (buildDependencies: string[], serviceDependencies: string[]) => Promise<Module[]>
   stageBuild: (moduleName: string) => Promise<void>
   getStatus: () => Promise<ContextStatus>
 }
@@ -433,30 +436,62 @@ export function createPluginContext(garden: Garden): PluginContext {
     },
 
     getModuleVersion: async (moduleName: string, force = false) => {
+      const dependencies = await ctx.resolveModuleDependencies([moduleName], [])
+      return ctx.resolveVersion(moduleName, getNames(dependencies), force)
+    },
+
+    /**
+     * Given the provided lists of build and service dependencies, return a list of all modules
+     * required to satisfy those dependencies.
+     */
+    async resolveModuleDependencies(buildDependencies: string[], serviceDependencies: string[]) {
+      const buildDeps = await Bluebird.map(buildDependencies, async (moduleName) => {
+        const module = await garden.getModule(moduleName)
+        const moduleDeps = await module.getBuildDependencies()
+        return [module].concat(await ctx.resolveModuleDependencies(getNames(moduleDeps), []))
+      })
+
+      const runtimeDeps = await Bluebird.map(serviceDependencies, async (serviceName) => {
+        const service = await garden.getService(serviceName)
+        const serviceDeps = await service.getDependencies()
+        return ctx.resolveModuleDependencies([service.module.name], getNames(serviceDeps))
+      })
+
+      const deps = flatten(buildDeps).concat(flatten(runtimeDeps))
+
+      return sortBy(uniqBy(deps, "name"), "name")
+    },
+
+    /**
+     * Given a module, and a list of dependencies, resolve the version for that combination of modules.
+     * The combined version is a either the latest dirty module version (if any), or the hash of the module version
+     * and the versions of its dependencies (in sorted order).
+     */
+    resolveVersion: async (moduleName: string, moduleDependencies: string[], force = false) => {
       const module = await ctx.getModule(moduleName)
       const cacheKey = ["moduleVersions", module.name]
 
       if (!force) {
-        const cached = <TreeVersion>garden.cache.get(cacheKey)
+        const cached = <ModuleVersion>garden.cache.get(cacheKey)
 
         if (cached) {
           return cached
         }
       }
 
-      const buildDependencies = await module.getBuildDependencies()
-      const cacheContexts = buildDependencies.concat([module]).map(m => m.getCacheContext())
+      const dependencies = await garden.getModules(moduleDependencies)
+      const cacheContexts = dependencies.concat([module]).map(m => m.getCacheContext())
 
+      // the version file is used internally to specify versions outside of source control
       const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
       const versionFileContents = await pathExists(versionFilePath)
         && (await readFile(versionFilePath)).toString().trim()
 
-      let version: TreeVersion
+      let version: ModuleVersion
 
       if (!!versionFileContents) {
-        // this is used internally to specify version outside of source control
         try {
-          version = validate(JSON.parse(versionFileContents), versionFileSchema)
+          version = validate(JSON.parse(versionFileContents), moduleVersionSchema)
         } catch (err) {
           throw new ConfigurationError(
             `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${module.path}`,
@@ -468,25 +503,11 @@ export function createPluginContext(garden: Garden): PluginContext {
           )
         }
       } else {
-        const treeVersion = await garden.vcs.getTreeVersion([module.path])
-
-        const versionChain: TreeVersion[] = await Bluebird.map(
-          buildDependencies,
-          async (m: Module) => await m.getVersion(),
-        )
-        versionChain.push(treeVersion)
-
-        // The module version is the latest of any of the dependency modules or itself.
-        version = await ctx.getLatestVersion(versionChain)
+        version = await garden.vcs.resolveVersion(module, dependencies)
       }
 
       garden.cache.set(cacheKey, version, ...cacheContexts)
       return version
-    },
-
-    getLatestVersion: async (versions: TreeVersion[]) => {
-      const sortedVersions = await garden.vcs.sortVersions(versions)
-      return sortedVersions[0]
     },
 
     getStatus: async () => {
