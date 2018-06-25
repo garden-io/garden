@@ -4,5 +4,4 @@
 --reporter spec
 --timeout 5000
 test/setup.ts
-test/src/*.ts
-test/src/**/*.ts
+test/**/*.ts
