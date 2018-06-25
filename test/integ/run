@@ -8,8 +8,19 @@ cd ${garden_root}/examples/hello-world
 
 export GARDEN_LOGGER_TYPE=basic
 
+# make sure CLI returns with error when it should
+set +e
+
+${garden_bin} bla
+if [[ $? -eq 0 ]]; then
+  echo "Expected error when calling with bad command"
+  exit 1
+fi
+
+set -e
+
 ${garden_bin} scan
 ${garden_bin} build
 ${garden_bin} deploy
 ${garden_bin} test
-${garden_bin} env config
+${garden_bin} init environment
