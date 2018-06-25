@@ -87,7 +87,7 @@ Clone the repo and change into the `hello-world`  directory:
 
 ```sh
 $ git clone https://github.com/garden-io/garden-examples.git
-$ cd examples/hello-world
+$ cd garden-examples/hello-world
 ```
 
 First, let's check the environment status by running the following from the project root:
