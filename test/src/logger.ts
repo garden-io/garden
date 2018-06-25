@@ -1,32 +1,23 @@
-const stripAnsi = require("strip-ansi")
 import { expect } from "chai"
-
 import { LogLevel, EntryStatus, LogSymbolType, EntryStyle } from "../../src/logger/types"
 import { BasicTerminalWriter } from "../../src/logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../../src/logger/writers/fancy-terminal-writer"
-import { RootLogNode, getLogger } from "../../src/logger/logger"
+import { getLogger } from "../../src/logger/logger"
 import { getChildNodes } from "../../src/logger/util"
 
-let logger
-// A fail-safe in case the logger has already been initialised (it's a singleton
-// class that can only be initialised once)
-try {
-  logger = RootLogNode.initialize({ level: LogLevel.info })
-} catch (_) {
-  logger = getLogger()
-}
+const logger = getLogger()
 
 beforeEach(() => {
-  logger["children"] = []
+  (<any>logger).children = []
 })
 
 describe("LogNode", () => {
 
   describe("findById", () => {
     it("should return the first log entry with a matching id and undefined otherwise", () => {
-      logger.info({msg: "0"})
-      logger.info({msg: "a1", id: "a"})
-      logger.info({msg: "a2", id: "a"})
+      logger.info({ msg: "0" })
+      logger.info({ msg: "a1", id: "a" })
+      logger.info({ msg: "a2", id: "a" })
       expect(logger.findById("a")["opts"]["msg"]).to.eql("a1")
       expect(logger.findById("z")).to.be.undefined
     })
@@ -34,10 +25,10 @@ describe("LogNode", () => {
 
   describe("filterBySection", () => {
     it("should return an array of all entries with the matching section name", () => {
-      logger.info({section: "s0"})
-      logger.info({section: "s1", id: "a"})
-      logger.info({section: "s2"})
-      logger.info({section: "s1", id: "b"})
+      logger.info({ section: "s0" })
+      logger.info({ section: "s1", id: "a" })
+      logger.info({ section: "s2" })
+      logger.info({ section: "s1", id: "b" })
       const s1 = logger.filterBySection("s1")
       const sEmpty = logger.filterBySection("s99")
       expect(s1.map(entry => entry.opts.id)).to.eql(["a", "b"])
@@ -133,8 +124,8 @@ describe("FancyTerminalWriter.toTerminalEntries", () => {
     logger.info("2 lines\n") // 1
     logger.info("1 line") // 3
     logger.info("3 lines\n\n") // 4
-    const spinner = logger.info({msg: "spinner", entryStyle: EntryStyle.activity}) // 7
-    spinner.info({msg: "nested spinner", entryStyle: EntryStyle.activity}) // 8
+    const spinner = logger.info({ msg: "spinner", entryStyle: EntryStyle.activity }) // 7
+    spinner.info({ msg: "nested spinner", entryStyle: EntryStyle.activity }) // 8
     const terminalEntries = writer.toTerminalEntries(logger)
     const lineNumbers = terminalEntries.map(e => e.lineNumber)
     const spinners = terminalEntries.filter(e => !!e.spinnerCoords).map(e => e.spinnerCoords)
@@ -147,12 +138,12 @@ describe("FancyTerminalWriter.toTerminalEntries", () => {
     expect(terminalEntries[0].key).to.eql(entry.key)
   })
   it("should skip entry if entry level is geq to writer level", () => {
-    const entry = logger.verbose("")
+    logger.verbose("")
     const terminalEntries = writer.toTerminalEntries(logger)
     expect(terminalEntries).to.eql([])
   })
   it("should skip entry if entry has no message", () => {
-    const entry = logger.info({})
+    logger.info({})
     const terminalEntries = writer.toTerminalEntries(logger)
     expect(terminalEntries).to.eql([])
   })

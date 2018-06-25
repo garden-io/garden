@@ -25,7 +25,7 @@ describe("resolveTemplateString", async () => {
   })
 
   it("should handle a nested key", async () => {
-    const res = await resolveTemplateString("${some.nested}", { some: { nested: "value" }})
+    const res = await resolveTemplateString("${some.nested}", { some: { nested: "value" } })
     expect(res).to.equal("value")
   })
 

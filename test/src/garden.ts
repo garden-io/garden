@@ -227,7 +227,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       await garden.scanModules()
 
-    const modules = await garden.getModules(undefined, true)
+      const modules = await garden.getModules(undefined, true)
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
 
@@ -250,7 +250,7 @@ describe("Garden", () => {
     describe("detectCycles", () => {
       it("should detect self-to-self cycles", () => {
         const cycles = detectCycles({
-          a: {a: {distance: 1, next: "a"}},
+          a: { a: { distance: 1, next: "a" } },
         }, ["a"])
 
         expect(cycles).to.deep.eq([["a"]])
@@ -258,9 +258,9 @@ describe("Garden", () => {
 
       it("should preserve dependency order when returning cycles", () => {
         const cycles = detectCycles({
-          foo: {bar: {distance: 1, next: "bar"}},
-          bar: {baz: {distance: 1, next: "baz"}},
-          baz: {foo: {distance: 1, next: "foo"}},
+          foo: { bar: { distance: 1, next: "bar" } },
+          bar: { baz: { distance: 1, next: "baz" } },
+          baz: { foo: { distance: 1, next: "foo" } },
         }, ["foo", "bar", "baz"])
 
         expect(cycles).to.deep.eq([["foo", "bar", "baz"]])
