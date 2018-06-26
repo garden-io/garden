@@ -47,12 +47,14 @@ export const name = "generic"
 
 export interface GenericTestSpec extends BaseTestSpec {
   command: string[],
+  env: PrimitiveMap,
 }
 
 export const genericTestSchema = baseTestSpecSchema
   .keys({
     command: Joi.array().items(Joi.string())
       .description("The command to run in the module build context in order to test it."),
+    env: joiEnvVars(),
   })
   .description("The test specification of a generic module.")
 
@@ -85,7 +87,6 @@ export async function parseGenericModule(
       dependencies: t.dependencies,
       spec: t,
       timeout: t.timeout,
-      variables: t.variables,
     })),
   }
 }
@@ -120,7 +121,7 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
     command.slice(1),
     {
       cwd: module.path,
-      env: { ...process.env, ...module.spec.env },
+      env: { ...process.env, ...module.spec.env, ...testConfig.spec.env },
       ignoreError: true,
     },
   )

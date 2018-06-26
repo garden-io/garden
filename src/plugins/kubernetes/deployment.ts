@@ -117,7 +117,7 @@ export async function createDeployment(service: ContainerService, runtimeContext
     },
   }
 
-  const envVars = extend({}, runtimeContext.envVars)
+  const envVars = { ...runtimeContext.envVars, ...service.spec.env }
 
   const labels = {
     // tier: service.tier,

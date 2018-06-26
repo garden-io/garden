@@ -13,7 +13,6 @@ import {
   set,
   uniq,
 } from "lodash"
-import { ConfigurationError } from "../exceptions"
 import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
 import { TestTask } from "../tasks/test"
@@ -24,7 +23,6 @@ import {
 import { getNames } from "../util/util"
 import {
   joiArray,
-  joiEnvVars,
   joiIdentifier,
   joiVariables,
   PrimitiveMap,
@@ -267,24 +265,11 @@ export class Module<
     return Bluebird.all(tasks)
   }
 
-  async prepareRuntimeContext(
-    serviceDependencies: Service<any>[], extraEnvVars: PrimitiveMap = {},
-  ): Promise<RuntimeContext> {
+  async prepareRuntimeContext(serviceDependencies: Service<any>[]): Promise<RuntimeContext> {
     const buildDependencies = await this.getBuildDependencies()
     const { versionString } = await this.getVersion()
     const envVars = {
       GARDEN_VERSION: versionString,
-    }
-
-    validate(extraEnvVars, joiEnvVars(), { context: `environment variables for module ${this.name}` })
-
-    for (const [envVarName, value] of Object.entries(extraEnvVars)) {
-      if (envVarName.startsWith("GARDEN")) {
-        throw new ConfigurationError(`Environment variable name cannot start with "GARDEN"`, {
-          envVarName,
-        })
-      }
-      envVars[envVarName] = value
     }
 
     for (const [key, value] of Object.entries(this.ctx.config.variables)) {

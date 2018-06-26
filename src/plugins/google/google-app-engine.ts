@@ -67,7 +67,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const appYaml: any = {
           runtime: "custom",
           env: "flex",
-          env_variables: runtimeContext.envVars,
+          env_variables: { ...runtimeContext.envVars, ...service.spec.env },
         }
 
         if (config.healthCheck) {

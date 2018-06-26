@@ -119,7 +119,6 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             dependencies: t.dependencies,
             spec: t,
             timeout: t.timeout,
-            variables: t.variables,
           }))
 
           return {

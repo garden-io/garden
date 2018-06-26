@@ -28,7 +28,6 @@ import highlight from "cli-highlight"
 import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 import { safeDump } from "js-yaml"
-import { PrimitiveMap } from "../types/common"
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {

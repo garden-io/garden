@@ -196,6 +196,7 @@ describe("container", () => {
                   port: "http",
                 },
               ],
+              env: {},
               healthCheck: {
                 httpGet: {
                   path: "/health",
@@ -214,8 +215,8 @@ describe("container", () => {
               name: "unit",
               command: ["echo", "OK"],
               dependencies: [],
+              env: {},
               timeout: null,
-              variables: {},
             }],
           },
         }
@@ -248,6 +249,7 @@ describe("container", () => {
                   port: "bla",
                 },
               ],
+              env: {},
               ports: [],
               outputs: {},
               volumes: [],
@@ -256,8 +258,8 @@ describe("container", () => {
               name: "unit",
               command: ["echo", "OK"],
               dependencies: [],
+              env: {},
               timeout: null,
-              variables: {},
             }],
           },
         }
@@ -288,6 +290,7 @@ describe("container", () => {
               dependencies: [],
               daemon: false,
               endpoints: [],
+              env: {},
               healthCheck: {
                 httpGet: {
                   path: "/",
@@ -328,6 +331,7 @@ describe("container", () => {
               dependencies: [],
               daemon: false,
               endpoints: [],
+              env: {},
               healthCheck: {
                 tcpPort: "bla",
               },

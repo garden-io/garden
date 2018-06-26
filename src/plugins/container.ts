@@ -15,6 +15,7 @@ import {
 } from "../types/module"
 import { LogSymbolType } from "../logger/types"
 import {
+  joiEnvVars,
   joiIdentifier,
   joiArray,
   validate,
@@ -43,12 +44,7 @@ import {
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
-import {
-  genericModuleSpecSchema,
-  GenericModuleSpec,
-  GenericTestSpec,
-  genericTestSchema,
-} from "./generic"
+import { genericTestSchema, GenericTestSpec } from "./generic"
 
 export interface ServiceEndpointSpec {
   paths?: string[]
@@ -87,6 +83,7 @@ export interface ContainerServiceSpec extends BaseServiceSpec {
   command: string[],
   daemon: boolean
   endpoints: ServiceEndpointSpec[],
+  env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
@@ -168,6 +165,7 @@ const serviceSchema = baseServiceSchema
       .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
     endpoints: joiArray(endpointSchema)
       .description("List of endpoints that the service exposes."),
+    env: joiEnvVars(),
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),
     ports: joiArray(portSchema)
@@ -178,11 +176,17 @@ const serviceSchema = baseServiceSchema
       .description("List of volumes that should be mounted when deploying the container."),
   })
 
+export class ContainerService extends Service<ContainerModule> { }
+
+export interface ContainerTestSpec extends GenericTestSpec { }
+
+export const containerTestSchema = genericTestSchema
+
 export interface ContainerModuleSpec extends ModuleSpec {
   buildArgs: PrimitiveMap,
   image?: string,
   services: ContainerServiceSpec[],
-  tests: GenericTestSpec[],
+  tests: ContainerTestSpec[],
 }
 
 export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
@@ -203,17 +207,15 @@ export const containerModuleSpecSchema = Joi.object()
     services: joiArray(serviceSchema)
       .unique("name")
       .description("List of services to deploy from this container module."),
-    tests: joiArray(genericTestSchema)
+    tests: joiArray(containerTestSchema)
       .description("A list of tests to run in the module."),
   })
   .description("Configuration for a container module.")
 
-export class ContainerService extends Service<ContainerModule> { }
-
 export class ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
-  T extends GenericTestSpec = GenericTestSpec,
+  T extends ContainerTestSpec = ContainerTestSpec,
   > extends Module<M, S, T> { }
 
 export async function getImage(module: ContainerModule) {
@@ -327,7 +329,6 @@ export async function parseContainerModule({ moduleConfig }: ParseModuleParams<C
     dependencies: t.dependencies,
     spec: t,
     timeout: t.timeout,
-    variables: <PrimitiveMap>t.variables,
   }))
 
   // make sure we can build the thing
