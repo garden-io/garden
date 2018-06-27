@@ -1,3 +1,67 @@
+<a name="0.2.0-0"></a>
+# [0.2.0-0](https://github.com/garden-io/garden/compare/v0.1.2...v0.2.0-0) (2018-06-27)
+
+
+### Bug Fixes
+
+* add missing lodash dependency (!) ([2abb90c](https://github.com/garden-io/garden/commit/2abb90c))
+* broken `npm run dev` after package.json changes ([8bd6217](https://github.com/garden-io/garden/commit/8bd6217))
+* **core:** potential race-condition when parsing modules ([944e150](https://github.com/garden-io/garden/commit/944e150))
+* don't run dist script on every npm install ([c73f5e1](https://github.com/garden-io/garden/commit/c73f5e1))
+* error in `Module.getVersion()` ([6491678](https://github.com/garden-io/garden/commit/6491678))
+* malformed output from `ctx.getStatus()` ([#134](https://github.com/garden-io/garden/issues/134)) ([d222721](https://github.com/garden-io/garden/commit/d222721))
+* **k8s:** incorrect use of execa ([cecbaa3](https://github.com/garden-io/garden/commit/cecbaa3))
+* module versions are now handled properly across multiple repos ([c647cf9](https://github.com/garden-io/garden/commit/c647cf9))
+* **ci:** only do clean install from package-lock ([3c44191](https://github.com/garden-io/garden/commit/3c44191))
+* **cli:** add missing shebang line in garden binary ([632925d](https://github.com/garden-io/garden/commit/632925d))
+* **cli:** delete environment command wasn't linked to parent ([e0789f1](https://github.com/garden-io/garden/commit/e0789f1))
+* **cli:** enforce single character option aliases ([a49e799](https://github.com/garden-io/garden/commit/a49e799))
+* **cli:** set error code when calling CLI with bad command ([bb24acd](https://github.com/garden-io/garden/commit/bb24acd))
+* **container:** build issue where Dockerfile is copied or generated ([c0186d9](https://github.com/garden-io/garden/commit/c0186d9))
+* **ctx:** better error.log output from `processModules()` ([b0eb86e](https://github.com/garden-io/garden/commit/b0eb86e))
+* **integ:** fix init env command in integ test script ([f644ec2](https://github.com/garden-io/garden/commit/f644ec2))
+* **k8s:** better error message when kubectl fails ([41f1482](https://github.com/garden-io/garden/commit/41f1482))
+* **k8s:** patch bugs in kubernetes client ([e45f72a](https://github.com/garden-io/garden/commit/e45f72a))
+* **logger:** remove unnecessary call to stopLoop ([db84561](https://github.com/garden-io/garden/commit/db84561))
+* pin npm version in CircleCI ([206d946](https://github.com/garden-io/garden/commit/206d946))
+* test result versions now correctly account for test dependencies ([8b8a6bd](https://github.com/garden-io/garden/commit/8b8a6bd))
+* **vsc:** handle weird stat behavior by wrapping it ([df11647](https://github.com/garden-io/garden/commit/df11647))
+
+
+### Code Refactoring
+
+* consistently use verb before noun in CLI ([e88e55e](https://github.com/garden-io/garden/commit/e88e55e))
+* rename project.global to project.environmentDefaults ([#131](https://github.com/garden-io/garden/issues/131)) ([3ebe1dc](https://github.com/garden-io/garden/commit/3ebe1dc))
+
+
+### Features
+
+* **build:** Handle config changes in auto-reload. ([9d9295f](https://github.com/garden-io/garden/commit/9d9295f))
+* **k8s:** add helm module type ([122e6dd](https://github.com/garden-io/garden/commit/122e6dd))
+* generate homebrew formula on publish ([72c4b4d](https://github.com/garden-io/garden/commit/72c4b4d))
+
+
+### Performance Improvements
+
+* got rid of all synchronous subprocess and filesystem calls ([9b62424](https://github.com/garden-io/garden/commit/9b62424))
+* implemented caching of module version ([e451f7a](https://github.com/garden-io/garden/commit/e451f7a))
+
+
+### BREAKING CHANGES
+
+* The following CLI commands have now been renamed, and any scripts
+using them need to be updated accordingly:
+`config delete` -> `delete config`
+`config get` -> `get config`
+`config set` -> `set config`
+`environment configure` -> `init environment`
+`environment destroy` -> `delete environment`
+`status` -> `get status`
+* Existing garden.yml files will need to be updated if they use the
+project.global key.
+
+
+
 <a name="0.1.2"></a>
 ## [0.1.2](https://github.com/garden-io/garden/compare/v0.1.1-0...v0.1.2) (2018-06-02)
 
