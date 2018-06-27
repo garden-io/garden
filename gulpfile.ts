@@ -245,6 +245,7 @@ gulp.task("update-brew", async () => {
       ["add", formulaPath],
       ["commit", "-m", `update to ${version}`],
       ["tag", version],
+      ["push"],
       ["push", "--tags"],
     ]) {
       await execa("git", args, { cwd: brewRepoDir })
