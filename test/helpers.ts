@@ -32,15 +32,17 @@ import {
   RunServiceParams,
   SetConfigParams,
 } from "../src/types/plugin/params"
-import { TreeVersion } from "../src/vcs/base"
+import {
+  ModuleVersion,
+} from "../src/vcs/base"
 
 export const dataDir = resolve(__dirname, "data")
 export const testNow = new Date()
 export const testModuleVersionString = "1234512345"
-export const testModuleVersion: TreeVersion = {
+export const testModuleVersion: ModuleVersion = {
   versionString: testModuleVersionString,
-  latestCommit: testModuleVersionString,
   dirtyTimestamp: null,
+  dependencyVersions: {},
 }
 
 export function getDataDir(name: string) {

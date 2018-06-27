@@ -10,7 +10,6 @@ import * as Bluebird from "bluebird"
 import * as Joi from "joi"
 import {
   flatten,
-  keyBy,
   set,
   uniq,
 } from "lodash"
@@ -23,7 +22,6 @@ import {
   TemplateStringContext,
 } from "../template-string"
 import { getNames } from "../util/util"
-import { TreeVersion } from "../vcs/base"
 import {
   joiArray,
   joiEnvVars,
@@ -84,14 +82,6 @@ export interface BuildConfig {
   command?: string,
   dependencies: BuildDependencyConfig[],
 }
-
-export const versionFileSchema = Joi.object()
-  .keys({
-    versionString: Joi.string().required(),
-    latestCommit: Joi.string().required(),
-    dirtyTimestamp: Joi.number().allow(null).required(),
-  })
-  .meta({ internal: true })
 
 export interface ModuleSpec { }
 
@@ -171,8 +161,6 @@ export class Module<
   public readonly services: ServiceConfig<S>[]
   public readonly tests: TestConfig<T>[]
 
-  private _buildDependencies: Module[]
-
   readonly _ConfigType: ModuleConfig<M>
 
   constructor(
@@ -218,7 +206,7 @@ export class Module<
     return pathToCacheContext(this.path)
   }
 
-  async getVersion(force?: boolean): Promise<TreeVersion> {
+  async getVersion(force?: boolean) {
     return this.ctx.getModuleVersion(this.name, force)
   }
 
@@ -227,32 +215,11 @@ export class Module<
   }
 
   async getBuildDependencies(): Promise<Module[]> {
-    if (this._buildDependencies) {
-      return this._buildDependencies
-    }
-
-    // TODO: Detect circular dependencies
-    const modules = keyBy(await this.ctx.getModules(), "name")
-    const deps: Module[] = []
-
-    for (let dep of this.config.build.dependencies) {
-      // TODO: find a more elegant way of dealing with plugin module dependencies
-      const dependencyName = dep.plugin ? `${dep.plugin}--${dep.name}` : dep.name
-      const dependency = modules[dependencyName]
-
-      if (!dependency) {
-        throw new ConfigurationError(`Module ${this.name} dependency ${dependencyName} not found`, {
-          module,
-          dependencyName,
-        })
-      }
-
-      deps.push(dependency)
-    }
-
-    this._buildDependencies = deps
-
-    return deps
+    // TODO: find a more elegant way of dealing with plugin module dependencies
+    const names = this.config.build.dependencies.map(
+      dep => dep.plugin ? `${dep.plugin}--${dep.name}` : dep.name,
+    )
+    return this.ctx.getModules(names)
   }
 
   async getServices(): Promise<Service[]> {

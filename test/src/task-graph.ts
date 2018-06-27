@@ -32,9 +32,9 @@ class TestTask extends Task {
   ) {
     super({
       version: {
-        versionString: "12345#6789",
-        latestCommit: "12345",
+        versionString: "12345-6789",
         dirtyTimestamp: 6789,
+        dependencyVersions: {},
       },
     })
     this.name = name
