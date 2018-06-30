@@ -6,15 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ModuleConfig } from "../types/module"
 import { GardenPlugin } from "../types/plugin/plugin"
-import { ServiceConfig } from "../types/service"
 import {
   genericPlugin,
 } from "./generic"
-
-let _moduleConfig: ModuleConfig
-let _serviceConfig: ServiceConfig
 
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {

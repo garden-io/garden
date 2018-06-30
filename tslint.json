@@ -1,4 +1,7 @@
 {
+  "extends": [
+    "tslint-no-unused"
+  ],
   "rulesDirectory": [
     "node_modules/tslint-microsoft-contrib"
   ],
@@ -6,16 +9,29 @@
     "arrow-return-shorthand": true,
     "curly": true,
     "eofline": true,
-    "function-name": [true, {
-      "method-regex": "^[a-z][\\w\\d]+$",
-      "private-method-regex": "^[a-z][\\w\\d]+$",
-      "static-method-regex": "^[a-z][\\w\\d]+$",
-      "function-regex": "^[a-z][\\w\\d]+$"
-    }],
-    "indent": [true, "spaces", 2],
-    "interface-name": [true, "never-prefix"],
+    "function-name": [
+      true,
+      {
+        "method-regex": "^[a-z][\\w\\d]+$",
+        "private-method-regex": "^[a-z][\\w\\d]+$",
+        "static-method-regex": "^[a-z][\\w\\d]+$",
+        "function-regex": "^[a-z][\\w\\d]+$"
+      }
+    ],
+    "indent": [
+      true,
+      "spaces",
+      2
+    ],
+    "interface-name": [
+      true,
+      "never-prefix"
+    ],
     "jsdoc-format": true,
-    "max-line-length": [true, 120],
+    "max-line-length": [
+      true,
+      120
+    ],
     "no-consecutive-blank-lines": true,
     "no-console": false,
     "no-debugger": true,
@@ -26,26 +42,41 @@
     "no-shadowed-variable": true,
     "no-switch-case-fall-through": true,
     "no-trailing-whitespace": true,
-    "no-unused-variable": [true, "check-parameters", {"ignore-pattern": "^_"}],
+    "no-unused": true,
     "no-var-keyword": true,
     "number-literal-format": true,
-    "object-literal-key-quotes": [true, "as-needed"],
+    "object-literal-key-quotes": [
+      true,
+      "as-needed"
+    ],
     "object-literal-shorthand": true,
     "one-variable-per-declaration": true,
     "prefer-template": false,
-    "quotemark": [true, "double", "avoid-escape"],
+    "quotemark": [
+      true,
+      "double",
+      "avoid-escape"
+    ],
     "radix": true,
-    "semicolon": [true, "never"],
-    "trailing-comma": [true, {
-      "multiline": "always",
-      "singleline": "never"
-    }],
-    "variable-name": [true,
+    "semicolon": [
+      true,
+      "never"
+    ],
+    "trailing-comma": [
+      true,
+      {
+        "multiline": "always",
+        "singleline": "never"
+      }
+    ],
+    "variable-name": [
+      true,
       "check-format",
       "allow-leading-underscore",
       "allow-pascal-case"
     ],
-    "whitespace": [true,
+    "whitespace": [
+      true,
       "check-branch",
       "check-operator",
       "check-separator"
