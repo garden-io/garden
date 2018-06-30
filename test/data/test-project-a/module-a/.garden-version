@@ -1,5 +1,4 @@
 {
-  "versionString": "1234567890",
-  "dirtyTimestamp": null,
-  "dependencyVersions": {}
+  "latestCommit": "1234567890",
+  "dirtyTimestamp": null
 }

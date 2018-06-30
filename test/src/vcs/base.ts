@@ -4,13 +4,12 @@ import { PluginContext } from "../../../src/plugin-context"
 import { expect } from "chai"
 
 class TestVcsHandler extends VcsHandler {
+  name = "test"
   private testVersions: TreeVersions = {}
 
   async getTreeVersion(paths: string[]) {
-    const versionString = NEW_MODULE_VERSION
     return this.testVersions[paths[0]] || {
-      versionString,
-      latestCommit: versionString,
+      latestCommit: NEW_MODULE_VERSION,
       dirtyTimestamp: null,
     }
   }
@@ -29,12 +28,36 @@ describe("VcsHandler", () => {
     ctx = await makeTestContextA()
   })
 
+  describe("resolveTreeVersion", () => {
+    it("should return the version from a version file if it exists", async () => {
+      const module = await ctx.getModule("module-a")
+      const result = await handler.resolveTreeVersion(module)
+
+      expect(result).to.eql({
+        latestCommit: "1234567890",
+        dirtyTimestamp: null,
+      })
+    })
+
+    it("should call getTreeVersion if there is no version file", async () => {
+      const module = await ctx.getModule("module-b")
+
+      const version = {
+        latestCommit: "qwerty",
+        dirtyTimestamp: 456,
+      }
+      handler.setTestVersion(module.path, version)
+
+      const result = await handler.resolveTreeVersion(module)
+      expect(result).to.eql(version)
+    })
+  })
+
   describe("resolveVersion", () => {
     it("should return module version if there are no dependencies", async () => {
       const module = await ctx.getModule("module-a")
       const versionString = "abcdef"
       const version = {
-        versionString,
         latestCommit: versionString,
         dirtyTimestamp: null,
       }
@@ -53,16 +76,13 @@ describe("VcsHandler", () => {
     it("should return the latest dirty version if any", async () => {
       const [moduleA, moduleB, moduleC] = await ctx.getModules(["module-a", "module-b", "module-c"])
 
-      const versionStringA = "abcdef"
+      // note: module-a has a version file
       const versionA = {
-        versionString: versionStringA,
-        latestCommit: versionStringA,
+        latestCommit: "1234567890",
         dirtyTimestamp: null,
       }
-      handler.setTestVersion(moduleA.path, versionA)
 
       const versionB = {
-        versionString: "qwerty-456",
         latestCommit: "qwerty",
         dirtyTimestamp: 456,
       }
@@ -70,7 +90,6 @@ describe("VcsHandler", () => {
 
       const versionStringC = "asdfgh"
       const versionC = {
-        versionString: versionStringC,
         latestCommit: versionStringC,
         dirtyTimestamp: 123,
       }
@@ -89,17 +108,13 @@ describe("VcsHandler", () => {
     it("should hash together the version of the module and all dependencies if none are dirty", async () => {
       const [moduleA, moduleB, moduleC] = await ctx.getModules(["module-a", "module-b", "module-c"])
 
-      const versionStringA = "abcdef"
       const versionA = {
-        versionString: versionStringA,
-        latestCommit: versionStringA,
+        latestCommit: "1234567890",
         dirtyTimestamp: null,
       }
-      handler.setTestVersion(moduleA.path, versionA)
 
       const versionStringB = "qwerty"
       const versionB = {
-        versionString: versionStringB,
         latestCommit: versionStringB,
         dirtyTimestamp: null,
       }
@@ -107,14 +122,13 @@ describe("VcsHandler", () => {
 
       const versionStringC = "asdfgh"
       const versionC = {
-        versionString: versionStringC,
         latestCommit: versionStringC,
         dirtyTimestamp: null,
       }
       handler.setTestVersion(moduleC.path, versionC)
 
       expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
-        versionString: "vfd75ce5f36",
+        versionString: "v5ff3a146d9",
         dirtyTimestamp: null,
         dependencyVersions: {
           "module-a": versionA,
@@ -126,17 +140,13 @@ describe("VcsHandler", () => {
     it("should hash together the dirty versions if there are multiple with same timestamp", async () => {
       const [moduleA, moduleB, moduleC] = await ctx.getModules(["module-a", "module-b", "module-c"])
 
-      const versionStringA = "abcdef"
       const versionA = {
-        versionString: versionStringA,
-        latestCommit: versionStringA,
+        latestCommit: "1234567890",
         dirtyTimestamp: null,
       }
-      handler.setTestVersion(moduleA.path, versionA)
 
       const versionStringB = "qwerty"
       const versionB = {
-        versionString: versionStringB,
         latestCommit: versionStringB,
         dirtyTimestamp: 1234,
       }
@@ -144,7 +154,6 @@ describe("VcsHandler", () => {
 
       const versionStringC = "asdfgh"
       const versionC = {
-        versionString: versionStringC,
         latestCommit: versionStringC,
         dirtyTimestamp: 1234,
       }

@@ -11,6 +11,11 @@ import * as Bluebird from "bluebird"
 import { mapValues, keyBy, sortBy, orderBy, omit } from "lodash"
 import { createHash } from "crypto"
 import * as Joi from "joi"
+import { validate } from "../types/common"
+import { join } from "path"
+import { GARDEN_VERSIONFILE_NAME } from "../constants"
+import { pathExists, readFile } from "fs-extra"
+import { ConfigurationError } from "../exceptions"
 
 export const NEW_MODULE_VERSION = "0000000000"
 
@@ -63,10 +68,37 @@ export const moduleVersionSchema = Joi.object()
 export abstract class VcsHandler {
   constructor(protected projectRoot: string) { }
 
+  abstract name: string
   abstract async getTreeVersion(paths: string[]): Promise<TreeVersion>
+
+  async resolveTreeVersion(module: Module): Promise<TreeVersion> {
+    // the version file is used internally to specify versions outside of source control
+    const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
+    const versionFileContents = await pathExists(versionFilePath)
+      && (await readFile(versionFilePath)).toString().trim()
+
+    if (!!versionFileContents) {
+      try {
+        return validate(JSON.parse(versionFileContents), treeVersionSchema)
+      } catch (err) {
+        throw new ConfigurationError(
+          `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${module.path}`,
+          {
+            modulePath: module.path,
+            versionFilePath,
+            versionFileContents,
+          },
+        )
+      }
+    } else {
+      return this.getTreeVersion([module.path])
+    }
+  }
 
   async resolveVersion(module: Module, dependencies: Module[]): Promise<ModuleVersion> {
     const treeVersion = await this.getTreeVersion([module.path])
+
+    validate(treeVersion, treeVersionSchema, { context: `${this.name} tree version for module at ${module.path}` })
 
     if (dependencies.length === 0) {
       return {
@@ -78,7 +110,7 @@ export abstract class VcsHandler {
 
     const namedDependencyVersions = await Bluebird.map(
       dependencies,
-      async (m: Module) => ({ name: m.name, ...await this.getTreeVersion([m.path]) }),
+      async (m: Module) => ({ name: m.name, ...await this.resolveTreeVersion(m) }),
     )
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), v => omit(v, "name"))
 

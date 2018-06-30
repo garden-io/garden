@@ -3,9 +3,6 @@ import {
   ChildProcess,
 } from "child_process"
 import {
-  writeFileSync,
-} from "fs"
-import {
   ensureDir,
   pathExists,
   readFile,
@@ -13,12 +10,14 @@ import {
   writeFile,
 } from "fs-extra"
 import * as handlebars from "handlebars"
-import {
-  join,
-  relative,
-} from "path"
+import { join } from "path"
 import { generateDocs } from "./src/docs/generate"
 import { getUrlChecksum } from "./support/support-util"
+import * as Bluebird from "bluebird"
+import { GitHandler } from "./src/vcs/git"
+import { Garden } from "./src/garden"
+import { RootLogNode } from "./src/logger/logger"
+import { LogLevel } from "./src/logger/types"
 import execa = require("execa")
 
 const gulp = require("gulp")
@@ -48,12 +47,6 @@ const tmpDir = join(__dirname, "tmp")
 const licenseHeaderPath = "support/license-header.txt"
 
 const destDir = "build"
-
-class TaskError extends Error {
-  toString() {
-    return this.message
-  }
-}
 
 const children: ChildProcess[] = []
 
@@ -89,37 +82,25 @@ function die() {
 process.on("SIGINT", die)
 process.on("SIGTERM", die)
 
-gulp.task("add-version-files", (cb) => {
-  const gardenBinPath = join("static", "bin", "garden")
-  const proc = _spawn("node", [gardenBinPath, "scan", "--output=json"])
+// make sure logger is initialized
+try {
+  RootLogNode.initialize({ level: LogLevel.info })
+} catch (_) { }
 
-  proc.on("error", err => cb(err))
+gulp.task("add-version-files", async () => {
+  const staticPath = join(__dirname, "static")
+  const garden = await Garden.factory(staticPath)
 
-  let output = ""
-  let outputWithError = ""
-  proc.stdout.on("data", d => {
-    output += d
-    outputWithError += d
-  })
-  proc.stderr.on("data", d => outputWithError += d)
+  const modules = await garden.getModules()
 
-  proc.on("close", () => {
-    let results
-    try {
-      results = JSON.parse(output)
-    } catch {
-      const msg = "Got unexpected output from `garden scan`"
-      console.error(msg + "\n" + outputWithError)
-      return cb(msg)
-    }
+  return Bluebird.map(modules, async (module) => {
+    const path = module.path
+    const versionFilePath = join(path, ".garden-version")
 
-    for (const module of <any>results.result) {
-      const relPath = relative(__dirname, module.path)
-      const versionFilePath = join(__dirname, relPath, ".garden-version")
-      writeFileSync(versionFilePath, JSON.stringify(module.version))
-    }
+    const vcsHandler = new GitHandler(path)
+    const treeVersion = await vcsHandler.getTreeVersion([path])
 
-    cb()
+    await writeFile(versionFilePath, JSON.stringify(treeVersion, null, 4) + "\n")
   })
 })
 
@@ -266,10 +247,7 @@ gulp.task("watch-code", () => {
 })
 
 gulp.task("lint", gulp.parallel("check-licenses", "tslint", "tslint-tests", "tsfmt"))
-gulp.task("build", gulp.series(
-  gulp.parallel("generate-docs", "pegjs", "tsc"),
-  "add-version-files",
-))
+gulp.task("build", gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc"))
 gulp.task("test", gulp.parallel("build", "lint", "mocha"))
 gulp.task("watch", gulp.series(
   "build",
