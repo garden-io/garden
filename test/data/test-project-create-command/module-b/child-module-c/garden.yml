@@ -1,0 +1,13 @@
+module:
+  name: child-module-c
+  type: container
+  description: Child module c container
+  services:
+    - name: child-module-c-service
+      ports:
+        - name: http
+          containerPort: 8080
+      endpoints:
+        - paths:
+            - /
+          port: http

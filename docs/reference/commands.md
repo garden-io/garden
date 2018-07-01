@@ -74,6 +74,68 @@ Note: Currently only supports HTTP/HTTPS endpoints.
 | -------- | -------- | ----------- |
   | `serviceAndPath` | Yes | The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath).
 
+### garden create project
+
+Creates scaffolding for a new Garden project.
+
+The Create command walks the user through setting up a new Garden project and generates scaffolding based on user
+input.
+
+Examples:
+
+    garden create project # creates a new Garden project in the current directory (project name defaults to
+    directory name)
+    garden create project my-project # creates a new Garden project named my-project in the current directory
+    garden create project --module-dirs=services,more-services
+    # creates a new Garden project and looks for modules in the services and more-services directories
+    garden create project my-project --new  # creates a new Garden project in a new directory named my-project
+
+##### Usage
+
+    garden create project [projectName] [options]
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `projectName` | No | The name of the project, (defaults to project root directory name)
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--module-dirs` |  | string | Relative path to modules directory. Use comma as a separator to specify multiple directories
+  | `--new` |  | boolean | If true, creates a new directory. Otherwise assumes current working directory is the project directory
+
+### garden create module
+
+Creates scaffolding for a new Garden project.
+
+The Create command walks the user through setting up a new Garden project and generates scaffolding based on user
+input.
+
+Examples:
+
+    garden create module # scaffolds a new module in the current directory (module name defaults to directory name)
+    garden create module my-module # scaffolds a new module named my-module in the current directory
+
+##### Usage
+
+    garden create module [moduleName] [options]
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `moduleName` | No | The name of the module, (defaults to current directory name)
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--new` |  | boolean | If true, creates a new directory. Otherwise assumes current working directory is the module directory
+  | `--type` |  | string | Type of module. Check out &#x27;https://docs.garden.io&#x27; for available types
+
 ### garden delete config
 
 Delete a configuration variable from the environment.

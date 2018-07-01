@@ -1,0 +1,13 @@
+module:
+  name: module-b
+  type: container
+  description: Module b container
+  services:
+    - name: module-b-service
+      ports:
+        - name: http
+          containerPort: 8080
+      endpoints:
+        - paths:
+            - /
+          port: http

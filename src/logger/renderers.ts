@@ -10,7 +10,7 @@ import * as logSymbols from "log-symbols"
 import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
 import chalk from "chalk"
-import { curryRight, flow, isArray, padEnd, padStart } from "lodash"
+import { curryRight, flow, isArray, isEmpty, padEnd, padStart } from "lodash"
 import hasAnsi = require("has-ansi")
 
 import { duration } from "./util"
@@ -74,7 +74,7 @@ export function renderError(entry: LogEntry) {
   if (error) {
     const { detail, message, stack } = error
     let out = `${stack || message}`
-    if (detail) {
+    if (!isEmpty(detail)) {
       const yamlDetail = yaml.safeDump(detail, { noRefs: true, skipInvalid: true })
       out += `\nError Details:\n${yamlDetail}`
     }
