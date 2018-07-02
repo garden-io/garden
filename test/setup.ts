@@ -1,5 +1,4 @@
 import * as td from "testdouble"
-import { Module } from "../src/types/module"
 import { RootLogNode } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/types"
 
