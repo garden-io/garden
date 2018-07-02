@@ -288,7 +288,7 @@ export async function testModule(
 ): Promise<TestResult> {
   const testName = testConfig.name
   const command = testConfig.spec.command
-  runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.variables }
+  runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
   const result = await runModule({ ctx, provider, env, module, command, interactive, runtimeContext, silent, timeout })

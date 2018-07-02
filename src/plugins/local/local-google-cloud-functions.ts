@@ -57,6 +57,7 @@ export const gardenPlugin = (): GardenPlugin => ({
             endpoints: [{
               port: "http",
             }],
+            env: {},
             healthCheck: { tcpPort: "http" },
             ports: [
               {

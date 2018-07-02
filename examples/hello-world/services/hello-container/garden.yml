@@ -16,6 +16,8 @@ module:
           port: http
       dependencies:
         - hello-function
+      env:
+        FUNCTION_ENDPOINT: ${dependencies.hello-function.outputs.endpoint}
   build:
     dependencies:
       - hello-npm-package

@@ -271,6 +271,13 @@ module:
             target:
       
   
+  # Key/value map of environment variables. Keys must be valid POSIX environment variable names
+  # (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+  # 
+  # Optional.
+  env: 
+    {}
+  
   # A list of tests to run in the module.
   # 
   # Optional.
@@ -290,12 +297,6 @@ module:
         - 
         
       
-      # Map of key/value pairs that are available during the test execution.
-      # 
-      # Optional.
-      variables: 
-        {}
-      
       # Maximum duration (in seconds) of the test run.
       # 
       # Optional.
@@ -305,7 +306,15 @@ module:
       # 
       # Optional.
       command: 
-        -
+        - 
+        
+      
+      # Key/value map of environment variables. Keys must be valid POSIX environment variable
+      # names (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+      # 
+      # Optional.
+      env: 
+        {}
     
 ```
 
@@ -387,43 +396,6 @@ module:
             target:
       
   
-  # A list of tests to run in the module.
-  # 
-  # Optional.
-  tests: 
-    # The test specification of a generic module.
-    # 
-    # Optional.
-    - # The name of the test.
-      # 
-      # Required.
-      name: 
-      
-      # The names of services that must be running before the test is run.
-      # 
-      # Optional.
-      dependencies: 
-        - 
-        
-      
-      # Map of key/value pairs that are available during the test execution.
-      # 
-      # Optional.
-      variables: 
-        {}
-      
-      # Maximum duration (in seconds) of the test run.
-      # 
-      # Optional.
-      timeout: 
-      
-      # The command to run in the module build context in order to test it.
-      # 
-      # Optional.
-      command: 
-        -
-    
-  
   # Specify build arguments when building the container image.
   # 
   # Optional.
@@ -498,6 +470,13 @@ module:
           # Required.
           port:
         
+      
+      # Key/value map of environment variables. Keys must be valid POSIX environment variable
+      # names (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+      # 
+      # Optional.
+      env: 
+        {}
       
       # Specify how the service's health should be checked after deploying.
       # 
@@ -577,6 +556,45 @@ module:
           containerPath: 
           
           hostPath:
+    
+  
+  # A list of tests to run in the module.
+  # 
+  # Optional.
+  tests: 
+    # The test specification of a generic module.
+    # 
+    # Optional.
+    - # The name of the test.
+      # 
+      # Required.
+      name: 
+      
+      # The names of services that must be running before the test is run.
+      # 
+      # Optional.
+      dependencies: 
+        - 
+        
+      
+      # Maximum duration (in seconds) of the test run.
+      # 
+      # Optional.
+      timeout: 
+      
+      # The command to run in the module build context in order to test it.
+      # 
+      # Optional.
+      command: 
+        - 
+        
+      
+      # Key/value map of environment variables. Keys must be valid POSIX environment variable
+      # names (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+      # 
+      # Optional.
+      env: 
+        {}
     
 ```
 

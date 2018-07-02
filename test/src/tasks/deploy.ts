@@ -47,6 +47,7 @@ describe("DeployTask", () => {
         daemon: false,
         dependencies: ["service-a"],
         endpoints: [],
+        env: {},
         name: "service-b",
         outputs: {},
         ports: [],

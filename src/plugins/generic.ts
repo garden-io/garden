@@ -10,6 +10,8 @@ import { exec } from "child-process-promise"
 import * as Joi from "joi"
 import {
   joiArray,
+  joiEnvVars,
+  PrimitiveMap,
   validate,
 } from "../types/common"
 import {
@@ -45,21 +47,25 @@ export const name = "generic"
 
 export interface GenericTestSpec extends BaseTestSpec {
   command: string[],
+  env: PrimitiveMap,
 }
 
 export const genericTestSchema = baseTestSpecSchema
   .keys({
     command: Joi.array().items(Joi.string())
       .description("The command to run in the module build context in order to test it."),
+    env: joiEnvVars(),
   })
   .description("The test specification of a generic module.")
 
 export interface GenericModuleSpec extends ModuleSpec {
+  env: PrimitiveMap,
   tests: GenericTestSpec[],
 }
 
 export const genericModuleSpecSchema = Joi.object()
   .keys({
+    env: joiEnvVars(),
     tests: joiArray(genericTestSchema)
       .description("A list of tests to run in the module."),
   })
@@ -81,12 +87,11 @@ export async function parseGenericModule(
       dependencies: t.dependencies,
       spec: t,
       timeout: t.timeout,
-      variables: t.variables,
     })),
   }
 }
 
-export async function buildGenericModule({ module }: BuildModuleParams): Promise<BuildResult> {
+export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
   // By default we run the specified build command in the module root, if any.
   // TODO: Keep track of which version has been built (needs local data store/cache).
   const config: ModuleConfig = module.config
@@ -95,7 +100,7 @@ export async function buildGenericModule({ module }: BuildModuleParams): Promise
     const buildPath = await module.getBuildPath()
     const result = await exec(config.build.command, {
       cwd: buildPath,
-      env: { ...process.env },
+      env: { ...process.env, ...module.spec.env },
     })
 
     return {
@@ -110,8 +115,15 @@ export async function buildGenericModule({ module }: BuildModuleParams): Promise
 export async function testGenericModule({ module, testConfig }: TestModuleParams<GenericModule>): Promise<TestResult> {
   const startedAt = new Date()
   const command = testConfig.spec.command
+
   const result = await spawn(
-    command[0], command.slice(1), { cwd: module.path, ignoreError: true },
+    command[0],
+    command.slice(1),
+    {
+      cwd: module.path,
+      env: { ...process.env, ...module.spec.env, ...testConfig.spec.env },
+      ignoreError: true,
+    },
   )
 
   return {

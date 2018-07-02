@@ -93,7 +93,6 @@ export async function parseGcfModule(
     tests: moduleConfig.spec.tests.map(t => ({
       name: t.name,
       dependencies: t.dependencies,
-      variables: t.variables,
       timeout: t.timeout,
       spec: t,
     })),

@@ -1,8 +1,26 @@
 import { expect } from "chai"
 import * as Joi from "joi"
 const stripAnsi = require("strip-ansi")
-import { identifierRegex, validate } from "../../../src/types/common"
+import { identifierRegex, validate, envVarRegex } from "../../../src/types/common"
 import { expectError } from "../../helpers"
+
+describe("envVarRegex", () => {
+  it("should accept a valid env var name", () => {
+    expect(envVarRegex.test("MY_ENV_VAR")).to.be.true
+  })
+
+  it("should disallow dashes", () => {
+    expect(envVarRegex.test("MY-ENV_VAR")).to.be.false
+  })
+
+  it("should disallow lowercase chars", () => {
+    expect(envVarRegex.test("my_env_var")).to.be.false
+  })
+
+  it("should disallow strings starting with GARDEN", () => {
+    expect(envVarRegex.test("GARDEN_ENV_VAR")).to.be.false
+  })
+})
 
 describe("identifierRegex", () => {
   it("should accept a valid identifier", () => {

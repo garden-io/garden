@@ -10,8 +10,6 @@ import * as Joi from "joi"
 import {
   joiArray,
   joiIdentifier,
-  joiVariables,
-  PrimitiveMap,
 } from "./common"
 
 export interface TestSpec { }
@@ -19,7 +17,6 @@ export interface TestSpec { }
 export interface BaseTestSpec extends TestSpec {
   name: string
   dependencies: string[]
-  variables: PrimitiveMap
   timeout: number | null
 }
 
@@ -30,8 +27,6 @@ export const baseTestSpecSchema = Joi.object()
       .description("The name of the test."),
     dependencies: joiArray(Joi.string())
       .description("The names of services that must be running before the test is run."),
-    variables: joiVariables()
-      .description("Map of key/value pairs that are available during the test execution."),
     timeout: Joi.number()
       .allow(null)
       .default(null)

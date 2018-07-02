@@ -64,7 +64,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           }
         })
 
-        const envVars = map(runtimeContext.envVars, (v, k) => `${k}=${v}`)
+        const envVars = map({ ...runtimeContext.envVars, ...service.spec.env }, (v, k) => `${k}=${v}`)
 
         const volumeMounts = service.spec.volumes.map(v => {
           // TODO-LOW: Support named volumes
