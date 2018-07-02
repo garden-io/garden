@@ -4,7 +4,6 @@ import {
   dataDir,
   makeTestContextA,
   makeTestContext,
-  makeTestGardenA,
 } from "../../helpers"
 import { expect } from "chai"
 import { loadConfig } from "../../../src/types/config"

@@ -3,10 +3,6 @@ import { resolve } from "path"
 import { TestTask } from "../../../src/tasks/test"
 import * as td from "testdouble"
 import {
-  NEW_MODULE_VERSION,
-  ModuleVersion,
-} from "../../../src/vcs/base"
-import {
   dataDir,
   makeTestGarden,
 } from "../../helpers"

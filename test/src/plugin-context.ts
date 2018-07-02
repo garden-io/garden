@@ -1,9 +1,6 @@
 import { expect } from "chai"
 import { PluginContext } from "../../src/plugin-context"
-import {
-  expectError,
-  makeTestContextA,
-} from "../helpers"
+import { expectError } from "../helpers"
 import { getNames } from "../../src/util/util"
 import { Garden } from "../../src/garden"
 import { makeTestGardenA } from "../helpers"
