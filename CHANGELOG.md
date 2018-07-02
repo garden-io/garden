@@ -1,5 +1,5 @@
-<a name="0.2.0-0"></a>
-# [0.2.0-0](https://github.com/garden-io/garden/compare/v0.1.2...v0.2.0-0) (2018-06-27)
+<a name="0.2.0"></a>
+# [0.2.0](https://github.com/garden-io/garden/compare/v0.2.0-0...v0.2.0) (2018-06-27)
 
 
 ### Bug Fixes
