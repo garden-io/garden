@@ -33,7 +33,9 @@ const gulpTslint = require("gulp-tslint")
 const tslint = require("tslint")
 const ts = require("gulp-typescript")
 
-const tsProject = ts.createProject("tsconfig.json", {
+const tsConfigFilename = "tsconfig.build.json"
+const tsConfigPath = join(__dirname, tsConfigFilename)
+const tsProject = ts.createProject(tsConfigFilename, {
   declaration: true,
 })
 const reporter = ts.reporter.longReporter()
@@ -161,12 +163,12 @@ gulp.task("tsc", () =>
 
 gulp.task("tsc-watch", () =>
   _spawn("tsc", [
-      "-w",
-      "--pretty",
-      "--declaration",
-      "-p", __dirname,
-      "--outDir", destDir,
-    ],
+    "-w",
+    "--pretty",
+    "--declaration",
+    "-p", tsConfigPath,
+    "--outDir", destDir,
+  ],
     { stdio: "inherit" },
   ),
 )
@@ -179,7 +181,7 @@ gulp.task("tslint", () =>
   gulp.src(tsSources)
     .pipe(cached("tslint"))
     .pipe(gulpTslint({
-      program: tslint.Linter.createProgram("./tsconfig.json"),
+      program: tslint.Linter.createProgram(tsConfigPath),
       formatter: "verbose",
     }))
     .pipe(gulpTslint.report()),

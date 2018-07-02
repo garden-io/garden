@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import { makeTestGardenA, stubAction } from "../../helpers"
 
-import { LoginCommand } from "../../../src/commands/login"
+import { LoginCommand } from "../../../src/commands/login"
 
 describe("LoginCommand", () => {
   const command = new LoginCommand()
@@ -15,7 +15,7 @@ describe("LoginCommand", () => {
 
     const { result } = await command.action(ctx)
 
-    expect(result).to.eql({"test-plugin": { loggedIn: true }})
+    expect(result).to.eql({ "test-plugin": { loggedIn: true } })
   })
 
 })

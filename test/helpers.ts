@@ -18,7 +18,7 @@ import {
   PluginActions,
   PluginFactory,
   ModuleActions,
-  } from "../src/types/plugin/plugin"
+} from "../src/types/plugin/plugin"
 import { Garden } from "../src/garden"
 import {
   ModuleConfig,
@@ -143,7 +143,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           }
         },
 
-        async runService({ ctx, service, interactive, runtimeContext, silent, timeout}: RunServiceParams) {
+        async runService({ ctx, service, interactive, runtimeContext, silent, timeout }: RunServiceParams) {
           return ctx.runModule({
             moduleName: service.module.name,
             command: [service.name],
@@ -231,13 +231,13 @@ export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
   return garden.pluginContext
 }
 
-export function stubAction<T extends keyof PluginActions> (
+export function stubAction<T extends keyof PluginActions>(
   garden: Garden, pluginName: string, type: T, handler?: PluginActions[T],
 ) {
   return td.replace(garden["actionHandlers"][type], pluginName, handler)
 }
 
-export function stubModuleAction<T extends keyof ModuleActions<any>> (
+export function stubModuleAction<T extends keyof ModuleActions<any>>(
   garden: Garden, moduleType: string, pluginName: string, actionType: T, handler: ModuleActions<any>[T],
 ) {
   handler["actionType"] = actionType

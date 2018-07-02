@@ -201,21 +201,20 @@ describe("task-graph", () => {
       })
     })
 
-    it("should recursively cancel a task's dependants when it throws an error", async() => {
+    it("should recursively cancel a task's dependants when it throws an error", async () => {
       const ctx = await getContext()
       const graph = new TaskGraph(ctx)
 
-      const callbackResults = {}
       const resultOrder: string[] = []
 
-      const callback = async (key: string, result: any) => {
+      const callback = async (key: string) => {
         resultOrder.push(key)
       }
 
       const opts = { callback }
 
       const taskA = new TestTask("a", [], opts)
-      const taskB = new TestTask("b", [taskA], { callback, throwError: true})
+      const taskB = new TestTask("b", [taskA], { callback, throwError: true })
       const taskC = new TestTask("c", [taskB], opts)
       const taskD = new TestTask("d", [taskB, taskC], opts)
 
@@ -243,20 +242,19 @@ describe("task-graph", () => {
 
     it.skip(
       "should process a task as an inheritor of an existing, in-progress task when they have the same base key",
-      async () =>
-    {
-      const ctx = await getContext()
-      const graph = new TaskGraph(ctx)
+      async () => {
+        const ctx = await getContext()
+        const graph = new TaskGraph(ctx)
 
-      let callbackResults = {}
-      let resultOrder: string[] = []
+        let callbackResults = {}
+        let resultOrder: string[] = []
 
-      let parentTaskStarted = false
-      let inheritorAdded = false
+        let parentTaskStarted = false
+        let inheritorAdded = false
 
-      const intervalMs = 10
+        const intervalMs = 10
 
-      const inheritorAddedPromise = new Promise(resolve => {
+        const inheritorAddedPromise = new Promise(resolve => {
           setInterval(() => {
             if (inheritorAdded) {
               resolve()
@@ -264,82 +262,90 @@ describe("task-graph", () => {
           }, intervalMs)
         })
 
-      const parentTaskStartedPromise = new Promise(resolve => {
-        setInterval(() => {
-          if (parentTaskStarted) {
-            resolve()
-          }
-        }, intervalMs)
+        const parentTaskStartedPromise = new Promise(resolve => {
+          setInterval(() => {
+            if (parentTaskStarted) {
+              resolve()
+            }
+          }, intervalMs)
+        })
+
+        const defaultCallback = async (key: string, result: any) => {
+          resultOrder.push(key)
+          callbackResults[key] = result
+        }
+
+        const parentCallback = async (key: string, result: any) => {
+          parentTaskStarted = true
+          await inheritorAddedPromise
+          resultOrder.push(key)
+          callbackResults[key] = result
+        }
+
+        const dependencyA = new TestTask("dependencyA", [], { callback: defaultCallback })
+        const dependencyB = new TestTask("dependencyB", [], { callback: defaultCallback })
+        const parentTask = new TestTask("sharedName", [dependencyA, dependencyB], { callback: parentCallback, id: "1" })
+        const dependantA = new TestTask("dependantA", [parentTask], { callback: defaultCallback })
+        const dependantB = new TestTask("dependantB", [parentTask], { callback: defaultCallback })
+
+        const inheritorTask = new TestTask(
+          "sharedName", [dependencyA, dependencyB], { callback: defaultCallback, id: "2" },
+        )
+
+        await graph.addTask(dependencyA)
+        await graph.addTask(dependencyB)
+        await graph.addTask(parentTask)
+        await graph.addTask(dependantA)
+        await graph.addTask(dependantB)
+
+        const resultsPromise = graph.processTasks()
+        await parentTaskStartedPromise
+        await graph.addTask(inheritorTask)
+        inheritorAdded = true
+        const results = await resultsPromise
+
+        expect(resultOrder).to.eql([
+          "dependencyA",
+          "dependencyB",
+          "sharedName.1",
+          "sharedName.2",
+          "dependantA",
+          "dependantB",
+        ])
+
+        const resultDependencyA = {
+          output: "result-dependencyA",
+          dependencyResults: {},
+        }
+
+        const resultDependencyB = {
+          output: "result-dependencyB",
+          dependencyResults: {},
+        }
+
+        const resultSharedName = {
+          output: "result-sharedName.2",
+          dependencyResults: { dependencyA: resultDependencyA, dependencyB: resultDependencyB },
+        }
+
+        expect(results).to.eql({
+          dependencyA: { output: "result-dependencyA", dependencyResults: {} },
+          dependencyB: { output: "result-dependencyB", dependencyResults: {} },
+          sharedName: {
+            output: "result-sharedName.2",
+            dependencyResults: { dependencyA: resultDependencyA, dependencyB: resultDependencyB },
+          },
+          dependantA:
+          {
+            result: "result-dependantA",
+            dependencyResults: { sharedName: resultSharedName },
+          },
+          dependantB:
+          {
+            result: "result-dependantB",
+            dependencyResults: { sharedName: resultSharedName },
+          },
+        })
       })
-
-      const defaultCallback = async (key: string, result: any) => {
-        resultOrder.push(key)
-        callbackResults[key] = result
-      }
-
-      const parentCallback = async (key: string, result: any) => {
-        parentTaskStarted = true
-        await inheritorAddedPromise
-        resultOrder.push(key)
-        callbackResults[key] = result
-      }
-
-      const dependencyA = new TestTask("dependencyA", [], {callback: defaultCallback})
-      const dependencyB = new TestTask("dependencyB", [], {callback: defaultCallback})
-      const parentTask  = new TestTask("sharedName", [dependencyA, dependencyB], {callback: parentCallback, id: "1"})
-      const dependantA  = new TestTask("dependantA", [parentTask], {callback: defaultCallback})
-      const dependantB  = new TestTask("dependantB", [parentTask], {callback: defaultCallback})
-
-      const inheritorTask = new TestTask("sharedName", [dependencyA, dependencyB], {callback: defaultCallback, id: "2"})
-
-      await graph.addTask(dependencyA)
-      await graph.addTask(dependencyB)
-      await graph.addTask(parentTask)
-      await graph.addTask(dependantA)
-      await graph.addTask(dependantB)
-
-      const resultsPromise = graph.processTasks()
-      await parentTaskStartedPromise
-      await graph.addTask(inheritorTask)
-      inheritorAdded = true
-      const results = await resultsPromise
-
-      expect(resultOrder).to.eql([
-        "dependencyA",
-        "dependencyB",
-        "sharedName.1",
-        "sharedName.2",
-        "dependantA",
-        "dependantB",
-      ])
-
-      const resultDependencyA = {
-        output: "result-dependencyA",
-        dependencyResults: {},
-      }
-
-      const resultDependencyB = {
-        output: "result-dependencyB",
-        dependencyResults: {},
-      }
-
-      const resultSharedName = {
-        output: "result-sharedName.2",
-        dependencyResults: {dependencyA: resultDependencyA, dependencyB: resultDependencyB},
-      }
-
-      expect(results).to.eql({
-        dependencyA: { output: "result-dependencyA", dependencyResults: {} },
-        dependencyB: { output: "result-dependencyB", dependencyResults: {} },
-        sharedName: { output: "result-sharedName.2",
-          dependencyResults: { dependencyA: resultDependencyA, dependencyB: resultDependencyB } },
-        dependantA:
-        { result: "result-dependantA",
-          dependencyResults: { sharedName: resultSharedName } },
-        dependantB:
-        { result: "result-dependantB",
-          dependencyResults: { sharedName: resultSharedName } },
-      })
-    })
   })
 })

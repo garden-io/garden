@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { flatten, keys, mapValues, values, uniq } from "lodash"
+import { mapValues } from "lodash"
 import { join } from "path"
 import {
   AutoReloadDependants,
@@ -7,7 +7,6 @@ import {
   computeAutoReloadDependants,
 } from "../../src/watch"
 import { makeTestGarden } from "../helpers"
-import { inspect } from "util"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-auto-reload")
 
@@ -35,9 +34,9 @@ describe("watch", () => {
         await computeAutoReloadDependants(ctx))
 
       expect(dependants).to.eql({
-        "module-a": [ "module-b" ],
-        "module-b": [ "module-d", "module-e" ],
-        "module-c": [ "module-e", "module-f" ],
+        "module-a": ["module-b"],
+        "module-b": ["module-d", "module-e"],
+        "module-c": ["module-e", "module-f"],
       })
     })
   })

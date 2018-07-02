@@ -9,6 +9,7 @@ node_modules
 .idea
 *.iml
 /.vscode
+/.vs
 
 # Runtime files
 .garden

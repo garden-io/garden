@@ -42,17 +42,17 @@ describe("ConfigStore", () => {
     it("should set nested keys and create objects as needed", async () => {
       await config.set(["nested", "a", "aa"], "value-a")
       await config.set(["nested", "b", "bb"], "value-b")
-      expect(await config.get()).to.eql({ nested: { a: { aa: "value-a"}, b: { bb: "value-b" }}})
+      expect(await config.get()).to.eql({ nested: { a: { aa: "value-a" }, b: { bb: "value-b" } } })
       await config.set(["nested", "b", "bb"], "value-bbb")
-      expect(await config.get()).to.eql({ nested: { a: { aa: "value-a"}, b: { bb: "value-bbb" }}})
+      expect(await config.get()).to.eql({ nested: { a: { aa: "value-a" }, b: { bb: "value-bbb" } } })
     })
 
     it("should optionally set multiple key-value pairs", async () => {
       await config.set([
-        {keyPath: ["a", "aa"], value: "value-a"},
-        {keyPath: ["b", "bb"], value: "value-b"},
+        { keyPath: ["a", "aa"], value: "value-a" },
+        { keyPath: ["b", "bb"], value: "value-b" },
       ])
-      expect(await config.get()).to.eql({ a: { aa: "value-a"}, b: { bb: "value-b" }})
+      expect(await config.get()).to.eql({ a: { aa: "value-a" }, b: { bb: "value-b" } })
     })
 
     it("should throw if setting a nested key on a non-object", async () => {
@@ -73,7 +73,7 @@ describe("ConfigStore", () => {
   describe("get", () => {
     it("should return full config if no key specified", async () => {
       await config.set(["nested", "key"], "value")
-      expect(await config.get()).to.eql({ nested: { key: "value" }})
+      expect(await config.get()).to.eql({ nested: { key: "value" } })
     })
 
     it("should return specific key if specified", async () => {
@@ -111,8 +111,8 @@ describe("ConfigStore", () => {
   describe("delete", () => {
     it("should delete the specified key from the configuration", async () => {
       await config.set([
-        {keyPath: ["a", "aa"], value: "value-a"},
-        {keyPath: ["b", "bb"], value: "value-b"},
+        { keyPath: ["a", "aa"], value: "value-a" },
+        { keyPath: ["b", "bb"], value: "value-b" },
       ])
       await config.delete(["a", "aa"])
 
