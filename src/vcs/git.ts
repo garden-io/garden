@@ -11,9 +11,12 @@ import { NEW_MODULE_VERSION, TreeVersion, VcsHandler } from "./base"
 import { join } from "path"
 import { sortBy } from "lodash"
 import { pathExists, stat } from "fs-extra"
+import { argv } from "process"
 import Bluebird = require("bluebird")
 
 export class GitHandler extends VcsHandler {
+  name = "git"
+
   private repoRoot: string
 
   async getTreeVersion(directories: string[]) {
@@ -117,4 +120,15 @@ export class GitHandler extends VcsHandler {
     }
     return exec("git " + args, { cwd })
   }
+}
+
+// used by the build process to resolve and store the tree version for plugin modules
+if (require.main === module) {
+  const path = argv[2]
+  const handler = new GitHandler(path)
+
+  handler.getTreeVersion([path])
+    .then((treeVersion) => {
+      console.log(JSON.stringify(treeVersion, null, 4))
+    })
 }

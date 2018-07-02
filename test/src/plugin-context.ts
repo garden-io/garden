@@ -125,17 +125,6 @@ describe("PluginContext", () => {
       expect(result).to.eql(version)
     })
 
-    it("should return version from version file if it exists", async () => {
-      const module = await ctx.getModule("module-a")
-      const result = await ctx.resolveVersion("module-a", [])
-
-      expect(result).to.eql({
-        versionString: "1234567890",
-        dirtyTimestamp: null,
-        dependencyVersions: {},
-      })
-    })
-
     it("should otherwise return version from VCS handler", async () => {
       const resolve = td.replace(garden.vcs, "resolveVersion")
       const version: ModuleVersion = {

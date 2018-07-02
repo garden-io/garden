@@ -8,24 +8,15 @@
 
 import Bluebird = require("bluebird")
 import chalk from "chalk"
-import {
-  pathExists,
-  readFile,
-} from "fs-extra"
-import { join } from "path"
 import { CacheContext } from "./cache"
-import { GARDEN_VERSIONFILE_NAME } from "./constants"
-import { ConfigurationError } from "./exceptions"
 import {
   Garden,
 } from "./garden"
 import { EntryStyle } from "./logger/types"
 import {
   PrimitiveMap,
-  validate,
 } from "./types/common"
 import { Module } from "./types/module"
-import { moduleVersionSchema } from "./vcs/base"
 import {
   ModuleActions,
   Provider,
@@ -482,29 +473,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       const dependencies = await garden.getModules(moduleDependencies)
       const cacheContexts = dependencies.concat([module]).map(m => m.getCacheContext())
 
-      // the version file is used internally to specify versions outside of source control
-      const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
-      const versionFileContents = await pathExists(versionFilePath)
-        && (await readFile(versionFilePath)).toString().trim()
-
-      let version: ModuleVersion
-
-      if (!!versionFileContents) {
-        try {
-          version = validate(JSON.parse(versionFileContents), moduleVersionSchema)
-        } catch (err) {
-          throw new ConfigurationError(
-            `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${module.path}`,
-            {
-              modulePath: module.path,
-              versionFilePath,
-              versionFileContents,
-            },
-          )
-        }
-      } else {
-        version = await garden.vcs.resolveVersion(module, dependencies)
-      }
+      const version = await garden.vcs.resolveVersion(module, dependencies)
 
       garden.cache.set(cacheKey, version, ...cacheContexts)
       return version
