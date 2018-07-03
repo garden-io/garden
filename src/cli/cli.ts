@@ -7,7 +7,7 @@
  */
 
 import * as sywac from "sywac"
-import { merge, intersection } from "lodash"
+import { merge, intersection, range } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
@@ -15,7 +15,7 @@ import stringify = require("json-stringify-safe")
 
 import { DeepPrimitiveMap } from "../types/common"
 import {
-  enumToArray,
+  getEnumKeys,
   shutdown,
   sleep,
 } from "../util/util"
@@ -63,6 +63,18 @@ const OUTPUT_RENDERERS = {
   },
 }
 
+const logLevelKeys = getEnumKeys(LogLevel)
+// Allow string or numeric log levels
+const logLevelChoices = [...logLevelKeys, ...range(logLevelKeys.length).map(String)]
+
+const getLogLevelFromArg = (level: string) => {
+  const lvl = parseInt(level, 10)
+  if (lvl) {
+    return lvl
+  }
+  return LogLevel[level]
+}
+
 export const GLOBAL_OPTIONS = {
   root: new StringParameter({
     alias: "r",
@@ -77,8 +89,8 @@ export const GLOBAL_OPTIONS = {
   env: new EnvironmentOption(),
   loglevel: new ChoicesParameter({
     alias: "l",
-    choices: enumToArray(LogLevel),
-    help: "Set logger level.",
+    choices: logLevelChoices,
+    help: "Set logger level, values can be either string or numeric",
     defaultValue: LogLevel[LogLevel.info],
   }),
   output: new ChoicesParameter({
@@ -174,7 +186,7 @@ export class GardenCli {
       const { env, loglevel, silent, output } = parsedOpts
 
       // Init logger
-      const level = LogLevel[<string>loglevel]
+      const level = getLogLevelFromArg(loglevel)
       let writers: Writer[] = []
 
       if (!silent && !output && loggerType !== LoggerType.quiet) {
