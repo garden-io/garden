@@ -1,4 +1,4 @@
-# The FAQs
+# Frequently Asked Questions
 
 ### When using garden inside tmux, colors look wonky. What gives?
 

@@ -4,7 +4,6 @@
 * [Introduction](./introduction/README.md)
   * [Getting Started](./introduction/getting-started.md)
   * [Motivation](./introduction/motivation.md)
-  * [The FAQs](./introduction/the-faqs.md)
 * [Guides](./guides/README.md)
   * [Configuration](./guides/configuration.md)
   * [Using Garden with Minikube](./guides/minikube.md)
@@ -14,4 +13,4 @@
   * [Commands](./reference/commands.md)
 * [Examples](./examples/README.md)
   * [Simple Project](./examples/simple-project.md)
-
+* [FAQs](./faqs.md)
