@@ -19,7 +19,7 @@ import {
   CommandResult,
   StringParameter,
   ParameterValues,
-  BooleanParameter,
+  // BooleanParameter,
 } from "../base"
 import { ParameterError, GardenBaseError } from "../../exceptions"
 import { EntryStyle } from "../../logger/types"
@@ -42,14 +42,14 @@ export const createProjectOptions = {
   "module-dirs": new StringParameter({
     help: "Relative path to modules directory. Use comma as a separator to specify multiple directories",
   }),
-  new: new BooleanParameter({
-    help: "If true, creates a new directory. Otherwise assumes current working directory is the project directory",
+  name: new StringParameter({
+    help: "Assigns a custom name for the project. (Defaults to name of the current directory.)",
   }),
 }
 
 export const createProjectArguments = {
-  projectName: new StringParameter({
-    help: "The name of the project, (defaults to project root directory name)",
+  projectDir: new StringParameter({
+    help: "Directory of the project. (Defaults to current directory.)",
   }),
 }
 
@@ -78,10 +78,10 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
 
         garden create project # creates a new Garden project in the current directory (project name defaults to
         directory name)
-        garden create project my-project # creates a new Garden project named my-project in the current directory
-        garden create project --module-dirs=services,more-services
-        # creates a new Garden project and looks for modules in the services and more-services directories
-        garden create project my-project --new  # creates a new Garden project in a new directory named my-project
+        garden create project my-project # creates a new Garden project in the my-project directory
+        garden create project --module-dirs=service1,service2
+        # creates a new Garden project and looks for pre-existing modules in the service1 and service2 directories
+        garden create project --name my-project  # creates a new Garden project in the current directory and names it my-project
   `
 
   runWithoutConfig = true
@@ -93,19 +93,31 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
     let moduleConfigs: ModuleConfigOpts[] = []
     let errors: GardenBaseError[] = []
 
-    if (opts.new && !args.projectName) {
-      throw new ParameterError("A project name is required if --new option is used", {})
+    let projectDir: string
+    if (args.projectDir) {
+      projectDir = validate(args.projectDir.trim(), joiIdentifier(), {context: "project directory" })
+      projectRoot = join(projectRoot, projectDir)
+      if (!(await pathExists(projectRoot))) {
+        try {
+          await mkdir(projectRoot)
+        } catch ({ message }) {
+          throw new ParameterError(`Unable to make directory at ${projectRoot}`, { message })
+        }
+      }
+    } else {
+      projectDir = validate(parse(projectRoot).base, joiIdentifier(), {context: "project directory" })
     }
 
-    const projectName = validate(
-      args.projectName ? args.projectName.trim() : parse(projectRoot).base,
-      joiIdentifier(),
-      { context: "project name" },
-    )
+    let projectName: string
+    if (opts.name) {
+      projectName = opts.name
+    } else {
+      projectName = projectDir
+    }
 
     // Resolve and validate dirs that contain modules
     let moduleParentDirs: string[] = []
-    if (!opts.new && opts["module-dirs"]) {
+    if (opts["module-dirs"]) {
       const dirs = opts["module-dirs"].split(",")
       moduleParentDirs = await Bluebird
         .map(dirs, (dir: string) => resolve(projectRoot, dir))
@@ -114,16 +126,6 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
             throw new ParameterError(`Directory ${dir} not found`, {})
           }
         })
-    }
-
-    // Project will be created in a new directory
-    if (opts.new) {
-      projectRoot = join(projectRoot, projectName)
-      try {
-        await mkdir(projectRoot)
-      } catch ({ message }) {
-        throw new ParameterError(`Unable to make directory at ${projectRoot}`, { message })
-      }
     }
 
     ctx.log.header({ emoji: "house_with_garden", command: "create" })
