@@ -25,7 +25,6 @@ export const styleConfig = {
   usagePrefix: str => (
     `
 ${chalk.bold(str.slice(0, 5).toUpperCase())}
-
   ${chalk.italic(str.slice(7))}`
   ),
   usageCommandPlaceholder: str => chalk.blue(str),
@@ -34,7 +33,7 @@ ${chalk.bold(str.slice(0, 5).toUpperCase())}
   usageOptionsPlaceholder: str => chalk.yellow(str),
   group: (str: string) => {
     const cleaned = str.endsWith(":") ? str.slice(0, -1) : str
-    return chalk.bold(cleaned.toUpperCase()) + "\n"
+    return chalk.bold(cleaned.toUpperCase())
   },
   flags: (str, _type) => {
     const style = str.startsWith("-") ? chalk.green : chalk.magenta
@@ -115,6 +114,7 @@ export interface SywacOptionConfig {
   defaultValue?: any
   choices?: any[]
   required?: boolean
+  hints?: string
   strict: true
 }
 
@@ -122,6 +122,7 @@ export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
   const {
     defaultValue,
     help: desc,
+    hints,
     required,
     type,
   } = param
@@ -136,6 +137,7 @@ export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
     desc,
     required,
     type,
+    hints,
     strict: true,
   }
   if (type === "choice") {

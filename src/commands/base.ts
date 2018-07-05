@@ -23,6 +23,7 @@ export interface ParameterConstructor<T> {
   alias?: string,
   defaultValue?: T,
   valueName?: string,
+  hints?: string,
   overrides?: string[],
 }
 
@@ -35,13 +36,15 @@ export abstract class Parameter<T> {
   help: string
   required: boolean
   alias?: string
+  hints?: string
   valueName: string
   overrides: string[]
 
-  constructor({ help, required, alias, defaultValue, valueName, overrides }: ParameterConstructor<T>) {
+  constructor({ help, required, alias, defaultValue, valueName, overrides, hints }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
     this.alias = alias
+    this.hints = hints
     this.defaultValue = defaultValue
     this.valueName = valueName || "_valueType"
     this.overrides = overrides || []

@@ -90,7 +90,11 @@ export const GLOBAL_OPTIONS = {
   loglevel: new ChoicesParameter({
     alias: "l",
     choices: logLevelChoices,
-    help: "Set logger level, values can be either string or numeric",
+    help:
+      "Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 " +
+      "(highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5",
+    hints:
+      "[enum] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
   }),
   output: new ChoicesParameter({
