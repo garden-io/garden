@@ -50,7 +50,7 @@ import {
   createNamespace,
   getAppNamespace,
   getMetadataNamespace,
-  getAllAppNamespaces,
+  getAllGardenNamespaces,
 } from "./namespace"
 import {
   KUBECTL_DEFAULT_TIMEOUT,
@@ -141,12 +141,12 @@ export async function getServiceStatus(params: GetServiceStatusParams<ContainerM
   return await checkDeploymentStatus(params)
 }
 
-export async function destroyEnvironment({ ctx, provider, env }: DestroyEnvironmentParams) {
+export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentParams) {
   const { context } = provider.config
   const namespace = await getAppNamespace(ctx, provider)
   const entry = ctx.log.info({
     section: "kubernetes",
-    msg: `Deleting namespace ${namespace}`,
+    msg: `Deleting namespace ${namespace} (this can take awhile)`,
     entryStyle: EntryStyle.activity,
   })
 
@@ -156,7 +156,7 @@ export async function destroyEnvironment({ ctx, provider, env }: DestroyEnvironm
     await coreApi(context).deleteNamespace(namespace, <any>{})
   } catch (err) {
     entry.setError(err.message)
-    const availableNamespaces = await getAllAppNamespaces(context)
+    const availableNamespaces = await getAllGardenNamespaces(context)
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
 
@@ -165,10 +165,8 @@ export async function destroyEnvironment({ ctx, provider, env }: DestroyEnvironm
   while (true) {
     await sleep(2000)
 
-    const status = await getEnvironmentStatus({ ctx, provider, env })
-
-    if (!status.configured) {
-      entry.setSuccess("Finished")
+    const nsNames = await getAllGardenNamespaces(context)
+    if (!nsNames.includes(namespace)) {
       break
     }
 

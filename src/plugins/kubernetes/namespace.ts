@@ -60,7 +60,7 @@ export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesPro
   return `garden-metadata--${ctx.projectName}--${env.namespace}`
 }
 
-export async function getAllAppNamespaces(context: string): Promise<string[]> {
+export async function getAllGardenNamespaces(context: string): Promise<string[]> {
   const allNamespaces = await coreApi(context).listNamespace()
   return allNamespaces.body.items
     .map(n => n.metadata.name)
