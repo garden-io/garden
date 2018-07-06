@@ -108,19 +108,15 @@ async function addModule(addModuleMessage: string): Promise<ModuleTypeAndName> {
   return await inquirer.prompt(questions) as ModuleTypeAndName
 }
 
-async function repeatAddModule(addedModules: string[] = []): Promise<ModuleTypeAndName[]> {
-  let addModuleMessage
+export async function repeatAddModule(): Promise<ModuleTypeAndName[]> {
   let modules: ModuleTypeAndName[] = []
-  if (addedModules.length < 1) {
-    addModuleMessage = "Would you like to add a module to your project?"
-  } else {
-    addModuleMessage = `Add another module? (current modules: ${addedModules.join(", ")})`
-  }
-  const { name, type } = await addModule(addModuleMessage)
+  let addModuleMessage = "Would you like to add a module to your project?"
+  let ans = await addModule(addModuleMessage)
 
-  if (type) {
-    modules.push({ name, type })
-    await repeatAddModule(addedModules.concat(name))
+  while (ans.type) {
+    modules.push({ name: ans.name, type: ans.type })
+    addModuleMessage = `Add another module? (current modules: ${modules.map(m => m.name).join(", ")})`
+    ans = await addModule(addModuleMessage)
   }
   return modules
 }
