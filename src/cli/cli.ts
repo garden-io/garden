@@ -33,7 +33,7 @@ import {
   PluginError,
   toGardenError,
 } from "../exceptions"
-import { Garden } from "../garden"
+import { Garden, ContextOpts } from "../garden"
 
 import { RootLogNode, getLogger } from "../logger/logger"
 import { LogLevel, LoggerType } from "../logger/types"
@@ -53,6 +53,8 @@ import {
   prepareOptionConfig,
   styleConfig,
 } from "./helpers"
+import { GardenConfig } from "../types/config"
+import { defaultEnvironments } from "../types/project"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -63,6 +65,25 @@ const OUTPUT_RENDERERS = {
   },
 }
 
+// TODO Handle this better? Or add tests that ensure garden can be initialized with this config.
+const MOCK_CONFIG: GardenConfig = {
+  version: "0",
+  dirname: "/",
+  path: "/",
+  project: {
+    name: "mock-project",
+    defaultEnvironment: "local",
+    environments: defaultEnvironments,
+    environmentDefaults: {
+      providers: [
+        {
+          name: "local-kubernetes",
+        },
+      ],
+      variables: {},
+    },
+  },
+}
 export const GLOBAL_OPTIONS = {
   root: new StringParameter({
     alias: "r",
@@ -209,7 +230,11 @@ export class GardenCli {
       let garden
       let result
       do {
-        garden = await Garden.factory(root, { env, logger })
+        const contextOpts: ContextOpts = { env, logger }
+        if (command.noProject) {
+          contextOpts.config = MOCK_CONFIG
+        }
+        garden = await Garden.factory(root, contextOpts)
         // TODO: enforce that commands always output DeepPrimitiveMap
         result = await command.action(garden.pluginContext, parsedArgs, parsedOpts)
       } while (result.restartRequired)

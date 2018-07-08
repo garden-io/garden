@@ -16,7 +16,7 @@ import * as yaml from "js-yaml"
 import * as Cryo from "cryo"
 import { spawn as _spawn } from "child_process"
 import { pathExists, readFile, writeFile } from "fs-extra"
-import { join } from "path"
+import { join, basename } from "path"
 import { find } from "lodash"
 import {
   TimeoutError,
@@ -41,6 +41,14 @@ const exitHookNames: string[] = [] // For debugging/testing/inspection purposes
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 export type Diff<T, U> = T extends U ? never : T
 export type Nullable<T> = { [P in keyof T]: T[P] | null }
+// From: https://stackoverflow.com/a/49936686/5629940
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends Array<infer U>
+  ? Array<DeepPartial<U>>
+  : T[P] extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : DeepPartial<T[P]>
+}
 
 export function shutdown(code) {
   // This is a good place to log exitHookNames if needed.
@@ -118,6 +126,19 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
   }
 }
 
+export async function getChildDirNames(parentDir: string): Promise<string[]> {
+  let dirNames: string[] = []
+  // Filter on hidden dirs by default. We could make the filter function a param if needed later
+  const filter = (item: string) => !basename(item).startsWith(".")
+
+  for await (const item of scanDirectory(parentDir, { depthLimit: 0, filter })) {
+    if (!item || !item.stats.isDirectory()) {
+      continue
+    }
+    dirNames.push(basename(item.path))
+  }
+  return dirNames
+}
 export async function getIgnorer(rootPath: string) {
   // TODO: this doesn't handle nested .gitignore files, we should revisit
   const gitignorePath = join(rootPath, ".gitignore")

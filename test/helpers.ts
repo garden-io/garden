@@ -256,7 +256,7 @@ export async function expectError(fn: Function, typeOrCallback: string | ((err: 
         throw new Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
       }
       if (err.type !== typeOrCallback) {
-        throw new Error(`Expected ${typeOrCallback} error, got: ${err}`)
+        throw new Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
       }
     }
     return
