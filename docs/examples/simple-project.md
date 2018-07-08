@@ -1,6 +1,6 @@
 # Simple Project 
 
-In this guide, we'll walk you through configuring a simple project to run on the Garden framework. We're going to assume that you already have a running [installation of Garden](../introduction/getting-started.md).
+In this guide, we'll walk you through configuring a simple project to run on the Garden framework. The project will consist of two Dockerized web services that communicate with one another, along with unit and integration tests.
 
 In what follows you'll learn how to:
 
@@ -11,14 +11,18 @@ In what follows you'll learn how to:
 * [Manage service dependencies](#dependencies)
 * [Test services](#testing)
 
-The code for this tutorial can be found on Github in our [examples repo](https://github.com/garden-io/garden-examples). We'll use the `simple-project-raw` branch and work our way from there.
+## Before you get started
 
-First, let's clone the examples repo, switch to the `simple-project-raw` branch, and take a look inside:
+This tutorial assumes that you have already have a running [installation of Garden](../introduction/getting-started.md).
 
+## Clone the example repo
+
+The code for this tutorial can be found on Github in our [examples repo](https://github.com/garden-io/garden-examples). We'll use the [simple-project-start](https://github.com/garden-io/garden-examples/simple-project-start) example and work our way from there. The complete version is under [simple-project](https://github.com/garden-io/garden-examples/simple-project).
+
+First, let's clone the examples repo, change into the directory, and take a look inside:
 ```sh
 $ git clone https://github.com/garden-io/garden-examples.git
-$ git checkout simple-project-raw
-$ cd simple-project
+$ cd garden-examples/simple-project-start
 $ tree .
 .
 └── services
@@ -62,7 +66,7 @@ project:
         - name: local-kubernetes
 ```
 
-Above, we've specified the name of our project and configured it to use the local-kubernetes plugin for local development.
+Above, we've specified the name of our project and configured it to use the local-kubernetes plugin for local development. Note, that this file must be located in the project root directory.
 
 ## Module configuration
 
@@ -96,7 +100,7 @@ $ garden scan
     dirtyTimestamp: 1528373640
 ```
 
-Under the `module` directive we can now specify how to run our service:
+Under the `module` directive of our `services/node-service/garden.yml` file we can now specify how to run our service:
 
 ```yaml
 module:
@@ -174,7 +178,12 @@ $ garden logs go-service
 go-service         → 2018-06-07T12:52:41.075Z → Server running...
 ```
 
-Looks good!
+Looks good! Let's take stock:
+
+* We started out with a project consisting of multiple containerized services (really just two, but hey, it's a _simple_ project).
+* We added a project wide configuration at the root level, and a module configuration for each service.
+* We deployed our entire project with the `garden deploy` command
+* We saw how we could call our services and read their logs with the `garden call` and `garden logs` commands.
 
 ## Inter-service communication
 
