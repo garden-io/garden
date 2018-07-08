@@ -33,8 +33,7 @@ With Garden, you can...
 * Automatically build, deploy and/or test when your code changes, using the `--watch` flag or the `garden dev` command.
 * Manage build and runtime dependencies across all your services.
 * Leverage a suite of commands and helpers to facilitate developing and running your stack.
-* _Write code the way you want, and run your production system however suits you! Garden does not impose any new 
-libraries or languages aside from the config files._ 
+* _Write code the way you want, and run your production system however suits you! Garden does not impose any new libraries or languages aside from the config files._
 
 Garden is also designed to be pluggable and modular, with Kubernetes being just one plugin (albeit an important one). 
 Over time we will add native support for a variety of platforms, including AWS (Lambda, ECS, Fargate and more), 
