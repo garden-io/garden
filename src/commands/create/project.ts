@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { parse, resolve, join } from "path"
-import { pathExists, ensureDir, mkdir } from "fs-extra"
+import { resolve, join, basename } from "path"
+import { pathExists, ensureDir } from "fs-extra"
 import Bluebird = require("bluebird")
 import dedent = require("dedent")
+import terminalLink = require("terminal-link")
 
 import {
   PluginContext,
@@ -19,7 +20,6 @@ import {
   CommandResult,
   StringParameter,
   ParameterValues,
-  // BooleanParameter,
 } from "../base"
 import { ParameterError, GardenBaseError } from "../../exceptions"
 import { EntryStyle } from "../../logger/types"
@@ -43,12 +43,12 @@ export const createProjectOptions = {
     help: "Relative path to modules directory. Use comma as a separator to specify multiple directories",
   }),
   name: new StringParameter({
-    help: "Assigns a custom name for the project. (Defaults to name of the current directory.)",
+    help: "Assigns a custom name to the project. (Defaults to name of the current directory.)",
   }),
 }
 
 export const createProjectArguments = {
-  projectDir: new StringParameter({
+  "project-dir": new StringParameter({
     help: "Directory of the project. (Defaults to current directory.)",
   }),
 }
@@ -68,52 +68,39 @@ interface CreateProjectResult extends CommandResult {
 export class CreateProjectCommand extends Command<typeof createProjectArguments, typeof createProjectOptions> {
   name = "project"
   alias = "p"
-  help = "Creates scaffolding for a new Garden project."
+  help = "Creates a new Garden project."
 
   description = dedent`
-    The Create command walks the user through setting up a new Garden project and generates scaffolding based on user
-    input.
+    The 'create project' command walks the user through setting up a new Garden project and
+    generates scaffolding based on user input.
 
     Examples:
 
         garden create project # creates a new Garden project in the current directory (project name defaults to
         directory name)
-        garden create project my-project # creates a new Garden project in the my-project directory
-        garden create project --module-dirs=service1,service2
-        # creates a new Garden project and looks for pre-existing modules in the service1 and service2 directories
-        garden create project --name my-project  # creates a new Garden project in the current directory and names it my-project
+        garden create project my-project # creates a new Garden project in my-project directory
+        garden create project --module-dirs=path/to/modules1,path/to/modules2
+        # creates a new Garden project and looks for pre-existing modules in the modules1 and modules2 directories
+        garden create project --name my-project
+        # creates a new Garden project in the current directory and names it my-project
   `
 
-  runWithoutConfig = true
+  noProject = true
   arguments = createProjectArguments
   options = createProjectOptions
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CreateProjectResult> {
-    let { projectRoot } = ctx
     let moduleConfigs: ModuleConfigOpts[] = []
     let errors: GardenBaseError[] = []
 
-    let projectDir: string
-    if (args.projectDir) {
-      projectDir = validate(args.projectDir.trim(), joiIdentifier(), {context: "project directory" })
-      projectRoot = join(projectRoot, projectDir)
-      if (!(await pathExists(projectRoot))) {
-        try {
-          await mkdir(projectRoot)
-        } catch ({ message }) {
-          throw new ParameterError(`Unable to make directory at ${projectRoot}`, { message })
-        }
-      }
-    } else {
-      projectDir = validate(parse(projectRoot).base, joiIdentifier(), {context: "project directory" })
-    }
+    const projectRoot = args["project-dir"] ? join(ctx.projectRoot, args["project-dir"].trim()) : ctx.projectRoot
+    const projectName = validate(
+      opts.name || basename(projectRoot),
+      joiIdentifier(),
+      { context: "project name" },
+    )
 
-    let projectName: string
-    if (opts.name) {
-      projectName = opts.name
-    } else {
-      projectName = projectDir
-    }
+    await ensureDir(projectRoot)
 
     // Resolve and validate dirs that contain modules
     let moduleParentDirs: string[] = []
@@ -136,7 +123,7 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
 
     if (moduleParentDirs.length > 0) {
       // If module-dirs option provided we scan for modules in the parent dir(s) and add them one by one
-      moduleConfigs = (await Bluebird.map(moduleParentDirs, async parentDir => {
+      moduleConfigs = (await Bluebird.mapSeries(moduleParentDirs, async parentDir => {
         const moduleNames = await getChildDirNames(parentDir)
 
         return Bluebird.reduce(moduleNames, async (acc: ModuleConfigOpts[], moduleName: string) => {
@@ -172,6 +159,7 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
       name: projectName,
       config: projectTemplate(projectName, moduleConfigs.map(module => module.type)),
     }
+
     try {
       await dumpConfig(projectConfig, projectSchema, ctx.log)
     } catch (err) {
@@ -184,7 +172,7 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
       task.setWarn({ msg: "Finished with errors", append: true })
     }
 
-    ctx.log.info("Project created! Be sure to check out our docs at `https://docs.garden.io`")
+    ctx.log.info(`Project created! Be sure to check out our ${terminalLink("docs", "https://docs.garden.io")}!`)
 
     return {
       result: {

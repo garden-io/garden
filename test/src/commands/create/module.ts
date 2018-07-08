@@ -13,6 +13,8 @@ import {
   ModuleTypeMap,
 } from "../../../../src/commands/create/prompts"
 import { remove } from "fs-extra"
+import { validate } from "../../../../src/types/common"
+import { baseModuleSpecSchema } from "../../../../src/types/module"
 
 const projectRoot = join(__dirname, "../../..", "data", "test-project-create-command")
 
@@ -36,58 +38,65 @@ describe("CreateModuleCommand", () => {
   it("should add a valid module config to the current directory", async () => {
     replaceAddConfigForModule()
     const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { moduleName: "" }, { new: false, type: "" })
+    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "" })
+    expect(() => validate(result.module!.config.module, baseModuleSpecSchema)).to.not.throw()
     expect(pick(result.module, ["name", "type", "path"])).to.eql({
       name: "test-project-create-command",
       type: "container",
       path: ctx.projectRoot,
     })
   })
-  // garden create module my-module
-  it("should optionally set a custom module name", async () => {
+  // garden create module new-module
+  it("should add a valid module config to new-module directory", async () => {
     replaceAddConfigForModule()
     const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { moduleName: "my-module" }, { new: false, type: "" })
-    expect(result.module!.name).to.equal("my-module")
+    const { result } = await cmd.action(ctx, { "module-dir": "new-module" }, { name: "", type: "" })
+    expect(() => validate(result.module!.config.module, baseModuleSpecSchema)).to.not.throw()
+    expect(pick(result.module, ["name", "type", "path"])).to.eql({
+      name: "new-module",
+      type: "container",
+      path: join(ctx.projectRoot, "new-module"),
+    })
+  })
+  // garden create module --name=my-module
+  it("should optionally name the module my-module", async () => {
+    replaceAddConfigForModule()
+    const ctx = await makeTestContext(projectRoot)
+    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "my-module", type: "" })
+    expect(() => validate(result.module!.config.module, baseModuleSpecSchema)).to.not.throw()
+    expect(pick(result.module, ["name", "type", "path"])).to.eql({
+      name: "my-module",
+      type: "container",
+      path: ctx.projectRoot,
+    })
   })
   // garden create module --type=function
-  it("should optionally create a module of a specific type (without prompt)", async () => {
+  it("should optionally create a module of a specific type (without prompting)", async () => {
     const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { moduleName: "" }, { new: false, type: "function" })
-    expect(result.module!.type).to.equal("function")
-  })
-  // garden create module --new
-  it("should optionally create a module in a new directory", async () => {
-    replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { moduleName: "new-module" }, { new: true, type: "" })
-    expect(result.module!.path).to.equal(join(ctx.projectRoot, "new-module"))
+    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "function" })
+    expect(() => validate(result.module!.config.module, baseModuleSpecSchema)).to.not.throw()
+    expect(pick(result.module, ["name", "type", "path"])).to.eql({
+      name: "test-project-create-command",
+      type: "function",
+      path: ctx.projectRoot,
+    })
   })
   // garden create module ___
-  it("should throw if module name is invalid", async () => {
+  it("should throw if module name is invalid when inherited from current directory", async () => {
     replaceAddConfigForModule()
     const ctx = await makeTestContext(projectRoot)
     await expectError(
-      async () => await cmd.action(ctx, { moduleName: "___" }, { new: false, type: "" }),
+      async () => await cmd.action(ctx, { "module-dir": "___" }, { name: "", type: "" }),
       "configuration",
     )
   })
-  // garden create module --new
-  it("should throw if new option provided but module name is missing", async () => {
+  // garden create --name=___
+  it("should throw if module name is invalid when explicitly specified", async () => {
     replaceAddConfigForModule()
     const ctx = await makeTestContext(projectRoot)
     await expectError(
-      async () => await cmd.action(ctx, { moduleName: "" }, { new: true, type: "" }),
-      "parameter",
-    )
-  })
-  // garden create module module-a --new
-  it("should throw if new option provided but directory with module name already exists", async () => {
-    replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
-    await expectError(
-      async () => await cmd.action(ctx, { moduleName: "module-a" }, { new: true, type: "" }),
-      "parameter",
+      async () => await cmd.action(ctx, { "module-dir": "" }, { name: "___", type: "" }),
+      "configuration",
     )
   })
   // garden create module --type=banana
@@ -95,7 +104,7 @@ describe("CreateModuleCommand", () => {
     replaceAddConfigForModule()
     const ctx = await makeTestContext(projectRoot)
     await expectError(
-      async () => await cmd.action(ctx, { moduleName: "" }, { new: false, type: "banana" }),
+      async () => await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "banana" }),
       "parameter",
     )
   })

@@ -62,6 +62,6 @@ export async function dumpConfig(configOpts: ConfigOpts, schema: Joi.Schema, log
     task.setSuccess()
   } catch (err) {
     task.setError({ msg: `Generated config is invalid, skipping`, append: true })
-    throw new Error(err)
+    throw err
   }
 }

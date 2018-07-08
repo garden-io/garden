@@ -145,7 +145,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   arguments?: T
   options?: U
 
-  runWithoutConfig: boolean = false
+  noProject: boolean = false
   subCommands: CommandConstructor[] = []
 
   constructor(private parent?: Command) { }

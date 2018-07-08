@@ -27,11 +27,11 @@ import {
 } from "./helpers"
 import { prompts } from "./prompts"
 import { validate, joiIdentifier } from "../../types/common"
-import { mkdir } from "fs-extra"
+import { ensureDir } from "fs-extra"
 
 export const createModuleOptions = {
-  new: new BooleanParameter({
-    help: "If true, creates a new directory. Otherwise assumes current working directory is the module directory",
+  name: new BooleanParameter({
+    help: "Assigns a custom name to the module. (Defaults to name of the current directory.)",
   }),
   type: new StringParameter({
     help: "Type of module. Check out 'https://docs.garden.io' for available types",
@@ -39,8 +39,8 @@ export const createModuleOptions = {
 }
 
 export const createModuleArguments = {
-  moduleName: new StringParameter({
-    help: "The name of the module, (defaults to current directory name)",
+  "module-dir": new StringParameter({
+    help: "Directory of the module. (Defaults to current directory.)",
   }),
 }
 
@@ -56,35 +56,34 @@ interface CreateModuleResult extends CommandResult {
 export class CreateModuleCommand extends Command<typeof createModuleArguments, typeof createModuleOptions> {
   name = "module"
   alias = "m"
-  help = "Creates scaffolding for a new Garden project."
+  help = "Creates a new Garden module."
 
   description = dedent`
-    The Create command walks the user through setting up a new Garden project and generates scaffolding based on user
-    input.
+    Creates a new Garden module of the given type
 
     Examples:
 
-        garden create module # scaffolds a new module in the current directory (module name defaults to directory name)
-        garden create module my-module # scaffolds a new module named my-module in the current directory
+        garden create module # creates a new module in the current directory (module name defaults to directory name)
+        garden create module my-module # creates a new module in my-module directory
+        garden create module --type=container # creates a new container module
+        garden create module --name=my-module # creates a new module in current directory and names it my-module
   `
 
-  runWithoutConfig = true
+  noProject = true
   arguments = createModuleArguments
   options = createModuleOptions
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CreateModuleResult> {
     let errors: GardenBaseError[] = []
-    const { projectRoot } = ctx
 
-    if (opts.new && !args.moduleName) {
-      throw new ParameterError("A module name is required if --new option is used", {})
-    }
-
+    const moduleRoot = join(ctx.projectRoot, (args["module-dir"] || "").trim())
     const moduleName = validate(
-      args.moduleName ? args.moduleName.trim() : basename((projectRoot)),
+      opts.name || basename(moduleRoot),
       joiIdentifier(),
       { context: "module name" },
     )
+
+    await ensureDir(moduleRoot)
 
     ctx.log.header({ emoji: "house_with_garden", command: "create" })
     ctx.log.info(`Initializing new module ${moduleName}`)
@@ -108,16 +107,7 @@ export class CreateModuleCommand extends Command<typeof createModuleArguments, t
       }
     }
 
-    let path = projectRoot
-    if (opts.new) {
-      path = join(projectRoot, moduleName)
-      try {
-        await mkdir(path)
-      } catch ({ message }) {
-        throw new ParameterError(`Unable to make directory at ${path}`, { message })
-      }
-    }
-    const module = prepareNewModuleConfig(moduleName, type, path)
+    const module = prepareNewModuleConfig(moduleName, type, moduleRoot)
     try {
       await dumpConfig(module, moduleSchema, ctx.log)
     } catch (err) {

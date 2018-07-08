@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { capitalize, camelCase } from "lodash"
+import { capitalize, camelCase, uniq } from "lodash"
 import * as Joi from "joi"
 
 import { DeepPartial } from "../../util/util"
@@ -86,7 +86,7 @@ export function npmPackageTemplate(_moduleName: string): any {
 }
 
 export const projectTemplate = (name: string, moduleTypes: ModuleType[]): Partial<ProjectConfig> => {
-  const providers = moduleTypes.map(type => ({ name: MODULE_PROVIDER_MAP[type] }))
+  const providers = uniq(moduleTypes).map(type => ({ name: MODULE_PROVIDER_MAP[type] }))
   return {
     name,
     environments: [

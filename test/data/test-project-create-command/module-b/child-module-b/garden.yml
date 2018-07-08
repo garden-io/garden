@@ -1,9 +1,9 @@
 module:
-  name: child-module-c
+  name: child-module-b
   type: container
-  description: Child module c container
+  description: Child module b container
   services:
-    - name: child-module-c-service
+    - name: child-module-b-service
       ports:
         - name: http
           containerPort: 8080

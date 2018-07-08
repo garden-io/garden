@@ -231,7 +231,7 @@ export class GardenCli {
       let result
       do {
         const contextOpts: ContextOpts = { env, logger }
-        if (command.runWithoutConfig) {
+        if (command.noProject) {
           contextOpts.config = MOCK_CONFIG
         }
         garden = await Garden.factory(root, contextOpts)
