@@ -27,14 +27,16 @@ export interface FileWriterConfig {
   level: LogLevel
   root: string
   filename: string
-  logDirPath?: string
+  path?: string
   fileTransportOptions?: {}
   truncatePrevious?: boolean
 }
 
+type FileTransportOptions = winston.transports.FileTransportOptions
+
 const { combine: winstonCombine, timestamp, printf } = winston.format
 
-const DEFAULT_FILE_TRANSPORT_OPTIONS = {
+const DEFAULT_FILE_TRANSPORT_OPTIONS: FileTransportOptions = {
   format: winstonCombine(
     timestamp(),
     printf(info => `\n[${info.timestamp}] ${info.message}`),
@@ -46,7 +48,9 @@ const DEFAULT_FILE_TRANSPORT_OPTIONS = {
 const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
 
 export class FileWriter extends Writer {
-  private winston: any // Types are still missing from Winston 3.x.x.
+  private fileLogger: winston.Logger | null
+  private filePath: string
+  private fileTransportOptions: FileTransportOptions
 
   public level: LogLevel
 
@@ -58,15 +62,9 @@ export class FileWriter extends Writer {
 
     super({ level })
 
-    this.winston = winston.createLogger({
-      level: levelToStr(level),
-      transports: [
-        new winston.transports.File({
-          ...fileTransportOptions,
-          filename: filePath,
-        }),
-      ],
-    })
+    this.fileTransportOptions = fileTransportOptions
+    this.filePath = filePath
+    this.fileLogger = null
   }
 
   static async factory(config: FileWriterConfig) {
@@ -74,9 +72,9 @@ export class FileWriter extends Writer {
       filename,
       root,
       truncatePrevious,
-      logDirPath = LOGS_DIR,
+      path: logPath = LOGS_DIR,
     } = config
-    const fullPath = path.join(root, logDirPath)
+    const fullPath = path.join(root, logPath)
     await ensureDir(fullPath)
     const filePath = path.join(fullPath, filename)
     if (truncatePrevious) {
@@ -86,6 +84,19 @@ export class FileWriter extends Writer {
       }
     }
     return new FileWriter(filePath, config)
+  }
+
+  // Only init if needed to prevent unnecessary file writes
+  initFileLogger() {
+    return winston.createLogger({
+      level: levelToStr(this.level),
+      transports: [
+        new winston.transports.File({
+          ...this.fileTransportOptions,
+          filename: this.filePath,
+        }),
+      ],
+    })
   }
 
   render(entry: LogEntry): string | null {
@@ -99,7 +110,11 @@ export class FileWriter extends Writer {
   onGraphChange(entry: LogEntry) {
     const out = this.render(entry)
     if (out) {
-      this.winston.log(levelToStr(entry.level), out)
+      if (!this.fileLogger) {
+
+        this.fileLogger = this.initFileLogger()
+      }
+      this.fileLogger.log(levelToStr(entry.level), out)
     }
   }
 
