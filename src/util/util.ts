@@ -371,9 +371,9 @@ export function deserializeValues(o: object) {
   return mapValues(o, deserializeObject)
 }
 
-export const enumToArray = Enum => (
-  Object.values(Enum).filter(k => typeof k === "string") as string[]
-)
+export function getEnumKeys(Enum) {
+  return Object.values(Enum).filter(k => typeof k === "string") as string[]
+}
 
 export function highlightYaml(s: string) {
   return highlight(s, {

@@ -16,7 +16,7 @@ The following option flags can be used with any of the CLI commands:
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against
-  | `--loglevel` | `-l` | `error` `warn` `info` `verbose` `debug` `silly`  | Set logger level.
+  | `--loglevel` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level, values can be either string or numeric
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging).
 
 ### garden build
