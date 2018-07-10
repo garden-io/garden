@@ -9,7 +9,7 @@
 import * as Joi from "joi"
 import {
   containerTemplate,
-  functionTemplate,
+  googleCloudFunctionTemplate,
   npmPackageTemplate,
   ModuleConfigOpts,
   ModuleType,
@@ -27,7 +27,7 @@ import { MODULE_CONFIG_FILENAME } from "../../constants"
 export function prepareNewModuleConfig(name: string, type: ModuleType, path: string): ModuleConfigOpts {
   const moduleTypeTemplate = {
     container: containerTemplate,
-    function: functionTemplate,
+    "google-cloud-function": googleCloudFunctionTemplate,
     "npm-package": npmPackageTemplate,
   }[type]
   return {

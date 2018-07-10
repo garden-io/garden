@@ -18,6 +18,7 @@ import {
   StringParameter,
   ParameterValues,
   BooleanParameter,
+  ChoicesParameter,
 } from "../base"
 import { ParameterError, GardenBaseError } from "../../exceptions"
 import { availableModuleTypes, ModuleType, moduleSchema, ModuleConfigOpts } from "./config-templates"
@@ -33,8 +34,9 @@ export const createModuleOptions = {
   name: new BooleanParameter({
     help: "Assigns a custom name to the module. (Defaults to name of the current directory.)",
   }),
-  type: new StringParameter({
-    help: "Type of module. Check out 'https://docs.garden.io' for available types",
+  type: new ChoicesParameter({
+    help: "Type of module.",
+    choices: availableModuleTypes,
   }),
 }
 

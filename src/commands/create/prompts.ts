@@ -38,7 +38,7 @@ const moduleTypeChoices: ModuleTypeChoice[] = [
   },
   {
     name: `google-cloud-function (${chalk.red.italic("experimental")})`,
-    value: "function",
+    value: "google-cloud-function",
   },
   {
     name: `npm package (${chalk.red.italic("experimental")})`,
