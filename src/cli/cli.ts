@@ -48,7 +48,7 @@ import {
   getArgSynopsis,
   getKeys,
   getOptionSynopsis,
-  filterByArray,
+  filterByKeys,
   prepareArgConfig,
   prepareOptionConfig,
   styleConfig,
@@ -206,8 +206,8 @@ export class GardenCli {
 
     const action = async (argv, cliContext) => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
-      const parsedArgs = filterByArray(argv, argKeys)
-      const parsedOpts = filterByArray(argv, optKeys.concat(globalKeys))
+      const parsedArgs = filterByKeys(argv, argKeys)
+      const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
       const { env, loglevel, silent, output } = parsedOpts
 
@@ -235,7 +235,7 @@ export class GardenCli {
           }),
           await FileWriter.factory({
             root,
-            logDirPath: ".",
+            path: ".",
             filename: ERROR_LOG_FILENAME,
             level: LogLevel.error,
             truncatePrevious: true,
@@ -292,6 +292,10 @@ export class GardenCli {
     let { code } = parseResult
     let logger
 
+    // Note: Circumvents an issue where the process exits before the output is fully flushed.
+    // Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
+    const waitForOutputFlush = () => sleep(100)
+
     // Logger might not have been initialised if process exits early
     try {
       logger = getLogger()
@@ -327,8 +331,7 @@ export class GardenCli {
       } else {
         console.log(renderer({ success: true, ...commandResult }))
       }
-      // Note: this circumvents an issue where the process exits before the output is fully flushed
-      await sleep(100)
+      await waitForOutputFlush()
     }
 
     if (gardenErrors.length > 0) {
@@ -339,6 +342,7 @@ export class GardenCli {
 
       if (logger.writers.find(w => w instanceof FileWriter)) {
         logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)
+        await waitForOutputFlush()
       }
 
       code = 1

@@ -49,8 +49,8 @@ ${chalk.bold(str.slice(0, 5).toUpperCase())}
 
 // Helper functions
 export const getKeys = (obj): string[] => Object.keys(obj || {})
-export const filterByArray = (obj: any, arr: string[]): any => {
-  return arr.reduce((memo, key) => {
+export const filterByKeys = (obj: any, keys: string[]): any => {
+  return keys.reduce((memo, key) => {
     if (obj[key]) {
       memo[key] = obj[key]
     }
