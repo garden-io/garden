@@ -13,6 +13,7 @@ import {
   testPluginB,
 } from "../helpers"
 import { getNames } from "../../src/util/util"
+import { MOCK_CONFIG } from "../../src/cli/cli"
 
 describe("Garden", () => {
   describe("factory", () => {
@@ -25,6 +26,11 @@ describe("Garden", () => {
 
       expect(ctx.actionHandlers.configureEnvironment["test-plugin"]).to.be.ok
       expect(ctx.actionHandlers.configureEnvironment["test-plugin-b"]).to.be.ok
+    })
+
+    it("should initialize with MOCK_CONFIG", async () => {
+      const garden = await Garden.factory("./", { config: MOCK_CONFIG })
+      expect(garden).to.be.ok
     })
 
     it("should throw if registering same plugin twice", async () => {

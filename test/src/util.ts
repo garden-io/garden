@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { join } from "path"
-import { scanDirectory } from "../../src/util/util"
+import { scanDirectory, getChildDirNames } from "../../src/util/util"
 
 describe("util", () => {
   describe("scanDirectory", () => {
@@ -34,4 +34,10 @@ describe("util", () => {
     })
   })
 
+  describe("getChildDirNames", () => {
+    it("should return the names of all none hidden directories in the parent directory", async () => {
+      const testPath = join(__dirname, "..", "data", "get-child-dir-names")
+      expect(await getChildDirNames(testPath)).to.eql(["a", "b"])
+    })
+  })
 })

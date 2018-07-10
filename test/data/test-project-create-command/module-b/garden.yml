@@ -1,0 +1,13 @@
+module:
+  name: module-parent-b
+  type: container
+  description: Module parent b container
+  services:
+    - name: module-parent-b-service
+      ports:
+        - name: http
+          containerPort: 8080
+      endpoints:
+        - paths:
+            - /
+          port: http
