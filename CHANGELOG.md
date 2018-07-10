@@ -1,5 +1,54 @@
+<a name="0.3.0"></a>
+# [0.3.0](https://github.com/garden-io/garden/compare/v0.2.0...v0.3.0) (2018-07-10)
+
+
+### Bug Fixes
+
+* ensure namespace is removed before returning when deleting env ([f381d33](https://github.com/garden-io/garden/commit/f381d33))
+* fixed more issues with cross-repo versioning ([2b0d93e](https://github.com/garden-io/garden/commit/2b0d93e))
+* set identifier max length to match k8s service name limit ([ad0a54f](https://github.com/garden-io/garden/commit/ad0a54f))
+* **create-commands:** rename function type to google-cloud-function ([49c4c93](https://github.com/garden-io/garden/commit/49c4c93))
+* **create-module-command:** type option should be an enum ([a8316d1](https://github.com/garden-io/garden/commit/a8316d1))
+* **file-writer:** only create file if content to write ([562daa8](https://github.com/garden-io/garden/commit/562daa8))
+
+
+### Code Refactoring
+
+* **k8s:** change metadata namespace name ([6f73299](https://github.com/garden-io/garden/commit/6f73299))
+* build command is now an array, for consistency ([0bf020a](https://github.com/garden-io/garden/commit/0bf020a))
+
+
+### Features
+
+* **cli:** enable custom hints in help message ([37c3159](https://github.com/garden-io/garden/commit/37c3159))
+* add create project/module commands ([b611b35](https://github.com/garden-io/garden/commit/b611b35))
+* allow numeric log levels ([e2a7b6f](https://github.com/garden-io/garden/commit/e2a7b6f))
+* **config:** add `${local.platform}` template key ([1c6d492](https://github.com/garden-io/garden/commit/1c6d492))
+* **container:** add `env` key to specify env vars for containers ([9fa0cb8](https://github.com/garden-io/garden/commit/9fa0cb8))
+* **generic:** add env var support to generic module type ([a5096ee](https://github.com/garden-io/garden/commit/a5096ee))
+* **k8s:** add repo parameter to helm module type ([5d3af14](https://github.com/garden-io/garden/commit/5d3af14))
+* **k8s:** allow specifying default username in k8s provider config ([1e42cfb](https://github.com/garden-io/garden/commit/1e42cfb))
+
+
+### Performance Improvements
+
+* generic plugin now keeps track of last built version ([ab3714b](https://github.com/garden-io/garden/commit/ab3714b))
+
+
+### BREAKING CHANGES
+
+* Any existing garden.yml files with the `build.command` key set need
+to be updated to provide an array of strings as a command, as opposed to
+a simple string.
+* **k8s:** Existing metadata namespaces will have to be manually cleaned up.
+We suggest resetting local k8s clusters after upgrading.
+* **container:** The `tests[].variables` config key has been removed from the
+`garden.yml` configuration file schema.
+
+
+
 <a name="0.2.0"></a>
-# [0.2.0](https://github.com/garden-io/garden/compare/v0.2.0-0...v0.2.0) (2018-06-27)
+# [0.2.0](https://github.com/garden-io/garden/compare/v0.1.2...v0.2.0) (2018-06-27)
 
 
 ### Bug Fixes
@@ -63,12 +112,7 @@ project.global key.
 
 
 <a name="0.1.2"></a>
-## [0.1.2](https://github.com/garden-io/garden/compare/v0.1.1-0...v0.1.2) (2018-06-02)
-
-
-
-<a name="0.1.1-0"></a>
-## [0.1.1-0](https://github.com/garden-io/garden/compare/v0.1.0...v0.1.1-0) (2018-06-02)
+## [0.1.2](https://github.com/garden-io/garden/compare/v0.1.0...v0.1.2) (2018-06-02)
 
 
 ### Bug Fixes
