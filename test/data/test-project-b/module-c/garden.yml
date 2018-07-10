@@ -1,7 +1,6 @@
 module:
   name: module-c
   type: container
-  image: scratch
   allowPush: false
   services:
     - name: service-c

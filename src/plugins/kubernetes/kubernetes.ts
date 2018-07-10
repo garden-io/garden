@@ -7,7 +7,10 @@
  */
 
 import * as Joi from "joi"
-import { validate } from "../../types/common"
+import {
+  joiIdentifier,
+  validate,
+} from "../../types/common"
 import {
   GardenPlugin,
   Provider,
@@ -47,6 +50,7 @@ export interface KubernetesConfig extends ProviderConfig {
   ingressPort: number
   ingressClass: string
   forceSsl: boolean
+  defaultUsername?: string
 }
 
 export interface KubernetesProvider extends Provider<KubernetesConfig> { }
@@ -60,6 +64,8 @@ const kubernetesConfigBase = providerConfigBase
       .hostname()
       .required()
       .description("The external hostname of the cluster's ingress controller."),
+    defaultUsername: joiIdentifier()
+      .description("Set a default username (used for namespacing within a cluster)."),
   })
 
 const configSchema = kubernetesConfigBase

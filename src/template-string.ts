@@ -131,6 +131,7 @@ export async function getTemplateContext(extraContext: TemplateStringContext = {
     // TODO: add user configuration here
     local: {
       env: process.env,
+      platform: process.platform,
     },
   }
 

@@ -1,7 +1,6 @@
 module:
   name: module-a
   type: container
-  image: scratch
   services:
     - name: service-a
       endpoints:
@@ -11,4 +10,4 @@ module:
         - name: http
           containerPort: 8080
   build:
-    command: echo A
+    command: [echo, A]

@@ -39,7 +39,7 @@ import {
   ContainerModule,
   helpers,
 } from "../container"
-import { values, every, uniq } from "lodash"
+import { uniq } from "lodash"
 import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
 import { ServiceStatus } from "../../types/service"
 import { joiIdentifier } from "../../types/common"
@@ -47,7 +47,6 @@ import {
   coreApi,
 } from "./api"
 import {
-  createNamespace,
   getAppNamespace,
   getMetadataNamespace,
   getAllGardenNamespaces,
@@ -89,50 +88,17 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
     throw err
   }
 
-  const statusDetail: { [key: string]: boolean } = {
-    namespaceReady: false,
-    metadataNamespaceReady: false,
-  }
-
-  const metadataNamespace = getMetadataNamespace(ctx, provider)
-  const namespacesStatus = await coreApi(context).listNamespace()
-  const namespace = await getAppNamespace(ctx, provider)
-
-  for (const n of namespacesStatus.body.items) {
-    if (n.metadata.name === namespace && n.status.phase === "Active") {
-      statusDetail.namespaceReady = true
-    }
-
-    if (n.metadata.name === metadataNamespace && n.status.phase === "Active") {
-      statusDetail.metadataNamespaceReady = true
-    }
-  }
-
-  let configured = every(values(statusDetail))
+  await getMetadataNamespace(ctx, provider)
+  await getAppNamespace(ctx, provider)
 
   return {
-    configured,
-    detail: statusDetail,
+    configured: true,
+    detail: <any>{},
   }
 }
 
-export async function configureEnvironment(
-  { ctx, provider, status, logEntry }: ConfigureEnvironmentParams,
-) {
-  const context = provider.config.context
-
-  if (!status.detail.namespaceReady) {
-    const ns = await getAppNamespace(ctx, provider)
-    logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
-    await createNamespace(context, ns)
-  }
-
-  if (!status.detail.metadataNamespaceReady) {
-    const ns = getMetadataNamespace(ctx, provider)
-    logEntry && logEntry.setState({ section: "kubernetes", msg: `Creating namespace ${ns}` })
-    await createNamespace(context, ns)
-  }
-
+export async function configureEnvironment({ }: ConfigureEnvironmentParams) {
+  // this happens implicitly in the `getEnvironmentStatus()` function
   return {}
 }
 
@@ -299,7 +265,7 @@ export async function testModule(
     testName,
   }
 
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, result.version)
   const body = {
     apiVersion: "v1",
@@ -330,7 +296,7 @@ export async function getTestResult(
   { ctx, provider, module, testName, version }: GetTestResultParams<ContainerModule>,
 ) {
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, version)
 
   try {
@@ -387,7 +353,7 @@ export async function getServiceLogs(
 
 export async function getConfig({ ctx, provider, key }: GetConfigParams) {
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
 
   try {
     const res = await coreApi(context).readNamespacedSecret(key.join("."), ns)
@@ -404,7 +370,7 @@ export async function getConfig({ ctx, provider, key }: GetConfigParams) {
 export async function setConfig({ ctx, provider, key, value }: SetConfigParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const name = key.join(".")
   const body = {
     body: {
@@ -436,7 +402,7 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
 
 export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
   const context = provider.config.context
-  const ns = getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, provider)
   const name = key.join(".")
 
   try {

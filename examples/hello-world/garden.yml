@@ -1,9 +1,6 @@
 project:
   name: hello-world
   environmentDefaults:
-    providers:
-      - name: container
-      - name: npm-package
     variables:
       my-variable: hello-variable
   environments:

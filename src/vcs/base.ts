@@ -14,7 +14,7 @@ import * as Joi from "joi"
 import { validate } from "../types/common"
 import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
-import { pathExists, readFile } from "fs-extra"
+import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 
 export const NEW_MODULE_VERSION = "0000000000"
@@ -74,25 +74,8 @@ export abstract class VcsHandler {
   async resolveTreeVersion(module: Module): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
-    const versionFileContents = await pathExists(versionFilePath)
-      && (await readFile(versionFilePath)).toString().trim()
-
-    if (!!versionFileContents) {
-      try {
-        return validate(JSON.parse(versionFileContents), treeVersionSchema)
-      } catch (err) {
-        throw new ConfigurationError(
-          `Unable to parse ${GARDEN_VERSIONFILE_NAME} as valid version file in module directory ${module.path}`,
-          {
-            modulePath: module.path,
-            versionFilePath,
-            versionFileContents,
-          },
-        )
-      }
-    } else {
-      return this.getTreeVersion([module.path])
-    }
+    const fileVersion = await readVersionFile(versionFilePath)
+    return fileVersion || this.getTreeVersion([module.path])
   }
 
   async resolveVersion(module: Module, dependencies: Module[]): Promise<ModuleVersion> {
@@ -169,4 +152,34 @@ function hashVersions(versions: NamedTreeVersion[]) {
   versionHash.update(versions.map(v => `${v.name}_${v.latestCommit}`).join("."))
   // this format is kinda arbitrary, but prefixing the "v" is useful to visually spot hashed versions
   return "v" + versionHash.digest("hex").slice(0, 10)
+}
+
+export async function readVersionFile(path: string): Promise<TreeVersion | null> {
+  if (!(await pathExists(path))) {
+    return null
+  }
+
+  // this is used internally to specify version outside of source control
+  const versionFileContents = (await readFile(path)).toString().trim()
+
+  if (!versionFileContents) {
+    return null
+  }
+
+  try {
+    return validate(JSON.parse(versionFileContents), treeVersionSchema)
+  } catch (error) {
+    throw new ConfigurationError(
+      `Unable to parse ${path} as valid version file`,
+      {
+        path,
+        versionFileContents,
+        error,
+      },
+    )
+  }
+}
+
+export async function writeVersionFile(path: string, version: TreeVersion) {
+  await writeFile(path, JSON.stringify(version))
 }

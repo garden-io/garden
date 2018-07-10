@@ -44,7 +44,7 @@ describe("loadConfig", () => {
       type: "test",
       description: undefined,
       allowPush: true,
-      build: { command: "echo A", dependencies: [] },
+      build: { command: ["echo", "A"], dependencies: [] },
       path: modulePathA,
       variables: {},
 

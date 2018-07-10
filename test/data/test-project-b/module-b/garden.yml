@@ -1,7 +1,6 @@
 module:
   name: module-b
   type: container
-  image: scratch
   services:
     - name: service-b
       endpoints:
@@ -13,6 +12,6 @@ module:
       dependencies:
         - service-a
   build:
-    command: echo B
+    command: [echo, B]
     dependencies:
       - module-a

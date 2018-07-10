@@ -9,6 +9,6 @@ module:
       dependencies:
         - service-c
   build:
-    command: echo A
+    command: [echo, A]
     dependencies:
       - module-c

@@ -28,7 +28,7 @@ module:
   
   # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
   # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
-  # dashes
+  # dashes or be longer than 63 characters.
   # 
   # Optional.
   name: 
@@ -55,10 +55,15 @@ module:
   build: 
     # The command to run inside the module directory to perform the build.
     # 
-    # Example: "npm run build"
+    # Example:
+    #   - npm
+    #   - run
+    #   - build
     # 
     # Optional.
     command: 
+      - 
+      
     
     # A list of modules that must be built before this module is built.
     # 
@@ -110,8 +115,7 @@ project:
   # environment
   # 
   # Example:
-  #   providers:
-  #     - name: container
+  #   providers: []
   #   variables: {}
   # 
   # Optional.
@@ -124,9 +128,6 @@ project:
     
     # A list of providers that should be used for this environment, and their configuration.
     # Please refer to individual plugins/providers for details on how to configure them.
-    # 
-    # Example:
-    #   - name: container
     # 
     # Optional.
     providers: 
@@ -163,9 +164,6 @@ project:
       # A list of providers that should be used for this environment, and their configuration.
       # Please refer to individual plugins/providers for details on how to configure them.
       # 
-      # Example:
-      #   - name: container
-      # 
       # Optional.
       providers: 
         - # The name of the provider plugin to configure.
@@ -184,7 +182,7 @@ project:
       
       # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
       # start with a letter, and cannot end with a dash) and additionally cannot contain
-      # consecutive dashes
+      # consecutive dashes or be longer than 63 characters.
       # 
       # Required.
       name:
@@ -210,7 +208,7 @@ module:
   
   # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
   # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
-  # dashes
+  # dashes or be longer than 63 characters.
   # 
   # Optional.
   name: 
@@ -237,10 +235,15 @@ module:
   build: 
     # The command to run inside the module directory to perform the build.
     # 
-    # Example: "npm run build"
+    # Example:
+    #   - npm
+    #   - run
+    #   - build
     # 
     # Optional.
     command: 
+      - 
+      
     
     # A list of modules that must be built before this module is built.
     # 
@@ -335,7 +338,7 @@ module:
   
   # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
   # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
-  # dashes
+  # dashes or be longer than 63 characters.
   # 
   # Optional.
   name: 
@@ -362,10 +365,15 @@ module:
   build: 
     # The command to run inside the module directory to perform the build.
     # 
-    # Example: "npm run build"
+    # Example:
+    #   - npm
+    #   - run
+    #   - build
     # 
     # Optional.
     command: 
+      - 
+      
     
     # A list of modules that must be built before this module is built.
     # 
@@ -419,7 +427,7 @@ module:
     # Optional.
     - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
       # start with a letter, and cannot end with a dash) and additionally cannot contain
-      # consecutive dashes
+      # consecutive dashes or be longer than 63 characters.
       # 
       # Required.
       name: 
@@ -430,7 +438,7 @@ module:
       dependencies: 
         # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes,
         # must start with a letter, and cannot end with a dash) and additionally cannot contain
-        # consecutive dashes
+        # consecutive dashes or be longer than 63 characters.
         # 
         # Optional.
         - 

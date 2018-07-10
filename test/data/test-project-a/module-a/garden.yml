@@ -4,7 +4,7 @@ module:
   services:
     - name: service-a
   build:
-    command: echo A
+    command: [echo, A]
   tests:
     - name: unit
       command: [echo, OK]

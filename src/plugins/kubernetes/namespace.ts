@@ -18,46 +18,75 @@ import {
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
 
-export async function createNamespace(context: string, namespace: string) {
-  // TODO: the types for all the create functions in the library are currently broken
-  await coreApi(context).createNamespace(<any>{
-    apiVersion: "v1",
-    kind: "Namespace",
-    metadata: {
-      name: namespace,
-      annotations: {
-        "garden.io/generated": "true",
-      },
-    },
-  })
+const created: { [name: string]: boolean } = {}
+
+export async function ensureNamespace(context: string, namespace: string) {
+  if (!created[namespace]) {
+    const namespacesStatus = await coreApi(context).listNamespace()
+
+    for (const n of namespacesStatus.body.items) {
+      if (n.status.phase === "Active") {
+        created[n.metadata.name] = true
+      }
+    }
+
+    if (!created[namespace]) {
+      // TODO: the types for all the create functions in the library are currently broken
+      await coreApi(context).createNamespace(<any>{
+        apiVersion: "v1",
+        kind: "Namespace",
+        metadata: {
+          name: namespace,
+          annotations: {
+            "garden.io/generated": "true",
+          },
+        },
+      })
+      created[namespace] = true
+    }
+  }
+}
+
+export async function getNamespace(ctx: PluginContext, provider: KubernetesProvider, suffix?: string) {
+  let namespace
+
+  if (isSystemGarden(provider)) {
+    namespace = GARDEN_SYSTEM_NAMESPACE
+  } else {
+    const localConfig = await ctx.localConfigStore.get()
+    const k8sConfig = localConfig.kubernetes || {}
+    let { username, ["previous-usernames"]: previousUsernames } = k8sConfig
+
+    if (!username) {
+      username = provider.config.defaultUsername
+    }
+
+    if (!username) {
+      throw new AuthenticationError(
+        `User not logged into provider ${providerName}. Please specify defaultUsername in provider ` +
+        `config or run garden login.`,
+        { previousUsernames, provider: providerName },
+      )
+    }
+
+    namespace = `garden--${username}--${ctx.projectName}`
+  }
+
+  if (suffix) {
+    namespace = `${namespace}--${suffix}`
+  }
+
+  await ensureNamespace(provider.config.context, namespace)
+
+  return namespace
 }
 
 export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  if (isSystemGarden(provider)) {
-    return GARDEN_SYSTEM_NAMESPACE
-  }
-
-  const localConfig = await ctx.localConfigStore.get()
-  const k8sConfig = localConfig.kubernetes || {}
-  const { username, ["previous-usernames"]: previousUsernames } = k8sConfig
-
-  if (!username) {
-    throw new AuthenticationError(
-      `User not logged into provider ${providerName}. Please run garden login.`,
-      { previousUsernames, provider: providerName },
-    )
-  }
-
-  return `garden--${username}--${ctx.projectName}`
+  return getNamespace(ctx, provider)
 }
 
 export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  if (isSystemGarden(provider)) {
-    return GARDEN_SYSTEM_NAMESPACE + "--metadata"
-  }
-
-  const env = ctx.getEnvironment()
-  return `garden-metadata--${ctx.projectName}--${env.namespace}`
+  return getNamespace(ctx, provider, "metadata")
 }
 
 export async function getAllGardenNamespaces(context: string): Promise<string[]> {

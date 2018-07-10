@@ -13,8 +13,8 @@ describe("commands.build", () => {
     const { result } = await command.action(ctx, { module: undefined }, { watch: false, force: true })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A\n" },
-      "build.module-b": { fresh: true, buildLog: "B\n" },
+      "build.module-a": { fresh: true, buildLog: "A" },
+      "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
     })
   })
@@ -26,8 +26,8 @@ describe("commands.build", () => {
     const { result } = await command.action(ctx, { module: "module-b" }, { watch: false, force: true })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A\n" },
-      "build.module-b": { fresh: true, buildLog: "B\n" },
+      "build.module-a": { fresh: true, buildLog: "A" },
+      "build.module-b": { fresh: true, buildLog: "B" },
     })
   })
 })

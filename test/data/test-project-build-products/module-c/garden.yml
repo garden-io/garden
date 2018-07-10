@@ -2,4 +2,4 @@ module:
   name: module-c
   type: test
   build:
-    command: "echo C"
+    command: [echo, C]

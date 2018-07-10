@@ -185,7 +185,7 @@ export const defaultModuleConfig: ModuleConfig = {
   path: "bla",
   allowPush: false,
   variables: {},
-  build: { dependencies: [] },
+  build: { command: [], dependencies: [] },
   spec: {
     services: [
       {

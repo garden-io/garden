@@ -4,4 +4,3 @@ project:
     - name: local
       providers:
         - name: test-plugin
-        - name: container

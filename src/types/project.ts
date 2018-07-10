@@ -37,10 +37,6 @@ export interface ProjectConfig {
   environments: EnvironmentConfig[]
 }
 
-export const defaultProviders = [
-  { name: "container" },
-]
-
 export const defaultEnvironments: EnvironmentConfig[] = [
   {
     name: "local",
@@ -73,14 +69,13 @@ export const environmentSchema = Joi.object().keys({
     .description(
       "A list of providers that should be used for this environment, and their configuration. " +
       "Please refer to individual plugins/providers for details on how to configure them.",
-  )
-    .example(defaultProviders),
+  ),
   variables: joiVariables()
     .description("A key/value map of variables that modules can reference when using this environment."),
 })
 
 const environmentDefaults = {
-  providers: defaultProviders,
+  providers: [],
   variables: {},
 }
 

@@ -20,7 +20,7 @@ describe("commands.test", () => {
     expect(isSubset(taskResultOutputs(result!), {
       "build.module-a": {
         fresh: true,
-        buildLog: "A\n",
+        buildLog: "A",
       },
       "test.module-a.unit": {
         success: true,
@@ -28,7 +28,7 @@ describe("commands.test", () => {
       },
       "build.module-b": {
         fresh: true,
-        buildLog: "B\n",
+        buildLog: "B",
       },
       "build.module-c": {},
       "test.module-b.unit": {
@@ -55,7 +55,7 @@ describe("commands.test", () => {
     expect(isSubset(taskResultOutputs(result!), {
       "build.module-a": {
         fresh: true,
-        buildLog: "A\n",
+        buildLog: "A",
       },
       "test.module-a.unit": {
         success: true,

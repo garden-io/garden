@@ -32,11 +32,12 @@ export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.strin
 export const identifierRegex = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^(?!GARDEN)[A-Z_][A-Z0-9_]*$/
 
-export const joiIdentifier = () => Joi
-  .string().regex(identifierRegex)
+export const joiIdentifier = () => Joi.string()
+  .regex(identifierRegex)
+  .max(63)
   .description(
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
-    "and cannot end with a dash) and additionally cannot contain consecutive dashes",
+    "and cannot end with a dash) and additionally cannot contain consecutive dashes or be longer than 63 characters.",
 )
 
 export const joiIdentifierMap = (valueSchema: JoiObject) => Joi

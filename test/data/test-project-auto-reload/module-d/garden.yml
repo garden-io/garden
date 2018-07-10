@@ -13,6 +13,6 @@ module:
         - name: http
           containerPort: 8080
   build:
-    command: echo D
+    command: [echo, D]
     dependencies:
       - module-b

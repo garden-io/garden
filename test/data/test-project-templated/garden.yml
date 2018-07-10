@@ -3,7 +3,7 @@ project:
   environmentDefaults:
     variables:
       some: ${local.env.TEST_VARIABLE}
-      service-a-build-command: echo OK
+      service-a-build-command: OK
   environments:
     - name: local
       providers:
