@@ -65,13 +65,13 @@ describe("CreateModuleCommand", () => {
       path: ctx.projectRoot,
     })
   })
-  // garden create module --type=function
+  // garden create module --type=google-cloud-function
   it("should optionally create a module of a specific type (without prompting)", async () => {
     const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "function" })
+    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "google-cloud-function" })
     expect(pick(result.module, ["name", "type", "path"])).to.eql({
       name: "test-project-create-command",
-      type: "function",
+      type: "google-cloud-function",
       path: ctx.projectRoot,
     })
   })

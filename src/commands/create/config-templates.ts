@@ -24,7 +24,7 @@ import { BaseModuleSpec, ModuleConfig, baseModuleSpecSchema } from "../../types/
  */
 export const MODULE_PROVIDER_MAP = {
   container: "local-kubernetes",
-  function: "local-google-cloud-functions",
+  "google-cloud-function": "local-google-cloud-functions",
   "npm-package": "npm-package",
 }
 
@@ -72,11 +72,11 @@ export function containerTemplate(moduleName: string): DeepPartial<ContainerModu
   }
 }
 
-export function functionTemplate(moduleName: string): DeepPartial<GcfModuleSpec> {
+export function googleCloudFunctionTemplate(moduleName: string): DeepPartial<GcfModuleSpec> {
   return {
     functions: [{
-      name: `${moduleName}-function`,
-      entrypoint: camelCase(`${moduleName}-function`),
+      name: `${moduleName}-google-cloud-function`,
+      entrypoint: camelCase(`${moduleName}-google-cloud-function`),
     }],
   }
 }

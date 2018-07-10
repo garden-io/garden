@@ -136,7 +136,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--name` |  | boolean | Assigns a custom name to the module. (Defaults to name of the current directory.)
-  | `--type` |  | `container` `function` `npm-package`  | Type of module.
+  | `--type` |  | `container` `google-cloud-function` `npm-package`  | Type of module.
 
 ### garden delete config
 
