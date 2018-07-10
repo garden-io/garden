@@ -49,7 +49,6 @@ You need the following dependencies on your local machine to use Garden:
 * [Docker](https://docs.docker.com/)
 * Git
 * rsync
-* [Watchman](https://facebook.github.io/watchman/docs/install.html)
 * [Helm](https://github.com/kubernetes/helm)
 * Local installation of Kubernetes and kubectl
 
@@ -62,8 +61,7 @@ For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minik
 
 #### Step 3: Install other dependencies
 
-Use your preferred method or package manager to install `node` (version 8.x or higher), `git`, `rsync`, 
-[Watchman](https://facebook.github.io/watchman/docs/install.html) and
+Use your preferred method or package manager to install `node` (version 8.x or higher), `git`, `rsync` and
 [Helm](https://github.com/kubernetes/helm).
 
 #### Step 4: Install `garden-cli`
