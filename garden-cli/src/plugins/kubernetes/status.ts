@@ -10,65 +10,123 @@ import { DeploymentError } from "../../exceptions"
 import { LogEntry } from "../../logger/logger"
 import { LogSymbolType } from "../../logger/types"
 import { PluginContext } from "../../plugin-context"
-import { Environment } from "../../types/common"
 import { Provider } from "../../types/plugin/plugin"
-import {
-  ServiceProtocol,
-  ServiceStatus,
-} from "../../types/service"
+import { Service, ServiceState } from "../../types/service"
 import { sleep } from "../../util/util"
-import {
-  ContainerService,
-  ServiceEndpointSpec,
-} from "../container"
-import {
-  coreApi,
-  extensionsApi,
-} from "./api"
-import { getServiceHostname } from "./ingress"
+import { coreApi, apiReadBySpec } from "./api"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { getAppNamespace } from "./namespace"
+import * as Bluebird from "bluebird"
+import { KubernetesObject } from "./helm"
+import {
+  V1Pod,
+  V1Deployment,
+  V1DaemonSet,
+  V1DaemonSetStatus,
+  V1StatefulSetStatus,
+  V1StatefulSet,
+  V1StatefulSetSpec,
+  V1DeploymentStatus,
+} from "@kubernetes/client-node"
+import { some, zip } from "lodash"
+import { KubernetesProvider } from "./kubernetes"
+import * as isSubset from "is-subset"
 
-export async function checkDeploymentStatus(
-  { ctx, provider, service, resourceVersion }:
-    { ctx: PluginContext, provider: Provider, service: ContainerService, resourceVersion?: number },
-): Promise<ServiceStatus> {
-  const context = provider.config.context
-  const hostname = getServiceHostname(ctx, provider, service)
-  const namespace = await getAppNamespace(ctx, provider)
+export interface RolloutStatus {
+  state: ServiceState
+  obj: KubernetesObject
+  lastMessage?: string
+  lastError?: string
+  resourceVersion?: number
+}
 
-  const endpoints = service.spec.endpoints.map((e: ServiceEndpointSpec) => {
-    // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
-    const protocol: ServiceProtocol = "http"
-    const localIngressPort = provider.config.ingressPort
+interface ObjHandler {
+  (namespace: string, context: string, obj: KubernetesObject, resourceVersion?: number): Promise<RolloutStatus>
+}
 
-    return {
-      protocol,
-      hostname,
-      port: localIngressPort,
-      url: `${protocol}://${hostname}:${localIngressPort}`,
-      paths: e.paths,
+// Handlers to check the rollout status for K8s objects where that applies.
+// Using https://github.com/kubernetes/helm/blob/master/pkg/kube/wait.go as a reference here.
+const objHandlers: { [kind: string]: ObjHandler } = {
+  DaemonSet: checkDeploymentStatus,
+  Deployment: checkDeploymentStatus,
+  StatefulSet: checkDeploymentStatus,
+
+  PersistentVolumeClaim: async (namespace, context, obj) => {
+    const res = await coreApi(context).readNamespacedPersistentVolumeClaim(obj.metadata.name, namespace)
+    const state: ServiceState = res.body.status.phase === "Bound" ? "ready" : "deploying"
+    return { state, obj }
+  },
+
+  Pod: async (namespace, context, obj) => {
+    const res = await coreApi(context).readNamespacedPod(obj.metadata.name, namespace)
+    return checkPodStatus(obj, [res.body])
+  },
+
+  ReplicaSet: async (namespace, context, obj) => {
+    const res = await coreApi(context).listNamespacedPod(
+      namespace, undefined, undefined, undefined, true, obj.spec.selector.matchLabels,
+    )
+    return checkPodStatus(obj, res.body.items)
+  },
+  ReplicationController: async (namespace, context, obj) => {
+    const res = await coreApi(context).listNamespacedPod(
+      namespace, undefined, undefined, undefined, true, obj.spec.selector,
+    )
+    return checkPodStatus(obj, res.body.items)
+  },
+
+  Service: async (namespace, context, obj) => {
+    if (obj.spec.type === "ExternalName") {
+      return { state: "ready", obj }
     }
-  })
 
-  const out: ServiceStatus = {
-    endpoints,
-    runningReplicas: 0,
-    detail: { resourceVersion },
+    if (obj.spec.clusterIP !== "None" && obj.spec.clusterIP === "") {
+      return { state: "deploying", obj }
+    }
+
+    const status = await coreApi(context).readNamespacedService(obj.metadata.name, namespace)
+
+    if (obj.spec.type === "LoadBalancer" && !status.body.status.loadBalancer.ingress) {
+      return { state: "deploying", obj }
+    }
+
+    return { state: "ready", obj }
+  },
+}
+
+async function checkPodStatus(obj: KubernetesObject, pods: V1Pod[]): Promise<RolloutStatus> {
+  for (const pod of pods) {
+    const ready = some(pod.status.conditions.map(c => c.type === "ready"))
+    if (!ready) {
+      return { state: "deploying", obj }
+    }
   }
 
-  let statusRes
-  let status
+  return { state: "ready", obj }
+}
 
-  const extApi = extensionsApi(context)
-  const apiFunc = service.spec.daemon
-    ? extApi.readNamespacedDaemonSet
-    : extApi.readNamespacedDeployment
+/**
+ * Check the rollout status for the given Deployment, DaemonSet or StatefulSet.
+ *
+ * NOTE: This mostly replicates the logic in `kubectl rollout status`. Using that directly here
+ * didn't pan out, since it doesn't look for events and just times out when errors occur during rollout.
+ */
+export async function checkDeploymentStatus(
+  namespace: string, context: string, obj: KubernetesObject, resourceVersion?: number,
+): Promise<RolloutStatus> {
+  //
+  const out: RolloutStatus = {
+    state: "unhealthy",
+    obj,
+    resourceVersion,
+  }
+
+  let statusRes: V1Deployment | V1DaemonSet | V1StatefulSet
 
   try {
-    statusRes = (await apiFunc.apply(extApi, [service.name, namespace])).body
+    statusRes = <V1Deployment | V1DaemonSet | V1StatefulSet>(await apiReadBySpec(namespace, context, obj)).body
   } catch (err) {
-    if (err.response && err.response.statusCode === 404) {
+    if (err.code && err.code === 404) {
       // service is not running
       return out
     } else {
@@ -76,13 +134,9 @@ export async function checkDeploymentStatus(
     }
   }
 
-  status = statusRes.status
-
   if (!resourceVersion) {
-    resourceVersion = out.detail.resourceVersion = parseInt(statusRes.metadata.resourceVersion, 10)
+    resourceVersion = out.resourceVersion = parseInt(statusRes.metadata.resourceVersion, 10)
   }
-
-  out.version = statusRes.metadata.annotations["garden.io/version"]
 
   // TODO: try to come up with something more efficient. may need to wait for newer k8s version.
   // note: the resourceVersion parameter does not appear to work...
@@ -107,13 +161,17 @@ export async function checkDeploymentStatus(
 
     if (
       eventVersion <= <number>resourceVersion ||
-      (!event.metadata.name.startsWith(service.name + ".") && !event.metadata.name.startsWith(service.name + "-"))
+      (
+        !event.metadata.name.startsWith(obj.metadata.name + ".")
+        &&
+        !event.metadata.name.startsWith(obj.metadata.name + "-")
+      )
     ) {
       continue
     }
 
     if (eventVersion > <number>resourceVersion) {
-      out.detail.resourceVersion = eventVersion
+      out.resourceVersion = eventVersion
     }
 
     if (event.type === "Warning" || event.type === "Error") {
@@ -134,36 +192,63 @@ export async function checkDeploymentStatus(
     }
 
     if (message) {
-      out.detail.lastMessage = message
+      out.lastMessage = message
     }
   }
 
   // See `https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/rollout_status.go` for a reference
   // for this logic.
-  let available = 0
   out.state = "ready"
   let statusMsg = ""
 
-  if (statusRes.metadata.generation > status.observedGeneration) {
+  if (statusRes.metadata.generation > statusRes.status.observedGeneration) {
     statusMsg = `Waiting for spec update to be observed...`
     out.state = "deploying"
-  } else if (service.spec.daemon) {
+  } else if (obj.kind === "DaemonSet") {
+    const status = <V1DaemonSetStatus>statusRes.status
+
     const desired = status.desiredNumberScheduled || 0
     const updated = status.updatedNumberScheduled || 0
-    available = status.numberAvailable || 0
+    const available = status.numberAvailable || 0
 
     if (updated < desired) {
-      statusMsg = `${updated} out of ${desired} new pods updated...`
+      statusMsg = `Waiting for rollout: ${updated} out of ${desired} new pods updated...`
       out.state = "deploying"
     } else if (available < desired) {
-      statusMsg = `${available} out of ${desired} updated pods available...`
+      statusMsg = `Waiting for rollout: ${available} out of ${desired} updated pods available...`
+      out.state = "deploying"
+    }
+  } else if (obj.kind === "StatefulSet") {
+    const status = <V1StatefulSetStatus>statusRes.status
+    const statusSpec = <V1StatefulSetSpec>statusRes.spec
+
+    const replicas = status.replicas
+    const updated = status.updatedReplicas || 0
+    const ready = status.readyReplicas || 0
+
+    if (replicas && ready < replicas) {
+      statusMsg = `Waiting for rollout: ${ready} out of ${replicas} new pods updated...`
+      out.state = "deploying"
+    } else if (statusSpec.updateStrategy.type === "RollingUpdate" && statusSpec.updateStrategy.rollingUpdate) {
+      if (replicas && statusSpec.updateStrategy.rollingUpdate.partition) {
+        const desired = replicas - statusSpec.updateStrategy.rollingUpdate.partition
+        if (updated < desired) {
+          statusMsg =
+            `Waiting for partitioned roll out to finish: ${updated} out of ${desired} new pods have been updated...`
+          out.state = "deploying"
+        }
+      }
+    } else if (status.updateRevision !== status.currentRevision) {
+      statusMsg = `Waiting for rolling update to complete...`
       out.state = "deploying"
     }
   } else {
+    const status = <V1DeploymentStatus>statusRes.status
+
     const desired = 1 // TODO: service.count[env.name] || 1
     const updated = status.updatedReplicas || 0
     const replicas = status.replicas || 0
-    available = status.availableReplicas || 0
+    const available = status.availableReplicas || 0
 
     if (updated < desired) {
       statusMsg = `Waiting for rollout: ${updated} out of ${desired} new replicas updated...`
@@ -177,19 +262,45 @@ export async function checkDeploymentStatus(
     }
   }
 
-  out.runningReplicas = available
   out.lastMessage = statusMsg
 
   return out
 }
 
-export async function waitForDeployment(
-  { ctx, provider, service, logEntry }:
-    { ctx: PluginContext, provider: any, service: ContainerService, logEntry?: LogEntry, env: Environment },
+/**
+ * Check if the specified Kubernetes objects are deployed and fully rolled out
+ */
+export async function checkObjectStatus(
+  context: string, namespace: string, objects: KubernetesObject[], prevStatuses?: RolloutStatus[],
 ) {
-  // NOTE: using `kubectl rollout status` here didn't pan out, since it just times out when errors occur.
+  let ready = true
+
+  const statuses: RolloutStatus[] = await Bluebird.map(objects, async (obj, i) => {
+    const handler = objHandlers[obj.kind]
+    const prevStatus = prevStatuses && prevStatuses[i]
+    const status: RolloutStatus = handler
+      ? await handler(namespace, context, obj, prevStatus && prevStatus.resourceVersion)
+      // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
+      : { state: "ready", obj }
+
+    if (status.state !== "ready") {
+      ready = false
+    }
+
+    return status
+  })
+
+  return { ready, statuses }
+}
+
+/**
+ * Wait until the rollout is complete for each of the given Kubernetes objects
+ */
+export async function waitForObjects(
+  { ctx, provider, service, objects, logEntry }:
+    { ctx: PluginContext, provider: Provider, service: Service, objects: KubernetesObject[], logEntry?: LogEntry },
+) {
   let loops = 0
-  let resourceVersion = undefined
   let lastMessage
   let lastDetailMessage
   const startTime = new Date().getTime()
@@ -201,41 +312,50 @@ export async function waitForDeployment(
     msg: `Waiting for service to be ready...`,
   })
 
+  const context = provider.config.context
+  const namespace = await getAppNamespace(ctx, provider)
+  let prevStatuses: RolloutStatus[] = objects.map((obj) => ({
+    state: <ServiceState>"unknown",
+    obj,
+  }))
+
   while (true) {
     await sleep(2000 + 1000 * loops)
 
-    const status = await checkDeploymentStatus({ ctx, provider, service, resourceVersion })
+    const { ready, statuses } = await checkObjectStatus(context, namespace, objects, prevStatuses)
 
-    if (status.lastError) {
-      throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
-        serviceName: service.name,
-        status,
-      })
+    for (const status of statuses) {
+      if (status.lastError) {
+        throw new DeploymentError(`Error deploying ${service.name}: ${status.lastError}`, {
+          serviceName: service.name,
+          status,
+        })
+      }
+
+      if (status.lastMessage && (!lastDetailMessage || status.lastMessage !== lastDetailMessage)) {
+        lastDetailMessage = status.lastMessage
+        log.verbose({
+          symbol: LogSymbolType.info,
+          section: service.name,
+          msg: status.lastMessage,
+        })
+      }
+
+      if (status.lastMessage && (!lastMessage && status.lastMessage !== lastMessage)) {
+        lastMessage = status.lastMessage
+        log.verbose({
+          symbol: LogSymbolType.info,
+          section: service.name,
+          msg: status.lastMessage,
+        })
+      }
     }
 
-    if (status.detail.lastMessage && (!lastDetailMessage || status.detail.lastMessage !== lastDetailMessage)) {
-      lastDetailMessage = status.detail.lastMessage
-      log.verbose({
-        symbol: LogSymbolType.info,
-        section: service.name,
-        msg: status.detail.lastMessage,
-      })
-    }
+    prevStatuses = statuses
 
-    if (status.lastMessage && (!lastMessage && status.lastMessage !== lastMessage)) {
-      lastMessage = status.lastMessage
-      log.verbose({
-        symbol: LogSymbolType.info,
-        section: service.name,
-        msg: status.lastMessage,
-      })
-    }
-
-    if (status.state === "ready") {
+    if (ready) {
       break
     }
-
-    resourceVersion = status.detail.resourceVersion
 
     const now = new Date().getTime()
 
@@ -245,4 +365,55 @@ export async function waitForDeployment(
   }
 
   log.verbose({ symbol: LogSymbolType.info, section: service.name, msg: `Service deployed` })
+}
+
+/**
+ * Check if each of the given Kubernetes objects matches what's installed in the cluster
+ */
+export async function compareDeployedObjects(
+  ctx: PluginContext, provider: KubernetesProvider, objects: KubernetesObject[],
+): Promise<boolean> {
+  const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, provider, obj))
+
+  for (const [obj, existingSpec] of zip(objects, existingObjects)) {
+    if (existingSpec && obj) {
+      // the API version may implicitly change when deploying
+      existingSpec.apiVersion = obj.apiVersion
+
+      // the namespace property is silently dropped when added to non-namespaced
+      if (obj.metadata.namespace && existingSpec.metadata.namespace === undefined) {
+        delete obj.metadata.namespace
+      }
+
+      if (!existingSpec.metadata.annotations) {
+        existingSpec.metadata.annotations = {}
+      }
+    }
+
+    if (!existingSpec || !isSubset(existingSpec, obj)) {
+      // console.log(JSON.stringify(obj, null, 4))
+      // console.log(JSON.stringify(existingSpec, null, 4))
+      // console.log("----------------------------------------------------")
+      // throw new Error("bla")
+      return false
+    }
+  }
+
+  return true
+}
+
+async function getDeployedObject(ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesObject) {
+  const context = provider.config.context
+  const namespace = obj.metadata.namespace || await getAppNamespace(ctx, provider)
+
+  try {
+    const res = await apiReadBySpec(namespace, context, obj)
+    return res.body
+  } catch (err) {
+    if (err.code === 404) {
+      return null
+    } else {
+      throw err
+    }
+  }
 }

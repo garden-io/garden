@@ -44,10 +44,10 @@ import {
 } from "../types/test"
 import { spawn } from "../util/util"
 import { writeVersionFile, readVersionFile, getVersionString } from "../vcs/base"
+import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import execa = require("execa")
 
 export const name = "generic"
-export const buildVersionFilename = ".garden-build-version"
 
 export interface GenericTestSpec extends BaseTestSpec {
   command: string[],
@@ -100,7 +100,7 @@ export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStat
     return { ready: true }
   }
 
-  const buildVersionFilePath = join(await module.getBuildPath(), buildVersionFilename)
+  const buildVersionFilePath = join(await module.getBuildPath(), GARDEN_BUILD_VERSION_FILENAME)
   const builtVersion = await readVersionFile(buildVersionFilePath)
   const moduleVersion = await module.getVersion()
 
@@ -127,7 +127,7 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
     )
 
     // keep track of which version has been built
-    const buildVersionFilePath = join(buildPath, buildVersionFilename)
+    const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
     const version = await module.getVersion()
     await writeVersionFile(buildVersionFilePath, {
       latestCommit: version.versionString,

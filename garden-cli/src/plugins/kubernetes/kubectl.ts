@@ -36,7 +36,7 @@ export interface ApplyOptions {
   namespace?: string,
 }
 
-export const KUBECTL_DEFAULT_TIMEOUT = 600
+export const KUBECTL_DEFAULT_TIMEOUT = 300
 
 export class Kubectl {
   public context?: string
@@ -163,15 +163,15 @@ export function kubectl(context: string, namespace?: string) {
   return new Kubectl({ context, namespace })
 }
 
-export async function apply(context: string, spec: object, params: ApplyOptions) {
-  return applyMany(context, [spec], params)
+export async function apply(context: string, obj: object, params: ApplyOptions) {
+  return applyMany(context, [obj], params)
 }
 
 export async function applyMany(
-  context: string, specs: object[],
+  context: string, objects: object[],
   { dryRun = false, force = false, namespace, pruneSelector }: ApplyOptions = {},
 ) {
-  const data = Buffer.from(encodeYamlMulti(specs))
+  const data = Buffer.from(encodeYamlMulti(objects))
 
   let args = ["apply"]
   dryRun && args.push("--dry-run")

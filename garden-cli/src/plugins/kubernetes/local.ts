@@ -62,6 +62,7 @@ export async function getLocalEnvironmentStatus(
 
     status.detail.systemReady = sysStatus.providers[provider.name].configured &&
       every(values(sysStatus.services).map(s => s.state === "ready"))
+    // status.detail.systemServicesStatus = sysStatus.services
   }
 
   status.configured = every(values(status.detail))
@@ -80,7 +81,8 @@ async function configureSystemEnvironment(
     config: <KubernetesConfig>findByName(sysGarden.config.providers, provider.name)!,
   }
 
-  await execa("helm", ["init", "--client-only"])
+  // TODO: need to add logic here to wait for tiller to be ready
+  await execa("helm", ["init", "--service-account", "default", "--upgrade"])
 
   const sysStatus = await getEnvironmentStatus({
     ctx: sysCtx,

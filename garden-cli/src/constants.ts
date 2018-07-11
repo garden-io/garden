@@ -12,6 +12,7 @@ export const MODULE_CONFIG_FILENAME = "garden.yml"
 export const STATIC_DIR = resolve(__dirname, "..", "static")
 export const GARDEN_DIR_NAME = ".garden"
 export const LOGS_DIR = `${GARDEN_DIR_NAME}/logs`
+export const GARDEN_BUILD_VERSION_FILENAME = ".garden-build-version"
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_NAMESPACE = "default"
 export const DEFAULT_PORT_PROTOCOL = "TCP"

@@ -6,16 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubeConfig, Core_v1Api, Extensions_v1beta1Api, RbacAuthorization_v1Api } from "@kubernetes/client-node"
+import {
+  KubeConfig,
+  Core_v1Api,
+  Extensions_v1beta1Api,
+  RbacAuthorization_v1Api,
+  Apps_v1Api,
+} from "@kubernetes/client-node"
 import { join } from "path"
 import { readFileSync } from "fs"
 import { safeLoad } from "js-yaml"
 import {
   zip,
-  isFunction,
   omitBy,
+  isObject,
 } from "lodash"
-import { GardenBaseError } from "../../exceptions"
+import { GardenBaseError, ConfigurationError } from "../../exceptions"
+import { KubernetesObject } from "./helm"
 
 let kubeConfigStr: string
 let kubeConfig: any
@@ -62,6 +69,12 @@ export function extensionsApi(context: string) {
   return proxyApi(k8sApi, config)
 }
 
+export function appsApi(context: string) {
+  const config = getConfig(context)
+  const k8sApi = new Apps_v1Api(config.getCurrentCluster().server)
+  return proxyApi(k8sApi, config)
+}
+
 export function rbacApi(context: string) {
   const config = getConfig(context)
   const k8sApi = new RbacAuthorization_v1Api(config.getCurrentCluster().server)
@@ -78,7 +91,7 @@ export class KubernetesError extends GardenBaseError {
 /**
  * Wrapping the API objects to deal with bugs.
  */
-function proxyApi<T extends Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api>(
+function proxyApi<T extends Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api | Apps_v1Api>(
   api: T, config: KubeConfig,
 ): T {
   api.setDefaultAuthentication(config)
@@ -87,10 +100,9 @@ function proxyApi<T extends Core_v1Api | Extensions_v1beta1Api | RbacAuthorizati
     if (!err.message) {
       const wrapped = new KubernetesError(`Got error from Kubernetes API - ${err.body.message}`, {
         body: err.body,
-        request: omitBy(err.response.request, (v, k) => isFunction(v) || k[0] === "_"),
+        request: omitBy(err.response.request, (v, k) => isObject(v) || k[0] === "_"),
       })
       wrapped.code = err.response.statusCode
-      wrapped.response = err.response
       throw wrapped
     } else {
       throw err
@@ -123,4 +135,57 @@ function proxyApi<T extends Core_v1Api | Extensions_v1beta1Api | RbacAuthorizati
       }
     },
   })
+}
+
+export async function apiReadBySpec(namespace: string, context: string, spec: KubernetesObject) {
+  // this is just awful, sorry. any better ideas? - JE
+  const name = spec.metadata.name
+
+  const core = coreApi(context)
+  const ext = extensionsApi(context)
+  const apps = appsApi(context)
+  const rbac = rbacApi(context)
+
+  switch (spec.kind) {
+    case "ConfigMap":
+      return core.readNamespacedConfigMap(name, namespace)
+    case "Endpoints":
+      return core.readNamespacedEndpoints(name, namespace)
+    case "LimitRange":
+      return core.readNamespacedLimitRange(name, namespace)
+    case "PersistentVolumeClaim":
+      return core.readNamespacedPersistentVolumeClaim(name, namespace)
+    case "Pod":
+      return core.readNamespacedPod(name, namespace)
+    case "PodTemplate":
+      return core.readNamespacedPodTemplate(name, namespace)
+    case "ReplicationController":
+      return core.readNamespacedReplicationController(name, namespace)
+    case "ResourceQuota":
+      return core.readNamespacedResourceQuota(name, namespace)
+    case "Secret":
+      return core.readNamespacedSecret(name, namespace)
+    case "Service":
+      return core.readNamespacedService(name, namespace)
+    case "ServiceAccount":
+      return core.readNamespacedServiceAccount(name, namespace)
+    case "DaemonSet":
+      return ext.readNamespacedDaemonSet(name, namespace)
+    case "Deployment":
+      return ext.readNamespacedDeployment(name, namespace)
+    case "Ingress":
+      return ext.readNamespacedIngress(name, namespace)
+    case "ReplicaSet":
+      return ext.readNamespacedReplicaSet(name, namespace)
+    case "StatefulSet":
+      return apps.readNamespacedStatefulSet(name, namespace)
+    case "Role":
+      return rbac.readNamespacedRole(name, namespace)
+    case "RoleBinding":
+      return rbac.readNamespacedRoleBinding(name, namespace)
+    default:
+      throw new ConfigurationError(`Unsupported Kubernetes spec kind: ${spec.kind}`, {
+        spec,
+      })
+  }
 }

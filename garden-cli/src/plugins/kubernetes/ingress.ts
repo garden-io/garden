@@ -10,6 +10,7 @@ import { PluginContext } from "../../plugin-context"
 import { findByName } from "../../util/util"
 import { ContainerService } from "../container"
 import { KubernetesProvider } from "./kubernetes"
+import { getAppNamespace } from "./namespace"
 
 export async function createIngress(ctx: PluginContext, provider: KubernetesProvider, service: ContainerService) {
   // FIXME: ingresses don't get updated when deployment is already running (rethink status check)
@@ -38,18 +39,17 @@ export async function createIngress(ctx: PluginContext, provider: KubernetesProv
     return rule
   })
 
-  const { versionString } = await service.module.getVersion()
   const ingressClass = provider.config.ingressClass
 
   const annotations = {
-    "garden.io/generated": "true",
-    "garden.io/version": versionString,
-    "ingress.kubernetes.io/force-ssl-redirect": provider.config.forceSsl,
+    "ingress.kubernetes.io/force-ssl-redirect": provider.config.forceSsl + "",
   }
 
   if (ingressClass) {
     annotations["kubernetes.io/ingress.class"] = ingressClass
   }
+
+  const namespace = await getAppNamespace(ctx, provider)
 
   return {
     apiVersion: "extensions/v1beta1",
@@ -57,6 +57,7 @@ export async function createIngress(ctx: PluginContext, provider: KubernetesProv
     metadata: {
       name: service.name,
       annotations,
+      namespace,
     },
     spec: {
       rules,

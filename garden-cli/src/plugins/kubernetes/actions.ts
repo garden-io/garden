@@ -8,16 +8,12 @@
 
 import * as inquirer from "inquirer"
 import * as Joi from "joi"
+import * as split from "split"
+import moment = require("moment")
 
 import { DeploymentError, NotFoundError, TimeoutError } from "../../exceptions"
-import {
-  GetServiceLogsResult,
-  LoginStatus,
-} from "../../types/plugin/outputs"
-import {
-  RunResult,
-  TestResult,
-} from "../../types/plugin/outputs"
+import { GetServiceLogsResult, LoginStatus } from "../../types/plugin/outputs"
+import { RunResult, TestResult } from "../../types/plugin/outputs"
 import {
   ConfigureEnvironmentParams,
   DeleteConfigParams,
@@ -27,7 +23,6 @@ import {
   GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
-  GetServiceStatusParams,
   GetTestResultParams,
   PluginActionParamsBase,
   RunModuleParams,
@@ -35,35 +30,21 @@ import {
   TestModuleParams,
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
-import {
-  ContainerModule,
-  helpers,
-} from "../container"
+import { ContainerModule, helpers } from "../container"
 import { uniq } from "lodash"
 import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
-import { ServiceStatus } from "../../types/service"
 import { joiIdentifier } from "../../types/common"
-import {
-  coreApi,
-} from "./api"
+import { coreApi } from "./api"
 import {
   getAppNamespace,
   getMetadataNamespace,
   getAllGardenNamespaces,
 } from "./namespace"
-import {
-  KUBECTL_DEFAULT_TIMEOUT,
-  kubectl,
-} from "./kubectl"
+import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
-import * as split from "split"
-import moment = require("moment")
 import { EntryStyle, LogSymbolType } from "../../logger/types"
-import {
-  checkDeploymentStatus,
-} from "./status"
-
 import { name as providerName } from "./kubernetes"
+import { getContainerServiceStatus } from "./deployment"
 
 const MAX_STORED_USERNAMES = 5
 
@@ -100,11 +81,6 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
 export async function configureEnvironment({ }: ConfigureEnvironmentParams) {
   // this happens implicitly in the `getEnvironmentStatus()` function
   return {}
-}
-
-export async function getServiceStatus(params: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {
-  // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-  return await checkDeploymentStatus(params)
 }
 
 export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentParams) {
@@ -155,10 +131,10 @@ export async function getServiceOutputs({ service }: GetServiceOutputsParams<Con
 }
 
 export async function execInService(
-  { ctx, provider, module, service, env, command }: ExecInServiceParams<ContainerModule>,
+  { ctx, provider, module, service, env, command, runtimeContext }: ExecInServiceParams<ContainerModule>,
 ) {
   const context = provider.config.context
-  const status = await getServiceStatus({ ctx, provider, module, service, env })
+  const status = await getContainerServiceStatus({ ctx, provider, module, service, env, runtimeContext })
   const namespace = await getAppNamespace(ctx, provider)
 
   // TODO: this check should probably live outside of the plugin
@@ -282,7 +258,7 @@ export async function testModule(
   try {
     await coreApi(context).createNamespacedConfigMap(ns, <any>body)
   } catch (err) {
-    if (err.response && err.response.statusCode === 409) {
+    if (err.code === 409) {
       await coreApi(context).patchNamespacedConfigMap(resultKey, ns, body)
     } else {
       throw err
@@ -303,7 +279,7 @@ export async function getTestResult(
     const res = await coreApi(context).readNamespacedConfigMap(resultKey, ns)
     return <TestResult>deserializeValues(res.body.data)
   } catch (err) {
-    if (err.response && err.response.statusCode === 404) {
+    if (err.code === 404) {
       return null
     } else {
       throw err
@@ -359,7 +335,7 @@ export async function getConfig({ ctx, provider, key }: GetConfigParams) {
     const res = await coreApi(context).readNamespacedSecret(key.join("."), ns)
     return { value: Buffer.from(res.body.data.value, "base64").toString() }
   } catch (err) {
-    if (err.response && err.response.statusCode === 404) {
+    if (err.code === 404) {
       return { value: null }
     } else {
       throw err
@@ -390,7 +366,7 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
   try {
     await coreApi(context).createNamespacedSecret(ns, <any>body)
   } catch (err) {
-    if (err.response && err.response.statusCode === 409) {
+    if (err.code === 409) {
       await coreApi(context).patchNamespacedSecret(name, ns, body)
     } else {
       throw err
@@ -408,7 +384,7 @@ export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
   try {
     await coreApi(context).deleteNamespacedSecret(name, ns, <any>{})
   } catch (err) {
-    if (err.response && err.response.statusCode === 404) {
+    if (err.code === 404) {
       return { found: false }
     } else {
       throw err

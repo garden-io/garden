@@ -81,6 +81,7 @@ import {
   Omit,
 } from "./util/util"
 import { ModuleVersion } from "./vcs/base"
+import { RuntimeContext } from "./types/service"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -95,7 +96,8 @@ export type PluginContextParams<T extends PluginActionParamsBase> = Omit<T, keyo
 export type PluginContextModuleParams<T extends PluginModuleActionParamsBase> =
   Omit<T, "module" | keyof PluginActionContextParams> & { moduleName: string }
 export type PluginContextServiceParams<T extends PluginServiceActionParamsBase> =
-  Omit<T, "module" | "service" | keyof PluginActionContextParams> & { serviceName: string }
+  Omit<T, "module" | "service" | "runtimeContext" | keyof PluginActionContextParams>
+  & { serviceName: string, runtimeContext?: RuntimeContext }
 
 export type WrappedFromGarden = Pick<Garden,
   "projectName" |
@@ -231,6 +233,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       ...<object>omit(params, ["moduleName"]),
       module,
       service: await service.resolveConfig({ provider, ...runtimeContext }),
+      runtimeContext,
     }
 
     return (<Function>handler)(handlerParams)
@@ -483,9 +486,10 @@ export function createPluginContext(garden: Garden): PluginContext {
       const envStatus: EnvironmentStatusMap = await ctx.getEnvironmentStatus({})
       const services = keyBy(await ctx.getServices(), "name")
 
-      const serviceStatus = await Bluebird.props(mapValues(services,
-        (service: Service<any>) => ctx.getServiceStatus({ serviceName: service.name }),
-      ))
+      const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
+        const runtimeContext = await service.prepareRuntimeContext()
+        return ctx.getServiceStatus({ serviceName: service.name, runtimeContext })
+      }))
 
       return {
         providers: envStatus,

@@ -29,7 +29,6 @@ import {
   getEnvironmentStatus,
   getServiceLogs,
   getServiceOutputs,
-  getServiceStatus,
   getTestResult,
   setConfig,
   testModule,
@@ -38,8 +37,7 @@ import {
   logout,
   runModule,
 } from "./actions"
-import { deployService } from "./deployment"
-import { kubernetesSpecHandlers } from "./specs-module"
+import { deployContainerService, getContainerServiceStatus } from "./deployment"
 import { helmHandlers } from "./helm"
 
 export const name = "kubernetes"
@@ -99,8 +97,8 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
     },
     moduleActions: {
       container: {
-        getServiceStatus,
-        deployService,
+        getServiceStatus: getContainerServiceStatus,
+        deployService: deployContainerService,
         getServiceOutputs,
         execInService,
         runModule,
@@ -108,7 +106,6 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
         getTestResult,
         getServiceLogs,
       },
-      "kubernetes-specs": kubernetesSpecHandlers,
       helm: helmHandlers,
     },
   }

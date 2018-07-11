@@ -6,34 +6,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployServiceParams } from "../../types/plugin/params"
+import { DeployServiceParams, GetServiceStatusParams } from "../../types/plugin/params"
 import {
   helpers,
   ContainerModule,
   ContainerService,
+  ServiceEndpointSpec,
 } from "../container"
 import {
   toPairs,
   extend,
   keyBy,
+  set,
 } from "lodash"
-import {
-  RuntimeContext,
-  ServiceStatus,
-} from "../../types/service"
-import {
-  createIngress,
-} from "./ingress"
-import { apply } from "./kubectl"
-import { getAppNamespace } from "./namespace"
+import { RuntimeContext, ServiceStatus, ServiceProtocol } from "../../types/service"
+import { createIngress, getServiceHostname } from "./ingress"
 import { createServices } from "./service"
-import {
-  checkDeploymentStatus,
-  waitForDeployment,
-} from "./status"
+import { waitForObjects, compareDeployedObjects } from "./status"
+import { applyMany } from "./kubectl"
+import { getAppNamespace } from "./namespace"
+import { KubernetesObject } from "./helm"
+import { PluginContext } from "../../plugin-context"
+import { KubernetesProvider } from "./kubernetes"
+import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 
-const DEFAULT_CPU_REQUEST = 0.01
-const DEFAULT_CPU_LIMIT = 0.5
+const DEFAULT_CPU_REQUEST = "10m"
+const DEFAULT_CPU_LIMIT = "500m"
 const DEFAULT_MEMORY_REQUEST = 128
 const DEFAULT_MEMORY_LIMIT = 512
 
@@ -43,62 +41,109 @@ interface KubeEnvVar {
   valueFrom?: { fieldRef: { fieldPath: string } }
 }
 
-export async function deployService(
-  { ctx, provider, service, env, runtimeContext, force, logEntry }: DeployServiceParams<ContainerModule>,
+export async function getContainerServiceStatus(
+  { ctx, provider, module, service, runtimeContext }: GetServiceStatusParams<ContainerModule>,
 ): Promise<ServiceStatus> {
-  const namespace = await getAppNamespace(ctx, provider)
+  // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
+  const version = await module.getVersion()
+  const objects = await createContainerObjects(ctx, provider, service, runtimeContext)
+  const matched = await compareDeployedObjects(ctx, provider, objects)
+  const hostname = getServiceHostname(ctx, provider, service)
 
-  const context = provider.config.context
-  const deployment = await createDeployment(service, runtimeContext)
-  await apply(context, deployment, { namespace, force })
+  const endpoints = service.spec.endpoints.map((e: ServiceEndpointSpec) => {
+    // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
+    const protocol: ServiceProtocol = "http"
+    const ingressPort = provider.config.ingressPort
 
-  // TODO: automatically clean up Services and Ingresses if they should no longer exist
+    return {
+      protocol,
+      hostname,
+      port: ingressPort,
+      url: `${protocol}://${hostname}:${ingressPort}`,
+      paths: e.paths,
+    }
+  })
 
-  const kubeservices = await createServices(service)
-
-  for (let kubeservice of kubeservices) {
-    await apply(context, kubeservice, { namespace, force })
+  return {
+    endpoints,
+    state: matched ? "ready" : "outdated",
+    version: matched ? version.versionString : undefined,
   }
+}
+
+export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
+  const { ctx, provider, service, runtimeContext, force, logEntry } = params
+
+  const namespace = await getAppNamespace(ctx, provider)
+  const objects = await createContainerObjects(ctx, provider, service, runtimeContext)
+
+  // TODO: use Helm instead of kubectl apply
+  const pruneSelector = "service=" + service.name
+  await applyMany(provider.config.context, objects, { force, namespace, pruneSelector })
+  await waitForObjects({ ctx, provider, service, objects, logEntry })
+
+  return getContainerServiceStatus(params)
+}
+
+export async function createContainerObjects(
+  ctx: PluginContext, provider: KubernetesProvider, service: ContainerService, runtimeContext: RuntimeContext,
+) {
+  const version = await service.module.getVersion()
+  const namespace = await getAppNamespace(ctx, provider)
+  const deployment = await createDeployment(service, runtimeContext, namespace)
+  const kubeservices = await createServices(service, namespace)
+
+  const objects = [deployment, ...kubeservices]
 
   const ingress = await createIngress(ctx, provider, service)
 
   if (ingress !== null) {
-    await apply(context, ingress, { namespace, force })
+    objects.push(ingress)
   }
 
-  await waitForDeployment({ ctx, provider, service, logEntry, env })
-
-  return checkDeploymentStatus({ ctx, provider, service })
+  return objects.map(obj => {
+    set(obj, ["metadata", "annotations", "garden.io/generated"], "true")
+    set(obj, ["metadata", "annotations", GARDEN_ANNOTATION_KEYS_VERSION], version.versionString)
+    set(obj, ["metadata", "labels", "module"], service.module.name)
+    set(obj, ["metadata", "labels", "service"], service.name)
+    return obj
+  })
 }
 
-export async function createDeployment(service: ContainerService, runtimeContext: RuntimeContext) {
+export async function createDeployment(
+  service: ContainerService, runtimeContext: RuntimeContext, namespace: string,
+): Promise<KubernetesObject> {
   const spec = service.spec
-  const { versionString } = await service.module.getVersion()
   // TODO: support specifying replica count
   const configuredReplicas = 1 // service.spec.count[env.name] || 1
+
+  const labels = {
+    module: service.module.name,
+    service: service.name,
+  }
 
   // TODO: moar type-safety
   const deployment: any = {
     kind: "Deployment",
     apiVersion: "extensions/v1beta1",
     metadata: {
-      name: "",
+      name: service.name,
       annotations: {
-        "garden.io/generated": "true",
-        "garden.io/version": versionString,
         // we can use this to avoid overriding the replica count if it has been manually scaled
-        "garden.io/configured.replicas": configuredReplicas,
+        "garden.io/configured.replicas": configuredReplicas.toString(),
       },
+      namespace,
+      labels,
     },
     spec: {
       selector: {
         matchLabels: {
-          service: "",
+          service: service.name,
         },
       },
       template: {
         metadata: {
-          labels: [],
+          labels,
         },
         spec: {
           // TODO: set this for non-system pods
@@ -119,12 +164,6 @@ export async function createDeployment(service: ContainerService, runtimeContext
 
   const envVars = { ...runtimeContext.envVars, ...service.spec.env }
 
-  const labels = {
-    // tier: service.tier,
-    module: service.module.name,
-    service: service.name,
-  }
-
   const env: KubeEnvVar[] = toPairs(envVars).map(([name, value]) => ({ name, value: value + "" }))
 
   // expose some metadata to the container
@@ -144,7 +183,6 @@ export async function createDeployment(service: ContainerService, runtimeContext
   })
 
   const container: any = {
-    args: service.spec.command || [],
     name: service.name,
     image: await helpers.getLocalImageId(service.module),
     env,
@@ -161,6 +199,10 @@ export async function createDeployment(service: ContainerService, runtimeContext
       },
     },
     imagePullPolicy: "IfNotPresent",
+  }
+
+  if (service.spec.command && service.spec.command.length > 0) {
+    container.args = service.spec.command
   }
 
   // if (config.entrypoint) {
@@ -210,14 +252,6 @@ export async function createDeployment(service: ContainerService, runtimeContext
   //     privileged: true,
   //   }
   // }
-
-  deployment.metadata = {
-    name: service.name,
-    labels,
-  }
-
-  deployment.spec.selector.matchLabels = { service: service.name }
-  deployment.spec.template.metadata.labels = labels
 
   if (spec.volumes && spec.volumes.length) {
     const volumes: any[] = []

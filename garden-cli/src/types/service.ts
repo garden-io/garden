@@ -25,7 +25,7 @@ import {
 } from "./common"
 import { Module } from "./module"
 
-export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "unknown"
+export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "unknown" | "outdated" | "missing"
 
 export type ServiceProtocol = "http" | "https" | "tcp" | "udp"
 
@@ -115,7 +115,7 @@ export const serviceStatusSchema = Joi.object()
     version: Joi.string()
       .description("The Garden module version of the deployed service."),
     state: Joi.string()
-      .only("ready", "deploying", "stopped", "unhealthy", "unknown")
+      .only("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
       .default("unknown")
       .description("The current deployment status of the service."),
     runningReplicas: Joi.number()
