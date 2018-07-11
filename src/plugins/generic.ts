@@ -43,7 +43,7 @@ import {
   baseTestSpecSchema,
 } from "../types/test"
 import { spawn } from "../util/util"
-import { writeVersionFile, readVersionFile } from "../vcs/base"
+import { writeVersionFile, readVersionFile, getVersionString } from "../vcs/base"
 import execa = require("execa")
 
 export const name = "generic"
@@ -93,6 +93,24 @@ export async function parseGenericModule(
       timeout: t.timeout,
     })),
   }
+}
+
+export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
+  if (!module.config.build.command.length) {
+    return { ready: true }
+  }
+
+  const buildVersionFilePath = join(await module.getBuildPath(), buildVersionFilename)
+  const builtVersion = await readVersionFile(buildVersionFilePath)
+  const moduleVersion = await module.getVersion()
+
+  const builtVersionString = builtVersion && getVersionString(builtVersion)
+
+  if (builtVersionString && builtVersionString === moduleVersion.versionString) {
+    return { ready: true }
+  }
+
+  return { ready: false }
 }
 
 export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
@@ -155,24 +173,9 @@ export const genericPlugin: GardenPlugin = {
   moduleActions: {
     generic: {
       parseModule: parseGenericModule,
+      getModuleBuildStatus: getGenericModuleBuildStatus,
       buildModule: buildGenericModule,
       testModule: testGenericModule,
-
-      async getModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
-        if (!module.config.build.command.length) {
-          return { ready: true }
-        }
-
-        const buildVersionFilePath = join(await module.getBuildPath(), buildVersionFilename)
-        const builtVersion = await readVersionFile(buildVersionFilePath)
-        const moduleVersion = await module.getVersion()
-
-        if (builtVersion && builtVersion.latestCommit === moduleVersion.versionString) {
-          return { ready: true }
-        }
-
-        return { ready: false }
-      },
     },
   },
 }

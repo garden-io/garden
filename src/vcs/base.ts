@@ -85,7 +85,7 @@ export abstract class VcsHandler {
 
     if (dependencies.length === 0) {
       return {
-        versionString: treeVersion.latestCommit,
+        versionString: getVersionString(treeVersion),
         dirtyTimestamp: treeVersion.dirtyTimestamp,
         dependencyVersions: {},
       }
@@ -119,7 +119,7 @@ export abstract class VcsHandler {
 
       if (latestDirty.length > 1) {
         // if the last modified timestamp is common across multiple modules, hash their versions
-        const versionString = hashVersions(latestDirty)
+        const versionString = `${hashVersions(latestDirty)}-${dirtyTimestamp}`
 
         return {
           versionString,
@@ -129,7 +129,7 @@ export abstract class VcsHandler {
       } else {
         // if there's just one module that was most recently modified, return that version
         return {
-          versionString: `${latestDirty[0].latestCommit}-${dirtyTimestamp}`,
+          versionString: getVersionString(latestDirty[0]),
           dirtyTimestamp,
           dependencyVersions,
         }
@@ -182,4 +182,10 @@ export async function readVersionFile(path: string): Promise<TreeVersion | null>
 
 export async function writeVersionFile(path: string, version: TreeVersion) {
   await writeFile(path, JSON.stringify(version))
+}
+
+export function getVersionString(treeVersion: TreeVersion) {
+  return treeVersion.dirtyTimestamp
+    ? `${treeVersion.latestCommit}-${treeVersion.dirtyTimestamp}`
+    : treeVersion.latestCommit
 }

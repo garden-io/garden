@@ -73,7 +73,58 @@ describe("VcsHandler", () => {
       })
     })
 
-    it("should return the latest dirty version if any", async () => {
+    it("should return module version if there are no dependencies and properly handle a dirty timestamp", async () => {
+      const module = await ctx.getModule("module-a")
+      const latestCommit = "abcdef"
+      const version = {
+        latestCommit,
+        dirtyTimestamp: 1234,
+      }
+
+      handler.setTestVersion(module.path, version)
+
+      const result = await handler.resolveVersion(module, [])
+
+      expect(result).to.eql({
+        versionString: "abcdef-1234",
+        dirtyTimestamp: 1234,
+        dependencyVersions: {},
+      })
+    })
+
+    it("should return the dirty version if there is a single one", async () => {
+      const [moduleA, moduleB, moduleC] = await ctx.getModules(["module-a", "module-b", "module-c"])
+
+      // note: module-a has a version file
+      const versionA = {
+        latestCommit: "1234567890",
+        dirtyTimestamp: null,
+      }
+
+      const versionB = {
+        latestCommit: "qwerty",
+        dirtyTimestamp: null,
+      }
+      handler.setTestVersion(moduleB.path, versionB)
+
+      const versionStringC = "asdfgh"
+      const versionC = {
+        latestCommit: versionStringC,
+        dirtyTimestamp: 123,
+      }
+      handler.setTestVersion(moduleC.path, versionC)
+
+      expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
+        versionString: "asdfgh-123",
+        dirtyTimestamp: 123,
+        dependencyVersions: {
+          "module-a": versionA,
+          "module-b": versionB,
+        },
+      })
+    })
+
+    it("should return the latest dirty version if there are multiple", async () => {
       const [moduleA, moduleB, moduleC] = await ctx.getModules(["module-a", "module-b", "module-c"])
 
       // note: module-a has a version file
@@ -137,36 +188,39 @@ describe("VcsHandler", () => {
       })
     })
 
-    it("should hash together the dirty versions if there are multiple with same timestamp", async () => {
-      const [moduleA, moduleB, moduleC] = await ctx.getModules(["module-a", "module-b", "module-c"])
+    it(
+      "should hash together the dirty versions and add the timestamp if there are multiple with same timestamp",
+      async () => {
 
-      const versionA = {
-        latestCommit: "1234567890",
-        dirtyTimestamp: null,
-      }
+        const [moduleA, moduleB, moduleC] = await ctx.getModules(["module-a", "module-b", "module-c"])
 
-      const versionStringB = "qwerty"
-      const versionB = {
-        latestCommit: versionStringB,
-        dirtyTimestamp: 1234,
-      }
-      handler.setTestVersion(moduleB.path, versionB)
+        const versionA = {
+          latestCommit: "1234567890",
+          dirtyTimestamp: null,
+        }
 
-      const versionStringC = "asdfgh"
-      const versionC = {
-        latestCommit: versionStringC,
-        dirtyTimestamp: 1234,
-      }
-      handler.setTestVersion(moduleC.path, versionC)
+        const versionStringB = "qwerty"
+        const versionB = {
+          latestCommit: versionStringB,
+          dirtyTimestamp: 1234,
+        }
+        handler.setTestVersion(moduleB.path, versionB)
 
-      expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
-        versionString: "vcfa6d28ec5",
-        dirtyTimestamp: 1234,
-        dependencyVersions: {
-          "module-a": versionA,
-          "module-b": versionB,
-        },
+        const versionStringC = "asdfgh"
+        const versionC = {
+          latestCommit: versionStringC,
+          dirtyTimestamp: 1234,
+        }
+        handler.setTestVersion(moduleC.path, versionC)
+
+        expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
+          versionString: "vcfa6d28ec5-1234",
+          dirtyTimestamp: 1234,
+          dependencyVersions: {
+            "module-a": versionA,
+            "module-b": versionB,
+          },
+        })
       })
-    })
   })
 })
