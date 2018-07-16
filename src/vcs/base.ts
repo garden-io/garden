@@ -79,7 +79,7 @@ export abstract class VcsHandler {
   }
 
   async resolveVersion(module: Module, dependencies: Module[]): Promise<ModuleVersion> {
-    const treeVersion = await this.getTreeVersion([module.path])
+    const treeVersion = await this.resolveTreeVersion(module)
 
     validate(treeVersion, treeVersionSchema, { context: `${this.name} tree version for module at ${module.path}` })
 
