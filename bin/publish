@@ -6,11 +6,11 @@ cd ${garden_root}
 npm run clean
 ./bin/check-if-clean
 
-conventional-changelog -p angular -i CHANGELOG.md -s
+lerna publish
+
+conventional-changelog -p angular -i CHANGELOG.md -s -r 2
 git add CHANGELOG.md
 version=$(node -p "require('./package.json').version")
 git commit -m "chore(release): update changelog for ${version}"
-
-lerna publish
 
 gulp update-brew

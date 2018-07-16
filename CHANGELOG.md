@@ -1,3 +1,14 @@
+<a name="0.3.1"></a>
+## [0.3.1](https://github.com/garden-io/garden/compare/v0.3.0...v0.3.1) (2018-07-16)
+
+
+### Bug Fixes
+
+* **versioning:** `resolveVersion` should not call `getTreeVersion` ([91ae14f](https://github.com/garden-io/garden/commit/91ae14f))
+* **versioning:** version string should include dirty timestamp ([61d29d0](https://github.com/garden-io/garden/commit/61d29d0))
+
+
+
 <a name="0.3.0"></a>
 # [0.3.0](https://github.com/garden-io/garden/compare/v0.2.0...v0.3.0) (2018-07-10)
 
