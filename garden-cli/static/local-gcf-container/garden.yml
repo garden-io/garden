@@ -1,3 +1,4 @@
 module:
   description: Base container for running Google Cloud Functions emulator
   type: container
+  name: local-gcf-container

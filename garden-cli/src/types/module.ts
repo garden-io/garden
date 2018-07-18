@@ -99,7 +99,9 @@ export const baseModuleSpecSchema = Joi.object()
       .description("The type of this module.")
       .example("container"),
     name: joiIdentifier()
-      .default(() => null, "<name of module directory>"),
+      .required()
+      .description("The name of this module.")
+      .example("my-sweet-module"),
     description: Joi.string(),
     variables: joiVariables()
       .description("Variables that this module can reference and expose as environment variables.")
@@ -206,7 +208,6 @@ export class Module<
   async getVersion(force?: boolean) {
     return this.ctx.getModuleVersion(this.name, force)
   }
-
   async getBuildPath() {
     return await this.ctx.getModuleBuildPath(this.name)
   }

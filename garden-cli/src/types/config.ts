@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, parse, relative, sep } from "path"
+import { join, relative, basename } from "path"
 import {
   findByName,
   getNames,
 } from "../util/util"
 import { baseModuleSpecSchema, ModuleConfig } from "./module"
-import { joiIdentifier, validate } from "./common"
+import { validate } from "./common"
 import { ConfigurationError } from "../exceptions"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
@@ -82,7 +82,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
 
   const parsed = <GardenConfig>validate(spec, configSchema, { context: relative(projectRoot, absPath) })
 
-  const dirname = parse(absPath).dir.split(sep).slice(-1)[0]
+  const dirname = basename(path)
   const project = parsed.project
   let module = parsed.module
 
@@ -122,17 +122,6 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
       variables: module.variables,
     }
 
-    if (!module.name) {
-      try {
-        module.name = validate(dirname, joiIdentifier())
-      } catch (_) {
-        throw new ConfigurationError(
-          `Directory name ${parsed.dirname} is not a valid module name (must be valid identifier). ` +
-          `Please rename the directory or specify a module name in the garden.yml file.`,
-          { dirname: parsed.dirname },
-        )
-      }
-    }
   }
 
   return {

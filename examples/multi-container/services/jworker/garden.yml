@@ -1,6 +1,7 @@
 module:
   description: worker
   type: container
+  name: jworker
   services:
     - name: javaworker
       dependencies:

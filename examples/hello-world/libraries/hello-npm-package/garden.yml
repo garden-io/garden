@@ -1,3 +1,4 @@
 module:
   description: Hello world npm package
   type: npm-package
+  name: hello-npm-package

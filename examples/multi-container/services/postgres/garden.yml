@@ -1,6 +1,7 @@
 module:
   description: postgres container
   type: container
+  name: postgres
   image: postgres:9.4
   services:
     - name: db
