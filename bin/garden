@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
-node ${garden_root}/static/bin/garden "$@"
+node ${garden_root}/garden-cli/static/bin/garden "$@"

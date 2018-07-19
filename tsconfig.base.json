@@ -6,7 +6,15 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["es5", "es2015.promise", "es2016", "esnext", "esnext.asynciterable", "es2017", "dom"],
+    "lib": [
+      "es5",
+      "es2015.promise",
+      "es2016",
+      "esnext",
+      "esnext.asynciterable",
+      "es2017",
+      "dom"
+    ],
     "module": "commonjs",
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
@@ -18,8 +26,9 @@
     "target": "es6"
   },
   "exclude": [
-    "build",
-    "dist",
-    "node_modules"
+    "**/build",
+    "**/dist",
+    "node_modules",
+    "**/node_modules"
   ]
 }

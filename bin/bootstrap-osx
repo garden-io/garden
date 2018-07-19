@@ -15,11 +15,11 @@ gcloud components install beta
 
 # install nvm and node
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
-nvm install 9.4
-nvm alias default 9.4
+nvm install 10
+nvm alias default 10
 
 # install/update global packages
-npm install -g gulp-cli@4.0.0
+npm install -g gulp-cli@4.0.0 lerna@3.0.0-beta21
 
 # install CircleCI CLI
 curl -o /usr/local/bin/circleci https://circle-downloads.s3.amazonaws.com/releases/build_agent_wrapper/circleci
