@@ -13,4 +13,5 @@ git add CHANGELOG.md
 version=$(node -p "require('./package.json').version")
 git commit -m "chore(release): update changelog for ${version}"
 
+cd garden-cli
 gulp update-brew

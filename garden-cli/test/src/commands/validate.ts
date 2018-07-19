@@ -5,7 +5,7 @@ import { expectError } from "../../helpers"
 
 describe("commands.validate", () => {
   it("should successfully validate the hello-world project", async () => {
-    const root = join(__dirname, "..", "..", "..", "examples", "hello-world")
+    const root = join(__dirname, "..", "..", "..", "..", "examples", "hello-world")
     const garden = await Garden.factory(root)
     const command = new ValidateCommand()
 

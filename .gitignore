@@ -20,20 +20,7 @@ ts-node-*
 
 # Compiled files
 .nyc_output
-build/
 coverage/
-dist/
-examples/**/app.yaml
 gulpfile.js
 *.map
-src/**/*.js
-src/**/*.map
-src/**/*.d.ts
-static/bin/garden.js
-static/**/.garden-version
-support/**/*.js
-support/**/*.map
-support/**/*.d.ts
-test/**/*.js
-test/**/*.map
 *.tgz

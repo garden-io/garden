@@ -1,0 +1,12 @@
+# Compiled files
+build/
+dist/
+src/**/*.js
+src/**/*.map
+src/**/*.d.ts
+static/**/.garden-version
+support/**/*.js
+support/**/*.map
+support/**/*.d.ts
+test/**/*.js
+test/**/*.map

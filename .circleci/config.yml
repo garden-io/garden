@@ -38,10 +38,12 @@ jobs:
 
       # install using package-lock only
       - run: npm ci
+      - run: node_modules/.bin/lerna bootstrap --ci
 
       - save_cache:
           paths:
             - node_modules
+            - garden-cli/node_modules
           key: v3-dependencies-{{ checksum "package-lock.json" }}
 
       # a couple of special cases needed just for local builds
