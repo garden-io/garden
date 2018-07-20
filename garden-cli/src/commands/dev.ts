@@ -19,9 +19,9 @@ import { STATIC_DIR } from "../constants"
 import chalk from "chalk"
 import moment = require("moment")
 import { processModules } from "../process"
+import { readFile } from "fs-extra"
 
-const imgcatPath = join(STATIC_DIR, "imgcat")
-const bannerPath = join(STATIC_DIR, "garden-banner-1-half.png")
+const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
 // TODO: allow limiting to certain modules and/or services
 export class DevCommand extends Command {
@@ -39,13 +39,9 @@ export class DevCommand extends Command {
   `
 
   async action(ctx: PluginContext): Promise<CommandResult> {
-    try {
-      await execa(imgcatPath, [bannerPath], {
-        stdio: "inherit",
-      })
-    } catch (_) {
-      // the above fails for terminals other than iTerm2. just ignore the error and move on.
-    }
+    // print ANSI banner image
+    const data = await readFile(ansiBannerPath)
+    console.log(data.toString())
 
     ctx.log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
