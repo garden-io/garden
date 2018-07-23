@@ -15,7 +15,6 @@ but still), overall stability will improve and platform support is still limited
 All that said, Garden can already be highly useful if the following applies to you:
 
 * **You're deploying to (or transitioning to) Kubernetes.**
-* **You develop on Mac or Linux.**
 * **You work mostly with containers** _**today**_ _\(but perhaps plan on adopting serverless platforms in the future\)._
 * **You keep all your services in a single repository** _(multi-repo support coming soon!)._
 * **You really don't want to spend your precious hours building your own developer tooling!**

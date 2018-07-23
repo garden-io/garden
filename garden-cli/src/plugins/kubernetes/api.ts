@@ -23,6 +23,7 @@ import {
 } from "lodash"
 import { GardenBaseError, ConfigurationError } from "../../exceptions"
 import { KubernetesObject } from "./helm"
+import { homedir } from "os"
 
 let kubeConfigStr: string
 let kubeConfig: any
@@ -33,8 +34,7 @@ const configs: { [context: string]: KubeConfig } = {}
 
 function getConfig(context: string): KubeConfig {
   if (!kubeConfigStr) {
-    kubeConfigStr = readFileSync(process.env.KUBECONFIG || join(process.env.HOME || "/home", ".kube", "config"))
-      .toString()
+    kubeConfigStr = readFileSync(join(homedir(), ".kube", "config")).toString()
     kubeConfig = safeLoad(kubeConfigStr)
   }
 

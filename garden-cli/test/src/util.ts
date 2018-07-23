@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { join } from "path"
-import { scanDirectory, getChildDirNames } from "../../src/util/util"
+import { scanDirectory, getChildDirNames, toCygwinPath } from "../../src/util/util"
 
 describe("util", () => {
   describe("scanDirectory", () => {
@@ -38,6 +38,18 @@ describe("util", () => {
     it("should return the names of all none hidden directories in the parent directory", async () => {
       const testPath = join(__dirname, "..", "data", "get-child-dir-names")
       expect(await getChildDirNames(testPath)).to.eql(["a", "b"])
+    })
+  })
+
+  describe("toCygwinPath", () => {
+    it("should convert a win32 path to a cygwin path", () => {
+      const path = "C:\\some\\path"
+      expect(toCygwinPath(path)).to.equal("/cygdrive/c/some/path")
+    })
+
+    it("should retain a trailing slash", () => {
+      const path = "C:\\some\\path\\"
+      expect(toCygwinPath(path)).to.equal("/cygdrive/c/some/path/")
     })
   })
 })
