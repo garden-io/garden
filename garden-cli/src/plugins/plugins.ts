@@ -20,6 +20,7 @@ export const builtinPlugins: RegisterPluginParam[] = [
   "./kubernetes/local",
   "./npm-package",
   "./google/google-app-engine",
+  "./openfaas",
 ].map(p => resolve(__dirname, p))
 
 // These plugins are always loaded

@@ -105,6 +105,14 @@ export class BuildDir {
       destinationPath = toCygwinPath(destinationPath)
     }
 
+    // the correct way to copy all contents of a folder is using a trailing slash and not a wildcard
+    sourcePath = stripWildcard(sourcePath)
+    destinationPath = stripWildcard(destinationPath)
+
     await execa("rsync", ["-rptgo", sourcePath, destinationPath])
   }
+}
+
+function stripWildcard(path: string) {
+  return path.endsWith("/*") ? path.slice(0, -1) : path
 }

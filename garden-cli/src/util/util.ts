@@ -219,8 +219,6 @@ export function spawnPty(
   }: SpawnPtyParams = {},
 ): Bluebird<any> {
 
-  // 
-
   let _process = <any>process
 
   let proc: any = pty.spawn(cmd, args, {

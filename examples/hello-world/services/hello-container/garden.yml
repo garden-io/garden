@@ -20,7 +20,10 @@ module:
         FUNCTION_ENDPOINT: ${dependencies.hello-function.outputs.endpoint}
   build:
     dependencies:
-      - hello-npm-package
+      - name: hello-npm-package
+        copy:
+          - source: "./"
+            target: libraries/hello-npm-package/
   tests:
     - name: unit
       command: [npm, test]

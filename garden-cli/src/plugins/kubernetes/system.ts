@@ -14,7 +14,7 @@ import { KubernetesProvider } from "./kubernetes"
 export const GARDEN_SYSTEM_NAMESPACE = "garden-system"
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
-const systemSymbol = Symbol()
+export const systemSymbol = Symbol()
 
 export function isSystemGarden(provider: KubernetesProvider): boolean {
   return provider.config._system === systemSymbol

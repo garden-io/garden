@@ -30,10 +30,10 @@ import { PluginContext } from "../../plugin-context"
 import { KubernetesProvider } from "./kubernetes"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 
-const DEFAULT_CPU_REQUEST = "10m"
-const DEFAULT_CPU_LIMIT = "500m"
-const DEFAULT_MEMORY_REQUEST = 128
-const DEFAULT_MEMORY_LIMIT = 512
+export const DEFAULT_CPU_REQUEST = "10m"
+export const DEFAULT_CPU_LIMIT = "500m"
+export const DEFAULT_MEMORY_REQUEST = "128Mi"
+export const DEFAULT_MEMORY_LIMIT = "512Mi"
 
 interface KubeEnvVar {
   name: string
@@ -190,12 +190,12 @@ export async function createDeployment(
     // TODO: make these configurable
     resources: {
       requests: {
-        cpu: DEFAULT_CPU_REQUEST.toString(),
-        memory: DEFAULT_MEMORY_REQUEST + "Mi",
+        cpu: DEFAULT_CPU_REQUEST,
+        memory: DEFAULT_MEMORY_REQUEST,
       },
       limits: {
-        cpu: DEFAULT_CPU_LIMIT.toString(),
-        memory: DEFAULT_MEMORY_LIMIT + "Mi",
+        cpu: DEFAULT_CPU_LIMIT,
+        memory: DEFAULT_MEMORY_LIMIT,
       },
     },
     imagePullPolicy: "IfNotPresent",
