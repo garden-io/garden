@@ -16,12 +16,9 @@ import * as yaml from "js-yaml"
 import * as Cryo from "cryo"
 import { spawn as _spawn } from "child_process"
 import { pathExists, readFile, writeFile } from "fs-extra"
-import { join, basename } from "path"
+import { join, basename, win32, posix } from "path"
 import { find } from "lodash"
-import {
-  TimeoutError,
-  GardenBaseError,
-} from "../exceptions"
+import { TimeoutError } from "../exceptions"
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
@@ -56,42 +53,6 @@ export type Unpacked<T> =
 export function shutdown(code) {
   // This is a good place to log exitHookNames if needed.
   process.exit(code)
-}
-
-export class RsyncError extends GardenBaseError {
-  type = "rsync"
-}
-
-export type RsyncStdIOCallback = () => void
-
-export type RsyncErrorCallback = (error: Error, code: string, cmd: string) => void
-
-// Note: Rsync instances from the rsync npm module fit this interface.
-export interface RsyncCommand {
-  execute: (
-    errorCallback: RsyncErrorCallback,
-    stdoutHandler?: RsyncErrorCallback,
-    stderrHandler?: RsyncErrorCallback,
-  ) => void
-}
-
-export function execRsyncCmd(rsyncCmd: RsyncCommand, stdoutHandler?: RsyncStdIOCallback,
-  stderrHandler?: RsyncStdIOCallback): Bluebird<any> {
-
-  return new Bluebird((resolve, reject) => {
-    rsyncCmd.execute((error: Error, code: string, cmd: string) => {
-      if (!error) {
-        resolve()
-      } else {
-        reject(new RsyncError(`Unable to sync files`, {
-          error,
-          code,
-          cmd,
-        }))
-      }
-    }, stdoutHandler, stderrHandler)
-  })
-
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {
@@ -257,6 +218,8 @@ export function spawnPty(
     bufferOutput = true, data, ignoreError = false,
   }: SpawnPtyParams = {},
 ): Bluebird<any> {
+
+  // 
 
   let _process = <any>process
 
@@ -429,4 +392,17 @@ export function getNames<T extends ObjectWithName>(array: T[]) {
 
 export function findByName<T extends ObjectWithName>(array: T[], name: string): T | undefined {
   return find(array, ["name", name])
+}
+
+/**
+ * Converts a Windows-style path to a cygwin style path (e.g. C:\some\folder -> /cygdrive/c/some/folder).
+ */
+export function toCygwinPath(path: string) {
+  const parsed = win32.parse(path)
+  const drive = parsed.root.split(":")[0].toLowerCase()
+  const dirs = parsed.dir.split(win32.sep).slice(1)
+  const cygpath = posix.join("/cygdrive", drive, ...dirs, parsed.base)
+
+  // make sure trailing slash is retained
+  return path.endsWith(win32.sep) ? cygpath + posix.sep : cygpath
 }

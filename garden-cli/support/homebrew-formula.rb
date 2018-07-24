@@ -8,6 +8,7 @@ class GardenCli < Formula
 
   depends_on "node"
   depends_on "rsync"
+  depends_on "stern"
   depends_on "python" => :build
 
   def install

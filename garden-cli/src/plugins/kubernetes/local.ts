@@ -42,13 +42,14 @@ import {
 import { readFile } from "fs-extra"
 import { processServices } from "../../process"
 import { LogEntry } from "../../logger/logger"
+import { homedir } from "os"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
 const supportedContexts = ["docker-for-desktop", "minikube"]
-const kubeConfigPath = join(process.env.HOME || "~", ".kube", "config")
+const kubeConfigPath = join(homedir(), ".kube", "config")
 
 // extend the environment configuration to also set up an ingress controller and dashboard
 export async function getLocalEnvironmentStatus(

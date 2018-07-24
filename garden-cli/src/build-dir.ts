@@ -13,20 +13,23 @@ import {
   parse,
   resolve,
   sep,
+  win32,
+  posix,
 } from "path"
 import {
   emptyDir,
   ensureDir,
 } from "fs-extra"
-import * as Rsync from "rsync"
 import { GARDEN_DIR_NAME } from "./constants"
 import { ConfigurationError } from "./exceptions"
-import { execRsyncCmd } from "./util/util"
 import {
   BuildCopySpec,
   Module,
 } from "./types/module"
 import { zip } from "lodash"
+import * as execa from "execa"
+import { platform } from "os"
+import { toCygwinPath } from "./util/util"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
@@ -96,11 +99,12 @@ export class BuildDir {
     const destinationDir = parse(destinationPath).dir
     await ensureDir(destinationDir)
 
-    const syncCmd = new Rsync()
-      .flags(["r", "p", "t", "g", "o"])
-      .source(sourcePath)
-      .destination(destinationPath)
+    if (platform() === "win32") {
+      // this is so that the cygwin-based rsync client can deal with the paths
+      sourcePath = toCygwinPath(sourcePath)
+      destinationPath = toCygwinPath(destinationPath)
+    }
 
-    await execRsyncCmd(syncCmd)
+    await execa("rsync", ["-rptgo", sourcePath, destinationPath])
   }
 }

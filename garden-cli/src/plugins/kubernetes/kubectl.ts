@@ -12,6 +12,7 @@ import { extend } from "lodash"
 import { encodeYamlMulti, spawnPty } from "../../util/util"
 import { RuntimeError } from "../../exceptions"
 import { getLogger } from "../../logger/logger"
+import { platform } from "os"
 import hasAnsi = require("has-ansi")
 
 export interface KubectlParams {
@@ -64,7 +65,7 @@ export class Kubectl {
     }
 
     const preparedArgs = this.prepareArgs(args)
-    const proc = spawn("kubectl", preparedArgs)
+    const proc = spawn(this.getExececutable(), preparedArgs)
 
     proc.stdout.on("data", (s) => {
       if (!silent) {
@@ -133,11 +134,16 @@ export class Kubectl {
   }
 
   async tty(args: string[], opts: KubectlParams = {}): Promise<KubectlOutput> {
-    return spawnPty("kubectl", this.prepareArgs(args), opts)
+    return spawnPty(this.getExececutable(), this.prepareArgs(args), opts)
   }
 
   spawn(args: string[]): ChildProcess {
-    return spawn("kubectl", this.prepareArgs(args))
+    return spawn(this.getExececutable(), this.prepareArgs(args))
+  }
+
+  private getExececutable() {
+    // workaround for https://github.com/Microsoft/node-pty/issues/109
+    return platform() === "win32" ? "kubectl.exe" : "kubectl"
   }
 
   private prepareArgs(args: string[]) {
