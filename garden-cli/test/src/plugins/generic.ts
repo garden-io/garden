@@ -8,10 +8,7 @@ import { PluginContext } from "../../../src/plugin-context"
 import {
   gardenPlugin,
 } from "../../../src/plugins/container"
-import {
-  buildVersionFilename,
-} from "../../../src/plugins/generic"
-import { Environment } from "../../../src/types/common"
+import { GARDEN_BUILD_VERSION_FILENAME } from "../../../src/constants"
 import {
   readVersionFile,
   writeVersionFile,
@@ -27,12 +24,10 @@ describe("generic plugin", () => {
 
   let garden: Garden
   let ctx: PluginContext
-  let env: Environment
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, [gardenPlugin])
     ctx = garden.pluginContext
-    env = garden.getEnvironment()
     await garden.clearBuilds()
   })
 
@@ -41,7 +36,7 @@ describe("generic plugin", () => {
       const module = await ctx.getModule(moduleName)
       const version = await module.getVersion()
       const buildPath = await module.getBuildPath()
-      const versionFilePath = join(buildPath, buildVersionFilename)
+      const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
 
       await writeVersionFile(versionFilePath, {
         latestCommit: version.versionString,
@@ -59,7 +54,7 @@ describe("generic plugin", () => {
       const module = await ctx.getModule(moduleName)
       const version = await module.getVersion()
       const buildPath = await module.getBuildPath()
-      const versionFilePath = join(buildPath, buildVersionFilename)
+      const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
 
       await ctx.buildModule({ moduleName })
 

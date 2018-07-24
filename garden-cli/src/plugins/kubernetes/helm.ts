@@ -13,10 +13,7 @@ import {
   safeLoadAll,
 } from "js-yaml"
 import { set } from "lodash"
-import {
-  join,
-  resolve,
-} from "path"
+import { join } from "path"
 import { PluginContext } from "../../plugin-context"
 import {
   joiArray,
@@ -25,10 +22,7 @@ import {
   Primitive,
   validate,
 } from "../../types/common"
-import {
-  Module,
-  ModuleConfig,
-} from "../../types/module"
+import { Module } from "../../types/module"
 import {
   ModuleActions,
   Provider,
@@ -36,7 +30,6 @@ import {
 import {
   BuildModuleParams,
   DeployServiceParams,
-  GetModuleBuildStatusParams,
   GetServiceStatusParams,
   ParseModuleParams,
 } from "../../types/plugin/params"
@@ -53,13 +46,23 @@ import {
 import { dumpYaml } from "../../util/util"
 import { KubernetesProvider } from "./kubernetes"
 import { getAppNamespace } from "./namespace"
-import {
-  kubernetesSpecHandlers,
-  KubernetesSpecsModule,
-  KubernetesSpecsModuleSpec,
-  KubernetesSpecsServiceSpec,
-} from "./specs-module"
-import { GARDEN_SYSTEM_NAMESPACE } from "./system"
+import { GARDEN_BUILD_VERSION_FILENAME } from "../../constants"
+import { writeVersionFile } from "../../vcs/base"
+import { ServiceState } from "../../types/service"
+import { compareDeployedObjects, waitForObjects, checkObjectStatus } from "./status"
+import { getGenericModuleBuildStatus } from "../generic"
+
+export interface KubernetesObject {
+  apiVersion: string
+  kind: string
+  metadata: {
+    annotations?: object,
+    name: string,
+    namespace?: string,
+    labels?: object,
+  }
+  spec?: any
+}
 
 export interface HelmServiceSpec extends ServiceSpec {
   chart: string
@@ -98,6 +101,19 @@ const helmModuleSpecSchema = Joi.object().keys({
   ),
 })
 
+const helmStatusCodeMap: { [code: number]: ServiceState } = {
+  // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto
+  0: "unknown",   // UNKNOWN
+  1: "ready",     // DEPLOYED
+  2: "missing",   // DELETED
+  3: "stopped",   // SUPERSEDED
+  4: "unhealthy", // FAILED
+  5: "stopped",   // DELETING
+  6: "deploying", // PENDING_INSTALL
+  7: "deploying", // PENDING_UPGRADE
+  8: "deploying", // PENDING_ROLLBACK
+}
+
 export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
   async parseModule({ moduleConfig }: ParseModuleParams): Promise<ParseModuleResult> {
     moduleConfig.spec = validate(
@@ -123,35 +139,69 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
     }
   },
 
-  async getModuleBuildStatus({ }: GetModuleBuildStatusParams<HelmModule>) {
-    return { ready: false }
-  },
-
+  getModuleBuildStatus: getGenericModuleBuildStatus,
   buildModule,
 
   async getServiceStatus(
-    { ctx, env, provider, service, logEntry }: GetServiceStatusParams<HelmModule>,
+    { ctx, env, provider, service, module, logEntry }: GetServiceStatusParams<HelmModule>,
   ): Promise<ServiceStatus> {
-    await buildModule({ ctx, env, provider, module: service.module, logEntry })
-    const specsService = await makeSpecsService(ctx, provider, service)
+    // need to build to be able to check the status
+    const buildStatus = await getGenericModuleBuildStatus({ ctx, env, provider, module, logEntry })
+    if (!buildStatus.ready) {
+      await buildModule({ ctx, env, provider, module, logEntry })
+    }
 
-    return kubernetesSpecHandlers.getServiceStatus({
-      ctx, env, provider, logEntry,
-      module: specsService.module,
-      service: specsService,
-    })
+    // first check if the installed objects on the cluster match the current code
+    const objects = await getChartObjects(ctx, provider, service)
+    const matched = await compareDeployedObjects(ctx, provider, objects)
+
+    if (!matched) {
+      return { state: "outdated" }
+    }
+
+    // then check if the rollout is complete
+    const version = await module.getVersion()
+    const context = provider.config.context
+    const namespace = await getAppNamespace(ctx, provider)
+    const { ready } = await checkObjectStatus(context, namespace, objects)
+
+    // TODO: set state to "unhealthy" if any status is "unhealthy"
+    const state = ready ? "ready" : "deploying"
+
+    return { state, version: version.versionString }
   },
 
-  async deployService({ ctx, env, provider, service }: DeployServiceParams<HelmModule>): Promise<ServiceStatus> {
-    const specsService = await makeSpecsService(ctx, provider, service)
-    const runtimeContext = await specsService.prepareRuntimeContext()
+  async deployService(
+    { ctx, provider, module, service, logEntry }: DeployServiceParams<HelmModule>,
+  ): Promise<ServiceStatus> {
+    const chartPath = await getChartPath(module)
+    const valuesPath = getValuesPath(chartPath)
+    const releaseName = getReleaseName(ctx, service)
+    const namespace = await getAppNamespace(ctx, provider)
 
-    return kubernetesSpecHandlers.deployService({
-      ctx, env, provider,
-      module: specsService.module,
-      service: specsService,
-      runtimeContext,
-    })
+    const releaseStatus = await getReleaseStatus(provider, releaseName)
+
+    if (releaseStatus.state === "missing") {
+      await helm(provider,
+        "install", chartPath,
+        "--name", releaseName,
+        "--namespace", namespace,
+        "--values", valuesPath,
+        "--wait",
+      )
+    } else {
+      await helm(provider,
+        "upgrade", releaseName, chartPath,
+        "--namespace", namespace,
+        "--values", valuesPath,
+        "--wait",
+      )
+    }
+
+    const objects = await getChartObjects(ctx, provider, service)
+    await waitForObjects({ ctx, provider, service, objects, logEntry })
+
+    return {}
   },
 }
 
@@ -160,7 +210,11 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
   const config = module.config
 
   // fetch the chart
-  const fetchArgs = ["fetch", "--destination", resolve(buildPath, ".."), "--untar", config.spec.chart]
+  const fetchArgs = [
+    "fetch", config.spec.chart,
+    "--destination", buildPath,
+    "--untar",
+  ]
   if (config.spec.version) {
     fetchArgs.push("--version", config.spec.version)
   }
@@ -170,55 +224,84 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
   logEntry && logEntry.setState("Fetching chart...")
   await helm(provider, ...fetchArgs)
 
+  const chartPath = await getChartPath(module)
+
   // create the values.yml file
   logEntry && logEntry.setState("Preparing chart...")
-  const values = safeLoad(await helm(provider, "inspect", "values", buildPath)) || {}
+  const values = safeLoad(await helm(provider, "inspect", "values", chartPath)) || {}
   Object.entries(config.spec.parameters).map(([k, v]) => set(values, k, v))
 
-  const valuesPath = getValuesPath(buildPath)
+  const valuesPath = getValuesPath(chartPath)
   dumpYaml(valuesPath, values)
 
   // make sure the template renders okay
-  await getSpecs(ctx, provider, module)
+  const services = await module.getServices()
+  await getChartObjects(ctx, provider, services[0])
+
+  // keep track of which version has been built
+  const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
+  const version = await module.getVersion()
+  await writeVersionFile(buildVersionFilePath, {
+    latestCommit: version.versionString,
+    dirtyTimestamp: version.dirtyTimestamp,
+  })
 
   return { fresh: true }
 }
 
-export function helm(provider: KubernetesProvider, ...args: string[]) {
+function helm(provider: KubernetesProvider, ...args: string[]) {
   return execa.stdout("helm", [
-    "--tiller-namespace", GARDEN_SYSTEM_NAMESPACE,
     "--kube-context", provider.config.context,
     ...args,
   ])
 }
 
-function getValuesPath(buildPath: string) {
-  return join(buildPath, "garden-values.yml")
+async function getChartPath(module: HelmModule) {
+  const splitName = module.spec.chart.split("/")
+  const chartDir = splitName[splitName.length - 1]
+  return join(await module.getBuildPath(), chartDir)
 }
 
-async function getSpecs(ctx: PluginContext, provider: Provider, module: Module) {
-  const buildPath = await module.getBuildPath()
-  const valuesPath = getValuesPath(buildPath)
+function getValuesPath(chartPath: string) {
+  return join(chartPath, "garden-values.yml")
+}
 
-  return safeLoadAll(await helm(provider,
+async function getChartObjects(ctx: PluginContext, provider: Provider, service: Service) {
+  const chartPath = await getChartPath(service.module)
+  const valuesPath = getValuesPath(chartPath)
+  const namespace = await getAppNamespace(ctx, provider)
+  const releaseName = getReleaseName(ctx, service)
+
+  const objects = <KubernetesObject[]>safeLoadAll(await helm(provider,
     "template",
-    "--name", module.name,
-    "--namespace", await getAppNamespace(ctx, provider),
+    "--name", releaseName,
+    "--namespace", namespace,
     "--values", valuesPath,
-    buildPath,
+    chartPath,
   ))
+
+  return objects.filter(obj => obj !== null).map((obj) => {
+    if (!obj.metadata.annotations) {
+      obj.metadata.annotations = {}
+    }
+    return obj
+  })
 }
 
-async function makeSpecsService(
-  ctx: PluginContext, provider: Provider, service: Service<HelmModule>,
-): Promise<Service<KubernetesSpecsModule>> {
-  const specs = await getSpecs(ctx, provider, service.module)
-  const spec = { specs }
+function getReleaseName(ctx: PluginContext, service: Service) {
+  return `garden--${ctx.projectName}--${service.name}`
+}
 
-  const config: ModuleConfig<KubernetesSpecsModuleSpec> = { ...service.module.config, spec }
-  const specsService: ServiceConfig<KubernetesSpecsServiceSpec> = { ...service.config, spec }
-
-  const module = new KubernetesSpecsModule(ctx, config, [specsService], [])
-
-  return Service.factory(ctx, module, service.name)
+async function getReleaseStatus(provider: KubernetesProvider, releaseName: string): Promise<ServiceStatus> {
+  try {
+    const res = JSON.parse(await helm(provider, "status", releaseName, "--output", "json"))
+    const statusCode = res.info.status.code
+    return {
+      state: helmStatusCodeMap[statusCode],
+      detail: res,
+    }
+  } catch (_) {
+    // release doesn't exist
+    return { state: "missing" }
+  }
 }

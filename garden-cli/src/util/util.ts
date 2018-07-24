@@ -43,12 +43,15 @@ export type Diff<T, U> = T extends U ? never : T
 export type Nullable<T> = { [P in keyof T]: T[P] | null }
 // From: https://stackoverflow.com/a/49936686/5629940
 export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T[P] extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
+  [P in keyof T]?: T[P] extends Array<infer U> ? Array<DeepPartial<U>>
+  : T[P] extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : DeepPartial<T[P]>
 }
+export type Unpacked<T> =
+  T extends (infer U)[] ? U
+  : T extends (...args: any[]) => infer V ? V
+  : T extends Promise<infer U> ? U
+  : T
 
 export function shutdown(code) {
   // This is a good place to log exitHookNames if needed.

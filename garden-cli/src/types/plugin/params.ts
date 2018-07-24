@@ -42,8 +42,8 @@ export interface PluginModuleActionParamsBase<T extends Module = Module> extends
 }
 
 export interface PluginServiceActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
-  service: Service<T>
   runtimeContext?: RuntimeContext
+  service: Service<T>
 }
 
 export interface ParseModuleParams<T extends Module = Module> {
@@ -121,11 +121,12 @@ export interface GetTestResultParams<T extends Module = Module> extends PluginMo
 }
 
 export interface GetServiceStatusParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+  runtimeContext: RuntimeContext
 }
 
 export interface DeployServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
-  runtimeContext: RuntimeContext,
   force?: boolean,
+  runtimeContext: RuntimeContext
 }
 
 export interface GetServiceOutputsParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
@@ -133,9 +134,11 @@ export interface GetServiceOutputsParams<T extends Module = Module> extends Plug
 
 export interface ExecInServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
   command: string[],
+  runtimeContext: RuntimeContext
 }
 
 export interface GetServiceLogsParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+  runtimeContext: RuntimeContext
   stream: Stream<ServiceLogEntry>,
   tail?: boolean,
   startTime?: Date,

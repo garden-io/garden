@@ -8,9 +8,8 @@
 
 import { ContainerService } from "../container"
 
-export async function createServices(service: ContainerService) {
+export async function createServices(service: ContainerService, namespace: string) {
   const services: any = []
-  const { versionString } = await service.module.getVersion()
 
   const addService = (name: string, type: string, servicePorts: any[]) => {
     services.push({
@@ -18,10 +17,8 @@ export async function createServices(service: ContainerService) {
       kind: "Service",
       metadata: {
         name,
-        annotations: {
-          "garden.io/generated": "true",
-          "garden.io/version": versionString,
-        },
+        annotations: {},
+        namespace,
       },
       spec: {
         ports: servicePorts,
