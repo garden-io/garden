@@ -15,9 +15,7 @@ import {
   containerModuleSpecSchema,
   ContainerServiceConfig,
 } from "../src/plugins/container"
-import {
-  testGenericModule,
-} from "../src/plugins/generic"
+import { testGenericModule, buildGenericModule } from "../src/plugins/generic"
 import { TaskResults } from "../src/task-graph"
 import {
   validate,
@@ -140,6 +138,8 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             tests,
           }
         },
+
+        buildModule: buildGenericModule,
 
         async runModule(params: RunModuleParams) {
           const version = await params.module.getVersion()
