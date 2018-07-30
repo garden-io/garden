@@ -229,6 +229,30 @@ Starts the garden development console.
 
     garden dev 
 
+### garden exec
+
+Executes a command (such as an interactive shell) in a running service.
+
+Finds an active container for a deployed service and executes the given command within the container.
+Supports interactive shells.
+
+_NOTE: This command may not be supported for all module types._
+
+Examples:
+
+     garden exec my-service /bin/sh   # runs a shell in the my-service container
+
+##### Usage
+
+    garden exec <service> <command> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `service` | Yes | The service to exec the command in.
+  | `command` | Yes | The command to run.
+
 ### garden get config
 
 Get a configuration variable from the environment.

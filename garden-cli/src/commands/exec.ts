@@ -8,9 +8,8 @@
 
 import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
-import {
-  ExecInServiceResult,
-} from "../types/plugin/outputs"
+import { LoggerType } from "../logger/types"
+import { ExecInServiceResult } from "../types/plugin/outputs"
 import {
   Command,
   CommandResult,
@@ -49,7 +48,7 @@ export class ExecCommand extends Command<typeof runArgs, typeof runOpts> {
     Finds an active container for a deployed service and executes the given command within the container.
     Supports interactive shells.
 
-    _NOTE: This command may not be supported for all module types.
+    _NOTE: This command may not be supported for all module types._
 
     Examples:
 
@@ -58,6 +57,7 @@ export class ExecCommand extends Command<typeof runArgs, typeof runOpts> {
 
   arguments = runArgs
   options = runOpts
+  loggerType = LoggerType.basic
 
   async action(ctx: PluginContext, args: Args): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
@@ -67,8 +67,6 @@ export class ExecCommand extends Command<typeof runArgs, typeof runOpts> {
       emoji: "runner",
       command: `Running command ${chalk.cyan(args.command)} in service ${chalk.cyan(serviceName)}`,
     })
-
-    await ctx.configureEnvironment({})
 
     const result = await ctx.execInService({ serviceName, command })
 

@@ -24,6 +24,7 @@ import { ScanCommand } from "./scan"
 import { SetCommand } from "./set"
 import { TestCommand } from "./test"
 import { ValidateCommand } from "./validate"
+import { ExecCommand } from "./exec"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -32,6 +33,7 @@ export const coreCommands: Command[] = [
   new DeleteCommand(),
   new DeployCommand(),
   new DevCommand(),
+  new ExecCommand(),
   new GetCommand(),
   new InitCommand(),
   new LoginCommand(),
