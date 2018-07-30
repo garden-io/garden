@@ -96,10 +96,6 @@ export async function parseGenericModule(
 }
 
 export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
-  if (!module.config.build.command.length) {
-    return { ready: true }
-  }
-
   const buildVersionFilePath = join(await module.getBuildPath(), GARDEN_BUILD_VERSION_FILENAME)
   const builtVersion = await readVersionFile(buildVersionFilePath)
   const moduleVersion = await module.getVersion()
@@ -115,9 +111,10 @@ export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStat
 
 export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
   const config: ModuleConfig = module.config
+  const output: BuildResult = {}
+  const buildPath = await module.getBuildPath()
 
   if (config.build.command.length) {
-    const buildPath = await module.getBuildPath()
     const result = await execa.shell(
       config.build.command.join(" "),
       {
@@ -126,21 +123,19 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
       },
     )
 
-    // keep track of which version has been built
-    const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
-    const version = await module.getVersion()
-    await writeVersionFile(buildVersionFilePath, {
-      latestCommit: version.versionString,
-      dirtyTimestamp: version.dirtyTimestamp,
-    })
-
-    return {
-      fresh: true,
-      buildLog: result.stdout,
-    }
-  } else {
-    return {}
+    output.fresh = true
+    output.buildLog = result.stdout
   }
+
+  // keep track of which version has been built
+  const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
+  const version = await module.getVersion()
+  await writeVersionFile(buildVersionFilePath, {
+    latestCommit: version.versionString,
+    dirtyTimestamp: version.dirtyTimestamp,
+  })
+
+  return output
 }
 
 export async function testGenericModule({ module, testConfig }: TestModuleParams<GenericModule>): Promise<TestResult> {
