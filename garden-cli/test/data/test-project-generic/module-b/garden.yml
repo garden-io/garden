@@ -1,0 +1,10 @@
+module:
+  name: module-b
+  type: generic
+  build:
+    command: [echo, B]
+    dependencies:
+      - module-a
+  tests:
+    - name: unit
+      command: [echo, OK]

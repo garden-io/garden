@@ -77,6 +77,10 @@ export interface DeleteConfigParams extends PluginActionParamsBase {
   key: string[]
 }
 
+export interface GetLoginStatusParams extends PluginActionParamsBase { }
+export interface LoginParams extends PluginActionParamsBase { }
+export interface LogoutParams extends PluginActionParamsBase { }
+
 export interface PluginActionParams {
   getEnvironmentStatus: GetEnvironmentStatusParams
   configureEnvironment: ConfigureEnvironmentParams
@@ -86,9 +90,9 @@ export interface PluginActionParams {
   setConfig: SetConfigParams
   deleteConfig: DeleteConfigParams
 
-  getLoginStatus: PluginActionParamsBase
-  login: PluginActionParamsBase
-  logout: PluginActionParamsBase
+  getLoginStatus: GetLoginStatusParams
+  login: LoginParams
+  logout: LogoutParams
 }
 
 export interface GetModuleBuildStatusParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {

@@ -7,7 +7,7 @@ import { Garden } from "../../../src/garden"
 import { PluginContext } from "../../../src/plugin-context"
 import {
   gardenPlugin,
-} from "../../../src/plugins/container"
+} from "../../../src/plugins/generic"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../src/constants"
 import {
   writeModuleVersionFile,
@@ -19,7 +19,7 @@ import {
 } from "../../helpers"
 
 describe("generic plugin", () => {
-  const projectRoot = resolve(dataDir, "test-project-a")
+  const projectRoot = resolve(dataDir, "test-project-generic")
   const moduleName = "module-a"
 
   let garden: Garden
