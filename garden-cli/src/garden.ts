@@ -102,6 +102,7 @@ import {
   getLinkedSources,
   ExternalSourceType,
 } from "./util/ext-source-util"
+import { pickBy } from "lodash"
 
 export interface ModuleMap<T extends Module> {
   [key: string]: T
@@ -804,27 +805,46 @@ export class Garden {
   /**
    * Get a handler for the specified action.
    */
-  public getActionHandlers<T extends keyof PluginActions>(actionType: T): ActionHandlerMap<T> {
-    return pick(this.actionHandlers[actionType], this.getEnvPlugins())
+  public getActionHandlers<T extends keyof PluginActions>(actionType: T, pluginName?: string): ActionHandlerMap<T> {
+    return this.filterActionHandlers(this.actionHandlers[actionType], pluginName)
   }
 
   /**
    * Get a handler for the specified module action.
    */
   public getModuleActionHandlers<T extends keyof ModuleActions<any>>(
-    actionType: T, moduleType: string,
+    actionType: T, moduleType: string, pluginName?: string,
   ): ModuleActionHandlerMap<T> {
-    return pick((this.moduleActionHandlers[actionType] || {})[moduleType], this.getEnvPlugins())
+    return this.filterActionHandlers((this.moduleActionHandlers[actionType] || {})[moduleType], pluginName)
+  }
+
+  private filterActionHandlers(handlers, pluginName?: string) {
+    const loadedPlugins = this.getEnvPlugins()
+
+    if (!!pluginName && !this.loadedPlugins[pluginName]) {
+      throw new ConfigurationError(
+        `Plugin ${pluginName} has not been loaded. Are you missing a provider configuration?`,
+        {
+          loadedPlugins,
+          pluginName,
+        },
+      )
+    }
+
+    return pickBy(handlers, (handler, name) => (
+      loadedPlugins.includes(name)
+      && (!pluginName || handler["pluginName"] === pluginName)
+    ))
   }
 
   /**
    * Get the last configured handler for the specified action (and optionally module type).
    */
   public getActionHandler<T extends keyof PluginActions>(
-    type: T, defaultHandler?: PluginActions[T],
+    type: T, pluginName?: string, defaultHandler?: PluginActions[T],
   ): PluginActions[T] {
 
-    const handlers = values(this.getActionHandlers(type))
+    const handlers = values(this.getActionHandlers(type, pluginName))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
@@ -832,25 +852,31 @@ export class Garden {
       return defaultHandler
     }
 
-    // TODO: Make these error messages nicer
-    throw new ParameterError(
-      `No '${type}' handler configured in environment '${this.environment}'. ` +
-      `Are you missing a provider configuration?`,
-      {
-        requestedHandlerType: type,
-        environment: this.environment,
-      },
-    )
+    const errorDetails = {
+      requestedHandlerType: type,
+      environment: this.environment,
+      pluginName,
+    }
+
+    if (pluginName) {
+      throw new PluginError(`Plugin '${pluginName}' does not have a '${type}' handler.`, errorDetails)
+    } else {
+      throw new ParameterError(
+        `No '${type}' handler configured in environment '${this.environment}'. ` +
+        `Are you missing a provider configuration?`,
+        errorDetails,
+      )
+    }
   }
 
   /**
    * Get the last configured handler for the specified action.
    */
   public getModuleActionHandler<T extends keyof ModuleActions>(
-    type: T, moduleType: string, defaultHandler?: ModuleActions<any>[T],
+    type: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleActions<any>[T],
   ): ModuleActions<any>[T] {
 
-    const handlers = values(this.getModuleActionHandlers(type, moduleType))
+    const handlers = values(this.getModuleActionHandlers(type, moduleType, pluginName))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
@@ -858,16 +884,25 @@ export class Garden {
       return defaultHandler
     }
 
-    // TODO: Make these error messages nicer
-    throw new ParameterError(
-      `No '${type}' handler configured for module type '${moduleType}' in environment '${this.environment}'. ` +
-      `Are you missing a provider configuration?`,
-      {
-        requestedHandlerType: type,
-        requestedModuleType: moduleType,
-        environment: this.environment,
-      },
-    )
+    const errorDetails = {
+      requestedHandlerType: type,
+      requestedModuleType: moduleType,
+      environment: this.environment,
+      pluginName,
+    }
+
+    if (pluginName) {
+      throw new PluginError(
+        `Plugin '${pluginName}' does not have a '${type}' handler for module type '${moduleType}'.`,
+        errorDetails,
+      )
+    } else {
+      throw new ParameterError(
+        `No '${type}' handler configured for module type '${moduleType}' in environment '${this.environment}'. ` +
+        `Are you missing a provider configuration?`,
+        errorDetails,
+      )
+    }
   }
 
   /**

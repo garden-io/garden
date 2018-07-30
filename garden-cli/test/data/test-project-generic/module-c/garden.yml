@@ -1,0 +1,9 @@
+module:
+  name: module-c
+  type: generic
+  build:
+    dependencies:
+      - module-b
+  tests:
+    - name: unit
+      command: [echo, OK]
