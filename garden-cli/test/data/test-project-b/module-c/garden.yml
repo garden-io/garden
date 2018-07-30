@@ -10,6 +10,13 @@ module:
       ports:
         - name: http
           containerPort: 8080
+    - name: service-d
+      endpoints:
+        - paths: [/path-d]
+          port: http
+      ports:
+        - name: http
+          containerPort: 8080
   build:
     dependencies:
       - module-b

@@ -88,6 +88,7 @@ describe("DeployCommand", () => {
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
       "deploy.service-c": { version: "1", state: "ready" },
+      "deploy.service-d": { version: "1", state: "ready" },
     })
   })
 

@@ -19,6 +19,15 @@ const testProvider: PluginFactory = () => {
         url: "http://service-a.test-project-b.local.app.garden:32000",
       }],
     },
+    "service-b": {
+      state: "ready",
+      endpoints: [{
+        protocol: "http",
+        hostname: "service-b.test-project-b.local.app.garden",
+        paths: ["/"],
+        url: "http://service-b.test-project-b.local.app.garden:32000",
+      }],
+    },
     "service-c": {
       state: "ready",
     },
@@ -73,6 +82,52 @@ describe("commands.call", () => {
 
   })
 
+  it("should default to the path '/' if that is exposed if no path is requested", async () => {
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const ctx = garden.pluginContext
+    const command = new CallCommand()
+
+    nock("http://service-a.test-project-b.local.app.garden:32000")
+      .get("/path-a")
+      .reply(200, "bla")
+
+    const { result } = await command.action(
+      ctx,
+      {
+        serviceAndPath: "service-a",
+      },
+    )
+
+    expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
+    expect(result.serviceName).to.equal("service-a")
+    expect(result.path).to.equal("/path-a")
+    expect(result.response.status).to.equal(200)
+    expect(result.response.data).to.equal("bla")
+  })
+
+  it("should otherwise use the first defined endpoint if no path is requested", async () => {
+    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const ctx = garden.pluginContext
+    const command = new CallCommand()
+
+    nock("http://service-b.test-project-b.local.app.garden:32000")
+      .get("/")
+      .reply(200, "bla")
+
+    const { result } = await command.action(
+      ctx,
+      {
+        serviceAndPath: "service-b",
+      },
+    )
+
+    expect(result.url).to.equal("http://service-b.test-project-b.local.app.garden:32000/")
+    expect(result.serviceName).to.equal("service-b")
+    expect(result.path).to.equal("/")
+    expect(result.response.status).to.equal(200)
+    expect(result.response.data).to.equal("bla")
+  })
+
   it("should error if service isn't running", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const ctx = garden.pluginContext
@@ -82,7 +137,7 @@ describe("commands.call", () => {
       await command.action(
         ctx,
         {
-          serviceAndPath: "service-b/path-b",
+          serviceAndPath: "service-d/path-d",
         },
       )
     } catch (err) {
