@@ -165,7 +165,13 @@ export async function execInService(
   }
 
   // exec in the pod via kubectl
-  const res = await kubectl(context, namespace).tty(["exec", "-it", pod.metadata.name, "--", ...command])
+  const kubecmd = ["exec", "-it", pod.metadata.name, "--", ...command]
+  const res = await kubectl(context, namespace).tty(kubecmd, {
+    ignoreError: true,
+    silent: false,
+    timeout: 999999,
+    tty: true,
+  })
 
   return { code: res.code, output: res.output }
 }
