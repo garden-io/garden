@@ -19,8 +19,9 @@ import {
 import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
-import { pick } from "lodash"
+import { pick, find } from "lodash"
 import { PluginContext } from "../plugin-context"
+import { ServiceEndpoint } from "../types/service"
 import dedent = require("dedent")
 
 export const callArgs = {
@@ -52,7 +53,6 @@ export class CallCommand extends Command<typeof callArgs> {
 
   async action(ctx: PluginContext, args: Args): Promise<CommandResult> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
-    path = "/" + path
 
     // TODO: better error when service doesn't exist
     const service = await ctx.getService(serviceName)
@@ -73,24 +73,41 @@ export class CallCommand extends Command<typeof callArgs> {
     }
 
     // find the correct endpoint to call
-    let matchedEndpoint
+    let matchedEndpoint: ServiceEndpoint | null = null
     let matchedPath
 
-    for (const endpoint of status.endpoints) {
-      // we can't easily support raw TCP or UDP in a command like this
-      if (endpoint.protocol !== "http" && endpoint.protocol !== "https") {
-        continue
+    // we can't easily support raw TCP or UDP in a command like this
+    const endpoints = status.endpoints.filter(e => e.protocol === "http" || e.protocol === "https")
+
+    if (!path) {
+      // if no path is specified and there's a root endpoint (path === "/") we use that
+      const rootEndpoint = <ServiceEndpoint>find(endpoints, e => e.paths && e.paths.includes("/"))
+
+      if (rootEndpoint) {
+        matchedEndpoint = rootEndpoint
+        matchedPath = "/"
+      } else {
+        // if there's no root endpoint, pick the first endpoint
+        matchedEndpoint = endpoints[0]
+        matchedPath = endpoints[0].paths ? endpoints[0].paths![0] : ""
       }
 
-      if (endpoint.paths) {
-        for (const endpointPath of endpoint.paths) {
-          if (path.startsWith(endpointPath) && (!matchedPath || endpointPath.length > matchedPath.length)) {
-            matchedPath = endpointPath
-            matchedEndpoint = endpoint
+      path = matchedPath
+
+    } else {
+      path = "/" + path
+
+      for (const endpoint of status.endpoints) {
+        if (endpoint.paths) {
+          for (const endpointPath of endpoint.paths) {
+            if (path.startsWith(endpointPath) && (!matchedPath || endpointPath.length > matchedPath.length)) {
+              matchedPath = endpointPath
+              matchedEndpoint = endpoint
+            }
           }
+        } else if (!matchedPath) {
+          matchedEndpoint = endpoint
         }
-      } else if (!matchedPath) {
-        matchedEndpoint = endpoint
       }
     }
 
@@ -102,7 +119,7 @@ export class CallCommand extends Command<typeof callArgs> {
       })
     }
 
-    const url = resolve(matchedEndpoint.url, path)
+    const url = resolve(matchedEndpoint.url, path || matchedPath)
     // TODO: support POST requests with request body
     const method = "get"
 
