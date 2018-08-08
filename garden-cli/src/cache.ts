@@ -159,6 +159,26 @@ export class TreeCache {
   }
 
   /**
+   * Delete a specific entry from the cache.
+   */
+  delete(key: CacheKey) {
+    const curriedKey = curry(key)
+    const entry = this.cache.get(curriedKey)
+
+    if (entry === undefined) {
+      return
+    }
+
+    this.cache.delete(curriedKey)
+
+    // clear the entry from its contexts
+    for (const context of Object.values(entry.contexts)) {
+      const node = this.getNode(context)
+      node && node.entries.delete(curriedKey)
+    }
+  }
+
+  /**
    * Invalidates all cache entries whose context equals `context`
    */
   invalidate(context: CacheContext) {
@@ -179,6 +199,9 @@ export class TreeCache {
 
     for (const part of context) {
       node = node.children[part]
+      if (!node) {
+        break
+      }
       this.clearNode(node, false)
     }
   }

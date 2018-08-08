@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
 import { EnvironmentStatusMap } from "../types/plugin/outputs"
 import {
   BooleanParameter,
   Command,
   CommandResult,
+  CommandParams,
   ParameterValues,
 } from "./base"
 import dedent = require("dedent")
@@ -51,7 +51,7 @@ export class InitEnvironmentCommand extends Command<any, InitEnvOpts> {
 
   options = initEnvOptions
 
-  async action(ctx: PluginContext, _args, opts: InitEnvOpts): Promise<CommandResult<EnvironmentStatusMap>> {
+  async action({ ctx, opts }: CommandParams<{}, InitEnvOpts>): Promise<CommandResult<EnvironmentStatusMap>> {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "gear", command: `Initializing ${name} environment` })
 

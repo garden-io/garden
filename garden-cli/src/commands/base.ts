@@ -14,6 +14,7 @@ import { PluginContext } from "../plugin-context"
 import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/types"
 import { ProcessResults } from "../process"
+import { Garden } from "../garden"
 
 export class ValidationError extends Error { }
 
@@ -174,6 +175,13 @@ export interface CommandResult<T = any> {
   errors?: GardenError[]
 }
 
+export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> {
+  ctx: PluginContext
+  args: T
+  opts: U
+  garden: Garden
+}
+
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
   abstract help: string
@@ -212,7 +220,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract async action(ctx: PluginContext, args: ParameterValues<T>, opts: ParameterValues<U>): Promise<CommandResult>
+  abstract async action(params: CommandParams<T, U>): Promise<CommandResult>
 }
 
 export async function handleTaskResults(

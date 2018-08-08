@@ -8,14 +8,12 @@
 
 import * as yaml from "js-yaml"
 import { NotFoundError } from "../exceptions"
-import {
-  ContextStatus,
-  PluginContext,
-} from "../plugin-context"
+import { ContextStatus } from "../plugin-context"
 import { highlightYaml } from "../util/util"
 import {
   Command,
   CommandResult,
+  CommandParams,
   ParameterValues,
   StringParameter,
 } from "./base"
@@ -59,7 +57,7 @@ export class GetConfigCommand extends Command<typeof getConfigArgs> {
 
   arguments = getConfigArgs
 
-  async action(ctx: PluginContext, args: GetArgs): Promise<CommandResult> {
+  async action({ ctx, args }: CommandParams<GetArgs>): Promise<CommandResult> {
     const key = args.key.split(".")
     const { value } = await ctx.getConfig({ key })
 
@@ -77,7 +75,7 @@ export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the status of your environment."
 
-  async action(ctx: PluginContext): Promise<CommandResult<ContextStatus>> {
+  async action({ ctx }: CommandParams): Promise<CommandResult<ContextStatus>> {
     const status = await ctx.getStatus()
     const yamlStatus = yaml.safeDump(status, { noRefs: true, skipInvalid: true })
 

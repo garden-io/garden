@@ -15,9 +15,13 @@ import {
   StringParameter,
   StringsParameter,
   CommandResult,
+  CommandParams,
 } from "./base"
 import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
+import { Module } from "../types/module"
+import { TestTask } from "../tasks/test"
+import * as Bluebird from "bluebird"
 
 export const testArgs = {
   module: new StringsParameter({
@@ -62,7 +66,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   arguments = testArgs
   options = testOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
+  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const modules = await ctx.getModules(args.module)
 
     ctx.log.header({
@@ -78,11 +82,34 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
 
     const results = await processModules({
       modules,
-      pluginContext: ctx,
+      garden,
+      ctx,
       watch: opts.watch,
-      process: async (module) => module.getTestTasks({ name, force, forceBuild }),
+      process: async (module) => getTestTasks({ ctx, module, name, force, forceBuild }),
     })
 
     return handleTaskResults(ctx, "test", results)
   }
+}
+
+export async function getTestTasks(
+  { ctx, module, name, force = false, forceBuild = false }:
+    { ctx: PluginContext, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
+) {
+  const tasks: Promise<TestTask>[] = []
+
+  for (const test of module.testConfigs) {
+    if (name && test.name !== name) {
+      continue
+    }
+    tasks.push(TestTask.factory({
+      force,
+      forceBuild,
+      testConfig: test,
+      ctx,
+      module,
+    }))
+  }
+
+  return Bluebird.all(tasks)
 }

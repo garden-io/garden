@@ -1,5 +1,4 @@
 import { expect } from "chai"
-import * as os from "os"
 import * as td from "testdouble"
 import { join, resolve } from "path"
 import { Garden } from "../../src/garden"
@@ -17,22 +16,28 @@ import {
   getDataDir,
   cleanProject,
   stubGitCli,
+  testModuleVersion,
 } from "../helpers"
 import { getNames } from "../../src/util/util"
 import { MOCK_CONFIG } from "../../src/cli/cli"
 import { LinkedSource } from "../../src/config-store"
+import { ModuleVersion } from "../../src/vcs/base"
 
 describe("Garden", () => {
+  beforeEach(async () => {
+    td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
+  })
+
   describe("factory", () => {
     it("should throw when initializing with missing plugins", async () => {
       await expectError(async () => await Garden.factory(projectRootA), "configuration")
     })
 
     it("should initialize and add the action handlers for a plugin", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      expect(ctx.actionHandlers.configureEnvironment["test-plugin"]).to.be.ok
-      expect(ctx.actionHandlers.configureEnvironment["test-plugin-b"]).to.be.ok
+      expect(garden.actionHandlers.configureEnvironment["test-plugin"]).to.be.ok
+      expect(garden.actionHandlers.configureEnvironment["test-plugin-b"]).to.be.ok
     })
 
     it("should initialize with MOCK_CONFIG", async () => {
@@ -54,10 +59,10 @@ describe("Garden", () => {
     })
 
     it("should parse and resolve the config from the project root", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      expect(ctx.projectName).to.equal("test-project-a")
-      expect(ctx.config).to.eql({
+      expect(garden.projectName).to.equal("test-project-a")
+      expect(garden.environmentConfig).to.eql({
         name: "local",
         providers: [
           { name: "test-plugin" },
@@ -75,12 +80,12 @@ describe("Garden", () => {
 
       const projectRoot = join(__dirname, "..", "data", "test-project-templated")
 
-      const ctx = await makeTestGarden(projectRoot)
+      const garden = await makeTestGarden(projectRoot)
 
       delete process.env.TEST_PROVIDER_TYPE
       delete process.env.TEST_VARIABLE
 
-      expect(ctx.config).to.eql({
+      expect(garden.environmentConfig).to.eql({
         name: "local",
         providers: [
           { name: "test-plugin" },
@@ -145,9 +150,9 @@ describe("Garden", () => {
 
   describe("getEnvironment", () => {
     it("should get the active environment for the context", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const { name, namespace } = ctx.getEnvironment()
+      const { name, namespace } = garden.getEnvironment()
       expect(name).to.equal("local")
       expect(namespace).to.equal("default")
     })
@@ -155,24 +160,24 @@ describe("Garden", () => {
 
   describe("getModules", () => {
     it("should scan and return all registered modules in the context", async () => {
-      const ctx = await makeTestGardenA()
-      const modules = await ctx.getModules()
+      const garden = await makeTestGardenA()
+      const modules = await garden.getModules()
 
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should optionally return specified modules in the context", async () => {
-      const ctx = await makeTestGardenA()
-      const modules = await ctx.getModules(["module-b", "module-c"])
+      const garden = await makeTestGardenA()
+      const modules = await garden.getModules(["module-b", "module-c"])
 
       expect(getNames(modules).sort()).to.eql(["module-b", "module-c"])
     })
 
     it("should throw if named module is missing", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
       try {
-        await ctx.getModules(["bla"])
+        await garden.getModules(["bla"])
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -184,24 +189,24 @@ describe("Garden", () => {
 
   describe("getServices", () => {
     it("should scan for modules and return all registered services in the context", async () => {
-      const ctx = await makeTestGardenA()
-      const services = await ctx.getServices()
+      const garden = await makeTestGardenA()
+      const services = await garden.getServices()
 
       expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
     })
 
     it("should optionally return specified services in the context", async () => {
-      const ctx = await makeTestGardenA()
-      const services = await ctx.getServices(["service-b", "service-c"])
+      const garden = await makeTestGardenA()
+      const services = await garden.getServices(["service-b", "service-c"])
 
       expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
     })
 
     it("should throw if named service is missing", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
       try {
-        await ctx.getServices(["bla"])
+        await garden.getServices(["bla"])
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -250,7 +255,7 @@ describe("Garden", () => {
 
     it("should scan and add modules for projects with external project sources", async () => {
       const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"))
-      stubExtSources(garden.pluginContext)
+      stubExtSources(garden)
       await garden.scanModules()
 
       const modules = await garden.getModules(undefined, true)
@@ -298,21 +303,20 @@ describe("Garden", () => {
     it("should add the given module and its services to the context", async () => {
       const garden = await makeTestGardenA()
 
-      const testModule = makeTestModule(garden.pluginContext)
+      const testModule = makeTestModule()
       await garden.addModule(testModule)
 
       const modules = await garden.getModules(undefined, true)
       expect(getNames(modules)).to.eql(["test"])
 
       const services = await garden.getServices(undefined, true)
-      expect(getNames(services)).to.eql(["testService"])
+      expect(getNames(services)).to.eql(["test-service"])
     })
 
     it("should throw when adding module twice without force parameter", async () => {
       const garden = await makeTestGardenA()
-      const ctx = garden.pluginContext
 
-      const testModule = makeTestModule(ctx)
+      const testModule = makeTestModule()
       await garden.addModule(testModule)
 
       try {
@@ -327,10 +331,11 @@ describe("Garden", () => {
 
     it("should allow adding module multiple times with force parameter", async () => {
       const garden = await makeTestGardenA()
-      const ctx = garden.pluginContext
 
-      const testModule = makeTestModule(ctx)
+      let testModule = makeTestModule()
       await garden.addModule(testModule)
+
+      testModule = makeTestModule()
       await garden.addModule(testModule, true)
 
       const modules = await garden.getModules(undefined, true)
@@ -339,10 +344,9 @@ describe("Garden", () => {
 
     it("should throw if a service is added twice without force parameter", async () => {
       const garden = await makeTestGardenA()
-      const ctx = garden.pluginContext
 
-      const testModule = makeTestModule(ctx)
-      const testModuleB = makeTestModule(ctx, { name: "test-b" })
+      const testModule = makeTestModule()
+      const testModuleB = makeTestModule({ name: "test-b" })
       await garden.addModule(testModule)
 
       try {
@@ -357,24 +361,18 @@ describe("Garden", () => {
 
     it("should allow adding service multiple times with force parameter", async () => {
       const garden = await makeTestGardenA()
-      const ctx = garden.pluginContext
 
-      const testModule = makeTestModule(ctx)
-      const testModuleB = makeTestModule(ctx, { name: "test-b" })
+      const testModule = makeTestModule()
+      const testModuleB = makeTestModule({ name: "test-b" })
       await garden.addModule(testModule)
       await garden.addModule(testModuleB, true)
 
-      const services = await ctx.getServices(undefined, true)
-      expect(getNames(services)).to.eql(["testService"])
+      const services = await garden.getServices(undefined, true)
+      expect(getNames(services)).to.eql(["test-service"])
     })
   })
 
   describe("resolveModule", () => {
-
-    afterEach(() => {
-      td.reset()
-    })
-
     it("should return named module", async () => {
       const garden = await makeTestGardenA()
       await garden.scanModules()
@@ -419,65 +417,13 @@ describe("Garden", () => {
       const module = await garden.resolveModule("./module-a")
       expect(module!.path).to.equal(join(projectRoot, ".garden", "sources", "module", "module-a"))
     })
-
-  })
-
-  describe("getTemplateContext", () => {
-    it("should return the basic project context without parameters", async () => {
-      const ctx = await makeTestGardenA()
-
-      const result = await ctx.getTemplateContext()
-
-      expect(Object.keys(result).length).to.equal(4)
-      expect(result.config).to.be.a("function")
-      expect(result.variables).to.eql({ some: "variable" })
-      expect(result.local).to.eql({ env: process.env, platform: os.platform() })
-      expect(result.environment).to.eql({
-        name: "local",
-        config: {
-          name: "local",
-          providers: [
-            { name: "test-plugin" },
-            { name: "test-plugin-b" },
-          ],
-          variables: {
-            some: "variable",
-          },
-        },
-      })
-    })
-
-    it("should extend the basic project context if specified", async () => {
-      const ctx = await makeTestGardenA()
-
-      const result = await ctx.getTemplateContext({ my: "things" })
-
-      expect(Object.keys(result).length).to.equal(5)
-      expect(result.config).to.be.a("function")
-      expect(result.variables).to.eql({ some: "variable" })
-      expect(result.local).to.eql({ env: process.env, platform: os.platform() })
-      expect(result.environment).to.eql({
-        name: "local",
-        config: {
-          name: "local",
-          providers: [
-            { name: "test-plugin" },
-            { name: "test-plugin-b" },
-          ],
-          variables: {
-            some: "variable",
-          },
-        },
-      })
-      expect(result.my).to.eql("things")
-    })
   })
 
   describe("getActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const handlers = ctx.getActionHandlers("configureEnvironment")
+      const handlers = garden.getActionHandlers("configureEnvironment")
 
       expect(Object.keys(handlers)).to.eql([
         "test-plugin",
@@ -488,9 +434,9 @@ describe("Garden", () => {
 
   describe("getModuleActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const handlers = ctx.getModuleActionHandlers("buildModule", "generic")
+      const handlers = garden.getModuleActionHandlers("buildModule", "generic")
 
       expect(Object.keys(handlers)).to.eql([
         "generic",
@@ -500,42 +446,116 @@ describe("Garden", () => {
 
   describe("getActionHandler", () => {
     it("should return last configured handler for specified action type", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const handler = ctx.getActionHandler("configureEnvironment")
+      const handler = garden.getActionHandler("configureEnvironment")
 
       expect(handler["actionType"]).to.equal("configureEnvironment")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
     })
 
     it("should optionally filter to only handlers for the specified module type", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const handler = ctx.getActionHandler("configureEnvironment")
+      const handler = garden.getActionHandler("configureEnvironment")
 
       expect(handler["actionType"]).to.equal("configureEnvironment")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
     })
 
     it("should throw if no handler is available", async () => {
-      const ctx = await makeTestGardenA()
-      await expectError(() => ctx.getActionHandler("destroyEnvironment"), "parameter")
+      const garden = await makeTestGardenA()
+      await expectError(() => garden.getActionHandler("destroyEnvironment"), "parameter")
     })
   })
 
   describe("getModuleActionHandler", () => {
     it("should return last configured handler for specified module action type", async () => {
-      const ctx = await makeTestGardenA()
+      const garden = await makeTestGardenA()
 
-      const handler = ctx.getModuleActionHandler("deployService", "test")
+      const handler = garden.getModuleActionHandler("deployService", "test")
 
       expect(handler["actionType"]).to.equal("deployService")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
     })
 
     it("should throw if no handler is available", async () => {
-      const ctx = await makeTestGardenA()
-      await expectError(() => ctx.getModuleActionHandler("execInService", "container"), "parameter")
+      const garden = await makeTestGardenA()
+      await expectError(() => garden.getModuleActionHandler("execInService", "container"), "parameter")
+    })
+  })
+
+  describe("resolveModuleDependencies", () => {
+    it("should resolve build dependencies", async () => {
+      const garden = await makeTestGardenA()
+      const modules = await garden.resolveModuleDependencies([{ name: "module-c", copy: [] }], [])
+      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
+    })
+
+    it("should resolve service dependencies", async () => {
+      const garden = await makeTestGardenA()
+      const modules = await garden.resolveModuleDependencies([], ["service-b"])
+      expect(getNames(modules)).to.eql(["module-a", "module-b"])
+    })
+
+    it("should combine module and service dependencies", async () => {
+      const garden = await makeTestGardenA()
+      const modules = await garden.resolveModuleDependencies([{ name: "module-b", copy: [] }], ["service-c"])
+      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
+    })
+  })
+
+  describe("resolveVersion", () => {
+    beforeEach(() => td.reset())
+
+    it("should return result from cache if available", async () => {
+      const garden = await makeTestGardenA()
+      const module = await garden.getModule("module-a")
+      const version: ModuleVersion = {
+        versionString: "banana",
+        dirtyTimestamp: 987654321,
+        dependencyVersions: {},
+      }
+      garden.cache.set(["moduleVersions", module.name], version, module.cacheContext)
+
+      const result = await garden.resolveVersion("module-a", [])
+
+      expect(result).to.eql(version)
+    })
+
+    it("should otherwise return version from VCS handler", async () => {
+      const garden = await makeTestGardenA()
+      await garden.scanModules()
+
+      garden.cache.delete(["moduleVersions", "module-b"])
+
+      const resolveStub = td.replace(garden.vcs, "resolveVersion")
+      const version: ModuleVersion = {
+        versionString: "banana",
+        dirtyTimestamp: 987654321,
+        dependencyVersions: {},
+      }
+
+      td.when(resolveStub(), { ignoreExtraArgs: true }).thenResolve(version)
+
+      const result = await garden.resolveVersion("module-b", [])
+
+      expect(result).to.eql(version)
+    })
+
+    it("should ignore cache if force=true", async () => {
+      const garden = await makeTestGardenA()
+      const module = await garden.getModule("module-a")
+      const version: ModuleVersion = {
+        versionString: "banana",
+        dirtyTimestamp: 987654321,
+        dependencyVersions: {},
+      }
+      garden.cache.set(["moduleVersions", module.name], version, module.cacheContext)
+
+      const result = await garden.resolveVersion("module-a", [], true)
+
+      expect(result).to.not.eql(version)
     })
   })
 

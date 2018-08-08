@@ -19,8 +19,8 @@ export function dependantModuleNames(ard: AutoReloadDependants): { [key: string]
 describe("watch", () => {
   describe("autoReloadModules", () => {
     it("should include build and service dependencies of requested modules", async () => {
-      const ctx = (await makeTestGarden(projectRoot)).pluginContext
-      const moduleNames = (await autoReloadModules(await ctx.getModules(["module-e", "module-d"])))
+      const ctx = (await makeTestGarden(projectRoot)).getPluginContext()
+      const moduleNames = (await autoReloadModules(ctx, await ctx.getModules(["module-e", "module-d"])))
         .map(m => m.name).sort()
 
       expect(moduleNames.sort()).to.eql(["module-a", "module-b", "module-c", "module-d", "module-e"])
@@ -29,7 +29,7 @@ describe("watch", () => {
 
   describe("computeAutoReloadDependants", () => {
     it("should include build and service dependants of requested modules", async () => {
-      const ctx = (await makeTestGarden(projectRoot)).pluginContext
+      const ctx = (await makeTestGarden(projectRoot)).getPluginContext()
       const dependants = dependantModuleNames(
         await computeAutoReloadDependants(ctx))
 

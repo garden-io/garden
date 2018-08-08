@@ -10,7 +10,7 @@ import { watch } from "chokidar"
 import {
   mapValues,
   set,
-  uniqBy,
+  uniq,
   values,
 } from "lodash"
 import { basename, parse, relative } from "path"
@@ -29,12 +29,12 @@ export type ChangeHandler = (module: Module | null, configChanged: boolean) => P
   Resolves to modules and their build & service dependency modules (recursively).
   Each module is represented at most once in the output.
 */
-export async function autoReloadModules(modules: Module[]): Promise<Module[]> {
+export async function autoReloadModules(ctx: PluginContext, modules: Module[]): Promise<Module[]> {
   const moduleSet = new KeyedSet<Module>(m => m.name)
 
   const scanner = async (module: Module) => {
     moduleSet.add(module)
-    for (const dep of await uniqueDependencyModules(module)) {
+    for (const dep of await uniqueDependencyModules(ctx, module)) {
       if (!moduleSet.has(dep)) {
         await scanner(dep)
       }
@@ -76,7 +76,7 @@ export async function computeAutoReloadDependants(ctx: PluginContext):
   const dependants = {}
 
   for (const module of await ctx.getModules()) {
-    const depModules: Module[] = await uniqueDependencyModules(module)
+    const depModules: Module[] = await uniqueDependencyModules(ctx, module)
     for (const dep of depModules) {
       set(dependants, [dep.name, module.name], module)
     }
@@ -85,10 +85,10 @@ export async function computeAutoReloadDependants(ctx: PluginContext):
   return mapValues(dependants, values)
 }
 
-async function uniqueDependencyModules(module: Module): Promise<Module[]> {
-  const buildDepModules = await module.getBuildDependencies()
-  const serviceDepModules = (await module.getServiceDependencies()).map(s => s.module)
-  return uniqBy(buildDepModules.concat(serviceDepModules), m => m.name)
+async function uniqueDependencyModules(ctx: PluginContext, module: Module): Promise<Module[]> {
+  const buildDeps = module.build.dependencies.map(d => d.name)
+  const serviceDeps = (await ctx.getServices(module.serviceDependencyNames)).map(s => s.module.name)
+  return ctx.getModules(uniq(buildDeps.concat(serviceDeps)))
 }
 
 export class FSWatcher {

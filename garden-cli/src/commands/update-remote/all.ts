@@ -8,14 +8,14 @@
 
 import dedent = require("dedent")
 
-import { PluginContext } from "../../plugin-context"
 import {
   Command,
   CommandResult,
+  CommandParams,
 } from "../base"
 import { UpdateRemoteSourcesCommand } from "./sources"
 import { UpdateRemoteModulesCommand } from "./modules"
-import { SourceConfig } from "../../types/project"
+import { SourceConfig } from "../../config/project"
 
 export interface UpdateRemoteAllResult {
   projectSources: SourceConfig[],
@@ -32,15 +32,15 @@ export class UpdateRemoteAllCommand extends Command {
         garden update-remote all # update all remote sources and modules in the project
   `
 
-  async action(ctx: PluginContext): Promise<CommandResult<UpdateRemoteAllResult>> {
+  async action({ garden, ctx }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
 
     ctx.log.header({ emoji: "hammer_and_wrench", command: "update-remote all" })
 
     const sourcesCmd = new UpdateRemoteSourcesCommand()
     const modulesCmd = new UpdateRemoteModulesCommand()
 
-    const { result: projectSources } = await sourcesCmd.action(ctx, { source: undefined })
-    const { result: moduleSources } = await modulesCmd.action(ctx, { module: undefined })
+    const { result: projectSources } = await sourcesCmd.action({ garden, ctx, args: { source: undefined }, opts: {} })
+    const { result: moduleSources } = await modulesCmd.action({ garden, ctx, args: { module: undefined }, opts: {} })
 
     return { result: { projectSources: projectSources!, moduleSources: moduleSources! } }
   }

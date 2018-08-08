@@ -21,8 +21,8 @@ import {
 } from "lodash"
 import { containerModuleSpecSchema } from "../plugins/container"
 import { genericModuleSpecSchema } from "../plugins/generic"
-import { configSchema } from "../types/config"
-import { baseModuleSpecSchema } from "../types/module"
+import { configSchema } from "../config/base"
+import { baseModuleSpecSchema } from "../config/module"
 
 const maxWidth = 100
 const builtInModuleTypes = [
@@ -30,34 +30,47 @@ const builtInModuleTypes = [
   { name: "container", schema: containerModuleSpecSchema },
 ]
 
-function renderCommentDescription(description: Joi.Description, width: number) {
+interface RenderOpts {
+  level?: number
+  required?: boolean
+}
+
+function renderCommentDescription(description: Joi.Description, width: number, { required }: RenderOpts) {
   const output: string[] = []
+  const meta: string[] = []
 
   if (description.description) {
-    output.push(description.description, "")
+    output.push(description.description)
   }
-
-  const presenceRequired = get(description, "flags.presence") === "required"
-  const allowOnly = get(description, "flags.allowOnly") === true
 
   if (description.examples && description.examples.length) {
     const example = description.examples[0]
 
     if (description.type === "object" || description.type === "array") {
-      output.push("Example:", ...indent(safeDump(example).trim().split("\n"), 1), "")
+      meta.push("Example:", ...indent(safeDump(example).trim().split("\n"), 1), "")
     } else {
-      output.push("Example: " + JSON.stringify(example), "")
+      meta.push("Example: " + JSON.stringify(example), "")
     }
   }
 
-  if (presenceRequired || allowOnly) {
-    output.push("Required.")
-  } else if (output.length) {
-    output.push("Optional.")
+  const allowOnly = get(description, "flags.allowOnly") === true
+
+  if (required) {
+    const presenceRequired = get(description, "flags.presence") === "required"
+
+    if (presenceRequired || allowOnly) {
+      meta.push("Required.")
+    } else if (output.length) {
+      meta.push("Optional.")
+    }
   }
 
   if (allowOnly) {
-    output.push("Allowed values: " + description.valids!.map(v => JSON.stringify(v)).join(", "))
+    meta.push("Allowed values: " + description.valids!.map(v => JSON.stringify(v)).join(", "))
+  }
+
+  if (meta.length > 0) {
+    output.push("", ...meta)
   }
 
   if (output.length === 0) {
@@ -89,18 +102,19 @@ function indentFromSecondLine(lines: string[], level: number) {
   return [...lines.slice(0, 1), ...indent(lines.slice(1), level)]
 }
 
-function renderDescription(description: Joi.Description, level = 0) {
+export function renderSchemaDescription(description: Joi.Description, opts: RenderOpts) {
+  const { level = 0 } = opts
   const indentSpaces = level * 2
   const descriptionWidth = maxWidth - indentSpaces - 2
 
   const output: string[] = []
+  const defaultValue = getDefaultValue(description)
 
   switch (description.type) {
     case "object":
       const children = Object.entries(description.children || {})
 
       if (!children.length) {
-        const defaultValue = getDefaultValue(description)
         if (defaultValue) {
           output.push("", ...safeDump(defaultValue).trim().split("\n"))
         } else {
@@ -117,8 +131,8 @@ function renderDescription(description: Joi.Description, level = 0) {
         }
 
         output.push(
-          ...renderCommentDescription(keyDescription, descriptionWidth),
-          `${key}: ${renderDescription(keyDescription, level + 1)}`,
+          ...renderCommentDescription(keyDescription, descriptionWidth, opts),
+          `${key}: ${renderSchemaDescription(keyDescription, { ...opts, level: level + 1 })}`,
           "",
         )
       }
@@ -136,33 +150,35 @@ function renderDescription(description: Joi.Description, level = 0) {
 
       output.push(
         "",
-        ...renderCommentDescription(itemDescription, descriptionWidth),
-        "- " + renderDescription(itemDescription, level + 1).trim(),
+        ...renderCommentDescription(itemDescription, descriptionWidth, opts),
+        "- " + renderSchemaDescription(itemDescription, { ...opts, level: level + 1 }).trim(),
         "",
       )
 
       break
 
     default:
-      output.push(getDefaultValue(description))
+      output.push(defaultValue === undefined ? "" : defaultValue + "")
   }
 
   // we don't indent the first line
-  return indentFromSecondLine(output, level).join("\n")
+  return indentFromSecondLine(output, level)
+    .map(line => line.trimRight())
+    .join("\n")
 }
 
 export function generateConfigReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "config.md")
 
-  const yaml = renderDescription(configSchema.describe())
+  const yaml = renderSchemaDescription(configSchema.describe(), { required: true })
   const moduleTypes = builtInModuleTypes.map(({ name, schema }) => {
     schema = Joi.object().keys({
       module: baseModuleSpecSchema.concat(schema),
     })
     return {
       name,
-      yaml: renderDescription(schema.describe()),
+      yaml: renderSchemaDescription(schema.describe(), { required: true }),
     }
   })
 

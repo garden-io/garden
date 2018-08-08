@@ -17,8 +17,8 @@ import * as Cryo from "cryo"
 import { spawn as _spawn } from "child_process"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { join, basename, win32, posix } from "path"
-import { find } from "lodash"
-import { TimeoutError } from "../exceptions"
+import { find, pick, difference, fromPairs } from "lodash"
+import { TimeoutError, ParameterError } from "../exceptions"
 import { PassThrough } from "stream"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
@@ -223,7 +223,6 @@ export function spawnPty(
     bufferOutput = true, data, ignoreError = false,
   }: SpawnPtyParams = {},
 ): Bluebird<any> {
-
   let _process = <any>process
 
   let proc: any = pty.spawn(cmd, args, {
@@ -345,6 +344,28 @@ export async function deepResolve<T>(
   }
 }
 
+/**
+ * Recursively maps over all keys in the input and resolves the resulting promises,
+ * walking through all object keys and array items.
+ */
+export async function asyncDeepMap<T>(
+  obj: T, mapper: (value) => Promise<any>, options?: Bluebird.ConcurrencyOption,
+): Promise<T> {
+  if (isArray(obj)) {
+    return <any>Bluebird.map(obj, v => asyncDeepMap(v, mapper, options), options)
+  } else if (isPlainObject(obj)) {
+    return <T>fromPairs(
+      await Bluebird.map(
+        Object.entries(obj),
+        async ([key, value]) => [key, await asyncDeepMap(value, mapper, options)],
+        options,
+      ),
+    )
+  } else {
+    return mapper(obj)
+  }
+}
+
 export function omitUndefined(o: object) {
   return pickBy(o, (v: any) => v !== undefined)
 }
@@ -393,7 +414,7 @@ export function getNames<T extends ObjectWithName>(array: T[]) {
   return array.map(v => v.name)
 }
 
-export function findByName<T extends ObjectWithName>(array: T[], name: string): T | undefined {
+export function findByName<T>(array: T[], name: string): T | undefined {
   return find(array, ["name", name])
 }
 
@@ -408,4 +429,30 @@ export function toCygwinPath(path: string) {
 
   // make sure trailing slash is retained
   return path.endsWith(win32.sep) ? cygpath + posix.sep : cygpath
+}
+
+/**
+ * Converts a string identifier to the appropriate casing and style for use in environment variable names.
+ * (e.g. "my-service" -> "MY_SERVICE")
+ */
+export function getEnvVarName(identifier: string) {
+  return identifier.replace("-", "_").toUpperCase()
+}
+
+/**
+ * Picks the specified keys from the given object, and throws an error if one or more keys are not found.
+ */
+export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[], description = "key"): Pick<T, U> {
+  const picked = pick(obj, ...keys)
+
+  const missing = difference(<string[]>keys, Object.keys(picked))
+
+  if (missing.length) {
+    throw new ParameterError(`Could not find ${description}(s): ${missing.map((k, _) => k).join(", ")}`, {
+      missing,
+      available: Object.keys(obj),
+    })
+  }
+
+  return picked
 }

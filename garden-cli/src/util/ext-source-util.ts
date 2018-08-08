@@ -29,7 +29,7 @@ export function getRemoteSourcesDirName(type: ExternalSourceType): string {
 }
 
 export function hasRemoteSource(module: Module): boolean {
-  return !!module.config.repositoryUrl
+  return !!module.repositoryUrl
 }
 export function getConfigKey(type: ExternalSourceType): string {
   return type === "project" ? localConfigKeys.linkedProjectSources : localConfigKeys.linkedModuleSources
@@ -38,12 +38,10 @@ export function getConfigKey(type: ExternalSourceType): string {
 /**
  * Check if any module is linked, including those within an external project source.
  * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
- * TODO @edvald: Fix Garden module check once plugin refactor is done.
  */
 export function isModuleLinked(module: Module, ctx: PluginContext) {
-  // FIXME @edvald
-  const isGardenModule = module.name.includes("--")
-  return !pathIsInside(module.path, ctx.projectRoot) && !isGardenModule
+  const isPluginModule = !!module.plugin
+  return !pathIsInside(module.path, ctx.projectRoot) && !isPluginModule
 }
 
 export async function getLinkedSources(

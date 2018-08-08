@@ -45,7 +45,7 @@ export async function getContainerServiceStatus(
   { ctx, provider, module, service, runtimeContext }: GetServiceStatusParams<ContainerModule>,
 ): Promise<ServiceStatus> {
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-  const version = await module.getVersion()
+  const version = await module.version
   const objects = await createContainerObjects(ctx, provider, service, runtimeContext)
   const matched = await compareDeployedObjects(ctx, provider, objects)
   const hostname = getServiceHostname(ctx, provider, service)
@@ -88,7 +88,7 @@ export async function deployContainerService(params: DeployServiceParams<Contain
 export async function createContainerObjects(
   ctx: PluginContext, provider: KubernetesProvider, service: ContainerService, runtimeContext: RuntimeContext,
 ) {
-  const version = await service.module.getVersion()
+  const version = await service.module.version
   const namespace = await getAppNamespace(ctx, provider)
   const deployment = await createDeployment(service, runtimeContext, namespace)
   const kubeservices = await createServices(service, namespace)

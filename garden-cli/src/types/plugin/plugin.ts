@@ -14,12 +14,10 @@ import {
   joiIdentifier,
   joiIdentifierMap,
   PrimitiveMap,
-} from "../common"
+} from "../../config/common"
 import { Module } from "../module"
-import {
-  serviceOutputsSchema,
-  serviceStatusSchema,
-} from "../service"
+import { serviceStatusSchema } from "../service"
+import { serviceOutputsSchema } from "../../config/service"
 import {
   buildModuleResultSchema,
   buildStatusSchema,

@@ -18,7 +18,7 @@ import {
 } from "./config-templates"
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { validate } from "../../types/common"
+import { validate } from "../../config/common"
 import { EntryStyle } from "../../logger/types"
 import { LogNode } from "../../logger/logger"
 import { dumpYaml } from "../../util/util"

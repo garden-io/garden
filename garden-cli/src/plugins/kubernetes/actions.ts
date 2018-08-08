@@ -33,7 +33,7 @@ import { ModuleVersion } from "../../vcs/base"
 import { ContainerModule, helpers } from "../container"
 import { uniq } from "lodash"
 import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
-import { joiIdentifier } from "../../types/common"
+import { joiIdentifier } from "../../config/common"
 import { coreApi } from "./api"
 import {
   getAppNamespace,
@@ -186,7 +186,7 @@ export async function runModule(
 
   const commandStr = command.join(" ")
   const image = await helpers.getLocalImageId(module)
-  const version = await module.getVersion()
+  const version = await module.version
 
   const opts = [
     `--image=${image}`,

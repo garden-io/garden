@@ -1,16 +1,20 @@
 import { BuildCommand } from "../../../src/commands/build"
 import { expect } from "chai"
-import {
-  makeTestContextA,
-  taskResultOutputs,
-} from "../../helpers"
+import { makeTestGardenA } from "../../helpers"
+import { taskResultOutputs } from "../../helpers"
 
 describe("commands.build", () => {
   it("should build all modules in a project", async () => {
-    const ctx = await makeTestContextA()
+    const garden = await makeTestGardenA()
+    const ctx = garden.getPluginContext()
     const command = new BuildCommand()
 
-    const { result } = await command.action(ctx, { module: undefined }, { watch: false, force: true })
+    const { result } = await command.action({
+      garden,
+      ctx,
+      args: { module: undefined },
+      opts: { watch: false, force: true },
+    })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
@@ -20,10 +24,16 @@ describe("commands.build", () => {
   })
 
   it("should optionally build single module and its dependencies", async () => {
-    const ctx = await makeTestContextA()
+    const garden = await makeTestGardenA()
+    const ctx = garden.getPluginContext()
     const command = new BuildCommand()
 
-    const { result } = await command.action(ctx, { module: ["module-b"] }, { watch: false, force: true })
+    const { result } = await command.action({
+      garden,
+      ctx,
+      args: { module: ["module-b"] },
+      opts: { watch: false, force: true },
+    })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },

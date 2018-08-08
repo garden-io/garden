@@ -17,6 +17,7 @@ import {
 } from "../../plugin-context"
 import {
   Command,
+  CommandParams,
   CommandResult,
   StringParameter,
   ParameterValues,
@@ -36,8 +37,8 @@ import {
   moduleSchema,
 } from "../create/config-templates"
 import { getChildDirNames } from "../../util/util"
-import { validate, joiIdentifier } from "../../types/common"
-import { projectSchema } from "../../types/project"
+import { validate, joiIdentifier } from "../../config/common"
+import { projectSchema } from "../../config/project"
 
 export const createProjectOptions = {
   "module-dirs": new PathsParameter({
@@ -90,7 +91,7 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
   arguments = createProjectArguments
   options = createProjectOptions
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CreateProjectResult> {
+  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CreateProjectResult> {
     let moduleConfigs: ModuleConfigOpts[] = []
     let errors: GardenBaseError[] = []
 

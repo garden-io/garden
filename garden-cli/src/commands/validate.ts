@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
 import {
   Command,
+  CommandParams,
   CommandResult,
 } from "./base"
 import dedent = require("dedent")
@@ -21,7 +21,7 @@ export class ValidateCommand extends Command {
     Throws an error and exits with code 1 if something's not right in your garden.yml files.
   `
 
-  async action(ctx: PluginContext): Promise<CommandResult> {
+  async action({ ctx }: CommandParams): Promise<CommandResult> {
 
     ctx.log.header({ emoji: "heavy_check_mark", command: "validate" })
 

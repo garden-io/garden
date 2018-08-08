@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { loadConfig } from "../../../src/types/config"
+import { loadConfig } from "../../../src/config/base"
 import { resolve } from "path"
 import { dataDir } from "../../helpers"
 
@@ -58,6 +58,9 @@ describe("loadConfig", async () => {
           command: ["echo", "OK"],
         }],
       },
+
+      serviceConfigs: [],
+      testConfigs: [],
     })
   })
 

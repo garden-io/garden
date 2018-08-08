@@ -3,11 +3,11 @@ module:
   type: test
   services:
     - name: service-b
-      command: [echo, "${dependencies.service-a.version}"]
+      command: [echo, "${modules.module-a.version}"]
       dependencies:
         - service-a
   build:
     command: [echo, "${variables.service-a-build-command}"]
   tests:
     - name: unit
-      command: [echo, "${config.project.my.variable}"]
+      command: [echo, OK]

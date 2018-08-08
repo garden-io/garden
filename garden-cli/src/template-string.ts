@@ -9,17 +9,12 @@
 import { readFile } from "fs-extra"
 import { resolve } from "path"
 import Bluebird = require("bluebird")
-import { isPrimitive, Primitive } from "./types/common"
-import { deepResolve } from "./util/util"
+import { deepResolve, asyncDeepMap } from "./util/util"
 import * as deepMap from "deep-map"
 import { GardenBaseError } from "./exceptions"
+import { ConfigContext } from "./config/config-context"
 
 export type StringOrStringPromise = Promise<string> | string
-export type KeyResolver = (keyParts: string[]) => Promise<string | undefined> | string | undefined
-
-export interface TemplateStringContext {
-  [type: string]: Primitive | KeyResolver | TemplateStringContext | undefined
-}
 
 class TemplateStringError extends GardenBaseError {
   type = "template-string"
@@ -43,30 +38,22 @@ async function getParser() {
   return _parser
 }
 
-export interface TemplateOpts {
-  ignoreMissingKeys?: boolean
-}
-
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
  * arbitrary JS code.
  *
- * The context should be a map whose values are either primitives (string, number or boolean), resolver functions
- * or a nested context maps.
- *
- * Resolver functions should accept a key path as an array of strings and return a string or string Promise.
+ * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
+ * dependencies when resolving context variables.
  */
-export async function resolveTemplateString(
-  string: string, context: TemplateStringContext, { ignoreMissingKeys = false }: TemplateOpts = {},
-) {
+export async function resolveTemplateString(string: string, context: ConfigContext, stack?: string[]) {
   const parser = await getParser()
   const parsed = parser.parse(string, {
-    getKey: genericResolver(context, ignoreMissingKeys),
+    getKey: async (key: string[]) => context.resolve({ key, nodePath: [], stack }),
     // need this to allow nested template strings
     resolve: async (parts: StringOrStringPromise[]) => {
       const s = (await Bluebird.all(parts)).join("")
-      return resolveTemplateString(`\$\{${s}\}`, context, { ignoreMissingKeys })
+      return resolveTemplateString(`\$\{${s}\}`, context, stack)
     },
     TemplateStringError,
   })
@@ -75,65 +62,14 @@ export async function resolveTemplateString(
   return resolved.join("")
 }
 
-export function genericResolver(context: TemplateStringContext, ignoreMissingKeys = false): KeyResolver {
-  function pathOrError(path) {
-    if (ignoreMissingKeys) {
-      // return the format string unchanged if option is set
-      return `\$\{${path}\}`
-    } else {
-      throw new TemplateStringError(`Could not find key: ${path}`, { path, context })
-    }
-  }
-
-  return (parts: string[]) => {
-    const path = parts.join(".")
-    let value
-
-    for (let p = 0; p < parts.length; p++) {
-      const part = parts[p]
-      value = value ? value[part] : context[part]
-
-      switch (typeof value) {
-        case "function":
-          // pass the rest of the key parts to the resolver function
-          const resolvedValue = value(parts.slice(p + 1))
-          return resolvedValue === undefined ? pathOrError(path) : resolvedValue
-
-        case "undefined":
-          return pathOrError(path)
-      }
-    }
-
-    if (!isPrimitive(value)) {
-      throw new TemplateStringError(`Value at ${path} exists but is not a primitive (string, number or boolean)`, {
-        value,
-        path,
-        context,
-      })
-    }
-
-    return value
-  }
-}
-
 /**
  * Recursively parses and resolves all templated strings in the given object.
  */
-export async function resolveTemplateStrings<T extends object>(
-  obj: T, context: TemplateStringContext, opts?: TemplateOpts,
-): Promise<T> {
-  const mapped = deepMap(obj, (v) => typeof v === "string" ? resolveTemplateString(v, context, opts) : v)
-  return <T>deepResolve(mapped)
-}
-
-export async function getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
-  const baseContext: TemplateStringContext = {
-    // TODO: add user configuration here
-    local: {
-      env: process.env,
-      platform: process.platform,
-    },
-  }
-
-  return { ...baseContext, ...extraContext }
+export async function resolveTemplateStrings<T extends object>(obj: T, context: ConfigContext): Promise<T> {
+  return asyncDeepMap(
+    obj,
+    (v) => typeof v === "string" ? resolveTemplateString(v, context) : v,
+    // need to iterate sequentially to catch potential circular dependencies
+    { concurrency: 1 },
+  )
 }

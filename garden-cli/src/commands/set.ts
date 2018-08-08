@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
 import { SetConfigResult } from "../types/plugin/outputs"
 import {
   Command,
   CommandResult,
+  CommandParams,
   ParameterValues,
   StringParameter,
 } from "./base"
@@ -60,7 +60,7 @@ export class SetConfigCommand extends Command<typeof setConnfigArgs> {
 
   arguments = setConnfigArgs
 
-  async action(ctx: PluginContext, args: SetArgs): Promise<CommandResult<SetConfigResult>> {
+  async action({ ctx, args }: CommandParams<SetArgs>): Promise<CommandResult<SetConfigResult>> {
     const key = args.key.split(".")
     const result = await ctx.setConfig({ key, value: args.value })
     ctx.log.info(`Set config key ${args.key}`)

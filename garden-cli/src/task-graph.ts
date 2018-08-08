@@ -9,7 +9,7 @@
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { merge, pick } from "lodash"
-import { Task, TaskDefinitionError } from "./types/task"
+import { Task, TaskDefinitionError } from "./tasks/base"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
 import { LogEntry } from "./logger/logger"

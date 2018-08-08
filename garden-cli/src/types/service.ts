@@ -6,24 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird = require("bluebird")
 import * as Joi from "joi"
-import { ConfigurationError } from "../exceptions"
 import { PluginContext } from "../plugin-context"
-import {
-  resolveTemplateStrings,
-  TemplateOpts,
-  TemplateStringContext,
-} from "../template-string"
-import { findByName } from "../util/util"
-import {
-  joiArray,
-  joiIdentifier,
-  joiIdentifierMap,
-  joiPrimitive,
-  PrimitiveMap,
-} from "./common"
-import { Module } from "./module"
+import { getEnvVarName, getNames } from "../util/util"
+import { PrimitiveMap } from "../config/common"
+import { Module, getModuleKey } from "./module"
+import { serviceOutputsSchema, ServiceConfig } from "../config/service"
+import { validate } from "../config/common"
+
+export interface Service<M extends Module = Module> {
+  name: string
+  module: M
+  config: M["serviceConfigs"][0]
+  spec: M["serviceConfigs"][0]["spec"]
+}
+
+export function serviceFromConfig<M extends Module = Module>(module: M, config: ServiceConfig): Service<M> {
+  return {
+    name: config.name,
+    module,
+    config,
+    spec: config.spec,
+  }
+}
 
 export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "unknown" | "outdated" | "missing"
 
@@ -56,40 +61,6 @@ export const serviceEndpointSchema = Joi.object()
       .description("The paths that are available on the service endpoint (defaults to any path)."),
   })
   .description("A description of a deployed service endpoint.")
-
-export interface ServiceSpec { }
-
-export interface BaseServiceSpec extends ServiceSpec {
-  name: string
-  dependencies: string[]
-  outputs: PrimitiveMap
-}
-
-export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
-
-export const baseServiceSchema = Joi.object()
-  .keys({
-    name: joiIdentifier().required(),
-    dependencies: joiArray(joiIdentifier())
-      .description("The names of services that this service depends on at runtime."),
-    outputs: serviceOutputsSchema,
-  })
-  .unknown(true)
-  .meta({ extendable: true })
-  .description("The required attributes of a service. This is generally further defined by plugins.")
-
-export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends BaseServiceSpec {
-  // Plugins can add custom fields that are kept here
-  spec: T
-}
-
-export const serviceConfigSchema = baseServiceSchema
-  .keys({
-    spec: Joi.object()
-      .meta({ extendable: true })
-      .description("The service's specification, as defined by its provider plugin."),
-  })
-  .description("The configuration for a module's service.")
 
 // TODO: revise this schema
 export interface ServiceStatus {
@@ -152,64 +123,59 @@ export type RuntimeContext = {
   },
 }
 
-export class Service<M extends Module = Module> {
-  public spec: M["services"][0]["spec"]
-
-  constructor(
-    protected ctx: PluginContext, public module: M,
-    public name: string, public config: M["services"][0],
-  ) {
-    this.spec = config.spec
+export async function prepareRuntimeContext(
+  ctx: PluginContext, module: Module, serviceDependencies: Service[],
+): Promise<RuntimeContext> {
+  const buildDepKeys = module.build.dependencies.map(dep => getModuleKey(dep.name, dep.plugin))
+  const buildDependencies: Module[] = await ctx.getModules(buildDepKeys)
+  const { versionString } = module.version
+  const envVars = {
+    GARDEN_VERSION: versionString,
   }
 
-  static async factory<S extends Service<M>, M extends Module>(
-    this: (new (ctx: PluginContext, module: M, name: string, config: S["config"]) => S),
-    ctx: PluginContext, module: M, name: string,
-  ) {
-    const config = findByName(module.services, name)
+  for (const [key, value] of Object.entries(ctx.environmentConfig.variables)) {
+    const envVarName = `GARDEN_VARIABLES_${key.replace(/-/g, "_").toUpperCase()}`
+    envVars[envVarName] = value
+  }
 
-    if (!config) {
-      throw new ConfigurationError(`Could not find service ${name} in module ${module.name}`, { module, name })
+  const deps = {}
+
+  for (const m of buildDependencies) {
+    deps[m.name] = {
+      version: m.version.versionString,
+      outputs: {},
     }
-
-    // we allow missing keys here, because we don't have the required context for all keys at this point
-    const context = await ctx.getTemplateContext()
-    return (new this(ctx, module, name, config)).resolveConfig(context, { ignoreMissingKeys: true })
   }
 
-  /*
-    Returns all Services that this service depends on at runtime.
-   */
-  async getDependencies(): Promise<Service<any>[]> {
-    return Bluebird.map(
-      this.config.dependencies || [],
-      async (depName: string) => await this.ctx.getService(depName),
-    )
-  }
-
-  /*
-    Returns the name of this service for use in environment variable names (e.g. my-service becomes MY_SERVICE).
-   */
-  getEnvVarName() {
-    return this.name.replace("-", "_").toUpperCase()
-  }
-
-  /**
-   * Resolves all template strings in the service and returns a new Service instance with the resolved config.
-   */
-  async resolveConfig(context?: TemplateStringContext, opts?: TemplateOpts) {
-    if (!context) {
-      const dependencies = await this.getDependencies()
-      const runtimeContext = await this.module.prepareRuntimeContext(dependencies)
-      context = await this.ctx.getTemplateContext(runtimeContext)
+  for (const dep of serviceDependencies) {
+    if (!deps[dep.name]) {
+      deps[dep.name] = {
+        version: dep.module.version.versionString,
+        outputs: {},
+      }
     }
-    const resolved = await resolveTemplateStrings(this.config, context, opts)
-    const cls = Object.getPrototypeOf(this).constructor
-    return new cls(this.ctx, this.module, this.name, resolved)
+    const depContext = deps[dep.name]
+
+    const outputs = { ...await ctx.getServiceOutputs({ serviceName: dep.name }), ...dep.config.outputs }
+    const serviceEnvName = getEnvVarName(dep.name)
+
+    validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
+
+    for (const [key, value] of Object.entries(outputs)) {
+      const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${key}`.toUpperCase()
+
+      envVars[envVarName] = value
+      depContext.outputs[key] = value
+    }
   }
 
-  async prepareRuntimeContext() {
-    const dependencies = await this.getDependencies()
-    return this.module.prepareRuntimeContext(dependencies)
+  return {
+    envVars,
+    dependencies: deps,
+    module: {
+      name: module.name,
+      type: module.type,
+      version: versionString,
+    },
   }
 }
