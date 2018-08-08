@@ -12,7 +12,7 @@ import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { PushResult } from "../types/plugin/outputs"
-import { Task, TaskParams, TaskVersion } from "../types/task"
+import { Task, TaskParams, TaskVersion } from "../tasks/base"
 
 export interface PushTaskParams extends TaskParams {
   ctx: PluginContext
@@ -35,12 +35,12 @@ export class PushTask extends Task {
   }
 
   static async factory(initArgs: PushTaskParams): Promise<PushTask> {
-    initArgs.version = await initArgs.module.getVersion()
+    initArgs.version = await initArgs.module.version
     return new PushTask(<PushTaskParams & TaskVersion>initArgs)
   }
 
   async getDependencies() {
-    if (!this.module.config.allowPush) {
+    if (!this.module.allowPush) {
       return []
     }
     return [await BuildTask.factory({ ctx: this.ctx, module: this.module, force: this.forceBuild })]
@@ -56,7 +56,7 @@ export class PushTask extends Task {
   }
 
   async process(): Promise<PushResult> {
-    if (!this.module.config.allowPush) {
+    if (!this.module.allowPush) {
       this.ctx.log.info({
         section: this.module.name,
         msg: "Push disabled",

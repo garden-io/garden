@@ -5,7 +5,6 @@ import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
 import { BuildTask } from "../../src/tasks/build"
 import { makeTestGarden } from "../helpers"
-import { keyBy } from "lodash"
 
 /*
   Module dependency diagram for test-project-build-products
@@ -42,7 +41,7 @@ describe("BuildDir", () => {
     const garden = await makeGarden()
     await garden.buildDir.clear()
     const moduleA = await garden.getModule("module-a")
-    const buildPath = await garden.buildDir.buildPath(moduleA)
+    const buildPath = await garden.buildDir.buildPath(moduleA.name)
     expect(await pathExists(buildPath)).to.eql(true)
   })
 
@@ -50,7 +49,7 @@ describe("BuildDir", () => {
     const garden = await makeGarden()
     const moduleA = await garden.getModule("module-a")
     await garden.buildDir.syncFromSrc(moduleA)
-    const buildDirA = await garden.buildDir.buildPath(moduleA)
+    const buildDirA = await garden.buildDir.buildPath(moduleA.name)
 
     const copiedPaths = [
       join(buildDirA, "garden.yml"),
@@ -72,15 +71,14 @@ describe("BuildDir", () => {
 
       await Bluebird.map(modules, async (module) => {
         return garden.addTask(await BuildTask.factory({
-          module, ctx: garden.pluginContext, force: false,
+          module, ctx: garden.getPluginContext(), force: false,
         }))
       })
 
       await garden.processTasks()
-      const modulesByName = keyBy(modules, "name")
 
-      const buildDirD = await garden.buildDir.buildPath(modulesByName["module-d"])
-      const buildDirE = await garden.buildDir.buildPath(modulesByName["module-e"])
+      const buildDirD = await garden.buildDir.buildPath("module-d")
+      const buildDirE = await garden.buildDir.buildPath("module-e")
 
       // All these destinations should be populated now.
       const buildProductDestinations = [

@@ -9,13 +9,9 @@
 import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { CacheContext } from "./cache"
-import {
-  Garden,
-} from "./garden"
+import { Garden } from "./garden"
 import { EntryStyle } from "./logger/types"
-import {
-  PrimitiveMap,
-} from "./types/common"
+import { PrimitiveMap } from "./config/common"
 import { Module } from "./types/module"
 import {
   ModuleActions,
@@ -65,12 +61,12 @@ import {
   LoginParams,
   LogoutParams,
   GetEnvironmentStatusParams,
-  ConfigureEnvironmentParams,
   DestroyEnvironmentParams,
 } from "./types/plugin/params"
 import {
   Service,
   ServiceStatus,
+  prepareRuntimeContext,
 } from "./types/service"
 import {
   mapValues,
@@ -88,6 +84,8 @@ import {
 } from "./util/util"
 import { ModuleVersion } from "./vcs/base"
 import { RuntimeContext } from "./types/service"
+import { processServices, ProcessResults } from "./process"
+import { DeployTask } from "./tasks/deploy"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -96,6 +94,12 @@ export type PluginContextGuard = {
 export interface ContextStatus {
   providers: EnvironmentStatusMap
   services: { [name: string]: ServiceStatus }
+}
+
+export interface DeployServicesParams {
+  serviceNames?: string[],
+  force?: boolean
+  forceBuild?: boolean
 }
 
 export type PluginContextParams<T extends PluginActionParamsBase> =
@@ -111,18 +115,17 @@ export type WrappedFromGarden = Pick<Garden,
   "projectRoot" |
   "projectSources" |
   "log" |
-  "config" |
+  "environmentConfig" |
   "localConfigStore" |
   "vcs" |
-  "clearBuilds" |
   "getEnvironment" |
   "getModules" |
   "getModule" |
   "getServices" |
   "getService" |
-  "getTemplateContext" |
-  "addTask" |
-  "processTasks">
+  "resolveModuleDependencies" |
+  "resolveVersion"
+  >
 
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   providers: { [name: string]: Provider }
@@ -166,12 +169,9 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   invalidateCache: (context: CacheContext) => void
   invalidateCacheUp: (context: CacheContext) => void
   invalidateCacheDown: (context: CacheContext) => void
-  getModuleBuildPath: (moduleName: string) => Promise<string>
-  getModuleVersion: (moduleName: string, force?: boolean) => Promise<ModuleVersion>
-  resolveVersion: (moduleName: string, moduleDependencies: string[], force?: boolean) => Promise<ModuleVersion>
-  resolveModuleDependencies: (buildDependencies: string[], serviceDependencies: string[]) => Promise<Module[]>
   stageBuild: (moduleName: string) => Promise<void>
   getStatus: () => Promise<ContextStatus>
+  deployServices: (params: DeployServicesParams) => Promise<ProcessResults>
 }
 
 export function createPluginContext(garden: Garden): PluginContext {
@@ -179,7 +179,7 @@ export function createPluginContext(garden: Garden): PluginContext {
     return f.bind(garden)
   }
 
-  const projectConfig = { ...garden.config }
+  const projectConfig = { ...garden.environmentConfig }
   const providerConfigs = keyBy(projectConfig.providers, "name")
   const providers = mapValues(providerConfigs, (config, name) => ({
     name,
@@ -193,7 +193,7 @@ export function createPluginContext(garden: Garden): PluginContext {
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
   function commonParams(handler): PluginActionParamsBase {
     return {
-      ctx,
+      ctx: createPluginContext(garden),
       env: garden.getEnvironment(),
       provider: getProvider(handler),
     }
@@ -204,12 +204,8 @@ export function createPluginContext(garden: Garden): PluginContext {
   ): Promise<{ handler: (ModuleActions & ServiceActions)[T], module: Module }> {
     const module = await garden.getModule(moduleName)
     const handler = garden.getModuleActionHandler(actionType, module.type, pluginName, defaultHandler)
-    const provider = getProvider(handler)
 
-    return {
-      handler,
-      module: await module.resolveConfig({ provider }),
-    }
+    return { handler, module }
   }
 
   async function callModuleHandler<T extends keyof Omit<ModuleActions, "parseModule">>(
@@ -240,14 +236,14 @@ export function createPluginContext(garden: Garden): PluginContext {
     service.module = module
 
     // TODO: figure out why this doesn't compile without the casts
-    const runtimeContext = (<any>params).runtimeContext || await service.prepareRuntimeContext()
-    const provider = getProvider(handler)
+    const deps = await garden.getServices(service.config.dependencies)
+    const runtimeContext = ((<any>params).runtimeContext || await prepareRuntimeContext(ctx, module, deps))
 
     const handlerParams: any = {
       ...commonParams(handler),
       ...<object>omit(params, ["moduleName"]),
       module,
-      service: await service.resolveConfig({ provider, ...runtimeContext }),
+      service,
       runtimeContext,
     }
 
@@ -259,21 +255,18 @@ export function createPluginContext(garden: Garden): PluginContext {
     projectRoot: garden.projectRoot,
     projectSources: garden.projectSources,
     log: garden.log,
-    config: projectConfig,
+    environmentConfig: projectConfig,
     localConfigStore: garden.localConfigStore,
     vcs: garden.vcs,
     providers,
 
-    // TODO: maybe we should move some of these here
-    clearBuilds: wrap(garden.clearBuilds),
     getEnvironment: wrap(garden.getEnvironment),
     getModules: wrap(garden.getModules),
     getModule: wrap(garden.getModule),
     getServices: wrap(garden.getServices),
     getService: wrap(garden.getService),
-    getTemplateContext: wrap(garden.getTemplateContext),
-    addTask: wrap(garden.addTask),
-    processTasks: wrap(garden.processTasks),
+    resolveModuleDependencies: wrap(garden.resolveModuleDependencies),
+    resolveVersion: wrap(garden.resolveVersion),
 
     //===========================================================================
     //region Environment Actions
@@ -364,9 +357,9 @@ export function createPluginContext(garden: Garden): PluginContext {
     },
 
     buildModule: async <T extends Module>(params: PluginContextModuleParams<BuildModuleParams<T>>) => {
-      const { module, handler } = await getModuleAndHandler(params.moduleName, "buildModule", params.pluginName)
+      const module = await garden.getModule(params.moduleName)
       await garden.buildDir.syncDependencyProducts(module)
-      return handler({ ...commonParams(handler), module, logEntry: params.logEntry })
+      return callModuleHandler(params, "buildModule")
     },
 
     pushModule: async <T extends Module>(params: PluginContextModuleParams<PushModuleParams<T>>) => {
@@ -438,70 +431,13 @@ export function createPluginContext(garden: Garden): PluginContext {
       await garden.buildDir.syncDependencyProducts(module)
     },
 
-    getModuleBuildPath: async (moduleName: string) => {
-      const module = await garden.getModule(moduleName)
-      return await garden.buildDir.buildPath(module)
-    },
-
-    getModuleVersion: async (moduleName: string, force = false) => {
-      const dependencies = await ctx.resolveModuleDependencies([moduleName], [])
-      return ctx.resolveVersion(moduleName, getNames(dependencies), force)
-    },
-
-    /**
-     * Given the provided lists of build and service dependencies, return a list of all modules
-     * required to satisfy those dependencies.
-     */
-    async resolveModuleDependencies(buildDependencies: string[], serviceDependencies: string[]) {
-      const buildDeps = await Bluebird.map(buildDependencies, async (moduleName) => {
-        const module = await garden.getModule(moduleName)
-        const moduleDeps = await module.getBuildDependencies()
-        return [module].concat(await ctx.resolveModuleDependencies(getNames(moduleDeps), []))
-      })
-
-      const runtimeDeps = await Bluebird.map(serviceDependencies, async (serviceName) => {
-        const service = await garden.getService(serviceName)
-        const serviceDeps = await service.getDependencies()
-        return ctx.resolveModuleDependencies([service.module.name], getNames(serviceDeps))
-      })
-
-      const deps = flatten(buildDeps).concat(flatten(runtimeDeps))
-
-      return sortBy(uniqBy(deps, "name"), "name")
-    },
-
-    /**
-     * Given a module, and a list of dependencies, resolve the version for that combination of modules.
-     * The combined version is a either the latest dirty module version (if any), or the hash of the module version
-     * and the versions of its dependencies (in sorted order).
-     */
-    resolveVersion: async (moduleName: string, moduleDependencies: string[], force = false) => {
-      const module = await ctx.getModule(moduleName)
-      const cacheKey = ["moduleVersions", module.name]
-
-      if (!force) {
-        const cached = <ModuleVersion>garden.cache.get(cacheKey)
-
-        if (cached) {
-          return cached
-        }
-      }
-
-      const dependencies = await garden.getModules(moduleDependencies)
-      const cacheContexts = dependencies.concat([module]).map(m => m.getCacheContext())
-
-      const version = await garden.vcs.resolveVersion(module, dependencies)
-
-      garden.cache.set(cacheKey, version, ...cacheContexts)
-      return version
-    },
-
     getStatus: async () => {
       const envStatus: EnvironmentStatusMap = await ctx.getEnvironmentStatus({})
       const services = keyBy(await ctx.getServices(), "name")
 
       const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
-        const runtimeContext = await service.prepareRuntimeContext()
+        const dependencies = await ctx.getServices(service.config.dependencies)
+        const runtimeContext = await prepareRuntimeContext(ctx, service.module, dependencies)
         return ctx.getServiceStatus({ serviceName: service.name, runtimeContext })
       }))
 
@@ -509,6 +445,19 @@ export function createPluginContext(garden: Garden): PluginContext {
         providers: envStatus,
         services: serviceStatus,
       }
+    },
+
+    deployServices: async ({ serviceNames, force = false, forceBuild = false }: DeployServicesParams) => {
+      const services = await ctx.getServices(serviceNames)
+      return processServices({
+        services,
+        garden,
+        ctx,
+        watch: false,
+        process: async (service) => {
+          return [await DeployTask.factory({ ctx, service, force, forceBuild })]
+        },
+      })
     },
 
     //endregion

@@ -12,7 +12,7 @@ import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { BuildResult } from "../types/plugin/outputs"
-import { Task, TaskParams, TaskVersion } from "../types/task"
+import { Task, TaskParams, TaskVersion } from "../tasks/base"
 
 export interface BuildTaskParams extends TaskParams {
   ctx: PluginContext
@@ -39,12 +39,12 @@ export class BuildTask extends Task {
      child classes of Task that implement an equivalent factory method.
   */
   static async factory(initArgs: BuildTaskParams): Promise<BuildTask> {
-    initArgs.version = await initArgs.module.getVersion()
+    initArgs.version = await initArgs.module.version
     return new BuildTask(<BuildTaskParams & TaskVersion>initArgs)
   }
 
   async getDependencies(): Promise<BuildTask[]> {
-    const deps = await this.module.getBuildDependencies()
+    const deps = await this.ctx.resolveModuleDependencies(this.module.build.dependencies, [])
     return Bluebird.map(deps, async (m: Module) => {
       return BuildTask.factory({ ctx: this.ctx, module: m, force: this.force })
     })

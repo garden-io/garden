@@ -1,8 +1,5 @@
 import { expect } from "chai"
-import {
-  expectError,
-  makeTestContext,
-} from "../../../helpers"
+import { expectError, makeTestGarden } from "../../../helpers"
 import { pick } from "lodash"
 import { remove } from "fs-extra"
 import { join } from "path"
@@ -53,8 +50,14 @@ describe("CreateProjectCommand", () => {
   // garden create project
   it("should create a project in the current directory", async () => {
     replaceRepeatAddModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "project-dir": "" }, { name: "", "module-dirs": undefined })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
+      ctx,
+      args: { "project-dir": "" },
+      opts: { name: "", "module-dirs": undefined },
+    })
     const modules = result.moduleConfigs.map(m => pick(m, ["name", "type", "path"]))
     const project = pick(result.projectConfig, ["name", "path"])
 
@@ -72,8 +75,14 @@ describe("CreateProjectCommand", () => {
   // garden create project new-project
   it("should create a project in directory new-project", async () => {
     replaceRepeatAddModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "project-dir": "new-project" }, { name: "", "module-dirs": undefined })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
+      ctx,
+      args: { "project-dir": "new-project" },
+      opts: { name: "", "module-dirs": undefined },
+    })
     expect(pick(result.projectConfig, ["name", "path"])).to.eql({
       name: "new-project",
       path: join(ctx.projectRoot, "new-project"),
@@ -82,8 +91,14 @@ describe("CreateProjectCommand", () => {
   // garden create project --name=my-project
   it("should optionally create a project named my-project", async () => {
     replaceRepeatAddModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "project-dir": "" }, { name: "my-project", "module-dirs": undefined })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
+      ctx,
+      args: { "project-dir": "" },
+      opts: { name: "my-project", "module-dirs": undefined },
+    })
     expect(pick(result.projectConfig, ["name", "path"])).to.eql({
       name: "my-project",
       path: join(ctx.projectRoot),
@@ -92,8 +107,14 @@ describe("CreateProjectCommand", () => {
   // garden create project --module-dirs=.
   it("should optionally create module configs for modules in current directory", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "project-dir": "" }, { name: "", "module-dirs": ["."] })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
+      ctx,
+      args: { "project-dir": "" },
+      opts: { name: "", "module-dirs": ["."] },
+    })
     expect(result.moduleConfigs.map(m => pick(m, ["name", "type", "path"]))).to.eql([
       { type: "container", name: "module-a", path: join(ctx.projectRoot, "module-a") },
       { type: "container", name: "module-b", path: join(ctx.projectRoot, "module-b") },
@@ -102,11 +123,14 @@ describe("CreateProjectCommand", () => {
   // garden create project --module-dirs=module-a,module-b
   it("should optionally create module configs for modules in specified directories", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
       ctx,
-      { "project-dir": "" }, { name: "", "module-dirs": ["module-a", "module-b"] },
-    )
+      args: { "project-dir": "" },
+      opts: { name: "", "module-dirs": ["module-a", "module-b"] },
+    })
     expect(result.moduleConfigs.map(m => pick(m, ["name", "type", "path"]))).to.eql([
       { type: "container", name: "child-module-a", path: join(ctx.projectRoot, "module-a", "child-module-a") },
       { type: "container", name: "child-module-b", path: join(ctx.projectRoot, "module-b", "child-module-b") },
@@ -115,18 +139,30 @@ describe("CreateProjectCommand", () => {
   // garden create project ___
   it("should throw if project name is invalid when inherited from current directory", async () => {
     replaceRepeatAddModule()
-    const ctx = await makeTestContext(projectRoot)
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
     await expectError(
-      async () => await cmd.action(ctx, { "project-dir": "___" }, { name: "", "module-dirs": undefined }),
+      async () => await cmd.action({
+        garden,
+        ctx,
+        args: { "project-dir": "___" },
+        opts: { name: "", "module-dirs": undefined },
+      }),
       "configuration",
     )
   })
   // garden create project --name=____
   it("should throw if project name is invalid when explicitly specified", async () => {
     replaceRepeatAddModule()
-    const ctx = await makeTestContext(projectRoot)
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
     await expectError(
-      async () => await cmd.action(ctx, { "project-dir": "" }, { name: "___", "module-dirs": undefined }),
+      async () => await cmd.action({
+        garden,
+        ctx,
+        args: { "project-dir": "" },
+        opts: { name: "___", "module-dirs": undefined },
+      }),
       "configuration",
     )
   })

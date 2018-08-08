@@ -8,11 +8,7 @@
 
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
-import {
-  Module,
-  ModuleConfig,
-  ModuleSpec,
-} from "../types/module"
+import { Module } from "../types/module"
 import { LogSymbolType } from "../logger/types"
 import {
   joiEnvVars,
@@ -21,7 +17,7 @@ import {
   validate,
   PrimitiveMap,
   joiPrimitive,
-} from "../types/common"
+} from "../config/common"
 import { pathExists } from "fs-extra"
 import { join } from "path"
 import { ConfigurationError } from "../exceptions"
@@ -35,16 +31,13 @@ import {
   PushModuleParams,
   RunServiceParams,
 } from "../types/plugin/params"
-import {
-  baseServiceSchema,
-  BaseServiceSpec,
-  Service,
-  ServiceConfig,
-} from "../types/service"
+import { Service } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
 import { genericTestSchema, GenericTestSpec } from "./generic"
+import { ModuleSpec, ModuleConfig } from "../config/module"
+import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
 
 export interface ServiceEndpointSpec {
   paths?: string[]
@@ -176,7 +169,7 @@ const serviceSchema = baseServiceSchema
       .description("List of volumes that should be mounted when deploying the container."),
   })
 
-export class ContainerService extends Service<ContainerModule> { }
+export interface ContainerService extends Service<ContainerModule> { }
 
 export interface ContainerTestSpec extends GenericTestSpec { }
 
@@ -212,7 +205,7 @@ export const containerModuleSpecSchema = Joi.object()
   })
   .description("Configuration for a container module.")
 
-export class ContainerModule<
+export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
@@ -225,7 +218,7 @@ export async function getImage(module: ContainerModule) {
 export const helpers = {
   async getLocalImageId(module: ContainerModule) {
     if (await helpers.hasDockerfile(module)) {
-      const { versionString } = await module.getVersion()
+      const { versionString } = await module.version
       return `${module.name}:${versionString}`
     } else {
       return getImage(module)
@@ -243,7 +236,7 @@ export const helpers = {
         // (allows specifying version on source images, and also setting specific version name when pushing images)
         return image
       } else {
-        const { versionString } = await module.getVersion()
+        const { versionString } = await module.version
         return `${imageName}:${versionString}`
       }
     } else {
@@ -264,11 +257,11 @@ export const helpers = {
 
   async dockerCli(module: ContainerModule, args) {
     // TODO: use dockerode instead of CLI
-    return childProcess.exec("docker " + args, { cwd: await module.getBuildPath(), maxBuffer: 1024 * 1024 })
+    return childProcess.exec("docker " + args, { cwd: await module.buildPath, maxBuffer: 1024 * 1024 })
   },
 
   async hasDockerfile(module: ContainerModule) {
-    const buildPath = await module.getBuildPath()
+    const buildPath = await module.buildPath
     return pathExists(join(buildPath, "Dockerfile"))
   },
 }
@@ -277,7 +270,7 @@ export async function parseContainerModule({ moduleConfig }: ParseModuleParams<C
   moduleConfig.spec = validate(moduleConfig.spec, containerModuleSpecSchema, { context: `module ${moduleConfig.name}` })
 
   // validate services
-  const services: ContainerServiceConfig[] = moduleConfig.spec.services.map(spec => {
+  moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => {
     // make sure ports are correctly configured
     const name = spec.name
     const definedPorts = spec.ports
@@ -324,7 +317,7 @@ export async function parseContainerModule({ moduleConfig }: ParseModuleParams<C
     }
   })
 
-  const tests = moduleConfig.spec.tests.map(t => ({
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
     name: t.name,
     dependencies: t.dependencies,
     spec: t,
@@ -339,11 +332,7 @@ export async function parseContainerModule({ moduleConfig }: ParseModuleParams<C
     )
   }
 
-  return {
-    module: moduleConfig,
-    services,
-    tests,
-  }
+  return moduleConfig
 }
 
 // TODO: rename this plugin to docker
@@ -367,7 +356,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       },
 
       async buildModule({ module, logEntry }: BuildModuleParams<ContainerModule>) {
-        const buildPath = await module.getBuildPath()
+        const buildPath = await module.buildPath
         const image = await getImage(module)
 
         if (!!image && !(await helpers.hasDockerfile(module))) {

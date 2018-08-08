@@ -10,14 +10,14 @@ import { difference } from "lodash"
 import dedent = require("dedent")
 import chalk from "chalk"
 
-import { PluginContext } from "../../plugin-context"
 import {
   Command,
   StringsParameter,
   ParameterValues,
   CommandResult,
+  CommandParams,
 } from "../base"
-import { SourceConfig } from "../../types/project"
+import { SourceConfig } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { hasRemoteSource } from "../../util/ext-source-util"
@@ -45,11 +45,7 @@ export class UpdateRemoteModulesCommand extends Command<typeof updateRemoteModul
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  async action(
-    ctx: PluginContext,
-    args: UpdateRemoteModulesArguments,
-  ): Promise<CommandResult<SourceConfig[]>> {
-
+  async action({ ctx, args }: CommandParams<UpdateRemoteModulesArguments>): Promise<CommandResult<SourceConfig[]>> {
     ctx.log.header({ emoji: "hammer_and_wrench", command: "update-remote modules" })
 
     const { module } = args
@@ -57,7 +53,6 @@ export class UpdateRemoteModulesCommand extends Command<typeof updateRemoteModul
 
     const moduleSources = <SourceConfig[]>modules
       .filter(hasRemoteSource)
-      .map(({ config: { repositoryUrl, name } }) => ({ repositoryUrl, name }))
       .filter(src => module ? module.includes(src.name) : true)
 
     const names = moduleSources.map(src => src.name)

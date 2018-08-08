@@ -19,6 +19,7 @@ import {
   ParameterValues,
   BooleanParameter,
   ChoicesParameter,
+  CommandParams,
 } from "../base"
 import { ParameterError, GardenBaseError } from "../../exceptions"
 import { availableModuleTypes, ModuleType, moduleSchema, ModuleConfigOpts } from "./config-templates"
@@ -27,7 +28,7 @@ import {
   dumpConfig,
 } from "./helpers"
 import { prompts } from "./prompts"
-import { validate, joiIdentifier } from "../../types/common"
+import { validate, joiIdentifier } from "../../config/common"
 import { ensureDir } from "fs-extra"
 
 export const createModuleOptions = {
@@ -75,7 +76,7 @@ export class CreateModuleCommand extends Command<typeof createModuleArguments, t
   arguments = createModuleArguments
   options = createModuleOptions
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CreateModuleResult> {
+  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CreateModuleResult> {
     let errors: GardenBaseError[] = []
 
     const moduleRoot = join(ctx.projectRoot, (args["module-dir"] || "").trim())

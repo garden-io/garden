@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
 import {
   BooleanParameter,
   Command,
   CommandResult,
+  CommandParams,
   ParameterValues,
   StringsParameter,
 } from "./base"
@@ -56,7 +56,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   options = logsOpts
   loggerType = LoggerType.basic
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<ServiceLogEntry[]>> {
+  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const tail = opts.tail
     const services = await ctx.getServices(args.service)
 

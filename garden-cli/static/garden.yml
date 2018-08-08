@@ -6,3 +6,7 @@ project:
         - name: local-kubernetes
           # note: this context is not actually used for anything
           context: docker-for-desktop
+      variables:
+        # these are dummy variables, only used when resolving module versions
+        gateway-hostname: foo
+        function-namespace: boo

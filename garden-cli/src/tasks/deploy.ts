@@ -11,10 +11,11 @@ import chalk from "chalk"
 import { LogEntry } from "../logger/logger"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
-import { Task, TaskParams, TaskVersion } from "../types/task"
+import { Task, TaskParams, TaskVersion } from "../tasks/base"
 import {
   Service,
   ServiceStatus,
+  prepareRuntimeContext,
 } from "../types/service"
 import { EntryStyle } from "../logger/types"
 
@@ -45,7 +46,7 @@ export class DeployTask extends Task {
   }
 
   static async factory(initArgs: DeployTaskParams): Promise<DeployTask> {
-    initArgs.version = await initArgs.service.module.getVersion()
+    initArgs.version = await initArgs.service.module.version
     return new DeployTask(<DeployTaskParams & TaskVersion>initArgs)
   }
 
@@ -81,7 +82,7 @@ export class DeployTask extends Task {
     })
 
     // TODO: get version from build task results
-    const { versionString } = await this.service.module.getVersion()
+    const { versionString } = await this.service.module.version
     const status = await this.ctx.getServiceStatus({ serviceName: this.service.name, logEntry })
 
     if (
@@ -99,9 +100,11 @@ export class DeployTask extends Task {
 
     logEntry.setState({ section: this.service.name, msg: "Deploying" })
 
+    const dependencies = await this.ctx.getServices(this.service.config.dependencies)
+
     const result = await this.ctx.deployService({
       serviceName: this.service.name,
-      runtimeContext: await this.service.prepareRuntimeContext(),
+      runtimeContext: await prepareRuntimeContext(this.ctx, this.service.module, dependencies),
       logEntry,
       force: this.force,
     })

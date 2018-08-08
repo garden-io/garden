@@ -14,15 +14,11 @@ import {
   joiEnvVars,
   PrimitiveMap,
   validate,
-} from "../types/common"
+} from "../config/common"
 import {
   GardenPlugin,
 } from "../types/plugin/plugin"
-import {
-  Module,
-  ModuleConfig,
-  ModuleSpec,
-} from "../types/module"
+import { Module } from "../types/module"
 import {
   BuildResult,
   BuildStatus,
@@ -35,14 +31,12 @@ import {
   ParseModuleParams,
   TestModuleParams,
 } from "../types/plugin/params"
-import { BaseServiceSpec } from "../types/service"
-import {
-  BaseTestSpec,
-  baseTestSpecSchema,
-} from "../types/test"
+import { BaseServiceSpec } from "../config/service"
+import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
 import { spawn } from "../util/util"
 import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/base"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
+import { ModuleSpec, ModuleConfig } from "../config/module"
 import execa = require("execa")
 
 export const name = "generic"
@@ -74,28 +68,25 @@ export const genericModuleSpecSchema = Joi.object()
   .unknown(false)
   .description("The module specification for a generic module.")
 
-export class GenericModule extends Module<GenericModuleSpec, BaseServiceSpec, GenericTestSpec> { }
+export interface GenericModule extends Module<GenericModuleSpec, BaseServiceSpec, GenericTestSpec> { }
 
 export async function parseGenericModule(
   { moduleConfig }: ParseModuleParams<GenericModule>,
 ): Promise<ParseModuleResult> {
   moduleConfig.spec = validate(moduleConfig.spec, genericModuleSpecSchema, { context: `module ${moduleConfig.name}` })
 
-  return {
-    module: moduleConfig,
-    services: [],
-    tests: moduleConfig.spec.tests.map(t => ({
-      name: t.name,
-      dependencies: t.dependencies,
-      spec: t,
-      timeout: t.timeout,
-    })),
-  }
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    spec: t,
+    timeout: t.timeout,
+  }))
+
+  return moduleConfig
 }
 
 export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
-  const moduleVersion = await module.getVersion()
-  const buildVersionFilePath = join(await module.getBuildPath(), GARDEN_BUILD_VERSION_FILENAME)
+  const buildVersionFilePath = join(module.buildPath, GARDEN_BUILD_VERSION_FILENAME)
   let builtVersion: ModuleVersion | null = null
 
   try {
@@ -104,7 +95,7 @@ export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStat
     // just ignore this error, can be caused by an outdated format
   }
 
-  if (builtVersion && builtVersion.versionString === moduleVersion.versionString) {
+  if (builtVersion && builtVersion.versionString === module.version.versionString) {
     return { ready: true }
   }
 
@@ -112,9 +103,9 @@ export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStat
 }
 
 export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
-  const config: ModuleConfig = module.config
+  const config: ModuleConfig = module
   const output: BuildResult = {}
-  const buildPath = await module.getBuildPath()
+  const buildPath = await module.buildPath
 
   if (config.build.command.length) {
     const result = await execa.shell(
@@ -131,8 +122,7 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
 
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
-  const version = await module.getVersion()
-  await writeModuleVersionFile(buildVersionFilePath, version)
+  await writeModuleVersionFile(buildVersionFilePath, module.version)
 
   return output
 }
@@ -155,7 +145,7 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
     moduleName: module.name,
     command,
     testName: testConfig.name,
-    version: await module.getVersion(),
+    version: await module.version,
     success: result.code === 0,
     startedAt,
     completedAt: new Date(),

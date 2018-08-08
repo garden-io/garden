@@ -13,7 +13,7 @@ describe("PluginContext", () => {
 
   beforeEach(async () => {
     garden = await makeTestGardenA()
-    ctx = garden.pluginContext
+    ctx = garden.getPluginContext()
   })
 
   describe("setConfig", () => {
@@ -87,68 +87,6 @@ describe("PluginContext", () => {
       const key = ["project", "!4215"]
 
       await expectError(async () => await ctx.deleteConfig({ key }), "parameter")
-    })
-  })
-
-  describe("resolveModuleDependencies", () => {
-    it("should resolve build dependencies", async () => {
-      const modules = await ctx.resolveModuleDependencies(["module-c"], [])
-      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
-    })
-
-    it("should resolve service dependencies", async () => {
-      const modules = await ctx.resolveModuleDependencies([], ["service-b"])
-      expect(getNames(modules)).to.eql(["module-a", "module-b"])
-    })
-
-    it("should combine module and service dependencies", async () => {
-      const modules = await ctx.resolveModuleDependencies(["module-b"], ["service-c"])
-      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
-    })
-  })
-
-  describe("resolveVersion", () => {
-    it("should return result from cache if available", async () => {
-      const module = await ctx.getModule("module-a")
-      const version: ModuleVersion = {
-        versionString: "banana",
-        dirtyTimestamp: 987654321,
-        dependencyVersions: {},
-      }
-      garden.cache.set(["moduleVersions", module.name], version, module.getCacheContext())
-
-      const result = await ctx.resolveVersion("module-a", [])
-
-      expect(result).to.eql(version)
-    })
-
-    it("should otherwise return version from VCS handler", async () => {
-      const resolve = td.replace(garden.vcs, "resolveVersion")
-      const version: ModuleVersion = {
-        versionString: "banana",
-        dirtyTimestamp: 987654321,
-        dependencyVersions: {},
-      }
-
-      td.when(resolve(), { ignoreExtraArgs: true }).thenResolve(version)
-
-      const result = await ctx.resolveVersion("module-b", [])
-
-      expect(result).to.eql(version)
-    })
-
-    it("should ignore cache if force=true", async () => {
-      const module = await ctx.getModule("module-a")
-      const version: ModuleVersion = {
-        versionString: "banana",
-        dirtyTimestamp: 987654321,
-        dependencyVersions: {},
-      }
-      garden.cache.set(["moduleVersions", module.name], version, module.getCacheContext())
-
-      const result = await ctx.resolveVersion("module-a", [], true)
-
-      expect(result).to.not.eql(version)
     })
   })
 })

@@ -21,7 +21,7 @@ import {
   joiPrimitive,
   Primitive,
   validate,
-} from "../../types/common"
+} from "../../config/common"
 import { Module } from "../../types/module"
 import {
   ModuleActions,
@@ -37,12 +37,7 @@ import {
   BuildResult,
   ParseModuleResult,
 } from "../../types/plugin/outputs"
-import {
-  Service,
-  ServiceConfig,
-  ServiceSpec,
-  ServiceStatus,
-} from "../../types/service"
+import { Service, ServiceStatus } from "../../types/service"
 import { dumpYaml } from "../../util/util"
 import { KubernetesProvider } from "./kubernetes"
 import { getAppNamespace } from "./namespace"
@@ -51,6 +46,7 @@ import { writeTreeVersionFile } from "../../vcs/base"
 import { ServiceState } from "../../types/service"
 import { compareDeployedObjects, waitForObjects, checkObjectStatus } from "./status"
 import { getGenericModuleBuildStatus } from "../generic"
+import { ServiceSpec, ServiceConfig } from "../../config/service"
 
 export interface KubernetesObject {
   apiVersion: string
@@ -74,7 +70,7 @@ export interface HelmServiceSpec extends ServiceSpec {
 
 export type HelmModuleSpec = HelmServiceSpec
 
-export class HelmModule extends Module<HelmModuleSpec, HelmServiceSpec> { }
+export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec> { }
 
 const parameterValueSchema = Joi.alternatives(
   joiPrimitive(),
@@ -124,7 +120,7 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
 
     const { chart, version, parameters, dependencies } = moduleConfig.spec
 
-    const services: ServiceConfig<HelmServiceSpec>[] = [{
+    moduleConfig.serviceConfigs = [{
       name: moduleConfig.name,
       dependencies,
       outputs: {},
@@ -132,11 +128,7 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
     }]
 
     // TODO: make sure at least either a chart is specified, or module contains a helm chart
-    return {
-      module: moduleConfig,
-      services,
-      tests: [],
-    }
+    return moduleConfig
   },
 
   getModuleBuildStatus: getGenericModuleBuildStatus,
@@ -160,7 +152,7 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
     }
 
     // then check if the rollout is complete
-    const version = await module.getVersion()
+    const version = await module.version
     const context = provider.config.context
     const namespace = await getAppNamespace(ctx, provider)
     const { ready } = await checkObjectStatus(context, namespace, objects)
@@ -206,8 +198,8 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
 }
 
 async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
-  const buildPath = await module.getBuildPath()
-  const config = module.config
+  const buildPath = await module.buildPath
+  const config = module
 
   // fetch the chart
   const fetchArgs = [
@@ -237,12 +229,12 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
   dumpYaml(valuesPath, values)
 
   // make sure the template renders okay
-  const services = await module.getServices()
+  const services = await ctx.getServices(module.serviceNames)
   await getChartObjects(ctx, provider, services[0])
 
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
-  const version = await module.getVersion()
+  const version = await module.version
   await writeTreeVersionFile(buildVersionFilePath, {
     latestCommit: version.versionString,
     dirtyTimestamp: version.dirtyTimestamp,
@@ -261,7 +253,7 @@ function helm(provider: KubernetesProvider, ...args: string[]) {
 async function getChartPath(module: HelmModule) {
   const splitName = module.spec.chart.split("/")
   const chartDir = splitName[splitName.length - 1]
-  return join(await module.getBuildPath(), chartDir)
+  return join(await module.buildPath, chartDir)
 }
 
 function getValuesPath(chartPath: string) {

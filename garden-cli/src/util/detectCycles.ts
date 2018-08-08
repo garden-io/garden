@@ -33,13 +33,13 @@ export async function detectCircularDependencies(modules: Module[], services: Se
     */
   for (const module of modules) {
     // Build dependencies
-    for (const buildDep of module.config.build.dependencies) {
+    for (const buildDep of module.build.dependencies) {
       const depName = buildDep.name
       set(buildGraph, [module.name, depName], { distance: 1, next: depName })
     }
 
     // Service dependencies
-    for (const service of module.services || []) {
+    for (const service of module.serviceConfigs || []) {
       for (const depName of service.dependencies) {
         set(serviceGraph, [service.name, depName], { distance: 1, next: depName })
       }

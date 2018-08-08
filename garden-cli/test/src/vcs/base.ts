@@ -45,7 +45,7 @@ describe("VcsHandler", () => {
   describe("resolveTreeVersion", () => {
     it("should return the version from a version file if it exists", async () => {
       const module = await ctx.getModule("module-a")
-      const result = await handler.resolveTreeVersion(module)
+      const result = await handler.resolveTreeVersion(module.path)
 
       expect(result).to.eql({
         latestCommit: "1234567890",
@@ -62,7 +62,7 @@ describe("VcsHandler", () => {
       }
       handler.setTestVersion(module.path, version)
 
-      const result = await handler.resolveTreeVersion(module)
+      const result = await handler.resolveTreeVersion(module.path)
       expect(result).to.eql(version)
     })
   })

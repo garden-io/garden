@@ -10,7 +10,7 @@ import * as Joi from "joi"
 import {
   joiIdentifier,
   validate,
-} from "../../types/common"
+} from "../../config/common"
 import {
   GardenPlugin,
   Provider,
@@ -18,7 +18,8 @@ import {
 import {
   ProviderConfig,
   providerConfigBase,
-} from "../../types/project"
+} from "../../config/project"
+
 import {
   configureEnvironment,
   deleteConfig,

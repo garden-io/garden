@@ -7,18 +7,19 @@
  */
 
 import chalk from "chalk"
-import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin/outputs"
 import {
   BooleanParameter,
   Command,
+  CommandParams,
   CommandResult,
   ParameterValues,
   StringParameter,
 } from "../base"
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
+import { prepareRuntimeContext } from "../../types/service"
 
 export const runArgs = {
   service: new StringParameter({
@@ -50,7 +51,7 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<RunResult>> {
+  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
     const service = await ctx.getService(serviceName)
     const module = service.module
@@ -63,11 +64,11 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
     await ctx.configureEnvironment({})
 
     const buildTask = await BuildTask.factory({ ctx, module, force: opts["force-build"] })
-    await ctx.addTask(buildTask)
-    await ctx.processTasks()
+    await garden.addTask(buildTask)
+    await garden.processTasks()
 
-    const dependencies = await service.getDependencies()
-    const runtimeContext = await module.prepareRuntimeContext(dependencies)
+    const dependencies = await ctx.getServices(module.serviceDependencyNames)
+    const runtimeContext = await prepareRuntimeContext(ctx, module, dependencies)
 
     printRuntimeContext(ctx, runtimeContext)
 

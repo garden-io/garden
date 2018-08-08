@@ -1,21 +1,20 @@
 import { expect } from "chai"
-import {
-  makeTestContextA,
-  taskResultOutputs,
-} from "../../helpers"
 import { TestCommand } from "../../../src/commands/test"
 import * as isSubset from "is-subset"
+import { makeTestGardenA, taskResultOutputs } from "../../helpers"
 
 describe("commands.test", () => {
   it("should run all tests in a simple project", async () => {
-    const ctx = await makeTestContextA()
+    const garden = await makeTestGardenA()
+    const ctx = garden.getPluginContext()
     const command = new TestCommand()
 
-    const { result } = await command.action(
+    const { result } = await command.action({
+      garden,
       ctx,
-      { module: undefined },
-      { name: undefined, force: true, "force-build": true, watch: false },
-    )
+      args: { module: undefined },
+      opts: { name: undefined, force: true, "force-build": true, watch: false },
+    })
 
     expect(isSubset(taskResultOutputs(result!), {
       "build.module-a": {
@@ -43,14 +42,16 @@ describe("commands.test", () => {
   })
 
   it("should optionally test single module", async () => {
-    const ctx = await makeTestContextA()
+    const garden = await makeTestGardenA()
+    const ctx = garden.getPluginContext()
     const command = new TestCommand()
 
-    const { result } = await command.action(
+    const { result } = await command.action({
+      garden,
       ctx,
-      { module: ["module-a"] },
-      { name: undefined, force: true, "force-build": true, watch: false },
-    )
+      args: { module: ["module-a"] },
+      opts: { name: undefined, force: true, "force-build": true, watch: false },
+    })
 
     expect(isSubset(taskResultOutputs(result!), {
       "build.module-a": {
