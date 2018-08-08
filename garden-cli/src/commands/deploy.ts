@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
 import { DeployTask } from "../tasks/deploy"
 import {
   BooleanParameter,
   Command,
   CommandResult,
+  CommandParams,
   handleTaskResults,
   ParameterValues,
   StringsParameter,
@@ -58,7 +58,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   arguments = deployArgs
   options = deployOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
+  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const services = await ctx.getServices(args.service)
 
     if (services.length === 0) {
@@ -78,9 +78,10 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     const results = await processServices({
       services,
       watch,
-      pluginContext: ctx,
+      ctx,
+      garden,
       process: async (service) => {
-        return [await DeployTask.factory({ ctx, service, force, forceBuild })]
+        return [new DeployTask({ ctx, service, force, forceBuild })]
       },
     })
 

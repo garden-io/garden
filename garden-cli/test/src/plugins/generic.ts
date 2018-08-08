@@ -27,15 +27,15 @@ describe("generic plugin", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, [gardenPlugin])
-    ctx = garden.pluginContext
+    ctx = garden.getPluginContext()
     await garden.clearBuilds()
   })
 
   describe("getModuleBuildStatus", () => {
     it("should read a build version file if it exists", async () => {
       const module = await ctx.getModule(moduleName)
-      const version = await module.getVersion()
-      const buildPath = await module.getBuildPath()
+      const version = module.version
+      const buildPath = module.buildPath
       const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
 
       await writeModuleVersionFile(versionFilePath, version)
@@ -49,8 +49,8 @@ describe("generic plugin", () => {
   describe("buildModule", () => {
     it("should write a build version file after building", async () => {
       const module = await ctx.getModule(moduleName)
-      const version = await module.getVersion()
-      const buildPath = await module.getBuildPath()
+      const version = module.version
+      const buildPath = module.buildPath
       const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
 
       await ctx.buildModule({ moduleName })

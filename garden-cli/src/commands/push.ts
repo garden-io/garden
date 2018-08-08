@@ -9,6 +9,7 @@
 import {
   BooleanParameter,
   Command,
+  CommandParams,
   CommandResult,
   handleTaskResults,
   ParameterValues,
@@ -19,6 +20,7 @@ import { Module } from "../types/module"
 import { PushTask } from "../tasks/push"
 import { RuntimeError } from "../exceptions"
 import { TaskResults } from "../task-graph"
+import { Garden } from "../garden"
 import dedent = require("dedent")
 
 export const pushArgs = {
@@ -59,25 +61,26 @@ export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
   arguments = pushArgs
   options = pushOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
+  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     ctx.log.header({ emoji: "rocket", command: "Push modules" })
 
     const modules = await ctx.getModules(args.module)
 
-    const results = await pushModules(ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
+    const results = await pushModules(garden, ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
     return handleTaskResults(ctx, "push", { taskResults: results })
   }
 }
 
 export async function pushModules(
+  garden: Garden,
   ctx: PluginContext,
   modules: Module<any>[],
   forceBuild: boolean,
   allowDirty: boolean,
 ): Promise<TaskResults> {
   for (const module of modules) {
-    const version = await module.getVersion()
+    const version = module.version
 
     if (version.dirtyTimestamp && !allowDirty) {
       throw new RuntimeError(
@@ -87,9 +90,9 @@ export async function pushModules(
       )
     }
 
-    const task = await PushTask.factory({ ctx, module, forceBuild })
-    await ctx.addTask(task)
+    const task = new PushTask({ ctx, module, forceBuild })
+    await garden.addTask(task)
   }
 
-  return await ctx.processTasks()
+  return await garden.processTasks()
 }

@@ -10,16 +10,16 @@ import { difference } from "lodash"
 import dedent = require("dedent")
 import chalk from "chalk"
 
-import { PluginContext } from "../../plugin-context"
 import {
   Command,
   StringsParameter,
   ParameterValues,
   CommandResult,
+  CommandParams,
 } from "../base"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
-import { SourceConfig } from "../../types/project"
+import { SourceConfig } from "../../config/project"
 
 export const updateRemoteSourcesArguments = {
   source: new StringsParameter({
@@ -43,10 +43,7 @@ export class UpdateRemoteSourcesCommand extends Command<typeof updateRemoteSourc
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  async action(
-    ctx: PluginContext,
-    args: UpdateRemoteSourcesArguments,
-  ): Promise<CommandResult<SourceConfig[]>> {
+  async action({ ctx, args }: CommandParams<UpdateRemoteSourcesArguments>): Promise<CommandResult<SourceConfig[]>> {
 
     ctx.log.header({ emoji: "hammer_and_wrench", command: "update-remote sources" })
 

@@ -11,13 +11,13 @@ import dedent = require("dedent")
 import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions"
-import { PluginContext } from "../../plugin-context"
 import {
   Command,
   CommandResult,
   ParameterValues,
   StringParameter,
   PathParameter,
+  CommandParams,
 } from "../base"
 import {
   LinkedSource,
@@ -55,8 +55,7 @@ export class LinkModuleCommand extends Command<typeof linkModuleArguments> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  async action(ctx: PluginContext, args: LinkModuleArguments): Promise<CommandResult<LinkedSource[]>> {
-
+  async action({ ctx, args }: CommandParams<LinkModuleArguments>): Promise<CommandResult<LinkedSource[]>> {
     ctx.log.header({ emoji: "link", command: "link module" })
 
     const sourceType = "module"

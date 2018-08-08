@@ -8,13 +8,13 @@
 
 import dedent = require("dedent")
 
-import { PluginContext } from "../../plugin-context"
 import {
   Command,
   CommandResult,
   StringsParameter,
   ParameterValues,
   BooleanParameter,
+  CommandParams,
 } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
 import {
@@ -35,8 +35,8 @@ export const unlinkSourceOptions = {
   }),
 }
 
-export type UnlinkSourceArguments = ParameterValues<typeof unlinkSourceArguments>
-export type UnlinkSourceOptions = ParameterValues<typeof unlinkSourceOptions>
+type Args = ParameterValues<typeof unlinkSourceArguments>
+type Opts = ParameterValues<typeof unlinkSourceOptions>
 
 export class UnlinkSourceCommand extends Command<typeof unlinkSourceArguments, typeof unlinkSourceOptions> {
   name = "source"
@@ -54,11 +54,7 @@ export class UnlinkSourceCommand extends Command<typeof unlinkSourceArguments, t
         garden unlink source --all # unlinks all sources
   `
 
-  async action(
-    ctx: PluginContext,
-    args: UnlinkSourceArguments,
-    opts: UnlinkSourceOptions,
-  ): Promise<CommandResult<LinkedSource[]>> {
+  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
 
     ctx.log.header({ emoji: "chains", command: "unlink source" })
 

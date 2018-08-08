@@ -6,18 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Module } from "../types/module"
 import * as Bluebird from "bluebird"
 import { mapValues, keyBy, sortBy, orderBy, omit } from "lodash"
 import { createHash } from "crypto"
 import * as Joi from "joi"
-import { validate } from "../types/common"
+import { validate } from "../config/common"
 import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourcesDirName } from "../util/ext-source-util"
 import { LogNode } from "../logger/logger"
+import { ModuleConfig } from "../config/module"
 
 export const NEW_MODULE_VERSION = "0000000000"
 
@@ -82,17 +82,19 @@ export abstract class VcsHandler {
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract async updateRemoteSource(params: RemoteSourceParams)
 
-  async resolveTreeVersion(module: Module): Promise<TreeVersion> {
+  async resolveTreeVersion(path: string): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
-    const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
+    const versionFilePath = join(path, GARDEN_VERSIONFILE_NAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || this.getTreeVersion(module.path)
+    return fileVersion || this.getTreeVersion(path)
   }
 
-  async resolveVersion(module: Module, dependencies: Module[]): Promise<ModuleVersion> {
-    const treeVersion = await this.resolveTreeVersion(module)
+  async resolveVersion(moduleConfig: ModuleConfig, dependencies: ModuleConfig[]): Promise<ModuleVersion> {
+    const treeVersion = await this.resolveTreeVersion(moduleConfig.path)
 
-    validate(treeVersion, treeVersionSchema, { context: `${this.name} tree version for module at ${module.path}` })
+    validate(treeVersion, treeVersionSchema, {
+      context: `${this.name} tree version for module at ${moduleConfig.path}`,
+    })
 
     if (dependencies.length === 0) {
       return {
@@ -104,13 +106,13 @@ export abstract class VcsHandler {
 
     const namedDependencyVersions = await Bluebird.map(
       dependencies,
-      async (m: Module) => ({ name: m.name, ...await this.resolveTreeVersion(m) }),
+      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(m.path) }),
     )
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), v => omit(v, "name"))
 
     // keep the module at the top of the chain, dependencies sorted by name
     const sortedDependencies = sortBy(namedDependencyVersions, "name")
-    const allVersions: NamedTreeVersion[] = [{ name: module.name, ...treeVersion }].concat(sortedDependencies)
+    const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }].concat(sortedDependencies)
 
     const dirtyVersions = allVersions.filter(v => !!v.dirtyTimestamp)
 

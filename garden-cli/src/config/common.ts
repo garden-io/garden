@@ -9,7 +9,7 @@
 import { JoiObject } from "joi"
 import * as Joi from "joi"
 import * as uuid from "uuid"
-import { EnvironmentConfig } from "./project"
+import { EnvironmentConfig } from "../config/project"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 
@@ -39,6 +39,9 @@ export const joiIdentifier = () => Joi.string()
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
     "and cannot end with a dash) and additionally cannot contain consecutive dashes or be longer than 63 characters.",
 )
+
+export const joiStringMap = (valueSchema: JoiObject) => Joi
+  .object().pattern(/.+/, valueSchema)
 
 export const joiIdentifierMap = (valueSchema: JoiObject) => Joi
   .object().pattern(identifierRegex, valueSchema)

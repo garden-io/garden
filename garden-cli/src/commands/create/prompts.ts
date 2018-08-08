@@ -10,7 +10,7 @@ import * as inquirer from "inquirer"
 import * as Joi from "joi"
 import chalk from "chalk"
 
-import { joiIdentifier } from "../../types/common"
+import { joiIdentifier } from "../../config/common"
 import { ModuleType } from "./config-templates"
 
 export interface ModuleTypeChoice extends inquirer.objects.ChoiceOption {

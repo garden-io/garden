@@ -7,12 +7,12 @@
  */
 
 import chalk from "chalk"
-import { PluginContext } from "../plugin-context"
 import { LoggerType } from "../logger/types"
 import { ExecInServiceResult } from "../types/plugin/outputs"
 import {
   Command,
   CommandResult,
+  CommandParams,
   ParameterValues,
   StringParameter,
 } from "./base"
@@ -59,7 +59,7 @@ export class ExecCommand extends Command<typeof runArgs, typeof runOpts> {
   options = runOpts
   loggerType = LoggerType.basic
 
-  async action(ctx: PluginContext, args: Args): Promise<CommandResult<ExecInServiceResult>> {
+  async action({ ctx, args }: CommandParams<Args>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
     const command = args.command.split(" ")
 

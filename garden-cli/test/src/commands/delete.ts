@@ -6,12 +6,13 @@ import {
 import { Garden } from "../../../src/garden"
 import { EnvironmentStatus } from "../../../src/types/plugin/outputs"
 import { PluginFactory } from "../../../src/types/plugin/plugin"
-import { expectError, makeTestContextA } from "../../helpers"
+import { expectError, makeTestGardenA } from "../../helpers"
 import { expect } from "chai"
 
 describe("DeleteConfigCommand", () => {
   it("should delete a config variable", async () => {
-    const ctx = await makeTestContextA()
+    const garden = await makeTestGardenA()
+    const ctx = garden.getPluginContext()
     const command = new DeleteConfigCommand()
 
     const key = ["project", "mykey"]
@@ -19,27 +20,29 @@ describe("DeleteConfigCommand", () => {
 
     await ctx.setConfig({ key, value })
 
-    await command.action(ctx, { key: "project.mykey" })
+    await command.action({ garden, ctx, args: { key: "project.mykey" }, opts: {} })
 
     expect(await ctx.getConfig({ key })).to.eql({ value: null })
   })
 
   it("should throw on invalid key", async () => {
-    const ctx = await makeTestContextA()
+    const garden = await makeTestGardenA()
+    const ctx = garden.getPluginContext()
     const command = new DeleteConfigCommand()
 
     await expectError(
-      async () => await command.action(ctx, { key: "bla.mykey" }),
+      async () => await command.action({ garden, ctx, args: { key: "bla.mykey" }, opts: {} }),
       "parameter",
     )
   })
 
   it("should throw on missing key", async () => {
-    const ctx = await makeTestContextA()
+    const garden = await makeTestGardenA()
+    const ctx = garden.getPluginContext()
     const command = new DeleteConfigCommand()
 
     await expectError(
-      async () => await command.action(ctx, { key: "project.mykey" }),
+      async () => await command.action({ garden, ctx, args: { key: "project.mykey" }, opts: {} }),
       "not-found",
     )
   })
@@ -75,8 +78,9 @@ describe("DeleteEnvironmentCommand", () => {
 
   it("should destroy environment", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const ctx = garden.getPluginContext()
 
-    const { result } = await command.action(garden.pluginContext)
+    const { result } = await command.action({ garden, ctx, args: {}, opts: {} })
 
     expect(result!["test-plugin"]["configured"]).to.be.false
   })

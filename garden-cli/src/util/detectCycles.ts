@@ -7,7 +7,7 @@
  */
 
 import { get, isEqual, join, set, uniqWith } from "lodash"
-import { Module } from "../types/module"
+import { Module, getModuleKey } from "../types/module"
 import {
   ConfigurationError,
 } from "../exceptions"
@@ -33,13 +33,13 @@ export async function detectCircularDependencies(modules: Module[], services: Se
     */
   for (const module of modules) {
     // Build dependencies
-    for (const buildDep of module.config.build.dependencies) {
-      const depName = buildDep.name
+    for (const buildDep of module.build.dependencies) {
+      const depName = getModuleKey(buildDep.name, buildDep.plugin)
       set(buildGraph, [module.name, depName], { distance: 1, next: depName })
     }
 
     // Service dependencies
-    for (const service of module.services || []) {
+    for (const service of module.serviceConfigs || []) {
       for (const depName of service.dependencies) {
         set(serviceGraph, [service.name, depName], { distance: 1, next: depName })
       }

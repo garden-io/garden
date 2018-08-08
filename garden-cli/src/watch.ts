@@ -10,13 +10,12 @@ import { watch } from "chokidar"
 import {
   mapValues,
   set,
-  uniqBy,
+  uniq,
   values,
 } from "lodash"
 import { basename, parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
-import { Module } from "./types/module"
-import { KeyedSet } from "./util/keyed-set"
+import { Module, getModuleKey } from "./types/module"
 import { PluginContext } from "./plugin-context"
 import { getIgnorer, scanDirectory } from "./util/util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
@@ -29,13 +28,13 @@ export type ChangeHandler = (module: Module | null, configChanged: boolean) => P
   Resolves to modules and their build & service dependency modules (recursively).
   Each module is represented at most once in the output.
 */
-export async function autoReloadModules(modules: Module[]): Promise<Module[]> {
-  const moduleSet = new KeyedSet<Module>(m => m.name)
+export async function autoReloadModules(ctx: PluginContext, modules: Module[]): Promise<Module[]> {
+  const moduleSet = new Set<string>()
 
   const scanner = async (module: Module) => {
-    moduleSet.add(module)
-    for (const dep of await uniqueDependencyModules(module)) {
-      if (!moduleSet.has(dep)) {
+    moduleSet.add(module.name)
+    for (const dep of await uniqueDependencyModules(ctx, module)) {
+      if (!moduleSet.has(dep.name)) {
         await scanner(dep)
       }
     }
@@ -45,38 +44,15 @@ export async function autoReloadModules(modules: Module[]): Promise<Module[]> {
     await scanner(m)
   }
 
-  return moduleSet.entries()
+  // we retrieve the modules again to be sure we have the latest versions
+  return ctx.getModules(Array.from(moduleSet))
 }
 
-/*
-  Similar to autoReloadModules above, but uses pre-computed auto reload dependants
-  instead of traversing module configs (and thus doesn't need to be async).
-*/
-export function withDependants(modules: Module[], autoReloadDependants: AutoReloadDependants): Module[] {
-  const moduleSet = new KeyedSet<Module>(m => m.name)
-
-  const scanner = (module: Module) => {
-    moduleSet.add(module)
-    for (const dependant of (autoReloadDependants[module.name] || [])) {
-      if (!moduleSet.has(dependant)) {
-        scanner(dependant)
-      }
-    }
-  }
-
-  for (const m of modules) {
-    scanner(m)
-  }
-
-  return moduleSet.entries()
-}
-
-export async function computeAutoReloadDependants(ctx: PluginContext):
-  Promise<AutoReloadDependants> {
+export async function computeAutoReloadDependants(ctx: PluginContext): Promise<AutoReloadDependants> {
   const dependants = {}
 
   for (const module of await ctx.getModules()) {
-    const depModules: Module[] = await uniqueDependencyModules(module)
+    const depModules: Module[] = await uniqueDependencyModules(ctx, module)
     for (const dep of depModules) {
       set(dependants, [dep.name, module.name], module)
     }
@@ -85,10 +61,10 @@ export async function computeAutoReloadDependants(ctx: PluginContext):
   return mapValues(dependants, values)
 }
 
-async function uniqueDependencyModules(module: Module): Promise<Module[]> {
-  const buildDepModules = await module.getBuildDependencies()
-  const serviceDepModules = (await module.getServiceDependencies()).map(s => s.module)
-  return uniqBy(buildDepModules.concat(serviceDepModules), m => m.name)
+async function uniqueDependencyModules(ctx: PluginContext, module: Module): Promise<Module[]> {
+  const buildDeps = module.build.dependencies.map(d => getModuleKey(d.name, d.plugin))
+  const serviceDeps = (await ctx.getServices(module.serviceDependencyNames)).map(s => s.module.name)
+  return ctx.getModules(uniq(buildDeps.concat(serviceDeps)))
 }
 
 export class FSWatcher {

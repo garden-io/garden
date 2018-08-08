@@ -23,6 +23,7 @@ import { ConfigurationError } from "./exceptions"
 import {
   BuildCopySpec,
   Module,
+  getModuleKey,
 } from "./types/module"
 import { zip } from "lodash"
 import * as execa from "execa"
@@ -45,22 +46,22 @@ export class BuildDir {
   async syncFromSrc(module: Module) {
     await this.sync(
       resolve(this.projectRoot, module.path) + sep,
-      await this.buildPath(module),
+      await this.buildPath(module.name),
     )
   }
 
   async syncDependencyProducts(module: Module) {
     await this.syncFromSrc(module)
-    const buildPath = await this.buildPath(module)
-    const buildDependencies = await module.getBuildDependencies()
-    const dependencyConfigs = module.config.build.dependencies || []
+    const buildPath = await this.buildPath(module.name)
+    const buildDependencies = await module.build.dependencies
+    const dependencyConfigs = module.build.dependencies || []
 
     await bluebirdMap(zip(buildDependencies, dependencyConfigs), async ([sourceModule, depConfig]) => {
       if (!sourceModule || !depConfig || !depConfig.copy) {
         return
       }
 
-      const sourceBuildPath = await this.buildPath(sourceModule)
+      const sourceBuildPath = await this.buildPath(getModuleKey(sourceModule.name, sourceModule.plugin))
 
       // Sync to the module's top-level dir by default.
       await bluebirdMap(depConfig.copy, (copy: BuildCopySpec) => {
@@ -87,8 +88,8 @@ export class BuildDir {
     await emptyDir(this.buildDirPath)
   }
 
-  async buildPath(module: Module): Promise<string> {
-    const path = resolve(this.buildDirPath, module.name)
+  async buildPath(moduleName: string): Promise<string> {
+    const path = resolve(this.buildDirPath, moduleName)
     await ensureDir(path)
     return path
   }

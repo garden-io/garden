@@ -11,7 +11,6 @@ import dedent = require("dedent")
 import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions"
-import { PluginContext } from "../../plugin-context"
 import {
   Command,
   CommandResult,
@@ -21,6 +20,7 @@ import {
 } from "../base"
 import { addLinkedSources } from "../../util/ext-source-util"
 import { LinkedSource } from "../../config-store"
+import { CommandParams } from "../base"
 
 export const linkSourceArguments = {
   source: new StringParameter({
@@ -50,7 +50,7 @@ export class LinkSourceCommand extends Command<typeof linkSourceArguments> {
         garden link source my-source path/to/my-source # links my-source to its local version at the given path
   `
 
-  async action(ctx: PluginContext, args: LinkSourceArguments): Promise<CommandResult<LinkedSource[]>> {
+  async action({ ctx, args }: CommandParams<LinkSourceArguments>): Promise<CommandResult<LinkedSource[]>> {
 
     ctx.log.header({ emoji: "link", command: "link source" })
 

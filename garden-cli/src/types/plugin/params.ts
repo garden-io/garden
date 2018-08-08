@@ -13,7 +13,7 @@ import { ModuleVersion } from "../../vcs/base"
 import {
   Environment,
   Primitive,
-} from "../common"
+} from "../../config/common"
 import { Module } from "../module"
 import {
   RuntimeContext,
@@ -116,7 +116,7 @@ export interface TestModuleParams<T extends Module = Module> extends PluginModul
   interactive: boolean
   runtimeContext: RuntimeContext
   silent: boolean
-  testConfig: T["tests"][0]
+  testConfig: T["testConfigs"][0]
 }
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {

@@ -60,19 +60,14 @@ describe("commands.call", () => {
 
   it("should find the endpoint for a service and call it with the specified path", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new CallCommand()
 
     nock("http://service-a.test-project-b.local.app.garden:32000")
       .get("/path-a")
       .reply(200, "bla")
 
-    const { result } = await command.action(
-      ctx,
-      {
-        serviceAndPath: "service-a/path-a",
-      },
-    )
+    const { result } = await command.action({ garden, ctx, args: { serviceAndPath: "service-a/path-a" }, opts: {} })
 
     expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
     expect(result.serviceName).to.equal("service-a")
@@ -84,19 +79,14 @@ describe("commands.call", () => {
 
   it("should default to the path '/' if that is exposed if no path is requested", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new CallCommand()
 
     nock("http://service-a.test-project-b.local.app.garden:32000")
       .get("/path-a")
       .reply(200, "bla")
 
-    const { result } = await command.action(
-      ctx,
-      {
-        serviceAndPath: "service-a",
-      },
-    )
+    const { result } = await command.action({ garden, ctx, args: { serviceAndPath: "service-a" }, opts: {} })
 
     expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
     expect(result.serviceName).to.equal("service-a")
@@ -107,19 +97,14 @@ describe("commands.call", () => {
 
   it("should otherwise use the first defined endpoint if no path is requested", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new CallCommand()
 
     nock("http://service-b.test-project-b.local.app.garden:32000")
       .get("/")
       .reply(200, "bla")
 
-    const { result } = await command.action(
-      ctx,
-      {
-        serviceAndPath: "service-b",
-      },
-    )
+    const { result } = await command.action({ garden, ctx, args: { serviceAndPath: "service-b" }, opts: {} })
 
     expect(result.url).to.equal("http://service-b.test-project-b.local.app.garden:32000/")
     expect(result.serviceName).to.equal("service-b")
@@ -130,16 +115,11 @@ describe("commands.call", () => {
 
   it("should error if service isn't running", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new CallCommand()
 
     try {
-      await command.action(
-        ctx,
-        {
-          serviceAndPath: "service-d/path-d",
-        },
-      )
+      await command.action({ garden, ctx, args: { serviceAndPath: "service-d/path-d" }, opts: {} })
     } catch (err) {
       expect(err.type).to.equal("runtime")
       return
@@ -150,16 +130,11 @@ describe("commands.call", () => {
 
   it("should error if service has no endpoints", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new CallCommand()
 
     try {
-      await command.action(
-        ctx,
-        {
-          serviceAndPath: "service-c/path-c",
-        },
-      )
+      await command.action({ garden, ctx, args: { serviceAndPath: "service-c/path-c" }, opts: {} })
     } catch (err) {
       expect(err.type).to.equal("parameter")
       return
@@ -170,16 +145,11 @@ describe("commands.call", () => {
 
   it("should error if service has no matching endpoints", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new CallCommand()
 
     try {
-      await command.action(
-        ctx,
-        {
-          serviceAndPath: "service-a/bla",
-        },
-      )
+      await command.action({ garden, ctx, args: { serviceAndPath: "service-a/bla" }, opts: {} })
     } catch (err) {
       expect(err.type).to.equal("parameter")
       return

@@ -5,9 +5,9 @@ import {
   projectTemplate,
   moduleTemplate,
 } from "../../../../src/commands/create/config-templates"
-import { validate } from "../../../../src/types/common"
-import { baseModuleSpecSchema } from "../../../../src/types/module"
-import { projectSchema } from "../../../../src/types/project"
+import { validate } from "../../../../src/config/common"
+import { baseModuleSpecSchema } from "../../../../src/config/module"
+import { projectSchema } from "../../../../src/config/project"
 
 describe("ConfigTemplates", () => {
   describe("projectTemplate", () => {

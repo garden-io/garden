@@ -9,17 +9,12 @@
 import * as td from "testdouble"
 import { resolve, join } from "path"
 import { remove } from "fs-extra"
-import { PluginContext } from "../src/plugin-context"
-import {
-  ContainerModule,
-  containerModuleSpecSchema,
-  ContainerServiceConfig,
-} from "../src/plugins/container"
+import { containerModuleSpecSchema } from "../src/plugins/container"
 import { testGenericModule, buildGenericModule } from "../src/plugins/generic"
 import { TaskResults } from "../src/task-graph"
 import {
   validate,
-} from "../src/types/common"
+} from "../src/config/common"
 import {
   GardenPlugin,
   PluginActions,
@@ -27,9 +22,7 @@ import {
   ModuleActions,
 } from "../src/types/plugin/plugin"
 import { Garden } from "../src/garden"
-import {
-  ModuleConfig,
-} from "../src/types/module"
+import { ModuleConfig } from "../src/config/module"
 import { mapValues } from "lodash"
 import {
   DeleteConfigParams,
@@ -70,14 +63,6 @@ export async function profileBlock(description: string, block: () => Promise<any
 
 export const projectRootA = getDataDir("test-project-a")
 
-class TestModule extends ContainerModule {
-  type = "test"
-
-  async getVersion() {
-    return testModuleVersion
-  }
-}
-
 export const testPlugin: PluginFactory = (): GardenPlugin => {
   const _config = {}
 
@@ -110,7 +95,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
       test: {
         testModule: testGenericModule,
 
-        async parseModule({ moduleConfig }: ParseModuleParams<TestModule>) {
+        async parseModule({ moduleConfig }: ParseModuleParams) {
           moduleConfig.spec = validate(
             moduleConfig.spec,
             containerModuleSpecSchema,
@@ -118,31 +103,27 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           )
 
           // validate services
-          const services: ContainerServiceConfig[] = moduleConfig.spec.services.map(spec => ({
+          moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => ({
             name: spec.name,
             dependencies: spec.dependencies,
             outputs: spec.outputs,
             spec,
           }))
 
-          const tests = moduleConfig.spec.tests.map(t => ({
+          moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
             name: t.name,
             dependencies: t.dependencies,
             spec: t,
             timeout: t.timeout,
           }))
 
-          return {
-            module: moduleConfig,
-            services,
-            tests,
-          }
+          return moduleConfig
         },
 
         buildModule: buildGenericModule,
 
         async runModule(params: RunModuleParams) {
-          const version = await params.module.getVersion()
+          const version = await params.module.version
 
           return {
             moduleName: params.module.name,
@@ -202,20 +183,17 @@ export const defaultModuleConfig: ModuleConfig = {
   spec: {
     services: [
       {
-        name: "testService",
+        name: "test-service",
         dependencies: [],
       },
     ],
   },
+  serviceConfigs: [],
+  testConfigs: [],
 }
 
-export const makeTestModule = (ctx: PluginContext, params: Partial<ModuleConfig> = {}) => {
-  return new TestModule(
-    ctx,
-    { ...defaultModuleConfig, ...params },
-    defaultModuleConfig.spec.services,
-    [],
-  )
+export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
+  return { ...defaultModuleConfig, ...params }
 }
 
 export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
@@ -231,7 +209,7 @@ export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFa
 
 export const makeTestContext = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
   const garden = await makeTestGarden(projectRoot, extraPlugins)
-  return garden.pluginContext
+  return garden.getPluginContext()
 }
 
 export const makeTestGardenA = async (extraPlugins: PluginFactory[] = []) => {
@@ -240,7 +218,7 @@ export const makeTestGardenA = async (extraPlugins: PluginFactory[] = []) => {
 
 export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
   const garden = await makeTestGardenA(extraPlugins)
-  return garden.pluginContext
+  return garden.getPluginContext()
 }
 
 export function stubAction<T extends keyof PluginActions>(
@@ -266,10 +244,14 @@ export async function expectError(fn: Function, typeOrCallback: string | ((err: 
       return typeOrCallback(err)
     } else {
       if (!err.type) {
-        throw new Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
+        const newError = Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
+        newError.stack = err.stack
+        throw newError
       }
       if (err.type !== typeOrCallback) {
-        throw new Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
+        const newError = Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
+        newError.stack = err.stack
+        throw newError
       }
     }
     return
@@ -298,9 +280,9 @@ export function stubGitCli() {
  * Prevents git cloning. Use if creating a Garden instance with test-project-ext-module-sources
  * or test-project-ext-project-sources as project root.
  */
-export function stubExtSources(ctx: PluginContext) {
+export function stubExtSources(garden: Garden) {
   stubGitCli()
-  const getRemoteSourcesDirName = td.replace(ctx.vcs, "getRemoteSourcesDirName")
+  const getRemoteSourcesDirName = td.replace(garden.vcs, "getRemoteSourcesDirName")
 
   td.when(getRemoteSourcesDirName("module")).thenReturn(join("mock-dot-garden", "sources", "module"))
   td.when(getRemoteSourcesDirName("project")).thenReturn(join("mock-dot-garden", "sources", "project"))

@@ -107,6 +107,20 @@ describe("TreeCache", () => {
     })
   })
 
+  describe("delete", () => {
+    it("should delete a specific entry from the cache", () => {
+      const key = ["my-key"]
+      const value = "my-value"
+      const context = ["context", "a"]
+
+      cache.set(key, value, context)
+      cache.delete(key)
+
+      expect(cache.get(key)).to.be.undefined
+      expect(cache.getByContext(context).size).to.equal(0)
+    })
+  })
+
   describe("invalidate", () => {
     it("should invalidate keys with the exact given context", () => {
       const keyA = ["key", "a"]
@@ -140,6 +154,10 @@ describe("TreeCache", () => {
       expect(mapToPairs(cache.getByContext(contextA))).to.eql([])
       expect(mapToPairs(cache.getByContext(contextB))).to.eql([])
     })
+
+    it("should return if the specified context cannot be found", () => {
+      cache.invalidate(["bla"])
+    })
   })
 
   describe("invalidateUp", () => {
@@ -168,6 +186,10 @@ describe("TreeCache", () => {
       expect(cache.get(keyB)).to.be.undefined
       expect(cache.get(keyC)).to.equal(valueC)
     })
+
+    it("should return if the specified context cannot be found", () => {
+      cache.invalidateUp(["bla"])
+    })
   })
 
   describe("invalidateDown", () => {
@@ -195,6 +217,10 @@ describe("TreeCache", () => {
       expect(cache.get(keyA)).to.be.undefined
       expect(cache.get(keyB)).to.be.undefined
       expect(cache.get(keyC)).to.equal(valueC)
+    })
+
+    it("should return if the specified context cannot be found", () => {
+      cache.invalidateDown(["bla"])
     })
   })
 })

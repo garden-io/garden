@@ -7,9 +7,10 @@ describe("commands.validate", () => {
   it("should successfully validate the hello-world project", async () => {
     const root = join(__dirname, "..", "..", "..", "..", "examples", "hello-world")
     const garden = await Garden.factory(root)
+    const ctx = garden.getPluginContext()
     const command = new ValidateCommand()
 
-    await command.action(garden.pluginContext)
+    await command.action({ garden, ctx, args: {}, opts: {} })
   })
 
   it("should fail validating the bad-project project", async () => {
@@ -21,8 +22,9 @@ describe("commands.validate", () => {
   it("should fail validating the bad-module project", async () => {
     const root = join(__dirname, "data", "validate", "bad-module")
     const garden = await Garden.factory(root)
+    const ctx = garden.getPluginContext()
     const command = new ValidateCommand()
 
-    await expectError(async () => await command.action(garden.pluginContext), "configuration")
+    await expectError(async () => await command.action({ garden, ctx, args: {}, opts: {} }), "configuration")
   })
 })

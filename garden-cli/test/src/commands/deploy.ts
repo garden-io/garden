@@ -67,19 +67,21 @@ describe("DeployCommand", () => {
 
   it("should build and deploy all modules in a project", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new DeployCommand()
 
-    const { result } = await command.action(
-      ctx, {
+    const { result } = await command.action({
+      garden,
+      ctx,
+      args: {
         service: undefined,
       },
-      {
+      opts: {
         watch: false,
         force: false,
         "force-build": true,
       },
-    )
+    })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
@@ -94,20 +96,21 @@ describe("DeployCommand", () => {
 
   it("should optionally build and deploy single service and its dependencies", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
     const command = new DeployCommand()
 
-    const { result } = await command.action(
+    const { result } = await command.action({
+      garden,
       ctx,
-      {
+      args: {
         service: ["service-b"],
       },
-      {
+      opts: {
         watch: false,
         force: false,
         "force-build": true,
       },
-    )
+    })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },

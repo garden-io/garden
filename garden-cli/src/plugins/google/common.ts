@@ -6,21 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  Module,
-  ModuleSpec,
-} from "../../types/module"
+import { Module } from "../../types/module"
 import { ConfigureEnvironmentParams } from "../../types/plugin/params"
-import {
-  BaseServiceSpec,
-  Service,
-} from "../../types/service"
+import { Service } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
 import { GenericTestSpec } from "../generic"
 import { GCloud } from "./gcloud"
-import {
-  Provider,
-} from "../../types/plugin/plugin"
+import { Provider } from "../../types/plugin/plugin"
+import { ModuleSpec } from "../../config/module"
+import { BaseServiceSpec } from "../../config/service"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
@@ -28,7 +22,7 @@ export interface GoogleCloudServiceSpec extends BaseServiceSpec {
   project?: string,
 }
 
-export abstract class GoogleCloudModule<
+export interface GoogleCloudModule<
   M extends ModuleSpec = ModuleSpec,
   S extends GoogleCloudServiceSpec = GoogleCloudServiceSpec,
   T extends GenericTestSpec = GenericTestSpec,

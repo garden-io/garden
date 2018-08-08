@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
 import {
   DeleteConfigResult,
   EnvironmentStatusMap,
@@ -14,6 +13,7 @@ import {
 import {
   Command,
   CommandResult,
+  CommandParams,
   ParameterValues,
   StringParameter,
 } from "./base"
@@ -59,7 +59,7 @@ export class DeleteConfigCommand extends Command<typeof deleteConfigArgs> {
 
   arguments = deleteConfigArgs
 
-  async action(ctx: PluginContext, args: DeleteArgs): Promise<CommandResult<DeleteConfigResult>> {
+  async action({ ctx, args }: CommandParams<DeleteArgs>): Promise<CommandResult<DeleteConfigResult>> {
     const key = args.key.split(".")
     const result = await ctx.deleteConfig({ key })
 
@@ -86,7 +86,7 @@ export class DeleteEnvironmentCommand extends Command {
     resources.
   `
 
-  async action(ctx: PluginContext): Promise<CommandResult<EnvironmentStatusMap>> {
+  async action({ ctx }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
     const { name } = ctx.getEnvironment()
     ctx.log.header({ emoji: "skull_and_crossbones", command: `Deleting ${name} environment` })
 

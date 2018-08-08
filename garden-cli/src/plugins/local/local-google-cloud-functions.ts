@@ -6,13 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  ModuleConfig,
-} from "../../types/module"
 import { ParseModuleParams } from "../../types/plugin/params"
-import {
-  ServiceConfig,
-} from "../../types/service"
 import { join } from "path"
 import {
   GcfModule,
@@ -22,8 +16,8 @@ import {
   GardenPlugin,
 } from "../../types/plugin/plugin"
 import { STATIC_DIR } from "../../constants"
+import { ServiceConfig } from "../../config/service"
 import {
-  ContainerModuleSpec,
   ContainerServiceSpec,
   ServicePortProtocol,
 } from "../container"
@@ -43,7 +37,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const parsed = await parseGcfModule(params)
 
         // convert the module and services to containers to run locally
-        const services: ServiceConfig<ContainerServiceSpec>[] = parsed.services.map((s) => {
+        const serviceConfigs: ServiceConfig<ContainerServiceSpec>[] = parsed.serviceConfigs.map((s) => {
           const functionEntrypoint = s.spec.entrypoint || s.name
 
           const spec = {
@@ -77,11 +71,11 @@ export const gardenPlugin = (): GardenPlugin => ({
           }
         })
 
-        const module: ModuleConfig<ContainerModuleSpec> = {
+        return {
           allowPush: true,
           build: {
             command: [],
-            dependencies: parsed.module.build.dependencies.concat([{
+            dependencies: parsed.build.dependencies.concat([{
               name: emulatorModuleName,
               plugin: pluginName,
               copy: [{
@@ -90,27 +84,22 @@ export const gardenPlugin = (): GardenPlugin => ({
               }],
             }]),
           },
-          name: parsed.module.name,
-          path: parsed.module.path,
+          name: parsed.name,
+          path: parsed.path,
           type: "container",
-          variables: parsed.module.variables,
+          variables: parsed.variables,
 
           spec: {
             buildArgs: {
-              baseImageName: `${baseContainerName}:\${dependencies.${baseContainerName}.version}`,
+              baseImageName: `${baseContainerName}:\${modules.${baseContainerName}.version}`,
             },
-            image: `${parsed.module.name}:\${module.version}`,
-            services: services.map(s => <ContainerServiceSpec>s.spec),
+            image: `${parsed.name}:\${modules.${parsed.name}.version}`,
+            services: serviceConfigs.map(s => <ContainerServiceSpec>s.spec),
             tests: [],
           },
-        }
 
-        const tests = parsed.tests
-
-        return {
-          module,
-          services,
-          tests,
+          serviceConfigs,
+          testConfigs: parsed.testConfigs,
         }
       },
     },

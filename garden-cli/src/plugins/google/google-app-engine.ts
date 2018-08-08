@@ -35,7 +35,7 @@ export interface GoogleAppEngineServiceSpec extends ContainerServiceSpec {
   project?: string
 }
 
-export class GoogleAppEngineModule extends ContainerModule<ContainerModuleSpec, GoogleAppEngineServiceSpec> { }
+export interface GoogleAppEngineModule extends ContainerModule<ContainerModuleSpec, GoogleAppEngineServiceSpec> { }
 
 export const gardenPlugin = (): GardenPlugin => ({
   actions: {

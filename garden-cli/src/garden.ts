@@ -17,15 +17,17 @@ import {
   extend,
   flatten,
   isString,
-  values,
   fromPairs,
   merge,
-  pick,
   keyBy,
   cloneDeep,
+  pickBy,
+  sortBy,
+  uniqBy,
 } from "lodash"
 import * as Joi from "joi"
 
+const AsyncLock = require("async-lock")
 import { TreeCache } from "./cache"
 import {
   PluginContext,
@@ -35,7 +37,7 @@ import {
   builtinPlugins,
   fixedPlugins,
 } from "./plugins/plugins"
-import { Module } from "./types/module"
+import { Module, moduleFromConfig, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
 import {
   moduleActionDescriptions,
   moduleActionNames,
@@ -45,12 +47,13 @@ import {
   Provider,
   RegisterPluginParam,
 } from "./types/plugin/plugin"
-import { EnvironmentConfig, SourceConfig } from "./types/project"
+import { EnvironmentConfig, SourceConfig } from "./config/project"
 import {
   findByName,
   getIgnorer,
   getNames,
   scanDirectory,
+  pickKeys,
 } from "./util/util"
 import {
   DEFAULT_NAMESPACE,
@@ -61,7 +64,7 @@ import {
   ParameterError,
   PluginError,
 } from "./exceptions"
-import { VcsHandler } from "./vcs/base"
+import { VcsHandler, ModuleVersion } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
 import {
@@ -83,34 +86,23 @@ import {
   Environment,
   joiIdentifier,
   validate,
-} from "./types/common"
+} from "./config/common"
 import { Service } from "./types/service"
-import {
-  TemplateStringContext,
-  getTemplateContext,
-  resolveTemplateStrings,
-} from "./template-string"
+import { resolveTemplateStrings } from "./template-string"
 import {
   configSchema,
   GardenConfig,
   loadConfig,
-} from "./types/config"
-import { Task } from "./types/task"
+} from "./config/base"
+import { Task } from "./tasks/base"
 import { LocalConfigStore } from "./config-store"
 import { detectCircularDependencies } from "./util/detectCycles"
 import {
   getLinkedSources,
   ExternalSourceType,
 } from "./util/ext-source-util"
-import { pickBy } from "lodash"
-
-export interface ModuleMap<T extends Module> {
-  [key: string]: T
-}
-
-export interface ServiceMap<T extends Module = Module> {
-  [key: string]: Service<T>
-}
+import { BuildDependencyConfig, ModuleConfig } from "./config/module"
+import { ProjectConfigContext, ModuleConfigContext } from "./config/config-context"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -141,19 +133,21 @@ export interface ContextOpts {
   plugins?: RegisterPluginParam[],
 }
 
+const scanLock = new AsyncLock()
+
 export class Garden {
   public readonly log: RootLogNode
   public readonly actionHandlers: PluginActionMap
   public readonly moduleActionHandlers: ModuleActionMap
-  public readonly pluginContext: PluginContext
 
   private readonly loadedPlugins: { [key: string]: GardenPlugin }
-  private readonly modules: ModuleMap<any>
+  private moduleConfigs: ModuleConfigMap<any>
   private modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: PluginFactory }
-  private readonly services: ServiceMap
-  private taskGraph: TaskGraph
+  private readonly serviceNameIndex: { [key: string]: string }
+  private readonly taskGraph: TaskGraph
   private readonly configKeyNamespaces: string[]
+  private readonly pluginContext: PluginContext
 
   public readonly localConfigStore: LocalConfigStore
   public readonly vcs: VcsHandler
@@ -162,9 +156,9 @@ export class Garden {
   constructor(
     public readonly projectRoot: string,
     public readonly projectName: string,
-    private readonly environment: string,
+    public readonly environmentName: string,
     private readonly namespace: string,
-    public readonly config: EnvironmentConfig,
+    public readonly environmentConfig: EnvironmentConfig,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
     logger?: RootLogNode,
@@ -176,18 +170,18 @@ export class Garden {
     this.localConfigStore = new LocalConfigStore(this.projectRoot)
     this.cache = new TreeCache()
 
-    this.modules = {}
-    this.services = {}
+    this.moduleConfigs = {}
+    this.serviceNameIndex = {}
     this.loadedPlugins = {}
     this.registeredPlugins = {}
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
     this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
 
-    this.config = config
+    this.environmentConfig = environmentConfig
 
     this.configKeyNamespaces = ["project"]
 
-    this.pluginContext = createPluginContext(this)
+    this.pluginContext = this.getPluginContext()
     this.taskGraph = new TaskGraph(this.pluginContext)
   }
 
@@ -205,8 +199,7 @@ export class Garden {
       }
     } else {
       config = await loadConfig(projectRoot, projectRoot)
-      const templateContext = await getTemplateContext()
-      parsedConfig = await resolveTemplateStrings(config, templateContext)
+      parsedConfig = await resolveTemplateStrings(config, new ProjectConfigContext())
 
       if (!parsedConfig.project) {
         throw new ConfigurationError(`Path ${projectRoot} does not contain a project configuration`, {
@@ -266,7 +259,7 @@ export class Garden {
     // Resolve the project configuration based on selected environment
     const projectEnvConfig: EnvironmentConfig = {
       name: environment,
-      providers: values(mergedProviders),
+      providers: Object.values(mergedProviders),
       variables: merge({}, environmentDefaults.variables, envConfig.variables),
     }
 
@@ -288,6 +281,7 @@ export class Garden {
       garden.registerPlugin(plugin)
     }
 
+    // Load fixed plugins (e.g. built-in module types)
     for (const plugin of fixedPlugins) {
       await garden.loadPlugin(plugin, {})
     }
@@ -303,10 +297,14 @@ export class Garden {
 
   getEnvironment(): Environment {
     return {
-      name: this.environment,
+      name: this.environmentName,
       namespace: this.namespace,
-      config: this.config,
+      config: this.environmentConfig,
     }
+  }
+
+  getPluginContext() {
+    return createPluginContext(this)
   }
 
   async clearBuilds() {
@@ -414,29 +412,24 @@ export class Garden {
 
     // allow plugins to extend their own config (that gets passed to action handlers)
     if (plugin.config) {
-      const providerConfig = findByName(this.config.providers, pluginName)
+      const providerConfig = findByName(this.environmentConfig.providers, pluginName)
       if (providerConfig) {
         extend(providerConfig, plugin.config)
       } else {
-        this.config.providers.push(plugin.config)
+        this.environmentConfig.providers.push(plugin.config)
       }
     }
 
     for (const modulePath of plugin.modules || []) {
-      let module = await this.resolveModule(modulePath)
-      if (!module) {
+      let moduleConfig = await this.resolveModule(modulePath)
+      if (!moduleConfig) {
         throw new PluginError(`Could not load module "${modulePath}" specified in plugin "${pluginName}"`, {
           pluginName,
           modulePath,
         })
       }
-      module = new Module(
-        this.pluginContext,
-        { ...module.config, name: `${pluginName}--${module.name}` },
-        module.services,
-        module.tests,
-      )
-      await this.addModule(module)
+      moduleConfig.plugin = pluginName
+      await this.addModule(moduleConfig)
     }
 
     const actions = plugin.actions || {}
@@ -460,7 +453,7 @@ export class Garden {
     const plugin = this.loadedPlugins[pluginName]
 
     if (!plugin) {
-      throw new PluginError(`Could not find plugin ${pluginName}`, {
+      throw new PluginError(`Could not find plugin ${pluginName}. Are you missing a provider configuration?`, {
         pluginName,
         availablePlugins: Object.keys(this.loadedPlugins),
       })
@@ -519,31 +512,33 @@ export class Garden {
       await this.scanModules()
     }
 
-    if (!names) {
-      return values(this.modules)
-    }
+    let configs: ModuleConfig[]
 
-    const output: Module[] = []
-    const missing: string[] = []
+    if (!!names) {
+      configs = []
+      const missing: string[] = []
 
-    for (const name of names) {
-      const module = this.modules[name]
+      for (const name of names) {
+        const module = this.moduleConfigs[name]
 
-      if (!module) {
-        missing.push(name)
-      } else {
-        output.push(module)
+        if (!module) {
+          missing.push(name)
+        } else {
+          configs.push(module)
+        }
       }
+
+      if (missing.length) {
+        throw new ParameterError(`Could not find module(s): ${missing.join(", ")}`, {
+          missing,
+          available: Object.keys(this.moduleConfigs),
+        })
+      }
+    } else {
+      configs = Object.values(this.moduleConfigs)
     }
 
-    if (missing.length) {
-      throw new ParameterError(`Could not find module(s): ${missing.join(", ")}`, {
-        missing,
-        available: Object.keys(this.modules),
-      })
-    }
-
-    return output
+    return Bluebird.map(configs, config => moduleFromConfig(this, config))
   }
 
   /**
@@ -553,41 +548,79 @@ export class Garden {
     return (await this.getModules([name], noScan))[0]
   }
 
+  /**
+   * Given the provided lists of build and service dependencies, return a list of all modules
+   * required to satisfy those dependencies.
+   */
+  async resolveModuleDependencies(buildDependencies: BuildDependencyConfig[], serviceDependencies: string[]) {
+    const buildDeps = await Bluebird.map(buildDependencies, async (dep) => {
+      const moduleKey = getModuleKey(dep.name, dep.plugin)
+      const module = await this.getModule(moduleKey)
+      return [module].concat(await this.resolveModuleDependencies(module.build.dependencies, []))
+    })
+
+    const runtimeDeps = await Bluebird.map(serviceDependencies, async (serviceName) => {
+      const service = await this.getService(serviceName)
+      return this.resolveModuleDependencies(
+        [{ name: service.module.name, copy: [] }],
+        service.config.dependencies || [],
+      )
+    })
+
+    const deps = flatten(buildDeps).concat(flatten(runtimeDeps))
+
+    return sortBy(uniqBy(deps, "name"), "name")
+  }
+
+  /**
+   * Given a module, and a list of dependencies, resolve the version for that combination of modules.
+   * The combined version is a either the latest dirty module version (if any), or the hash of the module version
+   * and the versions of its dependencies (in sorted order).
+   */
+  async resolveVersion(moduleName: string, moduleDependencies: BuildDependencyConfig[], force = false) {
+    const config = this.moduleConfigs[moduleName]
+    const cacheKey = ["moduleVersions", moduleName]
+
+    if (!force) {
+      const cached = <ModuleVersion>this.cache.get(cacheKey)
+
+      if (cached) {
+        return cached
+      }
+    }
+
+    const dependencyKeys = moduleDependencies.map(dep => getModuleKey(dep.name, dep.plugin))
+    const dependencies = Object.values(pickKeys(this.moduleConfigs, dependencyKeys, "module config"))
+    const cacheContexts = dependencies.concat([config]).map(c => getModuleCacheContext(c))
+
+    const version = await this.vcs.resolveVersion(config, dependencies)
+
+    this.cache.set(cacheKey, version, ...cacheContexts)
+    return version
+  }
+
   /*
-    Returns all services that are registered in this context.
+    Returns all services that are registered in this context, or the ones specified.
     Scans for modules and services in the project root if it hasn't already been done.
    */
   async getServices(names?: string[], noScan?: boolean): Promise<Service[]> {
-    // TODO: deduplicate (this is almost the same as getModules()
     if (!this.modulesScanned && !noScan) {
       await this.scanModules()
     }
 
-    if (!names) {
-      return values(this.services)
-    }
+    const picked = names ? pickKeys(this.serviceNameIndex, names, "service") : this.serviceNameIndex
 
-    const output: Service[] = []
-    const missing: string[] = []
+    return Bluebird.map(Object.entries(picked), async ([serviceName, moduleName]) => {
+      const module = await this.getModule(moduleName)
+      const config = findByName(module.serviceConfigs, serviceName)!
 
-    for (const name of names) {
-      const service = this.services[name]
-
-      if (!service) {
-        missing.push(name)
-      } else {
-        output.push(service)
+      return {
+        name: serviceName,
+        config,
+        module,
+        spec: config.spec,
       }
-    }
-
-    if (missing.length) {
-      throw new ParameterError(`Could not find service(s): ${missing.join(", ")}`, {
-        missing,
-        available: Object.keys(this.services),
-      })
-    }
-
-    return output
+    })
   }
 
   /**
@@ -600,54 +633,64 @@ export class Garden {
   /*
     Scans the project root for modules and adds them to the context.
    */
-  async scanModules() {
-    let extSourcePaths: string[] = []
-
-    // Add external sources that are defined at the project level. External sources are either kept in
-    // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
-    for (const { name, repositoryUrl } of this.projectSources) {
-      const path = await this.loadExtSourcePath({ name, repositoryUrl, sourceType: "project" })
-      extSourcePaths.push(path)
-    }
-
-    const dirsToScan = [this.projectRoot, ...extSourcePaths]
-
-    const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
-      const ignorer = await getIgnorer(dir)
-      const scanOpts = {
-        filter: path => {
-          const relPath = relative(dir, path)
-          return !ignorer.ignores(relPath)
-        },
+  async scanModules(force = false) {
+    return scanLock.acquire("scan-modules", async () => {
+      if (this.modulesScanned && !force) {
+        return
       }
 
-      const paths: string[] = []
+      let extSourcePaths: string[] = []
 
-      for await (const item of scanDirectory(dir, scanOpts)) {
-        if (!item) {
-          continue
-        }
-
-        const parsedPath = parse(item.path)
-
-        if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
-          continue
-        }
-
-        paths.push(parsedPath.dir)
+      // Add external sources that are defined at the project level. External sources are either kept in
+      // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
+      for (const { name, repositoryUrl } of this.projectSources) {
+        const path = await this.loadExtSourcePath({ name, repositoryUrl, sourceType: "project" })
+        extSourcePaths.push(path)
       }
 
-      return paths
-    })).filter(Boolean)
+      const dirsToScan = [this.projectRoot, ...extSourcePaths]
 
-    await Bluebird.map(modulePaths, async path => {
-      const module = await this.resolveModule(path)
-      module && await this.addModule(module)
+      const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
+        const ignorer = await getIgnorer(dir)
+        const scanOpts = {
+          filter: (path) => {
+            const relPath = relative(this.projectRoot, path)
+            return !ignorer.ignores(relPath)
+          },
+        }
+        const paths: string[] = []
+
+        for await (const item of scanDirectory(dir, scanOpts)) {
+          if (!item) {
+            continue
+          }
+
+          const parsedPath = parse(item.path)
+
+          if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
+            continue
+          }
+
+          paths.push(parsedPath.dir)
+        }
+
+        return paths
+      })).filter(Boolean)
+
+      await Bluebird.map(modulePaths, async path => {
+        const config = await this.resolveModule(path)
+        config && await this.addModule(config)
+      })
+
+      this.modulesScanned = true
+
+      await this.detectCircularDependencies()
+
+      const moduleConfigContext = new ModuleConfigContext(
+        this.pluginContext, this.environmentConfig, Object.values(this.moduleConfigs),
+      )
+      this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
     })
-
-    this.modulesScanned = true
-
-    await this.detectCircularDependencies()
   }
 
   private async detectCircularDependencies() {
@@ -662,12 +705,10 @@ export class Garden {
 
     @param force - add the module again, even if it's already registered
    */
-  async addModule(module: Module, force = false) {
-    const { config } = module
-
-    if (!force && this.modules[config.name]) {
-      const pathA = relative(this.projectRoot, this.modules[config.name].path)
-      const pathB = relative(this.projectRoot, module.path)
+  async addModule(config: ModuleConfig, force = false) {
+    if (!force && this.moduleConfigs[config.name]) {
+      const pathA = relative(this.projectRoot, this.moduleConfigs[config.name].path)
+      const pathB = relative(this.projectRoot, config.path)
 
       throw new ConfigurationError(
         `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
@@ -675,25 +716,37 @@ export class Garden {
       )
     }
 
-    this.modules[config.name] = module
+    const parseHandler = await this.getModuleActionHandler({ actionType: "parseModule", moduleType: config.type })
+    const env = this.getEnvironment()
+    const provider: Provider = {
+      name: parseHandler["pluginName"],
+      config: this.environmentConfig.providers[parseHandler["pluginName"]],
+    }
+
+    config = await parseHandler({ env, provider, moduleConfig: config })
+
+    // FIXME: this is rather clumsy
+    config.name = getModuleKey(config.name, config.plugin)
+
+    this.moduleConfigs[config.name] = config
 
     // Add to service-module map
-    for (const service of module.services) {
-      const serviceName = service.name
+    for (const serviceConfig of config.serviceConfigs) {
+      const serviceName = serviceConfig.name
 
-      if (!force && this.services[serviceName]) {
+      if (!force && this.serviceNameIndex[serviceName]) {
         throw new ConfigurationError(
           `Service names must be unique - ${serviceName} is declared multiple times ` +
-          `(in '${this.services[serviceName].module.name}' and '${config.name}')`,
+          `(in '${this.serviceNameIndex[serviceName]}' and '${config.name}')`,
           {
             serviceName,
-            moduleA: this.services[serviceName].module.name,
+            moduleA: this.serviceNameIndex[serviceName],
             moduleB: config.name,
           },
         )
       }
 
-      this.services[serviceName] = await Service.factory(this.pluginContext, module, serviceName)
+      this.serviceNameIndex[serviceName] = config.name
     }
 
     if (this.modulesScanned) {
@@ -708,12 +761,12 @@ export class Garden {
     (resolved with the project path as a base path) and attempt to load the module
     from there.
    */
-  async resolveModule(nameOrLocation: string): Promise<Module | null> {
+  async resolveModule(nameOrLocation: string): Promise<ModuleConfig | null> {
     const parsedPath = parse(nameOrLocation)
 
     if (parsedPath.dir === "") {
       // Looks like a name
-      const existingModule = this.modules[nameOrLocation]
+      const existingModule = this.moduleConfigs[nameOrLocation]
 
       if (!existingModule) {
         throw new ConfigurationError(`Module ${nameOrLocation} could not be found`, {
@@ -727,11 +780,12 @@ export class Garden {
     // Looks like a path
     const path = resolve(this.projectRoot, nameOrLocation)
     const config = await loadConfig(this.projectRoot, path)
-    const moduleConfig = cloneDeep(config.module)
 
-    if (!moduleConfig) {
+    if (!config.module) {
       return null
     }
+
+    const moduleConfig = cloneDeep(config.module)
 
     if (moduleConfig.repositoryUrl) {
       moduleConfig.path = await this.loadExtSourcePath({
@@ -741,44 +795,12 @@ export class Garden {
       })
     }
 
-    const parseHandler = await this.getModuleActionHandler("parseModule", moduleConfig.type)
-    const env = this.getEnvironment()
-    const provider: Provider = {
-      name: parseHandler["pluginName"],
-      config: this.config.providers[parseHandler["pluginName"]],
-    }
-
-    const { module, services, tests } = await parseHandler({ env, provider, moduleConfig })
-
-    return new Module(this.pluginContext, module, services, tests)
-  }
-
-  async getTemplateContext(extraContext: TemplateStringContext = {}): Promise<TemplateStringContext> {
-    const _this = this
-
-    return {
-      ...await getTemplateContext(),
-      config: async (key: string[]) => {
-        const { value } = await _this.pluginContext.getConfig({ key })
-        return value === null ? undefined : value
-      },
-      variables: this.config.variables,
-      environment: { name: this.environment, config: <any>this.config },
-      ...extraContext,
-    }
+    return moduleConfig
   }
 
   //===========================================================================
   //region Internal helpers
   //===========================================================================
-
-  /**
-   * Get a list of names of all configured plugins for the currently set environment.
-   * Includes built-in module handlers (used for builds and such).
-   */
-  private getEnvPlugins() {
-    return Object.keys(this.loadedPlugins)
-  }
 
   /**
    * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)
@@ -813,38 +835,34 @@ export class Garden {
    * Get a handler for the specified module action.
    */
   public getModuleActionHandlers<T extends keyof ModuleActions<any>>(
-    actionType: T, moduleType: string, pluginName?: string,
+    { actionType, moduleType, pluginName }:
+      { actionType: T, moduleType: string, pluginName?: string },
   ): ModuleActionHandlerMap<T> {
     return this.filterActionHandlers((this.moduleActionHandlers[actionType] || {})[moduleType], pluginName)
   }
 
   private filterActionHandlers(handlers, pluginName?: string) {
-    const loadedPlugins = this.getEnvPlugins()
-
-    if (!!pluginName && !this.loadedPlugins[pluginName]) {
-      throw new ConfigurationError(
-        `Plugin ${pluginName} has not been loaded. Are you missing a provider configuration?`,
-        {
-          loadedPlugins,
-          pluginName,
-        },
-      )
+    // make sure plugin is loaded
+    if (!!pluginName) {
+      this.getPlugin(pluginName)
     }
 
-    return pickBy(handlers, (handler, name) => (
-      loadedPlugins.includes(name)
-      && (!pluginName || handler["pluginName"] === pluginName)
-    ))
+    if (handlers === undefined) {
+      handlers = {}
+    }
+
+    return !pluginName ? handlers : pickBy(handlers, (handler) => handler["pluginName"] === pluginName)
   }
 
   /**
    * Get the last configured handler for the specified action (and optionally module type).
    */
   public getActionHandler<T extends keyof PluginActions>(
-    type: T, pluginName?: string, defaultHandler?: PluginActions[T],
+    { actionType, pluginName, defaultHandler }:
+      { actionType: T, pluginName?: string, defaultHandler?: PluginActions[T] },
   ): PluginActions[T] {
 
-    const handlers = values(this.getActionHandlers(type, pluginName))
+    const handlers = Object.values(this.getActionHandlers(actionType, pluginName))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
@@ -853,16 +871,16 @@ export class Garden {
     }
 
     const errorDetails = {
-      requestedHandlerType: type,
-      environment: this.environment,
+      requestedHandlerType: actionType,
+      environment: this.environmentName,
       pluginName,
     }
 
     if (pluginName) {
-      throw new PluginError(`Plugin '${pluginName}' does not have a '${type}' handler.`, errorDetails)
+      throw new PluginError(`Plugin '${pluginName}' does not have a '${actionType}' handler.`, errorDetails)
     } else {
       throw new ParameterError(
-        `No '${type}' handler configured in environment '${this.environment}'. ` +
+        `No '${actionType}' handler configured in environment '${this.environmentName}'. ` +
         `Are you missing a provider configuration?`,
         errorDetails,
       )
@@ -873,10 +891,11 @@ export class Garden {
    * Get the last configured handler for the specified action.
    */
   public getModuleActionHandler<T extends keyof ModuleActions>(
-    type: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleActions<any>[T],
+    { actionType, moduleType, pluginName, defaultHandler }:
+      { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleActions<any>[T] },
   ): ModuleActions<any>[T] {
 
-    const handlers = values(this.getModuleActionHandlers(type, moduleType, pluginName))
+    const handlers = Object.values(this.getModuleActionHandlers({ actionType, moduleType, pluginName }))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
@@ -885,21 +904,21 @@ export class Garden {
     }
 
     const errorDetails = {
-      requestedHandlerType: type,
+      requestedHandlerType: actionType,
       requestedModuleType: moduleType,
-      environment: this.environment,
+      environment: this.environmentName,
       pluginName,
     }
 
     if (pluginName) {
       throw new PluginError(
-        `Plugin '${pluginName}' does not have a '${type}' handler for module type '${moduleType}'.`,
+        `Plugin '${pluginName}' does not have a '${actionType}' handler for module type '${moduleType}'.`,
         errorDetails,
       )
     } else {
       throw new ParameterError(
-        `No '${type}' handler configured for module type '${moduleType}' in environment '${this.environment}'. ` +
-        `Are you missing a provider configuration?`,
+        `No '${actionType}' handler configured for module type '${moduleType}' in environment ` +
+        `'${this.environmentName}'. Are you missing a provider configuration?`,
         errorDetails,
       )
     }

@@ -9,11 +9,8 @@
 import {
   joiArray,
   validate,
-} from "../../types/common"
-import {
-  Module,
-  ModuleSpec,
-} from "../../types/module"
+} from "../../config/common"
+import { Module } from "../../types/module"
 import { ParseModuleResult } from "../../types/plugin/outputs"
 import {
   DeployServiceParams,
@@ -22,7 +19,6 @@ import {
   ParseModuleParams,
 } from "../../types/plugin/params"
 import {
-  baseServiceSchema,
   ServiceState,
   ServiceStatus,
 } from "../../types/service"
@@ -31,7 +27,7 @@ import {
 } from "path"
 import * as Joi from "joi"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
-import { GenericTestSpec } from "../generic"
+import { GenericTestSpec, genericTestSchema } from "../generic"
 import {
   configureEnvironment,
   gcloud,
@@ -40,9 +36,9 @@ import {
   GOOGLE_CLOUD_DEFAULT_REGION,
   GoogleCloudServiceSpec,
 } from "./common"
-import {
-  GardenPlugin,
-} from "../../types/plugin/plugin"
+import { GardenPlugin } from "../../types/plugin/plugin"
+import { ModuleSpec } from "../../config/module"
+import { baseServiceSchema } from "../../config/service"
 
 export interface GcfServiceSpec extends GoogleCloudServiceSpec {
   function: string,
@@ -72,31 +68,37 @@ export interface GcfModuleSpec extends ModuleSpec {
   tests: GenericTestSpec[],
 }
 
-export class GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, GenericTestSpec> { }
+const gcfModuleSpecSchema = Joi.object()
+  .keys({
+    functions: gcfServicesSchema,
+    tests: joiArray(genericTestSchema),
+  })
+
+export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, GenericTestSpec> { }
 
 export async function parseGcfModule(
   { moduleConfig }: ParseModuleParams<GcfModule>,
 ): Promise<ParseModuleResult<GcfModule>> {
   // TODO: check that each function exists at the specified path
-  const functions = validate(
-    moduleConfig.spec.functions, gcfServicesSchema, { context: `services in module ${moduleConfig.name}` },
+  moduleConfig.spec = validate(
+    moduleConfig.spec, gcfModuleSpecSchema, { context: `module ${moduleConfig.name}` },
   )
 
-  return {
-    module: moduleConfig,
-    services: functions.map(f => ({
-      name: f.name,
-      dependencies: f.dependencies,
-      outputs: f.outputs,
-      spec: f,
-    })),
-    tests: moduleConfig.spec.tests.map(t => ({
-      name: t.name,
-      dependencies: t.dependencies,
-      timeout: t.timeout,
-      spec: t,
-    })),
-  }
+  moduleConfig.serviceConfigs = moduleConfig.spec.functions.map(f => ({
+    name: f.name,
+    dependencies: f.dependencies,
+    outputs: f.outputs,
+    spec: f,
+  }))
+
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    timeout: t.timeout,
+    spec: t,
+  }))
+
+  return moduleConfig
 }
 
 export const gardenPlugin = (): GardenPlugin => ({

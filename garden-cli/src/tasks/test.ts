@@ -10,14 +10,14 @@ import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
-import { TestConfig } from "../types/test"
-import { getNames } from "../util/util"
+import { TestConfig } from "../config/test"
 import { ModuleVersion } from "../vcs/base"
 import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
-import { Task, TaskParams, TaskVersion } from "../types/task"
+import { Task, TaskParams } from "../tasks/base"
 import { EntryStyle } from "../logger/types"
+import { prepareRuntimeContext } from "../types/service"
 
 class TestError extends Error {
   toString() {
@@ -25,7 +25,7 @@ class TestError extends Error {
   }
 }
 
-export interface TestTaskParams extends TaskParams {
+export interface TestTaskParams {
   ctx: PluginContext
   module: Module
   testConfig: TestConfig
@@ -42,19 +42,19 @@ export class TestTask extends Task {
   private force: boolean
   private forceBuild: boolean
 
-  constructor(initArgs: TestTaskParams & TaskVersion) {
-    super(initArgs)
-    this.ctx = initArgs.ctx
-    this.module = initArgs.module
-    this.testConfig = initArgs.testConfig
-    this.force = initArgs.force
-    this.forceBuild = initArgs.forceBuild
+  constructor({ ctx, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
+    super({ version })
+    this.ctx = ctx
+    this.module = module
+    this.testConfig = testConfig
+    this.force = force
+    this.forceBuild = forceBuild
   }
 
   static async factory(initArgs: TestTaskParams): Promise<TestTask> {
     const { ctx, module, testConfig } = initArgs
-    initArgs.version = await getTestVersion(ctx, module, testConfig)
-    return new TestTask(<TestTaskParams & TaskVersion>initArgs)
+    const version = await getTestVersion(ctx, module, testConfig)
+    return new TestTask({ ...initArgs, version })
   }
 
   async getDependencies() {
@@ -66,14 +66,14 @@ export class TestTask extends Task {
 
     const services = await this.ctx.getServices(this.testConfig.dependencies)
 
-    const deps: Promise<Task>[] = [BuildTask.factory({
+    const deps: Task[] = [new BuildTask({
       ctx: this.ctx,
       module: this.module,
       force: this.forceBuild,
     })]
 
     for (const service of services) {
-      deps.push(DeployTask.factory({
+      deps.push(new DeployTask({
         service,
         ctx: this.ctx,
         force: false,
@@ -112,7 +112,7 @@ export class TestTask extends Task {
     })
 
     const dependencies = await getTestDependencies(this.ctx, this.testConfig)
-    const runtimeContext = await this.module.prepareRuntimeContext(dependencies)
+    const runtimeContext = await prepareRuntimeContext(this.ctx, this.module, dependencies)
 
     const result = await this.ctx.testModule({
       interactive: false,
@@ -153,7 +153,6 @@ async function getTestDependencies(ctx: PluginContext, testConfig: TestConfig) {
  * Determine the version of the test run, based on the version of the module and each of its dependencies.
  */
 async function getTestVersion(ctx: PluginContext, module: Module, testConfig: TestConfig): Promise<ModuleVersion> {
-  const buildDeps = await module.getBuildDependencies()
-  const moduleDeps = await ctx.resolveModuleDependencies(getNames(buildDeps), testConfig.dependencies)
-  return ctx.resolveVersion(module.name, getNames(moduleDeps))
+  const moduleDeps = await ctx.resolveModuleDependencies(module.build.dependencies, testConfig.dependencies)
+  return ctx.resolveVersion(module.name, moduleDeps)
 }

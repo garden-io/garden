@@ -7,40 +7,36 @@
  */
 
 import { safeDump } from "js-yaml"
-import { PluginContext } from "../plugin-context"
-import { DeepPrimitiveMap } from "../types/common"
+import { DeepPrimitiveMap } from "../config/common"
 import { highlightYaml } from "../util/util"
 import {
   Command,
+  CommandParams,
   CommandResult,
 } from "./base"
-import Bluebird = require("bluebird")
-import {
-  omit,
-} from "lodash"
+import { omit } from "lodash"
 
 export class ScanCommand extends Command {
   name = "scan"
   help = "Scans your project and outputs an overview of all modules."
 
-  async action(ctx: PluginContext): Promise<CommandResult<DeepPrimitiveMap>> {
-    const modules = await ctx.getModules()
+  async action({ ctx }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
+    let modules = (await ctx.getModules())
+      .map(m => {
+        m.services.forEach(s => delete s.module)
+        return omit(m, ["_ConfigType", "cacheContext", "serviceConfigs", "serviceNames"])
+      })
 
-    const output = await Bluebird.map(modules, async (m) => {
-      const config = m.config
-      return {
-        name: m.name,
-        type: m.type,
-        path: m.path,
-        description: config.description,
-        version: await m.getVersion(),
-        config,
-      }
-    })
+    const output = { modules }
 
-    const shortOutput = output.map(m => omit(m, ["config"]))
+    const shortOutput = {
+      modules: modules.map(m => {
+        m.services.map(s => delete s.spec)
+        return omit(m, ["spec"])
+      }),
+    }
 
-    ctx.log.info(highlightYaml(safeDump(shortOutput, { noRefs: true, skipInvalid: true })))
+    ctx.log.info(highlightYaml(safeDump(shortOutput, { noRefs: true, skipInvalid: true, sortKeys: true })))
 
     return { result: <DeepPrimitiveMap><any>output }
   }

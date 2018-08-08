@@ -13,7 +13,7 @@ import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import stringify = require("json-stringify-safe")
 
-import { DeepPrimitiveMap } from "../types/common"
+import { DeepPrimitiveMap } from "../config/common"
 import {
   getEnumKeys,
   shutdown,
@@ -53,8 +53,8 @@ import {
   prepareOptionConfig,
   styleConfig,
 } from "./helpers"
-import { GardenConfig } from "../types/config"
-import { defaultEnvironments } from "../types/project"
+import { GardenConfig } from "../config/base"
+import { defaultEnvironments } from "../config/project"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -244,7 +244,7 @@ export class GardenCli {
       }
 
       const logger = RootLogNode.initialize({ level, writers })
-      let garden
+      let garden: Garden
       let result
       do {
         const contextOpts: ContextOpts = { env, logger }
@@ -253,7 +253,12 @@ export class GardenCli {
         }
         garden = await Garden.factory(root, contextOpts)
         // TODO: enforce that commands always output DeepPrimitiveMap
-        result = await command.action(garden.pluginContext, parsedArgs, parsedOpts)
+        result = await command.action({
+          ctx: garden.getPluginContext(),
+          args: parsedArgs,
+          opts: parsedOpts,
+          garden,
+        })
       } while (result.restartRequired)
 
       // We attach the action result to cli context so that we can process it in the parse method
