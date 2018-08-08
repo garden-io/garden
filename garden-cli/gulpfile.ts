@@ -145,6 +145,7 @@ gulp.task("tsc-watch", () =>
     "--declaration",
     "-p", tsConfigPath,
     "--outDir", destDir,
+    "--preserveWatchOutput",
   ],
     { stdio: "inherit" },
   ),
