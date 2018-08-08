@@ -1,0 +1,20 @@
+module:
+  description: Kubernetes dashboard configuration
+  name: openfaas-system
+  type: helm
+  repo: https://openfaas.github.io/faas-netes/
+  chart: openfaas
+  version: 1.2.0
+  parameters:
+    exposeServices: false
+    functionNamespace: ${variables.function-namespace}
+    ingress:
+      enabled: true
+      hosts:
+        - host: ${variables.gateway-hostname}
+          serviceName: gateway
+          servicePort: 8080
+          path: /
+    faasnetesd:
+      imagePullPolicy: IfNotPresent
+    securityContext: false

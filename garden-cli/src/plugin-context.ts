@@ -117,6 +117,8 @@ export type WrappedFromGarden = Pick<Garden,
   "processTasks">
 
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
+  providers: { [name: string]: Provider }
+
   getEnvironmentStatus: (params: {}) => Promise<EnvironmentStatusMap>
   configureEnvironment: (params: { force?: boolean }) => Promise<EnvironmentStatusMap>
   destroyEnvironment: (params: {}) => Promise<EnvironmentStatusMap>
@@ -171,12 +173,13 @@ export function createPluginContext(garden: Garden): PluginContext {
 
   const projectConfig = { ...garden.config }
   const providerConfigs = keyBy(projectConfig.providers, "name")
+  const providers = mapValues(providerConfigs, (config, name) => ({
+    name,
+    config,
+  }))
 
   function getProvider(handler): Provider {
-    return {
-      name: handler["pluginName"],
-      config: providerConfigs[handler["pluginName"]],
-    }
+    return providers[handler["pluginName"]]
   }
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
@@ -246,6 +249,7 @@ export function createPluginContext(garden: Garden): PluginContext {
     config: projectConfig,
     localConfigStore: garden.localConfigStore,
     vcs: garden.vcs,
+    providers,
 
     // TODO: maybe we should move some of these here
     clearBuilds: wrap(garden.clearBuilds),

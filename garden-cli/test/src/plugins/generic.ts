@@ -10,8 +10,8 @@ import {
 } from "../../../src/plugins/container"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../src/constants"
 import {
-  readVersionFile,
-  writeVersionFile,
+  writeModuleVersionFile,
+  readModuleVersionFile,
 } from "../../../src/vcs/base"
 import {
   dataDir,
@@ -38,10 +38,7 @@ describe("generic plugin", () => {
       const buildPath = await module.getBuildPath()
       const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
 
-      await writeVersionFile(versionFilePath, {
-        latestCommit: version.versionString,
-        dirtyTimestamp: version.dirtyTimestamp,
-      })
+      await writeModuleVersionFile(versionFilePath, version)
 
       const result = await ctx.getModuleBuildStatus({ moduleName })
 
@@ -58,12 +55,9 @@ describe("generic plugin", () => {
 
       await ctx.buildModule({ moduleName })
 
-      const versionFileContents = await readVersionFile(versionFilePath)
+      const versionFileContents = await readModuleVersionFile(versionFilePath)
 
-      expect(versionFileContents).to.eql({
-        latestCommit: version.versionString,
-        dirtyTimestamp: version.dirtyTimestamp,
-      })
+      expect(versionFileContents).to.eql(version)
     })
   })
 })

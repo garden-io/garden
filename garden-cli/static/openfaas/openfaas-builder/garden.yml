@@ -1,0 +1,7 @@
+module:
+  description: Base image used for building openfaas modules
+  type: generic
+  build:
+    command: [./bootstrap.sh]
+  env:
+    PLATFORM: ${local.platform}

@@ -7,9 +7,5 @@ project:
     - name: local
       providers:
         - name: local-kubernetes
-        - name: local-google-cloud-functions
-    - name: dev
-      providers:
-        - name: google-app-engine
-        - name: google-cloud-functions
-          default-project: garden-hello-world
+        - name: openfaas
+

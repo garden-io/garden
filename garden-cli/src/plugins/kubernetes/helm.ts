@@ -47,7 +47,7 @@ import { dumpYaml } from "../../util/util"
 import { KubernetesProvider } from "./kubernetes"
 import { getAppNamespace } from "./namespace"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../constants"
-import { writeVersionFile } from "../../vcs/base"
+import { writeTreeVersionFile } from "../../vcs/base"
 import { ServiceState } from "../../types/service"
 import { compareDeployedObjects, waitForObjects, checkObjectStatus } from "./status"
 import { getGenericModuleBuildStatus } from "../generic"
@@ -226,10 +226,12 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
 
   const chartPath = await getChartPath(module)
 
-  // create the values.yml file
+  // create the values.yml file (merge the configured parameters into the default values)
   logEntry && logEntry.setState("Preparing chart...")
   const values = safeLoad(await helm(provider, "inspect", "values", chartPath)) || {}
-  Object.entries(config.spec.parameters).map(([k, v]) => set(values, k, v))
+
+  Object.entries(flattenValues(config.spec.parameters))
+    .map(([k, v]) => set(values, k, v))
 
   const valuesPath = getValuesPath(chartPath)
   dumpYaml(valuesPath, values)
@@ -241,7 +243,7 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
   const version = await module.getVersion()
-  await writeVersionFile(buildVersionFilePath, {
+  await writeTreeVersionFile(buildVersionFilePath, {
     latestCommit: version.versionString,
     dirtyTimestamp: version.dirtyTimestamp,
   })
@@ -304,4 +306,15 @@ async function getReleaseStatus(provider: KubernetesProvider, releaseName: strin
     // release doesn't exist
     return { state: "missing" }
   }
+}
+
+// adapted from https://gist.github.com/penguinboy/762197
+function flattenValues(object, prefix = "") {
+  return Object.keys(object).reduce(
+    (prev, element) =>
+      object[element] && typeof object[element] === "object" && !Array.isArray(object[element])
+        ? { ...prev, ...flattenValues(object[element], `${prefix}${element}.`) }
+        : { ...prev, ...{ [`${prefix}${element}`]: object[element] } },
+    {},
+  )
 }

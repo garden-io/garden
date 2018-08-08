@@ -12,6 +12,7 @@ import {
   Extensions_v1beta1Api,
   RbacAuthorization_v1Api,
   Apps_v1Api,
+  Apiextensions_v1beta1Api,
 } from "@kubernetes/client-node"
 import { join } from "path"
 import { readFileSync } from "fs"
@@ -75,6 +76,12 @@ export function appsApi(context: string) {
   return proxyApi(k8sApi, config)
 }
 
+export function apiExtensionsApi(context: string) {
+  const config = getConfig(context)
+  const k8sApi = new Apiextensions_v1beta1Api(config.getCurrentCluster().server)
+  return proxyApi(k8sApi, config)
+}
+
 export function rbacApi(context: string) {
   const config = getConfig(context)
   const k8sApi = new RbacAuthorization_v1Api(config.getCurrentCluster().server)
@@ -91,9 +98,9 @@ export class KubernetesError extends GardenBaseError {
 /**
  * Wrapping the API objects to deal with bugs.
  */
-function proxyApi<T extends Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api | Apps_v1Api>(
-  api: T, config: KubeConfig,
-): T {
+type K8sApi = Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api | Apps_v1Api | Apiextensions_v1beta1Api
+
+function proxyApi<T extends K8sApi>(api: T, config: KubeConfig): T {
   api.setDefaultAuthentication(config)
 
   const wrapError = err => {
@@ -112,7 +119,7 @@ function proxyApi<T extends Core_v1Api | Extensions_v1beta1Api | RbacAuthorizati
   return new Proxy(api, {
     get: (target: T, name: string, receiver) => {
       if (name in Object.getPrototypeOf(target)) { // assume methods live on the prototype
-        return function(...args) {
+        return function (...args) {
           const defaultHeaders = target["defaultHeaders"]
 
           if (name.startsWith("patch")) {
@@ -145,6 +152,7 @@ export async function apiReadBySpec(namespace: string, context: string, spec: Ku
   const ext = extensionsApi(context)
   const apps = appsApi(context)
   const rbac = rbacApi(context)
+  const apiext = apiExtensionsApi(context)
 
   switch (spec.kind) {
     case "ConfigMap":
@@ -179,10 +187,16 @@ export async function apiReadBySpec(namespace: string, context: string, spec: Ku
       return ext.readNamespacedReplicaSet(name, namespace)
     case "StatefulSet":
       return apps.readNamespacedStatefulSet(name, namespace)
+    case "ClusterRole":
+      return rbac.readClusterRole(name)
+    case "ClusterRoleBinding":
+      return rbac.readClusterRoleBinding(name)
     case "Role":
       return rbac.readNamespacedRole(name, namespace)
     case "RoleBinding":
       return rbac.readNamespacedRoleBinding(name, namespace)
+    case "CustomResourceDefinition":
+      return apiext.readCustomResourceDefinition(name)
     default:
       throw new ConfigurationError(`Unsupported Kubernetes spec kind: ${spec.kind}`, {
         spec,

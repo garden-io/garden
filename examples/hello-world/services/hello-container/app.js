@@ -1,5 +1,6 @@
 const request = require("request-promise")
 const express = require("express")
+const hello = require("./libraries/hello-npm-package")
 
 const app = express()
 
@@ -8,8 +9,8 @@ const functionEndpoint = process.env.GARDEN_SERVICES_HELLO_FUNCTION_ENDPOINT
 app.get("/hello", (req, res) => {
   // Query the example cloud function and return the response
   request.get(functionEndpoint)
-    .then(message => {
-      res.json({ message })
+    .then(whoAmI => {
+      res.json({ message: hello(whoAmI) })
     })
     .catch(() => {
       res.statusCode = 500

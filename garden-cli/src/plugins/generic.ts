@@ -35,15 +35,13 @@ import {
   ParseModuleParams,
   TestModuleParams,
 } from "../types/plugin/params"
-import {
-  ServiceConfig,
-} from "../types/service"
+import { BaseServiceSpec } from "../types/service"
 import {
   BaseTestSpec,
   baseTestSpecSchema,
 } from "../types/test"
 import { spawn } from "../util/util"
-import { writeVersionFile, readVersionFile, getVersionString } from "../vcs/base"
+import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/base"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import execa = require("execa")
 
@@ -76,7 +74,7 @@ export const genericModuleSpecSchema = Joi.object()
   .unknown(false)
   .description("The module specification for a generic module.")
 
-export class GenericModule extends Module<GenericModuleSpec, ServiceConfig, GenericTestSpec> { }
+export class GenericModule extends Module<GenericModuleSpec, BaseServiceSpec, GenericTestSpec> { }
 
 export async function parseGenericModule(
   { moduleConfig }: ParseModuleParams<GenericModule>,
@@ -96,13 +94,17 @@ export async function parseGenericModule(
 }
 
 export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
-  const buildVersionFilePath = join(await module.getBuildPath(), GARDEN_BUILD_VERSION_FILENAME)
-  const builtVersion = await readVersionFile(buildVersionFilePath)
   const moduleVersion = await module.getVersion()
+  const buildVersionFilePath = join(await module.getBuildPath(), GARDEN_BUILD_VERSION_FILENAME)
+  let builtVersion: ModuleVersion | null = null
 
-  const builtVersionString = builtVersion && getVersionString(builtVersion)
+  try {
+    builtVersion = await readModuleVersionFile(buildVersionFilePath)
+  } catch (_) {
+    // just ignore this error, can be caused by an outdated format
+  }
 
-  if (builtVersionString && builtVersionString === moduleVersion.versionString) {
+  if (builtVersion && builtVersion.versionString === moduleVersion.versionString) {
     return { ready: true }
   }
 
@@ -130,10 +132,7 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
   const version = await module.getVersion()
-  await writeVersionFile(buildVersionFilePath, {
-    latestCommit: version.versionString,
-    dirtyTimestamp: version.dirtyTimestamp,
-  })
+  await writeModuleVersionFile(buildVersionFilePath, version)
 
   return output
 }

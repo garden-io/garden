@@ -1,16 +1,9 @@
 module:
   description: Hello world serverless function
   name: hello-function
-  type: google-cloud-function
-  functions:
-    - name: hello-function
-      entrypoint: helloFunction
+  type: openfaas
+  lang: node
   tests:
     - name: unit
       command: [npm, test]
-  build:
-    dependencies:
-      - name: hello-npm-package
-        copy:
-          - source: "./"
-            target: libraries/hello-npm-package/
+

@@ -74,7 +74,7 @@ export abstract class VcsHandler {
   async resolveTreeVersion(module: Module): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
-    const fileVersion = await readVersionFile(versionFilePath)
+    const fileVersion = await readTreeVersionFile(versionFilePath)
     return fileVersion || this.getTreeVersion([module.path])
   }
 
@@ -154,7 +154,7 @@ function hashVersions(versions: NamedTreeVersion[]) {
   return "v" + versionHash.digest("hex").slice(0, 10)
 }
 
-export async function readVersionFile(path: string): Promise<TreeVersion | null> {
+async function readVersionFile(path: string, schema): Promise<any> {
   if (!(await pathExists(path))) {
     return null
   }
@@ -167,7 +167,7 @@ export async function readVersionFile(path: string): Promise<TreeVersion | null>
   }
 
   try {
-    return validate(JSON.parse(versionFileContents), treeVersionSchema)
+    return validate(JSON.parse(versionFileContents), schema)
   } catch (error) {
     throw new ConfigurationError(
       `Unable to parse ${path} as valid version file`,
@@ -180,7 +180,19 @@ export async function readVersionFile(path: string): Promise<TreeVersion | null>
   }
 }
 
-export async function writeVersionFile(path: string, version: TreeVersion) {
+export async function readTreeVersionFile(path: string): Promise<TreeVersion | null> {
+  return readVersionFile(path, treeVersionSchema)
+}
+
+export async function writeTreeVersionFile(path: string, version: TreeVersion) {
+  await writeFile(path, JSON.stringify(version))
+}
+
+export async function readModuleVersionFile(path: string): Promise<ModuleVersion | null> {
+  return readVersionFile(path, moduleVersionSchema)
+}
+
+export async function writeModuleVersionFile(path: string, version: ModuleVersion) {
   await writeFile(path, JSON.stringify(version))
 }
 

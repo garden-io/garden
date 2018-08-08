@@ -50,8 +50,8 @@ export async function ensureNamespace(context: string, namespace: string) {
 export async function getNamespace(ctx: PluginContext, provider: KubernetesProvider, suffix?: string) {
   let namespace
 
-  if (isSystemGarden(provider)) {
-    namespace = GARDEN_SYSTEM_NAMESPACE
+  if (provider.config.namespace) {
+    namespace = provider.config.namespace
   } else {
     const localConfig = await ctx.localConfigStore.get()
     const k8sConfig = localConfig.kubernetes || {}
