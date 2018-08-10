@@ -105,7 +105,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--module-dirs` |  | string | Relative path to modules directory. Use comma as a separator to specify multiple directories
+  | `--module-dirs` |  | array:path | Relative path to modules directory. Use comma as a separator to specify multiple directories
   | `--name` |  | string | Assigns a custom name to the project. (Defaults to name of the current directory.)
 
 ### garden create module
@@ -305,6 +305,52 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force initalization of environment, ignoring the environment status check.
+
+### garden link source
+
+Link a remote source to a local directory.
+
+After linking a remote source, Garden will read it from its local directory instead of
+from the remote URL. Garden can only link remote sources that have been declared in the project
+level garden.yml config.
+
+Examples:
+
+    garden link source my-source path/to/my-source # links my-source to its local version at the given path
+
+##### Usage
+
+    garden link source <source> <path> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `source` | Yes | Name of the source to link as declared in the project config.
+  | `path` | Yes | Path to the local directory that containes the source.
+
+### garden link module
+
+Link a module to a local directory.
+
+After linking a remote module, Garden will read the source from the module's local directory instead of from
+the remote URL. Garden can only link modules that have a remote source,
+i.e. modules that specifiy a repositoryUrl in their garden.yml config file.
+
+Examples:
+
+    garden link module my-module path/to/my-module # links my-module to its local version at the given path
+
+##### Usage
+
+    garden link module <module> <path> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `module` | Yes | Name of the module to link.
+  | `path` | Yes | Path to the local directory that containes the module.
 
 ### garden login
 
@@ -547,6 +593,117 @@ Test all or specified modules.
   | `--force` | `-f` | boolean | Force re-test of module(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
+
+### garden unlink source
+
+Unlink a previously linked remote source from its local directory.
+
+After unlinking a remote source, Garden will go back to reading it from its remote URL instead
+of its local directory.
+
+Examples:
+
+    garden unlink source my-source # unlinks my-source
+    garden unlink source --all # unlinks all sources
+
+##### Usage
+
+    garden unlink source [source] [options]
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `source` | No | Name of the source(s) to unlink. Use comma separator to specify multiple sources.
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--all` | `-a` | boolean | Unlink all sources.
+
+### garden unlink module
+
+Unlink a previously linked remote module from its local directory.
+
+After unlinking a remote module, Garden will go back to reading the module's source from
+its remote URL instead of its local directory.
+
+Examples:
+
+    garden unlink module my-module # unlinks my-module
+    garden unlink module --all # unlink all modules
+
+##### Usage
+
+    garden unlink module [module] [options]
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `module` | No | Name of the module(s) to unlink. Use comma separator to specify multiple modules.
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--all` | `-a` | boolean | Unlink all modules.
+
+### garden update-remote sources
+
+Update remote sources.
+
+Update the remote sources declared in the project config.
+
+Examples:
+
+    garden update-remote sources            # update all remote sources in the project config
+    garden update-remote sources my-source  # update remote source my-source
+
+##### Usage
+
+    garden update-remote sources [source] 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `source` | No | Name of the remote source(s) to update. Use comma separator to specify multiple sources.
+
+### garden update-remote modules
+
+Update remote modules.
+
+Remote modules are modules that have a repositoryUrl field
+in their garden.yml config that points to a remote repository.
+
+Examples:
+
+    garden update-remote modules            # update all remote modules in the project
+    garden update-remote modules my-module  # update remote module my-module
+
+##### Usage
+
+    garden update-remote modules [module] 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `module` | No | Name of the remote module(s) to update. Use comma separator to specify multiple modules.
+
+### garden update-remote all
+
+Update all remote sources and modules.
+
+Examples:
+
+    garden update-remote all # update all remote sources and modules in the project
+
+##### Usage
+
+    garden update-remote all 
 
 ### garden validate
 

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird = require("bluebird")
 import {
   parse,
   relative,
@@ -14,6 +15,7 @@ import {
 } from "path"
 import {
   extend,
+  flatten,
   isString,
   values,
   fromPairs,
@@ -23,6 +25,7 @@ import {
   cloneDeep,
 } from "lodash"
 import * as Joi from "joi"
+
 import { TreeCache } from "./cache"
 import {
   PluginContext,
@@ -32,9 +35,7 @@ import {
   builtinPlugins,
   fixedPlugins,
 } from "./plugins/plugins"
-import {
-  Module,
-} from "./types/module"
+import { Module } from "./types/module"
 import {
   moduleActionDescriptions,
   moduleActionNames,
@@ -44,7 +45,7 @@ import {
   Provider,
   RegisterPluginParam,
 } from "./types/plugin/plugin"
-import { EnvironmentConfig } from "./types/project"
+import { EnvironmentConfig, SourceConfig } from "./types/project"
 import {
   findByName,
   getIgnorer,
@@ -95,10 +96,12 @@ import {
   loadConfig,
 } from "./types/config"
 import { Task } from "./types/task"
-import {
-  LocalConfigStore,
-} from "./config-store"
+import { LocalConfigStore } from "./config-store"
 import { detectCircularDependencies } from "./util/detectCycles"
+import {
+  getLinkedSources,
+  ExternalSourceType,
+} from "./util/ext-source-util"
 
 export interface ModuleMap<T extends Module> {
   [key: string]: T
@@ -151,6 +154,7 @@ export class Garden {
   private taskGraph: TaskGraph
   private readonly configKeyNamespaces: string[]
 
+  public readonly localConfigStore: LocalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
 
@@ -160,7 +164,7 @@ export class Garden {
     private readonly environment: string,
     private readonly namespace: string,
     public readonly config: EnvironmentConfig,
-    public readonly localConfigStore: LocalConfigStore,
+    public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
     logger?: RootLogNode,
   ) {
@@ -168,6 +172,7 @@ export class Garden {
     this.log = logger || getLogger()
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this.projectRoot)
+    this.localConfigStore = new LocalConfigStore(this.projectRoot)
     this.cache = new TreeCache()
 
     this.modules = {}
@@ -187,8 +192,6 @@ export class Garden {
 
   static async factory(projectRoot: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
     let parsedConfig: GardenConfig
-
-    const localConfigStore = new LocalConfigStore(projectRoot)
 
     if (config) {
       parsedConfig = <GardenConfig>validate(config, configSchema, { context: "root configuration" })
@@ -212,24 +215,29 @@ export class Garden {
       }
     }
 
-    if (!env) {
-      env = parsedConfig.project.defaultEnvironment
-    }
+    const {
+      defaultEnvironment,
+      environments,
+      name: projectName,
+      environmentDefaults,
+      sources: projectSources,
+    } = parsedConfig.project
 
-    const projectName = parsedConfig.project.name
-    const environmentDefaults = parsedConfig.project.environmentDefaults || {}
+    if (!env) {
+      env = defaultEnvironment
+    }
 
     const parts = env.split(".")
     const environment = parts[0]
     const namespace = parts.slice(1).join(".") || DEFAULT_NAMESPACE
 
-    const envConfig = findByName(parsedConfig.project.environments, environment)
+    const envConfig = findByName(environments, environment)
 
     if (!envConfig) {
       throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
         projectName,
         env,
-        definedEnvironments: getNames(parsedConfig.project.environments),
+        definedEnvironments: getNames(environments),
       })
     }
 
@@ -269,7 +277,7 @@ export class Garden {
       environment,
       namespace,
       projectEnvConfig,
-      localConfigStore,
+      projectSources,
       buildDir,
       logger,
     )
@@ -592,33 +600,49 @@ export class Garden {
     Scans the project root for modules and adds them to the context.
    */
   async scanModules() {
-    const ignorer = await getIgnorer(this.projectRoot)
-    const scanOpts = {
-      filter: (path) => {
-        const relPath = relative(this.projectRoot, path)
-        return !ignorer.ignores(relPath)
-      },
-    }
-    const modulePaths: string[] = []
+    let extSourcePaths: string[] = []
 
-    for await (const item of scanDirectory(this.projectRoot, scanOpts)) {
-      if (!item) {
-        continue
-      }
-
-      const parsedPath = parse(item.path)
-
-      if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
-        continue
-      }
-
-      modulePaths.push(parsedPath.dir)
+    // Add external sources that are defined at the project level. External sources are either kept in
+    // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
+    for (const { name, repositoryUrl } of this.projectSources) {
+      const path = await this.loadExtSourcePath({ name, repositoryUrl, sourceType: "project" })
+      extSourcePaths.push(path)
     }
 
-    for (const path of modulePaths) {
+    const dirsToScan = [this.projectRoot, ...extSourcePaths]
+
+    const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
+      const ignorer = await getIgnorer(dir)
+      const scanOpts = {
+        filter: path => {
+          const relPath = relative(dir, path)
+          return !ignorer.ignores(relPath)
+        },
+      }
+
+      const paths: string[] = []
+
+      for await (const item of scanDirectory(dir, scanOpts)) {
+        if (!item) {
+          continue
+        }
+
+        const parsedPath = parse(item.path)
+
+        if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
+          continue
+        }
+
+        paths.push(parsedPath.dir)
+      }
+
+      return paths
+    })).filter(Boolean)
+
+    await Bluebird.map(modulePaths, async path => {
       const module = await this.resolveModule(path)
       module && await this.addModule(module)
-    }
+    })
 
     this.modulesScanned = true
 
@@ -638,7 +662,7 @@ export class Garden {
     @param force - add the module again, even if it's already registered
    */
   async addModule(module: Module, force = false) {
-    const config = module.config
+    const { config } = module
 
     if (!force && this.modules[config.name]) {
       const pathA = relative(this.projectRoot, this.modules[config.name].path)
@@ -682,8 +706,6 @@ export class Garden {
     project with the provided name. If it does not exist, we treat it as a path
     (resolved with the project path as a base path) and attempt to load the module
     from there.
-
-    // TODO: support git URLs
    */
   async resolveModule(nameOrLocation: string): Promise<Module | null> {
     const parsedPath = parse(nameOrLocation)
@@ -708,6 +730,14 @@ export class Garden {
 
     if (!moduleConfig) {
       return null
+    }
+
+    if (moduleConfig.repositoryUrl) {
+      moduleConfig.path = await this.loadExtSourcePath({
+        name: moduleConfig.name,
+        repositoryUrl: moduleConfig.repositoryUrl,
+        sourceType: "module",
+      })
     }
 
     const parseHandler = await this.getModuleActionHandler("parseModule", moduleConfig.type)
@@ -747,6 +777,28 @@ export class Garden {
    */
   private getEnvPlugins() {
     return Object.keys(this.loadedPlugins)
+  }
+
+  /**
+   * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)
+   */
+  public async loadExtSourcePath({ name, repositoryUrl, sourceType }: {
+    name: string,
+    repositoryUrl: string,
+    sourceType: ExternalSourceType,
+  }): Promise<string> {
+
+    const linkedSources = await getLinkedSources(this.pluginContext, sourceType)
+
+    const linked = findByName(linkedSources, name)
+
+    if (linked) {
+      return linked.path
+    }
+
+    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, logEntry: this.log })
+
+    return path
   }
 
   /**

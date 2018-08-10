@@ -1,5 +1,14 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import * as td from "testdouble"
-import { resolve } from "path"
+import { resolve, join } from "path"
+import { remove } from "fs-extra"
 import { PluginContext } from "../src/plugin-context"
 import {
   ContainerModule,
@@ -33,8 +42,12 @@ import {
   SetConfigParams,
 } from "../src/types/plugin/params"
 import {
+  helpers,
+} from "../src/vcs/git"
+import {
   ModuleVersion,
 } from "../src/vcs/base"
+import { GARDEN_DIR_NAME } from "../src/constants"
 
 export const dataDir = resolve(__dirname, "data")
 export const testNow = new Date()
@@ -271,4 +284,24 @@ export async function expectError(fn: Function, typeOrCallback: string | ((err: 
 
 export function taskResultOutputs(results: TaskResults) {
   return mapValues(results, r => r.output)
+}
+
+export const cleanProject = async (projectRoot: string) => {
+  return remove(join(projectRoot, GARDEN_DIR_NAME))
+}
+
+export function stubGitCli() {
+  td.replace(helpers, "gitCli", () => async () => "")
+}
+
+/**
+ * Prevents git cloning. Use if creating a Garden instance with test-project-ext-module-sources
+ * or test-project-ext-project-sources as project root.
+ */
+export function stubExtSources(ctx: PluginContext) {
+  stubGitCli()
+  const getRemoteSourcesDirName = td.replace(ctx.vcs, "getRemoteSourcesDirName")
+
+  td.when(getRemoteSourcesDirName("module")).thenReturn(join("mock-dot-garden", "sources", "module"))
+  td.when(getRemoteSourcesDirName("project")).thenReturn(join("mock-dot-garden", "sources", "project"))
 }

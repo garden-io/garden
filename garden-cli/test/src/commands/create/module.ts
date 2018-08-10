@@ -25,12 +25,13 @@ const replaceAddConfigForModule = (returnVal?: ModuleTypeMap) => {
   }
 }
 
-afterEach(async () => {
-  await remove(join(projectRoot, "new-module"))
-  td.reset()
-})
-
 describe("CreateModuleCommand", () => {
+
+  afterEach(async () => {
+    await remove(join(projectRoot, "new-module"))
+    td.reset()
+  })
+
   const cmd = new CreateModuleCommand()
   // garden create module
   it("should add a module config to the current directory", async () => {

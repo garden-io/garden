@@ -71,6 +71,31 @@ export const joiArray = (schema) => Joi
   .array().items(schema)
   .default(() => [], "[]")
 
+export const joiRepositoryUrl = () => Joi
+  .string()
+  .uri({
+    // TODO Support other protocols?
+    scheme: [
+      "git",
+      /git\+https?/,
+      "https",
+    ],
+  })
+  .description(
+    "A remote respository URL. Currently only supports git servers. Use hash notation (#) to point to" +
+    " a specific branch or tag",
+)
+  .example("<git remote url>#<branch|tag> or git+https://github.com/organization/some-module.git#v2.0")
+
+export const remoteSourceSchema = Joi.object()
+  .keys({
+    name: joiIdentifier()
+      .required()
+      .description("The name of the source to import"),
+    repositoryUrl: joiRepositoryUrl()
+      .required(),
+  })
+
 export interface Environment {
   name: string
   namespace: string

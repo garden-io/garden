@@ -7,25 +7,38 @@
  */
 
 import { exec } from "child-process-promise"
-import { NEW_MODULE_VERSION, TreeVersion, VcsHandler } from "./base"
 import { join } from "path"
-import { sortBy } from "lodash"
-import { pathExists, stat } from "fs-extra"
+import { ensureDir, pathExists, stat } from "fs-extra"
 import { argv } from "process"
 import Bluebird = require("bluebird")
+import { parse } from "url"
+
+import { NEW_MODULE_VERSION, VcsHandler, RemoteSourceParams } from "./base"
+import { EntryStyle } from "../logger/types"
+
+export const helpers = {
+  gitCli: (cwd: string): (args: string | string[]) => Promise<string> => {
+    return async args => {
+      const cmd = Array.isArray(args) ? `git ${args.join(" && git ")}` : `git ${args}`
+      const res = await exec(cmd, { cwd })
+      return res.stdout.trim()
+    }
+  },
+}
+
+function getUrlHash(url: string) {
+  return (parse(url).hash || "").split("#")[1]
+}
 
 export class GitHandler extends VcsHandler {
   name = "git"
 
-  private repoRoot: string
+  async getTreeVersion(path: string) {
+    const git = helpers.gitCli(path)
 
-  async getTreeVersion(directories: string[]) {
-    let res
     let commitHash
-
     try {
-      res = await this.git(`rev-list -1 --abbrev-commit --abbrev=10 HEAD ${directories.join(" ")}`)
-      commitHash = res.stdout.trim() || NEW_MODULE_VERSION
+      commitHash = await git("rev-list -1 --abbrev-commit --abbrev=10 HEAD") || NEW_MODULE_VERSION
     } catch (err) {
       if (err.code === 128) {
         // not in a repo root, return default version
@@ -35,33 +48,22 @@ export class GitHandler extends VcsHandler {
 
     let latestDirty = 0
 
-    for (let directory of directories) {
-      res = await this.git(
-        `diff-index --name-only HEAD ${directory} && git ls-files --other --exclude-standard ${directory}`,
-      )
+    const res = await git([`diff-index --name-only HEAD ${path}`, `ls-files --other --exclude-standard ${path}`])
 
-      const dirtyFiles: string[] = res.stdout.trim().split("\n").filter((f) => f.length > 0)
-      const repoRoot = await this.getRepoRoot()
+    const dirtyFiles: string[] = res.split("\n").filter((f) => f.length > 0)
+    // for dirty trees, we append the last modified time of last modified or added file
+    if (dirtyFiles.length) {
 
-      // for dirty trees, we append the last modified time of last modified or added file
-      if (dirtyFiles.length) {
+      const repoRoot = await git("rev-parse --show-toplevel")
+      const stats = await Bluebird.map(dirtyFiles, file => join(repoRoot, file))
+        .filter((file: string) => pathExists(file))
+        .map((file: string) => stat(file))
 
-        const safelyCallStat = (f: string) => stat(f)
+      let mtimes = stats.map((s) => Math.round(s.mtime.getTime() / 1000))
+      let latest = mtimes.sort().slice(-1)[0]
 
-        const stats = await Bluebird.map(dirtyFiles, file => join(repoRoot, file))
-          .filter(pathExists)
-          // NOTE: We need to explicitly use an arrow function when calling stat in the context of a Bluebird.map!
-          // Looks like a bug in fs or fs-extra.
-          // Works: map((f: string) => stat(f))
-          // Fails silenty: map(stat)
-          .map(safelyCallStat)
-
-        let mtimes = stats.map((s) => Math.round(s.mtime.getTime() / 1000))
-        let latest = mtimes.sort().slice(-1)[0]
-
-        if (latest > latestDirty) {
-          latestDirty = latest
-        }
+      if (latest > latestDirty) {
+        latestDirty = latest
       }
     }
 
@@ -71,55 +73,48 @@ export class GitHandler extends VcsHandler {
     }
   }
 
-  async sortVersions(versions: TreeVersion[]) {
-    let getPosition = async (version) => {
-      let { latestCommit, dirtyTimestamp } = version
+  // TODO Better auth handling
+  async ensureRemoteSource({ url, name, logEntry, sourceType }: RemoteSourceParams): Promise<string> {
+    const remoteSourcesPath = join(this.projectRoot, this.getRemoteSourcesDirName(sourceType))
+    await ensureDir(remoteSourcesPath)
+    const git = helpers.gitCli(remoteSourcesPath)
+    const fullPath = join(remoteSourcesPath, name)
 
-      if (dirtyTimestamp) {
-        // any dirty versions will be sorted by latest timestamp
-        return -parseInt(dirtyTimestamp, 10)
-      } else if (latestCommit === NEW_MODULE_VERSION) {
-        return 0
-      } else {
-        // clean versions are sorted by their commit distance from HEAD
-        return await this.getOffsetFromHead(latestCommit)
-      }
-    }
-    let positions = {}
+    if (!(await pathExists(fullPath))) {
+      const entry = logEntry.info({ section: name, msg: `Fetching from ${url}`, entryStyle: EntryStyle.activity })
+      const hash = getUrlHash(url)
+      const branch = hash ? `--branch=${hash}` : ""
 
-    await Bluebird.each(versions, async v => {
-      positions[v.latestCommit] = await getPosition(v)
-    })
+      await git(`clone --depth=1 ${branch} ${url} ${name}`)
 
-    // TODO: surely there's a better way around this lodash quirk
-    return <TreeVersion[]><any>sortBy(versions, v => positions[v.latestCommit])
-  }
-
-  // private async getCurrentBranch() {
-  //   return (await this.git("rev-parse --abbrev-ref HEAD")).stdout.trim()
-  // }
-
-  private async getOffsetFromHead(commitHash: string) {
-    const repoRoot = await this.getRepoRoot()
-    let res = await this.git(`rev-list --left-right --count ${commitHash}...HEAD`, repoRoot)
-    return parseInt(res.stdout.trim().split("\t")[1], 10)
-  }
-
-  private async getRepoRoot() {
-    if (!this.repoRoot) {
-      const res = await this.git(`rev-parse --show-toplevel`)
-      this.repoRoot = res.stdout.trim()
+      entry.setSuccess()
     }
 
-    return this.repoRoot
+    return fullPath
   }
 
-  private async git(args, cwd?: string) {
-    if (!cwd) {
-      cwd = this.projectRoot
+  async updateRemoteSource({ url, name, sourceType, logEntry }: RemoteSourceParams) {
+    const sourcePath = join(this.projectRoot, this.getRemoteSourcesDirName(sourceType), name)
+    const git = helpers.gitCli(sourcePath)
+    await this.ensureRemoteSource({ url, name, sourceType, logEntry })
+
+    const entry = logEntry.info({ section: name, msg: "Getting remote state", entryStyle: EntryStyle.activity })
+    await git("remote update")
+
+    const remoteHash = await git("rev-parse @")
+    const localHash = await git("rev-parse @{u}")
+    if (localHash !== remoteHash) {
+      entry.setState({ section: name, msg: `Fetching from ${url}`, entryStyle: EntryStyle.activity })
+      const hash = getUrlHash(url)
+
+      await git([`fetch origin ${hash} --depth=1`, `reset origin/${hash} --hard`])
+
+      entry.setSuccess("Source updated")
+    } else {
+      entry.setSuccess("Source up to date")
     }
-    return exec("git " + args, { cwd })
   }
+
 }
 
 // used by the build process to resolve and store the tree version for plugin modules
@@ -127,7 +122,7 @@ if (require.main === module) {
   const path = argv[2]
   const handler = new GitHandler(path)
 
-  handler.getTreeVersion([path])
+  handler.getTreeVersion(path)
     .then((treeVersion) => {
       console.log(JSON.stringify(treeVersion, null, 4))
     })

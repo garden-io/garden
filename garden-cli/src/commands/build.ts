@@ -13,7 +13,7 @@ import {
   CommandResult,
   handleTaskResults,
   ParameterValues,
-  StringParameter,
+  StringsParameter,
 } from "./base"
 import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
@@ -21,7 +21,7 @@ import dedent = require("dedent")
 import { processModules } from "../process"
 
 export const buildArguments = {
-  module: new StringParameter({
+  module: new StringsParameter({
     help: "Specify module(s) to build. Use comma separator to specify multiple modules.",
   }),
 }
@@ -55,8 +55,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
 
   async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<CommandResult<TaskResults>> {
     await ctx.clearBuilds()
-    const names = args.module ? args.module.split(",") : undefined
-    const modules = await ctx.getModules(names)
+    const modules = await ctx.getModules(args.module)
 
     ctx.log.header({ emoji: "hammer", command: "Build" })
 

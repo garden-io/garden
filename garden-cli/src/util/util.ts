@@ -25,6 +25,7 @@ import highlight from "cli-highlight"
 import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 import { safeDump } from "js-yaml"
+import { GARDEN_DIR_NAME } from "../constants"
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -107,6 +108,7 @@ export async function getChildDirNames(parentDir: string): Promise<string[]> {
   }
   return dirNames
 }
+
 export async function getIgnorer(rootPath: string) {
   // TODO: this doesn't handle nested .gitignore files, we should revisit
   const gitignorePath = join(rootPath, ".gitignore")
@@ -122,8 +124,11 @@ export async function getIgnorer(rootPath: string) {
   }
 
   // should we be adding this (or more) by default?
-  ig.add("node_modules")
-  ig.add(".garden")
+  ig.add([
+    "node_modules",
+    ".git",
+    GARDEN_DIR_NAME,
+  ])
 
   return ig
 }

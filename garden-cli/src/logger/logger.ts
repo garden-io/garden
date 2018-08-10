@@ -8,11 +8,11 @@
 
 import * as nodeEmoji from "node-emoji"
 import * as uniqid from "uniqid"
+import { round } from "lodash"
 import chalk from "chalk"
 
 import { combine } from "./renderers"
 import {
-  duration,
   findLogEntry,
   getChildEntries,
   mergeLogOpts,
@@ -141,6 +141,13 @@ export abstract class LogNode {
 
   public filterBySection(section: string): LogEntry[] {
     return getChildEntries(this).filter(entry => entry.opts.section === section)
+  }
+
+  /**
+   * Returns the duration in seconds, defaults to 2 decimal precision
+   */
+  public getDuration(precision: number = 2): number {
+    return round((Date.now() - this.timestamp) / 1000, precision)
   }
 
 }
@@ -331,7 +338,7 @@ export class RootLogNode extends LogNode {
   ): LogEntry {
     const msg = combine([
       [`\n${nodeEmoji.get("sparkles")}  Finished`],
-      [showDuration ? ` in ${chalk.bold(duration(this.timestamp) + "s")}` : "!"],
+      [showDuration ? ` in ${chalk.bold(this.getDuration() + "s")}` : "!"],
       ["\n"],
     ])
     const lvlStr = LogLevel[level]

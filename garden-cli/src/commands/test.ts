@@ -13,13 +13,14 @@ import {
   handleTaskResults,
   ParameterValues,
   StringParameter,
+  StringsParameter,
   CommandResult,
 } from "./base"
 import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 
 export const testArgs = {
-  module: new StringParameter({
+  module: new StringsParameter({
     help: "The name of the module(s) to deploy (skip to test all modules). " +
       "Use comma as separator to specify multiple modules.",
   }),
@@ -62,8 +63,7 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   options = testOpts
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
-    const names = args.module ? args.module.split(",") : undefined
-    const modules = await ctx.getModules(names)
+    const modules = await ctx.getModules(args.module)
 
     ctx.log.header({
       emoji: "thermometer",

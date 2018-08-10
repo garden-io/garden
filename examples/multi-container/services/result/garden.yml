@@ -1,6 +1,7 @@
 module:
   description: Results presentation service
   type: container
+  name: result
   services:
     - name: result
       command: [nodemon, server.js]

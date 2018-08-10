@@ -96,7 +96,7 @@ gulp.task("add-version-files", async () => {
     const versionFilePath = resolve(path, ".garden-version")
 
     const vcsHandler = new GitHandler(path)
-    const treeVersion = await vcsHandler.getTreeVersion([path])
+    const treeVersion = await vcsHandler.getTreeVersion(path)
 
     await writeFile(versionFilePath, JSON.stringify(treeVersion, null, 4) + "\n")
   })

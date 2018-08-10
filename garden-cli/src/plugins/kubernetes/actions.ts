@@ -466,11 +466,11 @@ export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatu
   }
 
   const username = ans.username.trim()
-  const newPrevUsernams = uniq([...prevUsernames, username].slice(-MAX_STORED_USERNAMES))
+  const newPrevUsernames = uniq([...prevUsernames, username].slice(-MAX_STORED_USERNAMES))
 
   await ctx.localConfigStore.set([
     { keyPath: [providerName, "username"], value: username },
-    { keyPath: [providerName, "previous-usernames"], value: newPrevUsernams },
+    { keyPath: [providerName, "previous-usernames"], value: newPrevUsernames },
   ])
 
   return { loggedIn: true }

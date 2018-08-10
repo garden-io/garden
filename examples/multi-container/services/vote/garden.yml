@@ -1,6 +1,7 @@
 module:
   description: voting service
   type: container
+  name: vote
   services:
     - name: vote
       command: [python, app.py]

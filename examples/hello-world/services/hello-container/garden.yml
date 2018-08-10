@@ -1,6 +1,7 @@
 module:
   description: Hello world container service
   type: container
+  name: hello-container
   services:
     - name: hello-container
       command: [npm, start]

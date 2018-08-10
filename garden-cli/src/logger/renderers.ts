@@ -10,10 +10,18 @@ import * as logSymbols from "log-symbols"
 import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
 import chalk from "chalk"
-import { curryRight, flow, isArray, isEmpty, padEnd, padStart } from "lodash"
+import {
+  curryRight,
+  flow,
+  isArray,
+  isEmpty,
+  padEnd,
+  padStart,
+  reduce,
+  kebabCase,
+} from "lodash"
 import hasAnsi = require("has-ansi")
 
-import { duration } from "./util"
 import { LogSymbolType, EntryStyle } from "./types"
 import { LogEntry } from "./logger"
 
@@ -73,9 +81,13 @@ export function renderError(entry: LogEntry) {
   const { msg, error } = entry.opts
   if (error) {
     const { detail, message, stack } = error
-    let out = `${stack || message}`
+    let out = stack || message
     if (!isEmpty(detail)) {
-      const yamlDetail = yaml.safeDump(detail, { noRefs: true, skipInvalid: true })
+      const kebabCasedDetail = reduce(detail, (acc, val, key) => {
+        acc[kebabCase(key)] = val
+        return acc
+      }, {})
+      const yamlDetail = yaml.safeDump(kebabCasedDetail, { noRefs: true, skipInvalid: true })
       out += `\nError Details:\n${yamlDetail}`
     }
     return out
@@ -113,7 +125,7 @@ export function renderSection(entry: LogEntry): string {
 export function renderDuration(entry: LogEntry): string {
   const { showDuration = false } = entry.opts
   return showDuration
-    ? msgStyle(` (finished in ${duration(entry.timestamp)}s)`)
+    ? msgStyle(` (finished in ${entry.getDuration()}s)`)
     : ""
 }
 

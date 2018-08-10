@@ -7,7 +7,7 @@
  */
 
 import * as winston from "winston"
-import * as path from "path"
+import { join } from "path"
 import * as stripAnsi from "strip-ansi"
 import { ensureDir, truncate } from "fs-extra"
 
@@ -72,11 +72,11 @@ export class FileWriter extends Writer {
       filename,
       root,
       truncatePrevious,
-      path: logPath = LOGS_DIR,
+      path = LOGS_DIR,
     } = config
-    const fullPath = path.join(root, logPath)
+    const fullPath = join(root, path)
     await ensureDir(fullPath)
-    const filePath = path.join(fullPath, filename)
+    const filePath = join(fullPath, filename)
     if (truncatePrevious) {
       try {
         await truncate(filePath)

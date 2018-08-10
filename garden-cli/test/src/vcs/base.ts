@@ -7,8 +7,8 @@ class TestVcsHandler extends VcsHandler {
   name = "test"
   private testVersions: TreeVersions = {}
 
-  async getTreeVersion(paths: string[]) {
-    return this.testVersions[paths[0]] || {
+  async getTreeVersion(path: string) {
+    return this.testVersions[path] || {
       latestCommit: NEW_MODULE_VERSION,
       dirtyTimestamp: null,
     }
@@ -17,8 +17,16 @@ class TestVcsHandler extends VcsHandler {
   setTestVersion(path: string, version: TreeVersion) {
     this.testVersions[path] = version
   }
-}
 
+  async ensureRemoteSource(_params): Promise<string> {
+    return ""
+  }
+
+  async updateRemoteSource(_params) {
+    return ""
+  }
+
+}
 describe("VcsHandler", () => {
   let handler: TestVcsHandler
   let ctx: PluginContext

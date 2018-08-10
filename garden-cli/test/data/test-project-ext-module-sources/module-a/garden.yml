@@ -1,0 +1,11 @@
+module:
+  name: module-a
+  repositoryUrl: https://my-git-server.com/module-a.git
+  type: test
+  services:
+    - name: service-a
+  build:
+    command: [echo, A]
+  tests:
+    - name: unit
+      command: [echo, OK]

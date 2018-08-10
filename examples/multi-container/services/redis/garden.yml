@@ -1,6 +1,7 @@
 module:
   description: redis service
   type: container
+  name: redis
   image: redis:alpine
   services:
     - name: redis

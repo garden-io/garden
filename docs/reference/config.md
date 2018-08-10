@@ -26,14 +26,23 @@ module:
   # Required.
   type: 
   
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-  # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
-  # dashes or be longer than 63 characters.
+  # The name of this module.
   # 
-  # Optional.
+  # Example: "my-sweet-module"
+  # 
+  # Required.
   name: 
   
   description: 
+  
+  # A remote repository URL to fetch the module from. Garden will read the garden.yml config from
+  # the local module. Currently only supports git servers.
+  # 
+  # Example: "<git remote url>#<branch|tag> or
+  # git+https://github.com/organization/some-module.git#v2.0"
+  # 
+  # Optional.
+  repositoryUrl: 
   
   # Variables that this module can reference and expose as environment variables.
   # 
@@ -187,6 +196,25 @@ project:
       # Required.
       name:
     
+  
+  # A list of remote sources to import into project
+  # 
+  # Optional.
+  sources: 
+    - # The name of the source to import
+      # 
+      # Required.
+      name: 
+      
+      # A remote respository URL. Currently only supports git servers. Use hash notation (#) to
+      # point to a specific branch or tag
+      # 
+      # Example: "<git remote url>#<branch|tag> or
+      # git+https://github.com/organization/some-module.git#v2.0"
+      # 
+      # Required.
+      repositoryUrl:
+    
 ```
 
 ## Built-in module types
@@ -206,14 +234,23 @@ module:
   # Required.
   type: 
   
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-  # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
-  # dashes or be longer than 63 characters.
+  # The name of this module.
   # 
-  # Optional.
+  # Example: "my-sweet-module"
+  # 
+  # Required.
   name: 
   
   description: 
+  
+  # A remote repository URL to fetch the module from. Garden will read the garden.yml config from
+  # the local module. Currently only supports git servers.
+  # 
+  # Example: "<git remote url>#<branch|tag> or
+  # git+https://github.com/organization/some-module.git#v2.0"
+  # 
+  # Optional.
+  repositoryUrl: 
   
   # Variables that this module can reference and expose as environment variables.
   # 
@@ -336,14 +373,23 @@ module:
   # Required.
   type: 
   
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-  # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
-  # dashes or be longer than 63 characters.
+  # The name of this module.
   # 
-  # Optional.
+  # Example: "my-sweet-module"
+  # 
+  # Required.
   name: 
   
   description: 
+  
+  # A remote repository URL to fetch the module from. Garden will read the garden.yml config from
+  # the local module. Currently only supports git servers.
+  # 
+  # Example: "<git remote url>#<branch|tag> or
+  # git+https://github.com/organization/some-module.git#v2.0"
+  # 
+  # Optional.
+  repositoryUrl: 
   
   # Variables that this module can reference and expose as environment variables.
   # 

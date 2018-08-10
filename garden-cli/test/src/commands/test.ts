@@ -48,7 +48,7 @@ describe("commands.test", () => {
 
     const { result } = await command.action(
       ctx,
-      { module: "module-a" },
+      { module: ["module-a"] },
       { name: undefined, force: true, "force-build": true, watch: false },
     )
 

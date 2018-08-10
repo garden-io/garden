@@ -66,10 +66,6 @@ export function mergeLogOpts(prevOpts: LogEntryOpts, nextOpts: LogEntryOpts, res
   return mergeWithResolvers(prevOpts, nextOpts, resolvers)
 }
 
-export function duration(startTime: number): string {
-  return ((Date.now() - startTime) / 1000).toFixed(2)
-}
-
 interface StreamWriteExtraParam {
   noIntercept?: boolean
 }

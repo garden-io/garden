@@ -1,9 +1,15 @@
 import { expect } from "chai"
 import { makeTestGardenA, stubAction } from "../../helpers"
+import * as td from "testdouble"
 
 import { LogoutCommand } from "../../../src/commands/logout"
 
 describe("LogoutCommand", () => {
+
+  afterEach(async () => {
+    td.reset()
+  })
+
   const command = new LogoutCommand()
 
   it("should log out from a provider", async () => {

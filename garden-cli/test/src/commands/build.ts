@@ -23,7 +23,7 @@ describe("commands.build", () => {
     const ctx = await makeTestContextA()
     const command = new BuildCommand()
 
-    const { result } = await command.action(ctx, { module: "module-b" }, { watch: false, force: true })
+    const { result } = await command.action(ctx, { module: ["module-b"] }, { watch: false, force: true })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
