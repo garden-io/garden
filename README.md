@@ -1,10 +1,10 @@
 [![CircleCI](https://circleci.com/gh/garden-io/garden/tree/master.svg?style=svg&circle-token=ac1ec9984d093f91e594e5a0a03b34cec2c2a093)](https://circleci.com/gh/garden-io/garden/tree/master)
- 
+
 
 ![](docs/garden-banner-logotype-left-2.png)
 
-*Welcome! Garden is a full-featured development framework for containers and serverless backends, designed to make 
-it easy to develop and test distributed systems.* 
+*Welcome! Garden is a full-featured development framework for containers and serverless backends, designed to make
+it easy to develop and test distributed systems.*
 <br><br>
 
 ### Status
@@ -16,7 +16,6 @@ All that said, Garden can already be highly useful if the following applies to y
 
 * **You're deploying to (or transitioning to) Kubernetes.**
 * **You work mostly with containers** _**today**_ _\(but perhaps plan on adopting serverless platforms in the future\)._
-* **You keep all your services in a single repository** _(multi-repo support coming soon!)._
 * **You really don't want to spend your precious hours building your own developer tooling!**
 
 If that sounds right for you, please give it a go and don't hesitate to report issues.
@@ -34,8 +33,8 @@ With Garden, you can...
 * Leverage a suite of commands and helpers to facilitate developing and running your stack.
 * _Write code the way you want, and run your production system however suits you! Garden does not impose any new libraries or languages aside from the config files._
 
-Garden is also designed to be pluggable and modular, with Kubernetes being just one plugin (albeit an important one). 
-Over time we will add native support for a variety of platforms, including AWS (Lambda, ECS, Fargate and more), 
+Garden is also designed to be pluggable and modular, with Kubernetes being just one plugin (albeit an important one).
+Over time we will add native support for a variety of platforms, including AWS (Lambda, ECS, Fargate and more),
 GCP, Heroku, OpenFaaS... and the list will continue growing.
 
 Please read the [Motivation](https://docs.garden.io/introduction/motivation) section in our documentation
@@ -51,8 +50,8 @@ guide to get a quick sense of how it works.
 
 ## Contributing
 
-We welcome any and all contributions to Garden! What we're trying to achieve is a big task, and 
-developers have a lot of diverse needs, so we need and appreciate your input, whether it's through 
+We welcome any and all contributions to Garden! What we're trying to achieve is a big task, and
+developers have a lot of diverse needs, so we need and appreciate your input, whether it's through
 code, docs, issues or developing plugins for your needs.
 
 For more detailed guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).

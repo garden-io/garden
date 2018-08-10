@@ -6,7 +6,8 @@ import { dataDir } from "../../helpers"
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
 
-describe("loadConfig", () => {
+describe("loadConfig", async () => {
+
   // TODO: test more cases + error cases
   it("should load and parse a project config", async () => {
     const parsed = await loadConfig(projectPathA, projectPathA)
@@ -14,6 +15,7 @@ describe("loadConfig", () => {
     expect(parsed.project).to.eql({
       name: "test-project-a",
       defaultEnvironment: "local",
+      sources: [],
       environmentDefaults: {
         providers: [],
         variables: { some: "variable" },
@@ -43,6 +45,7 @@ describe("loadConfig", () => {
       name: "module-a",
       type: "test",
       description: undefined,
+      repositoryUrl: undefined,
       allowPush: true,
       build: { command: ["echo", "A"], dependencies: [] },
       path: modulePathA,
@@ -57,4 +60,5 @@ describe("loadConfig", () => {
       },
     })
   })
+
 })

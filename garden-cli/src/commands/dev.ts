@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as execa from "execa"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "../tasks/build"
 import { Task } from "../types/task"

@@ -12,7 +12,7 @@ import {
   Command,
   CommandResult,
   ParameterValues,
-  StringParameter,
+  StringsParameter,
 } from "./base"
 import chalk from "chalk"
 import { ServiceLogEntry } from "../types/plugin/outputs"
@@ -23,7 +23,7 @@ import { LoggerType } from "../logger/types"
 import dedent = require("dedent")
 
 export const logsArgs = {
-  service: new StringParameter({
+  service: new StringsParameter({
     help: "The name of the service(s) to logs (skip to logs all services). " +
       "Use comma as separator to specify multiple services.",
   }),
@@ -57,9 +57,8 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   loggerType = LoggerType.basic
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<ServiceLogEntry[]>> {
-    const names = args.service ? args.service.split(",") : undefined
     const tail = opts.tail
-    const services = await ctx.getServices(names)
+    const services = await ctx.getServices(args.service)
 
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()

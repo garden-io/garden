@@ -102,6 +102,7 @@ export type PluginContextServiceParams<T extends PluginServiceActionParamsBase> 
 export type WrappedFromGarden = Pick<Garden,
   "projectName" |
   "projectRoot" |
+  "projectSources" |
   "log" |
   "config" |
   "localConfigStore" |
@@ -245,6 +246,7 @@ export function createPluginContext(garden: Garden): PluginContext {
   const ctx: PluginContext = {
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
+    projectSources: garden.projectSources,
     log: garden.log,
     config: projectConfig,
     localConfigStore: garden.localConfigStore,

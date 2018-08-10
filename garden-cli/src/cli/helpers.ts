@@ -19,7 +19,7 @@ import {
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
-const VALID_PARAMETER_TYPES = ["boolean", "number", "choice", "string"]
+const VALID_PARAMETER_TYPES = ["boolean", "number", "choice", "string", "array:string", "path", "array:path"]
 
 export const styleConfig = {
   usagePrefix: str => (
@@ -112,14 +112,17 @@ export interface SywacOptionConfig {
   desc: string | string[]
   type: string
   defaultValue?: any
+  coerce?: Function
   choices?: any[]
   required?: boolean
   hints?: string
   strict: true
+  mustExist: true // For parameters of path type
 }
 
 export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
   const {
+    coerce,
     defaultValue,
     help: desc,
     hints,
@@ -133,12 +136,14 @@ export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
     })
   }
   let config: SywacOptionConfig = {
+    coerce,
     defaultValue,
     desc,
     required,
     type,
     hints,
     strict: true,
+    mustExist: true, // For parameters of path type
   }
   if (type === "choice") {
     config.type = "enum"

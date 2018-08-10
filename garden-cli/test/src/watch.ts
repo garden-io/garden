@@ -12,7 +12,7 @@ const projectRoot = join(__dirname, "..", "data", "test-project-auto-reload")
 
 export function dependantModuleNames(ard: AutoReloadDependants): { [key: string]: string[] } {
   return mapValues(ard, dependants => {
-    return Array.from(dependants).map(d => d.name)
+    return Array.from(dependants).map(d => d.name).sort()
   })
 }
 
@@ -23,7 +23,7 @@ describe("watch", () => {
       const moduleNames = (await autoReloadModules(await ctx.getModules(["module-e", "module-d"])))
         .map(m => m.name).sort()
 
-      expect(moduleNames).to.eql(["module-a", "module-b", "module-c", "module-d", "module-e"])
+      expect(moduleNames.sort()).to.eql(["module-a", "module-b", "module-c", "module-d", "module-e"])
     })
   })
 

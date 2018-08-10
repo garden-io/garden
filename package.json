@@ -56,5 +56,6 @@
       "pre-push": "npm run check-package-lock && npm test && npm run integ"
     }
   },
-  "snyk": true
+  "snyk": true,
+  "dependencies": {}
 }

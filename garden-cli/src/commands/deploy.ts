@@ -14,13 +14,13 @@ import {
   CommandResult,
   handleTaskResults,
   ParameterValues,
-  StringParameter,
+  StringsParameter,
 } from "./base"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 
 export const deployArgs = {
-  service: new StringParameter({
+  service: new StringsParameter({
     help: "The name of the service(s) to deploy (skip to deploy all services). " +
       "Use comma as separator to specify multiple services.",
   }),
@@ -59,8 +59,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   options = deployOpts
 
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
-    const names = args.service ? args.service.split(",") : undefined
-    const services = await ctx.getServices(names)
+    const services = await ctx.getServices(args.service)
 
     if (services.length === 0) {
       ctx.log.warn({ msg: "No services found. Aborting." })

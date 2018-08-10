@@ -16,6 +16,8 @@ import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
+import { ExternalSourceType, getRemoteSourcesDirName } from "../util/ext-source-util"
+import { LogNode } from "../logger/logger"
 
 export const NEW_MODULE_VERSION = "0000000000"
 
@@ -65,17 +67,26 @@ export const moduleVersionSchema = Joi.object()
       .description("The version of each of the dependencies of the module."),
   })
 
+export interface RemoteSourceParams {
+  url: string,
+  name: string,
+  sourceType: ExternalSourceType,
+  logEntry: LogNode,
+}
+
 export abstract class VcsHandler {
   constructor(protected projectRoot: string) { }
 
   abstract name: string
-  abstract async getTreeVersion(paths: string[]): Promise<TreeVersion>
+  abstract async getTreeVersion(path: string): Promise<TreeVersion>
+  abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
+  abstract async updateRemoteSource(params: RemoteSourceParams)
 
   async resolveTreeVersion(module: Module): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(module.path, GARDEN_VERSIONFILE_NAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || this.getTreeVersion([module.path])
+    return fileVersion || this.getTreeVersion(module.path)
   }
 
   async resolveVersion(module: Module, dependencies: Module[]): Promise<ModuleVersion> {
@@ -145,6 +156,11 @@ export abstract class VcsHandler {
       }
     }
   }
+
+  getRemoteSourcesDirName(type: ExternalSourceType) {
+    return getRemoteSourcesDirName(type)
+  }
+
 }
 
 function hashVersions(versions: NamedTreeVersion[]) {

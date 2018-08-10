@@ -7,6 +7,7 @@
  */
 
 import Bluebird = require("bluebird")
+import chalk from "chalk"
 import { Module } from "./types/module"
 import { Service } from "./types/service"
 import { Task } from "./types/task"
@@ -22,6 +23,7 @@ import { padEnd, values, flatten } from "lodash"
 import { getNames, registerCleanupFunction } from "./util/util"
 import { PluginContext } from "./plugin-context"
 import { toGardenError } from "./exceptions"
+import { isModuleLinked } from "./util/ext-source-util"
 
 export type ProcessModule = (module: Module) => Promise<Task[]>
 export type ProcessService = (service: Service) => Promise<Task[]>
@@ -66,8 +68,9 @@ export async function processServices({ pluginContext, services, watch, process 
 
 export async function processModules({ pluginContext, modules, watch, process }: ProcessModulesParams):
   Promise<ProcessResults> {
-
   const ctx = pluginContext
+  const linkedModules: Module[] = []
+
   // TODO: log errors as they happen, instead of after processing all tasks
   const logErrors = (taskResults: TaskResults) => {
     for (const result of values(taskResults).filter(r => !!r.error)) {
@@ -81,7 +84,16 @@ export async function processModules({ pluginContext, modules, watch, process }:
 
   for (const module of modules) {
     const tasks = await process(module)
+    if (isModuleLinked(module, ctx)) {
+      linkedModules.push(module)
+    }
     await Bluebird.map(tasks, ctx.addTask)
+  }
+
+  for (const module of linkedModules) {
+    ctx.log.info(
+      chalk.gray(`Reading module ${chalk.cyan(module.name)} from linked local path ${chalk.white(module.path)}`),
+    )
   }
 
   const results = await ctx.processTasks()

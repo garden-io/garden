@@ -27,6 +27,7 @@ import {
   joiVariables,
   PrimitiveMap,
   validate,
+  joiRepositoryUrl,
 } from "./common"
 import {
   RuntimeContext,
@@ -90,6 +91,7 @@ export interface BaseModuleSpec {
   path: string
   type: string
   variables: PrimitiveMap
+  repositoryUrl?: string
 }
 
 export const baseModuleSpecSchema = Joi.object()
@@ -103,6 +105,12 @@ export const baseModuleSpecSchema = Joi.object()
       .description("The name of this module.")
       .example("my-sweet-module"),
     description: Joi.string(),
+    repositoryUrl: joiRepositoryUrl()
+      .description(
+        "A remote repository URL to fetch the module from. Garden will read the garden.yml config" +
+        " from the local module." +
+        " Currently only supports git servers.",
+    ),
     variables: joiVariables()
       .description("Variables that this module can reference and expose as environment variables.")
       .example({ "my-variable": "some-value" }),

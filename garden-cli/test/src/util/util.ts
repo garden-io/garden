@@ -1,11 +1,13 @@
 import { expect } from "chai"
 import { join } from "path"
-import { scanDirectory, getChildDirNames, toCygwinPath } from "../../src/util/util"
+import { scanDirectory, getChildDirNames, toCygwinPath } from "../../../src/util/util"
+import { getDataDir } from "../../helpers"
 
 describe("util", () => {
   describe("scanDirectory", () => {
     it("should iterate through all files in a directory", async () => {
-      const testPath = join(__dirname, "..", "data", "scanDirectory")
+      // const testPath = join(__dirname, "..", "..", "data", "scanDirectory")
+      const testPath = getDataDir("scanDirectory")
       let count = 0
 
       const expectedPaths = ["1", "2", "3", "subdir", "subdir/4"].map((f) => join(testPath, f))
@@ -19,7 +21,8 @@ describe("util", () => {
     })
 
     it("should filter files based on filter function", async () => {
-      const testPath = join(__dirname, "..", "data", "scanDirectory")
+      // const testPath = join(__dirname, "..", "..", "data", "scanDirectory")
+      const testPath = getDataDir("scanDirectory")
       const filterFunc = (item) => !item.includes("scanDirectory/subdir")
       const expectedPaths = ["1", "2", "3"].map((f) => join(testPath, f))
 
@@ -36,7 +39,8 @@ describe("util", () => {
 
   describe("getChildDirNames", () => {
     it("should return the names of all none hidden directories in the parent directory", async () => {
-      const testPath = join(__dirname, "..", "data", "get-child-dir-names")
+      // const testPath = join(__dirname, "..", "..", "data", "get-child-dir-names")
+      const testPath = getDataDir("get-child-dir-names")
       expect(await getChildDirNames(testPath)).to.eql(["a", "b"])
     })
   })

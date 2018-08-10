@@ -2,8 +2,8 @@ import { Module } from "../../../src/types/module"
 import { resolve } from "path"
 import {
   dataDir,
-  makeTestContextA,
   makeTestContext,
+  makeTestContextA,
 } from "../../helpers"
 import { expect } from "chai"
 import { loadConfig } from "../../../src/types/config"
@@ -24,6 +24,7 @@ describe("Module", () => {
         dependencies: [],
       },
       description: undefined,
+      repositoryUrl: undefined,
       name: "module-a",
       path: module.path,
       spec: {
@@ -61,6 +62,7 @@ describe("Module", () => {
         allowPush: true,
         build: { command: ["echo", "OK"], dependencies: [] },
         description: undefined,
+        repositoryUrl: undefined,
         name: "module-a",
         path: module.path,
         type: "test",

@@ -7,7 +7,7 @@
  */
 
 import { resolve, join, basename } from "path"
-import { pathExists, ensureDir } from "fs-extra"
+import { ensureDir } from "fs-extra"
 import Bluebird = require("bluebird")
 import dedent = require("dedent")
 import terminalLink = require("terminal-link")
@@ -20,8 +20,9 @@ import {
   CommandResult,
   StringParameter,
   ParameterValues,
+  PathsParameter,
 } from "../base"
-import { ParameterError, GardenBaseError } from "../../exceptions"
+import { GardenBaseError } from "../../exceptions"
 import { EntryStyle } from "../../logger/types"
 import {
   prepareNewModuleConfig,
@@ -39,7 +40,7 @@ import { validate, joiIdentifier } from "../../types/common"
 import { projectSchema } from "../../types/project"
 
 export const createProjectOptions = {
-  "module-dirs": new StringParameter({
+  "module-dirs": new PathsParameter({
     help: "Relative path to modules directory. Use comma as a separator to specify multiple directories",
   }),
   name: new StringParameter({
@@ -94,6 +95,7 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
     let errors: GardenBaseError[] = []
 
     const projectRoot = args["project-dir"] ? join(ctx.projectRoot, args["project-dir"].trim()) : ctx.projectRoot
+    const moduleParentDirs = await Bluebird.map(opts["module-dirs"] || [], (dir: string) => resolve(projectRoot, dir))
     const projectName = validate(
       opts.name || basename(projectRoot),
       joiIdentifier(),
@@ -101,19 +103,6 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
     )
 
     await ensureDir(projectRoot)
-
-    // Resolve and validate dirs that contain modules
-    let moduleParentDirs: string[] = []
-    if (opts["module-dirs"]) {
-      const dirs = opts["module-dirs"].split(",")
-      moduleParentDirs = await Bluebird
-        .map(dirs, (dir: string) => resolve(projectRoot, dir))
-        .each(async (dir: string) => {
-          if (!(await pathExists(dir))) {
-            throw new ParameterError(`Directory ${dir} not found`, {})
-          }
-        })
-    }
 
     ctx.log.header({ emoji: "house_with_garden", command: "create" })
     ctx.log.info(`Initializing new Garden project ${projectName}`)
@@ -172,7 +161,8 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
       task.setWarn({ msg: "Finished with errors", append: true })
     }
 
-    ctx.log.info(`Project created! Be sure to check out our ${terminalLink("docs", "https://docs.garden.io")}!`)
+    const docs = terminalLink("docs", "https://docs.garden.io")
+    ctx.log.info(`Project created! Be sure to check out our ${docs} for how to get sarted!`)
 
     return {
       result: {

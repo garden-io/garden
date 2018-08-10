@@ -49,7 +49,7 @@ export const configSchema = Joi.object()
 const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children)
 
 export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig> {
-  // TODO: nicer error messages when load/validation fails
+  // TODO: nicer error messages when load/validation fails (in particular if module is from remote source)
   const absPath = join(path, CONFIG_FILENAME)
   let fileData
   let spec: any
@@ -69,7 +69,6 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   if (spec.module) {
     /*
       We allow specifying modules by name only as a shorthand:
-
         dependencies:
           - foo-module
           - name: foo-module // same as the above
@@ -115,13 +114,13 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
       allowPush: module.allowPush,
       build: module.build,
       description: module.description,
+      repositoryUrl: module.repositoryUrl,
       name: module.name,
       path,
       spec: omit(module, baseModuleSchemaKeys),
       type: module.type,
       variables: module.variables,
     }
-
   }
 
   return {

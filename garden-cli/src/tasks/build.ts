@@ -8,7 +8,6 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { round } from "lodash"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
@@ -74,14 +73,11 @@ export class BuildTask extends Task {
       entryStyle: EntryStyle.activity,
     })
 
-    const startTime = new Date().getTime()
     const result = await this.ctx.buildModule({
       moduleName,
       logEntry,
     })
-    const buildTime = (new Date().getTime()) - startTime
-
-    logEntry.setSuccess({ msg: chalk.green(`Done (took ${round(buildTime / 1000, 1)} sec)`), append: true })
+    logEntry.setSuccess({ msg: chalk.green(`Done (took ${logEntry.getDuration(1)} sec)`), append: true })
 
     return result
   }

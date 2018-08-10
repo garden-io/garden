@@ -50,6 +50,10 @@ export abstract class Parameter<T> {
     this.overrides = overrides || []
   }
 
+  coerce(input: T): T | undefined {
+    return input
+  }
+
   abstract validate(input: string): T
 
   async autoComplete(): Promise<string[]> {
@@ -62,6 +66,40 @@ export class StringParameter extends Parameter<string> {
 
   validate(input: string) {
     return input
+  }
+}
+
+export class StringsParameter extends Parameter<string[]> {
+  type = "array:string"
+
+  // Sywac returns [undefined] if input is empty so we coerce that into undefined.
+  // This only applies to optional parameters since Sywac would throw if input is empty for a required parameter.
+  coerce(input: string[]) {
+    const filtered = input.filter(i => !!i)
+    if (filtered.length < 1) {
+      return undefined
+    }
+    return filtered
+  }
+
+  validate(input: string) {
+    return input.split(",")
+  }
+}
+
+export class PathParameter extends Parameter<string> {
+  type = "path"
+
+  validate(input: string) {
+    return input
+  }
+}
+
+export class PathsParameter extends Parameter<string[]> {
+  type = "array:path"
+
+  validate(input: string) {
+    return input.split(",")
   }
 }
 

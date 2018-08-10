@@ -12,7 +12,7 @@ import {
   CommandResult,
   handleTaskResults,
   ParameterValues,
-  StringParameter,
+  StringsParameter,
 } from "./base"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
@@ -22,7 +22,7 @@ import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 
 export const pushArgs = {
-  module: new StringParameter({
+  module: new StringsParameter({
     help: "The name of the module(s) to push (skip to push all modules). " +
       "Use comma as separator to specify multiple modules.",
   }),
@@ -62,8 +62,7 @@ export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
   async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
     ctx.log.header({ emoji: "rocket", command: "Push modules" })
 
-    const names = args.module ? args.module.split(",") : undefined
-    const modules = await ctx.getModules(names)
+    const modules = await ctx.getModules(args.module)
 
     const results = await pushModules(ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
 

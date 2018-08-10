@@ -15,6 +15,7 @@ import { DeleteCommand } from "./delete"
 import { DeployCommand } from "./deploy"
 import { DevCommand } from "./dev"
 import { GetCommand } from "./get"
+import { LinkCommand } from "./link/link"
 import { LoginCommand } from "./login"
 import { LogoutCommand } from "./logout"
 import { LogsCommand } from "./logs"
@@ -23,6 +24,8 @@ import { RunCommand } from "./run/run"
 import { ScanCommand } from "./scan"
 import { SetCommand } from "./set"
 import { TestCommand } from "./test"
+import { UnlinkCommand } from "./unlink/unlink"
+import { UpdateRemoteCommand } from "./update-remote/update-remote"
 import { ValidateCommand } from "./validate"
 import { ExecCommand } from "./exec"
 
@@ -36,6 +39,7 @@ export const coreCommands: Command[] = [
   new ExecCommand(),
   new GetCommand(),
   new InitCommand(),
+  new LinkCommand(),
   new LoginCommand(),
   new LogoutCommand(),
   new LogsCommand(),
@@ -44,5 +48,7 @@ export const coreCommands: Command[] = [
   new ScanCommand(),
   new SetCommand(),
   new TestCommand(),
+  new UnlinkCommand(),
+  new UpdateRemoteCommand(),
   new ValidateCommand(),
 ]

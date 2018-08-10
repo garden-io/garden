@@ -1,6 +1,7 @@
 import { expect } from "chai"
 import * as os from "os"
-import { join } from "path"
+import * as td from "testdouble"
+import { join, resolve } from "path"
 import { Garden } from "../../src/garden"
 import { detectCycles } from "../../src/util/detectCycles"
 import {
@@ -12,9 +13,14 @@ import {
   projectRootA,
   testPlugin,
   testPluginB,
+  stubExtSources,
+  getDataDir,
+  cleanProject,
+  stubGitCli,
 } from "../helpers"
 import { getNames } from "../../src/util/util"
 import { MOCK_CONFIG } from "../../src/cli/cli"
+import { LinkedSource } from "../../src/config-store"
 
 describe("Garden", () => {
   describe("factory", () => {
@@ -152,14 +158,14 @@ describe("Garden", () => {
       const ctx = await makeTestGardenA()
       const modules = await ctx.getModules()
 
-      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should optionally return specified modules in the context", async () => {
       const ctx = await makeTestGardenA()
       const modules = await ctx.getModules(["module-b", "module-c"])
 
-      expect(getNames(modules)).to.eql(["module-b", "module-c"])
+      expect(getNames(modules).sort()).to.eql(["module-b", "module-c"])
     })
 
     it("should throw if named module is missing", async () => {
@@ -181,14 +187,14 @@ describe("Garden", () => {
       const ctx = await makeTestGardenA()
       const services = await ctx.getServices()
 
-      expect(getNames(services)).to.eql(["service-a", "service-b", "service-c"])
+      expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
     })
 
     it("should optionally return specified services in the context", async () => {
       const ctx = await makeTestGardenA()
       const services = await ctx.getServices(["service-b", "service-c"])
 
-      expect(getNames(services)).to.eql(["service-b", "service-c"])
+      expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
     })
 
     it("should throw if named service is missing", async () => {
@@ -230,12 +236,25 @@ describe("Garden", () => {
   describe("scanModules", () => {
     // TODO: assert that gitignore in project root is respected
 
+    afterEach(() => {
+      td.reset()
+    })
+
     it("should scan the project root for modules and add to the context", async () => {
       const garden = await makeTestGardenA()
       await garden.scanModules()
 
       const modules = await garden.getModules(undefined, true)
-      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
+    })
+
+    it("should scan and add modules for projects with external project sources", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"))
+      stubExtSources(garden.pluginContext)
+      await garden.scanModules()
+
+      const modules = await garden.getModules(undefined, true)
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
     describe("detectCircularDependencies", () => {
@@ -351,6 +370,11 @@ describe("Garden", () => {
   })
 
   describe("resolveModule", () => {
+
+    afterEach(() => {
+      td.reset()
+    })
+
     it("should return named module", async () => {
       const garden = await makeTestGardenA()
       await garden.scanModules()
@@ -386,6 +410,16 @@ describe("Garden", () => {
       const module = await garden.resolveModule("./module-a")
       expect(module!.name).to.equal("module-a")
     })
+
+    it("should resolve module path to external sources dir if module has a remote source", async () => {
+      const projectRoot = resolve(dataDir, "test-project-ext-module-sources")
+      const garden = await makeTestGarden(projectRoot)
+      stubGitCli()
+
+      const module = await garden.resolveModule("./module-a")
+      expect(module!.path).to.equal(join(projectRoot, ".garden", "sources", "module", "module-a"))
+    })
+
   })
 
   describe("getTemplateContext", () => {
@@ -503,5 +537,68 @@ describe("Garden", () => {
       const ctx = await makeTestGardenA()
       await expectError(() => ctx.getModuleActionHandler("execInService", "container"), "parameter")
     })
+  })
+
+  describe("loadExtSourcePath", () => {
+
+    let projectRoot: string
+
+    const makeGardenContext = async (root) => {
+      const ctx = await makeTestGarden(root)
+      stubGitCli()
+      return ctx
+    }
+
+    afterEach(async () => {
+      td.reset()
+      await cleanProject(projectRoot)
+    })
+
+    it("should return the path to the project source if source type is project", async () => {
+      projectRoot = getDataDir("test-project-ext-project-sources")
+      const ctx = await makeGardenContext(projectRoot)
+      const path = await ctx.loadExtSourcePath({ name: "source-a", repositoryUrl: "", sourceType: "project" })
+      expect(path).to.equal(join(projectRoot, ".garden", "sources", "project", "source-a"))
+    })
+
+    it("should return the path to the module source if source type is module", async () => {
+      projectRoot = getDataDir("test-project-ext-module-sources")
+      const ctx = await makeGardenContext(projectRoot)
+      const path = await ctx.loadExtSourcePath({ name: "module-a", repositoryUrl: "", sourceType: "module" })
+      expect(path).to.equal(join(projectRoot, ".garden", "sources", "module", "module-a"))
+    })
+
+    it("should return the local path of the project source if linked", async () => {
+      projectRoot = getDataDir("test-project-ext-project-sources")
+      const ctx = await makeGardenContext(projectRoot)
+      const localPath = join(projectRoot, "mock-local-path", "source-a")
+
+      const linked: LinkedSource[] = [{
+        name: "source-a",
+        path: localPath,
+      }]
+      await ctx.localConfigStore.set(["linkedProjectSources"], linked)
+
+      const path = await ctx.loadExtSourcePath({ name: "source-a", repositoryUrl: "", sourceType: "project" })
+
+      expect(path).to.equal(join(projectRoot, "mock-local-path", "source-a"))
+    })
+
+    it("should return the local path of the module source if linked", async () => {
+      projectRoot = getDataDir("test-project-ext-module-sources")
+      const ctx = await makeGardenContext(projectRoot)
+      const localPath = join(projectRoot, "mock-local-path", "module-a")
+
+      const linked: LinkedSource[] = [{
+        name: "module-a",
+        path: localPath,
+      }]
+      await ctx.localConfigStore.set(["linkedModuleSources"], linked)
+
+      const path = await ctx.loadExtSourcePath({ name: "module-a", repositoryUrl: "", sourceType: "module" })
+
+      expect(path).to.equal(join(projectRoot, "mock-local-path", "module-a"))
+    })
+
   })
 })

@@ -89,7 +89,7 @@ describe("PushCommand", () => {
 
     const { result } = await command.action(
       ctx, {
-        module: "",
+        module: undefined,
       },
       {
         "allow-dirty": false,
@@ -113,7 +113,7 @@ describe("PushCommand", () => {
     const { result } = await command.action(
       ctx,
       {
-        module: "",
+        module: undefined,
       },
       {
         "allow-dirty": false,
@@ -137,7 +137,7 @@ describe("PushCommand", () => {
     const { result } = await command.action(
       ctx,
       {
-        module: "module-a",
+        module: ["module-a"],
       },
       {
         "allow-dirty": false,
@@ -158,7 +158,7 @@ describe("PushCommand", () => {
     const { result } = await command.action(
       ctx,
       {
-        module: "module-c",
+        module: ["module-c"],
       },
       {
         "allow-dirty": false,
@@ -180,7 +180,7 @@ describe("PushCommand", () => {
     const { result } = await command.action(
       ctx,
       {
-        module: "module-a",
+        module: ["module-a"],
       },
       {
         "allow-dirty": false,
@@ -217,7 +217,7 @@ describe("PushCommand", () => {
       await expectError(() => command.action(
         ctx,
         {
-          module: "module-a",
+          module: ["module-a"],
         },
         {
           "allow-dirty": false,
@@ -233,7 +233,7 @@ describe("PushCommand", () => {
       const { result } = await command.action(
         ctx,
         {
-          module: "module-a",
+          module: ["module-a"],
         },
         {
           "allow-dirty": true,

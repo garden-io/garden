@@ -72,7 +72,7 @@ describe("DeployCommand", () => {
 
     const { result } = await command.action(
       ctx, {
-        service: "",
+        service: undefined,
       },
       {
         watch: false,
@@ -100,7 +100,7 @@ describe("DeployCommand", () => {
     const { result } = await command.action(
       ctx,
       {
-        service: "service-b",
+        service: ["service-b"],
       },
       {
         watch: false,

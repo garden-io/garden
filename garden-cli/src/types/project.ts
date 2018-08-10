@@ -13,6 +13,7 @@ import {
   joiIdentifier,
   joiVariables,
   Primitive,
+  remoteSourceSchema,
 } from "./common"
 
 export interface ProviderConfig {
@@ -30,12 +31,22 @@ export interface EnvironmentConfig extends CommonEnvironmentConfig {
   name: string
 }
 
+export interface SourceConfig {
+  name: string
+  repositoryUrl: string
+}
+
 export interface ProjectConfig {
   name: string
   defaultEnvironment: string
   environmentDefaults: CommonEnvironmentConfig
   environments: EnvironmentConfig[]
+  sources?: SourceConfig[]
 }
+
+export const defaultProviders = [
+  { name: "container" },
+]
 
 export const defaultEnvironments: EnvironmentConfig[] = [
   {
@@ -99,6 +110,9 @@ export const projectSchema = Joi.object()
       .default(() => ({ ...defaultEnvironments }), safeDump(defaultEnvironments))
       .description("A list of environments to configure for the project.")
       .example(defaultEnvironments),
+    sources: joiArray(remoteSourceSchema)
+      .unique("name")
+      .description("A list of remote sources to import into project"),
   })
   .required()
   .description(

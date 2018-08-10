@@ -13,8 +13,6 @@ import {
   parse,
   resolve,
   sep,
-  win32,
-  posix,
 } from "path"
 import {
   emptyDir,

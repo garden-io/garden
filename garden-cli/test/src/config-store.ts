@@ -7,7 +7,7 @@ type GenericConfig = {}
 
 class GenericConfigStore extends ConfigStore<GenericConfig> {
 
-  setConfigPath(projectPath): string {
+  getConfigPath(projectPath): string {
     return resolve(projectPath, ".garden", "local-config.yml")
   }
 

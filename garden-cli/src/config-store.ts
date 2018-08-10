@@ -6,29 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
-import { ensureFile, readFile } from "fs-extra"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
+import { resolve } from "path"
+import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
-import { joiIdentifier, Primitive, validate } from "./types/common"
+
+import { joiIdentifier, Primitive, validate, joiArray } from "./types/common"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
+import { GARDEN_DIR_NAME, LOCAL_CONFIG_FILENAME } from "./constants"
 
-export type ConfigValue = Primitive | Primitive[]
+export type ConfigValue = Primitive | Primitive[] | Object[]
 
 export type SetManyParam = { keyPath: Array<string>, value: ConfigValue }[]
 
 export abstract class ConfigStore<T extends object = any> {
-  private cached: null | T
+  private config: null | T
   protected configPath: string
 
   constructor(projectPath: string) {
-    this.configPath = this.setConfigPath(projectPath)
-    this.cached = null
+    this.configPath = this.getConfigPath(projectPath)
+    this.config = null
   }
 
-  abstract setConfigPath(projectPath: string): string
+  abstract getConfigPath(projectPath: string): string
   abstract validate(config): T
 
   /**
@@ -51,7 +53,7 @@ export abstract class ConfigStore<T extends object = any> {
       config = this.updateConfig(config, keyPath, value)
     }
 
-    return this.saveLocalConfig(config)
+    await this.saveConfig(config)
   }
 
   public async get(): Promise<T>
@@ -73,7 +75,7 @@ export abstract class ConfigStore<T extends object = any> {
   }
 
   public async clear() {
-    return this.saveLocalConfig(<T>{})
+    await this.saveConfig(<T>{})
   }
 
   public async delete(keyPath: string[]) {
@@ -88,18 +90,16 @@ export abstract class ConfigStore<T extends object = any> {
         config,
       })
     }
-    return this.saveLocalConfig(config)
+    await this.saveConfig(config)
   }
 
   private async getConfig(): Promise<T> {
-    let config: T
-    if (this.cached) {
-      // Spreading does not work on generic types, see: https://github.com/Microsoft/TypeScript/issues/13557
-      config = Object.assign(this.cached, {})
-    } else {
-      config = await this.loadConfig()
+    if (!this.config) {
+      await this.loadConfig()
     }
-    return config
+    // Spreading does not work on generic types, see: https://github.com/Microsoft/TypeScript/issues/13557
+    return Object.assign(this.config, {})
+
   }
 
   private updateConfig(config: T, keyPath: string[], value: ConfigValue): T {
@@ -129,24 +129,22 @@ export abstract class ConfigStore<T extends object = any> {
     return config
   }
 
-  private async ensureConfigFileExists() {
-    return ensureFile(this.configPath)
+  private async ensureConfigFile() {
+    await ensureFile(this.configPath)
   }
 
-  private async loadConfig(): Promise<T> {
-    await this.ensureConfigFileExists()
+  private async loadConfig() {
+    await this.ensureConfigFile()
     const config = await yaml.safeLoad((await readFile(this.configPath)).toString()) || {}
 
-    this.cached = this.validate(config)
-
-    return this.cached
+    this.config = this.validate(config)
   }
 
-  private async saveLocalConfig(config: T) {
-    this.cached = null
+  private async saveConfig(config: T) {
+    this.config = null
     const validated = this.validate(config)
     await dumpYaml(this.configPath, validated)
-    this.cached = config
+    this.config = validated
   }
 
   private throwKeyNotFound(config: T, keyPath: string[]) {
@@ -158,13 +156,21 @@ export abstract class ConfigStore<T extends object = any> {
 
 }
 
+// TODO: Camel case previous usernames
 export interface KubernetesLocalConfig {
   username?: string
   "previous-usernames"?: Array<string>
 }
 
+export interface LinkedSource {
+  name: string
+  path: string
+}
+
 export interface LocalConfig {
   kubernetes?: KubernetesLocalConfig
+  linkedModuleSources?: LinkedSource[] // TODO Use KeyedSet instead of array
+  linkedProjectSources?: LinkedSource[]
 }
 
 const kubernetesLocalConfigSchema = Joi.object()
@@ -174,17 +180,32 @@ const kubernetesLocalConfigSchema = Joi.object()
   })
   .meta({ internal: true })
 
-// TODO: Dynamically populate schema with all possible provider keys?
-const localConfigSchema = Joi.object()
+const linkedSourceSchema = Joi.object()
   .keys({
-    kubernetes: kubernetesLocalConfigSchema,
+    name: joiIdentifier(),
+    path: Joi.string(),
   })
+  .meta({ internal: true })
+
+const localConfigSchemaKeys = {
+  kubernetes: kubernetesLocalConfigSchema,
+  linkedModuleSources: joiArray(linkedSourceSchema),
+  linkedProjectSources: joiArray(linkedSourceSchema),
+}
+
+export const localConfigKeys = Object.keys(localConfigSchemaKeys).reduce((acc, key) => {
+  acc[key] = key
+  return acc
+}, {}) as { [K in keyof typeof localConfigSchemaKeys]: K }
+
+const localConfigSchema = Joi.object()
+  .keys(localConfigSchemaKeys)
   .meta({ internal: true })
 
 export class LocalConfigStore extends ConfigStore<LocalConfig> {
 
-  setConfigPath(projectPath): string {
-    return resolve(projectPath, ".garden", "local-config.yml")
+  getConfigPath(projectPath): string {
+    return resolve(projectPath, GARDEN_DIR_NAME, LOCAL_CONFIG_FILENAME)
   }
 
   validate(config): LocalConfig {

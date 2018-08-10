@@ -1,0 +1,10 @@
+module:
+  name: module-b
+  type: test
+  services:
+    - name: service-b
+  build:
+    command: [echo, A]
+  tests:
+    - name: unit
+      command: [echo, OK]
