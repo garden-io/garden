@@ -3,9 +3,9 @@ module:
   type: generic
   allowPush: false
   services:
-    - name: service-c:
+    - name: service-c
       endpoints:
-        - paths: [/path-c]
+        - path: /path-c
           containerPort: 8080
       dependencies:
         - service-b

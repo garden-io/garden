@@ -8,6 +8,4 @@ module:
         - name: http
           containerPort: 8080
       endpoints:
-        - paths:
-            - /
-          port: http
+        - port: http

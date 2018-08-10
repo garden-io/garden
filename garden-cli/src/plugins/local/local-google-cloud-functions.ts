@@ -50,6 +50,9 @@ export const gardenPlugin = (): GardenPlugin => ({
             daemon: false,
             endpoints: [{
               port: "http",
+              path: "/",
+              domain: s.spec.domain,
+              subdomain: s.spec.subdomain,
             }],
             env: {},
             healthCheck: { tcpPort: "http" },

@@ -245,13 +245,11 @@ async function writeStackFile(ctx: PluginContext, module: OpenFaasModule, envVar
 }
 
 async function getServiceStatus({ ctx, service }: GetServiceStatusParams<OpenFaasModule>) {
-  const hostname = getExternalGatewayHostname(ctx)
-
   const endpoints: ServiceEndpoint[] = [{
     protocol: "http",
-    hostname,
+    ...getExternalGatewayHost(ctx),
     url: getExternalServiceUrl(ctx, service),
-    paths: [getServicePath(service)],
+    path: getServicePath(service),
   }]
 
   const k8sProvider = getK8sProvider(ctx)
@@ -340,21 +338,30 @@ function getServicePath(service: OpenFaasService) {
   return join("function", service.name)
 }
 
-function getExternalGatewayUrl(ctx: PluginContext) {
-  const hostname = getExternalGatewayHostname(ctx)
-  const ingressPort = getK8sProvider(ctx).config.ingressPort
-  return `http://${hostname}:${ingressPort}`
-}
-
 async function getInternalGatewayUrl(ctx: PluginContext) {
   const provider = getK8sProvider(ctx)
   const namespace = await getOpenfaasNamespace(ctx, provider, true)
   return `http://gateway.${namespace}.svc.cluster.local:8080`
 }
 
-function getExternalGatewayHostname(ctx: PluginContext) {
+function getExternalGatewayHost(ctx: PluginContext) {
   const k8sProvider = getK8sProvider(ctx)
-  return `openfaas-gateway.${k8sProvider.config.ingressHostname}`
+  // TODO: currently just picking the first domain, could make this configurable
+  const domain = k8sProvider.config.ingressDomains[0].name
+  const subdomain = "openfaas-gateway"
+
+  return {
+    domain,
+    subdomain,
+    hostname: `${subdomain}.${domain}`,
+    port: k8sProvider.config.ingressPort,
+  }
+}
+
+function getExternalGatewayUrl(ctx: PluginContext) {
+  const hostname = getExternalGatewayHost(ctx)
+  const ingressPort = getK8sProvider(ctx).config.ingressPort
+  return `http://${hostname}:${ingressPort}`
 }
 
 async function getInternalServiceUrl(ctx: PluginContext, service: OpenFaasService) {
@@ -372,7 +379,7 @@ export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
   const namespace = await getOpenfaasNamespace(ctx, k8sProvider, true)
   const functionNamespace = await getAppNamespace(ctx, k8sProvider)
 
-  const gatewayHostname = getExternalGatewayHostname(ctx)
+  const { hostname } = getExternalGatewayHost(ctx)
 
   // TODO: allow passing variables/parameters here to be parsed as part of the garden.yml project config
   // (this would allow us to use a garden.yml for the project config, instead of speccing it here)
@@ -402,7 +409,7 @@ export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
             ],
             variables: {
               "function-namespace": functionNamespace,
-              "gateway-hostname": gatewayHostname,
+              "gateway-hostname": hostname,
             },
           },
         ],

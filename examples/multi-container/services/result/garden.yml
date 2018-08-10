@@ -6,7 +6,7 @@ module:
     - name: result
       command: [nodemon, server.js]
       endpoints:
-        - paths: [/]
+        - path: /
           port: ui
       ports:
         - name: ui

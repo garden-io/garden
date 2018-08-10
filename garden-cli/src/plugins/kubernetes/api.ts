@@ -13,15 +13,12 @@ import {
   RbacAuthorization_v1Api,
   Apps_v1Api,
   Apiextensions_v1beta1Api,
+  V1Secret,
 } from "@kubernetes/client-node"
 import { join } from "path"
 import { readFileSync } from "fs"
 import { safeLoad } from "js-yaml"
-import {
-  zip,
-  omitBy,
-  isObject,
-} from "lodash"
+import { zip, omitBy, isObject } from "lodash"
 import { GardenBaseError, ConfigurationError } from "../../exceptions"
 import { KubernetesObject } from "./helm"
 import { homedir } from "os"
@@ -58,34 +55,27 @@ function getConfig(context: string): KubeConfig {
   return configs[context]
 }
 
+type K8sApi = Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api | Apps_v1Api | Apiextensions_v1beta1Api
+type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
+
 export function coreApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Core_v1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
+  return proxyApi(Core_v1Api, context)
 }
 
 export function extensionsApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Extensions_v1beta1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
+  return proxyApi(Extensions_v1beta1Api, context)
 }
 
 export function appsApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Apps_v1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
-}
-
-export function apiExtensionsApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Apiextensions_v1beta1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
+  return proxyApi(Apps_v1Api, context)
 }
 
 export function rbacApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new RbacAuthorization_v1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
+  return proxyApi(RbacAuthorization_v1Api, context)
+}
+
+export function apiExtensionsApi(context: string) {
+  return proxyApi(Apiextensions_v1beta1Api, context)
 }
 
 export class KubernetesError extends GardenBaseError {
@@ -98,9 +88,10 @@ export class KubernetesError extends GardenBaseError {
 /**
  * Wrapping the API objects to deal with bugs.
  */
-type K8sApi = Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api | Apps_v1Api | Apiextensions_v1beta1Api
+function proxyApi<T extends K8sApi>(apiCls: K8sApiConstructor<T>, context: string): T {
+  const config = getConfig(context)
+  const api = new apiCls(config.getCurrentCluster().server)
 
-function proxyApi<T extends K8sApi>(api: T, config: KubeConfig): T {
   api.setDefaultAuthentication(config)
 
   const wrapError = err => {
@@ -202,4 +193,44 @@ export async function apiReadBySpec(namespace: string, context: string, spec: Ku
         spec,
       })
   }
+}
+
+const crudMap = {
+  Secret: {
+    type: V1Secret,
+    group: Core_v1Api,
+    read: "readNamespacedSecret",
+    create: "createNamespacedSecret",
+    patch: "patchNamespacedSecret",
+    delete: "deleteNamespacedSecret",
+  },
+}
+
+type CrudMapType = typeof crudMap
+
+export async function upsert<K extends keyof CrudMapType>(
+  kind: K, namespace: string, context: string, obj: KubernetesObject,
+): Promise<KubernetesObject> {
+  const api = proxyApi(crudMap[kind].group, context)
+
+  try {
+    const res = await api[crudMap[kind].read](obj.metadata.name, namespace)
+    return res.body
+  } catch (err) {
+    if (err.code === 404) {
+      try {
+        await api[crudMap[kind].create](namespace, <any>obj)
+      } catch (err) {
+        if (err.code === 409) {
+          await api[crudMap[kind].patch](name, namespace, obj)
+        } else {
+          throw err
+        }
+      }
+    } else {
+      throw err
+    }
+  }
+
+  return obj
 }

@@ -19,9 +19,12 @@ const testProvider: PluginFactory = () => {
     "service-a": {
       state: "ready",
       endpoints: [{
-        protocol: "http",
+        domain: "test-project-b.local.app.garden",
         hostname: "service-a.test-project-b.local.app.garden",
-        paths: ["/path-a"],
+        path: "/path-a",
+        port: 32000,
+        protocol: "http",
+        subdomain: "service-a",
         url: "http://service-a.test-project-b.local.app.garden:32000",
       }],
     },

@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
 import * as inquirer from "inquirer"
 import * as Joi from "joi"
 import * as split from "split"
 import moment = require("moment")
 
-import { DeploymentError, NotFoundError, TimeoutError } from "../../exceptions"
+import { DeploymentError, NotFoundError, TimeoutError, ConfigurationError } from "../../exceptions"
 import { GetServiceLogsResult, LoginStatus } from "../../types/plugin/outputs"
 import { RunResult, TestResult } from "../../types/plugin/outputs"
 import {
@@ -30,8 +31,8 @@ import {
   TestModuleParams,
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
-import { ContainerModule, helpers } from "../container"
-import { uniq } from "lodash"
+import { ContainerModule, helpers, parseContainerModule } from "../container"
+import { uniq, keyBy } from "lodash"
 import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
 import { joiIdentifier } from "../../config/common"
 import { coreApi } from "./api"
@@ -43,10 +44,41 @@ import {
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 import { EntryStyle, LogSymbolType } from "../../logger/types"
-import { name as providerName } from "./kubernetes"
+import { KubernetesProvider, name as providerName } from "./kubernetes"
 import { getContainerServiceStatus } from "./deployment"
+import { ParseModuleParams } from "../../types/plugin/params"
 
 const MAX_STORED_USERNAMES = 5
+
+export async function parseModule(params: ParseModuleParams<ContainerModule>) {
+  const config = await parseContainerModule(params)
+
+  // validate endpoint specs
+  const provider: KubernetesProvider = params.provider
+  const configuredDomains = keyBy(provider.config.ingressDomains, "name")
+  const defaultDomain = provider.config.ingressDomains[0]
+
+  for (const serviceConfig of config.serviceConfigs) {
+    for (const endpoint of serviceConfig.spec.endpoints) {
+      const domain = endpoint.domain ? configuredDomains[endpoint.domain] : defaultDomain
+
+      if (!domain) {
+        throw new ConfigurationError(
+          `Service ${serviceConfig.name} in module ${config.name} references domain '${endpoint.domain}, ` +
+          `which has not been configured in the ${provider.name} provider.`,
+          {
+            moduleName: config.name,
+            serviceConfig,
+            endpoint,
+          },
+        )
+      }
+
+      // make sure the domain is set
+      endpoint.domain = domain.name
+    }
+  }
+}
 
 export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStatusParams) {
   const context = provider.config.context
@@ -69,8 +101,10 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
     throw err
   }
 
-  await getMetadataNamespace(ctx, provider)
-  await getAppNamespace(ctx, provider)
+  await Bluebird.all([
+    getMetadataNamespace(ctx, provider),
+    getAppNamespace(ctx, provider),
+  ])
 
   return {
     configured: true,

@@ -62,7 +62,7 @@ Examples:
     garden call my-container
     garden call my-container/some-path
 
-Note: Currently only supports HTTP/HTTPS endpoints.
+Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
 
 ##### Usage
 
