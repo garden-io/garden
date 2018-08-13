@@ -7,7 +7,7 @@ describe('GET /hello', () => {
   it('respond with message from hello-function', (done) => {
     agent
       .get("/hello")
-      .expect(200, { message: "Hello there, I'm a function" })
+      .expect(200, { message: "Hello there, I'm an OpenFaaS function" })
       .end((err) => {
         if (err) return done(err)
         done()

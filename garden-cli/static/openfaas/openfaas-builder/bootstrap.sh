@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 
-here=$(cd `dirname $0` && pwd)
 cli_filename="faas-cli"
 
 if [ "${PLATFORM}" = "darwin" ]; then
@@ -11,7 +11,7 @@ fi
 
 # use npx for cross-platform compatibility
 npx node-wget -- https://github.com/openfaas/faas-cli/releases/download/0.6.15/${cli_filename}
-mv ${cli_filename} faas-cli
+mv ${cli_filename} faas-cli || true 
 chmod +x faas-cli
 
 ./faas-cli template pull
