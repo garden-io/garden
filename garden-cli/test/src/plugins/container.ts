@@ -256,8 +256,7 @@ describe("plugins.container", () => {
           allowPush: false,
           build: { command: ["echo", "OK"], dependencies: [] },
           name: "module-a",
-          path:
-            "/Users/edvald/Code/garden/garden-cli/test/data/test-project-container/module-a",
+          path: modulePath,
           type: "container",
           variables: {},
           spec:

@@ -348,7 +348,7 @@ function getExternalGatewayUrl(ctx: PluginContext) {
 
 async function getInternalGatewayUrl(ctx: PluginContext) {
   const provider = getK8sProvider(ctx)
-  const namespace = await getOpenfaasNamespace(ctx, provider)
+  const namespace = await getOpenfaasNamespace(ctx, provider, true)
   return `http://gateway.${namespace}.svc.cluster.local:8080`
 }
 
@@ -361,16 +361,16 @@ async function getInternalServiceUrl(ctx: PluginContext, service: OpenFaasServic
   return urlResolve(await getInternalGatewayUrl(ctx), getServicePath(service))
 }
 
-async function getOpenfaasNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  return getNamespace(ctx, provider, "openfaas")
+async function getOpenfaasNamespace(ctx: PluginContext, provider: KubernetesProvider, skipCreate?: boolean) {
+  return getNamespace({ ctx, provider, skipCreate, suffix: "openfaas" })
 }
 
 export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
   // TODO: figure out good way to retrieve namespace from kubernetes plugin through an exposed interface
   // (maybe allow plugins to expose arbitrary data on the Provider object?)
   const k8sProvider = getK8sProvider(ctx)
-  const namespace = await getOpenfaasNamespace(ctx, k8sProvider)
-  const functionNamespace = await getNamespace(ctx, k8sProvider)
+  const namespace = await getOpenfaasNamespace(ctx, k8sProvider, true)
+  const functionNamespace = await getAppNamespace(ctx, k8sProvider)
 
   const gatewayHostname = getExternalGatewayHostname(ctx)
 
