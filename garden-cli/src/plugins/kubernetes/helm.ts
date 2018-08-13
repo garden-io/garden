@@ -251,7 +251,7 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
   return { fresh: true }
 }
 
-function helm(provider: KubernetesProvider, ...args: string[]) {
+export function helm(provider: KubernetesProvider, ...args: string[]) {
   return execa.stdout("helm", [
     "--kube-context", provider.config.context,
     ...args,

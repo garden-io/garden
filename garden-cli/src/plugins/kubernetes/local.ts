@@ -43,6 +43,7 @@ import { readFile } from "fs-extra"
 import { processServices } from "../../process"
 import { LogEntry } from "../../logger/logger"
 import { homedir } from "os"
+import { helm } from "./helm"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -83,7 +84,11 @@ async function configureSystemEnvironment(
   }
 
   // TODO: need to add logic here to wait for tiller to be ready
-  await execa("helm", ["init", "--service-account", "default", "--upgrade"])
+  await helm(sysProvider,
+    "init", "--wait",
+    "--service-account", "default",
+    "--upgrade",
+  )
 
   const sysStatus = await getEnvironmentStatus({
     ctx: sysCtx,
