@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -eo pipefail
+#!/bin/sh
 
 here=$(cd `dirname $0` && pwd)
 cli_filename="faas-cli"
