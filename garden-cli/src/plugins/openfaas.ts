@@ -111,7 +111,7 @@ export const gardenPlugin = () => ({
         services,
         watch: false,
         process: async (service) => {
-          return [await DeployTask.factory({ ctx: ofCtx, service, force, forceBuild: false })]
+          return [new DeployTask({ ctx: ofCtx, service, force, forceBuild: false })]
         },
       })
 

@@ -11,12 +11,11 @@ import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { TestConfig } from "../config/test"
-import { getNames } from "../util/util"
 import { ModuleVersion } from "../vcs/base"
 import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
-import { Task, TaskParams, TaskVersion } from "../tasks/base"
+import { Task, TaskParams } from "../tasks/base"
 import { EntryStyle } from "../logger/types"
 import { prepareRuntimeContext } from "../types/service"
 
@@ -26,7 +25,7 @@ class TestError extends Error {
   }
 }
 
-export interface TestTaskParams extends TaskParams {
+export interface TestTaskParams {
   ctx: PluginContext
   module: Module
   testConfig: TestConfig
@@ -43,19 +42,19 @@ export class TestTask extends Task {
   private force: boolean
   private forceBuild: boolean
 
-  constructor(initArgs: TestTaskParams & TaskVersion) {
-    super(initArgs)
-    this.ctx = initArgs.ctx
-    this.module = initArgs.module
-    this.testConfig = initArgs.testConfig
-    this.force = initArgs.force
-    this.forceBuild = initArgs.forceBuild
+  constructor({ ctx, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
+    super({ version })
+    this.ctx = ctx
+    this.module = module
+    this.testConfig = testConfig
+    this.force = force
+    this.forceBuild = forceBuild
   }
 
   static async factory(initArgs: TestTaskParams): Promise<TestTask> {
     const { ctx, module, testConfig } = initArgs
-    initArgs.version = await getTestVersion(ctx, module, testConfig)
-    return new TestTask(<TestTaskParams & TaskVersion>initArgs)
+    const version = await getTestVersion(ctx, module, testConfig)
+    return new TestTask({ ...initArgs, version })
   }
 
   async getDependencies() {
@@ -67,14 +66,14 @@ export class TestTask extends Task {
 
     const services = await this.ctx.getServices(this.testConfig.dependencies)
 
-    const deps: Promise<Task>[] = [BuildTask.factory({
+    const deps: Task[] = [new BuildTask({
       ctx: this.ctx,
       module: this.module,
       force: this.forceBuild,
     })]
 
     for (const service of services) {
-      deps.push(DeployTask.factory({
+      deps.push(new DeployTask({
         service,
         ctx: this.ctx,
         force: false,

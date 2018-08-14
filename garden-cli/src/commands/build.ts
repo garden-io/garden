@@ -67,7 +67,7 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
       garden,
       watch: opts.watch,
       process: async (module) => {
-        return [await BuildTask.factory({ ctx, module, force: opts.force })]
+        return [new BuildTask({ ctx, module, force: opts.force })]
       },
     })
 

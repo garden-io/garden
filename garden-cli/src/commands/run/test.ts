@@ -87,7 +87,7 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
 
     await ctx.configureEnvironment({})
 
-    const buildTask = await BuildTask.factory({ ctx, module, force: opts["force-build"] })
+    const buildTask = await new BuildTask({ ctx, module, force: opts["force-build"] })
     await garden.addTask(buildTask)
     await garden.processTasks()
 

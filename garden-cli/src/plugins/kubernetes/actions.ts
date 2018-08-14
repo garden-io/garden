@@ -186,7 +186,7 @@ export async function runModule(
 
   const commandStr = command.join(" ")
   const image = await helpers.getLocalImageId(module)
-  const version = await module.version
+  const version = module.version
 
   const opts = [
     `--image=${image}`,

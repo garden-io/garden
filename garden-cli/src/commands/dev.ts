@@ -73,7 +73,7 @@ export class DevCommand extends Command {
         const tasks = testTasks.concat(deployTasks)
 
         if (tasks.length === 0) {
-          return [await BuildTask.factory({ ctx, module, force: false })]
+          return [new BuildTask({ ctx, module, force: false })]
         } else {
           return tasks
         }
@@ -90,9 +90,7 @@ async function getDeployTasks(
 ): Promise<DeployTask[]> {
   const services = await ctx.getServices(getNames(module.serviceConfigs))
 
-  return Bluebird.map(services, async (service) => {
-    return DeployTask.factory({ ctx, service, force, forceBuild })
-  })
+  return services.map(service => new DeployTask({ ctx, service, force, forceBuild }))
 }
 
 function getGreetingTime() {
