@@ -47,7 +47,7 @@ const dirtyTimestampSchema = Joi.number()
   .required()
   .description(
     "Set to the last modified time (as UNIX timestamp) if the module contains uncommitted changes, otherwise null.",
-)
+  )
 
 export const treeVersionSchema = Joi.object()
   .keys({

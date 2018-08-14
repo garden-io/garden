@@ -74,13 +74,13 @@ export const environmentSchema = Joi.object().keys({
     .description(
       "Specify the provider that should store configuration variables for this environment. " +
       "Use this when you configure multiple providers that can manage configuration.",
-  ),
+    ),
   providers: joiArray(providerConfigBase)
     .unique("name")
     .description(
       "A list of providers that should be used for this environment, and their configuration. " +
       "Please refer to individual plugins/providers for details on how to configure them.",
-  ),
+    ),
   variables: joiVariables()
     .description("A key/value map of variables that modules can reference when using this environment."),
 })
@@ -104,7 +104,7 @@ export const projectSchema = Joi.object()
       .example(environmentDefaults)
       .description(
         "Default environment settings, that are inherited (but can be overridden) by each configured environment",
-    ),
+      ),
     environments: joiArray(environmentSchema.keys({ name: joiIdentifier().required() }))
       .unique("name")
       .default(() => ({ ...defaultEnvironments }), safeDump(defaultEnvironments))
@@ -117,4 +117,4 @@ export const projectSchema = Joi.object()
   .required()
   .description(
     "The configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
-)
+  )

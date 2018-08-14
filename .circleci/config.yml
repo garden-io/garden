@@ -53,7 +53,8 @@ jobs:
             npm rebuild
           fi
 
-      # run tests
+      # build, lint and run tests
+      - run: npm run build
       - run: npm run lint
       - run: npm test
 

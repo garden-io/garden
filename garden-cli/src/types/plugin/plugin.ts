@@ -180,13 +180,13 @@ export const pluginSchema = Joi.object()
       .description(
         "Plugins may use this key to override or augment their configuration " +
         "(as specified in the garden.yml provider configuration.",
-    ),
+      ),
     modules: joiArray(Joi.string())
       .description(
         "Plugins may optionally provide paths to Garden modules that are loaded as part of the plugin. " +
         "This is useful, for example, to provide build dependencies for other modules " +
         "or as part of the plugin operation.",
-    ),
+      ),
     // TODO: document plugin actions further
     actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func()))
       .description("A map of plugin action handlers provided by the plugin."),

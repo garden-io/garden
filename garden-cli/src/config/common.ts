@@ -38,7 +38,7 @@ export const joiIdentifier = () => Joi.string()
   .description(
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
     "and cannot end with a dash) and additionally cannot contain consecutive dashes or be longer than 63 characters.",
-)
+  )
 
 export const joiStringMap = (valueSchema: JoiObject) => Joi
   .object().pattern(/.+/, valueSchema)
@@ -59,7 +59,7 @@ export const joiEnvVarName = () => Joi
   .description(
     "Valid POSIX environment variable name (may contain letters, numbers and underscores and must start with a " +
     "letter). Must be uppercase, and must not start with `GARDEN`.",
-)
+  )
 
 export const joiEnvVars = () => Joi
   .object().pattern(envVarRegex, joiPrimitive())
@@ -68,7 +68,7 @@ export const joiEnvVars = () => Joi
   .description(
     "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
     "(must be uppercase, may not start with `GARDEN`) and values must be primitives.",
-)
+  )
 
 export const joiArray = (schema) => Joi
   .array().items(schema)
@@ -87,7 +87,7 @@ export const joiRepositoryUrl = () => Joi
   .description(
     "A remote respository URL. Currently only supports git servers. Use hash notation (#) to point to" +
     " a specific branch or tag",
-)
+  )
   .example("<git remote url>#<branch|tag> or git+https://github.com/organization/some-module.git#v2.0")
 
 export const remoteSourceSchema = Joi.object()
