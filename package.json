@@ -47,7 +47,7 @@
     "prepublishOnly": "npm run dist",
     "preversion": "npm test",
     "release": "./bin/publish",
-    "release-canary": "lerna publish --npm-tag=alpha --canary",
+    "release-canary": "npm install && lerna bootstrap && lerna publish --npm-tag=alpha --canary",
     "test": "npm run clean && lerna run test"
   },
   "husky": {
