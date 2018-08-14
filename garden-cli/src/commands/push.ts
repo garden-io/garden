@@ -80,7 +80,7 @@ export async function pushModules(
   allowDirty: boolean,
 ): Promise<TaskResults> {
   for (const module of modules) {
-    const version = await module.version
+    const version = module.version
 
     if (version.dirtyTimestamp && !allowDirty) {
       throw new RuntimeError(
@@ -90,7 +90,7 @@ export async function pushModules(
       )
     }
 
-    const task = await PushTask.factory({ ctx, module, forceBuild })
+    const task = new PushTask({ ctx, module, forceBuild })
     await garden.addTask(task)
   }
 

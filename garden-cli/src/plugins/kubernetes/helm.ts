@@ -152,7 +152,7 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
     }
 
     // then check if the rollout is complete
-    const version = await module.version
+    const version = module.version
     const context = provider.config.context
     const namespace = await getAppNamespace(ctx, provider)
     const { ready } = await checkObjectStatus(context, namespace, objects)
@@ -198,7 +198,7 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
 }
 
 async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
-  const buildPath = await module.buildPath
+  const buildPath = module.buildPath
   const config = module
 
   // fetch the chart
@@ -234,7 +234,7 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
 
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
-  const version = await module.version
+  const version = module.version
   await writeTreeVersionFile(buildVersionFilePath, {
     latestCommit: version.versionString,
     dirtyTimestamp: version.dirtyTimestamp,
@@ -253,7 +253,7 @@ function helm(provider: KubernetesProvider, ...args: string[]) {
 async function getChartPath(module: HelmModule) {
   const splitName = module.spec.chart.split("/")
   const chartDir = splitName[splitName.length - 1]
-  return join(await module.buildPath, chartDir)
+  return join(module.buildPath, chartDir)
 }
 
 function getValuesPath(chartPath: string) {

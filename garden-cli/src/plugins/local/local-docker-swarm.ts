@@ -48,7 +48,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         { ctx, provider, module, service, runtimeContext, env }: DeployServiceParams<ContainerModule>,
       ) {
         // TODO: split this method up and test
-        const { versionString } = await service.module.version
+        const { versionString } = service.module.version
 
         ctx.log.info({ section: service.name, msg: `Deploying version ${versionString}` })
 

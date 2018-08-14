@@ -45,12 +45,6 @@ import {
   GetServiceOutputsParams,
 } from "../types/plugin/params"
 import { every, values } from "lodash"
-import {
-  DEFAULT_CPU_LIMIT,
-  DEFAULT_MEMORY_LIMIT,
-  DEFAULT_MEMORY_REQUEST,
-  DEFAULT_CPU_REQUEST,
-} from "./kubernetes/deployment"
 import { dumpYaml, findByName } from "../util/util"
 import * as execa from "execa"
 import { appsApi } from "./kubernetes/api"
@@ -117,7 +111,7 @@ export const gardenPlugin = () => ({
         services,
         watch: false,
         process: async (service) => {
-          return [await DeployTask.factory({ ctx: ofCtx, service, force, forceBuild: false })]
+          return [new DeployTask({ ctx: ofCtx, service, force, forceBuild: false })]
         },
       })
 

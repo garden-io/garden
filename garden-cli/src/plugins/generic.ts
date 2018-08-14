@@ -105,7 +105,7 @@ export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStat
 export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
   const config: ModuleConfig = module
   const output: BuildResult = {}
-  const buildPath = await module.buildPath
+  const buildPath = module.buildPath
 
   if (config.build.command.length) {
     const result = await execa.shell(
@@ -145,7 +145,7 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
     moduleName: module.name,
     command,
     testName: testConfig.name,
-    version: await module.version,
+    version: module.version,
     success: result.code === 0,
     startedAt,
     completedAt: new Date(),

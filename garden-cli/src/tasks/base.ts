@@ -12,12 +12,8 @@ import { v1 as uuidv1 } from "uuid"
 
 export class TaskDefinitionError extends Error { }
 
-export interface TaskVersion {
-  version: ModuleVersion
-}
-
 export interface TaskParams {
-  version?: ModuleVersion
+  version: ModuleVersion
 }
 
 export abstract class Task {
@@ -27,7 +23,7 @@ export abstract class Task {
 
   dependencies: Task[]
 
-  constructor(initArgs: TaskParams & TaskVersion) {
+  constructor(initArgs: TaskParams) {
     this.dependencies = []
     this.id = uuidv1() // uuidv1 is timestamp-based
     this.version = initArgs.version

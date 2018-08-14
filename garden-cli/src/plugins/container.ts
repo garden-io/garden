@@ -218,7 +218,7 @@ export async function getImage(module: ContainerModule) {
 export const helpers = {
   async getLocalImageId(module: ContainerModule) {
     if (await helpers.hasDockerfile(module)) {
-      const { versionString } = await module.version
+      const { versionString } = module.version
       return `${module.name}:${versionString}`
     } else {
       return getImage(module)
@@ -236,7 +236,7 @@ export const helpers = {
         // (allows specifying version on source images, and also setting specific version name when pushing images)
         return image
       } else {
-        const { versionString } = await module.version
+        const { versionString } = module.version
         return `${imageName}:${versionString}`
       }
     } else {
@@ -257,11 +257,11 @@ export const helpers = {
 
   async dockerCli(module: ContainerModule, args) {
     // TODO: use dockerode instead of CLI
-    return childProcess.exec("docker " + args, { cwd: await module.buildPath, maxBuffer: 1024 * 1024 })
+    return childProcess.exec("docker " + args, { cwd: module.buildPath, maxBuffer: 1024 * 1024 })
   },
 
   async hasDockerfile(module: ContainerModule) {
-    const buildPath = await module.buildPath
+    const buildPath = module.buildPath
     return pathExists(join(buildPath, "Dockerfile"))
   },
 }
@@ -356,7 +356,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       },
 
       async buildModule({ module, logEntry }: BuildModuleParams<ContainerModule>) {
-        const buildPath = await module.buildPath
+        const buildPath = module.buildPath
         const image = await getImage(module)
 
         if (!!image && !(await helpers.hasDockerfile(module))) {

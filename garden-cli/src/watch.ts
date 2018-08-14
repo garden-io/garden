@@ -16,7 +16,6 @@ import {
 import { basename, parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
-import { KeyedSet } from "./util/keyed-set"
 import { PluginContext } from "./plugin-context"
 import { getIgnorer, scanDirectory } from "./util/util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
@@ -30,12 +29,12 @@ export type ChangeHandler = (module: Module | null, configChanged: boolean) => P
   Each module is represented at most once in the output.
 */
 export async function autoReloadModules(ctx: PluginContext, modules: Module[]): Promise<Module[]> {
-  const moduleSet = new KeyedSet<Module>(m => m.name)
+  const moduleSet = new Set<string>()
 
   const scanner = async (module: Module) => {
-    moduleSet.add(module)
+    moduleSet.add(module.name)
     for (const dep of await uniqueDependencyModules(ctx, module)) {
-      if (!moduleSet.has(dep)) {
+      if (!moduleSet.has(dep.name)) {
         await scanner(dep)
       }
     }
@@ -45,34 +44,11 @@ export async function autoReloadModules(ctx: PluginContext, modules: Module[]): 
     await scanner(m)
   }
 
-  return moduleSet.entries()
+  // we retrieve the modules again to be sure we have the latest versions
+  return ctx.getModules(Array.from(moduleSet))
 }
 
-/*
-  Similar to autoReloadModules above, but uses pre-computed auto reload dependants
-  instead of traversing module configs (and thus doesn't need to be async).
-*/
-export function withDependants(modules: Module[], autoReloadDependants: AutoReloadDependants): Module[] {
-  const moduleSet = new KeyedSet<Module>(m => m.name)
-
-  const scanner = (module: Module) => {
-    moduleSet.add(module)
-    for (const dependant of (autoReloadDependants[module.name] || [])) {
-      if (!moduleSet.has(dependant)) {
-        scanner(dependant)
-      }
-    }
-  }
-
-  for (const m of modules) {
-    scanner(m)
-  }
-
-  return moduleSet.entries()
-}
-
-export async function computeAutoReloadDependants(ctx: PluginContext):
-  Promise<AutoReloadDependants> {
+export async function computeAutoReloadDependants(ctx: PluginContext): Promise<AutoReloadDependants> {
   const dependants = {}
 
   for (const module of await ctx.getModules()) {

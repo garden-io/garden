@@ -716,7 +716,7 @@ export class Garden {
       )
     }
 
-    const parseHandler = await this.getModuleActionHandler("parseModule", config.type)
+    const parseHandler = await this.getModuleActionHandler({ actionType: "parseModule", moduleType: config.type })
     const env = this.getEnvironment()
     const provider: Provider = {
       name: parseHandler["pluginName"],
@@ -835,7 +835,8 @@ export class Garden {
    * Get a handler for the specified module action.
    */
   public getModuleActionHandlers<T extends keyof ModuleActions<any>>(
-    actionType: T, moduleType: string, pluginName?: string,
+    { actionType, moduleType, pluginName }:
+      { actionType: T, moduleType: string, pluginName?: string },
   ): ModuleActionHandlerMap<T> {
     return this.filterActionHandlers((this.moduleActionHandlers[actionType] || {})[moduleType], pluginName)
   }
@@ -857,10 +858,11 @@ export class Garden {
    * Get the last configured handler for the specified action (and optionally module type).
    */
   public getActionHandler<T extends keyof PluginActions>(
-    type: T, pluginName?: string, defaultHandler?: PluginActions[T],
+    { actionType, pluginName, defaultHandler }:
+      { actionType: T, pluginName?: string, defaultHandler?: PluginActions[T] },
   ): PluginActions[T] {
 
-    const handlers = Object.values(this.getActionHandlers(type, pluginName))
+    const handlers = Object.values(this.getActionHandlers(actionType, pluginName))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
@@ -869,16 +871,16 @@ export class Garden {
     }
 
     const errorDetails = {
-      requestedHandlerType: type,
+      requestedHandlerType: actionType,
       environment: this.environmentName,
       pluginName,
     }
 
     if (pluginName) {
-      throw new PluginError(`Plugin '${pluginName}' does not have a '${type}' handler.`, errorDetails)
+      throw new PluginError(`Plugin '${pluginName}' does not have a '${actionType}' handler.`, errorDetails)
     } else {
       throw new ParameterError(
-        `No '${type}' handler configured in environment '${this.environmentName}'. ` +
+        `No '${actionType}' handler configured in environment '${this.environmentName}'. ` +
         `Are you missing a provider configuration?`,
         errorDetails,
       )
@@ -889,10 +891,11 @@ export class Garden {
    * Get the last configured handler for the specified action.
    */
   public getModuleActionHandler<T extends keyof ModuleActions>(
-    type: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleActions<any>[T],
+    { actionType, moduleType, pluginName, defaultHandler }:
+      { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleActions<any>[T] },
   ): ModuleActions<any>[T] {
 
-    const handlers = Object.values(this.getModuleActionHandlers(type, moduleType, pluginName))
+    const handlers = Object.values(this.getModuleActionHandlers({ actionType, moduleType, pluginName }))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
@@ -901,7 +904,7 @@ export class Garden {
     }
 
     const errorDetails = {
-      requestedHandlerType: type,
+      requestedHandlerType: actionType,
       requestedModuleType: moduleType,
       environment: this.environmentName,
       pluginName,
@@ -909,13 +912,13 @@ export class Garden {
 
     if (pluginName) {
       throw new PluginError(
-        `Plugin '${pluginName}' does not have a '${type}' handler for module type '${moduleType}'.`,
+        `Plugin '${pluginName}' does not have a '${actionType}' handler for module type '${moduleType}'.`,
         errorDetails,
       )
     } else {
       throw new ParameterError(
-        `No '${type}' handler configured for module type '${moduleType}' in environment '${this.environmentName}'. ` +
-        `Are you missing a provider configuration?`,
+        `No '${actionType}' handler configured for module type '${moduleType}' in environment ` +
+        `'${this.environmentName}'. Are you missing a provider configuration?`,
         errorDetails,
       )
     }

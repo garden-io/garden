@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, parse, relative, sep } from "path"
+import { join, relative, basename } from "path"
 import {
   findByName,
   getNames,
@@ -82,7 +82,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
 
   const parsed = <GardenConfig>validate(spec, configSchema, { context: relative(projectRoot, absPath) })
 
-  const dirname = parse(absPath).dir.split(sep).slice(-1)[0]
+  const dirname = basename(path)
   const project = parsed.project
   let moduleConfig = parsed.module
 

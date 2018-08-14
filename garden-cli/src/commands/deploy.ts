@@ -81,7 +81,7 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
       ctx,
       garden,
       process: async (service) => {
-        return [await DeployTask.factory({ ctx, service, force, forceBuild })]
+        return [new DeployTask({ ctx, service, force, forceBuild })]
       },
     })
 

@@ -1,11 +1,8 @@
 import { expect } from "chai"
 import { PluginContext } from "../../src/plugin-context"
 import { expectError } from "../helpers"
-import { getNames } from "../../src/util/util"
 import { Garden } from "../../src/garden"
 import { makeTestGardenA } from "../helpers"
-import { ModuleVersion } from "../../src/vcs/base"
-import * as td from "testdouble"
 
 describe("PluginContext", () => {
   let garden: Garden

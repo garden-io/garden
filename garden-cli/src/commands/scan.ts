@@ -23,7 +23,7 @@ export class ScanCommand extends Command {
   async action({ ctx }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
     let modules = (await ctx.getModules())
       .map(m => {
-        m.services.map(s => delete s.module)
+        m.services.forEach(s => delete s.module)
         return omit(m, ["_ConfigType", "cacheContext", "serviceConfigs", "serviceNames"])
       })
 

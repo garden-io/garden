@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { LogEntry } from "../logger/logger"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
-import { Task, TaskParams, TaskVersion } from "../tasks/base"
+import { Task } from "../tasks/base"
 import {
   Service,
   ServiceStatus,
@@ -19,7 +19,7 @@ import {
 } from "../types/service"
 import { EntryStyle } from "../logger/types"
 
-export interface DeployTaskParams extends TaskParams {
+export interface DeployTaskParams {
   ctx: PluginContext
   service: Service
   force: boolean
@@ -36,25 +36,21 @@ export class DeployTask extends Task {
   private forceBuild: boolean
   private logEntry?: LogEntry
 
-  constructor(initArgs: DeployTaskParams & TaskVersion) {
-    super(initArgs)
-    this.ctx = initArgs.ctx
-    this.service = initArgs.service
-    this.force = initArgs.force
-    this.forceBuild = initArgs.forceBuild
-    this.logEntry = initArgs.logEntry
-  }
-
-  static async factory(initArgs: DeployTaskParams): Promise<DeployTask> {
-    initArgs.version = await initArgs.service.module.version
-    return new DeployTask(<DeployTaskParams & TaskVersion>initArgs)
+  constructor({ ctx, service, force, forceBuild, logEntry }: DeployTaskParams) {
+    super({ version: service.module.version })
+    this.ctx = ctx
+    this.service = service
+    this.force = force
+    this.forceBuild = forceBuild
+    this.logEntry = logEntry
   }
 
   async getDependencies() {
     const serviceDeps = this.service.config.dependencies
     const services = await this.ctx.getServices(serviceDeps)
+
     const deps: Task[] = await Bluebird.map(services, async (service) => {
-      return DeployTask.factory({
+      return new DeployTask({
         service,
         ctx: this.ctx,
         force: this.force,
@@ -62,7 +58,12 @@ export class DeployTask extends Task {
       })
     })
 
-    deps.push(await BuildTask.factory({ ctx: this.ctx, module: this.service.module, force: this.forceBuild }))
+    deps.push(await new BuildTask({
+      ctx: this.ctx,
+      module: this.service.module,
+      force: this.forceBuild,
+    }))
+
     return deps
   }
 
