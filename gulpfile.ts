@@ -1,17 +1,15 @@
-import { join } from "path"
-import { spawn } from "./support/support-util"
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 
 const gulp = require("gulp")
-const cached = require("gulp-cached")
 const checkLicense = require("gulp-license-check")
-const gulpTslint = require("gulp-tslint")
-const tslint = require("tslint")
 
-const tsConfigFilename = "tsconfig.build.json"
-const tsConfigPath = join(__dirname, tsConfigFilename)
-
-const tsSources = "src/**/*.ts"
-const testTsSources = "test/**/*.ts"
+const tsSources = ["garden-cli/src/**/*.ts"]
 const pegjsSources = "src/*.pegjs"
 
 const licenseHeaderPath = "support/license-header.txt"
@@ -19,36 +17,11 @@ const licenseHeaderPath = "support/license-header.txt"
 process.env.FORCE_COLOR = "true"
 
 gulp.task("check-licenses", () =>
-  gulp.src([tsSources, pegjsSources])
+  gulp.src([...tsSources, pegjsSources])
     .pipe(checkLicense({
       path: licenseHeaderPath,
-      blocking: true,
+      blocking: false,
       logInfo: false,
       logError: true,
     })),
 )
-
-gulp.task("tsfmt", (cb) => {
-  spawn("node_modules/.bin/tsfmt", ["--verify"], cb)
-})
-
-gulp.task("tslint", () =>
-  gulp.src(tsSources)
-    .pipe(cached("tslint"))
-    .pipe(gulpTslint({
-      program: tslint.Linter.createProgram(tsConfigPath),
-      formatter: "verbose",
-    }))
-    .pipe(gulpTslint.report()),
-)
-
-gulp.task("tslint-tests", () =>
-  gulp.src(testTsSources)
-    .pipe(cached("tslint-tests"))
-    .pipe(gulpTslint({
-      formatter: "verbose",
-    }))
-    .pipe(gulpTslint.report()),
-)
-
-gulp.task("lint", gulp.parallel("check-licenses", "tslint", "tslint-tests", "tsfmt"))
