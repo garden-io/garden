@@ -46,7 +46,7 @@ export class CallCommand extends Command<typeof callArgs> {
         garden call my-container
         garden call my-container/some-path
 
-    Note: Currently only supports HTTP/HTTPS endpoints.
+    Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
   `
 
   arguments = callArgs
@@ -81,7 +81,7 @@ export class CallCommand extends Command<typeof callArgs> {
 
     if (!path) {
       // if no path is specified and there's a root endpoint (path === "/") we use that
-      const rootEndpoint = <ServiceEndpoint>find(endpoints, e => e.paths && e.paths.includes("/"))
+      const rootEndpoint = <ServiceEndpoint>find(endpoints, e => e.path === "/")
 
       if (rootEndpoint) {
         matchedEndpoint = rootEndpoint
@@ -89,7 +89,7 @@ export class CallCommand extends Command<typeof callArgs> {
       } else {
         // if there's no root endpoint, pick the first endpoint
         matchedEndpoint = endpoints[0]
-        matchedPath = endpoints[0].paths ? endpoints[0].paths![0] : ""
+        matchedPath = endpoints[0].path
       }
 
       path = matchedPath
@@ -98,12 +98,10 @@ export class CallCommand extends Command<typeof callArgs> {
       path = "/" + path
 
       for (const endpoint of status.endpoints) {
-        if (endpoint.paths) {
-          for (const endpointPath of endpoint.paths) {
-            if (path.startsWith(endpointPath) && (!matchedPath || endpointPath.length > matchedPath.length)) {
-              matchedPath = endpointPath
-              matchedEndpoint = endpoint
-            }
+        if (endpoint.path) {
+          if (path.startsWith(endpoint.path) && (!matchedPath || endpoint.path.length > matchedPath.length)) {
+            matchedEndpoint = endpoint
+            matchedPath = endpoint.path
           }
         } else if (!matchedPath) {
           matchedEndpoint = endpoint

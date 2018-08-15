@@ -497,11 +497,23 @@ module:
       #
       # Optional.
       endpoints: 
-        - # The paths which should be routed to the service.
+        - # The domain that should route to this service. This should match the domains that are
+          # configured in the provider. Defaults to the first configured domain.
           #
           # Optional.
-          paths: 
-            -
+          domain:
+
+          # The subdomain of the service endpoint. Defaults to the name of the service.
+          # You can also explicitly set this to null, to use the ingress domain without a
+          # subdomain.
+          #
+          # Optional.
+          subdomain:
+
+          # The path which should be routed to the service.
+          #
+          # Optional.
+          path: /
 
           # The name of the container port where the specified paths should be routed.
           #

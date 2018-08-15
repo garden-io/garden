@@ -39,11 +39,14 @@ import {
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { ModuleSpec } from "../../config/module"
 import { baseServiceSchema } from "../../config/service"
+import { endpointDomainSchema, endpointSubdomainSchema } from "../../types/service"
 
 export interface GcfServiceSpec extends GoogleCloudServiceSpec {
   function: string,
   entrypoint?: string,
   path: string,
+  domain?: string,
+  subdomain?: string,
 }
 
 const gcfServiceSchema = baseServiceSchema
@@ -55,6 +58,8 @@ const gcfServiceSchema = baseServiceSchema
       .description("The path of the module that contains the function."),
     project: Joi.string()
       .description("The Google Cloud project name of the function."),
+    domain: endpointDomainSchema,
+    subdomain: endpointSubdomainSchema,
   })
   .description("Configuration for a Google Cloud Function.")
 

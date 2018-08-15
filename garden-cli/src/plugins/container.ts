@@ -31,7 +31,7 @@ import {
   PushModuleParams,
   RunServiceParams,
 } from "../types/plugin/params"
-import { Service } from "../types/service"
+import { Service, endpointDomainSchema, endpointSubdomainSchema } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
@@ -39,10 +39,10 @@ import { genericTestSchema, GenericTestSpec } from "./generic"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
 
-export interface ServiceEndpointSpec {
-  paths?: string[]
-  // TODO: support definition of hostnames on endpoints
-  // hostname?: string
+export interface ContainerEndpointSpec {
+  path: string
+  domain?: string
+  subdomain?: string | null
   port: string
 }
 
@@ -75,7 +75,7 @@ export interface ServiceHealthCheckSpec {
 export interface ContainerServiceSpec extends BaseServiceSpec {
   command: string[],
   daemon: boolean
-  endpoints: ServiceEndpointSpec[],
+  endpoints: ContainerEndpointSpec[],
   env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
   ports: ServicePortSpec[],
@@ -86,10 +86,11 @@ export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const endpointSchema = Joi.object()
   .keys({
-    paths: Joi.array()
-      .items(Joi.string().uri(<any>{ relativeOnly: true }))
-      .description("The paths which should be routed to the service."),
-    // hostname: Joi.string(),
+    domain: endpointDomainSchema,
+    subdomain: endpointSubdomainSchema,
+    path: Joi.string().uri(<any>{ relativeOnly: true })
+      .default("/")
+      .description("The path which should be routed to the service."),
     port: Joi.string()
       .required()
       .description("The name of the container port where the specified paths should be routed."),

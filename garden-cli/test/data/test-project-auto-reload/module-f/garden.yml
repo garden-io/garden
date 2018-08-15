@@ -7,7 +7,7 @@ module:
       dependencies:
         - service-c
       endpoints:
-        - paths: [/path-f]
+        - path: /path-f
           port: http
       ports:
         - name: http

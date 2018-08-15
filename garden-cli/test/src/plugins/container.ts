@@ -216,7 +216,7 @@ describe("plugins.container", () => {
               daemon: false,
               endpoints: [
                 {
-                  paths: ["/"],
+                  path: "/",
                   port: "http",
                 },
               ],
@@ -268,7 +268,7 @@ describe("plugins.container", () => {
                 command: ["echo"],
                 dependencies: [],
                 daemon: false,
-                endpoints: [{ paths: ["/"], port: "http" }],
+                endpoints: [{ path: "/", port: "http" }],
                 env: {
                   SOME_ENV_VAR: "value",
                 },
@@ -298,7 +298,7 @@ describe("plugins.container", () => {
                 command: ["echo"],
                 dependencies: [],
                 daemon: false,
-                endpoints: [{ paths: ["/"], port: "http" }],
+                endpoints: [{ path: "/", port: "http" }],
                 env: {
                   SOME_ENV_VAR: "value",
                 },
@@ -347,7 +347,7 @@ describe("plugins.container", () => {
               daemon: false,
               endpoints: [
                 {
-                  paths: ["/"],
+                  path: "/",
                   port: "bla",
                 },
               ],

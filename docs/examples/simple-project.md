@@ -1,4 +1,4 @@
-# Simple Project 
+# Simple Project
 
 In this guide, we'll walk you through configuring a simple project to run on the Garden framework. The project will consist of two Dockerized web services that communicate with one another, along with unit and integration tests.
 
@@ -107,13 +107,13 @@ module:
   description: Node service container
   type: container
   services:
-    - name: node-service 
+    - name: node-service
       command: [npm, start]
       ports:
         - name: http
           containerPort: 8080
       endpoints:
-        - paths: [/]
+        - path: /
           port: http
 ```
 The [services](../guides/configuration.md#Services) directive is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The sub-directives tell Garden how to start the service and which endpoints to expose.
@@ -156,12 +156,12 @@ module:
   description: Go service container
   type: container
   services:
-    - name: go-service 
+    - name: go-service
       ports:
         - name: http
           containerPort: 80
       endpoints:
-        - paths: [/]
+        - path: /
           port: http
 ```
 
@@ -240,14 +240,14 @@ module:
   description: Node service container
   ...
   services:
-    - name: node-service 
+    - name: node-service
       command: [npm, start]
       ...
       dependencies:
-        - go-service 
+        - go-service
 ```
 
-This will ensure that our `go-service` will be deployed before the `node-service`. 
+This will ensure that our `go-service` will be deployed before the `node-service`.
 
 ## Testing
 
@@ -258,7 +258,7 @@ module:
   description: Node service container
   ...
   services:
-    - name: node-service 
+    - name: node-service
       command: [npm, start]
     ...
   tests:
@@ -270,7 +270,7 @@ module:
         - go-service
 ```
 
-This allows us to run individual test groups by name or all of them at once with the test command: 
+This allows us to run individual test groups by name or all of them at once with the test command:
 
 ```sh
 $ garden test
@@ -285,13 +285,13 @@ module:
   description: Node service container
   type: container
   services:
-    - name: node-service 
+    - name: node-service
       command: [npm, start]
       ports:
         - name: http
           containerPort: 8080
       endpoints:
-        - paths: [/]
+        - path: /
           port: http
       dependencies:
         - go-service
@@ -301,7 +301,7 @@ module:
     - name: integ
       command: [npm, run, integ]
       dependencies:
-        - go-service 
+        - go-service
 ```
 
 And that's it! Our services are up and running locally, dependencies are resolved, and tests are ready to run.

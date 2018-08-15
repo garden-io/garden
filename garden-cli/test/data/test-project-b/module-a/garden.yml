@@ -4,7 +4,7 @@ module:
   services:
     - name: service-a
       endpoints:
-        - paths: [/path-a]
+        - path: /path-a
           port: http
       ports:
         - name: http

@@ -6,7 +6,7 @@ module:
     - name: vote
       command: [python, app.py]
       endpoints:
-        - paths: [/vote/]
+        - path: /vote/
           port: interface
       ports:
         - name: interface

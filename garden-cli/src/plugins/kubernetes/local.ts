@@ -15,7 +15,6 @@ import {
 import * as Joi from "joi"
 import { join } from "path"
 import { PluginError } from "../../exceptions"
-import { DeployTask } from "../../tasks/deploy"
 import { Environment, validate } from "../../config/common"
 import {
   GardenPlugin,
@@ -34,13 +33,13 @@ import {
   gardenPlugin as k8sPlugin,
   KubernetesConfig,
   KubernetesProvider,
+  IngressDomain,
 } from "./kubernetes"
 import {
   getSystemGarden,
   isSystemGarden,
 } from "./system"
 import { readFile } from "fs-extra"
-import { processServices } from "../../process"
 import { LogEntry } from "../../logger/logger"
 import { homedir } from "os"
 
@@ -170,7 +169,7 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
 
   let context = config.context
   let systemServices
-  let ingressHostname
+  let ingressDomains: IngressDomain[]
   let ingressPort
 
   if (!context) {
@@ -203,12 +202,15 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
   if (context === "minikube") {
     await execa("minikube", ["config", "set", "WantUpdateNotification", "false"])
 
-    ingressHostname = config.ingressHostname
+    ingressDomains = config.ingressDomains
 
-    if (!ingressHostname) {
+    if (ingressDomains.length === 0) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
       const minikubeIp = await execa.stdout("minikube", ["ip"])
-      ingressHostname = minikubeIp + ".nip.io"
+      ingressDomains = [{
+        name: minikubeIp + ".nip.io",
+        tlsSecrets: [],
+      }]
     }
 
     await Promise.all([
@@ -219,14 +221,17 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
     ingressPort = 80
     systemServices = []
   } else {
-    ingressHostname = config.ingressHostname || "local.app.garden"
+    ingressDomains = config.ingressDomains || [{
+      name: "local.app.garden",
+      tlsSecrets: [],
+    }]
     ingressPort = 32000
   }
 
   const k8sConfig: LocalKubernetesConfig = {
     name: config.name,
     context,
-    ingressHostname,
+    ingressDomains,
     ingressPort,
     ingressClass: "nginx",
     // TODO: support SSL on local deployments

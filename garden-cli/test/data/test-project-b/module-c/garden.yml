@@ -5,14 +5,14 @@ module:
   services:
     - name: service-c
       endpoints:
-        - paths: [/path-c]
+        - path: /path-c
           port: http
       ports:
         - name: http
           containerPort: 8080
     - name: service-d
       endpoints:
-        - paths: [/path-d]
+        - path: /path-d
           port: http
       ports:
         - name: http
