@@ -47,12 +47,6 @@ import {
   GetServiceOutputsParams,
 } from "../types/plugin/params"
 import { every, values } from "lodash"
-import {
-  DEFAULT_CPU_LIMIT,
-  DEFAULT_MEMORY_LIMIT,
-  DEFAULT_MEMORY_REQUEST,
-  DEFAULT_CPU_REQUEST,
-} from "./kubernetes/deployment"
 import { dumpYaml, findByName } from "../util/util"
 import * as execa from "execa"
 import { appsApi } from "./kubernetes/api"

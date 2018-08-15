@@ -130,7 +130,6 @@
     "dist": "npm run build",
     "generate-docs": "gulp generate-docs",
     "integ": "./test/integ/run",
-    "lint": "gulp lint",
     "prepare": "npm run snyk-protect",
     "snyk-protect": "snyk protect",
     "test": "npm run clean && gulp test",

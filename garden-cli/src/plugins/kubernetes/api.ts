@@ -119,7 +119,7 @@ function proxyApi<T extends K8sApi>(api: T, config: KubeConfig): T {
   return new Proxy(api, {
     get: (target: T, name: string, receiver) => {
       if (name in Object.getPrototypeOf(target)) { // assume methods live on the prototype
-        return function (...args) {
+        return function(...args) {
           const defaultHeaders = target["defaultHeaders"]
 
           if (name.startsWith("patch")) {
