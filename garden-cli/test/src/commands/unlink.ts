@@ -1,6 +1,5 @@
 import { expect } from "chai"
 import { join } from "path"
-import * as td from "testdouble"
 
 import { LinkModuleCommand } from "../../../src/commands/link/module"
 import { UnlinkModuleCommand } from "../../../src/commands/unlink/module"

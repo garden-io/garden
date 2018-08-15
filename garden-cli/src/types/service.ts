@@ -8,7 +8,7 @@
 
 import * as Joi from "joi"
 import { PluginContext } from "../plugin-context"
-import { getEnvVarName, getNames } from "../util/util"
+import { getEnvVarName } from "../util/util"
 import { PrimitiveMap } from "../config/common"
 import { Module, getModuleKey } from "./module"
 import { serviceOutputsSchema, ServiceConfig } from "../config/service"

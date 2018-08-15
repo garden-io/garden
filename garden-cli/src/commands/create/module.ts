@@ -10,9 +10,6 @@ import { basename, join } from "path"
 import dedent = require("dedent")
 
 import {
-  PluginContext,
-} from "../../plugin-context"
-import {
   Command,
   CommandResult,
   StringParameter,

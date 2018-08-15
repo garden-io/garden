@@ -13,9 +13,6 @@ import dedent = require("dedent")
 import terminalLink = require("terminal-link")
 
 import {
-  PluginContext,
-} from "../../plugin-context"
-import {
   Command,
   CommandParams,
   CommandResult,

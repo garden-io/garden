@@ -8,13 +8,6 @@
 
 import { flatten, uniq } from "lodash"
 import { getNames } from "../util/util"
-import {
-  joiArray,
-  joiIdentifier,
-  joiVariables,
-  PrimitiveMap,
-  joiRepositoryUrl,
-} from "../config/common"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import { ServiceSpec } from "../config/service"

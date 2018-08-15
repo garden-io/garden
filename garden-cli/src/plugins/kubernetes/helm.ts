@@ -46,7 +46,7 @@ import { writeTreeVersionFile } from "../../vcs/base"
 import { ServiceState } from "../../types/service"
 import { compareDeployedObjects, waitForObjects, checkObjectStatus } from "./status"
 import { getGenericModuleBuildStatus } from "../generic"
-import { ServiceSpec, ServiceConfig } from "../../config/service"
+import { ServiceSpec } from "../../config/service"
 
 export interface KubernetesObject {
   apiVersion: string

@@ -22,7 +22,6 @@ import { processModules } from "../process"
 import { readFile } from "fs-extra"
 import { Module } from "../types/module"
 import { DeployTask } from "../tasks/deploy"
-import * as Bluebird from "bluebird"
 import { getTestTasks } from "./test"
 import { getNames } from "../util/util"
 

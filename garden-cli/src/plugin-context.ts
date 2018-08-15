@@ -74,15 +74,8 @@ import {
   values,
   keyBy,
   omit,
-  flatten,
-  uniqBy,
-  sortBy,
 } from "lodash"
-import {
-  getNames,
-  Omit,
-} from "./util/util"
-import { ModuleVersion } from "./vcs/base"
+import { Omit } from "./util/util"
 import { RuntimeContext } from "./types/service"
 import { processServices, ProcessResults } from "./process"
 import { DeployTask } from "./tasks/deploy"

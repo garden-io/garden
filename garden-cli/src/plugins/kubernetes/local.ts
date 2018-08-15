@@ -15,7 +15,6 @@ import {
 import * as Joi from "joi"
 import { join } from "path"
 import { PluginError } from "../../exceptions"
-import { DeployTask } from "../../tasks/deploy"
 import { Environment, validate } from "../../config/common"
 import {
   GardenPlugin,
@@ -40,7 +39,6 @@ import {
   isSystemGarden,
 } from "./system"
 import { readFile } from "fs-extra"
-import { processServices } from "../../process"
 import { LogEntry } from "../../logger/logger"
 import { homedir } from "os"
 import { helm } from "./helm"

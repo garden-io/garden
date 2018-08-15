@@ -9,11 +9,6 @@
 import * as Joi from "joi"
 import { ServiceConfig, ServiceSpec } from "./service"
 import {
-  flatten,
-  set,
-  uniq,
-} from "lodash"
-import {
   joiArray,
   joiIdentifier,
   joiVariables,

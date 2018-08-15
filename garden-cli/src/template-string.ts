@@ -9,8 +9,7 @@
 import { readFile } from "fs-extra"
 import { resolve } from "path"
 import Bluebird = require("bluebird")
-import { deepResolve, asyncDeepMap } from "./util/util"
-import * as deepMap from "deep-map"
+import { asyncDeepMap } from "./util/util"
 import { GardenBaseError } from "./exceptions"
 import { ConfigContext } from "./config/config-context"
 

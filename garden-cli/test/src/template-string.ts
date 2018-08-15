@@ -5,7 +5,7 @@ import { ConfigContext } from "../../src/config/config-context"
 /* tslint:disable:no-invalid-template-strings */
 
 class TestContext extends ConfigContext {
-  constructor(private context) {
+  constructor(context) {
     super()
     Object.assign(this, context)
   }

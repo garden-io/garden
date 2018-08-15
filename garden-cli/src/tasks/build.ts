@@ -12,7 +12,7 @@ import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { BuildResult } from "../types/plugin/outputs"
-import { Task, TaskParams } from "../tasks/base"
+import { Task } from "../tasks/base"
 
 export interface BuildTaskParams {
   ctx: PluginContext

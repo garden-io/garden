@@ -12,9 +12,9 @@ import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { EntryStyle } from "../logger/types"
 import { PushResult } from "../types/plugin/outputs"
-import { Task, TaskParams } from "../tasks/base"
+import { Task } from "../tasks/base"
 
-export interface PushTaskParams{
+export interface PushTaskParams {
   ctx: PluginContext
   module: Module
   forceBuild: boolean
@@ -38,7 +38,7 @@ export class PushTask extends Task {
     if (!this.module.allowPush) {
       return []
     }
-    return [await new BuildTask({
+    return [new BuildTask({
       ctx: this.ctx,
       module: this.module,
       force: this.forceBuild,

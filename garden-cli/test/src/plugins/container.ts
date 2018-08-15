@@ -15,7 +15,6 @@ import {
   makeTestGarden,
 } from "../../helpers"
 import { moduleFromConfig } from "../../../src/types/module"
-import { inspect } from "util"
 
 describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")

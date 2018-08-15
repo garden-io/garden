@@ -58,7 +58,7 @@ export class DeployTask extends Task {
       })
     })
 
-    deps.push(await new BuildTask({
+    deps.push(new BuildTask({
       ctx: this.ctx,
       module: this.service.module,
       force: this.forceBuild,

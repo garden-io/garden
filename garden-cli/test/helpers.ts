@@ -9,7 +9,6 @@
 import * as td from "testdouble"
 import { resolve, join } from "path"
 import { remove } from "fs-extra"
-import { PluginContext } from "../src/plugin-context"
 import { containerModuleSpecSchema } from "../src/plugins/container"
 import { testGenericModule, buildGenericModule } from "../src/plugins/generic"
 import { TaskResults } from "../src/task-graph"
