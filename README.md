@@ -47,6 +47,7 @@ Head over to our [Getting Started guide](https://docs.garden.io/introduction/get
 on how to set up and use Garden, or look through our [Simple Project](https://docs.garden.io/examples/simple-project)
 guide to get a quick sense of how it works.
 
+[![asciicast](https://asciinema.org/a/SKI7qe7DFVVHxvoaIVrLPb6Es.png)](https://asciinema.org/a/SKI7qe7DFVVHxvoaIVrLPb6Es?speed=2)
 
 ## Contributing
 
