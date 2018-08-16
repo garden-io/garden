@@ -10,18 +10,18 @@ import { makeTestContextA, cleanProject, expectError } from "../../helpers"
 import { PluginContext } from "../../../src/plugin-context"
 
 describe("ext-source-util", () => {
-
   let ctx: PluginContext
   const sources = [{ name: "name-a", path: "path-a" }, { name: "name-b", path: "path-b" }]
-  beforeEach(async () => {
-    ctx = await makeTestContextA()
-  })
-
-  afterEach(async () => {
-    cleanProject(ctx.projectRoot)
-  })
 
   describe("getExtSourcesDirName", () => {
+    beforeEach(async () => {
+      ctx = await makeTestContextA()
+    })
+
+    afterEach(async () => {
+      await cleanProject(ctx.projectRoot)
+    })
+
     it("should should return the project sources dir name", () => {
       const dirName = getRemoteSourcesDirName("project")
       expect(dirName).to.equal(".garden/sources/project")
@@ -34,6 +34,13 @@ describe("ext-source-util", () => {
   })
 
   describe("getLinkedSources", () => {
+    beforeEach(async () => {
+      ctx = await makeTestContextA()
+    })
+
+    afterEach(async () => {
+      await cleanProject(ctx.projectRoot)
+    })
 
     it("should get linked project sources", async () => {
       await ctx.localConfigStore.set(["linkedProjectSources"], sources)
@@ -48,6 +55,13 @@ describe("ext-source-util", () => {
   })
 
   describe("addLinkedSources", () => {
+    beforeEach(async () => {
+      ctx = await makeTestContextA()
+    })
+
+    afterEach(async () => {
+      await cleanProject(ctx.projectRoot)
+    })
 
     it("should add linked project sources to local config", async () => {
       await addLinkedSources({ ctx, sourceType: "project", sources })
@@ -73,6 +87,13 @@ describe("ext-source-util", () => {
   })
 
   describe("removeLinkedSources", () => {
+    beforeEach(async () => {
+      ctx = await makeTestContextA()
+    })
+
+    afterEach(async () => {
+      await cleanProject(ctx.projectRoot)
+    })
 
     it("should remove linked project sources from local config", async () => {
       await ctx.localConfigStore.set(["linkedModuleSources"], sources)
