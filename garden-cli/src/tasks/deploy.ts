@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { LogEntry } from "../logger/logger"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
-import { Task } from "../tasks/base"
+import { Task } from "./base"
 import {
   Service,
   ServiceStatus,
@@ -32,15 +32,13 @@ export class DeployTask extends Task {
 
   private ctx: PluginContext
   private service: Service
-  private force: boolean
   private forceBuild: boolean
   private logEntry?: LogEntry
 
   constructor({ ctx, service, force, forceBuild, logEntry }: DeployTaskParams) {
-    super({ version: service.module.version })
+    super({ force, version: service.module.version })
     this.ctx = ctx
     this.service = service
-    this.force = force
     this.forceBuild = forceBuild
     this.logEntry = logEntry
   }
@@ -53,7 +51,7 @@ export class DeployTask extends Task {
       return new DeployTask({
         service,
         ctx: this.ctx,
-        force: this.force,
+        force: false,
         forceBuild: this.forceBuild,
       })
     })

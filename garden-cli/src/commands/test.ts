@@ -6,22 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
+import { flatten } from "lodash"
 import { PluginContext } from "../plugin-context"
 import {
   BooleanParameter,
   Command,
+  CommandParams,
+  CommandResult,
   handleTaskResults,
   ParameterValues,
   StringParameter,
   StringsParameter,
-  CommandResult,
-  CommandParams,
 } from "./base"
 import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 import { Module } from "../types/module"
 import { TestTask } from "../tasks/test"
-import * as Bluebird from "bluebird"
+import { computeAutoReloadDependants, withDependants } from "../watch"
 
 export const testArgs = {
   module: new StringsParameter({
@@ -67,7 +69,15 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   options = testOpts
 
   async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    const modules = await ctx.getModules(args.module)
+
+    const autoReloadDependants = await computeAutoReloadDependants(ctx)
+    let modules: Module[]
+    if (args.module) {
+      modules = await withDependants(ctx, await ctx.getModules(args.module), autoReloadDependants)
+    } else {
+      // All modules are included in this case, so there's no need to compute dependants.
+      modules = await ctx.getModules()
+    }
 
     ctx.log.header({
       emoji: "thermometer",
@@ -81,11 +91,17 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
     const forceBuild = opts["force-build"]
 
     const results = await processModules({
-      modules,
-      garden,
       ctx,
+      garden,
+      modules,
       watch: opts.watch,
       process: async (module) => getTestTasks({ ctx, module, name, force, forceBuild }),
+      processWatchChange: async (module) => {
+        const modulesToProcess = await withDependants(ctx, [module], autoReloadDependants)
+        return flatten(await Bluebird.map(
+          modulesToProcess,
+          m => getTestTasks({ ctx, module: m, name, force, forceBuild })))
+      },
     })
 
     return handleTaskResults(ctx, "test", results)

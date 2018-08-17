@@ -21,27 +21,29 @@ import { getIgnorer, scanDirectory } from "./util/util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
 
 export type AutoReloadDependants = { [key: string]: Module[] }
-
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
 /*
-  Resolves to modules and their build & service dependency modules (recursively).
+  Resolves to modules and their build & service dependant modules (recursively).
   Each module is represented at most once in the output.
 */
-export async function autoReloadModules(ctx: PluginContext, modules: Module[]): Promise<Module[]> {
+export async function withDependants(
+  ctx: PluginContext,
+  modules: Module[],
+  autoReloadDependants: AutoReloadDependants,
+): Promise<Module[]> {
   const moduleSet = new Set<string>()
 
-  const scanner = async (module: Module) => {
+  const scanner = (module: Module) => {
     moduleSet.add(module.name)
-    for (const dep of await uniqueDependencyModules(ctx, module)) {
-      if (!moduleSet.has(dep.name)) {
-        await scanner(dep)
+    for (const dependant of (autoReloadDependants[module.name] || [])) {
+      if (!moduleSet.has(dependant.name)) {
+        scanner(dependant)
       }
     }
   }
-
   for (const m of modules) {
-    await scanner(m)
+    scanner(m)
   }
 
   // we retrieve the modules again to be sure we have the latest versions

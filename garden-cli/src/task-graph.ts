@@ -207,7 +207,7 @@ export class TaskGraph {
     const task = node.task
     for (const d of await task.getDependencies()) {
 
-      if (this.resultCache.get(d.getBaseKey(), d.version.versionString)) {
+      if (!d.force && this.resultCache.get(d.getBaseKey(), d.version.versionString)) {
         continue
       }
 

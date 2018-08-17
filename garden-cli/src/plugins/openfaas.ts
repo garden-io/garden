@@ -14,7 +14,6 @@ import { PluginError, ConfigurationError } from "../exceptions"
 import { Garden } from "../garden"
 import { PluginContext } from "../plugin-context"
 import { processServices } from "../process"
-import { DeployTask } from "../tasks/deploy"
 import { joiArray, validate, PrimitiveMap } from "../config/common"
 import { Module } from "../types/module"
 import { ParseModuleResult } from "../types/plugin/outputs"
@@ -51,6 +50,7 @@ import { appsApi } from "./kubernetes/api"
 import { waitForObjects, checkDeploymentStatus } from "./kubernetes/status"
 import { systemSymbol } from "./kubernetes/system"
 import { BaseServiceSpec } from "../config/service"
+import { getDeployTasks } from "../commands/deploy"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 const stackFilename = "stack.yml"
@@ -104,15 +104,15 @@ export const gardenPlugin = () => ({
       await ofCtx.configureEnvironment({ force })
 
       const services = await ofCtx.getServices()
+      const deployTasksForModule = async (module) => getDeployTasks({
+        ctx: ofCtx, module, force, forceBuild: false, includeDependants: false })
 
       const results = await processServices({
         garden: ofGarden,
         ctx: ofCtx,
         services,
         watch: false,
-        process: async (service) => {
-          return [new DeployTask({ ctx: ofCtx, service, force, forceBuild: false })]
-        },
+        process: deployTasksForModule,
       })
 
       const failed = values(results.taskResults).filter(r => !!r.error).length

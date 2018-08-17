@@ -32,7 +32,7 @@ import {
   ModuleConfigOpts,
   ProjectConfigOpts,
   moduleSchema,
-} from "../create/config-templates"
+} from "./config-templates"
 import { getChildDirNames } from "../../util/util"
 import { validate, joiIdentifier } from "../../config/common"
 import { projectSchema } from "../../config/project"

@@ -6,18 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployTask } from "../tasks/deploy"
+import Bluebird = require("bluebird")
+import { flatten } from "lodash"
 import {
   BooleanParameter,
   Command,
-  CommandResult,
   CommandParams,
+  CommandResult,
   handleTaskResults,
   ParameterValues,
   StringsParameter,
 } from "./base"
+import { DeployTask } from "../tasks/deploy"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
+import { getNames } from "../util/util"
+import { PluginContext } from "../plugin-context"
+import { Module } from "../types/module"
+import { computeAutoReloadDependants, withDependants } from "../watch"
 
 export const deployArgs = {
   service: new StringsParameter({
@@ -59,7 +65,9 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   options = deployOpts
 
   async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+
     const services = await ctx.getServices(args.service)
+    const serviceNames = getNames(services)
 
     if (services.length === 0) {
       ctx.log.warn({ msg: "No services found. Aborting." })
@@ -71,20 +79,39 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     // TODO: make this a task
     await ctx.configureEnvironment({})
 
-    const watch = opts.watch
-    const force = opts.force
-    const forceBuild = opts["force-build"]
-
     const results = await processServices({
-      services,
-      watch,
       ctx,
       garden,
-      process: async (service) => {
-        return [new DeployTask({ ctx, service, force, forceBuild })]
-      },
+      services,
+      watch: opts.watch,
+      process: async (module) => getDeployTasks({
+        ctx, module, serviceNames, force: opts.force, forceBuild: opts["force-build"], includeDependants: false}),
+      processWatchChange: async (module) => getDeployTasks({
+        ctx, module, serviceNames, force: true, forceBuild: true, includeDependants: true}),
     })
 
     return handleTaskResults(ctx, "deploy", results)
   }
+}
+
+export async function getDeployTasks(
+  { ctx, module, serviceNames, force = false, forceBuild = false, includeDependants = false }:
+    { ctx: PluginContext, module: Module, serviceNames?: string[] | null,
+      force?: boolean, forceBuild?: boolean, includeDependants?: boolean },
+) {
+
+  const modulesToProcess = includeDependants
+    ? (await withDependants(ctx, [module], await computeAutoReloadDependants(ctx)))
+    : [module]
+
+  const moduleServices = flatten(await Bluebird.map(
+    modulesToProcess,
+    m => ctx.getServices(getNames(m.serviceConfigs))))
+
+  const servicesToProcess = serviceNames
+    ? moduleServices.filter(s => serviceNames.includes(s.name))
+    : moduleServices
+
+  return servicesToProcess.map(service => new DeployTask({ ctx, service, force, forceBuild }))
+
 }

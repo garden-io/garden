@@ -12,31 +12,32 @@ import { Module } from "./types/module"
 import { Service } from "./types/service"
 import { Task } from "./tasks/base"
 import { TaskResults } from "./task-graph"
-import { autoReloadModules, FSWatcher } from "./watch"
-import { padEnd, values, flatten } from "lodash"
-import { getNames, registerCleanupFunction } from "./util/util"
+import { FSWatcher } from "./watch"
+import { padEnd, values } from "lodash"
+import { registerCleanupFunction } from "./util/util"
 import { PluginContext } from "./plugin-context"
 import { toGardenError } from "./exceptions"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 
 export type ProcessModule = (module: Module) => Promise<Task[]>
-export type ProcessService = (service: Service) => Promise<Task[]>
 
 export interface ProcessModulesParams {
-  garden: Garden,
-  ctx: PluginContext
   modules: Module[]
+  ctx: PluginContext
+  garden: Garden,
   watch: boolean
   process: ProcessModule
+  processWatchChange?: ProcessModule // Not required if watch is always false at the call site.
 }
 
 export interface ProcessServicesParams {
-  garden: Garden
-  ctx: PluginContext
   services: Service[]
+  ctx: PluginContext
+  garden: Garden
   watch: boolean
-  process: ProcessService
+  process: ProcessModule
+  processWatchChange?: ProcessModule  // Not required if watch is always false at the call site.
 }
 
 export interface ProcessResults {
@@ -44,28 +45,26 @@ export interface ProcessResults {
   restartRequired?: boolean
 }
 
-export async function processServices({ garden, ctx, services, watch, process }: ProcessServicesParams):
-  Promise<ProcessResults> {
+export async function processServices(
+  { ctx, garden, services, watch, process, processWatchChange }:ProcessServicesParams,
+): Promise<ProcessResults> {
 
-  const serviceNames = getNames(services)
   const modules = Array.from(new Set(services.map(s => s.module)))
 
   return processModules({
-    garden,
-    ctx,
     modules,
+    ctx,
+    garden,
     watch,
-    process: async (module) => {
-      const moduleServices = await ctx.getServices(getNames(module.serviceConfigs))
-      const servicesToProcess = moduleServices.filter(s => serviceNames.includes(s.name))
-      return flatten(await Bluebird.map(servicesToProcess, process))
-    },
+    process,
+    processWatchChange,
   })
 
 }
 
-export async function processModules({ garden, ctx, modules, watch, process }: ProcessModulesParams):
-  Promise<ProcessResults> {
+export async function processModules(
+  { ctx, garden, modules, watch, process, processWatchChange }: ProcessModulesParams,
+): Promise<ProcessResults> {
   const linkedModules: Module[] = []
 
   // TODO: log errors as they happen, instead of after processing all tasks
@@ -103,21 +102,17 @@ export async function processModules({ garden, ctx, modules, watch, process }: P
     }
   }
 
-  const modulesToWatch = await autoReloadModules(ctx, modules)
-
   const watcher = new FSWatcher(ctx)
 
   const restartPromise = new Promise(async (resolve) => {
     // TODO: should the prefix here be different or set explicitly per run?
-    await watcher.watchModules(modulesToWatch,
+    await watcher.watchModules(modules,
       async (changedModule: Module | null, configChanged: boolean) => {
 
         if (changedModule) {
           ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
         }
-        const restartNeeded = await handleChanges(
-          garden, ctx, process, changedModule, configChanged,
-        )
+        const restartNeeded = await handleChanges(ctx, garden, processWatchChange!, changedModule, configChanged)
 
         if (restartNeeded) {
           resolve()
@@ -143,11 +138,12 @@ export async function processModules({ garden, ctx, modules, watch, process }: P
 
 // Returns true if the command that requested the watch needs to be restarted.
 async function handleChanges(
-  garden: Garden,
   ctx: PluginContext,
-  process: ProcessModule,
+  garden: Garden,
+  processWatchChange: ProcessModule,
   module: Module | null,
-  configChanged: boolean): Promise<boolean> {
+  configChanged: boolean,
+): Promise<boolean> {
 
   if (configChanged) {
     ctx.log.debug({ msg: `Config changed, reloading.` })
@@ -158,9 +154,9 @@ async function handleChanges(
     return false
   }
 
-  const modulesToProcess = autoReloadModules(ctx, [module])
-
-  await Bluebird.map(modulesToProcess, (m) => Bluebird.map(process(m), task => garden.addTask(task)))
+  await Bluebird.map(processWatchChange(module), task => {
+    garden.addTask(task)
+  })
 
   return false
 }
