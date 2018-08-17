@@ -78,7 +78,7 @@ import {
 import { Omit } from "./util/util"
 import { RuntimeContext } from "./types/service"
 import { processServices, ProcessResults } from "./process"
-import { getDeployTasks } from "./commands/deploy"
+import { getDeployTasks } from "./tasks/deploy"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -474,8 +474,9 @@ export function createPluginContext(garden: Garden): PluginContext {
         garden,
         ctx,
         watch: false,
-        process: async (module) => getDeployTasks({
-          ctx, module, serviceNames, force, forceBuild, includeDependants: false }),
+        handler: async (module) => getDeployTasks({
+          ctx, module, serviceNames, force, forceBuild, includeDependants: false,
+        }),
       })
     },
 

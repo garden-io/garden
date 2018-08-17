@@ -50,7 +50,7 @@ import { appsApi } from "./kubernetes/api"
 import { waitForObjects, checkDeploymentStatus } from "./kubernetes/status"
 import { systemSymbol } from "./kubernetes/system"
 import { BaseServiceSpec } from "../config/service"
-import { getDeployTasks } from "../commands/deploy"
+import { getDeployTasks } from "../tasks/deploy"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 const stackFilename = "stack.yml"
@@ -105,14 +105,15 @@ export const gardenPlugin = () => ({
 
       const services = await ofCtx.getServices()
       const deployTasksForModule = async (module) => getDeployTasks({
-        ctx: ofCtx, module, force, forceBuild: false, includeDependants: false })
+        ctx: ofCtx, module, force, forceBuild: false, includeDependants: false,
+      })
 
       const results = await processServices({
         garden: ofGarden,
         ctx: ofCtx,
         services,
         watch: false,
-        process: deployTasksForModule,
+        handler: deployTasksForModule,
       })
 
       const failed = values(results.taskResults).filter(r => !!r.error).length

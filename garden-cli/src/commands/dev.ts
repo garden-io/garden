@@ -25,7 +25,7 @@ import { readFile } from "fs-extra"
 import { Module } from "../types/module"
 import { getTestTasks } from "./test"
 import { computeAutoReloadDependants, withDependants } from "../watch"
-import { getDeployTasks } from "./deploy"
+import { getDeployTasks } from "../tasks/deploy"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -58,9 +58,9 @@ export class DevCommand extends Command {
 
     if (modules.length === 0) {
       if (modules.length === 0) {
-        ctx.log.info({msg: "No modules found in project."})
+        ctx.log.info({ msg: "No modules found in project." })
       }
-      ctx.log.info({msg: "Aborting..."})
+      ctx.log.info({ msg: "Aborting..." })
       return {}
     }
 
@@ -72,14 +72,15 @@ export class DevCommand extends Command {
           : [module]
 
         const testTasks: Task[] = flatten(await Bluebird.map(
-          testModules, m => getTestTasks({ctx, module: m})))
+          testModules, m => getTestTasks({ ctx, module: m })))
 
         const deployTasks = await getDeployTasks({
-          ctx, module, force: watch, forceBuild: watch, includeDependants: watch })
+          ctx, module, force: watch, forceBuild: watch, includeDependants: watch,
+        })
         const tasks = testTasks.concat(deployTasks)
 
         if (tasks.length === 0) {
-          return [new BuildTask({ctx, module, force: watch})]
+          return [new BuildTask({ ctx, module, force: watch })]
         } else {
           return tasks
         }
@@ -92,8 +93,8 @@ export class DevCommand extends Command {
       garden,
       modules,
       watch: true,
-      process: tasksForModule(false),
-      processWatchChange: tasksForModule(true),
+      handler: tasksForModule(false),
+      changeHandler: tasksForModule(true),
     })
 
     return {}

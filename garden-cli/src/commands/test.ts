@@ -95,8 +95,8 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
       garden,
       modules,
       watch: opts.watch,
-      process: async (module) => getTestTasks({ ctx, module, name, force, forceBuild }),
-      processWatchChange: async (module) => {
+      handler: async (module) => getTestTasks({ ctx, module, name, force, forceBuild }),
+      changeHandler: async (module) => {
         const modulesToProcess = await withDependants(ctx, [module], autoReloadDependants)
         return flatten(await Bluebird.map(
           modulesToProcess,

@@ -72,8 +72,8 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
       garden,
       modules,
       watch: opts.watch,
-      process: async (module) => [new BuildTask({ ctx, module, force: opts.force })],
-      processWatchChange: async (module: Module) => {
+      handler: async (module) => [new BuildTask({ ctx, module, force: opts.force })],
+      changeHandler: async (module: Module) => {
         return (await withDependants(ctx, [module], autoReloadDependants))
           .filter(m => moduleNames.includes(m.name))
           .map(m => new BuildTask({ ctx, module: m, force: true }))
