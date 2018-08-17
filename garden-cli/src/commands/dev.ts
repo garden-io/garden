@@ -6,19 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
+import * as Bluebird from "bluebird"
+import chalk from "chalk"
+import { flatten } from "lodash"
+import moment = require("moment")
+import { join } from "path"
+
 import { BuildTask } from "../tasks/build"
-import { Task } from "../types/task"
+import { Task } from "../tasks/base"
 import {
   Command,
   CommandResult,
+  CommandParams,
 } from "./base"
-import { join } from "path"
 import { STATIC_DIR } from "../constants"
-import chalk from "chalk"
-import moment = require("moment")
 import { processModules } from "../process"
 import { readFile } from "fs-extra"
+import { Module } from "../types/module"
+import { getTestTasks } from "./test"
+import { computeAutoReloadDependants, withDependants } from "../watch"
+import { getDeployTasks } from "../tasks/deploy"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -37,7 +44,7 @@ export class DevCommand extends Command {
         garden dev
   `
 
-  async action(ctx: PluginContext): Promise<CommandResult> {
+  async action({ garden, ctx }: CommandParams): Promise<CommandResult> {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
     console.log(data.toString())
@@ -46,6 +53,7 @@ export class DevCommand extends Command {
 
     await ctx.configureEnvironment({})
 
+    const autoReloadDependants = await computeAutoReloadDependants(ctx)
     const modules = await ctx.getModules()
 
     if (modules.length === 0) {
@@ -56,21 +64,37 @@ export class DevCommand extends Command {
       return {}
     }
 
-    await processModules({
-      modules,
-      pluginContext: ctx,
-      watch: true,
-      process: async (module) => {
-        const testTasks: Task[] = await module.getTestTasks({})
-        const deployTasks = await module.getDeployTasks({})
+    const tasksForModule = (watch: boolean) => {
+      return async (module: Module) => {
+
+        const testModules: Module[] = watch
+          ? (await withDependants(ctx, [module], autoReloadDependants))
+          : [module]
+
+        const testTasks: Task[] = flatten(await Bluebird.map(
+          testModules, m => getTestTasks({ ctx, module: m })))
+
+        const deployTasks = await getDeployTasks({
+          ctx, module, force: watch, forceBuild: watch, includeDependants: watch,
+        })
         const tasks = testTasks.concat(deployTasks)
 
         if (tasks.length === 0) {
-          return [await BuildTask.factory({ ctx, module, force: false })]
+          return [new BuildTask({ ctx, module, force: watch })]
         } else {
           return tasks
         }
-      },
+      }
+
+    }
+
+    await processModules({
+      ctx,
+      garden,
+      modules,
+      watch: true,
+      handler: tasksForModule(false),
+      changeHandler: tasksForModule(true),
     })
 
     return {}

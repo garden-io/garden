@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
 import {
   BooleanParameter,
   Command,
   CommandResult,
+  CommandParams,
   handleTaskResults,
   ParameterValues,
   StringsParameter,
@@ -19,6 +19,8 @@ import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 import { processModules } from "../process"
+import { computeAutoReloadDependants, withDependants } from "../watch"
+import { Module } from "../types/module"
 
 export const buildArguments = {
   module: new StringsParameter({
@@ -53,18 +55,28 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   arguments = buildArguments
   options = buildOptions
 
-  async action(ctx: PluginContext, args: BuildArguments, opts: BuildOptions): Promise<CommandResult<TaskResults>> {
-    await ctx.clearBuilds()
+  async action(
+    { ctx, args, opts, garden }: CommandParams<BuildArguments, BuildOptions>,
+  ): Promise<CommandResult<TaskResults>> {
+
+    await garden.clearBuilds()
+
+    const autoReloadDependants = await computeAutoReloadDependants(ctx)
     const modules = await ctx.getModules(args.module)
+    const moduleNames = modules.map(m => m.name)
 
     ctx.log.header({ emoji: "hammer", command: "Build" })
 
     const results = await processModules({
+      ctx,
+      garden,
       modules,
-      pluginContext: ctx,
       watch: opts.watch,
-      process: async (module) => {
-        return [await BuildTask.factory({ ctx, module, force: opts.force })]
+      handler: async (module) => [new BuildTask({ ctx, module, force: opts.force })],
+      changeHandler: async (module: Module) => {
+        return (await withDependants(ctx, [module], autoReloadDependants))
+          .filter(m => moduleNames.includes(m.name))
+          .map(m => new BuildTask({ ctx, module: m, force: true }))
       },
     })
 

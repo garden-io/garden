@@ -9,13 +9,9 @@
 import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { CacheContext } from "./cache"
-import {
-  Garden,
-} from "./garden"
+import { Garden } from "./garden"
 import { EntryStyle } from "./logger/types"
-import {
-  PrimitiveMap,
-} from "./types/common"
+import { PrimitiveMap } from "./config/common"
 import { Module } from "./types/module"
 import {
   ModuleActions,
@@ -61,10 +57,16 @@ import {
   ServiceActionParams,
   SetConfigParams,
   TestModuleParams,
+  GetLoginStatusParams,
+  LoginParams,
+  LogoutParams,
+  GetEnvironmentStatusParams,
+  DestroyEnvironmentParams,
 } from "./types/plugin/params"
 import {
   Service,
   ServiceStatus,
+  prepareRuntimeContext,
 } from "./types/service"
 import {
   mapValues,
@@ -72,16 +74,11 @@ import {
   values,
   keyBy,
   omit,
-  flatten,
-  uniqBy,
-  sortBy,
 } from "lodash"
-import {
-  getNames,
-  Omit,
-} from "./util/util"
-import { ModuleVersion } from "./vcs/base"
+import { Omit } from "./util/util"
 import { RuntimeContext } from "./types/service"
+import { processServices, ProcessResults } from "./process"
+import { getDeployTasks } from "./tasks/deploy"
 
 export type PluginContextGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -92,43 +89,49 @@ export interface ContextStatus {
   services: { [name: string]: ServiceStatus }
 }
 
-export type PluginContextParams<T extends PluginActionParamsBase> = Omit<T, keyof PluginActionContextParams>
+export interface DeployServicesParams {
+  serviceNames?: string[],
+  force?: boolean
+  forceBuild?: boolean
+}
+
+export type PluginContextParams<T extends PluginActionParamsBase> =
+  Omit<T, keyof PluginActionContextParams> & { pluginName?: string }
 export type PluginContextModuleParams<T extends PluginModuleActionParamsBase> =
-  Omit<T, "module" | keyof PluginActionContextParams> & { moduleName: string }
+  Omit<T, "module" | keyof PluginActionContextParams> & { moduleName: string, pluginName?: string }
 export type PluginContextServiceParams<T extends PluginServiceActionParamsBase> =
   Omit<T, "module" | "service" | "runtimeContext" | keyof PluginActionContextParams>
-  & { serviceName: string, runtimeContext?: RuntimeContext }
+  & { serviceName: string, runtimeContext?: RuntimeContext, pluginName?: string }
 
 export type WrappedFromGarden = Pick<Garden,
   "projectName" |
   "projectRoot" |
   "projectSources" |
   "log" |
-  "config" |
+  "environmentConfig" |
   "localConfigStore" |
   "vcs" |
-  "clearBuilds" |
   "getEnvironment" |
   "getModules" |
   "getModule" |
   "getServices" |
   "getService" |
-  "getTemplateContext" |
-  "addTask" |
-  "processTasks">
+  "resolveModuleDependencies" |
+  "resolveVersion"
+  >
 
 export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   providers: { [name: string]: Provider }
 
-  getEnvironmentStatus: (params: {}) => Promise<EnvironmentStatusMap>
-  configureEnvironment: (params: { force?: boolean }) => Promise<EnvironmentStatusMap>
-  destroyEnvironment: (params: {}) => Promise<EnvironmentStatusMap>
+  getEnvironmentStatus: (params: PluginContextParams<GetEnvironmentStatusParams>) => Promise<EnvironmentStatusMap>
+  configureEnvironment: (params: { force?: boolean, pluginName?: string }) => Promise<EnvironmentStatusMap>
+  destroyEnvironment: (params: PluginContextParams<DestroyEnvironmentParams>) => Promise<EnvironmentStatusMap>
   getConfig: (params: PluginContextParams<GetConfigParams>) => Promise<GetConfigResult>
   setConfig: (params: PluginContextParams<SetConfigParams>) => Promise<SetConfigResult>
   deleteConfig: (params: PluginContextParams<DeleteConfigParams>) => Promise<DeleteConfigResult>
-  getLoginStatus: (params: {}) => Promise<LoginStatusMap>
-  login: (params: {}) => Promise<LoginStatusMap>
-  logout: (params: {}) => Promise<LoginStatusMap>
+  getLoginStatus: (params: PluginContextParams<GetLoginStatusParams>) => Promise<LoginStatusMap>
+  login: (params: PluginContextParams<LoginParams>) => Promise<LoginStatusMap>
+  logout: (params: PluginContextParams<LogoutParams>) => Promise<LoginStatusMap>
 
   getModuleBuildStatus: <T extends Module>(params: PluginContextModuleParams<GetModuleBuildStatusParams<T>>)
     => Promise<BuildStatus>
@@ -159,12 +162,9 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   invalidateCache: (context: CacheContext) => void
   invalidateCacheUp: (context: CacheContext) => void
   invalidateCacheDown: (context: CacheContext) => void
-  getModuleBuildPath: (moduleName: string) => Promise<string>
-  getModuleVersion: (moduleName: string, force?: boolean) => Promise<ModuleVersion>
-  resolveVersion: (moduleName: string, moduleDependencies: string[], force?: boolean) => Promise<ModuleVersion>
-  resolveModuleDependencies: (buildDependencies: string[], serviceDependencies: string[]) => Promise<Module[]>
   stageBuild: (moduleName: string) => Promise<void>
   getStatus: () => Promise<ContextStatus>
+  deployServices: (params: DeployServicesParams) => Promise<ProcessResults>
 }
 
 export function createPluginContext(garden: Garden): PluginContext {
@@ -172,7 +172,7 @@ export function createPluginContext(garden: Garden): PluginContext {
     return f.bind(garden)
   }
 
-  const projectConfig = { ...garden.config }
+  const projectConfig = { ...garden.environmentConfig }
   const providerConfigs = keyBy(projectConfig.providers, "name")
   const providers = mapValues(providerConfigs, (config, name) => ({
     name,
@@ -186,31 +186,38 @@ export function createPluginContext(garden: Garden): PluginContext {
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
   function commonParams(handler): PluginActionParamsBase {
     return {
-      ctx,
+      ctx: createPluginContext(garden),
       env: garden.getEnvironment(),
       provider: getProvider(handler),
     }
   }
 
   async function getModuleAndHandler<T extends (keyof ModuleActions | keyof ServiceActions)>(
-    moduleName: string, actionType: T, defaultHandler?: (ModuleActions & ServiceActions)[T],
+    { moduleName, actionType, pluginName, defaultHandler }:
+      { moduleName: string, actionType: T, pluginName?: string, defaultHandler?: (ModuleActions & ServiceActions)[T] },
   ): Promise<{ handler: (ModuleActions & ServiceActions)[T], module: Module }> {
     const module = await garden.getModule(moduleName)
-    const handler = garden.getModuleActionHandler(actionType, module.type, defaultHandler)
-    const provider = getProvider(handler)
+    const handler = garden.getModuleActionHandler({
+      actionType,
+      moduleType: module.type,
+      pluginName,
+      defaultHandler,
+    })
 
-    return {
-      handler,
-      module: await module.resolveConfig({ provider }),
-    }
+    return { handler, module }
   }
 
   async function callModuleHandler<T extends keyof Omit<ModuleActions, "parseModule">>(
-    params: PluginContextModuleParams<ModuleActionParams[T]>,
-    actionType: T,
-    defaultHandler?: ModuleActions[T],
+    { params, actionType, defaultHandler }:
+      { params: PluginContextModuleParams<ModuleActionParams[T]>, actionType: T, defaultHandler?: ModuleActions[T] },
   ): Promise<ModuleActionOutputs[T]> {
-    const { module, handler } = await getModuleAndHandler(params.moduleName, actionType, defaultHandler)
+    const { moduleName, pluginName } = params
+    const { module, handler } = await getModuleAndHandler({
+      moduleName,
+      actionType,
+      pluginName,
+      defaultHandler,
+    })
     const handlerParams: ModuleActionParams[T] = {
       ...commonParams(handler),
       ...<object>omit(params, ["moduleName"]),
@@ -221,22 +228,29 @@ export function createPluginContext(garden: Garden): PluginContext {
   }
 
   async function callServiceHandler<T extends keyof ServiceActions>(
-    params: PluginContextServiceParams<ServiceActionParams[T]>, actionType: T, defaultHandler?: ServiceActions[T],
+    { params, actionType, defaultHandler }:
+      { params: PluginContextServiceParams<ServiceActionParams[T]>, actionType: T, defaultHandler?: ServiceActions[T] },
   ): Promise<ServiceActionOutputs[T]> {
     const service = await garden.getService(params.serviceName)
 
-    const { module, handler } = await getModuleAndHandler(service.module.name, actionType, defaultHandler)
+    const { module, handler } = await getModuleAndHandler({
+      moduleName: service.module.name,
+      actionType,
+      pluginName: params.pluginName,
+      defaultHandler,
+    })
+
     service.module = module
 
     // TODO: figure out why this doesn't compile without the casts
-    const runtimeContext = (<any>params).runtimeContext || await service.prepareRuntimeContext()
-    const provider = getProvider(handler)
+    const deps = await garden.getServices(service.config.dependencies)
+    const runtimeContext = ((<any>params).runtimeContext || await prepareRuntimeContext(ctx, module, deps))
 
     const handlerParams: any = {
       ...commonParams(handler),
       ...<object>omit(params, ["moduleName"]),
       module,
-      service: await service.resolveConfig({ provider, ...runtimeContext }),
+      service,
       runtimeContext,
     }
 
@@ -248,33 +262,30 @@ export function createPluginContext(garden: Garden): PluginContext {
     projectRoot: garden.projectRoot,
     projectSources: garden.projectSources,
     log: garden.log,
-    config: projectConfig,
+    environmentConfig: projectConfig,
     localConfigStore: garden.localConfigStore,
     vcs: garden.vcs,
     providers,
 
-    // TODO: maybe we should move some of these here
-    clearBuilds: wrap(garden.clearBuilds),
     getEnvironment: wrap(garden.getEnvironment),
     getModules: wrap(garden.getModules),
     getModule: wrap(garden.getModule),
     getServices: wrap(garden.getServices),
     getService: wrap(garden.getService),
-    getTemplateContext: wrap(garden.getTemplateContext),
-    addTask: wrap(garden.addTask),
-    processTasks: wrap(garden.processTasks),
+    resolveModuleDependencies: wrap(garden.resolveModuleDependencies),
+    resolveVersion: wrap(garden.resolveVersion),
 
     //===========================================================================
     //region Environment Actions
     //===========================================================================
 
-    getEnvironmentStatus: async () => {
-      const handlers = garden.getActionHandlers("getEnvironmentStatus")
+    getEnvironmentStatus: async ({ pluginName }: PluginContextParams<GetEnvironmentStatusParams>) => {
+      const handlers = garden.getActionHandlers("getEnvironmentStatus", pluginName)
       return Bluebird.props(mapValues(handlers, h => h({ ...commonParams(h) })))
     },
 
-    configureEnvironment: async ({ force = false }: { force?: boolean }) => {
-      const handlers = garden.getActionHandlers("configureEnvironment")
+    configureEnvironment: async ({ force = false, pluginName }: { force?: boolean, pluginName?: string }) => {
+      const handlers = garden.getActionHandlers("configureEnvironment", pluginName)
 
       const statuses = await ctx.getEnvironmentStatus({})
 
@@ -298,44 +309,44 @@ export function createPluginContext(garden: Garden): PluginContext {
       return ctx.getEnvironmentStatus({})
     },
 
-    destroyEnvironment: async () => {
-      const handlers = garden.getActionHandlers("destroyEnvironment")
+    destroyEnvironment: async ({ pluginName }: PluginContextParams<DestroyEnvironmentParams>) => {
+      const handlers = garden.getActionHandlers("destroyEnvironment", pluginName)
       await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
       return ctx.getEnvironmentStatus({})
     },
 
-    getConfig: async ({ key }: PluginContextParams<GetConfigParams>) => {
+    getConfig: async ({ key, pluginName }: PluginContextParams<GetConfigParams>) => {
       garden.validateConfigKey(key)
       // TODO: allow specifying which provider to use for configs
-      const handler = garden.getActionHandler("getConfig")
+      const handler = garden.getActionHandler({ actionType: "getConfig", pluginName })
       return handler({ ...commonParams(handler), key })
     },
 
-    setConfig: async ({ key, value }: PluginContextParams<SetConfigParams>) => {
+    setConfig: async ({ key, value, pluginName }: PluginContextParams<SetConfigParams>) => {
       garden.validateConfigKey(key)
-      const handler = garden.getActionHandler("setConfig")
+      const handler = garden.getActionHandler({ actionType: "setConfig", pluginName })
       return handler({ ...commonParams(handler), key, value })
     },
 
-    deleteConfig: async ({ key }: PluginContextParams<DeleteConfigParams>) => {
+    deleteConfig: async ({ key, pluginName }: PluginContextParams<DeleteConfigParams>) => {
       garden.validateConfigKey(key)
-      const handler = garden.getActionHandler("deleteConfig")
+      const handler = garden.getActionHandler({ actionType: "deleteConfig", pluginName })
       return handler({ ...commonParams(handler), key })
     },
 
-    getLoginStatus: async () => {
-      const handlers = garden.getActionHandlers("getLoginStatus")
+    getLoginStatus: async ({ pluginName }: PluginContextParams<GetLoginStatusParams>) => {
+      const handlers = garden.getActionHandlers("getLoginStatus", pluginName)
       return Bluebird.props(mapValues(handlers, h => h({ ...commonParams(h) })))
     },
 
-    login: async () => {
-      const handlers = garden.getActionHandlers("login")
+    login: async ({ pluginName }: PluginContextParams<LoginParams>) => {
+      const handlers = garden.getActionHandlers("login", pluginName)
       await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
       return ctx.getLoginStatus({})
     },
 
-    logout: async () => {
-      const handlers = garden.getActionHandlers("logout")
+    logout: async ({ pluginName }: PluginContextParams<LogoutParams>) => {
+      const handlers = garden.getActionHandlers("logout", pluginName)
       await Bluebird.each(values(handlers), h => h({ ...commonParams(h) }))
       return ctx.getLoginStatus({})
     },
@@ -349,32 +360,37 @@ export function createPluginContext(garden: Garden): PluginContext {
     getModuleBuildStatus: async <T extends Module>(
       params: PluginContextModuleParams<GetModuleBuildStatusParams<T>>,
     ) => {
-      const defaultHandler = garden.getModuleActionHandler("getModuleBuildStatus", "generic")
-      return callModuleHandler(params, "getModuleBuildStatus", defaultHandler)
+      return callModuleHandler({
+        params,
+        actionType: "getModuleBuildStatus",
+        defaultHandler: async () => ({ ready: false }),
+      })
     },
 
     buildModule: async <T extends Module>(params: PluginContextModuleParams<BuildModuleParams<T>>) => {
-      const defaultHandler = garden.getModuleActionHandler("buildModule", "generic")
-      const { module, handler } = await getModuleAndHandler(params.moduleName, "buildModule", defaultHandler)
+      const module = await garden.getModule(params.moduleName)
       await garden.buildDir.syncDependencyProducts(module)
-      return handler({ ...commonParams(handler), module, logEntry: params.logEntry })
+      return callModuleHandler({ params, actionType: "buildModule" })
     },
 
     pushModule: async <T extends Module>(params: PluginContextModuleParams<PushModuleParams<T>>) => {
-      return callModuleHandler(params, "pushModule", dummyPushHandler)
+      return callModuleHandler({ params, actionType: "pushModule", defaultHandler: dummyPushHandler })
     },
 
     runModule: async <T extends Module>(params: PluginContextModuleParams<RunModuleParams<T>>) => {
-      return callModuleHandler(params, "runModule")
+      return callModuleHandler({ params, actionType: "runModule" })
     },
 
     testModule: async <T extends Module>(params: PluginContextModuleParams<TestModuleParams<T>>) => {
-      const defaultHandler = garden.getModuleActionHandler("testModule", "generic")
-      return callModuleHandler(params, "testModule", defaultHandler)
+      return callModuleHandler({ params, actionType: "testModule" })
     },
 
     getTestResult: async <T extends Module>(params: PluginContextModuleParams<GetTestResultParams<T>>) => {
-      return callModuleHandler(params, "getTestResult", async () => null)
+      return callModuleHandler({
+        params,
+        actionType: "getTestResult",
+        defaultHandler: async () => null,
+      })
     },
 
     //endregion
@@ -384,27 +400,31 @@ export function createPluginContext(garden: Garden): PluginContext {
     //===========================================================================
 
     getServiceStatus: async (params: PluginContextServiceParams<GetServiceStatusParams>) => {
-      return callServiceHandler(params, "getServiceStatus")
+      return callServiceHandler({ params, actionType: "getServiceStatus" })
     },
 
     deployService: async (params: PluginContextServiceParams<DeployServiceParams>) => {
-      return callServiceHandler(params, "deployService")
+      return callServiceHandler({ params, actionType: "deployService" })
     },
 
     getServiceOutputs: async (params: PluginContextServiceParams<GetServiceOutputsParams>) => {
-      return callServiceHandler(params, "getServiceOutputs", async () => ({}))
+      return callServiceHandler({
+        params,
+        actionType: "getServiceOutputs",
+        defaultHandler: async () => ({}),
+      })
     },
 
     execInService: async (params: PluginContextServiceParams<ExecInServiceParams>) => {
-      return callServiceHandler(params, "execInService")
+      return callServiceHandler({ params, actionType: "execInService" })
     },
 
     getServiceLogs: async (params: PluginContextServiceParams<GetServiceLogsParams>) => {
-      return callServiceHandler(params, "getServiceLogs", dummyLogStreamer)
+      return callServiceHandler({ params, actionType: "getServiceLogs", defaultHandler: dummyLogStreamer })
     },
 
     runService: async (params: PluginContextServiceParams<RunServiceParams>) => {
-      return callServiceHandler(params, "runService")
+      return callServiceHandler({ params, actionType: "runService" })
     },
 
     //endregion
@@ -430,70 +450,13 @@ export function createPluginContext(garden: Garden): PluginContext {
       await garden.buildDir.syncDependencyProducts(module)
     },
 
-    getModuleBuildPath: async (moduleName: string) => {
-      const module = await garden.getModule(moduleName)
-      return await garden.buildDir.buildPath(module)
-    },
-
-    getModuleVersion: async (moduleName: string, force = false) => {
-      const dependencies = await ctx.resolveModuleDependencies([moduleName], [])
-      return ctx.resolveVersion(moduleName, getNames(dependencies), force)
-    },
-
-    /**
-     * Given the provided lists of build and service dependencies, return a list of all modules
-     * required to satisfy those dependencies.
-     */
-    async resolveModuleDependencies(buildDependencies: string[], serviceDependencies: string[]) {
-      const buildDeps = await Bluebird.map(buildDependencies, async (moduleName) => {
-        const module = await garden.getModule(moduleName)
-        const moduleDeps = await module.getBuildDependencies()
-        return [module].concat(await ctx.resolveModuleDependencies(getNames(moduleDeps), []))
-      })
-
-      const runtimeDeps = await Bluebird.map(serviceDependencies, async (serviceName) => {
-        const service = await garden.getService(serviceName)
-        const serviceDeps = await service.getDependencies()
-        return ctx.resolveModuleDependencies([service.module.name], getNames(serviceDeps))
-      })
-
-      const deps = flatten(buildDeps).concat(flatten(runtimeDeps))
-
-      return sortBy(uniqBy(deps, "name"), "name")
-    },
-
-    /**
-     * Given a module, and a list of dependencies, resolve the version for that combination of modules.
-     * The combined version is a either the latest dirty module version (if any), or the hash of the module version
-     * and the versions of its dependencies (in sorted order).
-     */
-    resolveVersion: async (moduleName: string, moduleDependencies: string[], force = false) => {
-      const module = await ctx.getModule(moduleName)
-      const cacheKey = ["moduleVersions", module.name]
-
-      if (!force) {
-        const cached = <ModuleVersion>garden.cache.get(cacheKey)
-
-        if (cached) {
-          return cached
-        }
-      }
-
-      const dependencies = await garden.getModules(moduleDependencies)
-      const cacheContexts = dependencies.concat([module]).map(m => m.getCacheContext())
-
-      const version = await garden.vcs.resolveVersion(module, dependencies)
-
-      garden.cache.set(cacheKey, version, ...cacheContexts)
-      return version
-    },
-
     getStatus: async () => {
       const envStatus: EnvironmentStatusMap = await ctx.getEnvironmentStatus({})
       const services = keyBy(await ctx.getServices(), "name")
 
       const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
-        const runtimeContext = await service.prepareRuntimeContext()
+        const dependencies = await ctx.getServices(service.config.dependencies)
+        const runtimeContext = await prepareRuntimeContext(ctx, service.module, dependencies)
         return ctx.getServiceStatus({ serviceName: service.name, runtimeContext })
       }))
 
@@ -501,6 +464,20 @@ export function createPluginContext(garden: Garden): PluginContext {
         providers: envStatus,
         services: serviceStatus,
       }
+    },
+
+    deployServices: async ({ serviceNames, force = false, forceBuild = false }: DeployServicesParams) => {
+      const services = await ctx.getServices(serviceNames)
+
+      return processServices({
+        services,
+        garden,
+        ctx,
+        watch: false,
+        handler: async (module) => getDeployTasks({
+          ctx, module, serviceNames, force, forceBuild, includeDependants: false,
+        }),
+      })
     },
 
     //endregion

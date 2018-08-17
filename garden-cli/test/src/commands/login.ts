@@ -14,12 +14,12 @@ describe("LoginCommand", () => {
 
   it("should log in to provider", async () => {
     const garden = await makeTestGardenA()
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
 
     stubAction(garden, "test-plugin", "login", async () => ({ loggedIn: true }))
     stubAction(garden, "test-plugin", "getLoginStatus", async () => ({ loggedIn: true }))
 
-    const { result } = await command.action(ctx)
+    const { result } = await command.action({ garden, ctx, args: {}, opts: {} })
 
     expect(result).to.eql({ "test-plugin": { loggedIn: true } })
   })

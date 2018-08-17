@@ -6,18 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../plugin-context"
-import { DeployTask } from "../tasks/deploy"
 import {
   BooleanParameter,
   Command,
+  CommandParams,
   CommandResult,
   handleTaskResults,
   ParameterValues,
   StringsParameter,
 } from "./base"
+import { getDeployTasks } from "../tasks/deploy"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
+import { getNames } from "../util/util"
 
 export const deployArgs = {
   service: new StringsParameter({
@@ -58,8 +59,10 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   arguments = deployArgs
   options = deployOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
+  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+
     const services = await ctx.getServices(args.service)
+    const serviceNames = getNames(services)
 
     if (services.length === 0) {
       ctx.log.warn({ msg: "No services found. Aborting." })
@@ -71,17 +74,17 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
     // TODO: make this a task
     await ctx.configureEnvironment({})
 
-    const watch = opts.watch
-    const force = opts.force
-    const forceBuild = opts["force-build"]
-
     const results = await processServices({
+      ctx,
+      garden,
       services,
-      watch,
-      pluginContext: ctx,
-      process: async (service) => {
-        return [await DeployTask.factory({ ctx, service, force, forceBuild })]
-      },
+      watch: opts.watch,
+      handler: async (module) => getDeployTasks({
+        ctx, module, serviceNames, force: opts.force, forceBuild: opts["force-build"], includeDependants: false,
+      }),
+      changeHandler: async (module) => getDeployTasks({
+        ctx, module, serviceNames, force: true, forceBuild: true, includeDependants: true,
+      }),
     })
 
     return handleTaskResults(ctx, "deploy", results)

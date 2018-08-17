@@ -1,6 +1,6 @@
 import { join } from "path"
 import { expect } from "chai"
-import { Task } from "../../src/types/task"
+import { Task } from "../../src/tasks/base"
 import {
   TaskGraph,
   TaskResult,
@@ -83,7 +83,7 @@ describe("task-graph", () => {
   describe("TaskGraph", () => {
     async function getContext() {
       const garden = await makeTestGarden(projectRoot)
-      return garden.pluginContext
+      return garden.getPluginContext()
     }
 
     it("should successfully process a single task without dependencies", async () => {

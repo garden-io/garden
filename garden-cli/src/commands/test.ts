@@ -6,18 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
+import { flatten } from "lodash"
 import { PluginContext } from "../plugin-context"
 import {
   BooleanParameter,
   Command,
+  CommandParams,
+  CommandResult,
   handleTaskResults,
   ParameterValues,
   StringParameter,
   StringsParameter,
-  CommandResult,
 } from "./base"
 import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
+import { Module } from "../types/module"
+import { TestTask } from "../tasks/test"
+import { computeAutoReloadDependants, withDependants } from "../watch"
 
 export const testArgs = {
   module: new StringsParameter({
@@ -62,8 +68,16 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   arguments = testArgs
   options = testOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<TaskResults>> {
-    const modules = await ctx.getModules(args.module)
+  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+
+    const autoReloadDependants = await computeAutoReloadDependants(ctx)
+    let modules: Module[]
+    if (args.module) {
+      modules = await withDependants(ctx, await ctx.getModules(args.module), autoReloadDependants)
+    } else {
+      // All modules are included in this case, so there's no need to compute dependants.
+      modules = await ctx.getModules()
+    }
 
     ctx.log.header({
       emoji: "thermometer",
@@ -77,12 +91,41 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
     const forceBuild = opts["force-build"]
 
     const results = await processModules({
+      ctx,
+      garden,
       modules,
-      pluginContext: ctx,
       watch: opts.watch,
-      process: async (module) => module.getTestTasks({ name, force, forceBuild }),
+      handler: async (module) => getTestTasks({ ctx, module, name, force, forceBuild }),
+      changeHandler: async (module) => {
+        const modulesToProcess = await withDependants(ctx, [module], autoReloadDependants)
+        return flatten(await Bluebird.map(
+          modulesToProcess,
+          m => getTestTasks({ ctx, module: m, name, force, forceBuild })))
+      },
     })
 
     return handleTaskResults(ctx, "test", results)
   }
+}
+
+export async function getTestTasks(
+  { ctx, module, name, force = false, forceBuild = false }:
+    { ctx: PluginContext, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
+) {
+  const tasks: Promise<TestTask>[] = []
+
+  for (const test of module.testConfigs) {
+    if (name && test.name !== name) {
+      continue
+    }
+    tasks.push(TestTask.factory({
+      force,
+      forceBuild,
+      testConfig: test,
+      ctx,
+      module,
+    }))
+  }
+
+  return Bluebird.all(tasks)
 }

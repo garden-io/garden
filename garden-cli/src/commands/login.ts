@@ -9,9 +9,9 @@
 import {
   Command,
   CommandResult,
+  CommandParams,
 } from "./base"
 import { EntryStyle } from "../logger/types"
-import { PluginContext } from "../plugin-context"
 import { LoginStatusMap } from "../types/plugin/outputs"
 import dedent = require("dedent")
 
@@ -27,7 +27,7 @@ export class LoginCommand extends Command {
          garden login
   `
 
-  async action(ctx: PluginContext): Promise<CommandResult<LoginStatusMap>> {
+  async action({ ctx }: CommandParams): Promise<CommandResult<LoginStatusMap>> {
     ctx.log.header({ emoji: "unlock", command: "Login" })
     ctx.log.info({ msg: "Logging in...", entryStyle: EntryStyle.activity })
 

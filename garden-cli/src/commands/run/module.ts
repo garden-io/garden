@@ -7,12 +7,12 @@
  */
 
 import chalk from "chalk"
-import { PluginContext } from "../../plugin-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin/outputs"
 import {
   BooleanParameter,
   Command,
+  CommandParams,
   ParameterValues,
   StringParameter,
   CommandResult,
@@ -23,6 +23,7 @@ import {
 } from "lodash"
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
+import { prepareRuntimeContext } from "../../types/service"
 
 export const runArgs = {
   module: new StringParameter({
@@ -66,7 +67,7 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action(ctx: PluginContext, args: Args, opts: Opts): Promise<CommandResult<RunResult>> {
+  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
     const module = await ctx.getModule(moduleName)
 
@@ -81,18 +82,17 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
 
     await ctx.configureEnvironment({})
 
-    const buildTask = await BuildTask.factory({ ctx, module, force: opts["force-build"] })
-    await ctx.addTask(buildTask)
-    await ctx.processTasks()
+    const buildTask = new BuildTask({ ctx, module, force: opts["force-build"] })
+    await garden.addTask(buildTask)
+    await garden.processTasks()
 
     const command = args.command ? args.command.split(" ") : []
 
     // combine all dependencies for all services in the module, to be sure we have all the context we need
-    const services = await module.getServices()
-    const depNames = uniq(flatten(services.map(s => s.config.dependencies)))
+    const depNames = uniq(flatten(module.serviceConfigs.map(s => s.dependencies)))
     const deps = await ctx.getServices(depNames)
 
-    const runtimeContext = await module.prepareRuntimeContext(deps)
+    const runtimeContext = await prepareRuntimeContext(ctx, module, deps)
 
     printRuntimeContext(ctx, runtimeContext)
 

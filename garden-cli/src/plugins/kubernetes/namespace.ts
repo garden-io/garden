@@ -7,9 +7,7 @@
  */
 
 import { PluginContext } from "../../plugin-context"
-import {
-  coreApi,
-} from "./api"
+import { coreApi } from "./api"
 import { KubernetesProvider } from "./kubernetes"
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
@@ -43,7 +41,10 @@ export async function ensureNamespace(context: string, namespace: string) {
   }
 }
 
-export async function getNamespace(ctx: PluginContext, provider: KubernetesProvider, suffix?: string) {
+export async function getNamespace(
+  { ctx, provider, suffix, skipCreate }:
+    { ctx: PluginContext, provider: KubernetesProvider, suffix?: string, skipCreate?: boolean },
+): Promise<string> {
   let namespace
 
   if (provider.config.namespace) {
@@ -72,17 +73,19 @@ export async function getNamespace(ctx: PluginContext, provider: KubernetesProvi
     namespace = `${namespace}--${suffix}`
   }
 
-  await ensureNamespace(provider.config.context, namespace)
+  if (!skipCreate) {
+    await ensureNamespace(provider.config.context, namespace)
+  }
 
   return namespace
 }
 
 export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  return getNamespace(ctx, provider)
+  return getNamespace({ ctx, provider })
 }
 
 export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  return getNamespace(ctx, provider, "metadata")
+  return getNamespace({ ctx, provider, suffix: "metadata" })
 }
 
 export async function getAllGardenNamespaces(context: string): Promise<string[]> {

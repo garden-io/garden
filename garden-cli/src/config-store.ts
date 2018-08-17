@@ -12,7 +12,7 @@ import { resolve } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
-import { joiIdentifier, Primitive, validate, joiArray } from "./types/common"
+import { joiIdentifier, Primitive, validate, joiArray } from "./config/common"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
 import { GARDEN_DIR_NAME, LOCAL_CONFIG_FILENAME } from "./constants"

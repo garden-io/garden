@@ -7,24 +7,33 @@ import {
   testNow,
 } from "../../../helpers"
 import { expect } from "chai"
+import { Garden } from "../../../../src/garden"
+import * as td from "testdouble"
 
 describe("RunModuleCommand", () => {
   // TODO: test optional flags
+  let garden
+
+  beforeEach(async () => {
+    td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
+    garden = await makeTestGardenA()
+  })
 
   it("should run a module without a command param", async () => {
-    const garden = await makeTestGardenA()
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
 
-    garden.addModule(makeTestModule(ctx, {
+    await garden.addModule(makeTestModule({
       name: "run-test",
+      path: garden.projectRoot,
     }))
 
     const cmd = new RunModuleCommand()
-    const { result } = await cmd.action(
+    const { result } = await cmd.action({
+      garden,
       ctx,
-      { module: "run-test", command: undefined },
-      { interactive: false, "force-build": false },
-    )
+      args: { module: "run-test", command: undefined },
+      opts: { interactive: false, "force-build": false },
+    })
 
     const expected: RunResult = {
       moduleName: "run-test",
@@ -40,19 +49,20 @@ describe("RunModuleCommand", () => {
   })
 
   it("should run a module with a command param", async () => {
-    const garden = await makeTestGardenA()
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
 
-    garden.addModule(makeTestModule(ctx, {
+    garden.addModule(makeTestModule({
       name: "run-test",
+      path: garden.projectRoot,
     }))
 
     const cmd = new RunModuleCommand()
-    const { result } = await cmd.action(
+    const { result } = await cmd.action({
+      garden,
       ctx,
-      { module: "run-test", command: "my command" },
-      { interactive: false, "force-build": false },
-    )
+      args: { module: "run-test", command: "my command" },
+      opts: { interactive: false, "force-build": false },
+    })
 
     const expected: RunResult = {
       moduleName: "run-test",

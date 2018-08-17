@@ -13,6 +13,7 @@ import { isObject } from "util"
 import {
   Command,
   CommandResult,
+  CommandParams,
   ParameterValues,
   StringParameter,
 } from "./base"
@@ -20,7 +21,6 @@ import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
 import { pick, find } from "lodash"
-import { PluginContext } from "../plugin-context"
 import { ServiceEndpoint } from "../types/service"
 import dedent = require("dedent")
 
@@ -51,7 +51,7 @@ export class CallCommand extends Command<typeof callArgs> {
 
   arguments = callArgs
 
-  async action(ctx: PluginContext, args: Args): Promise<CommandResult> {
+  async action({ ctx, args }: CommandParams<Args>): Promise<CommandResult> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist

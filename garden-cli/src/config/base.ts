@@ -12,12 +12,12 @@ import {
   getNames,
 } from "../util/util"
 import { baseModuleSpecSchema, ModuleConfig } from "./module"
-import { validate } from "./common"
+import { joiIdentifier, validate } from "./common"
 import { ConfigurationError } from "../exceptions"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
 import { readFile } from "fs-extra"
-import { defaultEnvironments, ProjectConfig, projectSchema } from "./project"
+import { defaultEnvironments, ProjectConfig, projectSchema } from "../config/project"
 import { omit } from "lodash"
 
 const CONFIG_FILENAME = "garden.yml"
@@ -49,7 +49,7 @@ export const configSchema = Joi.object()
 const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children)
 
 export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig> {
-  // TODO: nicer error messages when load/validation fails (in particular if module is from remote source)
+  // TODO: nicer error messages when load/validation fails
   const absPath = join(path, CONFIG_FILENAME)
   let fileData
   let spec: any
@@ -69,6 +69,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   if (spec.module) {
     /*
       We allow specifying modules by name only as a shorthand:
+
         dependencies:
           - foo-module
           - name: foo-module // same as the above
@@ -83,7 +84,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
 
   const dirname = basename(path)
   const project = parsed.project
-  let module = parsed.module
+  let moduleConfig = parsed.module
 
   if (project) {
     // we include the default local environment unless explicitly overridden
@@ -108,18 +109,32 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     }
   }
 
-  if (module) {
+  if (moduleConfig) {
     // Built-in keys are validated here and the rest are put into the `spec` field
-    module = {
-      allowPush: module.allowPush,
-      build: module.build,
-      description: module.description,
-      repositoryUrl: module.repositoryUrl,
-      name: module.name,
+    moduleConfig = {
+      allowPush: moduleConfig.allowPush,
+      build: moduleConfig.build,
+      description: moduleConfig.description,
+      name: moduleConfig.name,
       path,
-      spec: omit(module, baseModuleSchemaKeys),
-      type: module.type,
-      variables: module.variables,
+      repositoryUrl: moduleConfig.repositoryUrl,
+      serviceConfigs: [],
+      spec: omit(moduleConfig, baseModuleSchemaKeys),
+      testConfigs: [],
+      type: moduleConfig.type,
+      variables: moduleConfig.variables,
+    }
+
+    if (!moduleConfig.name) {
+      try {
+        moduleConfig.name = validate(dirname, joiIdentifier())
+      } catch (_) {
+        throw new ConfigurationError(
+          `Directory name ${parsed.dirname} is not a valid module name (must be valid identifier). ` +
+          `Please rename the directory or specify a module name in the garden.yml file.`,
+          { dirname: parsed.dirname },
+        )
+      }
     }
   }
 
@@ -127,7 +142,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     version: parsed.version,
     dirname,
     path,
-    module,
+    module: moduleConfig,
     project,
   }
 }

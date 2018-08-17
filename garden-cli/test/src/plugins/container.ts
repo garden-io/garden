@@ -4,19 +4,19 @@ import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
 import { PluginContext } from "../../../src/plugin-context"
 import {
-  ContainerModule,
   ContainerModuleConfig,
   gardenPlugin,
   helpers,
 } from "../../../src/plugins/container"
-import { Environment } from "../../../src/types/common"
+import { Environment } from "../../../src/config/common"
 import {
   dataDir,
   expectError,
   makeTestGarden,
 } from "../../helpers"
+import { moduleFromConfig } from "../../../src/types/module"
 
-describe("container", () => {
+describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
   const modulePath = resolve(dataDir, "test-project-container", "module-a")
 
@@ -32,17 +32,23 @@ describe("container", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, [gardenPlugin])
-    ctx = garden.pluginContext
+    ctx = garden.getPluginContext()
     env = garden.getEnvironment()
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
+
+    td.replace(Garden.prototype, "resolveVersion", async () => ({
+      versionString: "1234",
+      dirtyTimestamp: null,
+      dependencyVersions: [],
+    }))
   })
 
   const provider = { name: "container", config: {} }
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-    const parseResults = await parseModule!({ env, provider, moduleConfig })
-    return new ContainerModule(ctx, parseResults.module, parseResults.services, parseResults.tests)
+    const parsed = await parseModule({ env, provider, moduleConfig })
+    return moduleFromConfig(garden, parsed)
   }
 
   describe("helpers", () => {
@@ -65,10 +71,12 @@ describe("container", () => {
             services: [],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         })
 
         td.replace(helpers, "hasDockerfile", async () => true)
-        td.replace(module, "getVersion", async () => ({ versionString: "1234" }))
 
         expect(await helpers.getLocalImageId(module)).to.equal("test:1234")
       })
@@ -91,6 +99,9 @@ describe("container", () => {
             services: [],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         })
 
         td.replace(helpers, "hasDockerfile", async () => false)
@@ -118,6 +129,9 @@ describe("container", () => {
             services: [],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         })
 
         expect(await helpers.getRemoteImageId(module)).to.equal("some/image:1.1")
@@ -141,9 +155,10 @@ describe("container", () => {
             services: [],
             tests: [],
           },
-        })
 
-        td.replace(module, "getVersion", async () => ({ versionString: "1234" }))
+          serviceConfigs: [],
+          testConfigs: [],
+        })
 
         expect(await helpers.getRemoteImageId(module)).to.equal("some/image:1234")
       })
@@ -165,6 +180,9 @@ describe("container", () => {
             services: [],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         })
 
         td.replace(helpers, "getLocalImageId", async () => "test:1234")
@@ -176,7 +194,7 @@ describe("container", () => {
 
   describe("DockerModuleHandler", () => {
     describe("parseModule", () => {
-      it("should validate a container module", async () => {
+      it("should validate and parse a container module", async () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
@@ -201,7 +219,9 @@ describe("container", () => {
                   port: "http",
                 },
               ],
-              env: {},
+              env: {
+                SOME_ENV_VAR: "value",
+              },
               healthCheck: {
                 httpGet: {
                   path: "/health",
@@ -224,9 +244,85 @@ describe("container", () => {
               timeout: null,
             }],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         }
 
-        await parseModule({ env, provider, moduleConfig })
+        const result = await parseModule({ env, provider, moduleConfig })
+
+        expect(result).to.eql({
+          allowPush: false,
+          build: { command: ["echo", "OK"], dependencies: [] },
+          name: "module-a",
+          path: modulePath,
+          type: "container",
+          variables: {},
+          spec:
+          {
+            buildArgs: {},
+            services:
+              [{
+                name: "service-a",
+                command: ["echo"],
+                dependencies: [],
+                daemon: false,
+                endpoints: [{ paths: ["/"], port: "http" }],
+                env: {
+                  SOME_ENV_VAR: "value",
+                },
+                healthCheck:
+                  { httpGet: { path: "/health", port: "http", scheme: "HTTP" } },
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
+                outputs: {},
+                volumes: [],
+              }],
+            tests:
+              [{
+                name: "unit",
+                command: ["echo", "OK"],
+                dependencies: [],
+                env: {},
+                timeout: null,
+              }],
+          },
+          serviceConfigs:
+            [{
+              name: "service-a",
+              dependencies: [],
+              outputs: {},
+              spec:
+              {
+                name: "service-a",
+                command: ["echo"],
+                dependencies: [],
+                daemon: false,
+                endpoints: [{ paths: ["/"], port: "http" }],
+                env: {
+                  SOME_ENV_VAR: "value",
+                },
+                healthCheck:
+                  { httpGet: { path: "/health", port: "http", scheme: "HTTP" } },
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
+                outputs: {},
+                volumes: [],
+              },
+            }],
+          testConfigs:
+            [{
+              name: "unit",
+              dependencies: [],
+              spec:
+              {
+                name: "unit",
+                command: ["echo", "OK"],
+                dependencies: [],
+                env: {},
+                timeout: null,
+              },
+              timeout: null,
+            }],
+        })
       })
 
       it("should fail with invalid port in endpoint spec", async () => {
@@ -267,6 +363,9 @@ describe("container", () => {
               timeout: null,
             }],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         }
 
         await expectError(
@@ -308,6 +407,9 @@ describe("container", () => {
             }],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         }
 
         await expectError(
@@ -346,6 +448,9 @@ describe("container", () => {
             }],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         }
 
         await expectError(
@@ -373,9 +478,11 @@ describe("container", () => {
             services: [],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         }))
 
-        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.replace(helpers, "imageExistsLocally", async () => true)
 
         const result = await getModuleBuildStatus({ ctx, env, provider, module })
@@ -399,9 +506,11 @@ describe("container", () => {
             services: [],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         }))
 
-        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
         td.replace(helpers, "imageExistsLocally", async () => false)
 
         const result = await getModuleBuildStatus({ ctx, env, provider, module })
@@ -428,11 +537,10 @@ describe("container", () => {
             services: [],
             tests: [],
           },
-        }))
 
-        td.when(module.getVersion()).thenResolve({ versionString: "1234" })
-        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
-        td.when(module.getBuildPath()).thenResolve("/tmp/jaoigjwaeoigjweaoglwaeghe")
+          serviceConfigs: [],
+          testConfigs: [],
+        }))
 
         td.replace(helpers, "hasDockerfile", async () => false)
         td.replace(helpers, "pullImage", async () => null)
@@ -461,11 +569,13 @@ describe("container", () => {
             services: [],
             tests: [],
           },
+
+          serviceConfigs: [],
+          testConfigs: [],
         }))
 
-        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
-        td.when(module.getBuildPath()).thenResolve(modulePath)
-
+        td.replace(helpers, "hasDockerfile", async () => true)
+        td.replace(helpers, "imageExistsLocally", async () => false)
         td.replace(helpers, "getLocalImageId", async () => "some/image")
 
         const dockerCli = td.replace(helpers, "dockerCli")
@@ -477,7 +587,7 @@ describe("container", () => {
           details: { identifier: "some/image" },
         })
 
-        td.verify(dockerCli(module, "build  -t some/image " + modulePath))
+        td.verify(dockerCli(module, "build  -t some/image " + module.buildPath))
       })
     })
 
@@ -500,9 +610,10 @@ describe("container", () => {
             services: [],
             tests: [],
           },
-        }))
 
-        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
+          serviceConfigs: [],
+          testConfigs: [],
+        }))
 
         td.replace(helpers, "hasDockerfile", async () => false)
 
@@ -528,9 +639,10 @@ describe("container", () => {
             services: [],
             tests: [],
           },
-        }))
 
-        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
+          serviceConfigs: [],
+          testConfigs: [],
+        }))
 
         td.replace(helpers, "hasDockerfile", async () => true)
         td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
@@ -563,9 +675,10 @@ describe("container", () => {
             services: [],
             tests: [],
           },
-        }))
 
-        td.when(module.resolveConfig(), { ignoreExtraArgs: true }).thenResolve(module)
+          serviceConfigs: [],
+          testConfigs: [],
+        }))
 
         td.replace(helpers, "hasDockerfile", async () => true)
         td.replace(helpers, "getLocalImageId", () => "some/image:12345")

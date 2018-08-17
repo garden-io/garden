@@ -14,8 +14,7 @@ import { PluginError, ConfigurationError } from "../exceptions"
 import { Garden } from "../garden"
 import { PluginContext } from "../plugin-context"
 import { processServices } from "../process"
-import { DeployTask } from "../tasks/deploy"
-import { joiArray, validate, PrimitiveMap } from "../types/common"
+import { joiArray, validate, PrimitiveMap } from "../config/common"
 import { Module } from "../types/module"
 import { ParseModuleResult } from "../types/plugin/outputs"
 import {
@@ -24,9 +23,7 @@ import {
   ParseModuleParams,
 } from "../types/plugin/params"
 import {
-  ServiceConfig,
   ServiceStatus,
-  BaseServiceSpec,
   ServiceEndpoint,
   Service,
 } from "../types/service"
@@ -52,6 +49,8 @@ import * as execa from "execa"
 import { appsApi } from "./kubernetes/api"
 import { waitForObjects, checkDeploymentStatus } from "./kubernetes/status"
 import { systemSymbol } from "./kubernetes/system"
+import { BaseServiceSpec } from "../config/service"
+import { getDeployTasks } from "../tasks/deploy"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 const stackFilename = "stack.yml"
@@ -79,15 +78,15 @@ export const openfaasModuleSpecSchame = genericModuleSpecSchema
   .unknown(false)
   .description("The module specification for an OpenFaaS module.")
 
-export class OpenFaasModule extends Module<OpenFaasModuleSpec, BaseServiceSpec, GenericTestSpec> { }
-export class OpenFaasService extends Service<OpenFaasModule> { }
+export interface OpenFaasModule extends Module<OpenFaasModuleSpec, BaseServiceSpec, GenericTestSpec> { }
+export interface OpenFaasService extends Service<OpenFaasModule> { }
 
 export const gardenPlugin = () => ({
   modules: [join(STATIC_DIR, "openfaas", "openfaas-builder")],
   actions: {
     async getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
       const ofGarden = await getOpenFaasGarden(ctx)
-      const status = await ofGarden.pluginContext.getStatus()
+      const status = await ofGarden.getPluginContext().getStatus()
       const envReady = every(values(status.providers).map(s => s.configured))
       const servicesReady = every(values(status.services).map(s => s.state === "ready"))
 
@@ -100,25 +99,27 @@ export const gardenPlugin = () => ({
     async configureEnvironment({ ctx, force }: ConfigureEnvironmentParams) {
       // TODO: refactor to dedupe similar code in local-kubernetes
       const ofGarden = await getOpenFaasGarden(ctx)
-      const ofCtx = ofGarden.pluginContext
+      const ofCtx = ofGarden.getPluginContext()
 
       await ofCtx.configureEnvironment({ force })
 
       const services = await ofCtx.getServices()
+      const deployTasksForModule = async (module) => getDeployTasks({
+        ctx: ofCtx, module, force, forceBuild: false, includeDependants: false,
+      })
 
       const results = await processServices({
+        garden: ofGarden,
+        ctx: ofCtx,
         services,
-        pluginContext: ofCtx,
         watch: false,
-        process: async (service) => {
-          return [await DeployTask.factory({ ctx: ofCtx, service, force, forceBuild: false })]
-        },
+        handler: deployTasksForModule,
       })
 
       const failed = values(results.taskResults).filter(r => !!r.error).length
 
       if (failed) {
-        throw new PluginError(`local-kubernetes: ${failed} errors occurred when configuring environment`, {
+        throw new PluginError(`openfaas: ${failed} errors occurred when configuring environment`, {
           results,
         })
       }
@@ -146,7 +147,7 @@ export const gardenPlugin = () => ({
           ],
         })
 
-        const service: ServiceConfig = {
+        moduleConfig.serviceConfigs = [{
           dependencies: [],
           name: moduleConfig.name,
           outputs: {},
@@ -155,18 +156,16 @@ export const gardenPlugin = () => ({
             dependencies: [],
             outputs: {},
           },
-        }
+        }]
 
-        return {
-          module: moduleConfig,
-          services: [service],
-          tests: moduleConfig.spec.tests.map(t => ({
-            name: t.name,
-            dependencies: t.dependencies,
-            spec: t,
-            timeout: t.timeout,
-          })),
-        }
+        moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+          name: t.name,
+          dependencies: t.dependencies,
+          spec: t,
+          timeout: t.timeout,
+        }))
+
+        return moduleConfig
       },
 
       getModuleBuildStatus: getGenericModuleBuildStatus,
@@ -193,14 +192,13 @@ export const gardenPlugin = () => ({
 
       async deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
         const { ctx, module, service, logEntry, runtimeContext } = params
-        const buildPath = await module.getBuildPath()
 
         // write the stack file again with environment variables
         await writeStackFile(ctx, module, runtimeContext.envVars)
 
         // use faas-cli to do the deployment
         await execa("./faas-cli", ["deploy", "-f", stackFilename], {
-          cwd: buildPath,
+          cwd: module.buildPath,
         })
 
         // wait until deployment is ready
@@ -221,18 +219,19 @@ export const gardenPlugin = () => ({
 })
 
 async function writeStackFile(ctx: PluginContext, module: OpenFaasModule, envVars: PrimitiveMap) {
-  const image = await getImageName(module)
+  const image = getImageName(module)
 
-  const stackPath = join(await module.getBuildPath(), stackFilename)
-  await dumpYaml(stackPath, {
+  const stackPath = join(module.buildPath, stackFilename)
+
+  return dumpYaml(stackPath, {
     provider: {
       name: "faas",
       gateway: getExternalGatewayUrl(ctx),
     },
     functions: {
       [module.name]: {
-        lang: module.config.spec.lang,
-        handler: resolve(module.path, module.config.spec.handler),
+        lang: module.spec.lang,
+        handler: resolve(module.path, module.spec.handler),
         image,
         environment: envVars,
       },
@@ -278,9 +277,8 @@ async function getServiceStatus({ ctx, service }: GetServiceStatusParams<OpenFaa
   }
 }
 
-async function getImageName(module: OpenFaasModule) {
-  const version = await module.getVersion()
-  return `${module.name || module.config.spec.image}:${version.versionString}`
+function getImageName(module: OpenFaasModule) {
+  return `${module.name || module.spec.image}:${module.version.versionString}`
 }
 
 // NOTE: we're currently not using the CRD/operator, but might change that in the future
@@ -345,7 +343,7 @@ function getExternalGatewayUrl(ctx: PluginContext) {
 
 async function getInternalGatewayUrl(ctx: PluginContext) {
   const provider = getK8sProvider(ctx)
-  const namespace = await getOpenfaasNamespace(ctx, provider)
+  const namespace = await getOpenfaasNamespace(ctx, provider, true)
   return `http://gateway.${namespace}.svc.cluster.local:8080`
 }
 
@@ -358,16 +356,16 @@ async function getInternalServiceUrl(ctx: PluginContext, service: OpenFaasServic
   return urlResolve(await getInternalGatewayUrl(ctx), getServicePath(service))
 }
 
-async function getOpenfaasNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  return getNamespace(ctx, provider, "openfaas")
+async function getOpenfaasNamespace(ctx: PluginContext, provider: KubernetesProvider, skipCreate?: boolean) {
+  return getNamespace({ ctx, provider, skipCreate, suffix: "openfaas" })
 }
 
 export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
   // TODO: figure out good way to retrieve namespace from kubernetes plugin through an exposed interface
   // (maybe allow plugins to expose arbitrary data on the Provider object?)
   const k8sProvider = getK8sProvider(ctx)
-  const namespace = await getOpenfaasNamespace(ctx, k8sProvider)
-  const functionNamespace = await getNamespace(ctx, k8sProvider)
+  const namespace = await getOpenfaasNamespace(ctx, k8sProvider, true)
+  const functionNamespace = await getAppNamespace(ctx, k8sProvider)
 
   const gatewayHostname = getExternalGatewayHostname(ctx)
 

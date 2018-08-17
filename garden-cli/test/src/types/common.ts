@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import * as Joi from "joi"
 const stripAnsi = require("strip-ansi")
-import { identifierRegex, validate, envVarRegex } from "../../../src/types/common"
+import { identifierRegex, validate, envVarRegex } from "../../../src/config/common"
 import { expectError } from "../../helpers"
 
 describe("envVarRegex", () => {

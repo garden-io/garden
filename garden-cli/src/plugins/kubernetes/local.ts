@@ -15,8 +15,7 @@ import {
 import * as Joi from "joi"
 import { join } from "path"
 import { PluginError } from "../../exceptions"
-import { DeployTask } from "../../tasks/deploy"
-import { Environment, validate } from "../../types/common"
+import { Environment, validate } from "../../config/common"
 import {
   GardenPlugin,
 } from "../../types/plugin/plugin"
@@ -24,7 +23,7 @@ import {
   ConfigureEnvironmentParams,
   GetEnvironmentStatusParams,
 } from "../../types/plugin/params"
-import { providerConfigBase } from "../../types/project"
+import { providerConfigBase } from "../../config/project"
 import { findByName } from "../../util/util"
 import {
   configureEnvironment,
@@ -40,7 +39,6 @@ import {
   isSystemGarden,
 } from "./system"
 import { readFile } from "fs-extra"
-import { processServices } from "../../process"
 import { LogEntry } from "../../logger/logger"
 import { homedir } from "os"
 import { helm } from "./helm"
@@ -60,7 +58,7 @@ export async function getLocalEnvironmentStatus(
 
   if (!isSystemGarden(provider)) {
     const sysGarden = await getSystemGarden(provider)
-    const sysStatus = await sysGarden.pluginContext.getStatus()
+    const sysStatus = await sysGarden.getPluginContext().getStatus()
 
     status.detail.systemReady = sysStatus.providers[provider.name].configured &&
       every(values(sysStatus.services).map(s => s.state === "ready"))
@@ -77,10 +75,10 @@ async function configureSystemEnvironment(
     { provider: KubernetesProvider, env: Environment, force: boolean, logEntry?: LogEntry },
 ) {
   const sysGarden = await getSystemGarden(provider)
-  const sysCtx = sysGarden.pluginContext
+  const sysCtx = sysGarden.getPluginContext()
   const sysProvider: KubernetesProvider = {
     name: provider.name,
-    config: <KubernetesConfig>findByName(sysGarden.config.providers, provider.name)!,
+    config: <KubernetesConfig>findByName(sysGarden.environmentConfig.providers, provider.name)!,
   }
 
   // TODO: need to add logic here to wait for tiller to be ready
@@ -105,16 +103,7 @@ async function configureSystemEnvironment(
     logEntry,
   })
 
-  const services = await sysCtx.getServices(provider.config._systemServices)
-
-  const results = await processServices({
-    services,
-    pluginContext: sysCtx,
-    watch: false,
-    process: async (service) => {
-      return [await DeployTask.factory({ ctx: sysCtx, service, force, forceBuild: false })]
-    },
-  })
+  const results = await sysCtx.deployServices({})
 
   const failed = values(results.taskResults).filter(r => !!r.error).length
 

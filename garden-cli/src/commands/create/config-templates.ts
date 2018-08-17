@@ -12,8 +12,8 @@ import * as Joi from "joi"
 import { DeepPartial } from "../../util/util"
 import { ContainerModuleSpec } from "../../plugins/container"
 import { GcfModuleSpec } from "../../plugins/google/google-cloud-functions"
-import { ProjectConfig } from "../../types/project"
-import { BaseModuleSpec, ModuleConfig, baseModuleSpecSchema } from "../../types/module"
+import { ProjectConfig } from "../../config/project"
+import { BaseModuleSpec, ModuleConfig, baseModuleSpecSchema } from "../../config/module"
 
 /**
  * Ideally there would be some mechanism to discover available module types,

@@ -10,11 +10,13 @@ import { resolve } from "path"
 import { generateCommandReferenceDocs } from "./commands"
 import { generateConfigReferenceDocs } from "./config"
 import { argv } from "process"
+import { generateTemplateStringReferenceDocs } from "./template-strings"
 
 export function generateDocs(targetDir: string) {
   const docsRoot = resolve(process.cwd(), targetDir)
   generateCommandReferenceDocs(docsRoot)
   generateConfigReferenceDocs(docsRoot)
+  generateTemplateStringReferenceDocs(docsRoot)
 }
 
 if (require.main === module) {

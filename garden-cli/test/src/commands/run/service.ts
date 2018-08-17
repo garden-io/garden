@@ -7,28 +7,37 @@ import {
   testNow,
 } from "../../../helpers"
 import { expect } from "chai"
+import { Garden } from "../../../../src/garden"
+import * as td from "testdouble"
 
 describe("RunServiceCommand", () => {
   // TODO: test optional flags
+  let garden
+
+  beforeEach(async () => {
+    td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
+    garden = await makeTestGardenA()
+  })
 
   it("should run a service", async () => {
-    const garden = await makeTestGardenA()
-    const ctx = garden.pluginContext
+    const ctx = garden.getPluginContext()
 
-    garden.addModule(makeTestModule(ctx, {
+    garden.addModule(makeTestModule({
       name: "run-test",
+      serviceConfigs: [{ name: "test-service", dependencies: [], outputs: {}, spec: {} }],
     }))
 
     const cmd = new RunServiceCommand()
-    const { result } = await cmd.action(
+    const { result } = await cmd.action({
+      garden,
       ctx,
-      { service: "testService" },
-      { "force-build": false },
-    )
+      args: { service: "test-service" },
+      opts: { "force-build": false },
+    })
 
     const expected: RunResult = {
       moduleName: "run-test",
-      command: ["testService"],
+      command: ["test-service"],
       completedAt: testNow,
       output: "OK",
       version: testModuleVersion,

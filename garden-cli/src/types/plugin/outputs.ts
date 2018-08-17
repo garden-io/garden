@@ -8,19 +8,10 @@
 
 import * as Joi from "joi"
 import { ModuleVersion, moduleVersionSchema } from "../../vcs/base"
-import {
-  joiArray,
-  PrimitiveMap,
-} from "../common"
-import {
-  Module,
-  moduleConfigSchema,
-} from "../module"
-import {
-  serviceConfigSchema,
-  ServiceStatus,
-} from "../service"
-import { testConfigSchema } from "../test"
+import { PrimitiveMap } from "../../config/common"
+import { Module } from "../module"
+import { ServiceStatus } from "../service"
+import { moduleConfigSchema, ModuleConfig } from "../../config/module"
 
 export interface EnvironmentStatus {
   configured: boolean
@@ -137,23 +128,10 @@ export interface GetServiceLogsResult { }
 
 export const getServiceLogsResultSchema = Joi.object().keys({})
 
-export interface ParseModuleResult<T extends Module = Module> {
-  module: T["config"]
-  services: T["services"]
-  tests: T["tests"]
-}
+export type ParseModuleResult<T extends Module = Module> =
+  ModuleConfig<T["spec"], T["serviceConfigs"][0]["spec"], T["testConfigs"][0]["spec"]>
 
-export const parseModuleResultSchema = Joi.object().keys({
-  module: moduleConfigSchema
-    .required()
-    .description("The parsed module configuration."),
-  services: joiArray(serviceConfigSchema)
-    .required()
-    .description("List of deployable services provided by the module."),
-  tests: joiArray(testConfigSchema)
-    .required()
-    .description("List of tests defined by the module."),
-})
+export const parseModuleResultSchema = moduleConfigSchema
 
 export interface BuildResult {
   buildLog?: string

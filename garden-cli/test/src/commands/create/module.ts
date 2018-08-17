@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import {
   expectError,
-  makeTestContext,
+  makeTestGarden,
 } from "../../../helpers"
 import { pick } from "lodash"
 import { join } from "path"
@@ -36,8 +36,9 @@ describe("CreateModuleCommand", () => {
   // garden create module
   it("should add a module config to the current directory", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "" })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({ garden, ctx, args: { "module-dir": "" }, opts: { name: "", type: "" } })
     expect(pick(result.module, ["name", "type", "path"])).to.eql({
       name: "test-project-create-command",
       type: "container",
@@ -47,8 +48,14 @@ describe("CreateModuleCommand", () => {
   // garden create module new-module
   it("should add a module config to new-module directory", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "module-dir": "new-module" }, { name: "", type: "" })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
+      ctx,
+      args: { "module-dir": "new-module" },
+      opts: { name: "", type: "" },
+    })
     expect(pick(result.module, ["name", "type", "path"])).to.eql({
       name: "new-module",
       type: "container",
@@ -58,8 +65,14 @@ describe("CreateModuleCommand", () => {
   // garden create module --name=my-module
   it("should optionally name the module my-module", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "my-module", type: "" })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
+      ctx,
+      args: { "module-dir": "" },
+      opts: { name: "my-module", type: "" },
+    })
     expect(pick(result.module, ["name", "type", "path"])).to.eql({
       name: "my-module",
       type: "container",
@@ -68,8 +81,14 @@ describe("CreateModuleCommand", () => {
   })
   // garden create module --type=google-cloud-function
   it("should optionally create a module of a specific type (without prompting)", async () => {
-    const ctx = await makeTestContext(projectRoot)
-    const { result } = await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "google-cloud-function" })
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
+    const { result } = await cmd.action({
+      garden,
+      ctx,
+      args: { "module-dir": "" },
+      opts: { name: "", type: "google-cloud-function" },
+    })
     expect(pick(result.module, ["name", "type", "path"])).to.eql({
       name: "test-project-create-command",
       type: "google-cloud-function",
@@ -79,27 +98,30 @@ describe("CreateModuleCommand", () => {
   // garden create module ___
   it("should throw if module name is invalid when inherited from current directory", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
     await expectError(
-      async () => await cmd.action(ctx, { "module-dir": "___" }, { name: "", type: "" }),
+      async () => await cmd.action({ garden, ctx, args: { "module-dir": "___" }, opts: { name: "", type: "" } }),
       "configuration",
     )
   })
   // garden create --name=___
   it("should throw if module name is invalid when explicitly specified", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
     await expectError(
-      async () => await cmd.action(ctx, { "module-dir": "" }, { name: "___", type: "" }),
+      async () => await cmd.action({ garden, ctx, args: { "module-dir": "" }, opts: { name: "___", type: "" } }),
       "configuration",
     )
   })
   // garden create module --type=banana
   it("should throw if invalid type provided", async () => {
     replaceAddConfigForModule()
-    const ctx = await makeTestContext(projectRoot)
+    const garden = await makeTestGarden(projectRoot)
+    const ctx = garden.getPluginContext()
     await expectError(
-      async () => await cmd.action(ctx, { "module-dir": "" }, { name: "", type: "banana" }),
+      async () => await cmd.action({ garden, ctx, args: { "module-dir": "" }, opts: { name: "", type: "banana" } }),
       "parameter",
     )
   })
