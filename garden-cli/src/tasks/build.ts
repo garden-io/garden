@@ -25,13 +25,11 @@ export class BuildTask extends Task {
 
   private ctx: PluginContext
   private module: Module
-  private force: boolean
 
-  constructor({ ctx, module, force }: BuildTaskParams) {
-    super({ version: module.version })
+  constructor({ ctx, force, module }: BuildTaskParams) {
+    super({ force, version: module.version })
     this.ctx = ctx
     this.module = module
-    this.force = force
   }
 
   async getDependencies(): Promise<BuildTask[]> {

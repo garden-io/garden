@@ -39,11 +39,10 @@ export class TestTask extends Task {
   private ctx: PluginContext
   private module: Module
   private testConfig: TestConfig
-  private force: boolean
   private forceBuild: boolean
 
   constructor({ ctx, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
-    super({ version })
+    super({ force, version })
     this.ctx = ctx
     this.module = module
     this.testConfig = testConfig

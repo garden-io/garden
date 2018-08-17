@@ -19,6 +19,8 @@ import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 import { processModules } from "../process"
+import { computeAutoReloadDependants, withDependants } from "../watch"
+import { Module } from "../types/module"
 
 export const buildArguments = {
   module: new StringsParameter({
@@ -56,18 +58,25 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   async action(
     { ctx, args, opts, garden }: CommandParams<BuildArguments, BuildOptions>,
   ): Promise<CommandResult<TaskResults>> {
+
     await garden.clearBuilds()
+
+    const autoReloadDependants = await computeAutoReloadDependants(ctx)
     const modules = await ctx.getModules(args.module)
+    const moduleNames = modules.map(m => m.name)
 
     ctx.log.header({ emoji: "hammer", command: "Build" })
 
     const results = await processModules({
-      modules,
       ctx,
       garden,
+      modules,
       watch: opts.watch,
-      process: async (module) => {
-        return [new BuildTask({ ctx, module, force: opts.force })]
+      handler: async (module) => [new BuildTask({ ctx, module, force: opts.force })],
+      changeHandler: async (module: Module) => {
+        return (await withDependants(ctx, [module], autoReloadDependants))
+          .filter(m => moduleNames.includes(m.name))
+          .map(m => new BuildTask({ ctx, module: m, force: true }))
       },
     })
 
