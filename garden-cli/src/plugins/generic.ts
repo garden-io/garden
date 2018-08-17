@@ -146,7 +146,12 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
     command.slice(1),
     {
       cwd: module.path,
-      env: { ...process.env, ...module.spec.env, ...testConfig.spec.env },
+      env: {
+        ...process.env,
+        // need to cast the values to strings
+        ...mapValues(module.spec.env, v => v + ""),
+        ...mapValues(testConfig.spec.env, v => v + ""),
+      },
       ignoreError: true,
     },
   )

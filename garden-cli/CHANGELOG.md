@@ -1,3 +1,75 @@
+<a name="0.4.0"></a>
+# [0.4.0](https://github.com/garden-io/garden/compare/v0.3.0...v0.4.0) (2018-08-14)
+
+
+### Bug Fixes
+
+* **cli:** allow empty path when calling services via `garden call` ([b5d4972](https://github.com/garden-io/garden/commit/b5d4972))
+* **cli:** show ANSI banner image instead of png in dev command ([bb3898f](https://github.com/garden-io/garden/commit/bb3898f))
+* **cli:** task results errors weren't handled properly ([b22b580](https://github.com/garden-io/garden/commit/b22b580))
+* **k8s:** build status was incorrectly reported for helm modules ([195eee4](https://github.com/garden-io/garden/commit/195eee4))
+
+
+### Code Refactoring
+
+* **config:** make module name mandatory ([aa83d7f](https://github.com/garden-io/garden/commit/aa83d7f))
+
+
+### Features
+
+* add exec command, to run commands in running service containers ([7f74edc](https://github.com/garden-io/garden/commit/7f74edc))
+* **k8s:** allow specifying namespace to deploy to ([0aebc2b](https://github.com/garden-io/garden/commit/0aebc2b))
+* add multi-repo support ([740e858](https://github.com/garden-io/garden/commit/740e858))
+* add OpenFaaS plugin (experimental) ([39ff701](https://github.com/garden-io/garden/commit/39ff701))
+* add Windows support (experimental) ([9e9c218](https://github.com/garden-io/garden/commit/9e9c218))
+
+
+### BREAKING CHANGES
+
+* **config:** Module name no longer defaults to directory name but must be explicitly
+set in the module's garden.yml file. Any existing garden.yml module files
+without a name key must therefore be updated to expclitily provide the
+module name.
+
+
+
+<a name="0.3.1"></a>
+## [0.3.1](https://github.com/garden-io/garden/compare/v0.3.0...v0.3.1) (2018-08-14)
+
+
+### Bug Fixes
+
+* **cli:** allow empty path when calling services via `garden call` ([b5d4972](https://github.com/garden-io/garden/commit/b5d4972))
+* **cli:** show ANSI banner image instead of png in dev command ([bb3898f](https://github.com/garden-io/garden/commit/bb3898f))
+* **cli:** task results errors weren't handled properly ([b22b580](https://github.com/garden-io/garden/commit/b22b580))
+* **k8s:** build status was incorrectly reported for helm modules ([195eee4](https://github.com/garden-io/garden/commit/195eee4))
+* **versioning:** `resolveVersion` should not call `getTreeVersion` ([91ae14f](https://github.com/garden-io/garden/commit/91ae14f))
+* **versioning:** version string should include dirty timestamp ([61d29d0](https://github.com/garden-io/garden/commit/61d29d0))
+
+
+### Code Refactoring
+
+* **config:** make module name mandatory ([aa83d7f](https://github.com/garden-io/garden/commit/aa83d7f))
+
+
+### Features
+
+* add exec command, to run commands in running service containers ([7f74edc](https://github.com/garden-io/garden/commit/7f74edc))
+* **k8s:** allow specifying namespace to deploy to ([0aebc2b](https://github.com/garden-io/garden/commit/0aebc2b))
+* add multi-repo support ([740e858](https://github.com/garden-io/garden/commit/740e858))
+* add OpenFaaS plugin (experimental) ([39ff701](https://github.com/garden-io/garden/commit/39ff701))
+* add Windows support (experimental) ([9e9c218](https://github.com/garden-io/garden/commit/9e9c218))
+
+
+### BREAKING CHANGES
+
+* **config:** Module name no longer defaults to directory name but must be explicitly
+set in the module's garden.yml file. Any existing garden.yml module files
+without a name key must therefore be updated to expclitily provide the
+module name.
+
+
+
 <a name="0.3.1"></a>
 ## [0.3.1](https://github.com/garden-io/garden/compare/v0.3.0...v0.3.1) (2018-07-16)
 

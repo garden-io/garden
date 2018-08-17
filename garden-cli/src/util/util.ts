@@ -142,7 +142,7 @@ export interface SpawnParams {
   cwd?: string
   data?: Buffer
   ignoreError?: boolean
-  env?: object
+  env?: { [key: string]: string | undefined }
 }
 
 export interface SpawnPtyParams extends SpawnParams {
