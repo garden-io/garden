@@ -243,6 +243,7 @@ export interface PluginActionOutputs {
 export interface ServiceActionOutputs {
   getServiceStatus: Promise<ServiceStatus>
   deployService: Promise<ServiceStatus>
+  deleteService: Promise<ServiceStatus>
   getServiceOutputs: Promise<PrimitiveMap>
   execInService: Promise<ExecInServiceResult>
   getServiceLogs: Promise<{}>

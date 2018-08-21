@@ -110,6 +110,9 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
   deployService: {
     resultSchema: serviceStatusSchema,
   },
+  deleteService: {
+    resultSchema: serviceStatusSchema,
+  },
   getServiceOutputs: {
     resultSchema: serviceOutputsSchema,
   },

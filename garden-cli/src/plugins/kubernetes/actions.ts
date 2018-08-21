@@ -28,6 +28,7 @@ import {
   RunModuleParams,
   SetConfigParams,
   TestModuleParams,
+  DeleteServiceParams,
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
 import { ContainerModule, helpers } from "../container"
@@ -44,7 +45,8 @@ import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 import { EntryStyle, LogSymbolType } from "../../logger/types"
 import { name as providerName } from "./kubernetes"
-import { getContainerServiceStatus } from "./deployment"
+import { deleteContainerService, getContainerServiceStatus } from "./deployment"
+import { ServiceStatus } from "../../types/service"
 
 const MAX_STORED_USERNAMES = 5
 
@@ -56,13 +58,13 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
     await kubectl(context).call(["version"])
   } catch (err) {
     // TODO: catch error properly
-    if (err.output) {
+    if (err.detail.output) {
       throw new DeploymentError(
         `Unable to connect to Kubernetes cluster. ` +
         `Please make sure it is running, reachable and that you have the right context configured.`,
         {
           context,
-          kubectlOutput: err.output,
+          kubectlOutput: err.detail.output,
         },
       )
     }
@@ -122,6 +124,15 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
   }
 
   return {}
+}
+
+export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
+  const { ctx, logEntry, provider, service } = params
+  const namespace = await getAppNamespace(ctx, provider)
+
+  await deleteContainerService({ logEntry, namespace, provider, serviceName: service.name })
+
+  return getContainerServiceStatus(params)
 }
 
 export async function getServiceOutputs({ service }: GetServiceOutputsParams<ContainerModule>) {

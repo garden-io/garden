@@ -173,6 +173,28 @@ resources.
 
     garden delete environment 
 
+### garden delete service
+
+Deletes a running service.
+
+Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any
+services depending on the deleted service, and might therefore leave the project in an unstable state.
+Running `garden deploy` will re-deploy any missing services.
+
+Examples:
+
+    garden delete service my-service # deletes my-service
+
+##### Usage
+
+    garden delete service <service> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `service` | Yes | The name of the service(s) to delete. Use comma as separator to specify multiple services.
+
 ### garden deploy
 
 Deploy service(s) to your environment.

@@ -38,6 +38,7 @@ import {
   BuildModuleParams,
   DeleteConfigParams,
   DeployServiceParams,
+  DeleteServiceParams,
   ExecInServiceParams,
   GetConfigParams,
   GetModuleBuildStatusParams,
@@ -149,6 +150,8 @@ export interface PluginContext extends PluginContextGuard, WrappedFromGarden {
   getServiceStatus: <T extends Module>(params: PluginContextServiceParams<GetServiceStatusParams<T>>)
     => Promise<ServiceStatus>
   deployService: <T extends Module>(params: PluginContextServiceParams<DeployServiceParams<T>>)
+    => Promise<ServiceStatus>
+  deleteService: <T extends Module>(params: PluginContextServiceParams<DeleteServiceParams<T>>)
     => Promise<ServiceStatus>
   getServiceOutputs: <T extends Module>(params: PluginContextServiceParams<GetServiceOutputsParams<T>>)
     => Promise<PrimitiveMap>
@@ -407,6 +410,19 @@ export function createPluginContext(garden: Garden): PluginContext {
       return callServiceHandler({ params, actionType: "deployService" })
     },
 
+    deleteService: async (params: PluginContextServiceParams<DeleteServiceParams>) => {
+      const logEntry = garden.log.info({
+        section: params.serviceName,
+        msg: "Deleting...",
+        entryStyle: EntryStyle.activity,
+      })
+      return callServiceHandler({
+        params: { ...params, logEntry },
+        actionType: "deleteService",
+        defaultHandler: dummyDeleteServiceHandler,
+      })
+    },
+
     getServiceOutputs: async (params: PluginContextServiceParams<GetServiceOutputsParams>) => {
       return callServiceHandler({
         params,
@@ -496,4 +512,14 @@ const dummyLogStreamer = async ({ ctx, service }: GetServiceLogsParams) => {
 
 const dummyPushHandler = async ({ module }: PushModuleParams) => {
   return { pushed: false, message: chalk.yellow(`No push handler available for module type ${module.type}`) }
+}
+
+const dummyDeleteServiceHandler = async ({ ctx, module, logEntry }: DeleteServiceParams) => {
+  const msg = `No delete service handler available for module type ${module.type}`
+  if (logEntry) {
+    logEntry.setError(msg)
+  } else {
+    ctx.log.error(msg)
+  }
+  return {}
 }

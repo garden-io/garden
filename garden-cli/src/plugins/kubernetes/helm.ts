@@ -32,6 +32,7 @@ import {
   DeployServiceParams,
   GetServiceStatusParams,
   ParseModuleParams,
+  DeleteServiceParams,
 } from "../../types/plugin/params"
 import {
   BuildResult,
@@ -133,35 +134,7 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
 
   getModuleBuildStatus: getGenericModuleBuildStatus,
   buildModule,
-
-  async getServiceStatus(
-    { ctx, env, provider, service, module, logEntry }: GetServiceStatusParams<HelmModule>,
-  ): Promise<ServiceStatus> {
-    // need to build to be able to check the status
-    const buildStatus = await getGenericModuleBuildStatus({ ctx, env, provider, module, logEntry })
-    if (!buildStatus.ready) {
-      await buildModule({ ctx, env, provider, module, logEntry })
-    }
-
-    // first check if the installed objects on the cluster match the current code
-    const objects = await getChartObjects(ctx, provider, service)
-    const matched = await compareDeployedObjects(ctx, provider, objects)
-
-    if (!matched) {
-      return { state: "outdated" }
-    }
-
-    // then check if the rollout is complete
-    const version = module.version
-    const context = provider.config.context
-    const namespace = await getAppNamespace(ctx, provider)
-    const { ready } = await checkObjectStatus(context, namespace, objects)
-
-    // TODO: set state to "unhealthy" if any status is "unhealthy"
-    const state = ready ? "ready" : "deploying"
-
-    return { state, version: version.versionString }
-  },
+  getServiceStatus,
 
   async deployService(
     { ctx, provider, module, service, logEntry }: DeployServiceParams<HelmModule>,
@@ -194,6 +167,15 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
     await waitForObjects({ ctx, provider, service, objects, logEntry })
 
     return {}
+  },
+
+  async deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
+    const { ctx, logEntry, provider, service } = params
+    const releaseName = getReleaseName(ctx, service)
+    await helm(provider, "delete", "--purge", releaseName)
+    logEntry && logEntry.setSuccess("Service deleted")
+
+    return await getServiceStatus(params)
   },
 }
 
@@ -280,6 +262,35 @@ async function getChartObjects(ctx: PluginContext, provider: Provider, service: 
     }
     return obj
   })
+}
+
+async function getServiceStatus(
+  { ctx, env, provider, service, module, logEntry }: GetServiceStatusParams<HelmModule>,
+): Promise<ServiceStatus> {
+  // need to build to be able to check the status
+  const buildStatus = await getGenericModuleBuildStatus({ ctx, env, provider, module, logEntry })
+  if (!buildStatus.ready) {
+    await buildModule({ ctx, env, provider, module, logEntry })
+  }
+
+  // first check if the installed objects on the cluster match the current code
+  const objects = await getChartObjects(ctx, provider, service)
+  const matched = await compareDeployedObjects(ctx, provider, objects)
+
+  if (!matched) {
+    return { state: "outdated" }
+  }
+
+  // then check if the rollout is complete
+  const version = module.version
+  const context = provider.config.context
+  const namespace = await getAppNamespace(ctx, provider)
+  const { ready } = await checkObjectStatus(context, namespace, objects)
+
+  // TODO: set state to "unhealthy" if any status is "unhealthy"
+  const state = ready ? "ready" : "deploying"
+
+  return { state, version: version.versionString }
 }
 
 function getReleaseName(ctx: PluginContext, service: Service) {
