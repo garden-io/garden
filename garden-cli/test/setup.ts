@@ -9,7 +9,7 @@ try {
 } catch (_) { }
 
 // Global hooks
-before(async function (this: any) {
+before(async function(this: any) {
   // tslint:disable-next-line:no-invalid-this
   this.timeout(10000)
 
