@@ -32,7 +32,7 @@ const copySchema = Joi.object()
     target: Joi.string().uri(<any>{ relativeOnly: true }).default("")
       .description(
         "POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).",
-    ),
+      ),
   })
 
 export interface BuildDependencyConfig {
@@ -85,7 +85,7 @@ export const baseModuleSpecSchema = Joi.object()
         "A remote repository URL to fetch the module from. Garden will read the garden.yml config" +
         " from the local module." +
         " Currently only supports git servers.",
-    ),
+      ),
     variables: joiVariables()
       .description("Variables that this module can reference and expose as environment variables.")
       .example({ "my-variable": "some-value" }),

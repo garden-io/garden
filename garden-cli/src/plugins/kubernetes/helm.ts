@@ -95,7 +95,7 @@ const helmModuleSpecSchema = Joi.object().keys({
     .default(() => ({}), "{}")
     .description(
       "Map of parameters to pass to Helm when rendering the templates. May include arrays and nested objects.",
-  ),
+    ),
 })
 
 const helmStatusCodeMap: { [code: number]: ServiceState } = {

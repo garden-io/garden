@@ -53,7 +53,14 @@ jobs:
             npm rebuild
           fi
 
-      # run tests
+      - run:
+          name: Make sure generated docs are up-to-date
+          command: |
+            npm run generate-docs
+            npm run check-docs
+
+      # build, lint and run tests
+      - run: npm run build
       - run: npm run lint
       - run: npm test
 

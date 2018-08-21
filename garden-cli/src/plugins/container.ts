@@ -133,7 +133,7 @@ const portSchema = Joi.object()
       .description(
         "Set this to expose the service on the specified port on the host node " +
         "(may not be supported by all providers).",
-    ),
+      ),
   })
   .required()
 
@@ -196,7 +196,7 @@ export const containerModuleSpecSchema = Joi.object()
         "Specify the image name for the container. Should be a valid docker image identifier. If specified and " +
         "the module does not contain a Dockerfile, this image will be used to deploy the container services. " +
         "If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.",
-    ),
+      ),
     services: joiArray(serviceSchema)
       .unique("name")
       .description("List of services to deploy from this container module."),

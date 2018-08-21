@@ -12,7 +12,6 @@ import { join } from "path"
 import {
   joiArray,
   joiEnvVars,
-  PrimitiveMap,
   validate,
 } from "../config/common"
 import {
@@ -43,7 +42,7 @@ export const name = "generic"
 
 export interface GenericTestSpec extends BaseTestSpec {
   command: string[],
-  env: PrimitiveMap,
+  env: { [key: string]: string },
 }
 
 export const genericTestSchema = baseTestSpecSchema
@@ -55,7 +54,7 @@ export const genericTestSchema = baseTestSpecSchema
   .description("The test specification of a generic module.")
 
 export interface GenericModuleSpec extends ModuleSpec {
-  env: PrimitiveMap,
+  env: { [key: string]: string },
   tests: GenericTestSpec[],
 }
 
