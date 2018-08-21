@@ -133,6 +133,10 @@ export interface DeployServiceParams<T extends Module = Module> extends PluginSe
   runtimeContext: RuntimeContext
 }
 
+export interface DeleteServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+  runtimeContext: RuntimeContext
+}
+
 export interface GetServiceOutputsParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
 }
 
@@ -158,6 +162,7 @@ export interface RunServiceParams<T extends Module = Module> extends PluginServi
 export interface ServiceActionParams<T extends Module = Module> {
   getServiceStatus: GetServiceStatusParams<T>
   deployService: DeployServiceParams<T>
+  deleteService: DeleteServiceParams<T>
   getServiceOutputs: GetServiceOutputsParams<T>
   execInService: ExecInServiceParams<T>
   getServiceLogs: GetServiceLogsParams<T>

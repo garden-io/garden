@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
 import {
   DeleteConfigResult,
   EnvironmentStatusMap,
@@ -16,9 +17,11 @@ import {
   CommandParams,
   ParameterValues,
   StringParameter,
+  StringsParameter,
 } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent = require("dedent")
+import { ServiceStatus } from "../types/service"
 
 export class DeleteCommand extends Command {
   name = "delete"
@@ -28,6 +31,7 @@ export class DeleteCommand extends Command {
   subCommands = [
     DeleteConfigCommand,
     DeleteEnvironmentCommand,
+    DeleteServiceCommand,
   ]
 
   async action() { return {} }
@@ -40,7 +44,7 @@ export const deleteConfigArgs = {
   }),
 }
 
-export type DeleteArgs = ParameterValues<typeof deleteConfigArgs>
+export type DeleteConfigArgs = ParameterValues<typeof deleteConfigArgs>
 
 // TODO: add --all option to remove all configs
 
@@ -59,7 +63,7 @@ export class DeleteConfigCommand extends Command<typeof deleteConfigArgs> {
 
   arguments = deleteConfigArgs
 
-  async action({ ctx, args }: CommandParams<DeleteArgs>): Promise<CommandResult<DeleteConfigResult>> {
+  async action({ ctx, args }: CommandParams<DeleteConfigArgs>): Promise<CommandResult<DeleteConfigResult>> {
     const key = args.key.split(".")
     const result = await ctx.deleteConfig({ key })
 
@@ -94,6 +98,50 @@ export class DeleteEnvironmentCommand extends Command {
 
     ctx.log.finish()
 
+    return { result }
+  }
+}
+
+export const deleteServiceArgs = {
+  service: new StringsParameter({
+    help: "The name of the service(s) to delete. Use comma as separator to specify multiple services.",
+    required: true,
+  }),
+}
+export type DeleteServiceArgs = ParameterValues<typeof deleteServiceArgs>
+
+export class DeleteServiceCommand extends Command {
+  name = "service"
+  help = "Deletes a running service."
+  arguments = deleteServiceArgs
+
+  description = dedent`
+    Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any
+    services depending on the deleted service, and might therefore leave the project in an unstable state.
+    Running \`garden deploy\` will re-deploy any missing services.
+
+    Examples:
+
+        garden delete service my-service # deletes my-service
+  `
+
+  async action({ ctx, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+    const services = await ctx.getServices(args.service)
+
+    if (services.length === 0) {
+      ctx.log.warn({ msg: "No services found. Aborting." })
+      return { result: {} }
+    }
+
+    ctx.log.header({ emoji: "skull_and_crossbones", command: `Delete service` })
+
+    const result: { [key: string]: ServiceStatus } = {}
+
+    await Bluebird.map(services, async service => {
+      result[service.name] = await ctx.deleteService({ serviceName: service.name })
+    })
+
+    ctx.log.finish()
     return { result }
   }
 }

@@ -21,6 +21,7 @@ import {
   ConfigureEnvironmentParams,
   GetEnvironmentStatusParams,
   ParseModuleParams,
+  DeleteServiceParams,
 } from "../types/plugin/params"
 import {
   ServiceStatus,
@@ -51,6 +52,8 @@ import { waitForObjects, checkDeploymentStatus } from "./kubernetes/status"
 import { systemSymbol } from "./kubernetes/system"
 import { BaseServiceSpec } from "../config/service"
 import { getDeployTasks } from "../tasks/deploy"
+import { GardenPlugin } from "../types/plugin/plugin"
+import { deleteContainerService } from "./kubernetes/deployment"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 const stackFilename = "stack.yml"
@@ -81,7 +84,7 @@ export const openfaasModuleSpecSchame = genericModuleSpecSchema
 export interface OpenFaasModule extends Module<OpenFaasModuleSpec, BaseServiceSpec, GenericTestSpec> { }
 export interface OpenFaasService extends Service<OpenFaasModule> { }
 
-export const gardenPlugin = () => ({
+export const gardenPlugin = (): GardenPlugin => ({
   modules: [join(STATIC_DIR, "openfaas", "openfaas-builder")],
   actions: {
     async getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
@@ -213,6 +216,16 @@ export const gardenPlugin = () => ({
 
         // TODO: avoid duplicate work here
         return getServiceStatus(params)
+      },
+
+      async deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
+        const { ctx, logEntry, service } = params
+        const provider = getK8sProvider(ctx)
+        const namespace = await getAppNamespace(ctx, provider)
+
+        await deleteContainerService({ logEntry, namespace, provider, serviceName: service.name })
+
+        return await getServiceStatus(params)
       },
     },
   },

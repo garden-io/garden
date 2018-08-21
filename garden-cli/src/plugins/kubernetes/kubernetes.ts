@@ -24,6 +24,7 @@ import {
   configureEnvironment,
   deleteConfig,
   destroyEnvironment,
+  deleteService,
   execInService,
   getConfig,
   getEnvironmentStatus,
@@ -105,6 +106,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
       container: {
         getServiceStatus: getContainerServiceStatus,
         deployService: deployContainerService,
+        deleteService,
         getServiceOutputs,
         execInService,
         runModule,

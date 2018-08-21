@@ -29,6 +29,9 @@ import { KubernetesObject } from "./helm"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesProvider } from "./kubernetes"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
+import { Provider } from "../../types/plugin/plugin"
+import { extensionsApi } from "./api"
+import { LogEntry } from "../../logger/logger"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_CPU_LIMIT = "500m"
@@ -336,4 +339,28 @@ export async function createDeployment(
   deployment.spec.template.spec.containers = [container]
 
   return deployment
+}
+
+export async function deleteContainerService({ namespace, provider, serviceName, logEntry }: {
+  namespace: string,
+  provider: Provider,
+  serviceName: string,
+  logEntry?: LogEntry,
+}) {
+  const { context } = provider.config
+  let found = true
+
+  try {
+    await extensionsApi(context).deleteNamespacedDeployment(serviceName, namespace, <any>{})
+  } catch (err) {
+    if (err.code === 404) {
+      found = false
+    } else {
+      throw err
+    }
+  }
+
+  if (logEntry) {
+    found ? logEntry.setSuccess("Service deleted") : logEntry.setWarn("Service not deployed")
+  }
 }
