@@ -11,7 +11,6 @@ import {
   helpers,
   ContainerModule,
   ContainerService,
-  ServiceEndpointSpec,
 } from "../container"
 import {
   toPairs,
@@ -19,8 +18,8 @@ import {
   keyBy,
   set,
 } from "lodash"
-import { RuntimeContext, ServiceStatus, ServiceProtocol } from "../../types/service"
-import { createIngress, getServiceHostname } from "./ingress"
+import { RuntimeContext, ServiceStatus } from "../../types/service"
+import { createIngresses, getEndpoints } from "./ingress"
 import { createServices } from "./service"
 import { waitForObjects, compareDeployedObjects } from "./status"
 import { applyMany } from "./kubectl"
@@ -30,7 +29,7 @@ import { PluginContext } from "../../plugin-context"
 import { KubernetesProvider } from "./kubernetes"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { Provider } from "../../types/plugin/plugin"
-import { extensionsApi } from "./api"
+import { KubeApi } from "./api"
 import { LogEntry } from "../../logger/logger"
 
 export const DEFAULT_CPU_REQUEST = "10m"
@@ -51,21 +50,8 @@ export async function getContainerServiceStatus(
   const version = module.version
   const objects = await createContainerObjects(ctx, provider, service, runtimeContext)
   const matched = await compareDeployedObjects(ctx, provider, objects)
-  const hostname = getServiceHostname(ctx, provider, service)
-
-  const endpoints = service.spec.endpoints.map((e: ServiceEndpointSpec) => {
-    // TODO: this should be HTTPS, once we've set up TLS termination at the ingress controller level
-    const protocol: ServiceProtocol = "http"
-    const ingressPort = provider.config.ingressPort
-
-    return {
-      protocol,
-      hostname,
-      port: ingressPort,
-      url: `${protocol}://${hostname}:${ingressPort}`,
-      paths: e.paths,
-    }
-  })
+  const api = new KubeApi(provider)
+  const endpoints = await getEndpoints(service, api)
 
   return {
     endpoints,
@@ -95,14 +81,10 @@ export async function createContainerObjects(
   const namespace = await getAppNamespace(ctx, provider)
   const deployment = await createDeployment(service, runtimeContext, namespace)
   const kubeservices = await createServices(service, namespace)
+  const api = new KubeApi(provider)
+  const ingresses = await createIngresses(api, namespace, service)
 
-  const objects = [deployment, ...kubeservices]
-
-  const ingress = await createIngress(ctx, provider, service)
-
-  if (ingress !== null) {
-    objects.push(ingress)
-  }
+  const objects = [deployment, ...kubeservices, ...ingresses]
 
   return objects.map(obj => {
     set(obj, ["metadata", "annotations", "garden.io/generated"], "true")
@@ -347,11 +329,11 @@ export async function deleteContainerService({ namespace, provider, serviceName,
   serviceName: string,
   logEntry?: LogEntry,
 }) {
-  const { context } = provider.config
+  const api = new KubeApi(provider)
   let found = true
 
   try {
-    await extensionsApi(context).deleteNamespacedDeployment(serviceName, namespace, <any>{})
+    await api.extensions.deleteNamespacedDeployment(serviceName, namespace, <any>{})
   } catch (err) {
     if (err.code === 404) {
       found = false

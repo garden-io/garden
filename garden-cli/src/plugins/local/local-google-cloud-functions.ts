@@ -49,7 +49,10 @@ export const gardenPlugin = (): GardenPlugin => ({
             command: ["/app/start.sh", functionEntrypoint],
             daemon: false,
             endpoints: [{
+              name: "default",
+              hostname: s.spec.hostname,
               port: "http",
+              path: "/",
             }],
             env: {},
             healthCheck: { tcpPort: "http" },

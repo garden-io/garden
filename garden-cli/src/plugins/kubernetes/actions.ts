@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
 import * as inquirer from "inquirer"
 import * as Joi from "joi"
 import * as split from "split"
+import { uniq } from "lodash"
 import moment = require("moment")
 
-import { DeploymentError, NotFoundError, TimeoutError } from "../../exceptions"
+import { DeploymentError, NotFoundError, TimeoutError, ConfigurationError } from "../../exceptions"
 import { GetServiceLogsResult, LoginStatus } from "../../types/plugin/outputs"
 import { RunResult, TestResult } from "../../types/plugin/outputs"
 import {
@@ -31,11 +33,10 @@ import {
   DeleteServiceParams,
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
-import { ContainerModule, helpers } from "../container"
-import { uniq } from "lodash"
+import { ContainerModule, helpers, parseContainerModule } from "../container"
 import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
 import { joiIdentifier } from "../../config/common"
-import { coreApi } from "./api"
+import { KubeApi } from "./api"
 import {
   getAppNamespace,
   getMetadataNamespace,
@@ -44,11 +45,39 @@ import {
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 import { EntryStyle, LogSymbolType } from "../../logger/types"
-import { name as providerName } from "./kubernetes"
+import { KubernetesProvider, name as providerName } from "./kubernetes"
 import { deleteContainerService, getContainerServiceStatus } from "./deployment"
 import { ServiceStatus } from "../../types/service"
+import { ParseModuleParams } from "../../types/plugin/params"
 
 const MAX_STORED_USERNAMES = 5
+
+export async function parseModule(params: ParseModuleParams<ContainerModule>) {
+  const config = await parseContainerModule(params)
+
+  // validate endpoint specs
+  const provider: KubernetesProvider = params.provider
+
+  for (const serviceConfig of config.serviceConfigs) {
+    for (const endpointSpec of serviceConfig.spec.endpoints) {
+      const hostname = endpointSpec.hostname || provider.config.defaultHostname
+
+      if (!hostname) {
+        throw new ConfigurationError(
+          `No hostname configured for one of the endpoints on service ${serviceConfig.name}. ` +
+          `Please configure a default hostname or specify a hostname for the endpoint.`,
+          {
+            serviceName: serviceConfig.name,
+            endpointSpec,
+          },
+        )
+      }
+
+      // make sure the hostname is set
+      endpointSpec.hostname = hostname
+    }
+  }
+}
 
 export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStatusParams) {
   const context = provider.config.context
@@ -71,8 +100,10 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
     throw err
   }
 
-  await getMetadataNamespace(ctx, provider)
-  await getAppNamespace(ctx, provider)
+  await Bluebird.all([
+    getMetadataNamespace(ctx, provider),
+    getAppNamespace(ctx, provider),
+  ])
 
   return {
     configured: true,
@@ -86,21 +117,21 @@ export async function configureEnvironment({ }: ConfigureEnvironmentParams) {
 }
 
 export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentParams) {
-  const { context } = provider.config
+  const api = new KubeApi(provider)
   const namespace = await getAppNamespace(ctx, provider)
   const entry = ctx.log.info({
     section: "kubernetes",
-    msg: `Deleting namespace ${namespace} (this can take awhile)`,
+    msg: `Deleting namespace ${namespace} (this may take a while)`,
     entryStyle: EntryStyle.activity,
   })
 
   try {
     // Note: Need to call the delete method with an empty object
     // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
-    await coreApi(context).deleteNamespace(namespace, <any>{})
+    await api.core.deleteNamespace(namespace, <any>{})
   } catch (err) {
     entry.setError(err.message)
-    const availableNamespaces = await getAllGardenNamespaces(context)
+    const availableNamespaces = await getAllGardenNamespaces(api)
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
 
@@ -109,7 +140,7 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
   while (true) {
     await sleep(2000)
 
-    const nsNames = await getAllGardenNamespaces(context)
+    const nsNames = await getAllGardenNamespaces(api)
     if (!nsNames.includes(namespace)) {
       break
     }
@@ -118,7 +149,7 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
     if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
       throw new TimeoutError(
         `Timed out waiting for namespace ${namespace} delete to complete`,
-        { status },
+        { namespace },
       )
     }
   }
@@ -144,7 +175,7 @@ export async function getServiceOutputs({ service }: GetServiceOutputsParams<Con
 export async function execInService(
   { ctx, provider, module, service, env, command, runtimeContext }: ExecInServiceParams<ContainerModule>,
 ) {
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const status = await getContainerServiceStatus({ ctx, provider, module, service, env, runtimeContext })
   const namespace = await getAppNamespace(ctx, provider)
 
@@ -158,7 +189,7 @@ export async function execInService(
 
   // get a running pod
   // NOTE: the awkward function signature called out here: https://github.com/kubernetes-client/javascript/issues/53
-  const podsRes = await coreApi(context).listNamespacedPod(
+  const podsRes = await api.core.listNamespacedPod(
     namespace,
     undefined,
     undefined,
@@ -177,7 +208,7 @@ export async function execInService(
 
   // exec in the pod via kubectl
   const kubecmd = ["exec", "-it", pod.metadata.name, "--", ...command]
-  const res = await kubectl(context, namespace).tty(kubecmd, {
+  const res = await kubectl(api.context, namespace).tty(kubecmd, {
     ignoreError: true,
     silent: false,
     timeout: 999999,
@@ -250,7 +281,7 @@ export async function testModule(
 
   const result = await runModule({ ctx, provider, env, module, command, interactive, runtimeContext, silent, timeout })
 
-  const context = provider.config.context
+  const api = new KubeApi(provider)
 
   // store test result
   const testResult: TestResult = {
@@ -273,10 +304,10 @@ export async function testModule(
   }
 
   try {
-    await coreApi(context).createNamespacedConfigMap(ns, <any>body)
+    await api.core.createNamespacedConfigMap(ns, <any>body)
   } catch (err) {
     if (err.code === 409) {
-      await coreApi(context).patchNamespacedConfigMap(resultKey, ns, body)
+      await api.core.patchNamespacedConfigMap(resultKey, ns, body)
     } else {
       throw err
     }
@@ -288,12 +319,12 @@ export async function testModule(
 export async function getTestResult(
   { ctx, provider, module, testName, version }: GetTestResultParams<ContainerModule>,
 ) {
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const ns = await getMetadataNamespace(ctx, provider)
   const resultKey = getTestResultKey(module, testName, version)
 
   try {
-    const res = await coreApi(context).readNamespacedConfigMap(resultKey, ns)
+    const res = await api.core.readNamespacedConfigMap(resultKey, ns)
     return <TestResult>deserializeValues(res.body.data)
   } catch (err) {
     if (err.code === 404) {
@@ -345,11 +376,11 @@ export async function getServiceLogs(
 }
 
 export async function getConfig({ ctx, provider, key }: GetConfigParams) {
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const ns = await getMetadataNamespace(ctx, provider)
 
   try {
-    const res = await coreApi(context).readNamespacedSecret(key.join("."), ns)
+    const res = await api.core.readNamespacedSecret(key.join("."), ns)
     return { value: Buffer.from(res.body.data.value, "base64").toString() }
   } catch (err) {
     if (err.code === 404) {
@@ -362,7 +393,7 @@ export async function getConfig({ ctx, provider, key }: GetConfigParams) {
 
 export async function setConfig({ ctx, provider, key, value }: SetConfigParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const ns = await getMetadataNamespace(ctx, provider)
   const name = key.join(".")
   const body = {
@@ -381,10 +412,10 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
   }
 
   try {
-    await coreApi(context).createNamespacedSecret(ns, <any>body)
+    await api.core.createNamespacedSecret(ns, <any>body)
   } catch (err) {
     if (err.code === 409) {
-      await coreApi(context).patchNamespacedSecret(name, ns, body)
+      await api.core.patchNamespacedSecret(name, ns, body)
     } else {
       throw err
     }
@@ -394,12 +425,12 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
 }
 
 export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const ns = await getMetadataNamespace(ctx, provider)
   const name = key.join(".")
 
   try {
-    await coreApi(context).deleteNamespacedSecret(name, ns, <any>{})
+    await api.core.deleteNamespacedSecret(name, ns, <any>{})
   } catch (err) {
     if (err.code === 404) {
       return { found: false }

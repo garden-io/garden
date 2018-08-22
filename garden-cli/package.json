@@ -55,6 +55,7 @@
     "moment": "^2.22.2",
     "node-emoji": "^1.8.1",
     "node-pty": "^0.7.6",
+    "normalize-url": "^3.2.0",
     "path-is-inside": "^1.0.2",
     "shx": "^0.3.2",
     "snyk": "^1.90.2",
@@ -68,7 +69,8 @@
     "uniqid": "^5.0.3",
     "uuid": "^3.3.2",
     "winston": "^3.0.0",
-    "wrap-ansi": "^3.0.1"
+    "wrap-ansi": "^3.0.1",
+    "x509": "github:stormwin/node-x509"
   },
   "devDependencies": {
     "@commitlint/cli": "^7.0.0",
@@ -96,6 +98,7 @@
     "@types/nock": "^9.3.0",
     "@types/node": "^10.7.0",
     "@types/node-emoji": "^1.8.0",
+    "@types/normalize-url": "^1.9.1",
     "@types/path-is-inside": "^1.0.0",
     "@types/prettyjson": "0.0.28",
     "@types/string-width": "^2.0.0",

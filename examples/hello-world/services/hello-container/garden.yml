@@ -9,7 +9,7 @@ module:
         - name: http
           containerPort: 8080
       endpoints:
-        - paths: [/hello]
+        - path: /hello
           port: http
       healthCheck:
         httpGet:

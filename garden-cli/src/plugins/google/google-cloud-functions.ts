@@ -18,10 +18,7 @@ import {
   GetServiceStatusParams,
   ParseModuleParams,
 } from "../../types/plugin/params"
-import {
-  ServiceState,
-  ServiceStatus,
-} from "../../types/service"
+import { ServiceState, ServiceStatus, endpointHostnameSchema } from "../../types/service"
 import {
   resolve,
 } from "path"
@@ -41,8 +38,9 @@ import { ModuleSpec } from "../../config/module"
 import { baseServiceSchema } from "../../config/service"
 
 export interface GcfServiceSpec extends GoogleCloudServiceSpec {
-  function: string,
   entrypoint?: string,
+  function: string,
+  hostname?: string
   path: string,
 }
 
@@ -50,6 +48,7 @@ const gcfServiceSchema = baseServiceSchema
   .keys({
     entrypoint: Joi.string()
       .description("The entrypoint for the function (exported name in the function's module)"),
+    hostname: endpointHostnameSchema,
     path: Joi.string()
       .default(".")
       .description("The path of the module that contains the function."),

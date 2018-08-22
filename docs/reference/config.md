@@ -495,13 +495,31 @@ module:
 
       # List of endpoints that the service exposes.
       #
+      # Example:
+      #   - path: /api
+      #     port: http
+      #
       # Optional.
       endpoints: 
-        - # The paths which should be routed to the service.
+        - # A name to assign to the endpoint.
           #
           # Optional.
-          paths: 
-            -
+          name: default
+
+          # The hostname that should route to this service. Defaults to the default hostname
+          # configured
+          # in the provider configuration.
+          #
+          # Note that if you're developing locally you may need to add this hostname to your hosts
+          # file.
+          #
+          # Optional.
+          hostname:
+
+          # The path which should be routed to the service.
+          #
+          # Optional.
+          path: /
 
           # The name of the container port where the specified paths should be routed.
           #
