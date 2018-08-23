@@ -101,7 +101,7 @@ export class DeployTask extends Task {
       return status
     }
 
-    logEntry.setState({ section: this.service.name, msg: "Deploying" })
+    logEntry.setState("Deploying")
 
     const dependencies = await this.ctx.getServices(this.service.config.dependencies)
 
