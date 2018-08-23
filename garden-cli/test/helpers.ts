@@ -282,8 +282,8 @@ export function stubGitCli() {
  */
 export function stubExtSources(garden: Garden) {
   stubGitCli()
-  const getRemoteSourcesDirName = td.replace(garden.vcs, "getRemoteSourcesDirName")
+  const getRemoteSourcesDirname = td.replace(garden.vcs, "getRemoteSourcesDirname")
 
-  td.when(getRemoteSourcesDirName("module")).thenReturn(join("mock-dot-garden", "sources", "module"))
-  td.when(getRemoteSourcesDirName("project")).thenReturn(join("mock-dot-garden", "sources", "project"))
+  td.when(getRemoteSourcesDirname("module")).thenReturn(join("mock-dot-garden", "sources", "module"))
+  td.when(getRemoteSourcesDirname("project")).thenReturn(join("mock-dot-garden", "sources", "project"))
 }

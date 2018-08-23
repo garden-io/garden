@@ -15,7 +15,11 @@ import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
-import { ExternalSourceType, getRemoteSourcesDirName } from "../util/ext-source-util"
+import {
+  ExternalSourceType,
+  getRemoteSourcesDirname,
+  getRemoteSourcePath,
+} from "../util/ext-source-util"
 import { LogNode } from "../logger/logger"
 import { ModuleConfig } from "../config/module"
 
@@ -47,7 +51,7 @@ const dirtyTimestampSchema = Joi.number()
   .required()
   .description(
     "Set to the last modified time (as UNIX timestamp) if the module contains uncommitted changes, otherwise null.",
-  )
+)
 
 export const treeVersionSchema = Joi.object()
   .keys({
@@ -159,10 +163,13 @@ export abstract class VcsHandler {
     }
   }
 
-  getRemoteSourcesDirName(type: ExternalSourceType) {
-    return getRemoteSourcesDirName(type)
+  getRemoteSourcesDirname(type: ExternalSourceType) {
+    return getRemoteSourcesDirname(type)
   }
 
+  getRemoteSourcePath(name, url, sourceType) {
+    return getRemoteSourcePath({ name, url, sourceType })
+  }
 }
 
 function hashVersions(versions: NamedTreeVersion[]) {

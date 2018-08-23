@@ -22,6 +22,7 @@ import { getNames } from "../../src/util/util"
 import { MOCK_CONFIG } from "../../src/cli/cli"
 import { LinkedSource } from "../../src/config-store"
 import { ModuleVersion } from "../../src/vcs/base"
+import { hashRepoUrl } from "../../src/util/ext-source-util"
 
 describe("Garden", () => {
   beforeEach(async () => {
@@ -255,7 +256,16 @@ describe("Garden", () => {
 
     it("should scan and add modules for projects with external project sources", async () => {
       const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"))
+
+      const getRemoteSourcePath = td.replace(garden.vcs, "getRemoteSourcePath")
+      td.when(getRemoteSourcePath("source-a"), { ignoreExtraArgs: true })
+        .thenReturn(join("mock-dot-garden", "sources", "project", "source-a"))
+      td.when(getRemoteSourcePath("source-b"), { ignoreExtraArgs: true })
+        .thenReturn(join("mock-dot-garden", "sources", "project", "source-b"))
+      td.when(getRemoteSourcePath("source-c"), { ignoreExtraArgs: true })
+        .thenReturn(join("mock-dot-garden", "sources", "project", "source-c"))
       stubExtSources(garden)
+
       await garden.scanModules()
 
       const modules = await garden.getModules(undefined, true)
@@ -415,7 +425,9 @@ describe("Garden", () => {
       stubGitCli()
 
       const module = await garden.resolveModule("./module-a")
-      expect(module!.path).to.equal(join(projectRoot, ".garden", "sources", "module", "module-a"))
+      const repoUrlHash = hashRepoUrl(module!.repositoryUrl!)
+
+      expect(module!.path).to.equal(join(projectRoot, ".garden", "sources", "module", `module-a--${repoUrlHash}`))
     })
   })
 
@@ -580,15 +592,19 @@ describe("Garden", () => {
     it("should return the path to the project source if source type is project", async () => {
       projectRoot = getDataDir("test-project-ext-project-sources")
       const ctx = await makeGardenContext(projectRoot)
-      const path = await ctx.loadExtSourcePath({ name: "source-a", repositoryUrl: "", sourceType: "project" })
-      expect(path).to.equal(join(projectRoot, ".garden", "sources", "project", "source-a"))
+      const repositoryUrl = "foo"
+      const path = await ctx.loadExtSourcePath({ repositoryUrl, name: "source-a", sourceType: "project" })
+      const repoUrlHash = hashRepoUrl(repositoryUrl)
+      expect(path).to.equal(join(projectRoot, ".garden", "sources", "project", `source-a--${repoUrlHash}`))
     })
 
     it("should return the path to the module source if source type is module", async () => {
       projectRoot = getDataDir("test-project-ext-module-sources")
       const ctx = await makeGardenContext(projectRoot)
-      const path = await ctx.loadExtSourcePath({ name: "module-a", repositoryUrl: "", sourceType: "module" })
-      expect(path).to.equal(join(projectRoot, ".garden", "sources", "module", "module-a"))
+      const repositoryUrl = "foo"
+      const path = await ctx.loadExtSourcePath({ repositoryUrl, name: "module-a", sourceType: "module" })
+      const repoUrlHash = hashRepoUrl(repositoryUrl)
+      expect(path).to.equal(join(projectRoot, ".garden", "sources", "module", `module-a--${repoUrlHash}`))
     })
 
     it("should return the local path of the project source if linked", async () => {

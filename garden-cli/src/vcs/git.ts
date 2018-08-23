@@ -6,30 +6,37 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec } from "child-process-promise"
+import execa = require("execa")
 import { join } from "path"
 import { ensureDir, pathExists, stat } from "fs-extra"
 import { argv } from "process"
 import Bluebird = require("bluebird")
-import { parse } from "url"
 
 import { NEW_MODULE_VERSION, VcsHandler, RemoteSourceParams } from "./base"
 import { EntryStyle } from "../logger/types"
 
 export const helpers = {
-  gitCli: (cwd: string): (args: string | string[]) => Promise<string> => {
-    return async args => {
-      const cmd = Array.isArray(args) ? `git ${args.join(" && git ")}` : `git ${args}`
-      const res = await exec(cmd, { cwd })
-      return res.stdout.trim()
+  gitCli: (cwd: string): (cmd: string, args: string[]) => Promise<string> => {
+    return async (cmd, args) => {
+      return execa.stdout("git", [cmd, ...args], { cwd })
     }
   },
 }
 
-function getUrlHash(url: string) {
-  return (parse(url).hash || "").split("#")[1]
+function getGitUrlParts(url: string) {
+  const parts = url.split("#")
+  return { repositoryUrl: parts[0], hash: parts[1] }
 }
 
+function parseRefList(res: string): string {
+  const refList = res.split("\n").map(str => {
+    const parts = str.split("\n")
+    return { commitId: parts[0], ref: parts[1] }
+  })
+  return refList[0].commitId
+}
+
+// TODO Consider moving git commands to separate (and testable) functions
 export class GitHandler extends VcsHandler {
   name = "git"
 
@@ -38,7 +45,12 @@ export class GitHandler extends VcsHandler {
 
     let commitHash
     try {
-      commitHash = await git("rev-list -1 --abbrev-commit --abbrev=10 HEAD") || NEW_MODULE_VERSION
+      commitHash = await git("rev-list", [
+        "--max-count=1",
+        "--abbrev-commit",
+        "--abbrev=10",
+        "HEAD",
+      ]) || NEW_MODULE_VERSION
     } catch (err) {
       if (err.code === 128) {
         // not in a repo root, return default version
@@ -48,13 +60,13 @@ export class GitHandler extends VcsHandler {
 
     let latestDirty = 0
 
-    const res = await git([`diff-index --name-only HEAD ${path}`, `ls-files --other --exclude-standard ${path}`])
+    const res = await git("diff-index", ["--name-only", "HEAD", path]) + "\n"
+      + await git("ls-files", ["--other", "--exclude-standard", path])
 
     const dirtyFiles: string[] = res.split("\n").filter((f) => f.length > 0)
     // for dirty trees, we append the last modified time of last modified or added file
     if (dirtyFiles.length) {
-
-      const repoRoot = await git("rev-parse --show-toplevel")
+      const repoRoot = await git("rev-parse", ["--show-toplevel"])
       const stats = await Bluebird.map(dirtyFiles, file => join(repoRoot, file))
         .filter((file: string) => pathExists(file))
         .map((file: string) => stat(file))
@@ -75,43 +87,56 @@ export class GitHandler extends VcsHandler {
 
   // TODO Better auth handling
   async ensureRemoteSource({ url, name, logEntry, sourceType }: RemoteSourceParams): Promise<string> {
-    const remoteSourcesPath = join(this.projectRoot, this.getRemoteSourcesDirName(sourceType))
+    const remoteSourcesPath = join(this.projectRoot, this.getRemoteSourcesDirname(sourceType))
     await ensureDir(remoteSourcesPath)
     const git = helpers.gitCli(remoteSourcesPath)
-    const fullPath = join(remoteSourcesPath, name)
 
-    if (!(await pathExists(fullPath))) {
+    const absPath = join(this.projectRoot, this.getRemoteSourcePath(name, url, sourceType))
+    const isCloned = await pathExists(absPath)
+
+    if (!isCloned) {
       const entry = logEntry.info({ section: name, msg: `Fetching from ${url}`, entryStyle: EntryStyle.activity })
-      const hash = getUrlHash(url)
-      const branch = hash ? `--branch=${hash}` : ""
+      const { repositoryUrl, hash } = getGitUrlParts(url)
 
-      await git(`clone --depth=1 ${branch} ${url} ${name}`)
+      const cmdOpts = ["--depth=1"]
+      if (hash) {
+        cmdOpts.push("--branch=hash")
+      }
+
+      await git("clone", [...cmdOpts, repositoryUrl, absPath])
 
       entry.setSuccess()
     }
 
-    return fullPath
+    return absPath
   }
 
   async updateRemoteSource({ url, name, sourceType, logEntry }: RemoteSourceParams) {
-    const sourcePath = join(this.projectRoot, this.getRemoteSourcesDirName(sourceType), name)
-    const git = helpers.gitCli(sourcePath)
+    const absPath = join(this.projectRoot, this.getRemoteSourcePath(name, url, sourceType))
+    const git = helpers.gitCli(absPath)
+    const { repositoryUrl, hash } = getGitUrlParts(url)
+
     await this.ensureRemoteSource({ url, name, sourceType, logEntry })
 
     const entry = logEntry.info({ section: name, msg: "Getting remote state", entryStyle: EntryStyle.activity })
-    await git("remote update")
+    await git("remote", ["update"])
 
-    const remoteHash = await git("rev-parse @")
-    const localHash = await git("rev-parse @{u}")
-    if (localHash !== remoteHash) {
+    const listRemoteArgs = hash ? [repositoryUrl, hash] : [repositoryUrl]
+    const showRefArgs = hash ? [hash] : []
+    const remoteCommitId = parseRefList(await git("ls-remote", listRemoteArgs))
+    const localCommitId = parseRefList(await git("show-ref", ["--hash", ...showRefArgs]))
+
+    if (localCommitId !== remoteCommitId) {
       entry.setState({ section: name, msg: `Fetching from ${url}`, entryStyle: EntryStyle.activity })
-      const hash = getUrlHash(url)
 
-      await git([`fetch origin ${hash} --depth=1`, `reset origin/${hash} --hard`])
+      const fetchArgs = hash ? ["origin", hash] : ["origin"]
+      const resetArgs = hash ? [`origin/${hash}`] : ["origin"]
+      await git("fetch", ["--depth=1", ...fetchArgs])
+      await git("reset", ["--hard", ...resetArgs])
 
       entry.setSuccess("Source updated")
     } else {
-      entry.setSuccess("Source up to date")
+      entry.setSuccess("Source already up to date")
     }
   }
 

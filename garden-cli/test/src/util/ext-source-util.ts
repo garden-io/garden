@@ -1,10 +1,12 @@
 import { expect } from "chai"
 
 import {
-  getRemoteSourcesDirName,
+  getRemoteSourcesDirname,
   getLinkedSources,
   addLinkedSources,
   removeLinkedSources,
+  getRemoteSourcePath,
+  hashRepoUrl,
 } from "../../../src/util/ext-source-util"
 import { makeTestContextA, cleanProject, expectError } from "../../helpers"
 import { PluginContext } from "../../../src/plugin-context"
@@ -22,14 +24,32 @@ describe("ext-source-util", () => {
       await cleanProject(ctx.projectRoot)
     })
 
-    it("should should return the project sources dir name", () => {
-      const dirName = getRemoteSourcesDirName("project")
+    it("should return the relative path to the remote projects directory", () => {
+      const dirName = getRemoteSourcesDirname("project")
       expect(dirName).to.equal(".garden/sources/project")
     })
 
-    it("should should return the modules sources dir name", () => {
-      const dirName = getRemoteSourcesDirName("module")
+    it("should return the relative path to the remote modules directory", () => {
+      const dirName = getRemoteSourcesDirname("module")
       expect(dirName).to.equal(".garden/sources/module")
+    })
+  })
+
+  describe("getRemoteSourcePath", () => {
+    it("should return the relative path to a remote project source", () => {
+      const url = "banana"
+      const urlHash = hashRepoUrl(url)
+
+      const path = getRemoteSourcePath({ url, name: "my-source", sourceType: "project" })
+      expect(path).to.equal(`.garden/sources/project/my-source--${urlHash}`)
+    })
+
+    it("should return the relative path to a remote module source", () => {
+      const url = "banana"
+      const urlHash = hashRepoUrl(url)
+
+      const path = getRemoteSourcePath({ url, name: "my-module", sourceType: "module" })
+      expect(path).to.equal(`.garden/sources/module/my-module--${urlHash}`)
     })
   })
 
