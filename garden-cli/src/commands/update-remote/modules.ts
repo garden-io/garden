@@ -76,7 +76,7 @@ export class UpdateRemoteModulesCommand extends Command<typeof updateRemoteModul
       await ctx.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "module", logEntry: ctx.log })
     }
 
-    await pruneRemoteSources({ names, projectRoot: ctx.projectRoot, type: "module" })
+    await pruneRemoteSources({ projectRoot: ctx.projectRoot, type: "module", sources: moduleSources })
 
     return { result: moduleSources }
   }

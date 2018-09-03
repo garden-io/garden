@@ -15,11 +15,13 @@ import {
   flow,
   isArray,
   isEmpty,
-  padEnd,
   padStart,
   reduce,
   kebabCase,
+  repeat,
 } from "lodash"
+import cliTruncate = require("cli-truncate")
+import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
 import { LogSymbolType, EntryStyle } from "./types"
@@ -31,11 +33,13 @@ export type Renderers = Renderer[]
 
 /*** STYLE HELPERS ***/
 
-const sectionPrefixWidth = 18
-const truncate = (s: string) => s.length > sectionPrefixWidth
-  ? `${s.substring(0, sectionPrefixWidth - 3)}...`
-  : s
-const sectionStyle = (s: string) => chalk.cyan.italic(padEnd(truncate(s), sectionPrefixWidth))
+const SECTION_PREFIX_WIDTH = 25
+const cliPadEnd = (s: string, width: number): string => {
+  const diff = width - stringWidth(s)
+  return diff <= 0 ? s : s + repeat(" ", diff)
+}
+const truncateSection = (s: string) => cliTruncate(s, SECTION_PREFIX_WIDTH)
+const sectionStyle = (s: string) => chalk.cyan.italic(cliPadEnd(truncateSection(s), SECTION_PREFIX_WIDTH))
 const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
 const errorStyle = chalk.red
 

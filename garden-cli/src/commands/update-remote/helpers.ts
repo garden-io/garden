@@ -7,26 +7,36 @@
  */
 
 import { difference } from "lodash"
-import { join } from "path"
+import { join, basename } from "path"
 import { remove, pathExists } from "fs-extra"
 
 import { getChildDirNames } from "../../util/util"
-import { ExternalSourceType, getRemoteSourcesDirName } from "../../util/ext-source-util"
+import {
+  ExternalSourceType,
+  getRemoteSourcesDirname,
+  getRemoteSourcePath,
+} from "../../util/ext-source-util"
+import { SourceConfig } from "../../config/project"
 
-export async function pruneRemoteSources({ projectRoot, names, type }: {
+export async function pruneRemoteSources({ projectRoot, sources, type }: {
   projectRoot: string,
-  names: string[],
+  sources: SourceConfig[],
   type: ExternalSourceType,
 }) {
-  const remoteSourcesPath = join(projectRoot, getRemoteSourcesDirName(type))
+  const remoteSourcesPath = join(projectRoot, getRemoteSourcesDirname(type))
 
   if (!(await pathExists(remoteSourcesPath))) {
     return
   }
 
-  const currentRemoteSourceNames = await getChildDirNames(remoteSourcesPath)
-  const staleRemoteSourceNames = difference(currentRemoteSourceNames, names)
-  for (const dirName of staleRemoteSourceNames) {
+  const sourceNames = sources
+    .map(({ name, repositoryUrl: url }) => getRemoteSourcePath({ name, url, sourceType: type }))
+    .map(srcPath => basename(srcPath))
+
+  const currentRemoteSources = await getChildDirNames(remoteSourcesPath)
+  const staleRemoteSources = difference(currentRemoteSources, sourceNames)
+
+  for (const dirName of staleRemoteSources) {
     await remove(join(remoteSourcesPath, dirName))
   }
 }

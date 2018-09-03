@@ -82,6 +82,7 @@ export const joiRepositoryUrl = () => Joi
       "git",
       /git\+https?/,
       "https",
+      "file",
     ],
   })
   .description(

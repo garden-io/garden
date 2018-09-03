@@ -12,7 +12,7 @@ import {
   getNames,
 } from "../util/util"
 import { baseModuleSpecSchema, ModuleConfig } from "./module"
-import { joiIdentifier, validate } from "./common"
+import { validate } from "./common"
 import { ConfigurationError } from "../exceptions"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
@@ -123,18 +123,6 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
       testConfigs: [],
       type: moduleConfig.type,
       variables: moduleConfig.variables,
-    }
-
-    if (!moduleConfig.name) {
-      try {
-        moduleConfig.name = validate(dirname, joiIdentifier())
-      } catch (_) {
-        throw new ConfigurationError(
-          `Directory name ${parsed.dirname} is not a valid module name (must be valid identifier). ` +
-          `Please rename the directory or specify a module name in the garden.yml file.`,
-          { dirname: parsed.dirname },
-        )
-      }
     }
   }
 

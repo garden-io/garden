@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { createHash } from "crypto"
 import { uniqBy } from "lodash"
 import chalk from "chalk"
 import pathIsInside = require("path-is-inside")
@@ -21,16 +22,34 @@ import {
 import { ParameterError } from "../exceptions"
 import { Module } from "../types/module"
 import { PluginContext } from "../plugin-context"
+import { join } from "path"
 
 export type ExternalSourceType = "project" | "module"
 
-export function getRemoteSourcesDirName(type: ExternalSourceType): string {
+export function getRemoteSourcesDirname(type: ExternalSourceType): string {
   return type === "project" ? PROJECT_SOURCES_DIR_NAME : MODULE_SOURCES_DIR_NAME
+}
+
+/**
+ * A remote source dir name has the format 'source-name--HASH_OF_REPO_URL'
+ * so that we can detect if the repo url has changed
+ */
+export function getRemoteSourcePath({ name, url, sourceType }:
+  { name: string, url: string, sourceType: ExternalSourceType }) {
+  const dirname = name + "--" + hashRepoUrl(url)
+  return join(getRemoteSourcesDirname(sourceType), dirname)
+}
+
+export function hashRepoUrl(url: string) {
+  const urlHash = createHash("sha256")
+  urlHash.update(url)
+  return urlHash.digest("hex").slice(0, 10)
 }
 
 export function hasRemoteSource(module: Module): boolean {
   return !!module.repositoryUrl
 }
+
 export function getConfigKey(type: ExternalSourceType): string {
   return type === "project" ? localConfigKeys.linkedProjectSources : localConfigKeys.linkedModuleSources
 }
