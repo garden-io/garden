@@ -161,13 +161,12 @@ const configSchema = providerConfigBase
 
 export const name = "local-kubernetes"
 
-export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> {
+export async function gardenPlugin({ projectName, config, logEntry }): Promise<GardenPlugin> {
   config = validate(config, configSchema, { context: "kubernetes provider config" })
 
   let context = config.context
+  let defaultHostname = config.defaultHostname
   let systemServices
-  let ingressHostname
-  let ingressPort
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
@@ -193,18 +192,16 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
 
   if (!context) {
     context = supportedContexts[0]
-    logEntry.debug({ section: name, msg: `No kubectl context auto-deteced, using default: ${context}` })
+    logEntry.debug({ section: name, msg: `No kubectl context auto-detected, using default: ${context}` })
   }
 
   if (context === "minikube") {
     await execa("minikube", ["config", "set", "WantUpdateNotification", "false"])
 
-    ingressHostname = config.ingressHostname
-
-    if (!ingressHostname) {
+    if (!defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
       const minikubeIp = await execa.stdout("minikube", ["ip"])
-      ingressHostname = minikubeIp + ".nip.io"
+      defaultHostname = `${projectName}.${minikubeIp}.nip.io`
     }
 
     await Promise.all([
@@ -213,22 +210,24 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
       setMinikubeDockerEnv(),
     ])
 
-    ingressPort = 80
     systemServices = []
   } else {
-    ingressHostname = config.ingressHostname || "local.app.garden"
-    ingressPort = 32000
+    if (!defaultHostname) {
+      defaultHostname = `${projectName}.local.app.garden`
+    }
   }
 
   const k8sConfig: LocalKubernetesConfig = {
     name: config.name,
     context,
-    ingressHostname,
-    ingressPort,
-    ingressClass: "nginx",
-    // TODO: support SSL on local deployments
-    forceSsl: false,
+    defaultHostname,
     defaultUsername: "default",
+    forceSsl: false,
+    ingressHttpPort: 80,
+    ingressHttpsPort: 443,
+    ingressClass: "nginx",
+    tlsCertificates: config.tlsCertificates,
+    // TODO: support SSL on local deployments
     _system: config._system,
     _systemServices: systemServices,
   }

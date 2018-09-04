@@ -9,7 +9,6 @@
 import * as Joi from "joi"
 import { mapValues } from "lodash"
 import {
-  DeepPrimitiveMap,
   joiArray,
   joiIdentifier,
   joiIdentifierMap,
@@ -18,6 +17,7 @@ import {
 import { Module } from "../module"
 import { serviceStatusSchema } from "../service"
 import { serviceOutputsSchema } from "../../config/service"
+import { LogNode } from "../../logger/logger"
 import {
   buildModuleResultSchema,
   buildStatusSchema,
@@ -45,7 +45,7 @@ import {
   ServiceActionParams,
 } from "./params"
 
-export interface Provider<T extends PrimitiveMap = any> extends DeepPrimitiveMap {
+export interface Provider<T extends PrimitiveMap = any> {
   name: string
   config: T
 }
@@ -167,8 +167,14 @@ export interface GardenPlugin {
   moduleActions?: { [moduleType: string]: Partial<ModuleActions> }
 }
 
-export interface PluginFactory {
-  ({ config: object, logEntry: LogEntry }): GardenPlugin | Promise<GardenPlugin>
+export interface PluginFactoryParams<T extends Provider = any> {
+  config: T["config"],
+  logEntry: LogNode,
+  projectName: string,
+}
+
+export interface PluginFactory<T extends Provider = any> {
+  (params: PluginFactoryParams<T>): GardenPlugin | Promise<GardenPlugin>
   pluginName?: string
 }
 export type RegisterPluginParam = string | PluginFactory

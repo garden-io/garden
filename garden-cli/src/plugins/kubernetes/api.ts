@@ -13,18 +13,17 @@ import {
   RbacAuthorization_v1Api,
   Apps_v1Api,
   Apiextensions_v1beta1Api,
+  V1Secret,
+  Policy_v1beta1Api,
 } from "@kubernetes/client-node"
 import { join } from "path"
 import { readFileSync } from "fs"
 import { safeLoad } from "js-yaml"
-import {
-  zip,
-  omitBy,
-  isObject,
-} from "lodash"
+import { zip, omitBy, isObject } from "lodash"
 import { GardenBaseError, ConfigurationError } from "../../exceptions"
 import { KubernetesObject } from "./helm"
 import { homedir } from "os"
+import { KubernetesProvider } from "./kubernetes"
 
 let kubeConfigStr: string
 let kubeConfig: any
@@ -33,9 +32,185 @@ const configs: { [context: string]: KubeConfig } = {}
 
 // NOTE: be warned, the API of the client library is very likely to change
 
+type K8sApi = Core_v1Api
+  | Extensions_v1beta1Api
+  | RbacAuthorization_v1Api
+  | Apps_v1Api
+  | Apiextensions_v1beta1Api
+  | Policy_v1beta1Api
+type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
+
+const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
+  apiExtensions: Apiextensions_v1beta1Api,
+  apps: Apps_v1Api,
+  core: Core_v1Api,
+  extensions: Extensions_v1beta1Api,
+  policy: Policy_v1beta1Api,
+  rbac: RbacAuthorization_v1Api,
+}
+
+const crudMap = {
+  Secret: {
+    type: V1Secret,
+    group: "core",
+    read: "readNamespacedSecret",
+    create: "createNamespacedSecret",
+    patch: "patchNamespacedSecret",
+    delete: "deleteNamespacedSecret",
+  },
+}
+
+type CrudMapType = typeof crudMap
+
+export class KubernetesError extends GardenBaseError {
+  type = "kubernetes"
+
+  code?: number
+  response?: any
+}
+
+export class KubeApi {
+  public context: string
+
+  public apiExtensions: Apiextensions_v1beta1Api
+  public apps: Apps_v1Api
+  public core: Core_v1Api
+  public extensions: Extensions_v1beta1Api
+  public policy: Policy_v1beta1Api
+  public rbac: RbacAuthorization_v1Api
+
+  constructor(public provider: KubernetesProvider) {
+    this.context = provider.config.context
+    const config = getConfig(this.context)
+
+    for (const [name, cls] of Object.entries(apiTypes)) {
+      const api = new cls(config.getCurrentCluster().server)
+      this[name] = this.proxyApi(api, config)
+    }
+  }
+
+  async readBySpec(namespace: string, spec: KubernetesObject) {
+    // this is just awful, sorry. any better ideas? - JE
+    const name = spec.metadata.name
+
+    switch (spec.kind) {
+      case "ConfigMap":
+        return this.core.readNamespacedConfigMap(name, namespace)
+      case "Endpoints":
+        return this.core.readNamespacedEndpoints(name, namespace)
+      case "LimitRange":
+        return this.core.readNamespacedLimitRange(name, namespace)
+      case "PersistentVolumeClaim":
+        return this.core.readNamespacedPersistentVolumeClaim(name, namespace)
+      case "Pod":
+        return this.core.readNamespacedPod(name, namespace)
+      case "PodTemplate":
+        return this.core.readNamespacedPodTemplate(name, namespace)
+      case "ReplicationController":
+        return this.core.readNamespacedReplicationController(name, namespace)
+      case "ResourceQuota":
+        return this.core.readNamespacedResourceQuota(name, namespace)
+      case "Secret":
+        return this.core.readNamespacedSecret(name, namespace)
+      case "Service":
+        return this.core.readNamespacedService(name, namespace)
+      case "ServiceAccount":
+        return this.core.readNamespacedServiceAccount(name, namespace)
+      case "DaemonSet":
+        return this.extensions.readNamespacedDaemonSet(name, namespace)
+      case "Deployment":
+        return this.extensions.readNamespacedDeployment(name, namespace)
+      case "Ingress":
+        return this.extensions.readNamespacedIngress(name, namespace)
+      case "ReplicaSet":
+        return this.extensions.readNamespacedReplicaSet(name, namespace)
+      case "StatefulSet":
+        return this.apps.readNamespacedStatefulSet(name, namespace)
+      case "ClusterRole":
+        return this.rbac.readClusterRole(name)
+      case "ClusterRoleBinding":
+        return this.rbac.readClusterRoleBinding(name)
+      case "Role":
+        return this.rbac.readNamespacedRole(name, namespace)
+      case "RoleBinding":
+        return this.rbac.readNamespacedRoleBinding(name, namespace)
+      case "CustomResourceDefinition":
+        return this.apiExtensions.readCustomResourceDefinition(name)
+      case "PodDisruptionBudget":
+        return this.policy.readNamespacedPodDisruptionBudget(name, namespace)
+      default:
+        throw new ConfigurationError(`Unsupported Kubernetes spec kind: ${spec.kind}`, {
+          spec,
+        })
+    }
+  }
+
+  async upsert<K extends keyof CrudMapType>(
+    kind: K, namespace: string, obj: KubernetesObject,
+  ): Promise<KubernetesObject> {
+    const api = this[crudMap[kind].group]
+
+    try {
+      const res = await api[crudMap[kind].read](obj.metadata.name, namespace)
+      return res.body
+    } catch (err) {
+      if (err.code === 404) {
+        try {
+          await api[crudMap[kind].create](namespace, <any>obj)
+        } catch (err) {
+          if (err.code === 409) {
+            await api[crudMap[kind].patch](name, namespace, obj)
+          } else {
+            throw err
+          }
+        }
+      } else {
+        throw err
+      }
+    }
+
+    return obj
+  }
+
+  /**
+   * Wrapping the API objects to deal with bugs.
+   */
+  private proxyApi<T extends K8sApi>(api: T, config): T {
+    api.setDefaultAuthentication(config)
+
+    return new Proxy(api, {
+      get: (target: T, name: string, receiver) => {
+        if (!(name in Object.getPrototypeOf(target))) { // assume methods live on the prototype
+          return Reflect.get(target, name, receiver)
+        }
+
+        return function(...args) {
+          const defaultHeaders = target["defaultHeaders"]
+
+          if (name.startsWith("patch")) {
+            // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
+            target["defaultHeaders"] = { ...defaultHeaders, "content-type": "application/strategic-merge-patch+json" }
+          }
+
+          const output = target[name](...args)
+          target["defaultHeaders"] = defaultHeaders
+
+          if (typeof output.then === "function") {
+            // the API errors are not properly formed Error objects
+            return output.catch(wrapError)
+          } else {
+            return output
+          }
+        }
+      },
+    })
+  }
+}
+
 function getConfig(context: string): KubeConfig {
   if (!kubeConfigStr) {
-    kubeConfigStr = readFileSync(join(homedir(), ".kube", "config")).toString()
+    const kubeConfigPath = process.env.KUBECONFIG || join(homedir(), ".kube", "config")
+    kubeConfigStr = readFileSync(kubeConfigPath).toString()
     kubeConfig = safeLoad(kubeConfigStr)
   }
 
@@ -58,148 +233,15 @@ function getConfig(context: string): KubeConfig {
   return configs[context]
 }
 
-export function coreApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Core_v1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
-}
-
-export function extensionsApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Extensions_v1beta1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
-}
-
-export function appsApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Apps_v1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
-}
-
-export function apiExtensionsApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new Apiextensions_v1beta1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
-}
-
-export function rbacApi(context: string) {
-  const config = getConfig(context)
-  const k8sApi = new RbacAuthorization_v1Api(config.getCurrentCluster().server)
-  return proxyApi(k8sApi, config)
-}
-
-export class KubernetesError extends GardenBaseError {
-  type = "kubernetes"
-
-  code?: number
-  response?: any
-}
-
-/**
- * Wrapping the API objects to deal with bugs.
- */
-type K8sApi = Core_v1Api | Extensions_v1beta1Api | RbacAuthorization_v1Api | Apps_v1Api | Apiextensions_v1beta1Api
-
-function proxyApi<T extends K8sApi>(api: T, config: KubeConfig): T {
-  api.setDefaultAuthentication(config)
-
-  const wrapError = err => {
-    if (!err.message) {
-      const wrapped = new KubernetesError(`Got error from Kubernetes API - ${err.body.message}`, {
-        body: err.body,
-        request: omitBy(err.response.request, (v, k) => isObject(v) || k[0] === "_"),
-      })
-      wrapped.code = err.response.statusCode
-      throw wrapped
-    } else {
-      throw err
-    }
-  }
-
-  return new Proxy(api, {
-    get: (target: T, name: string, receiver) => {
-      if (name in Object.getPrototypeOf(target)) { // assume methods live on the prototype
-        return function(...args) {
-          const defaultHeaders = target["defaultHeaders"]
-
-          if (name.startsWith("patch")) {
-            // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
-            target["defaultHeaders"] = { ...defaultHeaders, "content-type": "application/strategic-merge-patch+json" }
-          }
-
-          const output = target[name](...args)
-          target["defaultHeaders"] = defaultHeaders
-
-          if (typeof output.then === "function") {
-            // the API errors are not properly formed Error objects
-            return output.catch(wrapError)
-          } else {
-            return output
-          }
-        }
-      } else { // assume instance vars live on the target
-        return Reflect.get(target, name, receiver)
-      }
-    },
-  })
-}
-
-export async function apiReadBySpec(namespace: string, context: string, spec: KubernetesObject) {
-  // this is just awful, sorry. any better ideas? - JE
-  const name = spec.metadata.name
-
-  const core = coreApi(context)
-  const ext = extensionsApi(context)
-  const apps = appsApi(context)
-  const rbac = rbacApi(context)
-  const apiext = apiExtensionsApi(context)
-
-  switch (spec.kind) {
-    case "ConfigMap":
-      return core.readNamespacedConfigMap(name, namespace)
-    case "Endpoints":
-      return core.readNamespacedEndpoints(name, namespace)
-    case "LimitRange":
-      return core.readNamespacedLimitRange(name, namespace)
-    case "PersistentVolumeClaim":
-      return core.readNamespacedPersistentVolumeClaim(name, namespace)
-    case "Pod":
-      return core.readNamespacedPod(name, namespace)
-    case "PodTemplate":
-      return core.readNamespacedPodTemplate(name, namespace)
-    case "ReplicationController":
-      return core.readNamespacedReplicationController(name, namespace)
-    case "ResourceQuota":
-      return core.readNamespacedResourceQuota(name, namespace)
-    case "Secret":
-      return core.readNamespacedSecret(name, namespace)
-    case "Service":
-      return core.readNamespacedService(name, namespace)
-    case "ServiceAccount":
-      return core.readNamespacedServiceAccount(name, namespace)
-    case "DaemonSet":
-      return ext.readNamespacedDaemonSet(name, namespace)
-    case "Deployment":
-      return ext.readNamespacedDeployment(name, namespace)
-    case "Ingress":
-      return ext.readNamespacedIngress(name, namespace)
-    case "ReplicaSet":
-      return ext.readNamespacedReplicaSet(name, namespace)
-    case "StatefulSet":
-      return apps.readNamespacedStatefulSet(name, namespace)
-    case "ClusterRole":
-      return rbac.readClusterRole(name)
-    case "ClusterRoleBinding":
-      return rbac.readClusterRoleBinding(name)
-    case "Role":
-      return rbac.readNamespacedRole(name, namespace)
-    case "RoleBinding":
-      return rbac.readNamespacedRoleBinding(name, namespace)
-    case "CustomResourceDefinition":
-      return apiext.readCustomResourceDefinition(name)
-    default:
-      throw new ConfigurationError(`Unsupported Kubernetes spec kind: ${spec.kind}`, {
-        spec,
-      })
+function wrapError(err) {
+  if (!err.message) {
+    const wrapped = new KubernetesError(`Got error from Kubernetes API - ${err.body.message}`, {
+      body: err.body,
+      request: omitBy(err.response.request, (v, k) => isObject(v) || k[0] === "_"),
+    })
+    wrapped.code = err.response.statusCode
+    throw wrapped
+  } else {
+    throw err
   }
 }

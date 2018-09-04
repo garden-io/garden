@@ -7,16 +7,16 @@
  */
 
 import { PluginContext } from "../../plugin-context"
-import { coreApi } from "./api"
+import { KubeApi } from "./api"
 import { KubernetesProvider } from "./kubernetes"
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
 
 const created: { [name: string]: boolean } = {}
 
-export async function ensureNamespace(context: string, namespace: string) {
+export async function ensureNamespace(api: KubeApi, namespace: string) {
   if (!created[namespace]) {
-    const namespacesStatus = await coreApi(context).listNamespace()
+    const namespacesStatus = await api.core.listNamespace()
 
     for (const n of namespacesStatus.body.items) {
       if (n.status.phase === "Active") {
@@ -26,7 +26,7 @@ export async function ensureNamespace(context: string, namespace: string) {
 
     if (!created[namespace]) {
       // TODO: the types for all the create functions in the library are currently broken
-      await coreApi(context).createNamespace(<any>{
+      await api.core.createNamespace(<any>{
         apiVersion: "v1",
         kind: "Namespace",
         metadata: {
@@ -74,7 +74,8 @@ export async function getNamespace(
   }
 
   if (!skipCreate) {
-    await ensureNamespace(provider.config.context, namespace)
+    const api = new KubeApi(provider)
+    await ensureNamespace(api, namespace)
   }
 
   return namespace
@@ -88,8 +89,8 @@ export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesPro
   return getNamespace({ ctx, provider, suffix: "metadata" })
 }
 
-export async function getAllGardenNamespaces(context: string): Promise<string[]> {
-  const allNamespaces = await coreApi(context).listNamespace()
+export async function getAllGardenNamespaces(api: KubeApi): Promise<string[]> {
+  const allNamespaces = await api.core.listNamespace()
   return allNamespaces.body.items
     .map(n => n.metadata.name)
     .filter(n => n.startsWith("garden--"))

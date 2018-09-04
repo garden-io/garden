@@ -13,7 +13,7 @@ import { PluginContext } from "../../plugin-context"
 import { Provider } from "../../types/plugin/plugin"
 import { Service, ServiceState } from "../../types/service"
 import { sleep } from "../../util/util"
-import { coreApi, apiReadBySpec } from "./api"
+import { KubeApi } from "./api"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { getAppNamespace } from "./namespace"
 import * as Bluebird from "bluebird"
@@ -28,7 +28,7 @@ import {
   V1StatefulSetSpec,
   V1DeploymentStatus,
 } from "@kubernetes/client-node"
-import { some, zip } from "lodash"
+import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
 import { KubernetesProvider } from "./kubernetes"
 import * as isSubset from "is-subset"
 
@@ -41,7 +41,7 @@ export interface RolloutStatus {
 }
 
 interface ObjHandler {
-  (namespace: string, context: string, obj: KubernetesObject, resourceVersion?: number): Promise<RolloutStatus>
+  (api: KubeApi, namespace: string, obj: KubernetesObject, resourceVersion?: number): Promise<RolloutStatus>
 }
 
 // Handlers to check the rollout status for K8s objects where that applies.
@@ -51,40 +51,40 @@ const objHandlers: { [kind: string]: ObjHandler } = {
   Deployment: checkDeploymentStatus,
   StatefulSet: checkDeploymentStatus,
 
-  PersistentVolumeClaim: async (namespace, context, obj) => {
-    const res = await coreApi(context).readNamespacedPersistentVolumeClaim(obj.metadata.name, namespace)
+  PersistentVolumeClaim: async (api, namespace, obj) => {
+    const res = await api.core.readNamespacedPersistentVolumeClaim(obj.metadata.name, namespace)
     const state: ServiceState = res.body.status.phase === "Bound" ? "ready" : "deploying"
     return { state, obj }
   },
 
-  Pod: async (namespace, context, obj) => {
-    const res = await coreApi(context).readNamespacedPod(obj.metadata.name, namespace)
+  Pod: async (api, namespace, obj) => {
+    const res = await api.core.readNamespacedPod(obj.metadata.name, namespace)
     return checkPodStatus(obj, [res.body])
   },
 
-  ReplicaSet: async (namespace, context, obj) => {
-    const res = await coreApi(context).listNamespacedPod(
+  ReplicaSet: async (api, namespace, obj) => {
+    const res = await api.core.listNamespacedPod(
       namespace, undefined, undefined, undefined, true, obj.spec.selector.matchLabels,
     )
     return checkPodStatus(obj, res.body.items)
   },
-  ReplicationController: async (namespace, context, obj) => {
-    const res = await coreApi(context).listNamespacedPod(
+  ReplicationController: async (api, namespace, obj) => {
+    const res = await api.core.listNamespacedPod(
       namespace, undefined, undefined, undefined, true, obj.spec.selector,
     )
     return checkPodStatus(obj, res.body.items)
   },
 
-  Service: async (namespace, context, obj) => {
+  Service: async (api, namespace, obj) => {
     if (obj.spec.type === "ExternalName") {
       return { state: "ready", obj }
     }
 
-    if (obj.spec.clusterIP !== "None" && obj.spec.clusterIP === "") {
+    const status = await api.core.readNamespacedService(obj.metadata.name, namespace)
+
+    if (obj.spec.clusterIP !== "None" && status.body.spec.clusterIP === "") {
       return { state: "deploying", obj }
     }
-
-    const status = await coreApi(context).readNamespacedService(obj.metadata.name, namespace)
 
     if (obj.spec.type === "LoadBalancer" && !status.body.status.loadBalancer.ingress) {
       return { state: "deploying", obj }
@@ -112,7 +112,7 @@ async function checkPodStatus(obj: KubernetesObject, pods: V1Pod[]): Promise<Rol
  * didn't pan out, since it doesn't look for events and just times out when errors occur during rollout.
  */
 export async function checkDeploymentStatus(
-  namespace: string, context: string, obj: KubernetesObject, resourceVersion?: number,
+  api: KubeApi, namespace: string, obj: KubernetesObject, resourceVersion?: number,
 ): Promise<RolloutStatus> {
   //
   const out: RolloutStatus = {
@@ -124,7 +124,7 @@ export async function checkDeploymentStatus(
   let statusRes: V1Deployment | V1DaemonSet | V1StatefulSet
 
   try {
-    statusRes = <V1Deployment | V1DaemonSet | V1StatefulSet>(await apiReadBySpec(namespace, context, obj)).body
+    statusRes = <V1Deployment | V1DaemonSet | V1StatefulSet>(await api.readBySpec(namespace, obj)).body
   } catch (err) {
     if (err.code && err.code === 404) {
       // service is not running
@@ -140,7 +140,7 @@ export async function checkDeploymentStatus(
 
   // TODO: try to come up with something more efficient. may need to wait for newer k8s version.
   // note: the resourceVersion parameter does not appear to work...
-  const eventsRes = await coreApi(context).listNamespacedEvent(namespace)
+  const eventsRes = await api.core.listNamespacedEvent(namespace)
 
   // const eventsRes = await this.kubeApi(
   //   "GET",
@@ -271,7 +271,7 @@ export async function checkDeploymentStatus(
  * Check if the specified Kubernetes objects are deployed and fully rolled out
  */
 export async function checkObjectStatus(
-  context: string, namespace: string, objects: KubernetesObject[], prevStatuses?: RolloutStatus[],
+  api: KubeApi, namespace: string, objects: KubernetesObject[], prevStatuses?: RolloutStatus[],
 ) {
   let ready = true
 
@@ -279,7 +279,7 @@ export async function checkObjectStatus(
     const handler = objHandlers[obj.kind]
     const prevStatus = prevStatuses && prevStatuses[i]
     const status: RolloutStatus = handler
-      ? await handler(namespace, context, obj, prevStatus && prevStatus.resourceVersion)
+      ? await handler(api, namespace, obj, prevStatus && prevStatus.resourceVersion)
       // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
       : { state: "ready", obj }
 
@@ -302,7 +302,6 @@ export async function waitForObjects(
 ) {
   let loops = 0
   let lastMessage
-  let lastDetailMessage
   const startTime = new Date().getTime()
   const log = logEntry || ctx.log
 
@@ -312,7 +311,7 @@ export async function waitForObjects(
     msg: `Waiting for service to be ready...`,
   })
 
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const namespace = await getAppNamespace(ctx, provider)
   let prevStatuses: RolloutStatus[] = objects.map((obj) => ({
     state: <ServiceState>"unknown",
@@ -322,7 +321,7 @@ export async function waitForObjects(
   while (true) {
     await sleep(2000 + 1000 * loops)
 
-    const { ready, statuses } = await checkObjectStatus(context, namespace, objects, prevStatuses)
+    const { ready, statuses } = await checkObjectStatus(api, namespace, objects, prevStatuses)
 
     for (const status of statuses) {
       if (status.lastError) {
@@ -332,16 +331,7 @@ export async function waitForObjects(
         })
       }
 
-      if (status.lastMessage && (!lastDetailMessage || status.lastMessage !== lastDetailMessage)) {
-        lastDetailMessage = status.lastMessage
-        log.verbose({
-          symbol: LogSymbolType.info,
-          section: service.name,
-          msg: status.lastMessage,
-        })
-      }
-
-      if (status.lastMessage && (!lastMessage && status.lastMessage !== lastMessage)) {
+      if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
         log.verbose({
           symbol: LogSymbolType.info,
@@ -375,7 +365,7 @@ export async function compareDeployedObjects(
 ): Promise<boolean> {
   const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, provider, obj))
 
-  for (const [obj, existingSpec] of zip(objects, existingObjects)) {
+  for (let [obj, existingSpec] of zip(objects, existingObjects)) {
     if (existingSpec && obj) {
       // the API version may implicitly change when deploying
       existingSpec.apiVersion = obj.apiVersion
@@ -388,6 +378,27 @@ export async function compareDeployedObjects(
       if (!existingSpec.metadata.annotations) {
         existingSpec.metadata.annotations = {}
       }
+
+      // handle auto-filled properties (this is a bit of a design issue in the K8s API)
+      if (obj.kind === "Service" && obj.spec.clusterIP === "") {
+        delete obj.spec.clusterIP
+      }
+
+      // handle properties that are omitted in the response because they have the default value
+      // (another design issue in the K8s API)
+      // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
+      //       `kubectl diff` is ready, or server-side apply/diff is ready
+      if (obj.kind === "DaemonSet") {
+        if (obj.spec.minReadySeconds === 0) {
+          delete obj.spec.minReadySeconds
+        }
+        if (obj.spec.template.spec.hostNetwork === false) {
+          delete obj.spec.template.spec.hostNetwork
+        }
+      }
+
+      // clean null values
+      obj = <KubernetesObject>removeNull(obj)
     }
 
     if (!existingSpec || !isSubset(existingSpec, obj)) {
@@ -403,11 +414,11 @@ export async function compareDeployedObjects(
 }
 
 async function getDeployedObject(ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesObject) {
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const namespace = obj.metadata.namespace || await getAppNamespace(ctx, provider)
 
   try {
-    const res = await apiReadBySpec(namespace, context, obj)
+    const res = await api.readBySpec(namespace, obj)
     return res.body
   } catch (err) {
     if (err.code === 404) {
@@ -415,5 +426,18 @@ async function getDeployedObject(ctx: PluginContext, provider: KubernetesProvide
     } else {
       throw err
     }
+  }
+}
+
+/**
+ * Recursively removes all null value properties from objects
+ */
+export function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof T]: T[K] } {
+  if (isArray(value)) {
+    return value.map(removeNull)
+  } else if (isPlainObject(value)) {
+    return <{ [K in keyof T]: T[K] }>mapValues(pickBy(<any>value, v => v !== null), removeNull)
+  } else {
+    return value
   }
 }

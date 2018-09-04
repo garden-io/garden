@@ -342,7 +342,7 @@ export class Garden {
         pluginModule = require(moduleNameOrLocation)
       } catch (error) {
         throw new ConfigurationError(`Unable to load plugin "${moduleNameOrLocation}" (could not load module)`, {
-          error,
+          message: error.message,
           moduleNameOrLocation,
         })
       }
@@ -396,6 +396,7 @@ export class Garden {
 
     try {
       plugin = await factory({
+        projectName: this.projectName,
         config,
         logEntry: this.log,
       })
@@ -706,16 +707,6 @@ export class Garden {
     @param force - add the module again, even if it's already registered
    */
   async addModule(config: ModuleConfig, force = false) {
-    if (!force && this.moduleConfigs[config.name]) {
-      const pathA = relative(this.projectRoot, this.moduleConfigs[config.name].path)
-      const pathB = relative(this.projectRoot, config.path)
-
-      throw new ConfigurationError(
-        `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
-        { pathA, pathB },
-      )
-    }
-
     const parseHandler = await this.getModuleActionHandler({ actionType: "parseModule", moduleType: config.type })
     const env = this.getEnvironment()
     const provider: Provider = {
@@ -727,6 +718,16 @@ export class Garden {
 
     // FIXME: this is rather clumsy
     config.name = getModuleKey(config.name, config.plugin)
+
+    if (!force && this.moduleConfigs[config.name]) {
+      const pathA = relative(this.projectRoot, this.moduleConfigs[config.name].path)
+      const pathB = relative(this.projectRoot, config.path)
+
+      throw new ConfigurationError(
+        `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
+        { pathA, pathB },
+      )
+    }
 
     this.moduleConfigs[config.name] = config
 

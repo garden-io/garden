@@ -8,7 +8,7 @@
 
 import * as td from "testdouble"
 import { resolve, join } from "path"
-import { remove } from "fs-extra"
+import { remove, readdirSync, existsSync } from "fs-extra"
 import { containerModuleSpecSchema } from "../src/plugins/container"
 import { testGenericModule, buildGenericModule } from "../src/plugins/generic"
 import { TaskResults } from "../src/task-graph"
@@ -23,7 +23,7 @@ import {
 } from "../src/types/plugin/plugin"
 import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
-import { mapValues } from "lodash"
+import { mapValues, fromPairs } from "lodash"
 import {
   DeleteConfigParams,
   GetConfigParams,
@@ -41,6 +41,7 @@ import {
 import { GARDEN_DIR_NAME } from "../src/constants"
 
 export const dataDir = resolve(__dirname, "data")
+export const examplesDir = resolve(__dirname, "..", "..", "examples")
 export const testNow = new Date()
 export const testModuleVersionString = "1234512345"
 export const testModuleVersion: ModuleVersion = {
@@ -286,4 +287,9 @@ export function stubExtSources(garden: Garden) {
 
   td.when(getRemoteSourcesDirname("module")).thenReturn(join("mock-dot-garden", "sources", "module"))
   td.when(getRemoteSourcesDirname("project")).thenReturn(join("mock-dot-garden", "sources", "project"))
+}
+
+export function getExampleProjects() {
+  const names = readdirSync(examplesDir).filter(n => existsSync(join(examplesDir, n, "garden.yml")))
+  return fromPairs(names.map(n => [n, join(examplesDir, n)]))
 }

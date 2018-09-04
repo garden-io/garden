@@ -7,7 +7,7 @@ module:
       dependencies:
         - service-b
       endpoints:
-        - paths: [/path-d]
+        - path: /path-d
           port: http
       ports:
         - name: http

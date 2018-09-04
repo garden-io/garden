@@ -2,18 +2,18 @@
 
 Garden is configured via `garden.yml` configuration files.
 
-The [project-wide](#project-configuration) `garden.yml` file should be located in the top-level directory of the 
-project's Git 
+The [project-wide](#project-configuration) `garden.yml` file should be located in the top-level directory of the
+project's Git
 repository.
 
-In addition, each of the project's [modules](../guides/glossary.md#module)' `garden.yml` should be located in that module's 
-top-level 
+In addition, each of the project's [modules](../guides/glossary.md#module)' `garden.yml` should be located in that module's
+top-level
 directory.
 
 Currently, Garden projects assume that all their modules are rooted in subdirectories of the same Git repository.
 In a future release, this mono-repo structure will be made optional.
 
-To get started, create a `garden.yml` file in the top-level directory of your repository, and a `garden.yml` file 
+To get started, create a `garden.yml` file in the top-level directory of your repository, and a `garden.yml` file
 in the top-level directory of each of the modules you'd like do define for your project.
 
 To decide how to split your project up into modules, it's useful to consider what parts of it are built as a single
@@ -53,14 +53,14 @@ The project-wide `garden.yml` defines the project's name, the default providers 
 [environment](../guides/glossary.md#environment)-specific provider overrides as is appropriate for each of the project's
 configured environments (`local` and `dev` under the `environments` directive above).
 
-Here, project-wide configuration variables can also be specified (global, and/or environment-specific). These are 
+Here, project-wide configuration variables can also be specified (global, and/or environment-specific). These are
 then available for interpolation in any string scalar value in any module's `garden.yml`.
- 
- For example, assuming the above project configuration, `"foo-${variables.my-variable}-bar"` would evaluate to 
+
+ For example, assuming the above project configuration, `"foo-${variables.my-variable}-bar"` would evaluate to
  `"foo-hello-variable-bar"` when used as a scalar string value in a module's `garden.yml`.
 
 ### Module Configuration
-Below, we'll use the module configurations of `hello-function` and `hello-container` from the 
+Below, we'll use the module configurations of `hello-function` and `hello-container` from the
 [hello-world example project](https://github.com/garden-io/garden/tree/528b141717f718ebe304d2ebde87b85d0c6c5e50/examples/hello-world)
 as examples to illustrate some of the primary module-level configuration options.
 
@@ -87,18 +87,18 @@ Note that module names must be unique within a given project. An error will be t
 modules use the same name.
 
 #### type
-A [module](../guides/glossary.md#module)'s `type` specifies its plugin type. Garden interprets this according to the 
+A [module](../guides/glossary.md#module)'s `type` specifies its plugin type. Garden interprets this according to the
 active environment's configured provider for the specified plugin type.
 
 For example,
 [`hello-container`](#hello-container-module-configuration)'s `type` is set to `container`, which the
-[project configuration](#project-configuration) above interprets as `local-kubernetes` (a Docker container managed 
+[project configuration](#project-configuration) above interprets as `local-kubernetes` (a Docker container managed
 via a local Kubernetes installation), assuming that the `local` environment is being used.
 
 #### build
 A module's build configuration is specified via the `build` directive.
 
-Under `build`, the `command` subdirective sets the CLI command run during builds. A module's build command is executed 
+Under `build`, the `command` subdirective sets the CLI command run during builds. A module's build command is executed
 with its working directory set to a copy of the module's top-level directory, located at
 `[project-root]/.garden/build/[module-name]`. This internal directory is referred to as the module's
 [build directory](../guides/glossary.md#build-directory).
@@ -107,8 +107,8 @@ The `.garden` directory should not be modified by users, since this may lead to 
 tools are used in the project.
 
 ##### Build Dependencies
-The `dependencies` subdirective lists the module's build dependencies. `name` is the required module's name, and 
-`copy` indicates what files/folders, if any, should be copied from the required module's build directory to the 
+The `dependencies` subdirective lists the module's build dependencies. `name` is the required module's name, and
+`copy` indicates what files/folders, if any, should be copied from the required module's build directory to the
 module in question after the required module is built (`source`), and where they should be copied (`target).
 
 #### Services
@@ -124,7 +124,7 @@ module:
         - name: http
           containerPort: 8080
       endpoints:
-        - paths: [/hello]
+        - path: /hello
           port: http
       healthCheck:
         httpGet:
@@ -148,14 +148,14 @@ The CLI command to be executed (after the module is built) to make the service's
 Names each port exposed by the service.
 
 ##### endpoints
-Enumerates the functional endpoints exposed by the service, defining the relative path and port to associate with 
+Enumerates the functional endpoints exposed by the service, defining the relative path and port to associate with
 each of them.
 
 ##### healthcheck
 Defines the endpoint used to query the service's availability.
 
 ##### dependencies
-Lists the names of the services that must be deployed before the service in question (the `hello-container` service, in 
+Lists the names of the services that must be deployed before the service in question (the `hello-container` service, in
 this case) is deployed.
 
 ##### tests
@@ -175,12 +175,12 @@ module:
       dependencies:
         - hello-function
 ```
-Test groups can be run by `name` via `garden test`. `command` is the CLI command to run the specified tests, and 
+Test groups can be run by `name` via `garden test`. `command` is the CLI command to run the specified tests, and
 `dependencies` lists (by name) the services (if any) that must be deployed before the test group in question is run.
 
 #### Functions (experimental)
-For modules defining serverless functions, the `functions` directive specifies the names and entry points of the 
-functions the module exposes. Note that serverless functionality is still experimental and under active development. 
+For modules defining serverless functions, the `functions` directive specifies the names and entry points of the
+functions the module exposes. Note that serverless functionality is still experimental and under active development.
 
 This section is currently only included to clarify the `functions` directive in
 [`hello-function`'s module config](#hello-function-module-configuration), since it's used as an example here.
@@ -223,7 +223,7 @@ module:
         - name: http
           containerPort: 8080
       endpoints:
-        - paths: [/hello]
+        - path: /hello
           port: http
       healthCheck:
         httpGet:

@@ -13,6 +13,9 @@ import { PrimitiveMap } from "../config/common"
 import { Module, getModuleKey } from "./module"
 import { serviceOutputsSchema, ServiceConfig } from "../config/service"
 import { validate } from "../config/common"
+import dedent = require("dedent")
+import { format } from "url"
+import normalizeUrl = require("normalize-url")
 
 export interface Service<M extends Module = Module> {
   name: string
@@ -32,33 +35,59 @@ export function serviceFromConfig<M extends Module = Module>(module: M, config: 
 
 export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "unknown" | "outdated" | "missing"
 
-export type ServiceProtocol = "http" | "https" | "tcp" | "udp"
+// TODO: support TCP, UDP and gRPC
+export type ServiceProtocol = "http" | "https"  // | "tcp" | "udp"
 
-export interface ServiceEndpoint {
+export interface ServiceEndpointSpec {
+  name: string
+  hostname?: string
+  path: string
+  port: number
   protocol: ServiceProtocol
-  hostname: string
-  port?: number
-  url: string
-  paths?: string[]
 }
 
-export const serviceEndpointSchema = Joi.object()
+export interface ServiceEndpoint extends ServiceEndpointSpec {
+  hostname: string
+}
+
+export const endpointHostnameSchema = Joi.string()
+  .hostname()
+  .description(dedent`
+    The hostname that should route to this service. Defaults to the default hostname configured
+    in the provider configuration.
+
+    Note that if you're developing locally you may need to add this hostname to your hosts file.
+  `)
+
+const portSchema = Joi.number()
+  .description(dedent`
+    The port number that the service is exposed on internally.
+    This defaults to the first specified port for the service.
+  `)
+
+export const serviceEndpointSpecSchema = Joi.object()
   .keys({
+    name: Joi.string()
+      .default("default")
+      .description("A unique name for this endpoint."),
+    hostname: endpointHostnameSchema,
+    port: portSchema,
+    path: Joi.string()
+      .default("/")
+      .description("The ingress path that should be matched to route to this service."),
     protocol: Joi.string()
-      .only("http", "https", "tcp", "udp")
+      .only("http", "https")
       .required()
       .description("The protocol to use for the endpoint."),
+  })
+
+export const serviceEndpointSchema = serviceEndpointSpecSchema
+  .keys({
     hostname: Joi.string()
       .required()
-      .description("The external hostname of the service endpoint."),
-    port: Joi.number()
-      .description("The port number that the service is exposed on."),
-    url: Joi.string()
-      .uri()
-      .required()
-      .description("The full URL of the service endpoint."),
-    paths: Joi.array().items(Joi.string())
-      .description("The paths that are available on the service endpoint (defaults to any path)."),
+      .description("The hostname where the service can be accessed."),
+    port: portSchema
+      .required(),
   })
   .description("A description of a deployed service endpoint.")
 
@@ -93,6 +122,7 @@ export const serviceStatusSchema = Joi.object()
       .description("How many replicas of the service are currently running."),
     endpoints: Joi.array()
       .items(serviceEndpointSchema)
+      .unique("name")
       .description("List of currently deployed endpoints for the service."),
     lastMessage: Joi.string()
       .allow("")
@@ -178,4 +208,13 @@ export async function prepareRuntimeContext(
       version: versionString,
     },
   }
+}
+
+export function getEndpointUrl(endpoint: ServiceEndpoint) {
+  return normalizeUrl(format({
+    protocol: endpoint.protocol,
+    hostname: endpoint.hostname,
+    port: endpoint.port,
+    pathname: endpoint.path,
+  }))
 }

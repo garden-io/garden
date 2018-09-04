@@ -48,6 +48,7 @@ import { ServiceState } from "../../types/service"
 import { compareDeployedObjects, waitForObjects, checkObjectStatus } from "./status"
 import { getGenericModuleBuildStatus } from "../generic"
 import { ServiceSpec } from "../../config/service"
+import { KubeApi } from "./api"
 
 export interface KubernetesObject {
   apiVersion: string
@@ -283,9 +284,9 @@ async function getServiceStatus(
 
   // then check if the rollout is complete
   const version = module.version
-  const context = provider.config.context
+  const api = new KubeApi(provider)
   const namespace = await getAppNamespace(ctx, provider)
-  const { ready } = await checkObjectStatus(context, namespace, objects)
+  const { ready } = await checkObjectStatus(api, namespace, objects)
 
   // TODO: set state to "unhealthy" if any status is "unhealthy"
   const state = ready ? "ready" : "deploying"

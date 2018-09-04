@@ -1,0 +1,25 @@
+module:
+  name: node-service
+  description: Node service container
+  type: container
+  services:
+    - name: node-service
+      command: [npm, start]
+      ports:
+        - name: http
+          containerPort: 8080
+      endpoints:
+        - path: /hello
+          port: http
+        - name: call-go
+          path: /call-go-service
+          port: http
+      dependencies:
+        - go-service
+  tests:
+    - name: unit
+      command: [npm, test]
+    - name: integ
+      command: [npm, run, integ]
+      dependencies:
+        - go-service

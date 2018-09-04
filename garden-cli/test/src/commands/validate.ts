@@ -1,17 +1,19 @@
 import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { ValidateCommand } from "../../../src/commands/validate"
-import { expectError } from "../../helpers"
+import { expectError, getExampleProjects } from "../../helpers"
 
 describe("commands.validate", () => {
-  it("should successfully validate the hello-world project", async () => {
-    const root = join(__dirname, "..", "..", "..", "..", "examples", "hello-world")
-    const garden = await Garden.factory(root)
-    const ctx = garden.getPluginContext()
-    const command = new ValidateCommand()
+  // validate all of the example projects
+  for (const [name, path] of Object.entries(getExampleProjects())) {
+    it(`should successfully validate the ${name} project`, async () => {
+      const garden = await Garden.factory(path)
+      const ctx = garden.getPluginContext()
+      const command = new ValidateCommand()
 
-    await command.action({ garden, ctx, args: {}, opts: {} })
-  })
+      await command.action({ garden, ctx, args: {}, opts: {} })
+    })
+  }
 
   it("should fail validating the bad-project project", async () => {
     const root = join(__dirname, "data", "validate", "bad-project")

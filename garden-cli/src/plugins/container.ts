@@ -31,7 +31,7 @@ import {
   PushModuleParams,
   RunServiceParams,
 } from "../types/plugin/params"
-import { Service } from "../types/service"
+import { Service, endpointHostnameSchema } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
@@ -39,10 +39,10 @@ import { genericTestSchema, GenericTestSpec } from "./generic"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
 
-export interface ServiceEndpointSpec {
-  paths?: string[]
-  // TODO: support definition of hostnames on endpoints
-  // hostname?: string
+export interface ContainerEndpointSpec {
+  name: string
+  hostname?: string
+  path: string
   port: string
 }
 
@@ -75,7 +75,7 @@ export interface ServiceHealthCheckSpec {
 export interface ContainerServiceSpec extends BaseServiceSpec {
   command: string[],
   daemon: boolean
-  endpoints: ServiceEndpointSpec[],
+  endpoints: ContainerEndpointSpec[],
   env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
   ports: ServicePortSpec[],
@@ -86,10 +86,13 @@ export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const endpointSchema = Joi.object()
   .keys({
-    paths: Joi.array()
-      .items(Joi.string().uri(<any>{ relativeOnly: true }))
-      .description("The paths which should be routed to the service."),
-    // hostname: Joi.string(),
+    name: joiIdentifier()
+      .default("default")
+      .description("A name to assign to the endpoint."),
+    hostname: endpointHostnameSchema,
+    path: Joi.string().uri(<any>{ relativeOnly: true })
+      .default("/")
+      .description("The path which should be routed to the service."),
     port: Joi.string()
       .required()
       .description("The name of the container port where the specified paths should be routed."),
@@ -157,7 +160,12 @@ const serviceSchema = baseServiceSchema
       .default(false)
       .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
     endpoints: joiArray(endpointSchema)
-      .description("List of endpoints that the service exposes."),
+      .unique("name")
+      .description("List of endpoints that the service exposes.")
+      .example([{
+        path: "/api",
+        port: "http",
+      }]),
     env: joiEnvVars(),
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),

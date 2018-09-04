@@ -21,7 +21,7 @@ import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { EntryStyle } from "../logger/types"
 import { pick, find } from "lodash"
-import { ServiceEndpoint } from "../types/service"
+import { ServiceEndpoint, getEndpointUrl } from "../types/service"
 import dedent = require("dedent")
 
 export const callArgs = {
@@ -46,7 +46,7 @@ export class CallCommand extends Command<typeof callArgs> {
         garden call my-container
         garden call my-container/some-path
 
-    Note: Currently only supports HTTP/HTTPS endpoints.
+    Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
   `
 
   arguments = callArgs
@@ -81,7 +81,7 @@ export class CallCommand extends Command<typeof callArgs> {
 
     if (!path) {
       // if no path is specified and there's a root endpoint (path === "/") we use that
-      const rootEndpoint = <ServiceEndpoint>find(endpoints, e => e.paths && e.paths.includes("/"))
+      const rootEndpoint = <ServiceEndpoint>find(endpoints, e => e.path === "/")
 
       if (rootEndpoint) {
         matchedEndpoint = rootEndpoint
@@ -89,7 +89,7 @@ export class CallCommand extends Command<typeof callArgs> {
       } else {
         // if there's no root endpoint, pick the first endpoint
         matchedEndpoint = endpoints[0]
-        matchedPath = endpoints[0].paths ? endpoints[0].paths![0] : ""
+        matchedPath = endpoints[0].path
       }
 
       path = matchedPath
@@ -98,12 +98,10 @@ export class CallCommand extends Command<typeof callArgs> {
       path = "/" + path
 
       for (const endpoint of status.endpoints) {
-        if (endpoint.paths) {
-          for (const endpointPath of endpoint.paths) {
-            if (path.startsWith(endpointPath) && (!matchedPath || endpointPath.length > matchedPath.length)) {
-              matchedPath = endpointPath
-              matchedEndpoint = endpoint
-            }
+        if (endpoint.path) {
+          if (path.startsWith(endpoint.path) && (!matchedPath || endpoint.path.length > matchedPath.length)) {
+            matchedEndpoint = endpoint
+            matchedPath = endpoint.path
           }
         } else if (!matchedPath) {
           matchedEndpoint = endpoint
@@ -119,14 +117,17 @@ export class CallCommand extends Command<typeof callArgs> {
       })
     }
 
-    const url = resolve(matchedEndpoint.url, path || matchedPath)
+    const url = resolve(getEndpointUrl(matchedEndpoint), path || matchedPath)
     // TODO: support POST requests with request body
     const method = "get"
 
     const entry = ctx.log.info({
-      msg: chalk.cyan(`Sending HTTP GET request to `) + url,
+      msg: chalk.cyan(`Sending HTTP GET request to `) + url + "\n",
       entryStyle: EntryStyle.activity,
     })
+
+    // this is to accept self-signed certs
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
     const req = Axios({
       method,
@@ -142,16 +143,18 @@ export class CallCommand extends Command<typeof callArgs> {
     try {
       res = await req
       entry.setSuccess()
-      ctx.log.info(chalk.green(`\n${res.status} ${res.statusText}\n`))
+      ctx.log.info(chalk.green(`${res.status} ${res.statusText}\n`))
     } catch (err) {
       res = err.response
       entry.setError()
-      ctx.log.info(chalk.red(`\n${res.status} ${res.statusText}\n`))
+      const error = res ? `${res.status} ${res.statusText}` : err.message
+      ctx.log.info(chalk.red(error + "\n"))
+      return {}
     }
 
     const resStr = isObject(res.data) ? JSON.stringify(res.data, null, 2) : res.data
 
-    res.data && ctx.log.info(chalk.white(resStr))
+    res.data && ctx.log.info(chalk.white(resStr) + "\n")
 
     return {
       result: {
