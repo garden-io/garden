@@ -8,36 +8,22 @@
 
 import * as execa from "execa"
 import { safeLoad } from "js-yaml"
-import {
-  every,
-  values,
-} from "lodash"
+import { every, values } from "lodash"
 import * as Joi from "joi"
 import { join } from "path"
 import { PluginError } from "../../exceptions"
 import { Environment, validate } from "../../config/common"
-import {
-  GardenPlugin,
-} from "../../types/plugin/plugin"
-import {
-  ConfigureEnvironmentParams,
-  GetEnvironmentStatusParams,
-} from "../../types/plugin/params"
+import { GardenPlugin, Provider } from "../../types/plugin/plugin"
+import { ConfigureEnvironmentParams, GetEnvironmentStatusParams } from "../../types/plugin/params"
 import { providerConfigBase } from "../../config/project"
 import { findByName } from "../../util/util"
-import {
-  configureEnvironment,
-  getEnvironmentStatus,
-} from "./actions"
+import { configureEnvironment, getEnvironmentStatus } from "./actions"
 import {
   gardenPlugin as k8sPlugin,
   KubernetesConfig,
   KubernetesProvider,
 } from "./kubernetes"
-import {
-  getSystemGarden,
-  isSystemGarden,
-} from "./system"
+import { getSystemGarden, isSystemGarden } from "./system"
 import { readFile } from "fs-extra"
 import { LogEntry } from "../../logger/logger"
 import { homedir } from "os"
@@ -72,7 +58,7 @@ export async function getLocalEnvironmentStatus(
 
 async function configureSystemEnvironment(
   { provider, env, force, logEntry }:
-    { provider: KubernetesProvider, env: Environment, force: boolean, logEntry?: LogEntry },
+    { provider: LocalKubernetesProvider, env: Environment, force: boolean, logEntry?: LogEntry },
 ) {
   const sysGarden = await getSystemGarden(provider)
   const sysCtx = sysGarden.getPluginContext()
@@ -103,14 +89,19 @@ async function configureSystemEnvironment(
     logEntry,
   })
 
-  const results = await sysCtx.deployServices({})
-
-  const failed = values(results.taskResults).filter(r => !!r.error).length
-
-  if (failed) {
-    throw new PluginError(`local-kubernetes: ${failed} errors occurred when configuring environment`, {
-      results,
+  // only deploy services if configured to do so (minikube bundles the required services as addons)
+  if (!provider.config._systemServices || provider.config._systemServices.length > 0) {
+    const results = await sysCtx.deployServices({
+      serviceNames: provider.config._systemServices,
     })
+
+    const failed = values(results.taskResults).filter(r => !!r.error).length
+
+    if (failed) {
+      throw new PluginError(`local-kubernetes: ${failed} errors occurred when configuring environment`, {
+        results,
+      })
+    }
   }
 }
 
@@ -152,6 +143,8 @@ export interface LocalKubernetesConfig extends KubernetesConfig {
   _system?: Symbol
   _systemServices?: string[]
 }
+
+type LocalKubernetesProvider = Provider<LocalKubernetesConfig>
 
 const configSchema = providerConfigBase
   .keys({
@@ -215,6 +208,7 @@ export async function gardenPlugin({ config, logEntry }): Promise<GardenPlugin> 
     }
 
     await Promise.all([
+      // TODO: wait for ingress addon to be ready, if it was previously disabled
       execa("minikube", ["addons", "enable", "ingress"]),
       setMinikubeDockerEnv(),
     ])
