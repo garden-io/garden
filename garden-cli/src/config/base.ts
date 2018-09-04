@@ -48,16 +48,17 @@ export const configSchema = Joi.object()
 
 const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children)
 
-export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig> {
+export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig | undefined> {
   // TODO: nicer error messages when load/validation fails
   const absPath = join(path, CONFIG_FILENAME)
   let fileData
   let spec: any
 
+  // loadConfig returns null if config file is not found in the given directory
   try {
     fileData = await readFile(absPath)
   } catch (err) {
-    throw new ConfigurationError(`Could not find ${CONFIG_FILENAME} in directory ${path}`, err)
+    return undefined
   }
 
   try {
