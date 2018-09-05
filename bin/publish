@@ -22,10 +22,10 @@ git commit -m "chore(release): release ${version}"
 
 cd ..
 
+lerna publish from-git "$@"
+
 git push --tags --no-verify
 git push --no-verify
-
-lerna publish from-git "$@"
 
 cd garden-cli
 gulp update-brew
