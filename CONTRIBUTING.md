@@ -67,7 +67,7 @@ automatically checked during CI. You can run the check with `npm run check-licen
 ## Release process
 
 We use [Lerna](https://github.com/lerna/lerna) to automate the release process.
-Install lerna using `npm install -g lerna@3.0.0-beta21`.
+Install the latest version of lerna using `npm install -g -U lerna`.
 
 Depending on what type of release you're making, you can use one of the following commands:
 
@@ -79,4 +79,3 @@ Depending on what type of release you're making, you can use one of the followin
     npm run release-canary
 
 See more details about `lerna publish` [in their docs](https://github.com/lerna/lerna#publish).
-
