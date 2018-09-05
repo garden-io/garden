@@ -55,6 +55,7 @@ import {
 } from "./helpers"
 import { GardenConfig } from "../config/base"
 import { defaultEnvironments } from "../config/project"
+import { ERROR_LOG_FILENAME } from "../constants"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -126,7 +127,6 @@ export const GLOBAL_OPTIONS = {
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
-const ERROR_LOG_FILENAME = "error.log"
 const DEFAULT_CLI_LOGGER_TYPE = LoggerType.fancy
 
 export interface ParseResults {
@@ -221,26 +221,6 @@ export class GardenCli {
         } else if (loggerType === LoggerType.basic) {
           writers.push(new BasicTerminalWriter())
         }
-
-        writers.push(
-          await FileWriter.factory({
-            root,
-            level,
-            filename: "development.log",
-          }),
-          await FileWriter.factory({
-            root,
-            filename: ERROR_LOG_FILENAME,
-            level: LogLevel.error,
-          }),
-          await FileWriter.factory({
-            root,
-            path: ".",
-            filename: ERROR_LOG_FILENAME,
-            level: LogLevel.error,
-            truncatePrevious: true,
-          }),
-        )
       }
 
       const logger = RootLogNode.initialize({ level, writers })

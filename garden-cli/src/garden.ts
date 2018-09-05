@@ -59,6 +59,7 @@ import {
 import {
   DEFAULT_NAMESPACE,
   MODULE_CONFIG_FILENAME,
+  ERROR_LOG_FILENAME,
 } from "./constants"
 import {
   ConfigurationError,
@@ -104,6 +105,8 @@ import {
 } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ProjectConfigContext, ModuleConfigContext } from "./config/config-context"
+import { LogLevel } from "./logger/types"
+import { FileWriter } from "./logger/writers/file-writer"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -135,6 +138,12 @@ export interface ContextOpts {
 }
 
 const scanLock = new AsyncLock()
+
+const fileWriterConfigs = [
+  { filename: "development.log" },
+  { filename: ERROR_LOG_FILENAME, level: LogLevel.error },
+  { filename: ERROR_LOG_FILENAME, level: LogLevel.error, path: ".", truncatePrevious: true },
+]
 
 export class Garden {
   public readonly log: RootLogNode
@@ -274,6 +283,19 @@ export class Garden {
     }
 
     const buildDir = await BuildDir.factory(projectRoot)
+
+    // Register log writers
+    if (logger) {
+      for (const writerConfig of fileWriterConfigs) {
+        logger.writers.push(
+          await FileWriter.factory({
+            level: logger.level,
+            root: projectRoot,
+            ...writerConfig,
+          }),
+        )
+      }
+    }
 
     const garden = new Garden(
       projectRoot,
