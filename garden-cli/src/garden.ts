@@ -8,7 +8,6 @@
 
 import Bluebird = require("bluebird")
 import {
-  join,
   parse,
   relative,
   resolve,
@@ -95,6 +94,7 @@ import {
   configSchema,
   GardenConfig,
   loadConfig,
+  findProjectConfig,
 } from "./config/base"
 import { Task } from "./tasks/base"
 import { LocalConfigStore } from "./config-store"
@@ -197,8 +197,6 @@ export class Garden {
 
   static async factory(currentDirectory: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
     let parsedConfig: GardenConfig
-    let initialDirectory = currentDirectory || []
-    let projectRoot: string
 
     if (config) {
       parsedConfig = <GardenConfig>validate(config, configSchema, { context: "root configuration" })
@@ -210,23 +208,19 @@ export class Garden {
         })
       }
     } else {
-      let sepCount = (currentDirectory.match(new RegExp(sep, "g")) || []).length
-      for (let i = 0; i < sepCount; i++) {
-        config = await loadConfig(currentDirectory, currentDirectory)
-        if (!config || !config.project) {
-          currentDirectory = join(currentDirectory, "..")
-        } else if (config.project) {
-          break
-        }
-      }
+      config = await findProjectConfig(currentDirectory)
+
       if (!config || !config.project) {
-        throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${initialDirectory}`,
-          { initialDirectory })
+        throw new ConfigurationError(
+          `Not a project directory (or any of the parent directories): ${currentDirectory}`,
+          { currentDirectory },
+        )
       }
+
+      parsedConfig = await resolveTemplateStrings(config!, new ProjectConfigContext())
     }
 
-    projectRoot = currentDirectory
-    parsedConfig = await resolveTemplateStrings(config!, new ProjectConfigContext())
+    const projectRoot = parsedConfig.path
 
     const {
       defaultEnvironment,

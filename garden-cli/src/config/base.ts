@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, relative, basename } from "path"
+import { join, relative, basename, sep, resolve } from "path"
 import {
   findByName,
   getNames,
@@ -134,4 +134,20 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     module: moduleConfig,
     project,
   }
+}
+
+export async function findProjectConfig(path: string): Promise<GardenConfig | undefined> {
+  let config: GardenConfig | undefined
+
+  let sepCount = path.split(sep).length - 1
+  for (let i = 0; i < sepCount; i++) {
+    config = await loadConfig(path, path)
+    if (!config || !config.project) {
+      path = resolve(path, "..")
+    } else if (config.project) {
+      return config
+    }
+  }
+
+  return config
 }

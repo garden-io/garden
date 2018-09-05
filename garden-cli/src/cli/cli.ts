@@ -82,7 +82,7 @@ const getLogLevelFromArg = (level: string) => {
 export const MOCK_CONFIG: GardenConfig = {
   version: "0",
   dirname: "/",
-  path: "/",
+  path: process.cwd(),
   project: {
     name: "mock-project",
     defaultEnvironment: "local",
