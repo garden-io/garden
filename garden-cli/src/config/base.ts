@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, relative, basename } from "path"
+import { join, relative, basename, sep, resolve } from "path"
 import {
   findByName,
   getNames,
@@ -48,16 +48,17 @@ export const configSchema = Joi.object()
 
 const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children)
 
-export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig> {
+export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig | undefined> {
   // TODO: nicer error messages when load/validation fails
   const absPath = join(path, CONFIG_FILENAME)
   let fileData
   let spec: any
 
+  // loadConfig returns null if config file is not found in the given directory
   try {
     fileData = await readFile(absPath)
   } catch (err) {
-    throw new ConfigurationError(`Could not find ${CONFIG_FILENAME} in directory ${path}`, err)
+    return undefined
   }
 
   try {
@@ -133,4 +134,20 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     module: moduleConfig,
     project,
   }
+}
+
+export async function findProjectConfig(path: string): Promise<GardenConfig | undefined> {
+  let config: GardenConfig | undefined
+
+  let sepCount = path.split(sep).length - 1
+  for (let i = 0; i < sepCount; i++) {
+    config = await loadConfig(path, path)
+    if (!config || !config.project) {
+      path = resolve(path, "..")
+    } else if (config.project) {
+      return config
+    }
+  }
+
+  return config
 }

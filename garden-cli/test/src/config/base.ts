@@ -12,7 +12,7 @@ describe("loadConfig", async () => {
   it("should load and parse a project config", async () => {
     const parsed = await loadConfig(projectPathA, projectPathA)
 
-    expect(parsed.project).to.eql({
+    expect(parsed!.project).to.eql({
       name: "test-project-a",
       defaultEnvironment: "local",
       sources: [],
@@ -41,7 +41,7 @@ describe("loadConfig", async () => {
   it("should load and parse a module config", async () => {
     const parsed = await loadConfig(projectPathA, modulePathA)
 
-    expect(parsed.module).to.eql({
+    expect(parsed!.module).to.eql({
       name: "module-a",
       type: "test",
       description: undefined,
@@ -62,6 +62,11 @@ describe("loadConfig", async () => {
       serviceConfigs: [],
       testConfigs: [],
     })
+  })
+
+  it("should return undefined if config file is not found", async () => {
+    const parsed = await loadConfig("/thisdoesnotexist", "/thisdoesnotexist")
+    expect(parsed).to.be.undefined
   })
 
 })

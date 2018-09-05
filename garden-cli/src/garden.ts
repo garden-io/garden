@@ -58,6 +58,7 @@ import {
 import {
   DEFAULT_NAMESPACE,
   MODULE_CONFIG_FILENAME,
+  ERROR_LOG_FILENAME,
 } from "./constants"
 import {
   ConfigurationError,
@@ -93,6 +94,7 @@ import {
   configSchema,
   GardenConfig,
   loadConfig,
+  findProjectConfig,
 } from "./config/base"
 import { Task } from "./tasks/base"
 import { LocalConfigStore } from "./config-store"
@@ -103,6 +105,8 @@ import {
 } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ProjectConfigContext, ModuleConfigContext } from "./config/config-context"
+import { LogLevel } from "./logger/types"
+import { FileWriter } from "./logger/writers/file-writer"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -134,6 +138,12 @@ export interface ContextOpts {
 }
 
 const scanLock = new AsyncLock()
+
+const fileWriterConfigs = [
+  { filename: "development.log" },
+  { filename: ERROR_LOG_FILENAME, level: LogLevel.error },
+  { filename: ERROR_LOG_FILENAME, level: LogLevel.error, path: ".", truncatePrevious: true },
+]
 
 export class Garden {
   public readonly log: RootLogNode
@@ -185,7 +195,7 @@ export class Garden {
     this.taskGraph = new TaskGraph(this.pluginContext)
   }
 
-  static async factory(projectRoot: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
+  static async factory(currentDirectory: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
     let parsedConfig: GardenConfig
 
     if (config) {
@@ -193,21 +203,24 @@ export class Garden {
 
       if (!parsedConfig.project) {
         throw new ConfigurationError(`Supplied config does not contain a project configuration`, {
-          projectRoot,
+          currentDirectory,
           config,
         })
       }
     } else {
-      config = await loadConfig(projectRoot, projectRoot)
-      parsedConfig = await resolveTemplateStrings(config, new ProjectConfigContext())
+      config = await findProjectConfig(currentDirectory)
 
-      if (!parsedConfig.project) {
-        throw new ConfigurationError(`Path ${projectRoot} does not contain a project configuration`, {
-          projectRoot,
-          config,
-        })
+      if (!config || !config.project) {
+        throw new ConfigurationError(
+          `Not a project directory (or any of the parent directories): ${currentDirectory}`,
+          { currentDirectory },
+        )
       }
+
+      parsedConfig = await resolveTemplateStrings(config!, new ProjectConfigContext())
     }
+
+    const projectRoot = parsedConfig.path
 
     const {
       defaultEnvironment,
@@ -215,7 +228,7 @@ export class Garden {
       name: projectName,
       environmentDefaults,
       sources: projectSources,
-    } = parsedConfig.project
+    } = parsedConfig.project!
 
     if (!env) {
       env = defaultEnvironment
@@ -264,6 +277,19 @@ export class Garden {
     }
 
     const buildDir = await BuildDir.factory(projectRoot)
+
+    // Register log writers
+    if (logger) {
+      for (const writerConfig of fileWriterConfigs) {
+        logger.writers.push(
+          await FileWriter.factory({
+            level: logger.level,
+            root: projectRoot,
+            ...writerConfig,
+          }),
+        )
+      }
+    }
 
     const garden = new Garden(
       projectRoot,
@@ -782,7 +808,7 @@ export class Garden {
     const path = resolve(this.projectRoot, nameOrLocation)
     const config = await loadConfig(this.projectRoot, path)
 
-    if (!config.module) {
+    if (!config || !config.module) {
       return null
     }
 

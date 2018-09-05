@@ -268,7 +268,7 @@ export class LogEntry extends LogNode {
 
 export class RootLogNode extends LogNode {
   public readonly root: RootLogNode
-  public readonly writers: Writer[]
+  public writers: Writer[]
 
   private static instance: RootLogNode
 
