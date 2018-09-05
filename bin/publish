@@ -9,20 +9,15 @@ cd ${garden_root}
 lerna version --no-push
 git reset HEAD~1
 
-# TODO: set this up to work with multiple packages
-cd garden-cli
-
-../node_modules/.bin/conventional-changelog -p angular -i CHANGELOG.md --commit-path . -s
+./node_modules/.bin/conventional-changelog -p angular -i CHANGELOG.md --commit-path . -s
 git add CHANGELOG.md
-version=$(node -p "require('./package.json').version")
+version=$(node -p "require('./lerna.json').version")
 git commit -m "chore(release): release ${version}"
-
-npm publish
-
-cd ..
 
 git push --tags --no-verify
 git push --no-verify
 
+# TODO: set this up to work with multiple packages
 cd garden-cli
+npm publish
 gulp update-brew
