@@ -58,7 +58,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 
 This will require a restart.
 
-#### Step 2: Docker for Windows
+#### Step 3: Docker for Windows
 
 Install the Edge version of [Docker for Windows](https://www.docker.com/docker-windows).
 
@@ -66,9 +66,9 @@ Once installed, open the Docker for Windows settings, go to the Kubernetes secti
 tick `Enable Kubernetes` and save. Please refer to their
 [installation guide](https://docs.docker.com/engine/installation/) for details.
 
-#### Step 3: Install dependencies
+#### Step 4: Install dependencies
 
-Open PowerShell as an admistrator and run:
+Open PowerShell as an administrator and run:
 
 ```powershell
 # install choco packages (note: python is needed to build some dependencies)
@@ -83,7 +83,7 @@ npm install --global --production windows-build-tools
 npm config set msvs_version 2015 --global
 ```
 
-#### Step 4: Install `garden-cli`
+#### Step 5: Install `garden-cli`
 
 Once you have the dependencies set up, open a new PowerShell and install the Garden CLI via `npm`:
 
