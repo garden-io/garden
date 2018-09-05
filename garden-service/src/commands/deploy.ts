@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import {
   BooleanParameter,
   Command,
@@ -14,10 +15,15 @@ import {
   handleTaskResults,
   StringsParameter,
 } from "./base"
+import { Garden } from "../garden"
+import { Module } from "../types/module"
 import { getDeployTasks } from "../tasks/deploy"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 import { getNames } from "../util/util"
+import { prepareRuntimeContext } from "../types/service"
+import { uniq } from "lodash"
+import { flatten } from "underscore"
 
 const deployArgs = {
   service: new StringsParameter({
@@ -82,18 +88,57 @@ export class DeployCommand extends Command<Args, Opts> {
         serviceNames,
         force: opts.force,
         forceBuild: opts["force-build"],
+        watch: opts.watch,
         includeDependants: false,
       }),
-      changeHandler: async (module) => getDeployTasks({
-        garden,
-        module,
-        serviceNames,
-        force: true,
-        forceBuild: true,
-        includeDependants: true,
-      }),
+      changeHandler: async (module) => {
+
+        const hotReload = !!module.spec.hotReload
+
+        if (hotReload) {
+          hotReloadAndLog(module, garden)
+        }
+
+        return getDeployTasks({
+          garden,
+          module,
+          serviceNames,
+          force: true,
+          forceBuild: true,
+          watch: true,
+          includeDependants: true,
+          skipDeployTaskForModule: hotReload,
+        })
+
+      },
     })
 
     return handleTaskResults(garden, "deploy", results)
   }
+}
+
+export async function hotReloadAndLog(module: Module, garden: Garden) {
+
+  const logEntry = garden.log.info({
+    section: module.name,
+    msg: "Hot reloading",
+    status: "active",
+  })
+
+  const serviceDependencyNames = uniq(flatten(module.services.map(s => s.config.dependencies)))
+  const runtimeContext = await prepareRuntimeContext(garden, module, await garden.getServices(serviceDependencyNames))
+
+  try {
+    await garden.actions.hotReload({ module, runtimeContext })
+  } catch (err) {
+    logEntry.setError()
+    throw err
+  }
+
+  const msec = logEntry.getDuration(5) * 1000
+  logEntry.setSuccess({
+    msg: chalk.green(`Done (took ${msec} ms)`),
+    append: true,
+  })
+
 }

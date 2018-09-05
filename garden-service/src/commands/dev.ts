@@ -14,6 +14,7 @@ import { join } from "path"
 
 import { BuildTask } from "../tasks/build"
 import { Task } from "../tasks/base"
+import { hotReloadAndLog } from "./deploy"
 import {
   Command,
   CommandResult,
@@ -67,6 +68,12 @@ export class DevCommand extends Command {
     const tasksForModule = (watch: boolean) => {
       return async (module: Module) => {
 
+        const hotReload = !!module.spec.hotReload
+
+        if (watch && hotReload) {
+          hotReloadAndLog(module, garden)
+        }
+
         const testModules: Module[] = watch
           ? (await withDependants(garden, [module], autoReloadDependants))
           : [module]
@@ -75,7 +82,13 @@ export class DevCommand extends Command {
           testModules, m => getTestTasks({ garden, module: m })))
 
         const deployTasks = await getDeployTasks({
-          garden, module, force: watch, forceBuild: watch, includeDependants: watch,
+          garden,
+          module,
+          watch,
+          force: watch,
+          forceBuild: watch,
+          includeDependants: watch,
+          skipDeployTaskForModule: watch && hotReload,
         })
         const tasks = testTasks.concat(deployTasks)
 

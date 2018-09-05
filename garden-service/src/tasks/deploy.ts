@@ -28,6 +28,7 @@ export interface DeployTaskParams {
   force: boolean
   forceBuild: boolean
   logEntry?: LogEntry
+  watch?: boolean
 }
 
 export class DeployTask extends Task {
@@ -36,17 +37,21 @@ export class DeployTask extends Task {
   private service: Service
   private forceBuild: boolean
   private logEntry?: LogEntry
+  private watch: boolean
 
-  constructor({ garden, service, force, forceBuild, logEntry }: DeployTaskParams) {
+  constructor({ garden, service, force, forceBuild, logEntry, watch }: DeployTaskParams) {
     super({ garden, force, version: service.module.version })
     this.service = service
     this.forceBuild = forceBuild
     this.logEntry = logEntry
+    this.watch = !!watch
   }
 
   async getDependencies() {
     const serviceDeps = this.service.config.dependencies
-    const services = await this.garden.getServices(serviceDeps)
+
+    const services = (await this.garden.getServices(serviceDeps))
+      .filter(s => !s.module.spec.hotReload)
 
     const deps: Task[] = await Bluebird.map(services, async (service) => {
       return new DeployTask({
@@ -54,6 +59,7 @@ export class DeployTask extends Task {
         service,
         force: false,
         forceBuild: this.forceBuild,
+        watch: this.watch,
       })
     })
 
@@ -109,6 +115,7 @@ export class DeployTask extends Task {
         runtimeContext: await prepareRuntimeContext(this.garden, this.service.module, dependencies),
         logEntry,
         force: this.force,
+        watch: this.watch,
       })
     } catch (err) {
       logEntry.setError()
@@ -121,16 +128,24 @@ export class DeployTask extends Task {
 }
 
 export async function getDeployTasks(
-  { garden, module, serviceNames, force = false, forceBuild = false, includeDependants = false }:
+  { garden, module, serviceNames, force = false, forceBuild = false, watch = false,
+    includeDependants = false, skipDeployTaskForModule = false }:
     {
       garden: Garden, module: Module, serviceNames?: string[] | null,
-      force?: boolean, forceBuild?: boolean, includeDependants?: boolean,
+      force?: boolean, forceBuild?: boolean, watch?: boolean,
+      includeDependants?: boolean, skipDeployTaskForModule?: boolean,
     },
 ) {
 
-  const modulesToProcess = includeDependants
+  let modulesToProcess = includeDependants
     ? (await withDependants(garden, [module], await computeAutoReloadDependants(garden)))
     : [module]
+
+  if (skipDeployTaskForModule) {
+    // We don't add deploy tasks for module...
+    const moduleName = module.name
+    modulesToProcess = modulesToProcess.filter(m => m.name !== moduleName)
+  }
 
   const moduleServices = flatten(await Bluebird.map(
     modulesToProcess,
@@ -140,5 +155,18 @@ export async function getDeployTasks(
     ? moduleServices.filter(s => serviceNames.includes(s.name))
     : moduleServices
 
-  return servicesToProcess.map(service => new DeployTask({ garden, service, force, forceBuild }))
+  const deployTasks: Task[] = servicesToProcess.map(service => {
+    return new DeployTask({ garden, service, force, forceBuild, watch })
+  })
+
+  if (skipDeployTaskForModule) {
+    /**
+     * ... and add a build task for module instead, since there are no deploy tasks for module's
+     * services to trigger this build task as one of their dependenceis when added to the task graph.
+     */
+    const buildTask = new BuildTask({ garden, module, force: true })
+    return [buildTask, ...deployTasks]
+  } else {
+    return deployTasks
+  }
 }

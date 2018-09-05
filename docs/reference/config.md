@@ -553,6 +553,14 @@ module:
         # Optional.
         tcpPort:
 
+      # If this module uses the `hotReload` field, the container will be run with these arguments
+      # instead of those in `command` while a Garden command with the -w (watch) flag, or `garden
+      # dev`, is running.
+      #
+      # Optional.
+      hotReloadCommand: 
+        -
+
       # List of ports that the service container exposes.
       #
       # Optional.
@@ -634,5 +642,31 @@ module:
       # Optional.
       env: 
         {}
+
+  # When this field is used, the files or directories specified within are automatically synced
+  # into the running container when they're modified. Additionally, any of this module's services
+  # that define a `hotReloadCommand` will be run with that command instead of the one specified in
+  # their `command` field. This behavior is only active while a Garden command with the -w (watch)
+  # flag, or `garden dev`, is running.
+  #
+  # Optional.
+  hotReload: 
+    # Specify one or more source files or directories to automatically sync into the running
+    # container.
+    #
+    # Required.
+    sync: 
+      - # POSIX-style path of the directory to sync to the target, relative to the module's
+        # top-level directory. Must be a relative path if provided. Defaults to the module's
+        # top-level directory if no value is provided.
+        #
+        # Optional.
+        source: .
+
+        # POSIX-style absolute path to sync the directory to inside the container. The root path
+        # (i.e. "/") is not allowed.
+        #
+        # Required.
+        target:
 ```
 

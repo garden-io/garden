@@ -62,6 +62,7 @@ import {
 import { VcsHandler, ModuleVersion } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
+import { HotReloadHandler, HotReloadScheduler } from "./hotReloadScheduler"
 import {
   TaskGraph,
   TaskResults,
@@ -150,6 +151,7 @@ export class Garden {
   private modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: PluginFactory }
   private readonly serviceNameIndex: { [key: string]: string }
+  private readonly hotReloadScheduler: HotReloadScheduler
   private readonly taskGraph: TaskGraph
 
   public readonly localConfigStore: LocalConfigStore
@@ -193,6 +195,7 @@ export class Garden {
 
     this.taskGraph = new TaskGraph(this)
     this.actions = new ActionHelper(this)
+    this.hotReloadScheduler = new HotReloadScheduler()
   }
 
   static async factory(currentDirectory: string, { env, config, logger, plugins = {} }: ContextOpts = {}) {
@@ -330,6 +333,10 @@ export class Garden {
 
   async processTasks(): Promise<TaskResults> {
     return this.taskGraph.processTasks()
+  }
+
+  async hotReload(moduleName: string, hotReloadHandler: HotReloadHandler) {
+    return this.hotReloadScheduler.requestHotReload(moduleName, hotReloadHandler)
   }
 
   private registerPlugin(name: string, moduleOrFactory: RegisterPluginParam) {

@@ -163,6 +163,9 @@ export const buildModuleResultSchema = Joi.object()
       .description("Additional information, specific to the provider."),
   })
 
+export interface HotReloadResult { }
+export const hotReloadResultSchema = Joi.object()
+
 export interface PushResult {
   pushed: boolean
   message?: string
@@ -271,6 +274,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   validate: Promise<ValidateModuleResult>
   getBuildStatus: Promise<BuildStatus>
   build: Promise<BuildResult>
+  hotReload: Promise<HotReloadResult>
   pushModule: Promise<PushResult>
   publishModule: Promise<PublishResult>
   runModule: Promise<RunResult>

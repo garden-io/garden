@@ -147,6 +147,12 @@ export const pushModuleParamsSchema = moduleActionParamsSchema
 export interface PublishModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
 export const publishModuleParamsSchema = moduleActionParamsSchema
 
+export interface HotReloadParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+  runtimeContext: RuntimeContext
+}
+export const hotReloadParamsSchema = moduleActionParamsSchema
+  .keys({ runtimeContext: runtimeContextSchema })
+
 export interface RunModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   command: string[]
   interactive: boolean
@@ -198,6 +204,7 @@ export const getTestResultParamsSchema = moduleActionParamsSchema
  * Service actions
  */
 export interface GetServiceStatusParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+  watch?: boolean
   runtimeContext: RuntimeContext
 }
 export const getServiceStatusParamsSchema = serviceActionParamsSchema
@@ -206,7 +213,8 @@ export const getServiceStatusParamsSchema = serviceActionParamsSchema
   })
 
 export interface DeployServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
-  force: boolean
+  force: boolean,
+  watch?: boolean,
   runtimeContext: RuntimeContext
 }
 export const deployServiceParamsSchema = serviceActionParamsSchema
@@ -281,6 +289,7 @@ export interface ModuleActionParams<T extends Module = Module> {
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
   pushModule: PushModuleParams<T>
+  hotReload: HotReloadParams<T>
   publishModule: PublishModuleParams<T>
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>

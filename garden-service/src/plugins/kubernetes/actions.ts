@@ -6,16 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
+import * as execa from "execa"
+import * as inquirer from "inquirer"
+import * as Joi from "joi"
 import * as split from "split"
+import { includes } from "lodash"
 import moment = require("moment")
 
 import { DeploymentError, ConfigurationError } from "../../exceptions"
-import { GetServiceLogsResult, RunResult, TestResult } from "../../types/plugin/outputs"
+import { GetServiceLogsResult, HotReloadResult, RunResult, TestResult } from "../../types/plugin/outputs"
 import {
   ExecInServiceParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
   GetTestResultParams,
+  HotReloadParams,
   RunModuleParams,
   TestModuleParams,
   DeleteServiceParams,
@@ -28,10 +34,18 @@ import { KubeApi } from "./api"
 import { getAppNamespace, getMetadataNamespace } from "./namespace"
 import { kubectl } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
+import {
+  getContainerServiceStatus,
+  deleteContainerService,
+  rsyncSourcePath,
+  rsyncTargetPath,
+} from "./deployment"
 import { KubernetesProvider } from "./kubernetes"
-import { deleteContainerService, getContainerServiceStatus } from "./deployment"
+import { getIngresses } from "./ingress"
+import { rsyncPortName } from "./service"
 import { ServiceStatus } from "../../types/service"
 import { ValidateModuleParams } from "../../types/plugin/params"
+import { waitForServices } from "./status"
 
 export async function validate(params: ValidateModuleParams<ContainerModule>) {
   const config = await validateContainerModule(params)
@@ -84,7 +98,7 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   const namespace = await getAppNamespace(ctx, ctx.provider)
 
   // TODO: this check should probably live outside of the plugin
-  if (!status.state || status.state !== "ready") {
+  if (!includes(["ready", "outdated"], status.state)) {
     throw new DeploymentError(`Service ${service.name} is not running`, {
       name: service.name,
       state: status.state,
@@ -120,6 +134,45 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   })
 
   return { code: res.code, output: res.output }
+}
+
+export async function hotReload(
+  { ctx, runtimeContext, module }: HotReloadParams<ContainerModule>,
+): Promise<HotReloadResult> {
+  const hotReloadConfig = module.spec.hotReload
+
+  if (!hotReloadConfig) {
+    return {}
+  }
+
+  const services = module.services
+
+  if (!await waitForServices(ctx, runtimeContext, services)) {
+    // Service deployment timed out, skip hot reload
+    return {}
+  }
+
+  const api = new KubeApi(ctx.provider)
+
+  const namespace = await getAppNamespace(ctx, ctx.provider)
+
+  await Bluebird.map(services, async (service) => {
+
+    const hostname = (await getIngresses(service, api))[0].hostname
+
+    const rsyncNodePort = (await api.core
+      .readNamespacedService(service.name + "-nodeport", namespace))
+      .body.spec.ports.find(p => p.name === rsyncPortName(service.name))!
+      .nodePort
+
+    await Bluebird.map(hotReloadConfig.sync, async ({ source, target }) => {
+      const src = rsyncSourcePath(module, source)
+      const destination = `rsync://${hostname}:${rsyncNodePort}/volume/${rsyncTargetPath(target)}`
+      await execa("rsync", ["-vrptgo", src, destination])
+    })
+  })
+
+  return {}
 }
 
 export async function runModule(

@@ -8,7 +8,10 @@
 
 import { ContainerService } from "../container"
 
-export async function createServices(service: ContainerService, namespace: string) {
+export const RSYNC_PORT = 873
+export const RSYNC_PORT_NAME = "garden-rsync"
+
+export async function createServices(service: ContainerService, namespace: string, enableHotReload: boolean) {
   const services: any = []
 
   const addService = (name: string, type: string, servicePorts: any[]) => {
@@ -49,17 +52,32 @@ export async function createServices(service: ContainerService, namespace: strin
 
   // optionally add a NodePort service for externally open ports, if applicable
   // TODO: explore nicer ways to do this
-  const exposedPorts = ports.filter(portSpec => portSpec.nodePort)
+  const exposedPorts: any[] = ports.filter(portSpec => portSpec.nodePort)
 
-  if (exposedPorts.length > 0) {
-    addService(service.name + "-nodeport", "NodePort", exposedPorts.map(portSpec => ({
+  if (exposedPorts.length > 0 || enableHotReload) {
+
+    const nodePorts: any[] = exposedPorts.map(portSpec => ({
       // TODO: do the parsing and defaults when loading the yaml
       name: portSpec.name,
       protocol: portSpec.protocol,
       port: portSpec.containerPort,
       nodePort: portSpec.nodePort,
-    })))
+    }))
+
+    if (enableHotReload) {
+      nodePorts.push({
+        name: rsyncPortName(service.name),
+        protocol: "TCP",
+        port: RSYNC_PORT,
+      })
+    }
+
+    addService(service.name + "-nodeport", "NodePort", nodePorts)
   }
 
   return services
+}
+
+export function rsyncPortName(serviceName) {
+  return `garden-rsync-${serviceName}`
 }

@@ -6,12 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import deline = require("deline")
+import { resolve } from "path"
+import {
+  extend,
+  get,
+  keyBy,
+  set,
+  toPairs,
+} from "lodash"
 import { DeployServiceParams, GetServiceStatusParams, PushModuleParams } from "../../types/plugin/params"
+import { Module } from "../../types/module"
+import { RuntimeContext, Service, ServiceStatus } from "../../types/service"
 import { helpers, ContainerModule, ContainerService } from "../container"
-import { toPairs, extend, keyBy, set } from "lodash"
-import { RuntimeContext, ServiceStatus } from "../../types/service"
 import { createIngresses, getIngresses } from "./ingress"
-import { createServices } from "./service"
+import { createServices, RSYNC_PORT, RSYNC_PORT_NAME } from "./service"
 import { waitForObjects, compareDeployedObjects } from "./status"
 import { applyMany, deleteObjectsByLabel } from "./kubectl"
 import { getAppNamespace } from "./namespace"
@@ -35,11 +44,34 @@ interface KubeEnvVar {
 export async function getContainerServiceStatus(
   { ctx, module, service, runtimeContext }: GetServiceStatusParams<ContainerModule>,
 ): Promise<ServiceStatus> {
+
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const version = module.version
-  const objects = await createContainerObjects(ctx, service, runtimeContext)
-  const matched = await compareDeployedObjects(ctx, objects)
   const api = new KubeApi(ctx.provider)
+
+  const namespace = await getAppNamespace(ctx, ctx.provider)
+  let enableHotReload
+
+  try {
+    const currentDeployment = (await api.extensions
+      .readNamespacedDeployment(service.name, namespace))
+
+    const hr = get(
+      currentDeployment,
+      ["body", "metadata", "annotations", "garden.io/hotReload"])
+    enableHotReload = hr === "true"
+  } catch (err) {
+    if (err.code === 404) {
+      // Deployment was not found
+      enableHotReload = false
+    } else {
+      throw err
+    }
+  }
+
+  // FIXME: [objects, matched] and ingresses can be run in parallel
+  const objects = await createContainerObjects(ctx, service, runtimeContext, enableHotReload)
+  const matched = await compareDeployedObjects(ctx, objects)
   const ingresses = await getIngresses(service, api)
 
   return {
@@ -50,30 +82,34 @@ export async function getContainerServiceStatus(
 }
 
 export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
-  const { ctx, service, runtimeContext, force, logEntry } = params
+  const { ctx, service, runtimeContext, force, logEntry, watch } = params
 
-  const provider = ctx.provider
-  const namespace = await getAppNamespace(ctx, provider)
-  const objects = await createContainerObjects(ctx, service, runtimeContext)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const module = service.module
+  const enableHotReload = !!watch && !!module.spec.hotReload && ctx.provider.name === "local-kubernetes"
+  const objects = await createContainerObjects(ctx, service, runtimeContext,
+    enableHotReload)
 
   // TODO: use Helm instead of kubectl apply
   const pruneSelector = "service=" + service.name
-  await applyMany(provider.config.context, objects, { force, namespace, pruneSelector })
-  await waitForObjects({ ctx, provider, service, objects, logEntry })
+  await applyMany(ctx.provider.config.context, objects, { force, namespace, pruneSelector })
+  await waitForObjects({ ctx, provider: ctx.provider, service, objects, logEntry })
 
   return getContainerServiceStatus(params)
 }
 
 export async function createContainerObjects(
-  ctx: PluginContext, service: ContainerService, runtimeContext: RuntimeContext,
+  ctx: PluginContext,
+  service: ContainerService,
+  runtimeContext: RuntimeContext,
+  enableHotReload: boolean,
 ) {
   const version = service.module.version
-  const provider = ctx.provider
-  const namespace = await getAppNamespace(ctx, provider)
-  const deployment = await createDeployment(provider, service, runtimeContext, namespace)
-  const kubeservices = await createServices(service, namespace)
-  const api = new KubeApi(provider)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const api = new KubeApi(ctx.provider)
   const ingresses = await createIngresses(api, namespace, service)
+  const deployment = await createDeployment(service, runtimeContext, namespace, enableHotReload)
+  const kubeservices = await createServices(service, namespace, enableHotReload)
 
   const objects = [deployment, ...kubeservices, ...ingresses]
 
@@ -87,53 +123,15 @@ export async function createContainerObjects(
 }
 
 export async function createDeployment(
-  provider: KubernetesProvider, service: ContainerService, runtimeContext: RuntimeContext, namespace: string,
+  provider: KubernetesProvider, service: ContainerService,
+  runtimeContext: RuntimeContext, namespace: string, enableHotReload: boolean
 ): Promise<KubernetesObject> {
+
+  const module = service.module
   const spec = service.spec
   // TODO: support specifying replica count
   const configuredReplicas = 1 // service.spec.count[env.name] || 1
-
-  const labels = {
-    module: service.module.name,
-    service: service.name,
-  }
-
-  // TODO: moar type-safety
-  const deployment: any = {
-    kind: "Deployment",
-    apiVersion: "extensions/v1beta1",
-    metadata: {
-      name: service.name,
-      annotations: {
-        // we can use this to avoid overriding the replica count if it has been manually scaled
-        "garden.io/configured.replicas": configuredReplicas.toString(),
-      },
-      namespace,
-      labels,
-    },
-    spec: {
-      selector: {
-        matchLabels: {
-          service: service.name,
-        },
-      },
-      template: {
-        metadata: {
-          labels,
-        },
-        spec: {
-          // TODO: set this for non-system pods
-          // automountServiceAccountToken: false,  // this prevents the pod from accessing the kubernetes API
-          containers: [],
-          // TODO: make restartPolicy configurable
-          restartPolicy: "Always",
-          terminationGracePeriodSeconds: 10,
-          dnsPolicy: "ClusterFirst",
-        },
-      },
-    },
-  }
-
+  const deployment: any = deploymentConfig(service, configuredReplicas, namespace, enableHotReload)
   const envVars = { ...runtimeContext.envVars, ...service.spec.env }
 
   const env: KubeEnvVar[] = toPairs(envVars).map(([name, value]) => ({ name, value: value + "" }))
@@ -155,11 +153,11 @@ export async function createDeployment(
   })
 
   const registryConfig = provider.name === "local-kubernetes" ? undefined : provider.config.deploymentRegistry
-  const image = await helpers.getDeploymentImageId(service.module, registryConfig)
+  const imageId = await helpers.getDeploymentImageId(service.module, registryConfig)
 
   const container: any = {
     name: service.name,
-    image,
+    image: imageId,
     env,
     ports: [],
     // TODO: make these configurable
@@ -185,41 +183,7 @@ export async function createDeployment(
   // }
 
   if (spec.healthCheck) {
-    container.readinessProbe = {
-      initialDelaySeconds: 10,
-      periodSeconds: 5,
-      timeoutSeconds: 3,
-      successThreshold: 2,
-      failureThreshold: 5,
-    }
-
-    container.livenessProbe = {
-      initialDelaySeconds: 15,
-      periodSeconds: 5,
-      timeoutSeconds: 3,
-      successThreshold: 1,
-      failureThreshold: 3,
-    }
-
-    const portsByName = keyBy(spec.ports, "name")
-
-    if (spec.healthCheck.httpGet) {
-      const httpGet: any = extend({}, spec.healthCheck.httpGet)
-      httpGet.port = portsByName[httpGet.port].containerPort
-
-      container.readinessProbe.httpGet = httpGet
-      container.livenessProbe.httpGet = httpGet
-    } else if (spec.healthCheck.command) {
-      container.readinessProbe.exec = { command: spec.healthCheck.command.map(s => s.toString()) }
-      container.livenessProbe.exec = container.readinessProbe.exec
-    } else if (spec.healthCheck.tcpPort) {
-      container.readinessProbe.tcpSocket = {
-        port: portsByName[spec.healthCheck.tcpPort].containerPort,
-      }
-      container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
-    } else {
-      throw new Error("Must specify type of health check when configuring health check.")
-    }
+    configureHealthCheck(container, spec)
   }
 
   // if (service.privileged) {
@@ -229,44 +193,7 @@ export async function createDeployment(
   // }
 
   if (spec.volumes && spec.volumes.length) {
-    const volumes: any[] = []
-    const volumeMounts: any[] = []
-
-    for (const volume of spec.volumes) {
-      const volumeName = volume.name
-      const volumeType = !!volume.hostPath ? "hostPath" : "emptyDir"
-
-      if (!volumeName) {
-        throw new Error("Must specify volume name")
-      }
-
-      if (volumeType === "emptyDir") {
-        volumes.push({
-          name: volumeName,
-          emptyDir: {},
-        })
-        volumeMounts.push({
-          name: volumeName,
-          mountPath: volume.containerPath,
-        })
-      } else if (volumeType === "hostPath") {
-        volumes.push({
-          name: volumeName,
-          hostPath: {
-            path: volume.hostPath,
-          },
-        })
-        volumeMounts.push({
-          name: volumeName,
-          mountPath: volume.containerPath || volume.hostPath,
-        })
-      } else {
-        throw new Error("Unsupported volume type: " + volumeType)
-      }
-    }
-
-    deployment.spec.template.spec.volumes = volumes
-    container.volumeMounts = volumeMounts
+    configureVolumes(deployment, container, spec)
   }
 
   const ports = spec.ports
@@ -298,6 +225,7 @@ export async function createDeployment(
 
   } else {
     deployment.spec.replicas = configuredReplicas
+
     deployment.spec.strategy = {
       type: "RollingUpdate",
       rollingUpdate: {
@@ -315,7 +243,235 @@ export async function createDeployment(
 
   deployment.spec.template.spec.containers = [container]
 
+  if (enableHotReload) {
+    configureHotReload(deployment, container, spec, module.spec, env, imageId)
+  } else {
+    deployment.spec.template.spec.containers = [container]
+  }
+
   return deployment
+}
+
+function deploymentConfig(
+  service: Service, configuredReplicas: number, namespace: string, hotReload: boolean,
+): object {
+
+  const labels = {
+    module: service.module.name,
+    service: service.name,
+  }
+
+  // TODO: moar type-safety
+  return {
+    kind: "Deployment",
+    apiVersion: "extensions/v1beta1",
+    metadata: {
+      name: service.name,
+      annotations: {
+        // we can use this to avoid overriding the replica count if it has been manually scaled
+        "garden.io/configured.replicas": configuredReplicas.toString(),
+        "garden.io/hotReload": hotReload.toString(),
+      },
+      namespace,
+      labels,
+    },
+    spec: {
+      selector: {
+        matchLabels: {
+          service: service.name,
+        },
+      },
+      template: {
+        metadata: {
+          labels,
+        },
+        spec: {
+          // TODO: set this for non-system pods
+          // automountServiceAccountToken: false,  // this prevents the pod from accessing the kubernetes API
+          containers: [],
+          initContainers: [],
+          // TODO: make restartPolicy configurable
+          restartPolicy: "Always",
+          terminationGracePeriodSeconds: 10,
+          dnsPolicy: "ClusterFirst",
+          // TODO: support private registries
+          // imagePullSecrets: [
+          //   { name: DOCKER_AUTH_SECRET_NAME },
+          // ],
+          volumes: [],
+        },
+      },
+    },
+  }
+
+}
+
+function configureHealthCheck(container, spec): void {
+
+  container.readinessProbe = {
+    initialDelaySeconds: 10,
+    periodSeconds: 5,
+    timeoutSeconds: 3,
+    successThreshold: 2,
+    failureThreshold: 5,
+  }
+
+  container.livenessProbe = {
+    initialDelaySeconds: 15,
+    periodSeconds: 5,
+    timeoutSeconds: 3,
+    successThreshold: 1,
+    failureThreshold: 3,
+  }
+
+  const portsByName = keyBy(spec.ports, "name")
+
+  if (spec.healthCheck.httpGet) {
+    const httpGet: any = extend({}, spec.healthCheck.httpGet)
+    httpGet.port = portsByName[httpGet.port].containerPort
+
+    container.readinessProbe.httpGet = httpGet
+    container.livenessProbe.httpGet = httpGet
+  } else if (spec.healthCheck.command) {
+    container.readinessProbe.exec = { command: spec.healthCheck.command.map(s => s.toString()) }
+    container.livenessProbe.exec = container.readinessProbe.exec
+  } else if (spec.healthCheck.tcpPort) {
+    container.readinessProbe.tcpSocket = {
+      port: portsByName[spec.healthCheck.tcpPort].containerPort,
+    }
+    container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
+  } else {
+    throw new Error("Must specify type of health check when configuring health check.")
+  }
+
+}
+
+function configureVolumes(deployment, container, spec): void {
+  const volumes: any[] = []
+  const volumeMounts: any[] = []
+
+  for (const volume of spec.volumes) {
+    const volumeName = volume.name
+    const volumeType = !!volume.hostPath ? "hostPath" : "emptyDir"
+
+    if (!volumeName) {
+      throw new Error("Must specify volume name")
+    }
+
+    if (volumeType === "emptyDir") {
+      volumes.push({
+        name: volumeName,
+        emptyDir: {},
+      })
+      volumeMounts.push({
+        name: volumeName,
+        mountPath: volume.containerPath,
+      })
+    } else if (volumeType === "hostPath") {
+      volumes.push({
+        name: volumeName,
+        hostPath: {
+          path: volume.hostPath,
+        },
+      })
+      volumeMounts.push({
+        name: volumeName,
+        mountPath: volume.containerPath || volume.hostPath,
+      })
+    } else {
+      throw new Error("Unsupported volume type: " + volumeType)
+    }
+  }
+
+  deployment.spec.template.spec.volumes = volumes
+  container.volumeMounts = volumeMounts
+}
+
+/*
+  Add rsync sidecar container, emptyDir volume to mount over module dir in app container,
+  and an initContainer to perform the initial population of the emptyDir volume.
+*/
+function configureHotReload(deployment, container, serviceSpec, moduleSpec, env, imageId) {
+
+  const syncVolumeName = `garden-sync-volume-${serviceSpec.name}`
+  const targets = moduleSpec.hotReload.sync.map(pair => pair.target)
+
+  const copyCommand = `cp -r ${targets.join(" ")} /.garden/hot_reload`
+
+  const initContainer = {
+    name: "garden-sync-init",
+    image: imageId,
+    command: ["sh", "-c", copyCommand],
+    env,
+    imagePullPolicy: "IfNotPresent",
+    volumeMounts: [{
+      name: syncVolumeName,
+      mountPath: "/.garden/hot_reload",
+    }],
+  }
+
+  const syncMounts = targets.map(target => {
+    return {
+      name: syncVolumeName,
+      mountPath: target,
+      subPath: rsyncTargetPath(target),
+    }
+  })
+
+  container.volumeMounts = (container.volumeMounts || []).concat(syncMounts)
+
+  if (container.ports.find(p => p.containerPort === RSYNC_PORT)) {
+    throw new Error(deline`
+      Service ${serviceSpec.name} is configured for hot reload, but uses port ${RSYNC_PORT},
+      which is reserved for internal use while hot reload is active. Please remove
+      ${RSYNC_PORT} from your services' port config.`)
+  }
+
+  if (serviceSpec.hotReloadCommand) {
+    container.args = serviceSpec.hotReloadCommand
+  }
+
+  const rsyncContainer = {
+    name: "garden-rsync-container",
+    image: "eugenmayer/rsync",
+    imagePullPolicy: "IfNotPresent",
+    volumeMounts: [{
+      name: syncVolumeName,
+      /**
+       * We mount at /data because the rsync image we're currently using is configured
+       * to use that path.
+       */
+      mountPath: "/data",
+    }],
+    ports: [{
+      name: RSYNC_PORT_NAME,
+      protocol: "TCP",
+      containerPort: RSYNC_PORT,
+    }],
+  }
+
+  deployment.spec.template.spec.volumes.push({
+    name: syncVolumeName,
+    emptyDir: {},
+  })
+
+  deployment.spec.template.spec.initContainers.push(initContainer)
+
+  deployment.spec.template.spec.containers = [container, rsyncContainer]
+
+}
+
+export function rsyncSourcePath(module: Module, sourcePath: string) {
+  return resolve(module.path, sourcePath)
+    .replace(/\/*$/, "/") // ensure (exactly one) trailing slash
+}
+
+/**
+ * Removes leading slash, and ensures there's exactly one trailing slash.
+ */
+export function rsyncTargetPath(target: string) {
+  return target.replace(/^\/*/, "")
+    .replace(/\/*$/, "/")
 }
 
 export async function deleteContainerService(

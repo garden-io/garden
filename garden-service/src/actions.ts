@@ -28,6 +28,7 @@ import {
   TestResult,
   PluginActionOutputs,
   PublishResult,
+  HotReloadResult,
 } from "./types/plugin/outputs"
 import {
   BuildModuleParams,
@@ -47,6 +48,7 @@ import {
   PluginActionParamsBase,
   PluginServiceActionParamsBase,
   PushModuleParams,
+  HotReloadParams,
   RunModuleParams,
   RunServiceParams,
   ServiceActionParams,
@@ -223,6 +225,11 @@ export class ActionHelper implements TypeGuard {
 
   async runModule<T extends Module>(params: ModuleActionHelperParams<RunModuleParams<T>>): Promise<RunResult> {
     return this.callModuleHandler({ params, actionType: "runModule" })
+  }
+
+  async hotReload<T extends Module>(params: ModuleActionHelperParams<HotReloadParams<T>>)
+    : Promise<HotReloadResult> {
+    return this.callModuleHandler(({ params, actionType: "hotReload" }))
   }
 
   async testModule<T extends Module>(params: ModuleActionHelperParams<TestModuleParams<T>>): Promise<TestResult> {
