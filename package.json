@@ -49,7 +49,7 @@
     "prepublishOnly": "npm run dist",
     "preversion": "npm test",
     "release": "./bin/publish",
-    "release-canary": "./bin/publish --npm-tag=alpha --canary",
+    "release-canary": "./bin/publish-canary",
     "test": "npm run clean && lerna run test"
   },
   "husky": {
