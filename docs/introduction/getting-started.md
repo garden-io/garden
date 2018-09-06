@@ -130,15 +130,15 @@ To later upgrade to the newest version, run `npm install -g -U garden-cli`.
 
 ## Using the CLI
 
-With the CLI installed, we can now try out a few commands using the [hello-world](https://github.com/garden-io/garden-examples/tree/master/simple-project) project from our Github [examples repository](https://github.com/garden-io/garden-examples). The example consists of a a couple of simple services.
+With the CLI installed, we can now try out a few commands using the [hello-world](https://github.com/garden-io/garden/examples/tree/master/simple-project) project from our Github [examples repository](https://github.com/garden-io/garden/examples). The example consists of a a couple of simple services.
 
 _Note: check if Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
 
 Clone the repo and change into the `hello-world`  directory:
 
 ```sh
-$ git clone https://github.com/garden-io/garden-examples.git
-$ cd garden-examples/hello-world
+$ git clone https://github.com/garden-io/garden/examples.git
+$ cd garden/examples/hello-world
 ```
 
 First, let's check the environment status by running the following from the project root:
