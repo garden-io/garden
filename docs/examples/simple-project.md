@@ -17,12 +17,12 @@ This tutorial assumes that you have already have a running [installation of Gard
 
 ## Clone the example repo
 
-The code for this tutorial can be found on Github in our [examples repo](https://github.com/garden-io/garden-examples). We'll use the [simple-project-start](https://github.com/garden-io/garden-examples/simple-project-start) example and work our way from there. The complete version is under [simple-project](https://github.com/garden-io/garden-examples/simple-project).
+The code for this tutorial can be found on Github in our [examples repo](https://github.com/garden-io/garden/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/examples/simple-project-start) example and work our way from there. The complete version is under [simple-project](https://github.com/garden-io/garden/examples/simple-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
 ```sh
-$ git clone https://github.com/garden-io/garden-examples.git
-$ cd garden-examples/simple-project-start
+$ git clone https://github.com/garden-io/garden/examples.git
+$ cd garden/examples/simple-project-start
 $ tree .
 .
 └── services

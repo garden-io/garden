@@ -1,14 +1,15 @@
-import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { ScanCommand } from "../../../src/commands/scan"
+import { getExampleProjects } from "../../helpers"
 
 describe("ScanCommand", () => {
-  it("should successfully scan the hello-world project", async () => {
-    const root = join(__dirname, "..", "..", "..", "..", "examples", "hello-world")
-    const garden = await Garden.factory(root)
-    const ctx = garden.getPluginContext()
-    const command = new ScanCommand()
+  for (const [name, path] of Object.entries(getExampleProjects())) {
+    it(`should successfully scan the ${name} project`, async () => {
+      const garden = await Garden.factory(path)
+      const ctx = garden.getPluginContext()
+      const command = new ScanCommand()
 
-    await command.action({ garden, ctx, args: {}, opts: {} })
-  })
+      await command.action({ garden, ctx, args: {}, opts: {} })
+    })
+  }
 })
