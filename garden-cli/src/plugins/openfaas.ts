@@ -363,7 +363,7 @@ function getK8sProvider(ctx: PluginContext): KubernetesProvider {
 }
 
 function getServicePath(service: OpenFaasService) {
-  return join("function", service.name)
+  return join("/", "function", service.name)
 }
 
 async function getInternalGatewayUrl(ctx: PluginContext) {
