@@ -10,7 +10,6 @@ import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
 import * as pty from "node-pty"
 import * as exitHook from "async-exit-hook"
-import * as ignore from "ignore/ignore"
 import * as klaw from "klaw"
 import * as yaml from "js-yaml"
 import * as Cryo from "cryo"
@@ -26,6 +25,8 @@ import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 import { safeDump } from "js-yaml"
 import { GARDEN_DIR_NAME } from "../constants"
+// NOTE: Importing from ignore/ignore doesn't work on Windows
+const ignore = require("ignore")
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
