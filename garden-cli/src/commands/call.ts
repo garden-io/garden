@@ -122,7 +122,7 @@ export class CallCommand extends Command<typeof callArgs> {
     const method = "get"
 
     const entry = ctx.log.info({
-      msg: chalk.cyan(`Sending HTTP GET request to `) + url + "\n",
+      msg: chalk.cyan(`Sending ${matchedEndpoint.protocol.toUpperCase()} GET request to `) + url + "\n",
       entryStyle: EntryStyle.activity,
     })
 
