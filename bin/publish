@@ -4,7 +4,7 @@ set -eo pipefail
 garden_root=$(cd `dirname $0` && cd $(git rev-parse --show-toplevel) && pwd)
 cd ${garden_root}
 
-./prepare-publish
+./bin/prepare-publish
 
 lerna version --no-push
 git reset HEAD~1
