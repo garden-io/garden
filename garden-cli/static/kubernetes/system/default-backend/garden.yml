@@ -1,0 +1,9 @@
+module:
+  name: default-backend
+  description: Default backend ingress controller
+  type: container
+  services:
+    - name: default-backend
+      ports:
+        - name: http
+          containerPort: 80
