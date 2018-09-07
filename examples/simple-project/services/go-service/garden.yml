@@ -8,5 +8,5 @@ module:
         - name: http
           containerPort: 80
       endpoints:
-        - path: /
+        - path: /hello-go
           port: http

@@ -17,7 +17,7 @@ This tutorial assumes that you have already have a running [installation of Gard
 
 ## Clone the example repo
 
-The code for this tutorial can be found on Github in our [examples repo](https://github.com/garden-io/garden/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/examples/simple-project-start) example and work our way from there. The complete version is under [simple-project](https://github.com/garden-io/garden/examples/simple-project).
+The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/master/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/master/examples/simple-project-start/) example and work our way from there. The complete version is under [simple-project](https://github.com/garden-io/garden/tree/master/examples/simple-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
 ```sh
@@ -113,7 +113,7 @@ module:
         - name: http
           containerPort: 8080
       endpoints:
-        - path: /
+        - path: /hello-node
           port: http
 ```
 The [services](../guides/configuration.md#Services) directive is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The sub-directives tell Garden how to start the service and which endpoints to expose.
@@ -132,11 +132,11 @@ Garden can now deploy our service to a local Kubernetes cluster:
 $ garden deploy
 ```
 
-To verify that everything is working, we can call the service at the `/hello` endpoint defined in `/services/node-service/app.js`:
+To verify that everything is working, we can call the service at the `/hello-node` endpoint defined in `/services/node-service/app.js`:
 
 ```sh
-$ garden call node-service/hello
-✔ Sending HTTP GET request to http://simple-project.local.app.garden/hello
+$ garden call node-service/hello-node
+✔ Sending HTTP GET request to http://simple-project.local.app.garden/hello-node
 
 200 OK
 
@@ -161,7 +161,7 @@ module:
         - name: http
           containerPort: 80
       endpoints:
-        - path: /
+        - path: /hello-go
           port: http
 ```
 
@@ -193,7 +193,7 @@ Calling our `go-service` from our `node-service` is straightforward from within 
 const request = require('request-promise')
 
 // Unless configured otherwise, the hostname is simply the service name
-const goServiceEndpoint = `http://go-service/`;
+const goServiceEndpoint = `http://go-service/hello-go`;
 
 app.get('/call-go-service', (req, res) => {
   // Query the go-service and return the response
@@ -223,7 +223,7 @@ $ garden call node-service/call-go-service
 200 OK
 
 {
-    "message": "Hello  from Go!"
+    "message": "Hello from Go!"
 }
 ```
 
