@@ -7,7 +7,7 @@
  */
 
 import { V1Secret } from "@kubernetes/client-node"
-import { groupBy, uniq, omit } from "lodash"
+import { groupBy, omit, find } from "lodash"
 import { findByName } from "../../util/util"
 import { ContainerService, ContainerEndpointSpec } from "../container"
 import { SecretRef, IngressTlsCertificate } from "./kubernetes"
@@ -15,7 +15,7 @@ import { ServiceEndpoint, ServiceProtocol } from "../../types/service"
 import * as Bluebird from "bluebird"
 import { KubeApi } from "./api"
 import { ConfigurationError, PluginError } from "../../exceptions"
-const x509 = require("x509")
+import { certpem } from "certpem"
 
 interface ServiceEndpointWithCert extends ServiceEndpoint {
   spec: ContainerEndpointSpec
@@ -181,14 +181,28 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       )
     }
 
-    const crt = Buffer.from(secret.data["tls.crt"], "base64").toString()
+    const crtData = Buffer.from(secret.data["tls.crt"], "base64").toString()
 
     try {
-      const subject = x509.getSubject(crt)
-      const hostnames = uniq([
-        ...(subject.commonName ? [subject.commonName] : []),
-        ...x509.getAltNames(crt),
-      ])
+      // Note: Can't use the certpem.info() method here because of multiple bugs.
+      // And yes, this API is insane. Crypto people are bonkers. Seriously. - JE
+      const certInfo = certpem.debug(crtData)
+
+      const hostnames: string[] = []
+
+      const commonNameField = find(certInfo.subject.types_and_values, ["type", "2.5.4.3"])
+      if (commonNameField) {
+        hostnames.push(commonNameField.value.value_block.value)
+      }
+
+      for (const ext of certInfo.extensions || []) {
+        if (ext.parsedValue && ext.parsedValue.altNames) {
+          for (const alt of ext.parsedValue.altNames) {
+            hostnames.push(alt.Name)
+          }
+        }
+      }
+
       certificateHostnames[cert.name] = hostnames
 
       return hostnames
