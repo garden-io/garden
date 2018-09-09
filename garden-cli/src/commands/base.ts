@@ -12,7 +12,7 @@ import {
 } from "../exceptions"
 import { PluginContext } from "../plugin-context"
 import { TaskResults } from "../task-graph"
-import { LoggerType } from "../logger/types"
+import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
 import { Garden } from "../garden"
 

@@ -35,8 +35,8 @@ import {
 } from "../exceptions"
 import { Garden, ContextOpts } from "../garden"
 
-import { RootLogNode, getLogger } from "../logger/logger"
-import { LogLevel, LoggerType } from "../logger/types"
+import { Logger, LoggerType, getLogger } from "../logger/logger"
+import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../logger/writers/fancy-terminal-writer"
 import { FileWriter } from "../logger/writers/file-writer"
@@ -137,7 +137,7 @@ export interface ParseResults {
 
 interface SywacParseResults extends ParseResults {
   output: string
-  details: { logger: RootLogNode, result?: CommandResult }
+  details: { logger: Logger, result?: CommandResult }
 }
 
 export class GardenCli {
@@ -223,7 +223,7 @@ export class GardenCli {
         }
       }
 
-      const logger = RootLogNode.initialize({ level, writers })
+      const logger = Logger.initialize({ level, writers })
       let garden: Garden
       let result
       do {
@@ -275,7 +275,7 @@ export class GardenCli {
     const { result: commandResult } = details
     const { output } = argv
     let { code } = parseResult
-    let logger
+    let logger: Logger
 
     // Note: Circumvents an issue where the process exits before the output is fully flushed.
     // Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
@@ -285,7 +285,7 @@ export class GardenCli {
     try {
       logger = getLogger()
     } catch (_) {
-      logger = RootLogNode.initialize({
+      logger = Logger.initialize({
         level: LogLevel.info,
         writers: [new BasicTerminalWriter()],
       })

@@ -19,7 +19,6 @@ import {
 } from "./base"
 import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
-import { EntryStyle } from "../logger/types"
 import { pick, find } from "lodash"
 import { ServiceEndpoint, getEndpointUrl } from "../types/service"
 import dedent = require("dedent")
@@ -123,7 +122,7 @@ export class CallCommand extends Command<typeof callArgs> {
 
     const entry = ctx.log.info({
       msg: chalk.cyan(`Sending ${matchedEndpoint.protocol.toUpperCase()} GET request to `) + url + "\n",
-      entryStyle: EntryStyle.activity,
+      status: "active",
     })
 
     // this is to accept self-signed certs

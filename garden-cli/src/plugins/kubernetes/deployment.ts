@@ -30,7 +30,7 @@ import { KubernetesProvider } from "./kubernetes"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { Provider } from "../../types/plugin/plugin"
 import { KubeApi } from "./api"
-import { LogEntry } from "../../logger/logger"
+import { LogEntry } from "../../logger/log-entry"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_CPU_LIMIT = "500m"

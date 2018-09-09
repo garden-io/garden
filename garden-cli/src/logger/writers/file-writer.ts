@@ -11,10 +11,8 @@ import { join } from "path"
 import * as stripAnsi from "strip-ansi"
 import { ensureDir, truncate } from "fs-extra"
 
-import {
-  LogLevel,
-} from "../types"
-import { LogEntry } from "../logger"
+import { LogLevel } from "../log-node"
+import { LogEntry } from "../log-entry"
 import { Writer } from "./base"
 import { validate } from "../util"
 import {

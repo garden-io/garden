@@ -20,8 +20,8 @@ import {
   getRemoteSourcesDirname,
   getRemoteSourcePath,
 } from "../util/ext-source-util"
-import { LogNode } from "../logger/logger"
 import { ModuleConfig } from "../config/module"
+import { LogNode } from "../logger/log-node"
 
 export const NEW_MODULE_VERSION = "0000000000"
 

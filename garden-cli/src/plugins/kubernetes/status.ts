@@ -7,8 +7,7 @@
  */
 
 import { DeploymentError } from "../../exceptions"
-import { LogEntry } from "../../logger/logger"
-import { LogSymbolType } from "../../logger/types"
+import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { Provider } from "../../types/plugin/plugin"
 import { Service, ServiceState } from "../../types/service"
@@ -306,7 +305,7 @@ export async function waitForObjects(
   const log = logEntry || ctx.log
 
   log.verbose({
-    symbol: LogSymbolType.info,
+    symbol: "info",
     section: service.name,
     msg: `Waiting for service to be ready...`,
   })
@@ -334,7 +333,7 @@ export async function waitForObjects(
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
         log.verbose({
-          symbol: LogSymbolType.info,
+          symbol: "info",
           section: service.name,
           msg: status.lastMessage,
         })
@@ -354,7 +353,7 @@ export async function waitForObjects(
     }
   }
 
-  log.verbose({ symbol: LogSymbolType.info, section: service.name, msg: `Service deployed` })
+  log.verbose({ symbol: "info", section: service.name, msg: `Service deployed` })
 }
 
 /**

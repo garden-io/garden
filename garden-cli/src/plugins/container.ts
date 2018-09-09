@@ -9,7 +9,6 @@
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
 import { Module } from "../types/module"
-import { LogSymbolType } from "../logger/types"
 import {
   joiEnvVars,
   joiIdentifier,
@@ -351,7 +350,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           logEntry && logEntry.debug({
             section: module.name,
             msg: `Image ${identifier} already exists`,
-            symbol: LogSymbolType.info,
+            symbol: "info",
           })
         }
 

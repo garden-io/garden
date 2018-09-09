@@ -13,15 +13,13 @@ import * as wrapAnsi from "wrap-ansi"
 import chalk from "chalk"
 
 import {
-  EntryStatus,
-  LogLevel,
-} from "../types"
-import {
   formatForTerminal,
   leftPad,
   renderMsg,
 } from "../renderers"
-import { LogEntry, RootLogNode } from "../logger"
+import { LogEntry } from "../log-entry"
+import { Logger } from "../logger"
+import { LogLevel } from "../log-node"
 import { sleep } from "../../util/util"
 import { getChildEntries, getTerminalWidth, interceptStream, validate } from "../util"
 import { Writer, WriterConfig } from "./base"
@@ -67,14 +65,14 @@ export class FancyTerminalWriter extends Writer {
     this.updatePending = false
   }
 
-  private initStream(rootLogNode: RootLogNode): CustomStream {
+  private initStream(logger: Logger): CustomStream {
     // Create custom stream that calls write method with the 'noIntercept' option.
     const stream = <CustomStream>{
       ...process.stdout,
       write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
     }
 
-    const onIntercept = msg => rootLogNode.info({ msg, fromStdStream: true })
+    const onIntercept = msg => logger.info({ msg, fromStdStream: true })
 
     const restoreStreamFns = [
       interceptStream(process.stdout, onIntercept),
@@ -136,7 +134,7 @@ export class FancyTerminalWriter extends Writer {
     )
   }
 
-  private handleGraphChange(logEntry: LogEntry, rootLogNode: RootLogNode, didWrite: boolean = false) {
+  private handleGraphChange(logEntry: LogEntry, logger: Logger, didWrite: boolean = false) {
     this.updatePending = false
 
     // Suspend processing and write immediately if a lot of data is being intercepted, e.g. when user is typing in input
@@ -154,7 +152,7 @@ export class FancyTerminalWriter extends Writer {
         const maybeResume = async () => {
           await sleep(FANCY_LOGGER_THROTTLE_MS)
           if (this.updatePending) {
-            this.handleGraphChange(logEntry, rootLogNode, true)
+            this.handleGraphChange(logEntry, logger, true)
           }
         }
         maybeResume()
@@ -162,7 +160,7 @@ export class FancyTerminalWriter extends Writer {
       }
     }
 
-    const terminalEntries = this.toTerminalEntries(rootLogNode)
+    const terminalEntries = this.toTerminalEntries(logger)
     const nextEntry = terminalEntries.find(e => e.key === logEntry.key)
 
     // Nothing to do, e.g. because entry level is higher than writer level
@@ -186,18 +184,18 @@ export class FancyTerminalWriter extends Writer {
     this.prevOutput = output
   }
 
-  public toTerminalEntries(rootLogNode: RootLogNode): TerminalEntry[] {
-    const level = this.level || rootLogNode.level
+  public toTerminalEntries(logger: Logger): TerminalEntry[] {
+    const level = this.level || logger.level
     let currentLineNumber = 0
 
-    return getChildEntries(rootLogNode)
+    return getChildEntries(logger)
       .filter(entry => validate(level, entry))
       .reduce((acc: TerminalEntry[], entry: LogEntry): TerminalEntry[] => {
         let spinnerFrame = ""
         let spinnerX
         let spinnerCoords: Coords | undefined
 
-        if (entry.status === EntryStatus.ACTIVE) {
+        if (entry.opts.status === "active") {
           spinnerX = leftPad(entry).length
           spinnerFrame = this.tickSpinner(entry.key)
           spinnerCoords = [spinnerX, currentLineNumber]
@@ -240,12 +238,12 @@ export class FancyTerminalWriter extends Writer {
     return terminalEntries.map(e => e.text).join("").split("\n")
   }
 
-  public onGraphChange(logEntry: LogEntry, rootLogNode: RootLogNode): void {
+  public onGraphChange(logEntry: LogEntry, logger: Logger): void {
     if (!this.stream) {
-      this.stream = this.initStream(rootLogNode)
+      this.stream = this.initStream(logger)
     }
 
-    this.handleGraphChange(logEntry, rootLogNode, false)
+    this.handleGraphChange(logEntry, logger, false)
   }
 
   public stop(): void {

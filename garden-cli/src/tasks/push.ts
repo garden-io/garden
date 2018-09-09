@@ -10,7 +10,6 @@ import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
-import { EntryStyle } from "../logger/types"
 import { PushResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
 
@@ -59,7 +58,7 @@ export class PushTask extends Task {
       this.ctx.log.info({
         section: this.module.name,
         msg: "Push disabled",
-        entryStyle: EntryStyle.activity,
+        status: "active",
       })
       return { pushed: false }
     }
@@ -67,7 +66,7 @@ export class PushTask extends Task {
     const logEntry = this.ctx.log.info({
       section: this.module.name,
       msg: "Pushing",
-      entryStyle: EntryStyle.activity,
+      status: "active",
     })
 
     let result: PushResult

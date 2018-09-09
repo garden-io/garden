@@ -6,18 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntryOpts, LogLevel } from "./types"
-import { LogEntry, LogNode } from "./logger"
+import { LogNode, LogLevel } from "./log-node"
+import { LogEntry, CreateOpts } from "./log-entry"
 
 export interface Node {
   children: any[]
 }
 
-export type LogOptsResolvers = { [K in keyof LogEntryOpts]?: Function }
+export type LogOptsResolvers = { [K in keyof CreateOpts]?: Function }
 
 export type ProcessNode<T extends Node = Node> = (node: T) => boolean
 
-// Assumes root node can be of different type than child nodes
 function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: ProcessNode<U>) {
   const children = node.children
   for (let idx = 0; idx < children.length; idx++) {
@@ -29,22 +28,23 @@ function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: Proce
   }
 }
 
-export function getChildNodes<T extends Node, U extends Node = T>(node: T | U): U[] {
-  let array: U[] = []
+// Parent (T|U) can have different type then child (U)
+export function getChildNodes<T extends Node, U extends Node>(node: T | U): U[] {
+  let childNodes: U[] = []
   traverseChildren<T, U>(node, child => {
-    array.push(child)
+    childNodes.push(child)
     return true
   })
-  return array
+  return childNodes
 }
 
 export function getChildEntries(node: LogNode): LogEntry[] {
   return getChildNodes<LogNode, LogEntry>(node)
 }
 
-export function findLogEntry(node: LogNode, predicate: ProcessNode<LogEntry>): LogEntry | void {
+export function findLogNode<T>(node: LogNode<T>, predicate: ProcessNode<LogNode<T>>): T | void {
   let found
-  traverseChildren<LogNode, LogEntry>(node, entry => {
+  traverseChildren<LogNode<T>, LogNode<T>>(node, entry => {
     if (predicate(entry)) {
       found = entry
       return false
@@ -52,18 +52,6 @@ export function findLogEntry(node: LogNode, predicate: ProcessNode<LogEntry>): L
     return true
   })
   return found
-}
-
-function mergeWithResolvers(objA: any, objB: any, resolvers: any = {}) {
-  const returnObj = { ...objA, ...objB }
-  return Object.keys(resolvers).reduce((acc, key) => {
-    acc[key] = resolvers[key](objA, objB)
-    return acc
-  }, returnObj)
-}
-
-export function mergeLogOpts(prevOpts: LogEntryOpts, nextOpts: LogEntryOpts, resolvers: LogOptsResolvers) {
-  return mergeWithResolvers(prevOpts, nextOpts, resolvers)
 }
 
 interface StreamWriteExtraParam {

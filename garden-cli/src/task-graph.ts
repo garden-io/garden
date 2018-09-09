@@ -11,8 +11,7 @@ import chalk from "chalk"
 import { merge, padEnd, pick } from "lodash"
 import { Task, TaskDefinitionError } from "./tasks/base"
 
-import { EntryStyle, LogSymbolType } from "./logger/types"
-import { LogEntry } from "./logger/logger"
+import { LogEntry } from "./logger/log-entry"
 import { PluginContext } from "./plugin-context"
 import { toGardenError } from "./exceptions"
 
@@ -126,7 +125,7 @@ export class TaskGraph {
     const loop = async () => {
       if (_this.index.length === 0) {
         // done!
-        this.logEntryMap.counter && this.logEntryMap.counter.setDone({ symbol: LogSymbolType.info })
+        this.logEntryMap.counter && this.logEntryMap.counter.setDone({ symbol: "info" })
         return
       }
 
@@ -269,7 +268,7 @@ export class TaskGraph {
     const entry = this.ctx.log.debug({
       section: "tasks",
       msg: `Processing task ${taskStyle(node.getKey())}`,
-      entryStyle: EntryStyle.activity,
+      status: "active",
     })
     this.logEntryMap[node.getKey()] = entry
   }
@@ -287,7 +286,7 @@ export class TaskGraph {
       const header = this.ctx.log.debug("Processing tasks...")
       const counter = this.ctx.log.debug({
         msg: remainingTasksToStr(this.index.length),
-        entryStyle: EntryStyle.activity,
+        status: "active",
       })
       const inProgress = this.ctx.log.debug(inProgressToStr(this.inProgress.getNodes()))
       this.logEntryMap = {

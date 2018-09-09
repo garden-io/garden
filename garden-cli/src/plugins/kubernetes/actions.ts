@@ -44,7 +44,6 @@ import {
 } from "./namespace"
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { DEFAULT_TEST_TIMEOUT } from "../../constants"
-import { EntryStyle, LogSymbolType } from "../../logger/types"
 import { KubernetesProvider, name as providerName } from "./kubernetes"
 import { deleteContainerService, getContainerServiceStatus } from "./deployment"
 import { ServiceStatus } from "../../types/service"
@@ -122,7 +121,7 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
   const entry = ctx.log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace} (this may take a while)`,
-    entryStyle: EntryStyle.activity,
+    status: "active",
   })
 
   try {
@@ -464,7 +463,7 @@ export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatu
 
   if (currentUsername) {
     entry.setDone({
-      symbol: LogSymbolType.info,
+      symbol: "info",
       msg: `Already logged in as user ${currentUsername}`,
     })
 

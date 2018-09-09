@@ -21,7 +21,6 @@ import {
   PathsParameter,
 } from "../base"
 import { GardenBaseError } from "../../exceptions"
-import { EntryStyle } from "../../logger/types"
 import {
   prepareNewModuleConfig,
   dumpConfig,
@@ -130,7 +129,7 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
     }
 
     ctx.log.info("---------")
-    const task = ctx.log.info({ msg: "Setting up project", entryStyle: EntryStyle.activity })
+    const task = ctx.log.info({ msg: "Setting up project", status: "active" })
 
     for (const module of moduleConfigs) {
       await ensureDir(module.path)
