@@ -70,7 +70,13 @@ export class PushTask extends Task {
       entryStyle: EntryStyle.activity,
     })
 
-    const result = await this.ctx.pushModule({ moduleName: this.module.name, logEntry })
+    let result: PushResult
+    try {
+      result = await this.ctx.pushModule({ moduleName: this.module.name, logEntry })
+    } catch (err) {
+      logEntry.setError()
+      throw err
+    }
 
     if (result.pushed) {
       logEntry.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })

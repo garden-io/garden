@@ -113,14 +113,19 @@ export class TestTask extends Task {
     const dependencies = await getTestDependencies(this.ctx, this.testConfig)
     const runtimeContext = await prepareRuntimeContext(this.ctx, this.module, dependencies)
 
-    const result = await this.ctx.testModule({
-      interactive: false,
-      moduleName: this.module.name,
-      runtimeContext,
-      silent: true,
-      testConfig: this.testConfig,
-    })
-
+    let result: TestResult
+    try {
+      result = await this.ctx.testModule({
+        interactive: false,
+        moduleName: this.module.name,
+        runtimeContext,
+        silent: true,
+        testConfig: this.testConfig,
+      })
+    } catch (err) {
+      entry.setError()
+      throw err
+    }
     if (result.success) {
       entry.setSuccess({ msg: chalk.green(`Success`), append: true })
     } else {
