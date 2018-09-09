@@ -379,7 +379,6 @@ describe("createIngresses", () => {
 
   it("should create an ingress for a basic container service", async () => {
     const service = await getTestService({
-      name: "default",
       path: "/",
       port: "http",
     })
@@ -422,12 +421,10 @@ describe("createIngresses", () => {
   it("should group endpoints by hostname", async () => {
     const service = await getTestService(
       {
-        name: "a",
         path: "/here",
         port: "http",
       },
       {
-        name: "b",
         path: "/there",
         port: "http",
       },
@@ -478,13 +475,11 @@ describe("createIngresses", () => {
   it("should create a rule for each hostname", async () => {
     const service = await getTestService(
       {
-        name: "a",
         hostname: "foo",
         path: "/",
         port: "http",
       },
       {
-        name: "b",
         hostname: "bar",
         path: "/",
         port: "http",
@@ -543,7 +538,6 @@ describe("createIngresses", () => {
   it("should map a configured TLS certificate to an endpoint", async () => {
     const service = await getTestService(
       {
-        name: "default",
         path: "/",
         port: "http",
       },
@@ -592,12 +586,10 @@ describe("createIngresses", () => {
   it("should group multiple endpoints by TLS certificate", async () => {
     const service = await getTestService(
       {
-        name: "default",
         path: "/",
         port: "http",
       },
       {
-        name: "other",
         hostname: "other.domain.com",
         path: "/",
         port: "http",
@@ -680,7 +672,6 @@ describe("createIngresses", () => {
   it("should throw if a configured certificate doesn't exist", async () => {
     const service = await getTestService(
       {
-        name: "default",
         path: "/",
         port: "http",
       },
@@ -704,7 +695,6 @@ describe("createIngresses", () => {
   it("should throw if a secret for a configured certificate doesn't contain a certificate", async () => {
     const service = await getTestService(
       {
-        name: "default",
         path: "/",
         port: "http",
       },
@@ -732,7 +722,6 @@ describe("createIngresses", () => {
   it("should throw if a secret for a configured certificate contains an invalid certificate", async () => {
     const service = await getTestService(
       {
-        name: "default",
         path: "/",
         port: "http",
       },
@@ -762,7 +751,6 @@ describe("createIngresses", () => {
   it("should correctly match an endpoint to a wildcard certificate", async () => {
     const service = await getTestService(
       {
-        name: "default",
         hostname: "something.wildcarddomain.com",
         path: "/",
         port: "http",
@@ -812,7 +800,6 @@ describe("createIngresses", () => {
   it("should use configured hostnames for a certificate when specified", async () => {
     const service = await getTestService(
       {
-        name: "default",
         hostname: "madeup.domain.com",
         path: "/",
         port: "http",

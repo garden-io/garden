@@ -13,7 +13,6 @@ const testProvider: PluginFactory = () => {
     "service-a": {
       state: "ready",
       endpoints: [{
-        name: "default",
         hostname: "service-a.test-project-b.local.app.garden",
         path: "/path-a",
         protocol: "http",
@@ -23,7 +22,6 @@ const testProvider: PluginFactory = () => {
     "service-b": {
       state: "ready",
       endpoints: [{
-        name: "default",
         hostname: "service-b.test-project-b.local.app.garden",
         path: "/",
         port: 32000,
