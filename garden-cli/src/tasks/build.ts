@@ -62,12 +62,18 @@ export class BuildTask extends Task {
       entryStyle: EntryStyle.activity,
     })
 
-    const result = await this.ctx.buildModule({
-      moduleName,
-      logEntry,
-    })
-    logEntry.setSuccess({ msg: chalk.green(`Done (took ${logEntry.getDuration(1)} sec)`), append: true })
+    let result: BuildResult
+    try {
+      result = await this.ctx.buildModule({
+        moduleName,
+        logEntry,
+      })
+    } catch (err) {
+      logEntry.setError()
+      throw err
+    }
 
+    logEntry.setSuccess({ msg: chalk.green(`Done (took ${logEntry.getDuration(1)} sec)`), append: true })
     return result
   }
 }
