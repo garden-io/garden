@@ -13,10 +13,8 @@ import { Service } from "./types/service"
 import { Task } from "./tasks/base"
 import { TaskResults } from "./task-graph"
 import { FSWatcher } from "./watch"
-import { padEnd, values } from "lodash"
 import { registerCleanupFunction } from "./util/util"
 import { PluginContext } from "./plugin-context"
-import { toGardenError } from "./exceptions"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 
@@ -63,35 +61,17 @@ export async function processServices(
 export async function processModules(
   { ctx, garden, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
-  const linkedModules: Module[] = []
-
-  // TODO: log errors as they happen, instead of after processing all tasks
-  const logErrors = (taskResults: TaskResults) => {
-    for (const result of values(taskResults).filter(r => !!r.error)) {
-      const divider = padEnd("", 80, "—")
-      const error = toGardenError(result.error!)
-      const msg = `\nFailed ${result.description}. Here is the output:\n${divider}\n${error.message}\n${divider}\n`
-
-      ctx.log.error({ msg, error })
-    }
-  }
-
   for (const module of modules) {
     const tasks = await handler(module)
     if (isModuleLinked(module, ctx)) {
-      linkedModules.push(module)
+      ctx.log.info(
+        chalk.gray(`Reading module ${chalk.cyan(module.name)} from linked local path ${chalk.white(module.path)}`),
+      )
     }
     await Bluebird.map(tasks, t => garden.addTask(t))
   }
 
-  for (const module of linkedModules) {
-    ctx.log.info(
-      chalk.gray(`Reading module ${chalk.cyan(module.name)} from linked local path ${chalk.white(module.path)}`),
-    )
-  }
-
   const results = await garden.processTasks()
-  logErrors(results)
 
   if (!watch) {
     return {
@@ -123,7 +103,7 @@ export async function processModules(
           })
         }
 
-        logErrors(await garden.processTasks())
+        await garden.processTasks()
       })
 
     registerCleanupFunction("clearAutoReloadWatches", () => {

@@ -8,12 +8,13 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { merge, pick } from "lodash"
+import { merge, padEnd, pick } from "lodash"
 import { Task, TaskDefinitionError } from "./tasks/base"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
 import { LogEntry } from "./logger/logger"
 import { PluginContext } from "./plugin-context"
+import { toGardenError } from "./exceptions"
 
 class TaskGraphError extends Error { }
 
@@ -159,6 +160,7 @@ export class TaskGraph {
             result = await node.process(dependencyResults)
           } catch (error) {
             result = { type, description, error }
+            this.logTaskError(node, error)
             this.cancelDependants(node)
           } finally {
             results[baseKey] = result
@@ -297,6 +299,12 @@ export class TaskGraph {
     }
   }
 
+  private logTaskError(node: TaskNode, err) {
+    const divider = padEnd("", 80, "—")
+    const error = toGardenError(err)
+    const msg = `\nFailed ${node.getDescription()}. Here is the output:\n${divider}\n${error.message}\n${divider}\n`
+    this.ctx.log.error({ msg, error })
+  }
 }
 
 function getIndexKey(task: Task) {

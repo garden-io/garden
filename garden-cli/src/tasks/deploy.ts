@@ -105,15 +105,20 @@ export class DeployTask extends Task {
 
     const dependencies = await this.ctx.getServices(this.service.config.dependencies)
 
-    const result = await this.ctx.deployService({
-      serviceName: this.service.name,
-      runtimeContext: await prepareRuntimeContext(this.ctx, this.service.module, dependencies),
-      logEntry,
-      force: this.force,
-    })
+    let result: ServiceStatus
+    try {
+      result = await this.ctx.deployService({
+        serviceName: this.service.name,
+        runtimeContext: await prepareRuntimeContext(this.ctx, this.service.module, dependencies),
+        logEntry,
+        force: this.force,
+      })
+    } catch (err) {
+      logEntry.setError()
+      throw err
+    }
 
     logEntry.setSuccess({ msg: chalk.green(`Ready`), append: true })
-
     return result
   }
 }
