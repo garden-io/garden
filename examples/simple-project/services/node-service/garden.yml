@@ -9,7 +9,9 @@ module:
         - name: http
           containerPort: 8080
       endpoints:
-        - path: /
+        - path: /hello-node
+          port: http
+        - path: /call-go-service
           port: http
       dependencies:
         - go-service
