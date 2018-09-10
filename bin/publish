@@ -15,7 +15,7 @@ version=$(node -p "require('./lerna.json').version")
 git commit -m "chore(release): release ${version}"
 
 git push --tags --no-verify
-git push --no-verify
+git push origin HEAD --no-verify
 
 # TODO: set this up to work with multiple packages
 cd garden-cli
