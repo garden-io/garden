@@ -501,12 +501,7 @@ module:
       #
       # Optional.
       endpoints: 
-        - # A name to assign to the endpoint.
-          #
-          # Optional.
-          name: default
-
-          # The hostname that should route to this service. Defaults to the default hostname
+        - # The hostname that should route to this service. Defaults to the default hostname
           # configured
           # in the provider configuration.
           #

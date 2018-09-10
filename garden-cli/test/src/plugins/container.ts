@@ -215,7 +215,6 @@ describe("plugins.container", () => {
               daemon: false,
               endpoints: [
                 {
-                  name: "default",
                   path: "/",
                   port: "http",
                 },
@@ -269,7 +268,6 @@ describe("plugins.container", () => {
                 dependencies: [],
                 daemon: false,
                 endpoints: [{
-                  name: "default",
                   path: "/",
                   port: "http",
                 }],
@@ -303,7 +301,6 @@ describe("plugins.container", () => {
                 dependencies: [],
                 daemon: false,
                 endpoints: [{
-                  name: "default",
                   path: "/",
                   port: "http",
                 }],
@@ -355,7 +352,6 @@ describe("plugins.container", () => {
               daemon: false,
               endpoints: [
                 {
-                  name: "bla",
                   path: "/",
                   port: "bla",
                 },

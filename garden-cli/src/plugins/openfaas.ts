@@ -279,7 +279,6 @@ async function getServiceStatus({ ctx, provider, service }: GetServiceStatusPara
   const k8sProvider = getK8sProvider(ctx)
 
   const endpoints: ServiceEndpoint[] = [{
-    name: "default",
     hostname: getExternalGatewayHostname(provider, k8sProvider),
     path: getServicePath(service),
     port: k8sProvider.config.ingressHttpPort,

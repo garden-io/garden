@@ -19,7 +19,6 @@ const testProvider: PluginFactory = () => {
     "service-a": {
       state: "ready",
       endpoints: [{
-        name: "default",
         hostname: "service-a.test-project-b.local.app.garden",
         path: "/path-a",
         port: 80,

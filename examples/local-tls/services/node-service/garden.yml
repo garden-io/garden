@@ -11,8 +11,7 @@ module:
       endpoints:
         - path: /hello
           port: http
-        - name: call-go
-          path: /call-go-service
+        - path: /call-go-service
           port: http
       dependencies:
         - go-service

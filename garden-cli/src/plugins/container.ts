@@ -40,7 +40,6 @@ import { ModuleSpec, ModuleConfig } from "../config/module"
 import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
 
 export interface ContainerEndpointSpec {
-  name: string
   hostname?: string
   path: string
   port: string
@@ -86,9 +85,6 @@ export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const endpointSchema = Joi.object()
   .keys({
-    name: joiIdentifier()
-      .default("default")
-      .description("A name to assign to the endpoint."),
     hostname: endpointHostnameSchema,
     path: Joi.string().uri(<any>{ relativeOnly: true })
       .default("/")
@@ -160,7 +156,6 @@ const serviceSchema = baseServiceSchema
       .default(false)
       .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
     endpoints: joiArray(endpointSchema)
-      .unique("name")
       .description("List of endpoints that the service exposes.")
       .example([{
         path: "/api",

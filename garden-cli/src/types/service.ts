@@ -39,7 +39,6 @@ export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "un
 export type ServiceProtocol = "http" | "https"  // | "tcp" | "udp"
 
 export interface ServiceEndpointSpec {
-  name: string
   hostname?: string
   path: string
   port: number
@@ -67,9 +66,6 @@ const portSchema = Joi.number()
 
 export const serviceEndpointSpecSchema = Joi.object()
   .keys({
-    name: Joi.string()
-      .default("default")
-      .description("A unique name for this endpoint."),
     hostname: endpointHostnameSchema,
     port: portSchema,
     path: Joi.string()
@@ -122,7 +118,6 @@ export const serviceStatusSchema = Joi.object()
       .description("How many replicas of the service are currently running."),
     endpoints: Joi.array()
       .items(serviceEndpointSchema)
-      .unique("name")
       .description("List of currently deployed endpoints for the service."),
     lastMessage: Joi.string()
       .allow("")
