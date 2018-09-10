@@ -1,3 +1,60 @@
+<a name=""></a>
+# [](https://github.com/garden-io/garden/compare/v0.3.0...v) (2018-09-10)
+
+
+### Bug Fixes
+
+* **call-command:** print correct protocol ([d973058](https://github.com/garden-io/garden/commit/d973058))
+* **cli:** allow empty path when calling services via `garden call` ([b5d4972](https://github.com/garden-io/garden/commit/b5d4972))
+* **cli:** show ANSI banner image instead of png in dev command ([bb3898f](https://github.com/garden-io/garden/commit/bb3898f))
+* **cli:** task results errors weren't handled properly ([b22b580](https://github.com/garden-io/garden/commit/b22b580))
+* **config:** remove name field from service endpoint spec ([9f6f9f0](https://github.com/garden-io/garden/commit/9f6f9f0))
+* **examples:** unused import in go-service ([25509cf](https://github.com/garden-io/garden/commit/25509cf))
+* **k8s:** build status was incorrectly reported for helm modules ([195eee4](https://github.com/garden-io/garden/commit/195eee4))
+* **k8s:** don't deploy system services when running minikube ([215cabd](https://github.com/garden-io/garden/commit/215cabd))
+* **k8s:** wait for Tiller pod to be ready when initializing ([a5cd8eb](https://github.com/garden-io/garden/commit/a5cd8eb)), closes [#228](https://github.com/garden-io/garden/issues/228)
+* **logger:** ensure ansi chars in section don't break format ([323b6e9](https://github.com/garden-io/garden/commit/323b6e9))
+* **multi-repo:** ensure external source gets updated if repo url changes ([881c3c7](https://github.com/garden-io/garden/commit/881c3c7))
+* **openfaas:** external endpoints had incorrect path ([64de898](https://github.com/garden-io/garden/commit/64de898))
+* **publish-script:** set remote in git push command ([aa03557](https://github.com/garden-io/garden/commit/aa03557))
+* add axios as dependency (was dev dependency) ([4ccdfd8](https://github.com/garden-io/garden/commit/4ccdfd8))
+* catch and log task errors as they happen ([46eef92](https://github.com/garden-io/garden/commit/46eef92))
+* fix ignore package import ([00721c3](https://github.com/garden-io/garden/commit/00721c3))
+* fix publish script ([7d84751](https://github.com/garden-io/garden/commit/7d84751))
+* init file writers in Garden class ([d982b66](https://github.com/garden-io/garden/commit/d982b66))
+* **tests:** ensure test project is clean between tests ([b7f6664](https://github.com/garden-io/garden/commit/b7f6664))
+* **versioning:** `resolveVersion` should not call `getTreeVersion` ([91ae14f](https://github.com/garden-io/garden/commit/91ae14f))
+* **versioning:** version string should include dirty timestamp ([61d29d0](https://github.com/garden-io/garden/commit/61d29d0))
+
+
+### Code Refactoring
+
+* **config:** make module name mandatory ([aa83d7f](https://github.com/garden-io/garden/commit/aa83d7f))
+
+
+### Features
+
+* **k8s:** allow specifying namespace to deploy to ([0aebc2b](https://github.com/garden-io/garden/commit/0aebc2b))
+* add 'delete service' command ([2b067c6](https://github.com/garden-io/garden/commit/2b067c6))
+* add exec command, to run commands in running service containers ([7f74edc](https://github.com/garden-io/garden/commit/7f74edc))
+* add multi-repo support ([740e858](https://github.com/garden-io/garden/commit/740e858))
+* add OpenFaaS plugin (experimental) ([39ff701](https://github.com/garden-io/garden/commit/39ff701))
+* add Windows support (experimental) ([9e9c218](https://github.com/garden-io/garden/commit/9e9c218))
+* **k8s:** support custom hostnames and TLS certs ([1c004f7](https://github.com/garden-io/garden/commit/1c004f7))
+* **multi-repos:** allow file URLs ([c072dd9](https://github.com/garden-io/garden/commit/c072dd9))
+* allow configs from subdirectories ([bb464c3](https://github.com/garden-io/garden/commit/bb464c3))
+
+
+### BREAKING CHANGES
+
+* **config:** Endpoint names will have to be removed from module configs.
+* **config:** Module name no longer defaults to directory name but must be explicitly
+set in the module's garden.yml file. Any existing garden.yml module files
+without a name key must therefore be updated to expclitily provide the
+module name.
+
+
+
 <a name="0.5.0"></a>
 # [0.5.0](https://github.com/garden-io/garden/compare/v0.3.0...v0.5.0) (2018-09-05)
 
