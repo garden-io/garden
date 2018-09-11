@@ -11,7 +11,6 @@ import {
   Command,
   CommandResult,
   CommandParams,
-  ParameterValues,
   StringsParameter,
 } from "./base"
 import chalk from "chalk"
@@ -22,23 +21,23 @@ import Stream from "ts-stream"
 import { LoggerType } from "../logger/types"
 import dedent = require("dedent")
 
-export const logsArgs = {
+const logsArgs = {
   service: new StringsParameter({
     help: "The name of the service(s) to logs (skip to logs all services). " +
       "Use comma as separator to specify multiple services.",
   }),
 }
 
-export const logsOpts = {
+const logsOpts = {
   tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s).", alias: "t" }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
 }
 
-export type Args = ParameterValues<typeof logsArgs>
-export type Opts = ParameterValues<typeof logsOpts>
+type Args = typeof logsArgs
+type Opts = typeof logsOpts
 
-export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
+export class LogsCommand extends Command<Args, Opts> {
   name = "logs"
   help = "Retrieves the most recent logs for the specified service(s)."
 
@@ -56,9 +55,9 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
   options = logsOpts
   loggerType = LoggerType.basic
 
-  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const tail = opts.tail
-    const services = await ctx.getServices(args.service)
+    const services = await garden.getServices(args.service)
 
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()
@@ -75,7 +74,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
         } catch { }
       }
 
-      ctx.log.info({
+      garden.log.info({
         section: entry.serviceName,
         msg: [timestamp, chalk.white(entry.msg)],
       })
@@ -88,7 +87,7 @@ export class LogsCommand extends Command<typeof logsArgs, typeof logsOpts> {
     // NOTE: This will work differently when we have Elasticsearch set up for logging, but is
     //       quite servicable for now.
     await Bluebird.map(services, async (service: Service<any>) => {
-      await ctx.getServiceLogs({ serviceName: service.name, stream, tail })
+      await garden.actions.getServiceLogs({ service, stream, tail })
     })
 
     return { result }

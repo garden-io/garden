@@ -13,7 +13,6 @@ import chalk from "chalk"
 import {
   Command,
   StringsParameter,
-  ParameterValues,
   CommandResult,
   CommandParams,
 } from "../base"
@@ -22,15 +21,15 @@ import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { hasRemoteSource } from "../../util/ext-source-util"
 
-export const updateRemoteModulesArguments = {
+const updateRemoteModulesArguments = {
   module: new StringsParameter({
     help: "Name of the remote module(s) to update. Use comma separator to specify multiple modules.",
   }),
 }
 
-export type UpdateRemoteModulesArguments = ParameterValues<typeof updateRemoteModulesArguments>
+type Args = typeof updateRemoteModulesArguments
 
-export class UpdateRemoteModulesCommand extends Command<typeof updateRemoteModulesArguments> {
+export class UpdateRemoteModulesCommand extends Command<Args> {
   name = "modules"
   help = "Update remote modules."
   arguments = updateRemoteModulesArguments
@@ -45,11 +44,13 @@ export class UpdateRemoteModulesCommand extends Command<typeof updateRemoteModul
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  async action({ ctx, args }: CommandParams<UpdateRemoteModulesArguments>): Promise<CommandResult<SourceConfig[]>> {
-    ctx.log.header({ emoji: "hammer_and_wrench", command: "update-remote modules" })
+  async action(
+    { garden, args }: CommandParams<Args>,
+  ): Promise<CommandResult<SourceConfig[]>> {
+    garden.log.header({ emoji: "hammer_and_wrench", command: "update-remote modules" })
 
     const { module } = args
-    const modules = await ctx.getModules(module)
+    const modules = await garden.getModules(module)
 
     const moduleSources = <SourceConfig[]>modules
       .filter(hasRemoteSource)
@@ -59,13 +60,13 @@ export class UpdateRemoteModulesCommand extends Command<typeof updateRemoteModul
 
     const diff = difference(module, names)
     if (diff.length > 0) {
-      const modulesWithRemoteSource = (await ctx.getModules()).filter(hasRemoteSource).sort()
+      const modulesWithRemoteSource = (await garden.getModules()).filter(hasRemoteSource).sort()
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`,
         {
           modulesWithRemoteSource,
-          input: module.sort(),
+          input: module ? module.sort() : undefined,
         },
       )
     }
@@ -73,10 +74,10 @@ export class UpdateRemoteModulesCommand extends Command<typeof updateRemoteModul
     // TODO Update remotes in parallel. Currently not possible since updating might
     // trigger a username and password prompt from git.
     for (const { name, repositoryUrl } of moduleSources) {
-      await ctx.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "module", logEntry: ctx.log })
+      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "module", logEntry: garden.log })
     }
 
-    await pruneRemoteSources({ projectRoot: ctx.projectRoot, type: "module", sources: moduleSources })
+    await pruneRemoteSources({ projectRoot: garden.projectRoot, type: "module", sources: moduleSources })
 
     return { result: moduleSources }
   }

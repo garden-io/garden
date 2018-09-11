@@ -14,7 +14,6 @@ import {
   Command,
   CommandResult,
   CommandParams,
-  ParameterValues,
   StringParameter,
 } from "./base"
 import { splitFirst } from "../util/util"
@@ -24,16 +23,16 @@ import { pick, find } from "lodash"
 import { ServiceEndpoint, getEndpointUrl } from "../types/service"
 import dedent = require("dedent")
 
-export const callArgs = {
+const callArgs = {
   serviceAndPath: new StringParameter({
     help: "The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath).",
     required: true,
   }),
 }
 
-export type Args = ParameterValues<typeof callArgs>
+type Args = typeof callArgs
 
-export class CallCommand extends Command<typeof callArgs> {
+export class CallCommand extends Command<Args> {
   name = "call"
   help = "Call a service endpoint."
 
@@ -51,12 +50,12 @@ export class CallCommand extends Command<typeof callArgs> {
 
   arguments = callArgs
 
-  async action({ ctx, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist
-    const service = await ctx.getService(serviceName)
-    const status = await ctx.getServiceStatus({ serviceName })
+    const service = await garden.getService(serviceName)
+    const status = await garden.actions.getServiceStatus({ service })
 
     if (status.state !== "ready") {
       throw new RuntimeError(`Service ${service.name} is not running`, {
@@ -121,7 +120,7 @@ export class CallCommand extends Command<typeof callArgs> {
     // TODO: support POST requests with request body
     const method = "get"
 
-    const entry = ctx.log.info({
+    const entry = garden.log.info({
       msg: chalk.cyan(`Sending ${matchedEndpoint.protocol.toUpperCase()} GET request to `) + url + "\n",
       entryStyle: EntryStyle.activity,
     })
@@ -143,18 +142,18 @@ export class CallCommand extends Command<typeof callArgs> {
     try {
       res = await req
       entry.setSuccess()
-      ctx.log.info(chalk.green(`${res.status} ${res.statusText}\n`))
+      garden.log.info(chalk.green(`${res.status} ${res.statusText}\n`))
     } catch (err) {
       res = err.response
       entry.setError()
       const error = res ? `${res.status} ${res.statusText}` : err.message
-      ctx.log.info(chalk.red(error + "\n"))
+      garden.log.info(chalk.red(error + "\n"))
       return {}
     }
 
     const resStr = isObject(res.data) ? JSON.stringify(res.data, null, 2) : res.data
 
-    res.data && ctx.log.info(chalk.white(resStr) + "\n")
+    res.data && garden.log.info(chalk.white(resStr) + "\n")
 
     return {
       result: {

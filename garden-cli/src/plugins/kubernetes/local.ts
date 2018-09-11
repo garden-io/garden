@@ -12,22 +12,21 @@ import { every, values } from "lodash"
 import * as Joi from "joi"
 import { join } from "path"
 import { PluginError } from "../../exceptions"
-import { Environment, validate } from "../../config/common"
-import { GardenPlugin, Provider } from "../../types/plugin/plugin"
-import { ConfigureEnvironmentParams, GetEnvironmentStatusParams } from "../../types/plugin/params"
-import { providerConfigBase } from "../../config/project"
-import { findByName } from "../../util/util"
-import { configureEnvironment, getEnvironmentStatus } from "./actions"
+import { GardenPlugin } from "../../types/plugin/plugin"
+import { GetEnvironmentStatusParams, PrepareEnvironmentParams } from "../../types/plugin/params"
+import { getEnvironmentStatus, prepareEnvironment } from "./actions"
+import { validate } from "../../config/common"
 import {
   gardenPlugin as k8sPlugin,
   KubernetesConfig,
-  KubernetesProvider,
 } from "./kubernetes"
 import { getSystemGarden, isSystemGarden } from "./system"
 import { readFile } from "fs-extra"
 import { LogEntry } from "../../logger/logger"
 import { homedir } from "os"
 import { helm } from "./helm"
+import { PluginContext } from "../../plugin-context"
+import { providerConfigBaseSchema } from "../../config/project"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -38,37 +37,34 @@ const kubeConfigPath = join(homedir(), ".kube", "config")
 
 // extend the environment configuration to also set up an ingress controller and dashboard
 export async function getLocalEnvironmentStatus(
-  { ctx, provider, env, logEntry }: GetEnvironmentStatusParams,
+  { ctx, logEntry }: GetEnvironmentStatusParams,
 ) {
-  const status = await getEnvironmentStatus({ ctx, provider, env, logEntry })
+  const status = await getEnvironmentStatus({ ctx, logEntry })
 
-  if (!isSystemGarden(provider)) {
-    const sysGarden = await getSystemGarden(provider)
-    const sysStatus = await sysGarden.getPluginContext().getStatus()
+  if (!isSystemGarden(ctx.provider)) {
+    const sysGarden = await getSystemGarden(ctx.provider)
+    const sysStatus = await sysGarden.actions.getStatus()
 
-    status.detail.systemReady = sysStatus.providers[provider.name].configured &&
+    status.detail.systemReady = sysStatus.providers[ctx.provider.config.name].ready &&
       every(values(sysStatus.services).map(s => s.state === "ready"))
     // status.detail.systemServicesStatus = sysStatus.services
   }
 
-  status.configured = every(values(status.detail))
+  status.ready = every(values(status.detail))
 
   return status
 }
 
 async function configureSystemEnvironment(
-  { provider, env, force, logEntry }:
-    { provider: LocalKubernetesProvider, env: Environment, force: boolean, logEntry?: LogEntry },
+  { ctx, force, logEntry }:
+    { ctx: PluginContext, force: boolean, logEntry?: LogEntry },
 ) {
+  const provider = ctx.provider
   const sysGarden = await getSystemGarden(provider)
-  const sysCtx = sysGarden.getPluginContext()
-  const sysProvider: KubernetesProvider = {
-    name: provider.name,
-    config: <KubernetesConfig>findByName(sysGarden.environmentConfig.providers, provider.name)!,
-  }
+  const sysCtx = sysGarden.getPluginContext(provider.name)
 
   // TODO: need to add logic here to wait for tiller to be ready
-  await helm(sysProvider,
+  await helm(sysCtx.provider,
     "init", "--wait",
     "--service-account", "default",
     "--upgrade",
@@ -76,14 +72,11 @@ async function configureSystemEnvironment(
 
   const sysStatus = await getEnvironmentStatus({
     ctx: sysCtx,
-    provider: sysProvider,
-    env,
+    logEntry,
   })
 
-  await configureEnvironment({
+  await prepareEnvironment({
     ctx: sysCtx,
-    env: sysGarden.getEnvironment(),
-    provider: sysProvider,
     force,
     status: sysStatus,
     logEntry,
@@ -91,7 +84,7 @@ async function configureSystemEnvironment(
 
   // only deploy services if configured to do so (minikube bundles the required services as addons)
   if (!provider.config._systemServices || provider.config._systemServices.length > 0) {
-    const results = await sysCtx.deployServices({
+    const results = await sysGarden.actions.deployServices({
       serviceNames: provider.config._systemServices,
     })
 
@@ -106,12 +99,12 @@ async function configureSystemEnvironment(
 }
 
 async function configureLocalEnvironment(
-  { ctx, provider, env, force, status, logEntry }: ConfigureEnvironmentParams,
+  { ctx, force, status, logEntry }: PrepareEnvironmentParams,
 ) {
-  await configureEnvironment({ ctx, provider, env, force, status, logEntry })
+  await prepareEnvironment({ ctx, force, status, logEntry })
 
-  if (!isSystemGarden(provider)) {
-    await configureSystemEnvironment({ provider, env, force, logEntry })
+  if (!isSystemGarden(ctx.provider)) {
+    await configureSystemEnvironment({ ctx, force, logEntry })
   }
 
   return {}
@@ -144,9 +137,7 @@ export interface LocalKubernetesConfig extends KubernetesConfig {
   _systemServices?: string[]
 }
 
-type LocalKubernetesProvider = Provider<LocalKubernetesConfig>
-
-const configSchema = providerConfigBase
+const configSchema = providerConfigBaseSchema
   .keys({
     context: Joi.string()
       .description("The kubectl context to use to connect to the Kubernetes cluster."),
@@ -235,7 +226,7 @@ export async function gardenPlugin({ projectName, config, logEntry }): Promise<G
   const plugin = k8sPlugin({ config: k8sConfig })
 
   plugin.actions!.getEnvironmentStatus = getLocalEnvironmentStatus
-  plugin.actions!.configureEnvironment = configureLocalEnvironment
+  plugin.actions!.prepareEnvironment = configureLocalEnvironment
 
   return plugin
 }

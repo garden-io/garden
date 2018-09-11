@@ -7,10 +7,9 @@
  */
 
 import { DeploymentError } from "../../exceptions"
-import { LogEntry } from "../../logger/logger"
+import { LogNode } from "../../logger/logger"
 import { LogSymbolType } from "../../logger/types"
 import { PluginContext } from "../../plugin-context"
-import { Provider } from "../../types/plugin/plugin"
 import { Service, ServiceState } from "../../types/service"
 import { sleep } from "../../util/util"
 import { KubeApi } from "./api"
@@ -293,19 +292,23 @@ export async function checkObjectStatus(
   return { ready, statuses }
 }
 
+interface WaitParams {
+  ctx: PluginContext,
+  provider: KubernetesProvider,
+  service: Service,
+  objects: KubernetesObject[],
+  logEntry?: LogNode,
+}
+
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
  */
-export async function waitForObjects(
-  { ctx, provider, service, objects, logEntry }:
-    { ctx: PluginContext, provider: Provider, service: Service, objects: KubernetesObject[], logEntry?: LogEntry },
-) {
+export async function waitForObjects({ ctx, provider, service, objects, logEntry }: WaitParams) {
   let loops = 0
   let lastMessage
   const startTime = new Date().getTime()
-  const log = logEntry || ctx.log
 
-  log.verbose({
+  logEntry && logEntry.verbose({
     symbol: LogSymbolType.info,
     section: service.name,
     msg: `Waiting for service to be ready...`,
@@ -333,7 +336,7 @@ export async function waitForObjects(
 
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
-        log.verbose({
+        logEntry && logEntry.verbose({
           symbol: LogSymbolType.info,
           section: service.name,
           msg: status.lastMessage,
@@ -354,16 +357,14 @@ export async function waitForObjects(
     }
   }
 
-  log.verbose({ symbol: LogSymbolType.info, section: service.name, msg: `Service deployed` })
+  logEntry && logEntry.verbose({ symbol: LogSymbolType.info, section: service.name, msg: `Service deployed` })
 }
 
 /**
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
-export async function compareDeployedObjects(
-  ctx: PluginContext, provider: KubernetesProvider, objects: KubernetesObject[],
-): Promise<boolean> {
-  const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, provider, obj))
+export async function compareDeployedObjects(ctx: PluginContext, objects: KubernetesObject[]): Promise<boolean> {
+  const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, ctx.provider, obj))
 
   for (let [obj, existingSpec] of zip(objects, existingObjects)) {
     if (existingSpec && obj) {

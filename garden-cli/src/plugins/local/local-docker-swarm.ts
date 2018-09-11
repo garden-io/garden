@@ -38,19 +38,19 @@ const pluginName = "local-docker-swarm"
 export const gardenPlugin = (): GardenPlugin => ({
   actions: {
     getEnvironmentStatus,
-    configureEnvironment,
+    prepareEnvironment,
   },
   moduleActions: {
     container: {
       getServiceStatus,
 
       async deployService(
-        { ctx, provider, module, service, runtimeContext, env }: DeployServiceParams<ContainerModule>,
+        { ctx, module, service, runtimeContext, logEntry }: DeployServiceParams<ContainerModule>,
       ) {
         // TODO: split this method up and test
         const { versionString } = service.module.version
 
-        ctx.log.info({ section: service.name, msg: `Deploying version ${versionString}` })
+        logEntry && logEntry.info({ section: service.name, msg: `Deploying version ${versionString}` })
 
         const identifier = await helpers.getLocalImageId(module)
         const ports = service.spec.ports.map(p => {
@@ -85,8 +85,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const opts: any = {
           Name: getSwarmServiceName(ctx, service.name),
           Labels: {
-            environment: env.name,
-            namespace: env.namespace,
+            environment: ctx.environment.name,
             provider: pluginName,
           },
           TaskTemplate: {
@@ -117,7 +116,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         }
 
         const docker = getDocker()
-        const serviceStatus = await getServiceStatus({ ctx, provider, service, env, module, runtimeContext })
+        const serviceStatus = await getServiceStatus({ ctx, service, module, runtimeContext, logEntry })
         let swarmServiceStatus
         let serviceId
 
@@ -125,14 +124,14 @@ export const gardenPlugin = (): GardenPlugin => ({
           const swarmService = await docker.getService(serviceStatus.providerId)
           swarmServiceStatus = await swarmService.inspect()
           opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
-          ctx.log.verbose({
+          logEntry && logEntry.verbose({
             section: service.name,
             msg: `Updating existing Swarm service (version ${opts.version})`,
           })
           await swarmService.update(opts)
           serviceId = serviceStatus.providerId
         } else {
-          ctx.log.verbose({
+          logEntry && logEntry.verbose({
             section: service.name,
             msg: `Creating new Swarm service`,
           })
@@ -168,12 +167,12 @@ export const gardenPlugin = (): GardenPlugin => ({
           }
         }
 
-        ctx.log.info({
+        logEntry && logEntry.info({
           section: service.name,
           msg: `Ready`,
         })
 
-        return getServiceStatus({ ctx, provider, module, service, env, runtimeContext })
+        return getServiceStatus({ ctx, module, service, runtimeContext, logEntry })
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<ContainerModule>) {
@@ -183,9 +182,15 @@ export const gardenPlugin = (): GardenPlugin => ({
       },
 
       async execInService(
-        { ctx, provider, env, service, command, runtimeContext }: ExecInServiceParams<ContainerModule>,
+        { ctx, service, command, runtimeContext, logEntry }: ExecInServiceParams<ContainerModule>,
       ) {
-        const status = await getServiceStatus({ ctx, provider, service, env, module: service.module, runtimeContext })
+        const status = await getServiceStatus({
+          ctx,
+          service,
+          module: service.module,
+          runtimeContext,
+          logEntry,
+        })
 
         if (!status.state || status.state !== "ready") {
           throw new DeploymentError(`Service ${service.name} is not running`, {
@@ -222,13 +227,13 @@ async function getEnvironmentStatus() {
     await docker.swarmInspect()
 
     return {
-      configured: true,
+      ready: true,
     }
   } catch (err) {
     if (err.statusCode === 503) {
       // swarm has not been initialized
       return {
-        configured: false,
+        ready: false,
         services: [],
       }
     } else {
@@ -237,7 +242,7 @@ async function getEnvironmentStatus() {
   }
 }
 
-async function configureEnvironment() {
+async function prepareEnvironment() {
   await getDocker().swarmInit({})
   return {}
 }

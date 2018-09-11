@@ -232,8 +232,8 @@ describe("ModuleConfigContext", () => {
     garden = await makeTestGardenA()
     await garden.scanModules()
     c = new ModuleConfigContext(
-      garden.getPluginContext(),
-      garden.environmentConfig,
+      garden,
+      garden.environment,
       Object.values((<any>garden).moduleConfigs),
     )
   })
@@ -249,7 +249,7 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the environment config", async () => {
-    expect(await c.resolve({ key: ["environment", "name"], nodePath: [] })).to.equal(garden.environmentName)
+    expect(await c.resolve({ key: ["environment", "name"], nodePath: [] })).to.equal(garden.environment.name)
   })
 
   it("should should resolve the path of a module", async () => {

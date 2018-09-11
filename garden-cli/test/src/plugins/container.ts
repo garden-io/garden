@@ -8,7 +8,6 @@ import {
   gardenPlugin,
   helpers,
 } from "../../../src/plugins/container"
-import { Environment } from "../../../src/config/common"
 import {
   dataDir,
   expectError,
@@ -21,19 +20,17 @@ describe("plugins.container", () => {
   const modulePath = resolve(dataDir, "test-project-container", "module-a")
 
   const handler = gardenPlugin()
-  const parseModule = handler.moduleActions!.container!.parseModule!
-  const buildModule = handler.moduleActions!.container!.buildModule!
+  const validate = handler.moduleActions!.container!.validate!
+  const build = handler.moduleActions!.container!.build!
   const pushModule = handler.moduleActions!.container!.pushModule!
-  const getModuleBuildStatus = handler.moduleActions!.container!.getModuleBuildStatus!
+  const getBuildStatus = handler.moduleActions!.container!.getBuildStatus!
 
   let garden: Garden
   let ctx: PluginContext
-  let env: Environment
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, [gardenPlugin])
-    ctx = garden.getPluginContext()
-    env = garden.getEnvironment()
+    ctx = garden.getPluginContext("container")
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 
@@ -44,10 +41,8 @@ describe("plugins.container", () => {
     }))
   })
 
-  const provider = { name: "container", config: {} }
-
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-    const parsed = await parseModule({ env, provider, moduleConfig })
+    const parsed = await validate({ ctx, moduleConfig })
     return moduleFromConfig(garden, parsed)
   }
 
@@ -193,7 +188,7 @@ describe("plugins.container", () => {
   })
 
   describe("DockerModuleHandler", () => {
-    describe("parseModule", () => {
+    describe("validate", () => {
       it("should validate and parse a container module", async () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
@@ -249,7 +244,7 @@ describe("plugins.container", () => {
           testConfigs: [],
         }
 
-        const result = await parseModule({ env, provider, moduleConfig })
+        const result = await validate({ ctx, moduleConfig })
 
         expect(result).to.eql({
           allowPush: false,
@@ -375,7 +370,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => parseModule({ env, provider, moduleConfig }),
+          () => validate({ ctx, moduleConfig }),
           "configuration",
         )
       })
@@ -419,7 +414,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => parseModule({ env, provider, moduleConfig }),
+          () => validate({ ctx, moduleConfig }),
           "configuration",
         )
       })
@@ -460,13 +455,13 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => parseModule({ env, provider, moduleConfig }),
+          () => validate({ ctx, moduleConfig }),
           "configuration",
         )
       })
     })
 
-    describe("getModuleBuildStatus", () => {
+    describe("getBuildStatus", () => {
       it("should return ready:true if build exists locally", async () => {
         const module = td.object(await getTestModule({
           allowPush: false,
@@ -491,7 +486,7 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "imageExistsLocally", async () => true)
 
-        const result = await getModuleBuildStatus({ ctx, env, provider, module })
+        const result = await getBuildStatus({ ctx, module })
         expect(result).to.eql({ ready: true })
       })
 
@@ -519,12 +514,12 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "imageExistsLocally", async () => false)
 
-        const result = await getModuleBuildStatus({ ctx, env, provider, module })
+        const result = await getBuildStatus({ ctx, module })
         expect(result).to.eql({ ready: false })
       })
     })
 
-    describe("buildModule", () => {
+    describe("build", () => {
       it("pull image if image tag is set and the module doesn't container a Dockerfile", async () => {
         const module = td.object(await getTestModule({
           allowPush: false,
@@ -552,7 +547,7 @@ describe("plugins.container", () => {
         td.replace(helpers, "pullImage", async () => null)
         td.replace(helpers, "imageExistsLocally", async () => false)
 
-        const result = await buildModule({ ctx, env, provider, module })
+        const result = await build({ ctx, module })
 
         expect(result).to.eql({ fetched: true })
       })
@@ -586,7 +581,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await buildModule({ ctx, env, provider, module })
+        const result = await build({ ctx, module })
 
         expect(result).to.eql({
           fresh: true,
@@ -623,7 +618,7 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "hasDockerfile", async () => false)
 
-        const result = await pushModule({ ctx, env, provider, module })
+        const result = await pushModule({ ctx, module })
         expect(result).to.eql({ pushed: false })
       })
 
@@ -656,7 +651,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await pushModule({ ctx, env, provider, module })
+        const result = await pushModule({ ctx, module })
         expect(result).to.eql({ pushed: true })
 
         td.verify(dockerCli(module, "tag some/image:12345 some/image:12345"), { times: 0 })
@@ -692,7 +687,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await pushModule({ ctx, env, provider, module })
+        const result = await pushModule({ ctx, module })
         expect(result).to.eql({ pushed: true })
 
         td.verify(dockerCli(module, "tag some/image:12345 some/image:1.1"))

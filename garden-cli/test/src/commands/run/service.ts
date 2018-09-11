@@ -20,8 +20,6 @@ describe("RunServiceCommand", () => {
   })
 
   it("should run a service", async () => {
-    const ctx = garden.getPluginContext()
-
     garden.addModule(makeTestModule({
       name: "run-test",
       serviceConfigs: [{ name: "test-service", dependencies: [], outputs: {}, spec: {} }],
@@ -30,7 +28,6 @@ describe("RunServiceCommand", () => {
     const cmd = new RunServiceCommand()
     const { result } = await cmd.action({
       garden,
-      ctx,
       args: { service: "test-service" },
       opts: { "force-build": false },
     })

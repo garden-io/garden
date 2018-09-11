@@ -12,7 +12,6 @@ import {
   CommandParams,
   CommandResult,
   handleTaskResults,
-  ParameterValues,
   StringsParameter,
 } from "./base"
 import { getDeployTasks } from "../tasks/deploy"
@@ -20,23 +19,23 @@ import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 import { getNames } from "../util/util"
 
-export const deployArgs = {
+const deployArgs = {
   service: new StringsParameter({
     help: "The name of the service(s) to deploy (skip to deploy all services). " +
       "Use comma as separator to specify multiple services.",
   }),
 }
 
-export const deployOpts = {
+const deployOpts = {
   force: new BooleanParameter({ help: "Force redeploy of service(s)." }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
   watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-deploy.", alias: "w" }),
 }
 
-export type Args = ParameterValues<typeof deployArgs>
-export type Opts = ParameterValues<typeof deployOpts>
+type Args = typeof deployArgs
+type Opts = typeof deployOpts
 
-export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts> {
+export class DeployCommand extends Command<Args, Opts> {
   name = "deploy"
   help = "Deploy service(s) to your environment."
 
@@ -59,34 +58,42 @@ export class DeployCommand extends Command<typeof deployArgs, typeof deployOpts>
   arguments = deployArgs
   options = deployOpts
 
-  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-
-    const services = await ctx.getServices(args.service)
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    const services = await garden.getServices(args.service)
     const serviceNames = getNames(services)
 
     if (services.length === 0) {
-      ctx.log.warn({ msg: "No services found. Aborting." })
+      garden.log.warn({ msg: "No services found. Aborting." })
       return { result: {} }
     }
 
-    ctx.log.header({ emoji: "rocket", command: "Deploy" })
+    garden.log.header({ emoji: "rocket", command: "Deploy" })
 
     // TODO: make this a task
-    await ctx.configureEnvironment({})
+    await garden.actions.prepareEnvironment({})
 
     const results = await processServices({
-      ctx,
       garden,
       services,
       watch: opts.watch,
       handler: async (module) => getDeployTasks({
-        ctx, module, serviceNames, force: opts.force, forceBuild: opts["force-build"], includeDependants: false,
+        garden,
+        module,
+        serviceNames,
+        force: opts.force,
+        forceBuild: opts["force-build"],
+        includeDependants: false,
       }),
       changeHandler: async (module) => getDeployTasks({
-        ctx, module, serviceNames, force: true, forceBuild: true, includeDependants: true,
+        garden,
+        module,
+        serviceNames,
+        force: true,
+        forceBuild: true,
+        includeDependants: true,
       }),
     })
 
-    return handleTaskResults(ctx, "deploy", results)
+    return handleTaskResults(garden, "deploy", results)
   }
 }

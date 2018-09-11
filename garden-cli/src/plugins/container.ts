@@ -26,10 +26,9 @@ import {
 } from "../types/plugin/plugin"
 import {
   BuildModuleParams,
-  GetModuleBuildStatusParams,
-  ParseModuleParams,
+  GetBuildStatusParams,
+  ValidateModuleParams,
   PushModuleParams,
-  RunServiceParams,
 } from "../types/plugin/params"
 import { Service, endpointHostnameSchema } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
@@ -269,7 +268,7 @@ export const helpers = {
   },
 }
 
-export async function parseContainerModule({ moduleConfig }: ParseModuleParams<ContainerModule>) {
+export async function validateContainerModule({ moduleConfig }: ValidateModuleParams<ContainerModule>) {
   moduleConfig.spec = validate(moduleConfig.spec, containerModuleSpecSchema, { context: `module ${moduleConfig.name}` })
 
   // validate services
@@ -342,9 +341,9 @@ export async function parseContainerModule({ moduleConfig }: ParseModuleParams<C
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
     container: {
-      parseModule: parseContainerModule,
+      validate: validateContainerModule,
 
-      async getModuleBuildStatus({ module, logEntry }: GetModuleBuildStatusParams<ContainerModule>) {
+      async getBuildStatus({ module, logEntry }: GetBuildStatusParams<ContainerModule>) {
         const identifier = await helpers.imageExistsLocally(module)
 
         if (identifier) {
@@ -358,7 +357,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { ready: !!identifier }
       },
 
-      async buildModule({ module, logEntry }: BuildModuleParams<ContainerModule>) {
+      async build({ module, logEntry }: BuildModuleParams<ContainerModule>) {
         const buildPath = module.buildPath
         const image = await getImage(module)
 
@@ -410,19 +409,6 @@ export const gardenPlugin = (): GardenPlugin => ({
         await helpers.dockerCli(module, `push ${remoteId}`)
 
         return { pushed: true }
-      },
-
-      async runService(
-        { ctx, service, interactive, runtimeContext, silent, timeout }: RunServiceParams<ContainerModule>,
-      ) {
-        return ctx.runModule({
-          moduleName: service.module.name,
-          command: service.spec.command || [],
-          interactive,
-          runtimeContext,
-          silent,
-          timeout,
-        })
       },
     },
   },

@@ -13,8 +13,8 @@ import { Task, TaskDefinitionError } from "./tasks/base"
 
 import { EntryStyle, LogSymbolType } from "./logger/types"
 import { LogEntry } from "./logger/logger"
-import { PluginContext } from "./plugin-context"
 import { toGardenError } from "./exceptions"
+import { Garden } from "./garden"
 
 class TaskGraphError extends Error { }
 
@@ -59,7 +59,7 @@ export class TaskGraph {
   private resultCache: ResultCache
   private opQueue: OperationQueue
 
-  constructor(private ctx: PluginContext, private concurrency: number = DEFAULT_CONCURRENCY) {
+  constructor(private garden: Garden, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
@@ -266,7 +266,7 @@ export class TaskGraph {
 
   // Logging
   private logTask(node: TaskNode) {
-    const entry = this.ctx.log.debug({
+    const entry = this.garden.log.debug({
       section: "tasks",
       msg: `Processing task ${taskStyle(node.getKey())}`,
       entryStyle: EntryStyle.activity,
@@ -284,12 +284,12 @@ export class TaskGraph {
 
   private initLogging() {
     if (!Object.keys(this.logEntryMap).length) {
-      const header = this.ctx.log.debug("Processing tasks...")
-      const counter = this.ctx.log.debug({
+      const header = this.garden.log.debug("Processing tasks...")
+      const counter = this.garden.log.debug({
         msg: remainingTasksToStr(this.index.length),
         entryStyle: EntryStyle.activity,
       })
-      const inProgress = this.ctx.log.debug(inProgressToStr(this.inProgress.getNodes()))
+      const inProgress = this.garden.log.debug(inProgressToStr(this.inProgress.getNodes()))
       this.logEntryMap = {
         ...this.logEntryMap,
         header,
@@ -303,7 +303,7 @@ export class TaskGraph {
     const divider = padEnd("", 80, "—")
     const error = toGardenError(err)
     const msg = `\nFailed ${node.getDescription()}. Here is the output:\n${divider}\n${error.message}\n${divider}\n`
-    this.ctx.log.error({ msg, error })
+    this.garden.log.error({ msg, error })
   }
 }
 

@@ -234,10 +234,9 @@ export class GardenCli {
         garden = await Garden.factory(root, contextOpts)
         // TODO: enforce that commands always output DeepPrimitiveMap
         result = await command.action({
-          ctx: garden.getPluginContext(),
+          garden,
           args: parsedArgs,
           opts: parsedOpts,
-          garden,
         })
       } while (result.restartRequired)
 

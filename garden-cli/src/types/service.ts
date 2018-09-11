@@ -7,14 +7,15 @@
  */
 
 import * as Joi from "joi"
-import { PluginContext } from "../plugin-context"
 import { getEnvVarName } from "../util/util"
-import { PrimitiveMap } from "../config/common"
+import { PrimitiveMap, joiIdentifier, joiEnvVars, joiIdentifierMap, joiPrimitive } from "../config/common"
 import { Module, getModuleKey } from "./module"
-import { serviceOutputsSchema, ServiceConfig } from "../config/service"
+import { serviceOutputsSchema, ServiceConfig, serviceConfigSchema } from "../config/service"
 import { validate } from "../config/common"
 import dedent = require("dedent")
 import { format } from "url"
+import { moduleVersionSchema } from "../vcs/base"
+import { Garden } from "../garden"
 import normalizeUrl = require("normalize-url")
 
 export interface Service<M extends Module = Module> {
@@ -23,6 +24,17 @@ export interface Service<M extends Module = Module> {
   config: M["serviceConfigs"][0]
   spec: M["serviceConfigs"][0]["spec"]
 }
+
+export const serviceSchema = Joi.object()
+  .options({ presence: "required" })
+  .keys({
+    name: joiIdentifier()
+      .description("The name of the service."),
+    module: Joi.object().unknown(true),   // This causes a stack overflow: Joi.lazy(() => moduleSchema),
+    config: serviceConfigSchema,
+    spec: Joi.object()
+      .description("The raw configuration of the service (specific to each plugin)."),
+  })
 
 export function serviceFromConfig<M extends Module = Module>(module: M, config: ServiceConfig): Service<M> {
   return {
@@ -141,24 +153,40 @@ export type RuntimeContext = {
       outputs: PrimitiveMap,
     },
   },
-  module: {
-    name: string,
-    type: string,
-    version: string,
-  },
 }
 
+const runtimeDependencySchema = Joi.object()
+  .keys({
+    version: moduleVersionSchema,
+    outputs: joiEnvVars()
+      .description("The outputs provided by the service (e.g. endpoint URLs etc.)."),
+  })
+
+export const runtimeContextSchema = Joi.object()
+  .options({ presence: "required" })
+  .keys({
+    envVars: Joi.object().pattern(/.+/, joiPrimitive())
+      .default(() => ({}), "{}")
+      .unknown(false)
+      .description(
+        "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
+        "(must be uppercase) and values must be primitives.",
+      ),
+    dependencies: joiIdentifierMap(runtimeDependencySchema)
+      .description("Map of all the services that this service or test depends on, and their metadata."),
+  })
+
 export async function prepareRuntimeContext(
-  ctx: PluginContext, module: Module, serviceDependencies: Service[],
+  garden: Garden, module: Module, serviceDependencies: Service[],
 ): Promise<RuntimeContext> {
   const buildDepKeys = module.build.dependencies.map(dep => getModuleKey(dep.name, dep.plugin))
-  const buildDependencies: Module[] = await ctx.getModules(buildDepKeys)
+  const buildDependencies: Module[] = await garden.getModules(buildDepKeys)
   const { versionString } = module.version
   const envVars = {
     GARDEN_VERSION: versionString,
   }
 
-  for (const [key, value] of Object.entries(ctx.environmentConfig.variables)) {
+  for (const [key, value] of Object.entries(garden.environment.variables)) {
     const envVarName = `GARDEN_VARIABLES_${key.replace(/-/g, "_").toUpperCase()}`
     envVars[envVarName] = value
   }
@@ -181,7 +209,7 @@ export async function prepareRuntimeContext(
     }
     const depContext = deps[dep.name]
 
-    const outputs = { ...await ctx.getServiceOutputs({ serviceName: dep.name }), ...dep.config.outputs }
+    const outputs = { ...await garden.actions.getServiceOutputs({ service: dep }), ...dep.config.outputs }
     const serviceEnvName = getEnvVarName(dep.name)
 
     validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
@@ -197,11 +225,6 @@ export async function prepareRuntimeContext(
   return {
     envVars,
     dependencies: deps,
-    module: {
-      name: module.name,
-      type: module.type,
-      version: versionString,
-    },
   }
 }
 

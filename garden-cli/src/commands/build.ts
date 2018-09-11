@@ -12,7 +12,6 @@ import {
   CommandResult,
   CommandParams,
   handleTaskResults,
-  ParameterValues,
   StringsParameter,
 } from "./base"
 import { BuildTask } from "../tasks/build"
@@ -22,21 +21,21 @@ import { processModules } from "../process"
 import { computeAutoReloadDependants, withDependants } from "../watch"
 import { Module } from "../types/module"
 
-export const buildArguments = {
+const buildArguments = {
   module: new StringsParameter({
     help: "Specify module(s) to build. Use comma separator to specify multiple modules.",
   }),
 }
 
-export const buildOptions = {
+const buildOptions = {
   force: new BooleanParameter({ help: "Force rebuild of module(s)." }),
   watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-build.", alias: "w" }),
 }
 
-export type BuildArguments = ParameterValues<typeof buildArguments>
-export type BuildOptions = ParameterValues<typeof buildOptions>
+type BuildArguments = typeof buildArguments
+type BuildOptions = typeof buildOptions
 
-export class BuildCommand extends Command<typeof buildArguments, typeof buildOptions> {
+export class BuildCommand extends Command<BuildArguments, BuildOptions> {
   name = "build"
   help = "Build your modules."
 
@@ -56,30 +55,29 @@ export class BuildCommand extends Command<typeof buildArguments, typeof buildOpt
   options = buildOptions
 
   async action(
-    { ctx, args, opts, garden }: CommandParams<BuildArguments, BuildOptions>,
+    { args, opts, garden }: CommandParams<BuildArguments, BuildOptions>,
   ): Promise<CommandResult<TaskResults>> {
 
     await garden.clearBuilds()
 
-    const autoReloadDependants = await computeAutoReloadDependants(ctx)
-    const modules = await ctx.getModules(args.module)
+    const autoReloadDependants = await computeAutoReloadDependants(garden)
+    const modules = await garden.getModules(args.module)
     const moduleNames = modules.map(m => m.name)
 
-    ctx.log.header({ emoji: "hammer", command: "Build" })
+    garden.log.header({ emoji: "hammer", command: "Build" })
 
     const results = await processModules({
-      ctx,
       garden,
       modules,
       watch: opts.watch,
-      handler: async (module) => [new BuildTask({ ctx, module, force: opts.force })],
+      handler: async (module) => [new BuildTask({ garden, module, force: opts.force })],
       changeHandler: async (module: Module) => {
-        return (await withDependants(ctx, [module], autoReloadDependants))
+        return (await withDependants(garden, [module], autoReloadDependants))
           .filter(m => moduleNames.includes(m.name))
-          .map(m => new BuildTask({ ctx, module: m, force: true }))
+          .map(m => new BuildTask({ garden, module: m, force: true }))
       },
     })
 
-    return handleTaskResults(ctx, "build", results)
+    return handleTaskResults(garden, "build", results)
   }
 }

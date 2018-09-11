@@ -14,28 +14,27 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  ParameterValues,
   StringParameter,
 } from "../base"
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 
-export const runArgs = {
+const runArgs = {
   service: new StringParameter({
     help: "The service to run",
     required: true,
   }),
 }
 
-export const runOpts = {
+const runOpts = {
   "force-build": new BooleanParameter({ help: "Force rebuild of module" }),
 }
 
-export type Args = ParameterValues<typeof runArgs>
-export type Opts = ParameterValues<typeof runOpts>
+type Args = typeof runArgs
+type Opts = typeof runOpts
 
-export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
+export class RunServiceCommand extends Command<Args, Opts> {
   name = "service"
   alias = "s"
   help = "Run an ad-hoc instance of the specified service"
@@ -51,28 +50,28 @@ export class RunServiceCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
-    const service = await ctx.getService(serviceName)
+    const service = await garden.getService(serviceName)
     const module = service.module
 
-    ctx.log.header({
+    garden.log.header({
       emoji: "runner",
       command: `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`,
     })
 
-    await ctx.configureEnvironment({})
+    await garden.actions.prepareEnvironment({})
 
-    const buildTask = new BuildTask({ ctx, module, force: opts["force-build"] })
+    const buildTask = new BuildTask({ garden, module, force: opts["force-build"] })
     await garden.addTask(buildTask)
     await garden.processTasks()
 
-    const dependencies = await ctx.getServices(module.serviceDependencyNames)
-    const runtimeContext = await prepareRuntimeContext(ctx, module, dependencies)
+    const dependencies = await garden.getServices(module.serviceDependencyNames)
+    const runtimeContext = await prepareRuntimeContext(garden, module, dependencies)
 
-    printRuntimeContext(ctx, runtimeContext)
+    printRuntimeContext(garden, runtimeContext)
 
-    const result = await ctx.runService({ serviceName, runtimeContext, silent: false, interactive: true })
+    const result = await garden.actions.runService({ service, runtimeContext, silent: false, interactive: true })
 
     return { result }
   }

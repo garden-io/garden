@@ -14,31 +14,26 @@ import {
   joiIdentifier,
   validate,
 } from "../../config/common"
+import { GardenPlugin } from "../../types/plugin/plugin"
+import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
 import {
-  GardenPlugin,
-  Provider,
-} from "../../types/plugin/plugin"
-import {
-  ProviderConfig,
-  providerConfigBase,
-} from "../../config/project"
-import {
-  configureEnvironment,
-  deleteConfig,
-  destroyEnvironment,
+  prepareEnvironment,
+  deleteSecret,
+  cleanupEnvironment,
   deleteService,
   execInService,
-  getConfig,
+  getSecret,
   getEnvironmentStatus,
   getServiceLogs,
   getServiceOutputs,
   getTestResult,
-  setConfig,
+  setSecret,
   testModule,
   getLoginStatus,
   login,
   logout,
   runModule,
+  runService,
 } from "./actions"
 import { deployContainerService, getContainerServiceStatus } from "./deployment"
 import { helmHandlers } from "./helm"
@@ -68,7 +63,7 @@ export interface KubernetesConfig extends ProviderConfig {
   tlsCertificates: IngressTlsCertificate[]
 }
 
-export interface KubernetesProvider extends Provider<KubernetesConfig> { }
+export type KubernetesProvider = Provider<KubernetesConfig>
 
 const secretRef = Joi.object()
   .keys({
@@ -103,7 +98,7 @@ const tlsCertificateSchema = Joi.object()
       .example({ name: "my-tls-secret", namespace: "default" }),
   })
 
-const kubernetesConfigBase = providerConfigBase
+const kubernetesConfigBase = providerConfigBaseSchema
   .keys({
     context: Joi.string()
       .required()
@@ -154,11 +149,11 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
     config,
     actions: {
       getEnvironmentStatus,
-      configureEnvironment,
-      destroyEnvironment,
-      getConfig,
-      setConfig,
-      deleteConfig,
+      prepareEnvironment,
+      cleanupEnvironment,
+      getSecret,
+      setSecret,
+      deleteSecret,
       getLoginStatus,
       login,
       logout,
@@ -172,6 +167,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
         execInService,
         runModule,
         testModule,
+        runService,
         getTestResult,
         getServiceLogs,
       },

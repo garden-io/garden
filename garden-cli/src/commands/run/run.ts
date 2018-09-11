@@ -7,13 +7,13 @@
  */
 
 import { safeDump } from "js-yaml"
-import { PluginContext } from "../../plugin-context"
 import { RuntimeContext } from "../../types/service"
 import { highlightYaml } from "../../util/util"
 import { Command } from "../base"
 import { RunModuleCommand } from "./module"
 import { RunServiceCommand } from "./service"
 import { RunTestCommand } from "./test"
+import { Garden } from "../../garden"
 
 export class RunCommand extends Command {
   name = "run"
@@ -29,11 +29,11 @@ export class RunCommand extends Command {
   async action() { return {} }
 }
 
-export function printRuntimeContext(ctx: PluginContext, runtimeContext: RuntimeContext) {
-  ctx.log.verbose("-----------------------------------\n")
-  ctx.log.verbose("Environment variables:")
-  ctx.log.verbose(highlightYaml(safeDump(runtimeContext.envVars)))
-  ctx.log.verbose("Dependencies:")
-  ctx.log.verbose(highlightYaml(safeDump(runtimeContext.dependencies)))
-  ctx.log.verbose("-----------------------------------\n")
+export function printRuntimeContext(garden: Garden, runtimeContext: RuntimeContext) {
+  garden.log.verbose("-----------------------------------\n")
+  garden.log.verbose("Environment variables:")
+  garden.log.verbose(highlightYaml(safeDump(runtimeContext.envVars)))
+  garden.log.verbose("Dependencies:")
+  garden.log.verbose(highlightYaml(safeDump(runtimeContext.dependencies)))
+  garden.log.verbose("-----------------------------------\n")
 }

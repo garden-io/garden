@@ -25,13 +25,12 @@ export class LogoutCommand extends Command {
          garden logout
   `
 
-  async action({ ctx }: CommandParams): Promise<CommandResult<LoginStatusMap>> {
+  async action({ garden }: CommandParams): Promise<CommandResult<LoginStatusMap>> {
+    garden.log.header({ emoji: "lock", command: "Logout" })
 
-    ctx.log.header({ emoji: "lock", command: "Logout" })
+    const entry = garden.log.info({ msg: "Logging out...", entryStyle: EntryStyle.activity })
 
-    const entry = ctx.log.info({ msg: "Logging out...", entryStyle: EntryStyle.activity })
-
-    const result = await ctx.logout({})
+    const result = await garden.actions.logout({})
 
     entry.setSuccess("Logged out successfully")
 

@@ -12,10 +12,8 @@ import {
   CommandParams,
   CommandResult,
   handleTaskResults,
-  ParameterValues,
   StringsParameter,
 } from "./base"
-import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { PushTask } from "../tasks/push"
 import { RuntimeError } from "../exceptions"
@@ -23,14 +21,14 @@ import { TaskResults } from "../task-graph"
 import { Garden } from "../garden"
 import dedent = require("dedent")
 
-export const pushArgs = {
+const pushArgs = {
   module: new StringsParameter({
     help: "The name of the module(s) to push (skip to push all modules). " +
       "Use comma as separator to specify multiple modules.",
   }),
 }
 
-export const pushOpts = {
+const pushOpts = {
   "force-build": new BooleanParameter({
     help: "Force rebuild of module(s) before pushing.",
   }),
@@ -39,10 +37,10 @@ export const pushOpts = {
   }),
 }
 
-export type Args = ParameterValues<typeof pushArgs>
-export type Opts = ParameterValues<typeof pushOpts>
+type Args = typeof pushArgs
+type Opts = typeof pushOpts
 
-export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
+export class PushCommand extends Command<Args, Opts> {
   name = "push"
   help = "Build and push built module(s) to remote registry."
 
@@ -61,20 +59,19 @@ export class PushCommand extends Command<typeof pushArgs, typeof pushOpts> {
   arguments = pushArgs
   options = pushOpts
 
-  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    ctx.log.header({ emoji: "rocket", command: "Push modules" })
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    garden.log.header({ emoji: "rocket", command: "Push modules" })
 
-    const modules = await ctx.getModules(args.module)
+    const modules = await garden.getModules(args.module)
 
-    const results = await pushModules(garden, ctx, modules, !!opts["force-build"], !!opts["allow-dirty"])
+    const results = await pushModules(garden, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
-    return handleTaskResults(ctx, "push", { taskResults: results })
+    return handleTaskResults(garden, "push", { taskResults: results })
   }
 }
 
 export async function pushModules(
   garden: Garden,
-  ctx: PluginContext,
   modules: Module<any>[],
   forceBuild: boolean,
   allowDirty: boolean,
@@ -90,7 +87,7 @@ export async function pushModules(
       )
     }
 
-    const task = new PushTask({ ctx, module, forceBuild })
+    const task = new PushTask({ garden, module, forceBuild })
     await garden.addTask(task)
   }
 

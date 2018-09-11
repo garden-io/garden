@@ -16,9 +16,9 @@ import {
 import { basename, parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module, getModuleKey } from "./types/module"
-import { PluginContext } from "./plugin-context"
 import { getIgnorer, scanDirectory } from "./util/util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
+import { Garden } from "./garden"
 
 export type AutoReloadDependants = { [key: string]: Module[] }
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
@@ -28,7 +28,7 @@ export type ChangeHandler = (module: Module | null, configChanged: boolean) => P
   Each module is represented at most once in the output.
 */
 export async function withDependants(
-  ctx: PluginContext,
+  garden: Garden,
   modules: Module[],
   autoReloadDependants: AutoReloadDependants,
 ): Promise<Module[]> {
@@ -47,14 +47,14 @@ export async function withDependants(
   }
 
   // we retrieve the modules again to be sure we have the latest versions
-  return ctx.getModules(Array.from(moduleSet))
+  return garden.getModules(Array.from(moduleSet))
 }
 
-export async function computeAutoReloadDependants(ctx: PluginContext): Promise<AutoReloadDependants> {
+export async function computeAutoReloadDependants(garden: Garden): Promise<AutoReloadDependants> {
   const dependants = {}
 
-  for (const module of await ctx.getModules()) {
-    const depModules: Module[] = await uniqueDependencyModules(ctx, module)
+  for (const module of await garden.getModules()) {
+    const depModules: Module[] = await uniqueDependencyModules(garden, module)
     for (const dep of depModules) {
       set(dependants, [dep.name, module.name], module)
     }
@@ -63,28 +63,28 @@ export async function computeAutoReloadDependants(ctx: PluginContext): Promise<A
   return mapValues(dependants, values)
 }
 
-async function uniqueDependencyModules(ctx: PluginContext, module: Module): Promise<Module[]> {
+async function uniqueDependencyModules(garden: Garden, module: Module): Promise<Module[]> {
   const buildDeps = module.build.dependencies.map(d => getModuleKey(d.name, d.plugin))
-  const serviceDeps = (await ctx.getServices(module.serviceDependencyNames)).map(s => s.module.name)
-  return ctx.getModules(uniq(buildDeps.concat(serviceDeps)))
+  const serviceDeps = (await garden.getServices(module.serviceDependencyNames)).map(s => s.module.name)
+  return garden.getModules(uniq(buildDeps.concat(serviceDeps)))
 }
 
 export class FSWatcher {
   private watcher
 
-  constructor(private ctx: PluginContext) {
+  constructor(private garden: Garden) {
   }
 
   async watchModules(modules: Module[], changeHandler: ChangeHandler) {
 
-    const projectRoot = this.ctx.projectRoot
-    const ignorer = await getIgnorer(this.ctx.projectRoot)
+    const projectRoot = this.garden.projectRoot
+    const ignorer = await getIgnorer(projectRoot)
 
     const onFileChanged = this.makeFileChangedHandler(modules, changeHandler)
 
     this.watcher = watch(projectRoot, {
       ignored: (path, _) => {
-        const relpath = relative(this.ctx.projectRoot, path)
+        const relpath = relative(projectRoot, path)
         return relpath && ignorer.ignores(relpath)
       },
       ignoreInitial: true,
@@ -128,7 +128,7 @@ export class FSWatcher {
 
     const scanOpts = {
       filter: (path) => {
-        const relPath = relative(this.ctx.projectRoot, path)
+        const relPath = relative(this.garden.projectRoot, path)
         return !ignorer.ignores(relPath)
       },
     }
@@ -198,11 +198,11 @@ export class FSWatcher {
   private invalidateCached(module: Module) {
     // invalidate the cache for anything attached to the module path or upwards in the directory tree
     const cacheContext = pathToCacheContext(module.path)
-    this.ctx.invalidateCacheUp(cacheContext)
+    this.garden.cache.invalidateUp(cacheContext)
   }
 
   private async invalidateCachedForAll() {
-    for (const module of await this.ctx.getModules()) {
+    for (const module of await this.garden.getModules()) {
       this.invalidateCached(module)
     }
   }

@@ -7,14 +7,14 @@
  */
 
 import { Module } from "../../types/module"
-import { ConfigureEnvironmentParams } from "../../types/plugin/params"
+import { PrepareEnvironmentParams } from "../../types/plugin/params"
 import { Service } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
 import { GenericTestSpec } from "../generic"
 import { GCloud } from "./gcloud"
-import { Provider } from "../../types/plugin/plugin"
 import { ModuleSpec } from "../../config/module"
 import { BaseServiceSpec } from "../../config/service"
+import { Provider } from "../../config/project"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
@@ -32,7 +32,7 @@ export async function getEnvironmentStatus() {
   let sdkInfo
 
   const output = {
-    configured: true,
+    ready: true,
     detail: {
       sdkInstalled: true,
       sdkInitialized: true,
@@ -44,24 +44,24 @@ export async function getEnvironmentStatus() {
   try {
     sdkInfo = output.detail.sdkInfo = await gcloud().json(["info"])
   } catch (err) {
-    output.configured = false
+    output.ready = false
     output.detail.sdkInstalled = false
   }
 
   if (!sdkInfo.config.account) {
-    output.configured = false
+    output.ready = false
     output.detail.sdkInitialized = false
   }
 
   if (!sdkInfo.installation.components.beta) {
-    output.configured = false
+    output.ready = false
     output.detail.betaComponentsInstalled = false
   }
 
   return output
 }
 
-export async function configureEnvironment({ ctx, status }: ConfigureEnvironmentParams) {
+export async function prepareEnvironment({ status, logEntry }: PrepareEnvironmentParams) {
   if (!status.detail.sdkInstalled) {
     throw new ConfigurationError(
       "Google Cloud SDK is not installed. " +
@@ -71,7 +71,7 @@ export async function configureEnvironment({ ctx, status }: ConfigureEnvironment
   }
 
   if (!status.detail.betaComponentsInstalled) {
-    ctx.log.info({
+    logEntry && logEntry.info({
       section: "google-cloud-functions",
       msg: `Installing gcloud SDK beta components...`,
     })
@@ -80,7 +80,7 @@ export async function configureEnvironment({ ctx, status }: ConfigureEnvironment
   }
 
   if (!status.detail.sdkInitialized) {
-    ctx.log.info({
+    logEntry && logEntry.info({
       section: "google-cloud-functions",
       msg: `Initializing SDK...`,
     })

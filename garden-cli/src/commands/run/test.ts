@@ -19,14 +19,13 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  ParameterValues,
   StringParameter,
 } from "../base"
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 
-export const runArgs = {
+const runArgs = {
   module: new StringParameter({
     help: "The name of the module to run.",
     required: true,
@@ -37,7 +36,7 @@ export const runArgs = {
   }),
 }
 
-export const runOpts = {
+const runOpts = {
   interactive: new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result.",
     defaultValue: true,
@@ -45,10 +44,10 @@ export const runOpts = {
   "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
 }
 
-export type Args = ParameterValues<typeof runArgs>
-export type Opts = ParameterValues<typeof runOpts>
+type Args = typeof runArgs
+type Opts = typeof runOpts
 
-export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
+export class RunTestCommand extends Command<Args, Opts> {
   name = "test"
   alias = "t"
   help = "Run the specified module test."
@@ -65,10 +64,10 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
     const testName = args.test
-    const module = await ctx.getModule(moduleName)
+    const module = await garden.getModule(moduleName)
 
     const testConfig = findByName(module.testConfigs, testName)
 
@@ -80,24 +79,30 @@ export class RunTestCommand extends Command<typeof runArgs, typeof runOpts> {
       })
     }
 
-    ctx.log.header({
+    garden.log.header({
       emoji: "runner",
       command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
     })
 
-    await ctx.configureEnvironment({})
+    await garden.actions.prepareEnvironment({})
 
-    const buildTask = new BuildTask({ ctx, module, force: opts["force-build"] })
+    const buildTask = new BuildTask({ garden, module, force: opts["force-build"] })
     await garden.addTask(buildTask)
     await garden.processTasks()
 
     const interactive = opts.interactive
-    const deps = await ctx.getServices(testConfig.dependencies)
-    const runtimeContext = await prepareRuntimeContext(ctx, module, deps)
+    const deps = await garden.getServices(testConfig.dependencies)
+    const runtimeContext = await prepareRuntimeContext(garden, module, deps)
 
-    printRuntimeContext(ctx, runtimeContext)
+    printRuntimeContext(garden, runtimeContext)
 
-    const result = await ctx.testModule({ moduleName, interactive, runtimeContext, silent: false, testConfig })
+    const result = await garden.actions.testModule({
+      module,
+      interactive,
+      runtimeContext,
+      silent: false,
+      testConfig,
+    })
 
     return { result }
   }

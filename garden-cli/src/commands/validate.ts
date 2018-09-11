@@ -21,11 +21,10 @@ export class ValidateCommand extends Command {
     Throws an error and exits with code 1 if something's not right in your garden.yml files.
   `
 
-  async action({ ctx }: CommandParams): Promise<CommandResult> {
+  async action({ garden }: CommandParams): Promise<CommandResult> {
+    garden.log.header({ emoji: "heavy_check_mark", command: "validate" })
 
-    ctx.log.header({ emoji: "heavy_check_mark", command: "validate" })
-
-    await ctx.getModules()
+    await garden.getModules()
 
     return {}
   }

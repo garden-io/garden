@@ -19,9 +19,9 @@ describe("watch", () => {
 
   describe("computeAutoReloadDependants", () => {
     it("should include build and service dependants of requested modules", async () => {
-      const ctx = (await makeTestGarden(projectRoot)).getPluginContext()
+      const garden = await makeTestGarden(projectRoot)
       const dependants = dependantModuleNames(
-        await computeAutoReloadDependants(ctx))
+        await computeAutoReloadDependants(garden))
 
       expect(dependants).to.eql({
         "module-a": ["module-b"],

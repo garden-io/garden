@@ -21,13 +21,13 @@ import { Module } from "../types/module"
 import {
   BuildResult,
   BuildStatus,
-  ParseModuleResult,
+  ValidateModuleResult,
   TestResult,
 } from "../types/plugin/outputs"
 import {
   BuildModuleParams,
-  GetModuleBuildStatusParams,
-  ParseModuleParams,
+  GetBuildStatusParams,
+  ValidateModuleParams,
   TestModuleParams,
 } from "../types/plugin/params"
 import { BaseServiceSpec } from "../config/service"
@@ -70,8 +70,8 @@ export const genericModuleSpecSchema = Joi.object()
 export interface GenericModule extends Module<GenericModuleSpec, BaseServiceSpec, GenericTestSpec> { }
 
 export async function parseGenericModule(
-  { moduleConfig }: ParseModuleParams<GenericModule>,
-): Promise<ParseModuleResult> {
+  { moduleConfig }: ValidateModuleParams<GenericModule>,
+): Promise<ValidateModuleResult> {
   moduleConfig.spec = validate(moduleConfig.spec, genericModuleSpecSchema, { context: `module ${moduleConfig.name}` })
 
   moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
@@ -84,7 +84,7 @@ export async function parseGenericModule(
   return moduleConfig
 }
 
-export async function getGenericModuleBuildStatus({ module }: GetModuleBuildStatusParams): Promise<BuildStatus> {
+export async function getGenericModuleBuildStatus({ module }: GetBuildStatusParams): Promise<BuildStatus> {
   const buildVersionFilePath = join(module.buildPath, GARDEN_BUILD_VERSION_FILENAME)
   let builtVersion: ModuleVersion | null = null
 
@@ -160,9 +160,9 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
 export const genericPlugin: GardenPlugin = {
   moduleActions: {
     generic: {
-      parseModule: parseGenericModule,
-      getModuleBuildStatus: getGenericModuleBuildStatus,
-      buildModule: buildGenericModule,
+      validate: parseGenericModule,
+      getBuildStatus: getGenericModuleBuildStatus,
+      build: buildGenericModule,
       testModule: testGenericModule,
     },
   },
