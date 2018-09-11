@@ -20,8 +20,8 @@ export class ScanCommand extends Command {
   name = "scan"
   help = "Scans your project and outputs an overview of all modules."
 
-  async action({ ctx }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
-    let modules = (await ctx.getModules())
+  async action({ garden }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
+    const modules = (await garden.getModules())
       .map(m => {
         m.services.forEach(s => delete s.module)
         return omit(m, ["_ConfigType", "cacheContext", "serviceConfigs", "serviceNames"])
@@ -31,12 +31,12 @@ export class ScanCommand extends Command {
 
     const shortOutput = {
       modules: modules.map(m => {
-        m.services.map(s => delete s.spec)
+        m.services!.map(s => delete s.spec)
         return omit(m, ["spec"])
       }),
     }
 
-    ctx.log.info(highlightYaml(safeDump(shortOutput, { noRefs: true, skipInvalid: true, sortKeys: true })))
+    garden.log.info(highlightYaml(safeDump(shortOutput, { noRefs: true, skipInvalid: true, sortKeys: true })))
 
     return { result: <DeepPrimitiveMap><any>output }
   }

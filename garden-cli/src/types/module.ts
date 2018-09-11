@@ -9,12 +9,14 @@
 import { flatten, uniq } from "lodash"
 import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
-import { ModuleSpec, ModuleConfig } from "../config/module"
+import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ServiceSpec } from "../config/service"
-import { ModuleVersion } from "../vcs/base"
-import { CacheContext, pathToCacheContext } from "../cache"
+import { ModuleVersion, moduleVersionSchema } from "../vcs/base"
+import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
-import { serviceFromConfig, Service } from "./service"
+import { serviceFromConfig, Service, serviceSchema } from "./service"
+import * as Joi from "joi"
+import { joiArray, joiIdentifier } from "../config/common"
 
 export interface BuildCopySpec {
   source: string
@@ -28,7 +30,6 @@ export interface Module<
   > extends ModuleConfig<M, S, T> {
   buildPath: string
   version: ModuleVersion
-  cacheContext: CacheContext
 
   services: Service<Module<M, S, T>>[]
   serviceNames: string[]
@@ -37,11 +38,30 @@ export interface Module<
   _ConfigType: ModuleConfig<M, S, T>
 }
 
-export interface ModuleMap<T extends Module> {
+export const moduleSchema = moduleConfigSchema
+  .keys({
+    buildPath: Joi.string()
+      .required()
+      .uri(<any>{ relativeOnly: true })
+      .description("The path to the build staging directory for the module."),
+    version: moduleVersionSchema
+      .required(),
+    services: joiArray(Joi.lazy(() => serviceSchema))
+      .required()
+      .description("A list of all the services that the module provides."),
+    serviceNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of the services that the module provides."),
+    serviceDependencyNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of all the services that the services in this module depend on."),
+  })
+
+export interface ModuleMap<T extends Module = Module> {
   [key: string]: T
 }
 
-export interface ModuleConfigMap<T extends Module> {
+export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
   [key: string]: T
 }
 
@@ -51,7 +71,6 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
 
     buildPath: await garden.buildDir.buildPath(config.name),
     version: await garden.resolveVersion(config.name, config.build.dependencies),
-    cacheContext: pathToCacheContext(config.path),
 
     services: [],
     serviceNames: getNames(config.serviceConfigs),

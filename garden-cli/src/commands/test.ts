@@ -8,15 +8,13 @@
 
 import * as Bluebird from "bluebird"
 import { flatten } from "lodash"
-import { PluginContext } from "../plugin-context"
 import {
   BooleanParameter,
   Command,
   CommandParams,
   CommandResult,
   handleTaskResults,
-  ParameterValues,
-  StringParameter,
+  StringOption,
   StringsParameter,
 } from "./base"
 import { TaskResults } from "../task-graph"
@@ -24,16 +22,17 @@ import { processModules } from "../process"
 import { Module } from "../types/module"
 import { TestTask } from "../tasks/test"
 import { computeAutoReloadDependants, withDependants } from "../watch"
+import { Garden } from "../garden"
 
-export const testArgs = {
+const testArgs = {
   module: new StringsParameter({
     help: "The name of the module(s) to deploy (skip to test all modules). " +
       "Use comma as separator to specify multiple modules.",
   }),
 }
 
-export const testOpts = {
-  name: new StringParameter({
+const testOpts = {
+  name: new StringOption({
     help: "Only run tests with the specfied name (e.g. unit or integ).",
     alias: "n",
   }),
@@ -42,10 +41,10 @@ export const testOpts = {
   watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-test.", alias: "w" }),
 }
 
-export type Args = ParameterValues<typeof testArgs>
-export type Opts = ParameterValues<typeof testOpts>
+type Args = typeof testArgs
+type Opts = typeof testOpts
 
-export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
+export class TestCommand extends Command<Args, Opts> {
   name = "test"
   help = "Test all or specified modules."
 
@@ -68,49 +67,47 @@ export class TestCommand extends Command<typeof testArgs, typeof testOpts> {
   arguments = testArgs
   options = testOpts
 
-  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-
-    const autoReloadDependants = await computeAutoReloadDependants(ctx)
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    const autoReloadDependants = await computeAutoReloadDependants(garden)
     let modules: Module[]
     if (args.module) {
-      modules = await withDependants(ctx, await ctx.getModules(args.module), autoReloadDependants)
+      modules = await withDependants(garden, await garden.getModules(args.module), autoReloadDependants)
     } else {
       // All modules are included in this case, so there's no need to compute dependants.
-      modules = await ctx.getModules()
+      modules = await garden.getModules()
     }
 
-    ctx.log.header({
+    garden.log.header({
       emoji: "thermometer",
       command: `Running tests`,
     })
 
-    await ctx.configureEnvironment({})
+    await garden.actions.prepareEnvironment({})
 
     const name = opts.name
     const force = opts.force
     const forceBuild = opts["force-build"]
 
     const results = await processModules({
-      ctx,
       garden,
       modules,
       watch: opts.watch,
-      handler: async (module) => getTestTasks({ ctx, module, name, force, forceBuild }),
+      handler: async (module) => getTestTasks({ garden, module, name, force, forceBuild }),
       changeHandler: async (module) => {
-        const modulesToProcess = await withDependants(ctx, [module], autoReloadDependants)
+        const modulesToProcess = await withDependants(garden, [module], autoReloadDependants)
         return flatten(await Bluebird.map(
           modulesToProcess,
-          m => getTestTasks({ ctx, module: m, name, force, forceBuild })))
+          m => getTestTasks({ garden, module: m, name, force, forceBuild })))
       },
     })
 
-    return handleTaskResults(ctx, "test", results)
+    return handleTaskResults(garden, "test", results)
   }
 }
 
 export async function getTestTasks(
-  { ctx, module, name, force = false, forceBuild = false }:
-    { ctx: PluginContext, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
+  { garden, module, name, force = false, forceBuild = false }:
+    { garden: Garden, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
 ) {
   const tasks: Promise<TestTask>[] = []
 
@@ -119,10 +116,10 @@ export async function getTestTasks(
       continue
     }
     tasks.push(TestTask.factory({
+      garden,
       force,
       forceBuild,
       testConfig: test,
-      ctx,
       module,
     }))
   }

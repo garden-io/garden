@@ -8,7 +8,6 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { TestConfig } from "../config/test"
 import { ModuleVersion } from "../vcs/base"
@@ -17,6 +16,7 @@ import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
 import { Task, TaskParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../types/service"
+import { Garden } from "../garden"
 
 class TestError extends Error {
   toString() {
@@ -25,7 +25,7 @@ class TestError extends Error {
 }
 
 export interface TestTaskParams {
-  ctx: PluginContext
+  garden: Garden
   module: Module
   testConfig: TestConfig
   force: boolean
@@ -35,14 +35,12 @@ export interface TestTaskParams {
 export class TestTask extends Task {
   type = "test"
 
-  private ctx: PluginContext
   private module: Module
   private testConfig: TestConfig
   private forceBuild: boolean
 
-  constructor({ ctx, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
-    super({ force, version })
-    this.ctx = ctx
+  constructor({ garden, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
+    super({ garden, force, version })
     this.module = module
     this.testConfig = testConfig
     this.force = force
@@ -50,8 +48,8 @@ export class TestTask extends Task {
   }
 
   static async factory(initArgs: TestTaskParams): Promise<TestTask> {
-    const { ctx, module, testConfig } = initArgs
-    const version = await getTestVersion(ctx, module, testConfig)
+    const { garden, module, testConfig } = initArgs
+    const version = await getTestVersion(garden, module, testConfig)
     return new TestTask({ ...initArgs, version })
   }
 
@@ -62,18 +60,18 @@ export class TestTask extends Task {
       return []
     }
 
-    const services = await this.ctx.getServices(this.testConfig.dependencies)
+    const services = await this.garden.getServices(this.testConfig.dependencies)
 
     const deps: Task[] = [new BuildTask({
-      ctx: this.ctx,
+      garden: this.garden,
       module: this.module,
       force: this.forceBuild,
     })]
 
     for (const service of services) {
       deps.push(new DeployTask({
+        garden: this.garden,
         service,
-        ctx: this.ctx,
         force: false,
         forceBuild: this.forceBuild,
       }))
@@ -95,7 +93,7 @@ export class TestTask extends Task {
     const testResult = await this.getTestResult()
 
     if (testResult && testResult.success) {
-      const passedEntry = this.ctx.log.info({
+      const passedEntry = this.garden.log.info({
         section: this.module.name,
         msg: `${this.testConfig.name} tests`,
       })
@@ -103,20 +101,20 @@ export class TestTask extends Task {
       return testResult
     }
 
-    const entry = this.ctx.log.info({
+    const entry = this.garden.log.info({
       section: this.module.name,
       msg: `Running ${this.testConfig.name} tests`,
       status: "active",
     })
 
-    const dependencies = await getTestDependencies(this.ctx, this.testConfig)
-    const runtimeContext = await prepareRuntimeContext(this.ctx, this.module, dependencies)
+    const dependencies = await getTestDependencies(this.garden, this.testConfig)
+    const runtimeContext = await prepareRuntimeContext(this.garden, this.module, dependencies)
 
     let result: TestResult
     try {
-      result = await this.ctx.testModule({
+      result = await this.garden.actions.testModule({
         interactive: false,
-        moduleName: this.module.name,
+        module: this.module,
         runtimeContext,
         silent: true,
         testConfig: this.testConfig,
@@ -140,22 +138,22 @@ export class TestTask extends Task {
       return null
     }
 
-    return this.ctx.getTestResult({
-      moduleName: this.module.name,
+    return this.garden.actions.getTestResult({
+      module: this.module,
       testName: this.testConfig.name,
       version: this.version,
     })
   }
 }
 
-async function getTestDependencies(ctx: PluginContext, testConfig: TestConfig) {
-  return ctx.getServices(testConfig.dependencies)
+async function getTestDependencies(garden: Garden, testConfig: TestConfig) {
+  return garden.getServices(testConfig.dependencies)
 }
 
 /**
  * Determine the version of the test run, based on the version of the module and each of its dependencies.
  */
-async function getTestVersion(ctx: PluginContext, module: Module, testConfig: TestConfig): Promise<ModuleVersion> {
-  const moduleDeps = await ctx.resolveModuleDependencies(module.build.dependencies, testConfig.dependencies)
-  return ctx.resolveVersion(module.name, moduleDeps)
+async function getTestVersion(garden: Garden, module: Module, testConfig: TestConfig): Promise<ModuleVersion> {
+  const moduleDeps = await garden.resolveModuleDependencies(module.build.dependencies, testConfig.dependencies)
+  return garden.resolveVersion(module.name, moduleDeps)
 }

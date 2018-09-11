@@ -282,7 +282,7 @@ const wildcardDomainCertSecret = {
 describe("createIngresses", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
   const handler = gardenPlugin()
-  const parseModule = handler.moduleActions!.container!.parseModule!
+  const validate = handler.moduleActions!.container!.validate!
 
   let garden: Garden
 
@@ -340,9 +340,8 @@ describe("createIngresses", () => {
       testConfigs: [],
     }
 
-    const env = garden.getEnvironment()
-    const provider = { name: "container", config: {} }
-    const parsed = await parseModule({ env, provider, moduleConfig })
+    const ctx = await garden.getPluginContext("container")
+    const parsed = await validate({ ctx, moduleConfig })
     const module = await moduleFromConfig(garden, parsed)
 
     return {

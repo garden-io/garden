@@ -135,28 +135,29 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` |  | boolean | Assigns a custom name to the module. (Defaults to name of the current directory.)
+  | `--name` |  | string | Assigns a custom name to the module. (Defaults to name of the current directory.)
   | `--type` |  | `container` `google-cloud-function` `npm-package`  | Type of module.
 
-### garden delete config
+### garden delete secret
 
-Delete a configuration variable from the environment.
+Delete a secret from the environment.
 
-Returns with an error if the provided key could not be found in the configuration.
+Returns with an error if the provided key could not be found by the provider.
 
 Examples:
 
-    garden delete config somekey
-    garden del config some.nested.key
+    garden delete secret kubernetes somekey
+    garden del secret local-kubernetes some-other-key
 
 ##### Usage
 
-    garden delete config <key> 
+    garden delete secret <provider> <key> 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
+  | `provider` | Yes | The name of the provider to remove the secret from.
   | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
 
 ### garden delete environment
@@ -275,26 +276,27 @@ Examples:
   | `service` | Yes | The service to exec the command in.
   | `command` | Yes | The command to run.
 
-### garden get config
+### garden get secret
 
-Get a configuration variable from the environment.
+Get a secret from the environment.
 
-Returns with an error if the provided key could not be found in the configuration.
+Returns with an error if the provided key could not be found.
 
 Examples:
 
-    garden get config somekey
-    garden get config some.nested.key
+    garden get secret kubernetes somekey
+    garden get secret local-kubernetes some-other-key
 
 ##### Usage
 
-    garden get config <key> 
+    garden get secret <provider> <key> 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
+  | `provider` | Yes | The name of the provider to read the secret from.
+  | `key` | Yes | The key of the configuration variable.
 
 ### garden get status
 
@@ -553,29 +555,32 @@ Scans your project and outputs an overview of all modules.
 
     garden scan 
 
-### garden set config
+### garden set secret
 
-Set a configuration variable in the environment.
+Set a secret value for a provider in an environment.
 
-These configuration values can be referenced in module templates, for example as environment variables.
+These secrets are handled by each provider, and may for example be exposed as environment
+variables for services or mounted as files, depending on how the provider is implemented
+and configured.
 
-_Note: The value is always stored as a string._
+_Note: The value is currently always stored as a string._
 
 Examples:
 
-    garden set config somekey myvalue
-    garden set config some.nested.key myvalue
+    garden set secret kubernetes somekey myvalue
+    garden set secret local-kubernets somekey myvalue
 
 ##### Usage
 
-    garden set config <key> <value> 
+    garden set secret <provider> <key> <value> 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
-  | `value` | Yes | The value of the configuration variable.
+  | `provider` | Yes | The name of the provider to store the secret with.
+  | `key` | Yes | A unique identifier for the secret.
+  | `value` | Yes | The value of the secret.
 
 ### garden test
 

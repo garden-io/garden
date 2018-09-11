@@ -8,14 +8,13 @@
 
 import * as Bluebird from "bluebird"
 import {
-  DeleteConfigResult,
+  DeleteSecretResult,
   EnvironmentStatusMap,
 } from "../types/plugin/outputs"
 import {
   Command,
   CommandResult,
   CommandParams,
-  ParameterValues,
   StringParameter,
   StringsParameter,
 } from "./base"
@@ -29,7 +28,7 @@ export class DeleteCommand extends Command {
   help = "Delete configuration or objects."
 
   subCommands = [
-    DeleteConfigCommand,
+    DeleteSecretCommand,
     DeleteEnvironmentCommand,
     DeleteServiceCommand,
   ]
@@ -37,38 +36,40 @@ export class DeleteCommand extends Command {
   async action() { return {} }
 }
 
-export const deleteConfigArgs = {
+const deleteSecretArgs = {
+  provider: new StringParameter({
+    help: "The name of the provider to remove the secret from.",
+    required: true,
+  }),
   key: new StringParameter({
     help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).",
     required: true,
   }),
 }
 
-export type DeleteConfigArgs = ParameterValues<typeof deleteConfigArgs>
+type DeleteSecretArgs = typeof deleteSecretArgs
 
-// TODO: add --all option to remove all configs
-
-export class DeleteConfigCommand extends Command<typeof deleteConfigArgs> {
-  name = "config"
-  help = "Delete a configuration variable from the environment."
+export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
+  name = "secret"
+  help = "Delete a secret from the environment."
 
   description = dedent`
-    Returns with an error if the provided key could not be found in the configuration.
+    Returns with an error if the provided key could not be found by the provider.
 
     Examples:
 
-        garden delete config somekey
-        garden del config some.nested.key
+        garden delete secret kubernetes somekey
+        garden del secret local-kubernetes some-other-key
   `
 
-  arguments = deleteConfigArgs
+  arguments = deleteSecretArgs
 
-  async action({ ctx, args }: CommandParams<DeleteConfigArgs>): Promise<CommandResult<DeleteConfigResult>> {
-    const key = args.key.split(".")
-    const result = await ctx.deleteConfig({ key })
+  async action({ garden, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
+    const key = args.key!
+    const result = await garden.actions.deleteSecret({ pluginName: args.provider!, key })
 
     if (result.found) {
-      ctx.log.info(`Deleted config key ${args.key}`)
+      garden.log.info(`Deleted config key ${args.key}`)
     } else {
       throw new NotFoundError(`Could not find config key ${args.key}`, { key })
     }
@@ -90,25 +91,25 @@ export class DeleteEnvironmentCommand extends Command {
     resources.
   `
 
-  async action({ ctx }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
-    const { name } = ctx.getEnvironment()
-    ctx.log.header({ emoji: "skull_and_crossbones", command: `Deleting ${name} environment` })
+  async action({ garden }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
+    const { name } = garden.environment
+    garden.log.header({ emoji: "skull_and_crossbones", command: `Deleting ${name} environment` })
 
-    const result = await ctx.destroyEnvironment({})
+    const result = await garden.actions.cleanupEnvironment({})
 
-    ctx.log.finish()
+    garden.log.finish()
 
     return { result }
   }
 }
 
-export const deleteServiceArgs = {
+const deleteServiceArgs = {
   service: new StringsParameter({
     help: "The name of the service(s) to delete. Use comma as separator to specify multiple services.",
     required: true,
   }),
 }
-export type DeleteServiceArgs = ParameterValues<typeof deleteServiceArgs>
+type DeleteServiceArgs = typeof deleteServiceArgs
 
 export class DeleteServiceCommand extends Command {
   name = "service"
@@ -125,23 +126,23 @@ export class DeleteServiceCommand extends Command {
         garden delete service my-service # deletes my-service
   `
 
-  async action({ ctx, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const services = await ctx.getServices(args.service)
+  async action({ garden, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+    const services = await garden.getServices(args.service)
 
     if (services.length === 0) {
-      ctx.log.warn({ msg: "No services found. Aborting." })
+      garden.log.warn({ msg: "No services found. Aborting." })
       return { result: {} }
     }
 
-    ctx.log.header({ emoji: "skull_and_crossbones", command: `Delete service` })
+    garden.log.header({ emoji: "skull_and_crossbones", command: `Delete service` })
 
     const result: { [key: string]: ServiceStatus } = {}
 
     await Bluebird.map(services, async service => {
-      result[service.name] = await ctx.deleteService({ serviceName: service.name })
+      result[service.name] = await garden.actions.deleteService({ service })
     })
 
-    ctx.log.finish()
+    garden.log.finish()
     return { result }
   }
 }

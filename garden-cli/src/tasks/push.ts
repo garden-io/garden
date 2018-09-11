@@ -7,14 +7,14 @@
  */
 
 import chalk from "chalk"
-import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { PushResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
+import { Garden } from "../garden"
 
 export interface PushTaskParams {
-  ctx: PluginContext
+  garden: Garden
   module: Module
   forceBuild: boolean
 }
@@ -22,13 +22,11 @@ export interface PushTaskParams {
 export class PushTask extends Task {
   type = "push"
 
-  private ctx: PluginContext
   private module: Module
   private forceBuild: boolean
 
-  constructor({ ctx, module, forceBuild }: PushTaskParams) {
-    super({ version: module.version })
-    this.ctx = ctx
+  constructor({ garden, module, forceBuild }: PushTaskParams) {
+    super({ garden, version: module.version })
     this.module = module
     this.forceBuild = forceBuild
   }
@@ -38,7 +36,7 @@ export class PushTask extends Task {
       return []
     }
     return [new BuildTask({
-      ctx: this.ctx,
+      garden: this.garden,
       module: this.module,
       force: this.forceBuild,
     })]
@@ -55,7 +53,7 @@ export class PushTask extends Task {
 
   async process(): Promise<PushResult> {
     if (!this.module.allowPush) {
-      this.ctx.log.info({
+      this.garden.log.info({
         section: this.module.name,
         msg: "Push disabled",
         status: "active",
@@ -63,7 +61,7 @@ export class PushTask extends Task {
       return { pushed: false }
     }
 
-    const logEntry = this.ctx.log.info({
+    const logEntry = this.garden.log.info({
       section: this.module.name,
       msg: "Pushing",
       status: "active",
@@ -71,7 +69,7 @@ export class PushTask extends Task {
 
     let result: PushResult
     try {
-      result = await this.ctx.pushModule({ moduleName: this.module.name, logEntry })
+      result = await this.garden.actions.pushModule({ module: this.module, logEntry })
     } catch (err) {
       logEntry.setError()
       throw err

@@ -9,13 +9,11 @@ import {
   stubExtSources,
   makeTestGarden,
 } from "../../helpers"
-import { PluginContext } from "../../../src/plugin-context"
 import { LinkSourceCommand } from "../../../src/commands/link/source"
 import { Garden } from "../../../src/garden"
 
 describe("LinkCommand", () => {
   let garden: Garden
-  let ctx: PluginContext
 
   describe("LinkModuleCommand", () => {
     const cmd = new LinkModuleCommand()
@@ -23,7 +21,6 @@ describe("LinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      ctx = garden.getPluginContext()
       stubExtSources(garden)
     })
 
@@ -34,7 +31,6 @@ describe("LinkCommand", () => {
     it("should link external modules", async () => {
       await cmd.action({
         garden,
-        ctx,
         args: {
           module: "module-a",
           path: join(projectRoot, "mock-local-path", "module-a"),
@@ -42,7 +38,7 @@ describe("LinkCommand", () => {
         opts: {},
       })
 
-      const { linkedModuleSources } = await ctx.localConfigStore.get()
+      const { linkedModuleSources } = await garden.localConfigStore.get()
 
       expect(linkedModuleSources).to.eql([
         { name: "module-a", path: join(projectRoot, "mock-local-path", "module-a") },
@@ -52,7 +48,6 @@ describe("LinkCommand", () => {
     it("should handle relative paths", async () => {
       await cmd.action({
         garden,
-        ctx,
         args: {
           module: "module-a",
           path: join("mock-local-path", "module-a"),
@@ -60,7 +55,7 @@ describe("LinkCommand", () => {
         opts: {},
       })
 
-      const { linkedModuleSources } = await ctx.localConfigStore.get()
+      const { linkedModuleSources } = await garden.localConfigStore.get()
 
       expect(linkedModuleSources).to.eql([
         { name: "module-a", path: join(projectRoot, "mock-local-path", "module-a") },
@@ -72,7 +67,6 @@ describe("LinkCommand", () => {
         async () => (
           await cmd.action({
             garden,
-            ctx,
             args: {
               module: "banana",
               path: "",
@@ -91,7 +85,6 @@ describe("LinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      ctx = garden.getPluginContext()
       stubExtSources(garden)
     })
 
@@ -102,7 +95,6 @@ describe("LinkCommand", () => {
     it("should link external sources", async () => {
       await cmd.action({
         garden,
-        ctx,
         args: {
           source: "source-a",
           path: join(projectRoot, "mock-local-path", "source-a"),
@@ -110,7 +102,7 @@ describe("LinkCommand", () => {
         opts: {},
       })
 
-      const { linkedProjectSources } = await ctx.localConfigStore.get()
+      const { linkedProjectSources } = await garden.localConfigStore.get()
 
       expect(linkedProjectSources).to.eql([
         { name: "source-a", path: join(projectRoot, "mock-local-path", "source-a") },
@@ -120,7 +112,6 @@ describe("LinkCommand", () => {
     it("should handle relative paths", async () => {
       await cmd.action({
         garden,
-        ctx,
         args: {
           source: "source-a",
           path: join("mock-local-path", "source-a"),
@@ -128,7 +119,7 @@ describe("LinkCommand", () => {
         opts: {},
       })
 
-      const { linkedProjectSources } = await ctx.localConfigStore.get()
+      const { linkedProjectSources } = await garden.localConfigStore.get()
 
       expect(linkedProjectSources).to.eql([
         { name: "source-a", path: join(projectRoot, "mock-local-path", "source-a") },

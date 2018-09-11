@@ -13,7 +13,6 @@ import chalk from "chalk"
 import {
   Command,
   StringsParameter,
-  ParameterValues,
   CommandResult,
   CommandParams,
 } from "../base"
@@ -21,15 +20,15 @@ import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { SourceConfig } from "../../config/project"
 
-export const updateRemoteSourcesArguments = {
+const updateRemoteSourcesArguments = {
   source: new StringsParameter({
     help: "Name of the remote source(s) to update. Use comma separator to specify multiple sources.",
   }),
 }
 
-export type UpdateRemoteSourcesArguments = ParameterValues<typeof updateRemoteSourcesArguments>
+type Args = typeof updateRemoteSourcesArguments
 
-export class UpdateRemoteSourcesCommand extends Command<typeof updateRemoteSourcesArguments> {
+export class UpdateRemoteSourcesCommand extends Command<Args> {
   name = "sources"
   help = "Update remote sources."
   arguments = updateRemoteSourcesArguments
@@ -43,13 +42,14 @@ export class UpdateRemoteSourcesCommand extends Command<typeof updateRemoteSourc
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  async action({ ctx, args }: CommandParams<UpdateRemoteSourcesArguments>): Promise<CommandResult<SourceConfig[]>> {
-
-    ctx.log.header({ emoji: "hammer_and_wrench", command: "update-remote sources" })
+  async action(
+    { garden, args }: CommandParams<Args>,
+  ): Promise<CommandResult<SourceConfig[]>> {
+    garden.log.header({ emoji: "hammer_and_wrench", command: "update-remote sources" })
 
     const { source } = args
 
-    const projectSources = ctx.projectSources
+    const projectSources = garden.projectSources
       .filter(src => source ? source.includes(src.name) : true)
 
     const names = projectSources.map(src => src.name)
@@ -60,8 +60,8 @@ export class UpdateRemoteSourcesCommand extends Command<typeof updateRemoteSourc
       throw new ParameterError(
         `Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.`,
         {
-          remoteSources: ctx.projectSources.map(s => s.name).sort(),
-          input: source.sort(),
+          remoteSources: garden.projectSources.map(s => s.name).sort(),
+          input: source ? source.sort() : undefined,
         },
       )
     }
@@ -69,10 +69,10 @@ export class UpdateRemoteSourcesCommand extends Command<typeof updateRemoteSourc
     // TODO Update remotes in parallel. Currently not possible since updating might
     // trigger a username and password prompt from git.
     for (const { name, repositoryUrl } of projectSources) {
-      await ctx.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", logEntry: ctx.log })
+      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", logEntry: garden.log })
     }
 
-    await pruneRemoteSources({ projectRoot: ctx.projectRoot, type: "project", sources: projectSources })
+    await pruneRemoteSources({ projectRoot: garden.projectRoot, type: "project", sources: projectSources })
 
     return { result: projectSources }
   }

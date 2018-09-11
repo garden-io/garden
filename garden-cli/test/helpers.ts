@@ -25,12 +25,12 @@ import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import {
-  DeleteConfigParams,
-  GetConfigParams,
-  ParseModuleParams,
+  DeleteSecretParams,
+  GetSecretParams,
+  ValidateModuleParams,
   RunModuleParams,
   RunServiceParams,
-  SetConfigParams,
+  SetSecretParams,
 } from "../src/types/plugin/params"
 import {
   helpers,
@@ -62,6 +62,20 @@ export async function profileBlock(description: string, block: () => Promise<any
   return result
 }
 
+async function runModule(params: RunModuleParams) {
+  const version = await params.module.version
+
+  return {
+    moduleName: params.module.name,
+    command: params.command,
+    completedAt: testNow,
+    output: "OK",
+    version,
+    startedAt: testNow,
+    success: true,
+  }
+}
+
 export const projectRootA = getDataDir("test-project-a")
 
 export const testPlugin: PluginFactory = (): GardenPlugin => {
@@ -69,23 +83,22 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
 
   return {
     actions: {
-      async configureEnvironment() {
+      async prepareEnvironment() {
         return {}
       },
 
-      async setConfig({ key, value }: SetConfigParams) {
-        _config[key.join(".")] = value
+      async setSecret({ key, value }: SetSecretParams) {
+        _config[key] = value
         return {}
       },
 
-      async getConfig({ key }: GetConfigParams) {
-        return { value: _config[key.join(".")] || null }
+      async getSecret({ key }: GetSecretParams) {
+        return { value: _config[key] || null }
       },
 
-      async deleteConfig({ key }: DeleteConfigParams) {
-        const k = key.join(".")
-        if (_config[k]) {
-          delete _config[k]
+      async deleteSecret({ key }: DeleteSecretParams) {
+        if (_config[key]) {
+          delete _config[key]
           return { found: true }
         } else {
           return { found: false }
@@ -96,7 +109,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
       test: {
         testModule: testGenericModule,
 
-        async parseModule({ moduleConfig }: ParseModuleParams) {
+        async validate({ moduleConfig }: ValidateModuleParams) {
           moduleConfig.spec = validate(
             moduleConfig.spec,
             containerModuleSpecSchema,
@@ -121,25 +134,13 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           return moduleConfig
         },
 
-        buildModule: buildGenericModule,
-
-        async runModule(params: RunModuleParams) {
-          const version = await params.module.version
-
-          return {
-            moduleName: params.module.name,
-            command: params.command,
-            completedAt: testNow,
-            output: "OK",
-            version,
-            startedAt: testNow,
-            success: true,
-          }
-        },
+        build: buildGenericModule,
+        runModule,
 
         async runService({ ctx, service, interactive, runtimeContext, silent, timeout }: RunServiceParams) {
-          return ctx.runModule({
-            moduleName: service.module.name,
+          return runModule({
+            ctx,
+            module: service.module,
             command: [service.name],
             interactive,
             runtimeContext,
@@ -208,23 +209,16 @@ export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFa
   return Garden.factory(projectRoot, { plugins })
 }
 
-export const makeTestContext = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
-  const garden = await makeTestGarden(projectRoot, extraPlugins)
-  return garden.getPluginContext()
-}
-
 export const makeTestGardenA = async (extraPlugins: PluginFactory[] = []) => {
   return makeTestGarden(projectRootA, extraPlugins)
-}
-
-export const makeTestContextA = async (extraPlugins: PluginFactory[] = []) => {
-  const garden = await makeTestGardenA(extraPlugins)
-  return garden.getPluginContext()
 }
 
 export function stubAction<T extends keyof PluginActions>(
   garden: Garden, pluginName: string, type: T, handler?: PluginActions[T],
 ) {
+  if (handler) {
+    handler["pluginName"] = pluginName
+  }
   return td.replace(garden["actionHandlers"][type], pluginName, handler)
 }
 

@@ -10,7 +10,6 @@ import {
   GardenError,
   RuntimeError,
 } from "../exceptions"
-import { PluginContext } from "../plugin-context"
 import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
@@ -70,7 +69,17 @@ export class StringParameter extends Parameter<string> {
   }
 }
 
-export class StringsParameter extends Parameter<string[]> {
+// Separating this from StringParameter for now because we can't set the output type based on the required flag
+// FIXME: Maybe use a Required<Parameter> type to enforce presence, rather that an option flag?
+export class StringOption extends Parameter<string | undefined> {
+  type = "string"
+
+  validate(input?: string) {
+    return input
+  }
+}
+
+export class StringsParameter extends Parameter<string[] | undefined> {
   type = "array:string"
 
   // Sywac returns [undefined] if input is empty so we coerce that into undefined.
@@ -163,7 +172,7 @@ export class EnvironmentOption extends StringParameter {
 }
 
 export type Parameters = { [key: string]: Parameter<any> }
-export type ParameterValues<T extends Parameters> = { [P in keyof T]: T["_valueType"] }
+export type ParameterValues<T extends Parameters> = { [P in keyof T]: T[P]["_valueType"] }
 
 export interface CommandConstructor {
   new(parent?: Command): Command
@@ -176,9 +185,8 @@ export interface CommandResult<T = any> {
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> {
-  ctx: PluginContext
-  args: T
-  opts: U
+  args: ParameterValues<T>
+  opts: ParameterValues<U>
   garden: Garden
 }
 
@@ -224,7 +232,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 }
 
 export async function handleTaskResults(
-  ctx: PluginContext, taskType: string, results: ProcessResults,
+  garden: Garden, taskType: string, results: ProcessResults,
 ): Promise<CommandResult<TaskResults>> {
   const failed = Object.values(results.taskResults).filter(r => !!r.error).length
 
@@ -235,9 +243,9 @@ export async function handleTaskResults(
     return { errors: [error] }
   }
 
-  ctx.log.info("")
+  garden.log.info("")
   if (!results.restartRequired) {
-    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+    garden.log.header({ emoji: "heavy_check_mark", command: `Done!` })
   }
   return {
     result: results.taskResults,

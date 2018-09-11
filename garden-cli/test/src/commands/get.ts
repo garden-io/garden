@@ -1,38 +1,28 @@
 import { expect } from "chai"
 import { expectError, makeTestGardenA } from "../../helpers"
-import { GetConfigCommand } from "../../../src/commands/get"
+import { GetSecretCommand } from "../../../src/commands/get"
 
-describe("GetConfigCommand", () => {
+describe("GetSecretCommand", () => {
+  const pluginName = "test-plugin"
+  const provider = pluginName
+
   it("should get a config variable", async () => {
     const garden = await makeTestGardenA()
-    const ctx = garden.getPluginContext()
-    const command = new GetConfigCommand()
+    const command = new GetSecretCommand()
 
-    await ctx.setConfig({ key: ["project", "mykey"], value: "myvalue" })
+    await garden.actions.setSecret({ pluginName, key: "project.mykey", value: "myvalue" })
 
-    const res = await command.action({ garden, ctx, args: { key: "project.mykey" }, opts: {} })
+    const res = await command.action({ garden, args: { provider, key: "project.mykey" }, opts: {} })
 
     expect(res).to.eql({ "project.mykey": "myvalue" })
   })
 
-  it("should throw on invalid key", async () => {
-    const garden = await makeTestGardenA()
-    const ctx = garden.getPluginContext()
-    const command = new GetConfigCommand()
-
-    await expectError(
-      async () => await command.action({ garden, ctx, args: { key: "bla.mykey" }, opts: {} }),
-      "parameter",
-    )
-  })
-
   it("should throw on missing key", async () => {
     const garden = await makeTestGardenA()
-    const ctx = garden.getPluginContext()
-    const command = new GetConfigCommand()
+    const command = new GetSecretCommand()
 
     await expectError(
-      async () => await command.action({ garden, ctx, args: { key: "project.mykey" }, opts: {} }),
+      async () => await command.action({ garden, args: { provider, key: "project.mykey" }, opts: {} }),
       "not-found",
     )
   })

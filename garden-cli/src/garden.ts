@@ -25,14 +25,9 @@ import {
   sortBy,
   uniqBy,
 } from "lodash"
-import * as Joi from "joi"
-
 const AsyncLock = require("async-lock")
+
 import { TreeCache } from "./cache"
-import {
-  PluginContext,
-  createPluginContext,
-} from "./plugin-context"
 import {
   builtinPlugins,
   fixedPlugins,
@@ -44,10 +39,9 @@ import {
   pluginActionDescriptions,
   pluginModuleSchema,
   pluginSchema,
-  Provider,
   RegisterPluginParam,
 } from "./types/plugin/plugin"
-import { EnvironmentConfig, SourceConfig } from "./config/project"
+import { Environment, SourceConfig, defaultProvider } from "./config/project"
 import {
   findByName,
   getIgnorer,
@@ -83,11 +77,7 @@ import {
   GardenPlugin,
   ModuleActions,
 } from "./types/plugin/plugin"
-import {
-  Environment,
-  joiIdentifier,
-  validate,
-} from "./config/common"
+import { joiIdentifier, validate } from "./config/common"
 import { Service } from "./types/service"
 import { resolveTemplateStrings } from "./template-string"
 import {
@@ -107,13 +97,16 @@ import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ProjectConfigContext, ModuleConfigContext } from "./config/config-context"
 import { FileWriter } from "./logger/writers/file-writer"
 import { LogLevel } from "./logger/log-node"
+import { ActionHelper } from "./actions"
+import { createPluginContext } from "./plugin-context"
+import { ModuleAndServiceActions } from "./types/plugin/plugin"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
 }
 
-export interface ModuleActionHandlerMap<T extends keyof ModuleActions<any>> {
-  [actionName: string]: ModuleActions<any>[T]
+export interface ModuleActionHandlerMap<T extends keyof ModuleAndServiceActions> {
+  [actionName: string]: ModuleAndServiceActions[T]
 }
 
 export type PluginActionMap = {
@@ -123,9 +116,9 @@ export type PluginActionMap = {
 }
 
 export type ModuleActionMap = {
-  [A in keyof ModuleActions<any>]: {
+  [A in keyof ModuleAndServiceActions]: {
     [moduleType: string]: {
-      [pluginName: string]: ModuleActions<any>[A],
+      [pluginName: string]: ModuleAndServiceActions[A],
     },
   }
 }
@@ -151,24 +144,21 @@ export class Garden {
   public readonly moduleActionHandlers: ModuleActionMap
 
   private readonly loadedPlugins: { [key: string]: GardenPlugin }
-  private moduleConfigs: ModuleConfigMap<any>
+  private moduleConfigs: ModuleConfigMap
   private modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: PluginFactory }
   private readonly serviceNameIndex: { [key: string]: string }
   private readonly taskGraph: TaskGraph
-  private readonly configKeyNamespaces: string[]
-  private readonly pluginContext: PluginContext
 
   public readonly localConfigStore: LocalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
+  public readonly actions: ActionHelper
 
   constructor(
     public readonly projectRoot: string,
     public readonly projectName: string,
-    public readonly environmentName: string,
-    private readonly namespace: string,
-    public readonly environmentConfig: EnvironmentConfig,
+    public readonly environment: Environment,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
     logger?: Logger,
@@ -187,12 +177,8 @@ export class Garden {
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
     this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
 
-    this.environmentConfig = environmentConfig
-
-    this.configKeyNamespaces = ["project"]
-
-    this.pluginContext = this.getPluginContext()
-    this.taskGraph = new TaskGraph(this.pluginContext)
+    this.taskGraph = new TaskGraph(this)
+    this.actions = new ActionHelper(this)
   }
 
   static async factory(currentDirectory: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
@@ -235,45 +221,47 @@ export class Garden {
     }
 
     const parts = env.split(".")
-    const environment = parts[0]
+    const environmentName = parts[0]
     const namespace = parts.slice(1).join(".") || DEFAULT_NAMESPACE
 
-    const envConfig = findByName(environments, environment)
+    const environmentConfig = findByName(environments, environmentName)
 
-    if (!envConfig) {
-      throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
+    if (!environmentConfig) {
+      throw new ParameterError(`Project ${projectName} does not specify environment ${environmentName}`, {
         projectName,
         env,
         definedEnvironments: getNames(environments),
       })
     }
 
-    if (!envConfig.providers || envConfig.providers.length === 0) {
-      throw new ConfigurationError(`Environment '${environment}' does not specify any providers`, {
+    if (!environmentConfig.providers || environmentConfig.providers.length === 0) {
+      throw new ConfigurationError(`Environment '${environmentName}' does not specify any providers`, {
         projectName,
         env,
-        envConfig,
+        environmentConfig,
       })
     }
 
     if (namespace.startsWith("garden-")) {
       throw new ParameterError(`Namespace cannot start with "garden-"`, {
-        environment,
+        environmentConfig,
         namespace,
       })
     }
 
+    const fixedProviders = fixedPlugins.map(name => ({ name }))
+
     const mergedProviders = merge(
-      {},
+      fixedProviders,
       keyBy(environmentDefaults.providers, "name"),
-      keyBy(envConfig.providers, "name"),
+      keyBy(environmentConfig.providers, "name"),
     )
 
     // Resolve the project configuration based on selected environment
-    const projectEnvConfig: EnvironmentConfig = {
-      name: environment,
+    const environment: Environment = {
+      name: environmentConfig.name,
       providers: Object.values(mergedProviders),
-      variables: merge({}, environmentDefaults.variables, envConfig.variables),
+      variables: merge({}, environmentDefaults.variables, environmentConfig.variables),
     }
 
     const buildDir = await BuildDir.factory(projectRoot)
@@ -295,8 +283,6 @@ export class Garden {
       projectRoot,
       projectName,
       environment,
-      namespace,
-      projectEnvConfig,
       projectSources,
       buildDir,
       logger,
@@ -307,30 +293,17 @@ export class Garden {
       garden.registerPlugin(plugin)
     }
 
-    // Load fixed plugins (e.g. built-in module types)
-    for (const plugin of fixedPlugins) {
-      await garden.loadPlugin(plugin, {})
-    }
-
     // Load configured plugins
     // Validate configuration
-    for (const provider of projectEnvConfig.providers) {
+    for (const provider of environment.providers) {
       await garden.loadPlugin(provider.name, provider)
     }
 
     return garden
   }
 
-  getEnvironment(): Environment {
-    return {
-      name: this.environmentName,
-      namespace: this.namespace,
-      config: this.environmentConfig,
-    }
-  }
-
-  getPluginContext() {
-    return createPluginContext(this)
+  getPluginContext(providerName: string) {
+    return createPluginContext(this, providerName)
   }
 
   async clearBuilds() {
@@ -367,10 +340,11 @@ export class Garden {
       try {
         pluginModule = require(moduleNameOrLocation)
       } catch (error) {
-        throw new ConfigurationError(`Unable to load plugin "${moduleNameOrLocation}" (could not load module)`, {
-          message: error.message,
-          moduleNameOrLocation,
-        })
+        throw new ConfigurationError(
+          `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`, {
+            message: error.message,
+            moduleNameOrLocation,
+          })
       }
 
       try {
@@ -438,13 +412,11 @@ export class Garden {
     this.loadedPlugins[pluginName] = plugin
 
     // allow plugins to extend their own config (that gets passed to action handlers)
-    if (plugin.config) {
-      const providerConfig = findByName(this.environmentConfig.providers, pluginName)
-      if (providerConfig) {
-        extend(providerConfig, plugin.config)
-      } else {
-        this.environmentConfig.providers.push(plugin.config)
-      }
+    const providerConfig = findByName(this.environment.providers, pluginName)
+    if (providerConfig) {
+      extend(providerConfig, plugin.config, config)
+    } else {
+      this.environment.providers.push(extend({ name: pluginName }, plugin.config, config))
     }
 
     for (const modulePath of plugin.modules || []) {
@@ -505,8 +477,8 @@ export class Garden {
     this.actionHandlers[actionType][pluginName] = wrapped
   }
 
-  private addModuleActionHandler<T extends keyof ModuleActions<any>>(
-    pluginName: string, actionType: T, moduleType: string, handler: ModuleActions<any>[T],
+  private addModuleActionHandler<T extends keyof ModuleActions>(
+    pluginName: string, actionType: T, moduleType: string, handler: ModuleActions[T],
   ) {
     const plugin = this.getPlugin(pluginName)
     const schema = moduleActionDescriptions[actionType].resultSchema
@@ -714,7 +686,7 @@ export class Garden {
       await this.detectCircularDependencies()
 
       const moduleConfigContext = new ModuleConfigContext(
-        this.pluginContext, this.environmentConfig, Object.values(this.moduleConfigs),
+        this, this.environment, Object.values(this.moduleConfigs),
       )
       this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
     })
@@ -733,14 +705,10 @@ export class Garden {
     @param force - add the module again, even if it's already registered
    */
   async addModule(config: ModuleConfig, force = false) {
-    const parseHandler = await this.getModuleActionHandler({ actionType: "parseModule", moduleType: config.type })
-    const env = this.getEnvironment()
-    const provider: Provider = {
-      name: parseHandler["pluginName"],
-      config: this.environmentConfig.providers[parseHandler["pluginName"]],
-    }
+    const validateHandler = await this.getModuleActionHandler({ actionType: "validate", moduleType: config.type })
+    const ctx = this.getPluginContext(validateHandler["pluginName"])
 
-    config = await parseHandler({ env, provider, moduleConfig: config })
+    config = await validateHandler({ ctx, moduleConfig: config })
 
     // FIXME: this is rather clumsy
     config.name = getModuleKey(config.name, config.plugin)
@@ -838,7 +806,7 @@ export class Garden {
     sourceType: ExternalSourceType,
   }): Promise<string> {
 
-    const linkedSources = await getLinkedSources(this.pluginContext, sourceType)
+    const linkedSources = await getLinkedSources(this, sourceType)
 
     const linked = findByName(linkedSources, name)
 
@@ -861,7 +829,7 @@ export class Garden {
   /**
    * Get a handler for the specified module action.
    */
-  public getModuleActionHandlers<T extends keyof ModuleActions<any>>(
+  public getModuleActionHandlers<T extends keyof ModuleAndServiceActions>(
     { actionType, moduleType, pluginName }:
       { actionType: T, moduleType: string, pluginName?: string },
   ): ModuleActionHandlerMap<T> {
@@ -894,12 +862,13 @@ export class Garden {
     if (handlers.length) {
       return handlers[handlers.length - 1]
     } else if (defaultHandler) {
+      defaultHandler["pluginName"] = defaultProvider.name
       return defaultHandler
     }
 
     const errorDetails = {
       requestedHandlerType: actionType,
-      environment: this.environmentName,
+      environment: this.environment.name,
       pluginName,
     }
 
@@ -907,7 +876,7 @@ export class Garden {
       throw new PluginError(`Plugin '${pluginName}' does not have a '${actionType}' handler.`, errorDetails)
     } else {
       throw new ParameterError(
-        `No '${actionType}' handler configured in environment '${this.environmentName}'. ` +
+        `No '${actionType}' handler configured in environment '${this.environment.name}'. ` +
         `Are you missing a provider configuration?`,
         errorDetails,
       )
@@ -917,23 +886,24 @@ export class Garden {
   /**
    * Get the last configured handler for the specified action.
    */
-  public getModuleActionHandler<T extends keyof ModuleActions>(
+  public getModuleActionHandler<T extends keyof ModuleAndServiceActions>(
     { actionType, moduleType, pluginName, defaultHandler }:
-      { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleActions<any>[T] },
-  ): ModuleActions<any>[T] {
+      { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleAndServiceActions[T] },
+  ): ModuleAndServiceActions[T] {
 
     const handlers = Object.values(this.getModuleActionHandlers({ actionType, moduleType, pluginName }))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]
     } else if (defaultHandler) {
+      defaultHandler["pluginName"] = defaultProvider.name
       return defaultHandler
     }
 
     const errorDetails = {
       requestedHandlerType: actionType,
       requestedModuleType: moduleType,
-      environment: this.environmentName,
+      environment: this.environment.name,
       pluginName,
     }
 
@@ -945,37 +915,9 @@ export class Garden {
     } else {
       throw new ParameterError(
         `No '${actionType}' handler configured for module type '${moduleType}' in environment ` +
-        `'${this.environmentName}'. Are you missing a provider configuration?`,
+        `'${this.environment.name}'. Are you missing a provider configuration?`,
         errorDetails,
       )
-    }
-  }
-
-  /**
-   * Validates the specified config key, making sure it's properly formatted and matches defined keys.
-   */
-  public validateConfigKey(key: string[]) {
-    try {
-      validate(key, Joi.array().items(joiIdentifier()))
-    } catch (err) {
-      throw new ParameterError(
-        `Invalid config key: ${key.join(".")} (must be a dot delimited string of identifiers)`,
-        { key },
-      )
-    }
-
-    if (!this.configKeyNamespaces.includes(key[0])) {
-      throw new ParameterError(
-        `Invalid config key namespace ${key[0]} (must be one of ${this.configKeyNamespaces.join(", ")})`,
-        { key, validNamespaces: this.configKeyNamespaces },
-      )
-    }
-
-    if (key[0] === "project") {
-      // we allow any custom key under the project namespace
-      return
-    } else {
-      // TODO: validate built-in (garden) and plugin config keys
     }
   }
 

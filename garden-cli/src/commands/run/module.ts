@@ -13,9 +13,9 @@ import {
   BooleanParameter,
   Command,
   CommandParams,
-  ParameterValues,
   StringParameter,
   CommandResult,
+  StringsParameter,
 } from "../base"
 import {
   uniq,
@@ -25,18 +25,18 @@ import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 
-export const runArgs = {
+const runArgs = {
   module: new StringParameter({
     help: "The name of the module to run.",
     required: true,
   }),
   // TODO: make this a variadic arg
-  command: new StringParameter({
+  command: new StringsParameter({
     help: "The command to run in the module.",
   }),
 }
 
-export const runOpts = {
+const runOpts = {
   // TODO: we could provide specific parameters like this by adding commands for specific modules, via plugins
   //entrypoint: new StringParameter({ help: "Override default entrypoint in module" }),
   interactive: new BooleanParameter({
@@ -46,10 +46,10 @@ export const runOpts = {
   "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
 }
 
-export type Args = ParameterValues<typeof runArgs>
-export type Opts = ParameterValues<typeof runOpts>
+type Args = typeof runArgs
+type Opts = typeof runOpts
 
-export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
+export class RunModuleCommand extends Command<Args, Opts> {
   name = "module"
   alias = "m"
   help = "Run an ad-hoc instance of a module."
@@ -67,39 +67,39 @@ export class RunModuleCommand extends Command<typeof runArgs, typeof runOpts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
-    const module = await ctx.getModule(moduleName)
+    const module = await garden.getModule(moduleName)
 
     const msg = args.command
-      ? `Running command ${chalk.white(args.command)} in module ${chalk.white(moduleName)}`
+      ? `Running command ${chalk.white(args.command.join(" "))} in module ${chalk.white(moduleName)}`
       : `Running module ${chalk.white(moduleName)}`
 
-    ctx.log.header({
+    garden.log.header({
       emoji: "runner",
       command: msg,
     })
 
-    await ctx.configureEnvironment({})
+    await garden.actions.prepareEnvironment({})
 
-    const buildTask = new BuildTask({ ctx, module, force: opts["force-build"] })
+    const buildTask = new BuildTask({ garden, module, force: opts["force-build"] })
     await garden.addTask(buildTask)
     await garden.processTasks()
 
-    const command = args.command ? args.command.split(" ") : []
+    const command = args.command || []
 
     // combine all dependencies for all services in the module, to be sure we have all the context we need
     const depNames = uniq(flatten(module.serviceConfigs.map(s => s.dependencies)))
-    const deps = await ctx.getServices(depNames)
+    const deps = await garden.getServices(depNames)
 
-    const runtimeContext = await prepareRuntimeContext(ctx, module, deps)
+    const runtimeContext = await prepareRuntimeContext(garden, module, deps)
 
-    printRuntimeContext(ctx, runtimeContext)
+    printRuntimeContext(garden, runtimeContext)
 
-    ctx.log.info("")
+    garden.log.info("")
 
-    const result = await ctx.runModule({
-      moduleName,
+    const result = await garden.actions.runModule({
+      module,
       command,
       runtimeContext,
       silent: false,

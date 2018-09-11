@@ -71,7 +71,9 @@ describe("BuildDir", () => {
 
       await Bluebird.map(modules, async (module) => {
         return garden.addTask(new BuildTask({
-          module, ctx: garden.getPluginContext(), force: false,
+          garden,
+          module,
+          force: true,
         }))
       })
 

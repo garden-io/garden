@@ -19,7 +19,7 @@ import {
 import {
   getEnvironmentStatus,
   GOOGLE_CLOUD_DEFAULT_REGION,
-  configureEnvironment,
+  prepareEnvironment,
 } from "./common"
 import {
   ContainerModule,
@@ -40,7 +40,7 @@ export interface GoogleAppEngineModule extends ContainerModule<ContainerModuleSp
 export const gardenPlugin = (): GardenPlugin => ({
   actions: {
     getEnvironmentStatus,
-    configureEnvironment,
+    prepareEnvironment,
   },
   moduleActions: {
     container: {
@@ -55,8 +55,8 @@ export const gardenPlugin = (): GardenPlugin => ({
         return {}
       },
 
-      async deployService({ ctx, service, runtimeContext, provider }: DeployServiceParams<GoogleAppEngineModule>) {
-        ctx.log.info({
+      async deployService({ ctx, service, runtimeContext, logEntry }: DeployServiceParams<GoogleAppEngineModule>) {
+        logEntry && logEntry.info({
           section: service.name,
           msg: `Deploying app...`,
         })
@@ -72,7 +72,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
         if (config.healthCheck) {
           if (config.healthCheck.tcpPort || config.healthCheck.command) {
-            ctx.log.warn({
+            logEntry && logEntry.warn({
               section: service.name,
               msg: "GAE only supports httpGet health checks",
             })
@@ -88,20 +88,20 @@ export const gardenPlugin = (): GardenPlugin => ({
         await dumpYaml(appYamlPath, appYaml)
 
         // deploy to GAE
-        const project = getProject(service, provider)
+        const project = getProject(service, ctx.provider)
 
         await gcloud(project).call([
           "app", "deploy", "--quiet",
         ], { cwd: service.module.path })
 
-        ctx.log.info({ section: service.name, msg: `App deployed` })
+        logEntry && logEntry.info({ section: service.name, msg: `App deployed` })
 
         return {}
       },
 
-      async getServiceOutputs({ service, provider }: GetServiceOutputsParams<GoogleAppEngineModule>) {
+      async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GoogleAppEngineModule>) {
         // TODO: we may want to pull this from the service status instead, along with other outputs
-        const project = getProject(service, provider)
+        const project = getProject(service, ctx.provider)
 
         return {
           endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,

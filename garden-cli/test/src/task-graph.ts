@@ -7,6 +7,7 @@ import {
   TaskResults,
 } from "../../src/task-graph"
 import { makeTestGarden } from "../helpers"
+import { Garden } from "../../src/garden"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
@@ -26,11 +27,13 @@ class TestTask extends Task {
   throwError: boolean
 
   constructor(
+    garden: Garden,
     name: string,
     dependencies?: Task[],
     options?: TestTaskOptions,
   ) {
     super({
+      garden,
       version: {
         versionString: "12345-6789",
         dirtyTimestamp: 6789,
@@ -81,15 +84,14 @@ class TestTask extends Task {
 describe("task-graph", () => {
 
   describe("TaskGraph", () => {
-    async function getContext() {
-      const garden = await makeTestGarden(projectRoot)
-      return garden.getPluginContext()
+    async function getGarden() {
+      return makeTestGarden(projectRoot)
     }
 
     it("should successfully process a single task without dependencies", async () => {
-      const ctx = await getContext()
-      const graph = new TaskGraph(ctx)
-      const task = new TestTask("a")
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden)
+      const task = new TestTask(garden, "a")
 
       await graph.addTask(task)
       const results = await graph.processTasks()
@@ -110,8 +112,8 @@ describe("task-graph", () => {
     })
 
     it("should process multiple tasks in dependency order", async () => {
-      const ctx = await getContext()
-      const graph = new TaskGraph(ctx)
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden)
 
       const callbackResults = {}
       const resultOrder: string[] = []
@@ -123,10 +125,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask("a", [], opts)
-      const taskB = new TestTask("b", [taskA], opts)
-      const taskC = new TestTask("c", [taskB], opts)
-      const taskD = new TestTask("d", [taskB, taskC], opts)
+      const taskA = new TestTask(garden, "a", [], opts)
+      const taskB = new TestTask(garden, "b", [taskA], opts)
+      const taskC = new TestTask(garden, "c", [taskB], opts)
+      const taskD = new TestTask(garden, "d", [taskB, taskC], opts)
 
       // we should be able to add tasks multiple times and in any order
       await graph.addTask(taskC)
@@ -202,8 +204,8 @@ describe("task-graph", () => {
     })
 
     it("should recursively cancel a task's dependants when it throws an error", async () => {
-      const ctx = await getContext()
-      const graph = new TaskGraph(ctx)
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden)
 
       const resultOrder: string[] = []
 
@@ -213,10 +215,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask("a", [], opts)
-      const taskB = new TestTask("b", [taskA], { callback, throwError: true })
-      const taskC = new TestTask("c", [taskB], opts)
-      const taskD = new TestTask("d", [taskB, taskC], opts)
+      const taskA = new TestTask(garden, "a", [], opts)
+      const taskB = new TestTask(garden, "b", [taskA], { callback, throwError: true })
+      const taskC = new TestTask(garden, "c", [taskB], opts)
+      const taskD = new TestTask(garden, "d", [taskB, taskC], opts)
 
       await graph.addTask(taskA)
       await graph.addTask(taskB)
@@ -243,8 +245,8 @@ describe("task-graph", () => {
     it.skip(
       "should process a task as an inheritor of an existing, in-progress task when they have the same base key",
       async () => {
-        const ctx = await getContext()
-        const graph = new TaskGraph(ctx)
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden)
 
         let callbackResults = {}
         let resultOrder: string[] = []
@@ -282,13 +284,18 @@ describe("task-graph", () => {
           callbackResults[key] = result
         }
 
-        const dependencyA = new TestTask("dependencyA", [], { callback: defaultCallback })
-        const dependencyB = new TestTask("dependencyB", [], { callback: defaultCallback })
-        const parentTask = new TestTask("sharedName", [dependencyA, dependencyB], { callback: parentCallback, id: "1" })
-        const dependantA = new TestTask("dependantA", [parentTask], { callback: defaultCallback })
-        const dependantB = new TestTask("dependantB", [parentTask], { callback: defaultCallback })
+        const dependencyA = new TestTask(garden, "dependencyA", [], { callback: defaultCallback })
+        const dependencyB = new TestTask(garden, "dependencyB", [], { callback: defaultCallback })
+        const parentTask = new TestTask(
+          garden,
+          "sharedName",
+          [dependencyA, dependencyB],
+          { callback: parentCallback, id: "1" },
+        )
+        const dependantA = new TestTask(garden, "dependantA", [parentTask], { callback: defaultCallback })
+        const dependantB = new TestTask(garden, "dependantB", [parentTask], { callback: defaultCallback })
 
-        const inheritorTask = new TestTask(
+        const inheritorTask = new TestTask(garden,
           "sharedName", [dependencyA, dependencyB], { callback: defaultCallback, id: "2" },
         )
 
