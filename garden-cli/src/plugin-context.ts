@@ -10,7 +10,6 @@ import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { CacheContext } from "./cache"
 import { Garden } from "./garden"
-import { EntryStyle } from "./logger/types"
 import { PrimitiveMap } from "./config/common"
 import { Module } from "./types/module"
 import {
@@ -300,7 +299,7 @@ export function createPluginContext(garden: Garden): PluginContext {
         }
 
         const logEntry = garden.log.info({
-          entryStyle: EntryStyle.activity,
+          status: "active",
           section: name,
           msg: "Configuring...",
         })
@@ -414,7 +413,7 @@ export function createPluginContext(garden: Garden): PluginContext {
       const logEntry = garden.log.info({
         section: params.serviceName,
         msg: "Deleting...",
-        entryStyle: EntryStyle.activity,
+        status: "active",
       })
       return callServiceHandler({
         params: { ...params, logEntry },
@@ -519,7 +518,11 @@ const dummyDeleteServiceHandler = async ({ ctx, module, logEntry }: DeleteServic
   if (logEntry) {
     logEntry.setError(msg)
   } else {
-    ctx.log.error(msg)
+    try {
+      ctx.log.error(msg)
+    } catch (err) {
+      console.log("FAIL", err)
+    }
   }
   return {}
 }

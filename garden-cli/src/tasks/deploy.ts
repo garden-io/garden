@@ -9,7 +9,7 @@
 import { flatten } from "lodash"
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { LogEntry } from "../logger/logger"
+import { LogEntry } from "../logger/log-entry"
 import { PluginContext } from "../plugin-context"
 import { BuildTask } from "./build"
 import { Task } from "./base"
@@ -18,7 +18,6 @@ import {
   ServiceStatus,
   prepareRuntimeContext,
 } from "../types/service"
-import { EntryStyle } from "../logger/types"
 import { Module } from "../types/module"
 import { withDependants, computeAutoReloadDependants } from "../watch"
 import { getNames } from "../util/util"
@@ -81,7 +80,7 @@ export class DeployTask extends Task {
     const logEntry = (this.logEntry || this.ctx.log).info({
       section: this.service.name,
       msg: "Checking status",
-      entryStyle: EntryStyle.activity,
+      status: "active",
     })
 
     // TODO: get version from build task results

@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { LoggerType } from "../logger/types"
+import { LoggerType } from "../logger/logger"
 import { ExecInServiceResult } from "../types/plugin/outputs"
 import {
   Command,

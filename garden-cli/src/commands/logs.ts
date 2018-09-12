@@ -19,7 +19,7 @@ import { ServiceLogEntry } from "../types/plugin/outputs"
 import Bluebird = require("bluebird")
 import { Service } from "../types/service"
 import Stream from "ts-stream"
-import { LoggerType } from "../logger/types"
+import { LoggerType } from "../logger/logger"
 import dedent = require("dedent")
 
 export const logsArgs = {

@@ -7,7 +7,7 @@
  */
 
 import Stream from "ts-stream"
-import { LogEntry } from "../../logger/logger"
+import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/base"
 import {

@@ -16,7 +16,6 @@ import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
 import { Task, TaskParams } from "../tasks/base"
-import { EntryStyle } from "../logger/types"
 import { prepareRuntimeContext } from "../types/service"
 
 class TestError extends Error {
@@ -107,7 +106,7 @@ export class TestTask extends Task {
     const entry = this.ctx.log.info({
       section: this.module.name,
       msg: `Running ${this.testConfig.name} tests`,
-      entryStyle: EntryStyle.activity,
+      status: "active",
     })
 
     const dependencies = await getTestDependencies(this.ctx, this.testConfig)

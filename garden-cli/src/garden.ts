@@ -74,7 +74,7 @@ import {
 } from "./task-graph"
 import {
   getLogger,
-  RootLogNode,
+  Logger,
 } from "./logger/logger"
 import {
   pluginActionNames,
@@ -105,8 +105,8 @@ import {
 } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ProjectConfigContext, ModuleConfigContext } from "./config/config-context"
-import { LogLevel } from "./logger/types"
 import { FileWriter } from "./logger/writers/file-writer"
+import { LogLevel } from "./logger/log-node"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -133,7 +133,7 @@ export type ModuleActionMap = {
 export interface ContextOpts {
   config?: GardenConfig,
   env?: string,
-  logger?: RootLogNode,
+  logger?: Logger,
   plugins?: RegisterPluginParam[],
 }
 
@@ -146,7 +146,7 @@ const fileWriterConfigs = [
 ]
 
 export class Garden {
-  public readonly log: RootLogNode
+  public readonly log: Logger
   public readonly actionHandlers: PluginActionMap
   public readonly moduleActionHandlers: ModuleActionMap
 
@@ -171,7 +171,7 @@ export class Garden {
     public readonly environmentConfig: EnvironmentConfig,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
-    logger?: RootLogNode,
+    logger?: Logger,
   ) {
     this.modulesScanned = false
     this.log = logger || getLogger()

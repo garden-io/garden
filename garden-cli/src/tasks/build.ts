@@ -10,7 +10,6 @@ import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
-import { EntryStyle } from "../logger/types"
 import { BuildResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
 
@@ -59,7 +58,7 @@ export class BuildTask extends Task {
     const logEntry = this.ctx.log.info({
       section: this.module.name,
       msg: "Building",
-      entryStyle: EntryStyle.activity,
+      status: "active",
     })
 
     let result: BuildResult

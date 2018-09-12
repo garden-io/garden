@@ -11,7 +11,6 @@ import {
   CommandResult,
   CommandParams,
 } from "./base"
-import { EntryStyle } from "../logger/types"
 import { LoginStatusMap } from "../types/plugin/outputs"
 import dedent = require("dedent")
 
@@ -29,7 +28,7 @@ export class LoginCommand extends Command {
 
   async action({ ctx }: CommandParams): Promise<CommandResult<LoginStatusMap>> {
     ctx.log.header({ emoji: "unlock", command: "Login" })
-    ctx.log.info({ msg: "Logging in...", entryStyle: EntryStyle.activity })
+    ctx.log.info({ msg: "Logging in...", status: "active" })
 
     const result = await ctx.login({})
 

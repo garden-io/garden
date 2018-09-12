@@ -25,7 +25,7 @@ import {
 } from "./kubernetes"
 import { getSystemGarden, isSystemGarden } from "./system"
 import { readFile } from "fs-extra"
-import { LogEntry } from "../../logger/logger"
+import { LogEntry } from "../../logger/log-entry"
 import { homedir } from "os"
 import { helm } from "./helm"
 

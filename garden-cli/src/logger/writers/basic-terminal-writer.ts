@@ -6,29 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  LogLevel,
-} from "../types"
-import {
-  formatForTerminal,
-} from "../renderers"
-import { LogEntry, RootLogNode } from "../logger"
+import { LogLevel } from "../log-node"
+import { formatForTerminal } from "../renderers"
+import { LogEntry } from "../log-entry"
+import { Logger } from "../logger"
 import { validate } from "../util"
 import { Writer } from "./base"
 
 export class BasicTerminalWriter extends Writer {
   public level: LogLevel
 
-  render(entry: LogEntry, rootLogNode: RootLogNode): string | null {
-    const level = this.level || rootLogNode.level
+  render(entry: LogEntry, logger: Logger): string | null {
+    const level = this.level || logger.level
     if (validate(level, entry)) {
       return formatForTerminal(entry)
     }
     return null
   }
 
-  onGraphChange(entry: LogEntry, rootLogNode: RootLogNode) {
-    const out = this.render(entry, rootLogNode)
+  onGraphChange(entry: LogEntry, logger: Logger) {
+    const out = this.render(entry, logger)
     if (out) {
       process.stdout.write(out)
     }

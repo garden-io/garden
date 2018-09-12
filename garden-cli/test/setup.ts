@@ -1,11 +1,11 @@
 import * as td from "testdouble"
-import { RootLogNode } from "../src/logger/logger"
-import { LogLevel } from "../src/logger/types"
+import { Logger } from "../src/logger/logger"
+import { LogLevel } from "../src/logger/log-node"
 import { makeTestGardenA } from "./helpers"
 
 // make sure logger is initialized
 try {
-  RootLogNode.initialize({ level: LogLevel.info })
+  Logger.initialize({ level: LogLevel.info })
 } catch (_) { }
 
 // Global hooks

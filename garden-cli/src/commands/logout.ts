@@ -11,7 +11,6 @@ import {
   CommandResult,
   CommandParams,
 } from "./base"
-import { EntryStyle } from "../logger/types"
 import { LoginStatusMap } from "../types/plugin/outputs"
 import dedent = require("dedent")
 
@@ -29,7 +28,7 @@ export class LogoutCommand extends Command {
 
     ctx.log.header({ emoji: "lock", command: "Logout" })
 
-    const entry = ctx.log.info({ msg: "Logging out...", entryStyle: EntryStyle.activity })
+    const entry = ctx.log.info({ msg: "Logging out...", status: "active" })
 
     const result = await ctx.logout({})
 

@@ -13,7 +13,6 @@ import { argv } from "process"
 import Bluebird = require("bluebird")
 
 import { NEW_MODULE_VERSION, VcsHandler, RemoteSourceParams } from "./base"
-import { EntryStyle } from "../logger/types"
 
 export const helpers = {
   gitCli: (cwd: string): (cmd: string, args: string[]) => Promise<string> => {
@@ -95,7 +94,7 @@ export class GitHandler extends VcsHandler {
     const isCloned = await pathExists(absPath)
 
     if (!isCloned) {
-      const entry = logEntry.info({ section: name, msg: `Fetching from ${url}`, entryStyle: EntryStyle.activity })
+      const entry = logEntry.info({ section: name, msg: `Fetching from ${url}`, status: "active" })
       const { repositoryUrl, hash } = getGitUrlParts(url)
 
       const cmdOpts = ["--depth=1"]
@@ -118,7 +117,7 @@ export class GitHandler extends VcsHandler {
 
     await this.ensureRemoteSource({ url, name, sourceType, logEntry })
 
-    const entry = logEntry.info({ section: name, msg: "Getting remote state", entryStyle: EntryStyle.activity })
+    const entry = logEntry.info({ section: name, msg: "Getting remote state", status: "active" })
     await git("remote", ["update"])
 
     const listRemoteArgs = hash ? [repositoryUrl, hash] : [repositoryUrl]
@@ -127,7 +126,7 @@ export class GitHandler extends VcsHandler {
     const localCommitId = parseRefList(await git("show-ref", ["--hash", ...showRefArgs]))
 
     if (localCommitId !== remoteCommitId) {
-      entry.setState({ section: name, msg: `Fetching from ${url}`, entryStyle: EntryStyle.activity })
+      entry.setState(`Fetching from ${url}`)
 
       const fetchArgs = hash ? ["origin", hash] : ["origin"]
       const resetArgs = hash ? [`origin/${hash}`] : ["origin"]

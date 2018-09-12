@@ -24,8 +24,7 @@ import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
-import { LogSymbolType, EntryStyle } from "./types"
-import { LogEntry } from "./logger"
+import { LogEntry } from "./log-entry"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -66,10 +65,6 @@ export function combine(renderers: Renderers): string {
 
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
-  const { parentEntry } = entry
-  if (parentEntry && parentEntry.opts.unindentChildren) {
-    return ""
-  }
   return padStart("", entry.depth * 3)
 }
 
@@ -101,20 +96,20 @@ export function renderError(entry: LogEntry) {
 
 export function renderSymbol(entry: LogEntry): string {
   const { symbol } = entry.opts
-  if (symbol === LogSymbolType.empty) {
+  if (symbol === "empty") {
     return " "
   }
   return symbol ? `${logSymbols[symbol]} ` : ""
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { entryStyle, fromStdStream, msg } = entry.opts
+  const { fromStdStream, msg, status } = entry.opts
 
   if (fromStdStream) {
     return isArray(msg) ? msg.join(" ") : msg || ""
   }
 
-  const styleFn = entryStyle === EntryStyle.error ? errorStyle : msgStyle
+  const styleFn = status === "error" ? errorStyle : msgStyle
   if (isArray(msg)) {
     return msg.map(styleFn).join(chalk.gray(" → "))
   }

@@ -17,7 +17,7 @@ import {
 import { Module } from "../module"
 import { serviceStatusSchema } from "../service"
 import { serviceOutputsSchema } from "../../config/service"
-import { LogNode } from "../../logger/logger"
+import { LogNode } from "../../logger/log-node"
 import {
   buildModuleResultSchema,
   buildStatusSchema,

@@ -24,8 +24,8 @@ import { getUrlChecksum } from "../support/support-util"
 import * as Bluebird from "bluebird"
 import { GitHandler } from "./src/vcs/git"
 import { Garden } from "./src/garden"
-import { RootLogNode } from "./src/logger/logger"
-import { LogLevel } from "./src/logger/types"
+import { Logger } from "./src/logger/logger"
+import { LogLevel } from "./src/logger/log-node"
 import execa = require("execa")
 
 const gulp = require("gulp")
@@ -90,7 +90,7 @@ process.on("SIGTERM", die)
 
 // make sure logger is initialized
 try {
-  RootLogNode.initialize({ level: LogLevel.info })
+  Logger.initialize({ level: LogLevel.info })
 } catch (_) { }
 
 gulp.task("add-version-files", async () => {
