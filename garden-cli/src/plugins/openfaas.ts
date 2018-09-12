@@ -24,7 +24,7 @@ import {
 } from "../types/plugin/params"
 import {
   ServiceStatus,
-  ServiceEndpoint,
+  ServiceIngress,
   Service,
 } from "../types/service"
 import {
@@ -263,7 +263,7 @@ async function writeStackFile(
 async function getServiceStatus({ ctx, service }: GetServiceStatusParams<OpenFaasModule>) {
   const k8sProvider = getK8sProvider(ctx)
 
-  const endpoints: ServiceEndpoint[] = [{
+  const ingresses: ServiceIngress[] = [{
     hostname: getExternalGatewayHostname(ctx.provider, k8sProvider),
     path: getServicePath(service),
     port: k8sProvider.config.ingressHttpPort,
@@ -292,7 +292,7 @@ async function getServiceStatus({ ctx, service }: GetServiceStatusParams<OpenFaa
   return {
     state: status.state,
     version,
-    endpoints,
+    ingresses,
   }
 }
 

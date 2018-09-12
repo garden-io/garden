@@ -140,7 +140,7 @@ module:
       ports:
         - name: http
           containerPort: 8080
-      endpoints:
+      ingresses:
         - path: /hello
           port: http
       healthCheck:

@@ -18,7 +18,7 @@ import {
   GetServiceStatusParams,
   ValidateModuleParams,
 } from "../../types/plugin/params"
-import { ServiceState, ServiceStatus, endpointHostnameSchema } from "../../types/service"
+import { ServiceState, ServiceStatus, ingressHostnameSchema } from "../../types/service"
 import {
   resolve,
 } from "path"
@@ -48,7 +48,7 @@ const gcfServiceSchema = baseServiceSchema
   .keys({
     entrypoint: Joi.string()
       .description("The entrypoint for the function (exported name in the function's module)"),
-    hostname: endpointHostnameSchema,
+    hostname: ingressHostnameSchema,
     path: Joi.string()
       .default(".")
       .description("The path of the module that contains the function."),
@@ -134,7 +134,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const project = getProject(service, ctx.provider)
 
         return {
-          endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,
+          ingress: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,
         }
       },
     },

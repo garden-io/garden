@@ -82,11 +82,11 @@ describe("DeleteServiceCommand", () => {
     const testStatuses: { [key: string]: ServiceStatus } = {
       "service-a": {
         state: "unknown",
-        endpoints: [],
+        ingresses: [],
       },
       "service-b": {
         state: "unknown",
-        endpoints: [],
+        ingresses: [],
       },
     }
 
@@ -113,7 +113,7 @@ describe("DeleteServiceCommand", () => {
 
     const { result } = await command.action({ garden, args: { service: ["service-a"] }, opts: {} })
     expect(result).to.eql({
-      "service-a": { state: "unknown", endpoints: [] },
+      "service-a": { state: "unknown", ingresses: [] },
     })
   })
 
@@ -122,8 +122,8 @@ describe("DeleteServiceCommand", () => {
 
     const { result } = await command.action({ garden, args: { service: ["service-a", "service-b"] }, opts: {} })
     expect(result).to.eql({
-      "service-a": { state: "unknown", endpoints: [] },
-      "service-b": { state: "unknown", endpoints: [] },
+      "service-a": { state: "unknown", ingresses: [] },
+      "service-b": { state: "unknown", ingresses: [] },
     })
   })
 })

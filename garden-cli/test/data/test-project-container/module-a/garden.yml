@@ -6,7 +6,7 @@ module:
       ports:
         - name: http
           containerPort: 8080
-      endpoints:
+      ingresses:
         - path: /
           port: http
       healthCheck:

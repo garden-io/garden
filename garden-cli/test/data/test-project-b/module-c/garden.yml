@@ -4,14 +4,14 @@ module:
   allowPush: false
   services:
     - name: service-c
-      endpoints:
+      ingresses:
         - path: /path-c
           port: http
       ports:
         - name: http
           containerPort: 8080
     - name: service-d
-      endpoints:
+      ingresses:
         - path: /path-d
           port: http
       ports:

@@ -112,11 +112,11 @@ module:
       ports:
         - name: http
           containerPort: 8080
-      endpoints:
+      ingresses:
         - path: /hello-node
           port: http
 ```
-The [services](../guides/configuration.md#Services) directive is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The sub-directives tell Garden how to start the service and which endpoints to expose.
+The [services](../guides/configuration.md#Services) directive is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The sub-directives tell Garden how to start the service and which ingress endpoints to expose.
 
 ## Deploying
 
@@ -132,7 +132,7 @@ Garden can now deploy our service to a local Kubernetes cluster:
 $ garden deploy
 ```
 
-To verify that everything is working, we can call the service at the `/hello-node` endpoint defined in `/services/node-service/app.js`:
+To verify that everything is working, we can call the service at the `/hello-node` ingress defined in `/services/node-service/app.js`:
 
 ```sh
 $ garden call node-service/hello-node
@@ -160,7 +160,7 @@ module:
       ports:
         - name: http
           containerPort: 80
-      endpoints:
+      ingresses:
         - path: /hello-go
           port: http
 ```
@@ -290,7 +290,7 @@ module:
       ports:
         - name: http
           containerPort: 8080
-      endpoints:
+      ingresses:
         - path: /
           port: http
       dependencies:

@@ -9,49 +9,49 @@
 import { V1Secret } from "@kubernetes/client-node"
 import { groupBy, omit, find } from "lodash"
 import { findByName } from "../../util/util"
-import { ContainerService, ContainerEndpointSpec } from "../container"
+import { ContainerService, ContainerIngressSpec } from "../container"
 import { SecretRef, IngressTlsCertificate } from "./kubernetes"
-import { ServiceEndpoint, ServiceProtocol } from "../../types/service"
+import { ServiceIngress, ServiceProtocol } from "../../types/service"
 import * as Bluebird from "bluebird"
 import { KubeApi } from "./api"
 import { ConfigurationError, PluginError } from "../../exceptions"
 import { certpem } from "certpem"
 
-interface ServiceEndpointWithCert extends ServiceEndpoint {
-  spec: ContainerEndpointSpec
+interface ServiceIngressWithCert extends ServiceIngress {
+  spec: ContainerIngressSpec
   certificate?: IngressTlsCertificate
 }
 
 const certificateHostnames: { [name: string]: string[] } = {}
 
 export async function createIngresses(api: KubeApi, namespace: string, service: ContainerService) {
-  if (service.spec.endpoints.length === 0) {
+  if (service.spec.ingresses.length === 0) {
     return []
   }
 
-  const allEndpoints = await getEndpointsWithCert(service, api)
+  const allIngresses = await getIngressesWithCert(service, api)
 
-  // first group endpoints by certificate, so we can properly configure TLS
-  const groupedByCert = groupBy(allEndpoints, e => e.certificate ? e.certificate.name : undefined)
+  // first group ingress endpoints by certificate, so we can properly configure TLS
+  const groupedByCert = groupBy(allIngresses, e => e.certificate ? e.certificate.name : undefined)
 
-  return Bluebird.map(Object.values(groupedByCert), async (certEndpoints) => {
-    // second, group endpoints by hostname
-    const groupedByHostname = groupBy(certEndpoints, e => e.hostname)
+  return Bluebird.map(Object.values(groupedByCert), async (certIngresses) => {
+    // second, group ingress endpoints by hostname
+    const groupedByHostname = groupBy(certIngresses, e => e.hostname)
 
-    const rules = Object.entries(groupedByHostname).map(([host, hostnameEndpoints]) => ({
+    const rules = Object.entries(groupedByHostname).map(([host, hostnameIngresses]) => ({
       host,
       http: {
-        paths: hostnameEndpoints.map(endpoint => ({
-          path: endpoint.path,
+        paths: hostnameIngresses.map(ingress => ({
+          path: ingress.path,
           backend: {
             serviceName: service.name,
-            servicePort: findByName(service.spec.ports, endpoint.spec.port)!.containerPort,
+            servicePort: findByName(service.spec.ports, ingress.spec.port)!.containerPort,
           },
         })),
       },
     }))
 
-    const cert = certEndpoints[0].certificate
+    const cert = certIngresses[0].certificate
 
     const annotations = {
       "kubernetes.io/ingress.class": api.provider.config.ingressClass,
@@ -114,14 +114,14 @@ async function ensureSecret(api: KubeApi, secretRef: SecretRef, targetNamespace:
   await api.upsert("Secret", targetNamespace, secret)
 }
 
-async function getEndpoint(
-  service: ContainerService, api: KubeApi, spec: ContainerEndpointSpec,
-): Promise<ServiceEndpointWithCert> {
+async function getIngress(
+  service: ContainerService, api: KubeApi, spec: ContainerIngressSpec,
+): Promise<ServiceIngressWithCert> {
   const hostname = spec.hostname || api.provider.config.defaultHostname
 
   if (!hostname) {
     // this should be caught when parsing the module
-    throw new PluginError(`Missing hostname in endpoint spec`, { serviceSpec: service.spec, endpointSpec: spec })
+    throw new PluginError(`Missing hostname in ingress spec`, { serviceSpec: service.spec, ingressSpec: spec })
   }
 
   const certificate = await pickCertificate(service, api, hostname)
@@ -140,12 +140,12 @@ async function getEndpoint(
   }
 }
 
-async function getEndpointsWithCert(service: ContainerService, api: KubeApi): Promise<ServiceEndpointWithCert[]> {
-  return Bluebird.map(service.spec.endpoints, spec => getEndpoint(service, api, spec))
+async function getIngressesWithCert(service: ContainerService, api: KubeApi): Promise<ServiceIngressWithCert[]> {
+  return Bluebird.map(service.spec.ingresses, spec => getIngress(service, api, spec))
 }
 
-export async function getEndpoints(service: ContainerService, api: KubeApi): Promise<ServiceEndpoint[]> {
-  return (await getEndpointsWithCert(service, api))
+export async function getIngresses(service: ContainerService, api: KubeApi): Promise<ServiceIngress[]> {
+  return (await getIngressesWithCert(service, api))
     .map(e => omit(e, ["certificate", "spec"]))
 }
 

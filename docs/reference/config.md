@@ -481,14 +481,14 @@ module:
       # Optional.
       daemon: false
 
-      # List of endpoints that the service exposes.
+      # List of ingress endpoints that the service exposes.
       #
       # Example:
       #   - path: /api
       #     port: http
       #
       # Optional.
-      endpoints: 
+      ingresses: 
         - # The hostname that should route to this service. Defaults to the default hostname
           # configured
           # in the provider configuration.

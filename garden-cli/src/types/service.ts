@@ -50,18 +50,18 @@ export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "un
 // TODO: support TCP, UDP and gRPC
 export type ServiceProtocol = "http" | "https"  // | "tcp" | "udp"
 
-export interface ServiceEndpointSpec {
+export interface ServiceIngressSpec {
   hostname?: string
   path: string
   port: number
   protocol: ServiceProtocol
 }
 
-export interface ServiceEndpoint extends ServiceEndpointSpec {
+export interface ServiceIngress extends ServiceIngressSpec {
   hostname: string
 }
 
-export const endpointHostnameSchema = Joi.string()
+export const ingressHostnameSchema = Joi.string()
   .hostname()
   .description(dedent`
     The hostname that should route to this service. Defaults to the default hostname configured
@@ -76,9 +76,9 @@ const portSchema = Joi.number()
     This defaults to the first specified port for the service.
   `)
 
-export const serviceEndpointSpecSchema = Joi.object()
+export const serviceIngressSpecSchema = Joi.object()
   .keys({
-    hostname: endpointHostnameSchema,
+    hostname: ingressHostnameSchema,
     port: portSchema,
     path: Joi.string()
       .default("/")
@@ -86,10 +86,10 @@ export const serviceEndpointSpecSchema = Joi.object()
     protocol: Joi.string()
       .only("http", "https")
       .required()
-      .description("The protocol to use for the endpoint."),
+      .description("The protocol to use for the ingress."),
   })
 
-export const serviceEndpointSchema = serviceEndpointSpecSchema
+export const serviceIngressSchema = serviceIngressSpecSchema
   .keys({
     hostname: Joi.string()
       .required()
@@ -97,7 +97,7 @@ export const serviceEndpointSchema = serviceEndpointSpecSchema
     port: portSchema
       .required(),
   })
-  .description("A description of a deployed service endpoint.")
+  .description("A description of a deployed service ingress.")
 
 // TODO: revise this schema
 export interface ServiceStatus {
@@ -106,7 +106,7 @@ export interface ServiceStatus {
   version?: string
   state?: ServiceState
   runningReplicas?: number
-  endpoints?: ServiceEndpoint[],
+  ingresses?: ServiceIngress[],
   lastMessage?: string
   lastError?: string
   createdAt?: string
@@ -128,9 +128,9 @@ export const serviceStatusSchema = Joi.object()
       .description("The current deployment status of the service."),
     runningReplicas: Joi.number()
       .description("How many replicas of the service are currently running."),
-    endpoints: Joi.array()
-      .items(serviceEndpointSchema)
-      .description("List of currently deployed endpoints for the service."),
+    ingresses: Joi.array()
+      .items(serviceIngressSchema)
+      .description("List of currently deployed ingress endpoints for the service."),
     lastMessage: Joi.string()
       .allow("")
       .description("Latest status message of the service (if any)."),
@@ -159,7 +159,7 @@ const runtimeDependencySchema = Joi.object()
   .keys({
     version: moduleVersionSchema,
     outputs: joiEnvVars()
-      .description("The outputs provided by the service (e.g. endpoint URLs etc.)."),
+      .description("The outputs provided by the service (e.g. ingress URLs etc.)."),
   })
 
 export const runtimeContextSchema = Joi.object()
@@ -228,11 +228,11 @@ export async function prepareRuntimeContext(
   }
 }
 
-export function getEndpointUrl(endpoint: ServiceEndpoint) {
+export function getIngressUrl(ingress: ServiceIngress) {
   return normalizeUrl(format({
-    protocol: endpoint.protocol,
-    hostname: endpoint.hostname,
-    port: endpoint.port,
-    pathname: endpoint.path,
+    protocol: ingress.protocol,
+    hostname: ingress.hostname,
+    port: ingress.port,
+    pathname: ingress.path,
   }))
 }

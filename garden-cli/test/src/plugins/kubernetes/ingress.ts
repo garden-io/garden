@@ -13,7 +13,7 @@ import { dataDir, makeTestGarden, expectError } from "../../../helpers"
 import { Garden } from "../../../../src/garden"
 import { moduleFromConfig } from "../../../../src/types/module"
 import { createIngresses } from "../../../../src/plugins/kubernetes/ingress"
-import { ServicePortProtocol, ContainerEndpointSpec } from "../../../../src/plugins/container"
+import { ServicePortProtocol, ContainerIngressSpec } from "../../../../src/plugins/container"
 
 const kubeConfigEnvVar = process.env.KUBECONFIG
 const namespace = "my-namespace"
@@ -306,13 +306,13 @@ describe("createIngresses", () => {
     }))
   })
 
-  async function getTestService(...endpoints: ContainerEndpointSpec[]): Promise<ContainerService> {
+  async function getTestService(...ingresses: ContainerIngressSpec[]): Promise<ContainerService> {
     const spec: ContainerServiceSpec = {
       name: "my-service",
       command: [],
       daemon: false,
       dependencies: [],
-      endpoints,
+      ingresses,
       env: {},
       outputs: {},
       ports,
@@ -417,7 +417,7 @@ describe("createIngresses", () => {
     }])
   })
 
-  it("should group endpoints by hostname", async () => {
+  it("should group ingresses by hostname", async () => {
     const service = await getTestService(
       {
         path: "/here",
@@ -534,7 +534,7 @@ describe("createIngresses", () => {
     }])
   })
 
-  it("should map a configured TLS certificate to an endpoint", async () => {
+  it("should map a configured TLS certificate to an ingress", async () => {
     const service = await getTestService(
       {
         path: "/",
@@ -582,7 +582,7 @@ describe("createIngresses", () => {
     }])
   })
 
-  it("should group multiple endpoints by TLS certificate", async () => {
+  it("should group multiple ingresses by TLS certificate", async () => {
     const service = await getTestService(
       {
         path: "/",
@@ -747,7 +747,7 @@ describe("createIngresses", () => {
     await expectError(async () => await createIngresses(api, namespace, service), "configuration")
   })
 
-  it("should correctly match an endpoint to a wildcard certificate", async () => {
+  it("should correctly match an ingress to a wildcard certificate", async () => {
     const service = await getTestService(
       {
         hostname: "something.wildcarddomain.com",

@@ -204,7 +204,7 @@ class ModuleContext extends ConfigContext {
   }
 }
 
-const exampleOutputs = { endpoint: "http://my-service/path/to/endpoint" }
+const exampleOutputs = { ingress: "http://my-service/path/to/endpoint" }
 
 class ServiceContext extends ConfigContext {
   @schema(
@@ -217,7 +217,7 @@ class ServiceContext extends ConfigContext {
   @schema(Joi.string().description("The current version of the service.").example(exampleVersion))
   public version: string
 
-  // TODO: add endpoints
+  // TODO: add ingresses
 
   constructor(root: ConfigContext, service: Service, outputs: PrimitiveMap) {
     super(root)

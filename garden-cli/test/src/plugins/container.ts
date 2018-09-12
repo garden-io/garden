@@ -208,7 +208,7 @@ describe("plugins.container", () => {
               command: ["echo"],
               dependencies: [],
               daemon: false,
-              endpoints: [
+              ingresses: [
                 {
                   path: "/",
                   port: "http",
@@ -262,7 +262,7 @@ describe("plugins.container", () => {
                 command: ["echo"],
                 dependencies: [],
                 daemon: false,
-                endpoints: [{
+                ingresses: [{
                   path: "/",
                   port: "http",
                 }],
@@ -295,7 +295,7 @@ describe("plugins.container", () => {
                 command: ["echo"],
                 dependencies: [],
                 daemon: false,
-                endpoints: [{
+                ingresses: [{
                   path: "/",
                   port: "http",
                 }],
@@ -326,7 +326,7 @@ describe("plugins.container", () => {
         })
       })
 
-      it("should fail with invalid port in endpoint spec", async () => {
+      it("should fail with invalid port in ingress spec", async () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPush: false,
           build: {
@@ -345,7 +345,7 @@ describe("plugins.container", () => {
               command: ["echo"],
               dependencies: [],
               daemon: false,
-              endpoints: [
+              ingresses: [
                 {
                   path: "/",
                   port: "bla",
@@ -394,7 +394,7 @@ describe("plugins.container", () => {
               command: ["echo"],
               dependencies: [],
               daemon: false,
-              endpoints: [],
+              ingresses: [],
               env: {},
               healthCheck: {
                 httpGet: {
@@ -438,7 +438,7 @@ describe("plugins.container", () => {
               command: ["echo"],
               dependencies: [],
               daemon: false,
-              endpoints: [],
+              ingresses: [],
               env: {},
               healthCheck: {
                 tcpPort: "bla",

@@ -5,7 +5,7 @@ module:
   services:
     - name: result
       command: [nodemon, server.js]
-      endpoints:
+      ingresses:
         - path: /
           port: ui
       ports:
