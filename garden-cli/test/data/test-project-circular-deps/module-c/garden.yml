@@ -4,7 +4,7 @@ module:
   allowPush: false
   services:
     - name: service-c
-      endpoints:
+      ingresses:
         - path: /path-c
           containerPort: 8080
       dependencies:

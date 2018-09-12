@@ -18,7 +18,7 @@ const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
     "service-a": {
       state: "ready",
-      endpoints: [{
+      ingresses: [{
         hostname: "service-a.test-project-b.local.app.garden",
         path: "/path-a",
         port: 80,

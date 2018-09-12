@@ -30,7 +30,7 @@ import {
   ValidateModuleParams,
   PushModuleParams,
 } from "../types/plugin/params"
-import { Service, endpointHostnameSchema } from "../types/service"
+import { Service, ingressHostnameSchema } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
@@ -38,7 +38,7 @@ import { genericTestSchema, GenericTestSpec } from "./generic"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
 
-export interface ContainerEndpointSpec {
+export interface ContainerIngressSpec {
   hostname?: string
   path: string
   port: string
@@ -73,7 +73,7 @@ export interface ServiceHealthCheckSpec {
 export interface ContainerServiceSpec extends BaseServiceSpec {
   command: string[],
   daemon: boolean
-  endpoints: ContainerEndpointSpec[],
+  ingresses: ContainerIngressSpec[],
   env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
   ports: ServicePortSpec[],
@@ -82,9 +82,9 @@ export interface ContainerServiceSpec extends BaseServiceSpec {
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
-const endpointSchema = Joi.object()
+const ingressSchema = Joi.object()
   .keys({
-    hostname: endpointHostnameSchema,
+    hostname: ingressHostnameSchema,
     path: Joi.string().uri(<any>{ relativeOnly: true })
       .default("/")
       .description("The path which should be routed to the service."),
@@ -154,8 +154,8 @@ const serviceSchema = baseServiceSchema
     daemon: Joi.boolean()
       .default(false)
       .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
-    endpoints: joiArray(endpointSchema)
-      .description("List of endpoints that the service exposes.")
+    ingresses: joiArray(ingressSchema)
+      .description("List of ingress endpoints that the service exposes.")
       .example([{
         path: "/api",
         port: "http",
@@ -278,13 +278,13 @@ export async function validateContainerModule({ moduleConfig }: ValidateModulePa
     const definedPorts = spec.ports
     const portsByName = keyBy(spec.ports, "name")
 
-    for (const endpoint of spec.endpoints) {
-      const endpointPort = endpoint.port
+    for (const ingress of spec.ingresses) {
+      const ingressPort = ingress.port
 
-      if (!portsByName[endpointPort]) {
+      if (!portsByName[ingressPort]) {
         throw new ConfigurationError(
-          `Service ${name} does not define port ${endpointPort} defined in endpoint`,
-          { definedPorts, endpointPort },
+          `Service ${name} does not define port ${ingressPort} defined in ingress`,
+          { definedPorts, ingressPort },
         )
       }
     }

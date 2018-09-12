@@ -19,7 +19,7 @@ import {
   set,
 } from "lodash"
 import { RuntimeContext, ServiceStatus } from "../../types/service"
-import { createIngresses, getEndpoints } from "./ingress"
+import { createIngresses, getIngresses } from "./ingress"
 import { createServices } from "./service"
 import { waitForObjects, compareDeployedObjects } from "./status"
 import { applyMany } from "./kubectl"
@@ -50,10 +50,10 @@ export async function getContainerServiceStatus(
   const objects = await createContainerObjects(ctx, service, runtimeContext)
   const matched = await compareDeployedObjects(ctx, objects)
   const api = new KubeApi(ctx.provider)
-  const endpoints = await getEndpoints(service, api)
+  const ingresses = await getIngresses(service, api)
 
   return {
-    endpoints,
+    ingresses,
     state: matched ? "ready" : "outdated",
     version: matched ? version.versionString : undefined,
   }

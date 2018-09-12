@@ -6,7 +6,7 @@ module:
     - name: service-b
       dependencies:
         - service-a
-      endpoints:
+      ingresses:
         - path: /path-b
           port: http
       ports:

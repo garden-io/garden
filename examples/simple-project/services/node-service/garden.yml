@@ -8,7 +8,7 @@ module:
       ports:
         - name: http
           containerPort: 8080
-      endpoints:
+      ingresses:
         - path: /hello-node
           port: http
         - path: /call-go-service

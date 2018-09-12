@@ -52,9 +52,9 @@ Examples:
 
 ### garden call
 
-Call a service endpoint.
+Call a service ingress endpoint.
 
-This command resolves the deployed external endpoint for the given service and path, calls the given endpoint and
+This command resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
 outputs the result.
 
 Examples:
@@ -62,7 +62,7 @@ Examples:
     garden call my-container
     garden call my-container/some-path
 
-Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
+Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 ##### Usage
 
@@ -72,7 +72,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `serviceAndPath` | Yes | The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath).
+  | `serviceAndPath` | Yes | The name of the service(s) to call followed by the ingress path (e.g. my-container/somepath).
 
 ### garden create project
 

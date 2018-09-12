@@ -12,7 +12,7 @@ const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
     "service-a": {
       state: "ready",
-      endpoints: [{
+      ingresses: [{
         hostname: "service-a.test-project-b.local.app.garden",
         path: "/path-a",
         protocol: "http",
@@ -21,7 +21,7 @@ const testProvider: PluginFactory = () => {
     },
     "service-b": {
       state: "ready",
-      endpoints: [{
+      ingresses: [{
         hostname: "service-b.test-project-b.local.app.garden",
         path: "/",
         port: 32000,
@@ -58,7 +58,7 @@ describe("commands.call", () => {
     nock.enableNetConnect()
   })
 
-  it("should find the endpoint for a service and call it with the specified path", async () => {
+  it("should find the ingress for a service and call it with the specified path", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const command = new CallCommand()
 
@@ -93,7 +93,7 @@ describe("commands.call", () => {
     expect(result.response.data).to.equal("bla")
   })
 
-  it("should otherwise use the first defined endpoint if no path is requested", async () => {
+  it("should otherwise use the first defined ingress if no path is requested", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const command = new CallCommand()
 
@@ -124,7 +124,7 @@ describe("commands.call", () => {
     throw new Error("Expected error")
   })
 
-  it("should error if service has no endpoints", async () => {
+  it("should error if service has no ingresses", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const command = new CallCommand()
 
@@ -138,7 +138,7 @@ describe("commands.call", () => {
     throw new Error("Expected error")
   })
 
-  it("should error if service has no matching endpoints", async () => {
+  it("should error if service has no matching ingresses", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
     const command = new CallCommand()
 

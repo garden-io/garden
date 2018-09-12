@@ -63,7 +63,7 @@ export function containerTemplate(moduleName: string): DeepPartial<ContainerModu
           name: "http",
           containerPort: 8080,
         }],
-        endpoints: [{
+        ingresses: [{
           path: "/",
           port: "http",
         }],

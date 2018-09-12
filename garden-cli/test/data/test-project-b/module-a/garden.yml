@@ -3,7 +3,7 @@ module:
   type: container
   services:
     - name: service-a
-      endpoints:
+      ingresses:
         - path: /path-a
           port: http
       ports:

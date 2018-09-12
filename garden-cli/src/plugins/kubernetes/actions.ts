@@ -56,26 +56,26 @@ const MAX_STORED_USERNAMES = 5
 export async function validate(params: ValidateModuleParams<ContainerModule>) {
   const config = await validateContainerModule(params)
 
-  // validate endpoint specs
+  // validate ingress specs
   const provider: KubernetesProvider = params.ctx.provider
 
   for (const serviceConfig of config.serviceConfigs) {
-    for (const endpointSpec of serviceConfig.spec.endpoints) {
-      const hostname = endpointSpec.hostname || provider.config.defaultHostname
+    for (const ingressSpec of serviceConfig.spec.ingresses) {
+      const hostname = ingressSpec.hostname || provider.config.defaultHostname
 
       if (!hostname) {
         throw new ConfigurationError(
-          `No hostname configured for one of the endpoints on service ${serviceConfig.name}. ` +
-          `Please configure a default hostname or specify a hostname for the endpoint.`,
+          `No hostname configured for one of the ingresses on service ${serviceConfig.name}. ` +
+          `Please configure a default hostname or specify a hostname for the ingress.`,
           {
             serviceName: serviceConfig.name,
-            endpointSpec,
+            ingressSpec,
           },
         )
       }
 
       // make sure the hostname is set
-      endpointSpec.hostname = hostname
+      ingressSpec.hostname = hostname
     }
   }
 }

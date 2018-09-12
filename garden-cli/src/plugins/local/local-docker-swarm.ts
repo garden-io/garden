@@ -110,7 +110,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           UpdateConfig: {
             Parallelism: 1,
           },
-          EndpointSpec: {
+          IngressSpec: {
             Ports: ports,
           },
         }
