@@ -14,13 +14,13 @@ import { ServiceStatus } from "../service"
 import { moduleConfigSchema, ModuleConfig } from "../../config/module"
 
 export interface EnvironmentStatus {
-  configured: boolean
+  ready: boolean
   detail?: any
 }
 
 export const environmentStatusSchema = Joi.object()
   .keys({
-    configured: Joi.boolean()
+    ready: Joi.boolean()
       .required()
       .description("Set to true if the environment is fully configured for a provider."),
     detail: Joi.object()
@@ -33,19 +33,19 @@ export type EnvironmentStatusMap = {
   [key: string]: EnvironmentStatus,
 }
 
-export interface ConfigureEnvironmentResult { }
+export interface PrepareEnvironmentResult { }
 
-export const configureEnvironmentResultSchema = Joi.object().keys({})
+export const prepareEnvironmentResultSchema = Joi.object().keys({})
 
-export interface DestroyEnvironmentResult { }
+export interface CleanupEnvironmentResult { }
 
-export const destroyEnvironmentResultSchema = Joi.object().keys({})
+export const cleanupEnvironmentResultSchema = Joi.object().keys({})
 
-export interface GetConfigResult {
+export interface GetSecretResult {
   value: string | null
 }
 
-export const getConfigResultSchema = Joi.object()
+export const getSecretResultSchema = Joi.object()
   .keys({
     value: Joi.string()
       .allow(null)
@@ -53,15 +53,15 @@ export const getConfigResultSchema = Joi.object()
       .description("The config value found for the specified key (as string), or null if not found."),
   })
 
-export interface SetConfigResult { }
+export interface SetSecretResult { }
 
-export const setConfigResultSchema = Joi.object().keys({})
+export const setSecretResultSchema = Joi.object().keys({})
 
-export interface DeleteConfigResult {
+export interface DeleteSecretResult {
   found: boolean
 }
 
-export const deleteConfigResultSchema = Joi.object()
+export const deleteSecretResultSchema = Joi.object()
   .keys({
     found: Joi.boolean()
       .required()
@@ -128,10 +128,27 @@ export interface GetServiceLogsResult { }
 
 export const getServiceLogsResultSchema = Joi.object().keys({})
 
-export type ParseModuleResult<T extends Module = Module> =
+export interface ModuleTypeDescription {
+  docs: string
+  schema: object
+}
+
+export const moduleTypeDescriptionSchema = Joi.object()
+  .keys({
+    docs: Joi.string()
+      .required()
+      .description("Documentation for the module type, in markdown format."),
+    schema: Joi.object()
+      .required()
+      .description(
+        "A valid OpenAPI schema describing the configuration keys for the `module` field in the module's `garden.yml`.",
+      ),
+  })
+
+export type ValidateModuleResult<T extends Module = Module> =
   ModuleConfig<T["spec"], T["serviceConfigs"][0]["spec"], T["testConfigs"][0]["spec"]>
 
-export const parseModuleResultSchema = moduleConfigSchema
+export const validateModuleResultSchema = moduleConfigSchema
 
 export interface BuildResult {
   buildLog?: string
@@ -144,6 +161,7 @@ export interface BuildResult {
 export const buildModuleResultSchema = Joi.object()
   .keys({
     buildLog: Joi.string()
+      .allow("")
       .description("The full log from the build."),
     fetched: Joi.boolean()
       .description("Set to true if the build was fetched from a remote registry."),
@@ -228,12 +246,12 @@ export const buildStatusSchema = Joi.object()
 
 export interface PluginActionOutputs {
   getEnvironmentStatus: Promise<EnvironmentStatus>
-  configureEnvironment: Promise<ConfigureEnvironmentResult>
-  destroyEnvironment: Promise<DestroyEnvironmentResult>
+  prepareEnvironment: Promise<PrepareEnvironmentResult>
+  cleanupEnvironment: Promise<CleanupEnvironmentResult>
 
-  getConfig: Promise<GetConfigResult>
-  setConfig: Promise<SetConfigResult>
-  deleteConfig: Promise<DeleteConfigResult>
+  getSecret: Promise<GetSecretResult>
+  setSecret: Promise<SetSecretResult>
+  deleteSecret: Promise<DeleteSecretResult>
 
   getLoginStatus: Promise<LoginStatus>
   login: Promise<LoginStatus>
@@ -251,9 +269,10 @@ export interface ServiceActionOutputs {
 }
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {
-  parseModule: Promise<ParseModuleResult>
-  getModuleBuildStatus: Promise<BuildStatus>
-  buildModule: Promise<BuildResult>
+  describeType: Promise<ModuleTypeDescription>
+  validate: Promise<ValidateModuleResult>
+  getBuildStatus: Promise<BuildStatus>
+  build: Promise<BuildResult>
   pushModule: Promise<PushResult>
   runModule: Promise<RunResult>
   testModule: Promise<TestResult>

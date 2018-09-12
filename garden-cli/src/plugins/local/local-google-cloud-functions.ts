@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ParseModuleParams } from "../../types/plugin/params"
+import { ValidateModuleParams } from "../../types/plugin/params"
 import { join } from "path"
 import {
   GcfModule,
@@ -33,7 +33,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
   moduleActions: {
     "google-cloud-function": {
-      async parseModule(params: ParseModuleParams<GcfModule>) {
+      async validate(params: ValidateModuleParams<GcfModule>) {
         const parsed = await parseGcfModule(params)
 
         // convert the module and services to containers to run locally
@@ -44,11 +44,11 @@ export const gardenPlugin = (): GardenPlugin => ({
             name: s.name,
             dependencies: s.dependencies,
             outputs: {
-              endpoint: `http://${s.name}:${emulatorPort}/local/local/${functionEntrypoint}`,
+              ingress: `http://${s.name}:${emulatorPort}/local/local/${functionEntrypoint}`,
             },
             command: ["/app/start.sh", functionEntrypoint],
             daemon: false,
-            endpoints: [{
+            ingresses: [{
               name: "default",
               hostname: s.spec.hostname,
               port: "http",

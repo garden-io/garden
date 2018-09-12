@@ -1,26 +1,17 @@
 import { expect } from "chai"
-import { SetConfigCommand } from "../../../src/commands/set"
-import { expectError, makeTestGardenA } from "../../helpers"
+import { SetSecretCommand } from "../../../src/commands/set"
+import { makeTestGardenA } from "../../helpers"
 
-describe("SetConfigCommand", () => {
+describe("SetSecretCommand", () => {
+  const pluginName = "test-plugin"
+  const provider = pluginName
+
   it("should set a config variable", async () => {
     const garden = await makeTestGardenA()
-    const ctx = garden.getPluginContext()
-    const command = new SetConfigCommand()
+    const command = new SetSecretCommand()
 
-    await command.action({ garden, ctx, args: { key: "project.mykey", value: "myvalue" }, opts: {} })
+    await command.action({ garden, args: { provider, key: "mykey", value: "myvalue" }, opts: {} })
 
-    expect(await ctx.getConfig({ key: ["project", "mykey"] })).to.eql({ value: "myvalue" })
-  })
-
-  it("should throw on invalid key", async () => {
-    const garden = await makeTestGardenA()
-    const ctx = garden.getPluginContext()
-    const command = new SetConfigCommand()
-
-    await expectError(
-      async () => await command.action({ garden, ctx, args: { key: "bla.mykey", value: "ble" }, opts: {} }),
-      "parameter",
-    )
+    expect(await garden.actions.getSecret({ pluginName, key: "mykey" })).to.eql({ value: "myvalue" })
   })
 })

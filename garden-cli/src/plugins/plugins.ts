@@ -27,5 +27,4 @@ export const builtinPlugins: RegisterPluginParam[] = [
 export const fixedPlugins = [
   "generic",
   "container",
-  "npm-package",
 ]

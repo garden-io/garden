@@ -23,20 +23,17 @@ import {
   validate,
 } from "../../config/common"
 import { Module } from "../../types/module"
-import {
-  ModuleActions,
-  Provider,
-} from "../../types/plugin/plugin"
+import { ModuleAndServiceActions } from "../../types/plugin/plugin"
 import {
   BuildModuleParams,
   DeployServiceParams,
   GetServiceStatusParams,
-  ParseModuleParams,
+  ValidateModuleParams,
   DeleteServiceParams,
 } from "../../types/plugin/params"
 import {
   BuildResult,
-  ParseModuleResult,
+  ValidateModuleResult,
 } from "../../types/plugin/outputs"
 import { Service, ServiceStatus } from "../../types/service"
 import { dumpYaml } from "../../util/util"
@@ -112,8 +109,8 @@ const helmStatusCodeMap: { [code: number]: ServiceState } = {
   8: "deploying", // PENDING_ROLLBACK
 }
 
-export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
-  async parseModule({ moduleConfig }: ParseModuleParams): Promise<ParseModuleResult> {
+export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
+  async validate({ moduleConfig }: ValidateModuleParams): Promise<ValidateModuleResult> {
     moduleConfig.spec = validate(
       moduleConfig.spec,
       helmModuleSpecSchema,
@@ -133,19 +130,20 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
     return moduleConfig
   },
 
-  getModuleBuildStatus: getGenericModuleBuildStatus,
-  buildModule,
+  getBuildStatus: getGenericModuleBuildStatus,
+  build,
   getServiceStatus,
 
   async deployService(
-    { ctx, provider, module, service, logEntry }: DeployServiceParams<HelmModule>,
+    { ctx, module, service, logEntry }: DeployServiceParams<HelmModule>,
   ): Promise<ServiceStatus> {
+    const provider = ctx.provider
     const chartPath = await getChartPath(module)
     const valuesPath = getValuesPath(chartPath)
     const releaseName = getReleaseName(ctx, service)
-    const namespace = await getAppNamespace(ctx, provider)
+    const namespace = await getAppNamespace(ctx, ctx.provider)
 
-    const releaseStatus = await getReleaseStatus(provider, releaseName)
+    const releaseStatus = await getReleaseStatus(ctx.provider, releaseName)
 
     if (releaseStatus.state === "missing") {
       await helm(provider,
@@ -164,23 +162,23 @@ export const helmHandlers: Partial<ModuleActions<HelmModule>> = {
       )
     }
 
-    const objects = await getChartObjects(ctx, provider, service)
+    const objects = await getChartObjects(ctx, service)
     await waitForObjects({ ctx, provider, service, objects, logEntry })
 
     return {}
   },
 
   async deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-    const { ctx, logEntry, provider, service } = params
+    const { ctx, logEntry, service } = params
     const releaseName = getReleaseName(ctx, service)
-    await helm(provider, "delete", "--purge", releaseName)
+    await helm(ctx.provider, "delete", "--purge", releaseName)
     logEntry && logEntry.setSuccess("Service deleted")
 
     return await getServiceStatus(params)
   },
 }
 
-async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
+async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const buildPath = module.buildPath
   const config = module
 
@@ -197,23 +195,19 @@ async function buildModule({ ctx, provider, module, logEntry }: BuildModuleParam
     fetchArgs.push("--repo", config.spec.repo)
   }
   logEntry && logEntry.setState("Fetching chart...")
-  await helm(provider, ...fetchArgs)
+  await helm(ctx.provider, ...fetchArgs)
 
   const chartPath = await getChartPath(module)
 
   // create the values.yml file (merge the configured parameters into the default values)
   logEntry && logEntry.setState("Preparing chart...")
-  const values = safeLoad(await helm(provider, "inspect", "values", chartPath)) || {}
+  const values = safeLoad(await helm(ctx.provider, "inspect", "values", chartPath)) || {}
 
   Object.entries(flattenValues(config.spec.parameters))
     .map(([k, v]) => set(values, k, v))
 
   const valuesPath = getValuesPath(chartPath)
   dumpYaml(valuesPath, values)
-
-  // make sure the template renders okay
-  const services = await ctx.getServices(module.serviceNames)
-  await getChartObjects(ctx, provider, services[0])
 
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
@@ -243,13 +237,13 @@ function getValuesPath(chartPath: string) {
   return join(chartPath, "garden-values.yml")
 }
 
-async function getChartObjects(ctx: PluginContext, provider: Provider, service: Service) {
+async function getChartObjects(ctx: PluginContext, service: Service) {
   const chartPath = await getChartPath(service.module)
   const valuesPath = getValuesPath(chartPath)
-  const namespace = await getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
   const releaseName = getReleaseName(ctx, service)
 
-  const objects = <KubernetesObject[]>safeLoadAll(await helm(provider,
+  const objects = <KubernetesObject[]>safeLoadAll(await helm(ctx.provider,
     "template",
     "--name", releaseName,
     "--namespace", namespace,
@@ -266,17 +260,17 @@ async function getChartObjects(ctx: PluginContext, provider: Provider, service: 
 }
 
 async function getServiceStatus(
-  { ctx, env, provider, service, module, logEntry }: GetServiceStatusParams<HelmModule>,
+  { ctx, service, module, logEntry }: GetServiceStatusParams<HelmModule>,
 ): Promise<ServiceStatus> {
   // need to build to be able to check the status
-  const buildStatus = await getGenericModuleBuildStatus({ ctx, env, provider, module, logEntry })
+  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, logEntry })
   if (!buildStatus.ready) {
-    await buildModule({ ctx, env, provider, module, logEntry })
+    await build({ ctx, module, logEntry })
   }
 
   // first check if the installed objects on the cluster match the current code
-  const objects = await getChartObjects(ctx, provider, service)
-  const matched = await compareDeployedObjects(ctx, provider, objects)
+  const objects = await getChartObjects(ctx, service)
+  const matched = await compareDeployedObjects(ctx, objects)
 
   if (!matched) {
     return { state: "outdated" }
@@ -284,8 +278,8 @@ async function getServiceStatus(
 
   // then check if the rollout is complete
   const version = module.version
-  const api = new KubeApi(provider)
-  const namespace = await getAppNamespace(ctx, provider)
+  const api = new KubeApi(ctx.provider)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
   const { ready } = await checkObjectStatus(api, namespace, objects)
 
   // TODO: set state to "unhealthy" if any status is "unhealthy"

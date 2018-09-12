@@ -10,8 +10,6 @@ import {
   makeTestGardenA,
   makeTestModule,
   projectRootA,
-  testPlugin,
-  testPluginB,
   stubExtSources,
   getDataDir,
   cleanProject,
@@ -23,6 +21,7 @@ import { MOCK_CONFIG } from "../../src/cli/cli"
 import { LinkedSource } from "../../src/config-store"
 import { ModuleVersion } from "../../src/vcs/base"
 import { hashRepoUrl } from "../../src/util/ext-source-util"
+import { getModuleCacheContext } from "../../src/types/module"
 
 describe("Garden", () => {
   beforeEach(async () => {
@@ -37,8 +36,8 @@ describe("Garden", () => {
     it("should initialize and add the action handlers for a plugin", async () => {
       const garden = await makeTestGardenA()
 
-      expect(garden.actionHandlers.configureEnvironment["test-plugin"]).to.be.ok
-      expect(garden.actionHandlers.configureEnvironment["test-plugin-b"]).to.be.ok
+      expect(garden.actionHandlers.prepareEnvironment["test-plugin"]).to.be.ok
+      expect(garden.actionHandlers.prepareEnvironment["test-plugin-b"]).to.be.ok
     })
 
     it("should initialize with MOCK_CONFIG", async () => {
@@ -63,9 +62,11 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
 
       expect(garden.projectName).to.equal("test-project-a")
-      expect(garden.environmentConfig).to.eql({
+      expect(garden.environment).to.eql({
         name: "local",
         providers: [
+          { name: "generic" },
+          { name: "container" },
           { name: "test-plugin" },
           { name: "test-plugin-b" },
         ],
@@ -86,9 +87,11 @@ describe("Garden", () => {
       delete process.env.TEST_PROVIDER_TYPE
       delete process.env.TEST_VARIABLE
 
-      expect(garden.environmentConfig).to.eql({
+      expect(garden.environment).to.eql({
         name: "local",
         providers: [
+          { name: "generic" },
+          { name: "container" },
           { name: "test-plugin" },
         ],
         variables: {
@@ -96,26 +99,6 @@ describe("Garden", () => {
           "service-a-build-command": "OK",
         },
       })
-    })
-
-    it("should optionally set a namespace with the dot separator", async () => {
-      const garden = await Garden.factory(
-        projectRootA, { env: "local.mynamespace", plugins: [testPlugin, testPluginB] },
-      )
-
-      const { name, namespace } = garden.getEnvironment()
-      expect(name).to.equal("local")
-      expect(namespace).to.equal("mynamespace")
-    })
-
-    it("should split environment and namespace on the first dot", async () => {
-      const garden = await Garden.factory(
-        projectRootA, { env: "local.mynamespace.2", plugins: [testPlugin, testPluginB] },
-      )
-
-      const { name, namespace } = garden.getEnvironment()
-      expect(name).to.equal("local")
-      expect(namespace).to.equal("mynamespace.2")
     })
 
     it("should throw if the specified environment isn't configured", async () => {
@@ -146,16 +129,6 @@ describe("Garden", () => {
       const pluginPath = join(dataDir, "plugins", "missing-factory.ts")
       const projectRoot = join(dataDir, "test-project-empty")
       await expectError(async () => Garden.factory(projectRoot, { plugins: [pluginPath] }), "plugin")
-    })
-  })
-
-  describe("getEnvironment", () => {
-    it("should get the active environment for the context", async () => {
-      const garden = await makeTestGardenA()
-
-      const { name, namespace } = garden.getEnvironment()
-      expect(name).to.equal("local")
-      expect(namespace).to.equal("default")
     })
   })
 
@@ -241,11 +214,6 @@ describe("Garden", () => {
 
   describe("scanModules", () => {
     // TODO: assert that gitignore in project root is respected
-
-    afterEach(() => {
-      td.reset()
-    })
-
     it("should scan the project root for modules and add to the context", async () => {
       const garden = await makeTestGardenA()
       await garden.scanModules()
@@ -435,7 +403,7 @@ describe("Garden", () => {
     it("should return all handlers for a type", async () => {
       const garden = await makeTestGardenA()
 
-      const handlers = garden.getActionHandlers("configureEnvironment")
+      const handlers = garden.getActionHandlers("prepareEnvironment")
 
       expect(Object.keys(handlers)).to.eql([
         "test-plugin",
@@ -448,7 +416,7 @@ describe("Garden", () => {
     it("should return all handlers for a type", async () => {
       const garden = await makeTestGardenA()
 
-      const handlers = garden.getModuleActionHandlers({ actionType: "buildModule", moduleType: "generic" })
+      const handlers = garden.getModuleActionHandlers({ actionType: "build", moduleType: "generic" })
 
       expect(Object.keys(handlers)).to.eql([
         "generic",
@@ -460,24 +428,24 @@ describe("Garden", () => {
     it("should return last configured handler for specified action type", async () => {
       const garden = await makeTestGardenA()
 
-      const handler = garden.getActionHandler({ actionType: "configureEnvironment" })
+      const handler = garden.getActionHandler({ actionType: "prepareEnvironment" })
 
-      expect(handler["actionType"]).to.equal("configureEnvironment")
+      expect(handler["actionType"]).to.equal("prepareEnvironment")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
     })
 
     it("should optionally filter to only handlers for the specified module type", async () => {
       const garden = await makeTestGardenA()
 
-      const handler = garden.getActionHandler({ actionType: "configureEnvironment" })
+      const handler = garden.getActionHandler({ actionType: "prepareEnvironment" })
 
-      expect(handler["actionType"]).to.equal("configureEnvironment")
+      expect(handler["actionType"]).to.equal("prepareEnvironment")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
     })
 
     it("should throw if no handler is available", async () => {
       const garden = await makeTestGardenA()
-      await expectError(() => garden.getActionHandler({ actionType: "destroyEnvironment" }), "parameter")
+      await expectError(() => garden.getActionHandler({ actionType: "cleanupEnvironment" }), "parameter")
     })
   })
 
@@ -531,7 +499,7 @@ describe("Garden", () => {
         dirtyTimestamp: 987654321,
         dependencyVersions: {},
       }
-      garden.cache.set(["moduleVersions", module.name], version, module.cacheContext)
+      garden.cache.set(["moduleVersions", module.name], version, getModuleCacheContext(module))
 
       const result = await garden.resolveVersion("module-a", [])
 
@@ -566,7 +534,7 @@ describe("Garden", () => {
         dirtyTimestamp: 987654321,
         dependencyVersions: {},
       }
-      garden.cache.set(["moduleVersions", module.name], version, module.cacheContext)
+      garden.cache.set(["moduleVersions", module.name], version, getModuleCacheContext(module))
 
       const result = await garden.resolveVersion("module-a", [], true)
 
@@ -575,7 +543,6 @@ describe("Garden", () => {
   })
 
   describe("loadExtSourcePath", () => {
-
     let projectRoot: string
 
     const makeGardenContext = async (root) => {
@@ -585,7 +552,6 @@ describe("Garden", () => {
     }
 
     afterEach(async () => {
-      td.reset()
       await cleanProject(projectRoot)
     })
 

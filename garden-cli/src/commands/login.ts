@@ -26,13 +26,13 @@ export class LoginCommand extends Command {
          garden login
   `
 
-  async action({ ctx }: CommandParams): Promise<CommandResult<LoginStatusMap>> {
-    ctx.log.header({ emoji: "unlock", command: "Login" })
-    ctx.log.info({ msg: "Logging in...", status: "active" })
+  async action({ garden }: CommandParams): Promise<CommandResult<LoginStatusMap>> {
+    garden.log.header({ emoji: "unlock", command: "Login" })
+    garden.log.info({ msg: "Logging in...", status: "active" })
 
-    const result = await ctx.login({})
+    const result = await garden.actions.login({})
 
-    ctx.log.info("\nLogin success!")
+    garden.log.info("\nLogin success!")
 
     return { result }
   }

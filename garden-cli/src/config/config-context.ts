@@ -9,13 +9,13 @@
 import { isString, flatten } from "lodash"
 import { Module } from "../types/module"
 import { PrimitiveMap, isPrimitive, Primitive, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
-import { ProviderConfig, EnvironmentConfig, providerConfigBase } from "./project"
-import { PluginContext } from "../plugin-context"
+import { Provider, Environment, providerConfigBaseSchema } from "./project"
 import { ModuleConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { Service } from "../types/service"
 import { resolveTemplateString } from "../template-string"
 import * as Joi from "joi"
+import { Garden } from "../garden"
 
 export type ContextKey = string[]
 
@@ -204,7 +204,7 @@ class ModuleContext extends ConfigContext {
   }
 }
 
-const exampleOutputs = { endpoint: "http://my-service/path/to/endpoint" }
+const exampleOutputs = { ingress: "http://my-service/path/to/endpoint" }
 
 class ServiceContext extends ConfigContext {
   @schema(
@@ -217,7 +217,7 @@ class ServiceContext extends ConfigContext {
   @schema(Joi.string().description("The current version of the service.").example(exampleVersion))
   public version: string
 
-  // TODO: add endpoints
+  // TODO: add ingresses
 
   constructor(root: ConfigContext, service: Service, outputs: PrimitiveMap) {
     super(root)
@@ -252,11 +252,11 @@ export class ModuleConfigContext extends ProjectConfigContext {
   public services: Map<string, () => Promise<ServiceContext>>
 
   @schema(
-    joiIdentifierMap(providerConfigBase)
+    joiIdentifierMap(providerConfigBaseSchema)
       .description("A map of all configured plugins/providers for this environment and their configuration.")
       .example({ kubernetes: { name: "local-kubernetes", context: "my-kube-context" } }),
   )
-  public providers: Map<string, ProviderConfig>
+  public providers: Map<string, Provider>
 
   // NOTE: This has some negative performance implications and may not be something we want to support,
   //       so I'm disabling this feature for now.
@@ -272,19 +272,19 @@ export class ModuleConfigContext extends ProjectConfigContext {
   public variables: PrimitiveMap
 
   constructor(
-    ctx: PluginContext,
-    environmentConfig: EnvironmentConfig,
+    garden: Garden,
+    environment: Environment,
     moduleConfigs: ModuleConfig[],
   ) {
     super()
 
     const _this = this
 
-    this.environment = new EnvironmentContext(_this, environmentConfig.name)
+    this.environment = new EnvironmentContext(_this, environment.name)
 
     this.modules = new Map(moduleConfigs.map((config) =>
       <[string, () => Promise<ModuleContext>]>[config.name, async () => {
-        const module = await ctx.getModule(config.name)
+        const module = await garden.getModule(config.name)
         return new ModuleContext(_this, module)
       }],
     ))
@@ -293,20 +293,20 @@ export class ModuleConfigContext extends ProjectConfigContext {
 
     this.services = new Map(serviceNames.map((name) =>
       <[string, () => Promise<ServiceContext>]>[name, async () => {
-        const service = await ctx.getService(name)
+        const service = await garden.getService(name)
         const outputs = {
           ...service.config.outputs,
-          ...await ctx.getServiceOutputs({ serviceName: service.name }),
+          ...await garden.actions.getServiceOutputs({ service }),
         }
         return new ServiceContext(_this, service, outputs)
       }],
     ))
 
-    this.providers = new Map(environmentConfig.providers.map(p => <[string, ProviderConfig]>[p.name, p]))
+    this.providers = new Map(environment.providers.map(p => <[string, Provider]>[p.name, p]))
 
     // this.config = new SecretsContextNode(ctx)
 
-    this.variables = environmentConfig.variables
+    this.variables = environment.variables
   }
 }
 
@@ -316,7 +316,7 @@ export class ModuleConfigContext extends ProjectConfigContext {
 //   }
 
 //   async resolve({ key }: ResolveParams) {
-//     const { value } = await this.ctx.getConfig({ key })
+//     const { value } = await this.ctx.getSecret({ key })
 //     return value === null ? undefined : value
 //   }
 // }

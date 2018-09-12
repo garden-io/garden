@@ -5,7 +5,7 @@ module:
   services:
     - name: vote
       command: [python, app.py]
-      endpoints:
+      ingresses:
         - path: /vote/
           port: interface
       ports:

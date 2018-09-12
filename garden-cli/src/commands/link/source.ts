@@ -14,7 +14,6 @@ import { ParameterError } from "../../exceptions"
 import {
   Command,
   CommandResult,
-  ParameterValues,
   StringParameter,
   PathParameter,
 } from "../base"
@@ -22,7 +21,7 @@ import { addLinkedSources } from "../../util/ext-source-util"
 import { LinkedSource } from "../../config-store"
 import { CommandParams } from "../base"
 
-export const linkSourceArguments = {
+const linkSourceArguments = {
   source: new StringParameter({
     help: "Name of the source to link as declared in the project config.",
     required: true,
@@ -33,9 +32,9 @@ export const linkSourceArguments = {
   }),
 }
 
-export type LinkSourceArguments = ParameterValues<typeof linkSourceArguments>
+type Args = typeof linkSourceArguments
 
-export class LinkSourceCommand extends Command<typeof linkSourceArguments> {
+export class LinkSourceCommand extends Command<Args> {
   name = "source"
   help = "Link a remote source to a local directory."
   arguments = linkSourceArguments
@@ -50,17 +49,16 @@ export class LinkSourceCommand extends Command<typeof linkSourceArguments> {
         garden link source my-source path/to/my-source # links my-source to its local version at the given path
   `
 
-  async action({ ctx, args }: CommandParams<LinkSourceArguments>): Promise<CommandResult<LinkedSource[]>> {
-
-    ctx.log.header({ emoji: "link", command: "link source" })
+  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
+    garden.log.header({ emoji: "link", command: "link source" })
 
     const sourceType = "project"
 
     const { source: sourceName, path } = args
-    const projectSourceToLink = ctx.projectSources.find(src => src.name === sourceName)
+    const projectSourceToLink = garden.projectSources.find(src => src.name === sourceName)
 
     if (!projectSourceToLink) {
-      const availableRemoteSources = ctx.projectSources.map(s => s.name).sort()
+      const availableRemoteSources = garden.projectSources.map(s => s.name).sort()
 
       throw new ParameterError(
         `Remote source ${chalk.underline(sourceName)} not found in project config.` +
@@ -72,15 +70,15 @@ export class LinkSourceCommand extends Command<typeof linkSourceArguments> {
       )
     }
 
-    const absPath = resolve(ctx.projectRoot, path)
+    const absPath = resolve(garden.projectRoot, path)
 
     const linkedProjectSources = await addLinkedSources({
-      ctx,
+      garden,
       sourceType,
       sources: [{ name: sourceName, path: absPath }],
     })
 
-    ctx.log.info(`Linked source ${sourceName}`)
+    garden.log.info(`Linked source ${sourceName}`)
 
     return { result: linkedProjectSources }
   }

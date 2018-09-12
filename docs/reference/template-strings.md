@@ -105,7 +105,7 @@ modules:
 # Example:
 #   my-service:
 #     outputs:
-#       endpoint: 'http://my-service/path/to/endpoint'
+#       ingress: 'http://my-service/path/to/endpoint'
 #     version: v17ad4cb3fd
 #
 services: 

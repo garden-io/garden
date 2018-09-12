@@ -19,7 +19,7 @@ import {
   set,
 } from "lodash"
 import { RuntimeContext, ServiceStatus } from "../../types/service"
-import { createIngresses, getEndpoints } from "./ingress"
+import { createIngresses, getIngresses } from "./ingress"
 import { createServices } from "./service"
 import { waitForObjects, compareDeployedObjects } from "./status"
 import { applyMany } from "./kubectl"
@@ -28,7 +28,6 @@ import { KubernetesObject } from "./helm"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesProvider } from "./kubernetes"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
-import { Provider } from "../../types/plugin/plugin"
 import { KubeApi } from "./api"
 import { LogEntry } from "../../logger/log-entry"
 
@@ -44,27 +43,28 @@ interface KubeEnvVar {
 }
 
 export async function getContainerServiceStatus(
-  { ctx, provider, module, service, runtimeContext }: GetServiceStatusParams<ContainerModule>,
+  { ctx, module, service, runtimeContext }: GetServiceStatusParams<ContainerModule>,
 ): Promise<ServiceStatus> {
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const version = module.version
-  const objects = await createContainerObjects(ctx, provider, service, runtimeContext)
-  const matched = await compareDeployedObjects(ctx, provider, objects)
-  const api = new KubeApi(provider)
-  const endpoints = await getEndpoints(service, api)
+  const objects = await createContainerObjects(ctx, service, runtimeContext)
+  const matched = await compareDeployedObjects(ctx, objects)
+  const api = new KubeApi(ctx.provider)
+  const ingresses = await getIngresses(service, api)
 
   return {
-    endpoints,
+    ingresses,
     state: matched ? "ready" : "outdated",
     version: matched ? version.versionString : undefined,
   }
 }
 
 export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
-  const { ctx, provider, service, runtimeContext, force, logEntry } = params
+  const { ctx, service, runtimeContext, force, logEntry } = params
 
+  const provider = ctx.provider
   const namespace = await getAppNamespace(ctx, provider)
-  const objects = await createContainerObjects(ctx, provider, service, runtimeContext)
+  const objects = await createContainerObjects(ctx, service, runtimeContext)
 
   // TODO: use Helm instead of kubectl apply
   const pruneSelector = "service=" + service.name
@@ -75,9 +75,10 @@ export async function deployContainerService(params: DeployServiceParams<Contain
 }
 
 export async function createContainerObjects(
-  ctx: PluginContext, provider: KubernetesProvider, service: ContainerService, runtimeContext: RuntimeContext,
+  ctx: PluginContext, service: ContainerService, runtimeContext: RuntimeContext,
 ) {
   const version = service.module.version
+  const provider = ctx.provider
   const namespace = await getAppNamespace(ctx, provider)
   const deployment = await createDeployment(service, runtimeContext, namespace)
   const kubeservices = await createServices(service, namespace)
@@ -325,7 +326,7 @@ export async function createDeployment(
 
 export async function deleteContainerService({ namespace, provider, serviceName, logEntry }: {
   namespace: string,
-  provider: Provider,
+  provider: KubernetesProvider,
   serviceName: string,
   logEntry?: LogEntry,
 }) {

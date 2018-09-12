@@ -8,13 +8,13 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { PluginContext } from "../plugin-context"
 import { Module } from "../types/module"
 import { BuildResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
+import { Garden } from "../garden"
 
 export interface BuildTaskParams {
-  ctx: PluginContext
+  garden: Garden
   module: Module
   force: boolean
 }
@@ -22,19 +22,21 @@ export interface BuildTaskParams {
 export class BuildTask extends Task {
   type = "build"
 
-  private ctx: PluginContext
   private module: Module
 
-  constructor({ ctx, force, module }: BuildTaskParams) {
-    super({ force, version: module.version })
-    this.ctx = ctx
+  constructor({ garden, force, module }: BuildTaskParams) {
+    super({ garden, force, version: module.version })
     this.module = module
   }
 
   async getDependencies(): Promise<BuildTask[]> {
-    const deps = await this.ctx.resolveModuleDependencies(this.module.build.dependencies, [])
+    const deps = await this.garden.resolveModuleDependencies(this.module.build.dependencies, [])
     return Bluebird.map(deps, async (m: Module) => {
-      return new BuildTask({ ctx: this.ctx, module: m, force: this.force })
+      return new BuildTask({
+        garden: this.garden,
+        module: m,
+        force: this.force,
+      })
     })
   }
 
@@ -47,15 +49,15 @@ export class BuildTask extends Task {
   }
 
   async process(): Promise<BuildResult> {
-    const moduleName = this.module.name
+    const module = this.module
 
-    if (!this.force && (await this.ctx.getModuleBuildStatus({ moduleName })).ready) {
+    if (!this.force && (await this.garden.actions.getBuildStatus({ module })).ready) {
       // this is necessary in case other modules depend on files from this one
-      await this.ctx.stageBuild(moduleName)
+      await this.garden.buildDir.syncDependencyProducts(this.module)
       return { fresh: false }
     }
 
-    const logEntry = this.ctx.log.info({
+    const logEntry = this.garden.log.info({
       section: this.module.name,
       msg: "Building",
       status: "active",
@@ -63,8 +65,8 @@ export class BuildTask extends Task {
 
     let result: BuildResult
     try {
-      result = await this.ctx.buildModule({
-        moduleName,
+      result = await this.garden.actions.build({
+        module,
         logEntry,
       })
     } catch (err) {

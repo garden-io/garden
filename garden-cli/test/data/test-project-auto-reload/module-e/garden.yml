@@ -6,7 +6,7 @@ module:
     - name: service-e
       dependencies:
         - service-c
-      endpoints:
+      ingresses:
         - path: /path-e
           port: http
       ports:

@@ -8,66 +8,69 @@
 
 import * as yaml from "js-yaml"
 import { NotFoundError } from "../exceptions"
-import { ContextStatus } from "../plugin-context"
 import { highlightYaml } from "../util/util"
 import {
   Command,
   CommandResult,
   CommandParams,
-  ParameterValues,
   StringParameter,
 } from "./base"
 import dedent = require("dedent")
+import { ContextStatus } from "../actions"
 
 export class GetCommand extends Command {
   name = "get"
-  help = "Retrieve and output data and objects, e.g. configuration variables, status info etc."
+  help = "Retrieve and output data and objects, e.g. secrets, status info etc."
 
   subCommands = [
-    GetConfigCommand,
+    GetSecretCommand,
     GetStatusCommand,
   ]
 
   async action() { return {} }
 }
 
-export const getConfigArgs = {
+const getSecretArgs = {
+  provider: new StringParameter({
+    help: "The name of the provider to read the secret from.",
+    required: true,
+  }),
   key: new StringParameter({
-    help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).",
+    help: "The key of the configuration variable.",
     required: true,
   }),
 }
 
-export type GetArgs = ParameterValues<typeof getConfigArgs>
+type GetArgs = typeof getSecretArgs
 
 // TODO: allow omitting key to return all configs
 
-export class GetConfigCommand extends Command<typeof getConfigArgs> {
-  name = "config"
-  help = "Get a configuration variable from the environment."
+export class GetSecretCommand extends Command<typeof getSecretArgs> {
+  name = "secret"
+  help = "Get a secret from the environment."
 
   description = dedent`
-    Returns with an error if the provided key could not be found in the configuration.
+    Returns with an error if the provided key could not be found.
 
     Examples:
 
-        garden get config somekey
-        garden get config some.nested.key
+        garden get secret kubernetes somekey
+        garden get secret local-kubernetes some-other-key
   `
 
-  arguments = getConfigArgs
+  arguments = getSecretArgs
 
-  async action({ ctx, args }: CommandParams<GetArgs>): Promise<CommandResult> {
-    const key = args.key.split(".")
-    const { value } = await ctx.getConfig({ key })
+  async action({ garden, args }: CommandParams<GetArgs>): Promise<CommandResult> {
+    const key = args.key
+    const { value } = await garden.actions.getSecret({ pluginName: args.provider, key })
 
     if (value === null || value === undefined) {
-      throw new NotFoundError(`Could not find config key ${args.key}`, { key })
+      throw new NotFoundError(`Could not find config key ${key}`, { key })
     }
 
-    ctx.log.info(value)
+    garden.log.info(value)
 
-    return { [args.key]: value }
+    return { [key]: value }
   }
 }
 
@@ -75,12 +78,12 @@ export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the status of your environment."
 
-  async action({ ctx }: CommandParams): Promise<CommandResult<ContextStatus>> {
-    const status = await ctx.getStatus()
+  async action({ garden }: CommandParams): Promise<CommandResult<ContextStatus>> {
+    const status = await garden.actions.getStatus()
     const yamlStatus = yaml.safeDump(status, { noRefs: true, skipInvalid: true })
 
     // TODO: do a nicer print of this by default and add --yaml/--json options (maybe globally) for exporting
-    ctx.log.info(highlightYaml(yamlStatus))
+    garden.log.info(highlightYaml(yamlStatus))
 
     return { result: status }
   }

@@ -127,12 +127,6 @@ project:
   #
   # Optional.
   environmentDefaults: 
-    # Specify the provider that should store configuration variables for this environment. Use
-    # this when you configure multiple providers that can manage configuration.
-    #
-    # Optional.
-    configurationHandler:
-
     # A list of providers that should be used for this environment, and their configuration.
     # Please refer to individual plugins/providers for details on how to configure them.
     #
@@ -161,13 +155,7 @@ project:
   #
   # Optional.
   environments: 
-    - # Specify the provider that should store configuration variables for this environment. Use
-      # this when you configure multiple providers that can manage configuration.
-      #
-      # Optional.
-      configurationHandler:
-
-      # A list of providers that should be used for this environment, and their configuration.
+    - # A list of providers that should be used for this environment, and their configuration.
       # Please refer to individual plugins/providers for details on how to configure them.
       #
       # Optional.
@@ -493,14 +481,14 @@ module:
       # Optional.
       daemon: false
 
-      # List of endpoints that the service exposes.
+      # List of ingress endpoints that the service exposes.
       #
       # Example:
       #   - path: /api
       #     port: http
       #
       # Optional.
-      endpoints: 
+      ingresses: 
         - # The hostname that should route to this service. Defaults to the default hostname
           # configured
           # in the provider configuration.

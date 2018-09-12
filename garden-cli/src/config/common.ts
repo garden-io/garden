@@ -9,7 +9,6 @@
 import { JoiObject } from "joi"
 import * as Joi from "joi"
 import * as uuid from "uuid"
-import { EnvironmentConfig } from "../config/project"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 
@@ -90,21 +89,6 @@ export const joiRepositoryUrl = () => Joi
     " a specific branch or tag",
   )
   .example("<git remote url>#<branch|tag> or git+https://github.com/organization/some-module.git#v2.0")
-
-export const remoteSourceSchema = Joi.object()
-  .keys({
-    name: joiIdentifier()
-      .required()
-      .description("The name of the source to import"),
-    repositoryUrl: joiRepositoryUrl()
-      .required(),
-  })
-
-export interface Environment {
-  name: string
-  namespace: string
-  config: EnvironmentConfig,
-}
 
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean"

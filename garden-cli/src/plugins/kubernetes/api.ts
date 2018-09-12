@@ -81,7 +81,7 @@ export class KubeApi {
 
   constructor(public provider: KubernetesProvider) {
     this.context = provider.config.context
-    const config = getConfig(this.context)
+    const config = getSecret(this.context)
 
     for (const [name, cls] of Object.entries(apiTypes)) {
       const api = new cls(config.getCurrentCluster().server)
@@ -207,7 +207,7 @@ export class KubeApi {
   }
 }
 
-function getConfig(context: string): KubeConfig {
+function getSecret(context: string): KubeConfig {
   if (!kubeConfigStr) {
     const kubeConfigPath = process.env.KUBECONFIG || join(homedir(), ".kube", "config")
     kubeConfigStr = readFileSync(kubeConfigPath).toString()

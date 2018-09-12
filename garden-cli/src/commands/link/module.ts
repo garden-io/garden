@@ -14,7 +14,6 @@ import { ParameterError } from "../../exceptions"
 import {
   Command,
   CommandResult,
-  ParameterValues,
   StringParameter,
   PathParameter,
   CommandParams,
@@ -27,7 +26,7 @@ import {
   hasRemoteSource,
 } from "../../util/ext-source-util"
 
-export const linkModuleArguments = {
+const linkModuleArguments = {
   module: new StringParameter({
     help: "Name of the module to link.",
     required: true,
@@ -38,9 +37,9 @@ export const linkModuleArguments = {
   }),
 }
 
-export type LinkModuleArguments = ParameterValues<typeof linkModuleArguments>
+type Args = typeof linkModuleArguments
 
-export class LinkModuleCommand extends Command<typeof linkModuleArguments> {
+export class LinkModuleCommand extends Command<Args> {
   name = "module"
   help = "Link a module to a local directory."
   arguments = linkModuleArguments
@@ -55,17 +54,17 @@ export class LinkModuleCommand extends Command<typeof linkModuleArguments> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  async action({ ctx, args }: CommandParams<LinkModuleArguments>): Promise<CommandResult<LinkedSource[]>> {
-    ctx.log.header({ emoji: "link", command: "link module" })
+  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
+    garden.log.header({ emoji: "link", command: "link module" })
 
     const sourceType = "module"
 
     const { module: moduleName, path } = args
-    const moduleToLink = await ctx.getModule(moduleName)
+    const moduleToLink = await garden.getModule(moduleName)
 
     const isRemote = [moduleToLink].filter(hasRemoteSource)[0]
     if (!isRemote) {
-      const modulesWithRemoteSource = (await ctx.getModules()).filter(hasRemoteSource).sort()
+      const modulesWithRemoteSource = (await garden.getModules()).filter(hasRemoteSource).sort()
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
@@ -77,14 +76,14 @@ export class LinkModuleCommand extends Command<typeof linkModuleArguments> {
       )
     }
 
-    const absPath = resolve(ctx.projectRoot, path)
+    const absPath = resolve(garden.projectRoot, path)
     const linkedModuleSources = await addLinkedSources({
-      ctx,
+      garden,
       sourceType,
       sources: [{ name: moduleName, path: absPath }],
     })
 
-    ctx.log.info(`Linked module ${moduleName}`)
+    garden.log.info(`Linked module ${moduleName}`)
 
     return { result: linkedModuleSources }
 

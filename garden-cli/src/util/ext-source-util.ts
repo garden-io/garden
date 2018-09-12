@@ -21,8 +21,8 @@ import {
 } from "../config-store"
 import { ParameterError } from "../exceptions"
 import { Module } from "../types/module"
-import { PluginContext } from "../plugin-context"
 import { join } from "path"
+import { Garden } from "../garden"
 
 export type ExternalSourceType = "project" | "module"
 
@@ -49,7 +49,6 @@ export function hashRepoUrl(url: string) {
 export function hasRemoteSource(module: Module): boolean {
   return !!module.repositoryUrl
 }
-
 export function getConfigKey(type: ExternalSourceType): string {
   return type === "project" ? localConfigKeys.linkedProjectSources : localConfigKeys.linkedModuleSources
 }
@@ -58,37 +57,37 @@ export function getConfigKey(type: ExternalSourceType): string {
  * Check if any module is linked, including those within an external project source.
  * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
  */
-export function isModuleLinked(module: Module, ctx: PluginContext) {
+export function isModuleLinked(module: Module, garden: Garden) {
   const isPluginModule = !!module.plugin
-  return !pathIsInside(module.path, ctx.projectRoot) && !isPluginModule
+  return !pathIsInside(module.path, garden.projectRoot) && !isPluginModule
 }
 
 export async function getLinkedSources(
-  ctx: PluginContext,
+  garden: Garden,
   type: ExternalSourceType,
 ): Promise<LinkedSource[]> {
-  const localConfig = await ctx.localConfigStore.get()
+  const localConfig = await garden.localConfigStore.get()
   return (type === "project"
     ? localConfig.linkedProjectSources
     : localConfig.linkedModuleSources) || []
 }
 
-export async function addLinkedSources({ ctx, sourceType, sources }: {
-  ctx: PluginContext,
+export async function addLinkedSources({ garden, sourceType, sources }: {
+  garden: Garden,
   sourceType: ExternalSourceType,
   sources: LinkedSource[],
 }): Promise<LinkedSource[]> {
-  const linked = uniqBy([...await getLinkedSources(ctx, sourceType), ...sources], "name")
-  await ctx.localConfigStore.set([getConfigKey(sourceType)], linked)
+  const linked = uniqBy([...await getLinkedSources(garden, sourceType), ...sources], "name")
+  await garden.localConfigStore.set([getConfigKey(sourceType)], linked)
   return linked
 }
 
-export async function removeLinkedSources({ ctx, sourceType, names }: {
-  ctx: PluginContext,
+export async function removeLinkedSources({ garden, sourceType, names }: {
+  garden: Garden,
   sourceType: ExternalSourceType,
   names: string[],
 }): Promise<LinkedSource[]> {
-  const currentlyLinked = await getLinkedSources(ctx, sourceType)
+  const currentlyLinked = await getLinkedSources(garden, sourceType)
   const currentNames = currentlyLinked.map(s => s.name)
 
   for (const name of names) {
@@ -103,6 +102,6 @@ export async function removeLinkedSources({ ctx, sourceType, names }: {
   }
 
   const linked = currentlyLinked.filter(({ name }) => !names.includes(name))
-  await ctx.localConfigStore.set([getConfigKey(sourceType)], linked)
+  await garden.localConfigStore.set([getConfigKey(sourceType)], linked)
   return linked
 }

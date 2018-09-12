@@ -2,7 +2,7 @@ import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
-import { parseContainerModule } from "../../../src/plugins/container"
+import { validateContainerModule } from "../../../src/plugins/container"
 import { buildGenericModule } from "../../../src/plugins/generic"
 import {
   PluginFactory,
@@ -18,7 +18,7 @@ const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
     "service-a": {
       state: "ready",
-      endpoints: [{
+      ingresses: [{
         hostname: "service-a.test-project-b.local.app.garden",
         path: "/path-a",
         port: 80,
@@ -48,8 +48,8 @@ const testProvider: PluginFactory = () => {
   return {
     moduleActions: {
       container: {
-        parseModule: parseContainerModule,
-        buildModule: buildGenericModule,
+        validate: validateContainerModule,
+        build: buildGenericModule,
         deployService,
         getServiceStatus,
       },
@@ -67,12 +67,10 @@ describe("DeployCommand", () => {
 
   it("should build and deploy all modules in a project", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.getPluginContext()
     const command = new DeployCommand()
 
     const { result } = await command.action({
       garden,
-      ctx,
       args: {
         service: undefined,
       },
@@ -96,12 +94,10 @@ describe("DeployCommand", () => {
 
   it("should optionally build and deploy single service and its dependencies", async () => {
     const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
-    const ctx = garden.getPluginContext()
     const command = new DeployCommand()
 
     const { result } = await command.action({
       garden,
-      ctx,
       args: {
         service: ["service-b"],
       },

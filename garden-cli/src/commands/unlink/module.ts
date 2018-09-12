@@ -12,7 +12,6 @@ import {
   Command,
   CommandResult,
   StringsParameter,
-  ParameterValues,
   BooleanParameter,
   CommandParams,
 } from "../base"
@@ -22,23 +21,23 @@ import {
   LinkedSource,
 } from "../../config-store"
 
-export const unlinkModuleArguments = {
+const unlinkModuleArguments = {
   module: new StringsParameter({
     help: "Name of the module(s) to unlink. Use comma separator to specify multiple modules.",
   }),
 }
 
-export const unlinkModuleOptions = {
+const unlinkModuleOptions = {
   all: new BooleanParameter({
     help: "Unlink all modules.",
     alias: "a",
   }),
 }
 
-type Args = ParameterValues<typeof unlinkModuleArguments>
-type Opts = ParameterValues<typeof unlinkModuleOptions>
+type Args = typeof unlinkModuleArguments
+type Opts = typeof unlinkModuleOptions
 
-export class UnlinkModuleCommand extends Command<typeof unlinkModuleArguments, typeof unlinkModuleOptions> {
+export class UnlinkModuleCommand extends Command<Args, Opts> {
   name = "module"
   help = "Unlink a previously linked remote module from its local directory."
   arguments = unlinkModuleArguments
@@ -54,23 +53,22 @@ export class UnlinkModuleCommand extends Command<typeof unlinkModuleArguments, t
         garden unlink module --all # unlink all modules
   `
 
-  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
-
-    ctx.log.header({ emoji: "chains", command: "unlink module" })
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
+    garden.log.header({ emoji: "chains", command: "unlink module" })
 
     const sourceType = "module"
 
     const { module = [] } = args
 
     if (opts.all) {
-      await ctx.localConfigStore.set([localConfigKeys.linkedModuleSources], [])
-      ctx.log.info("Unlinked all modules")
+      await garden.localConfigStore.set([localConfigKeys.linkedModuleSources], [])
+      garden.log.info("Unlinked all modules")
       return { result: [] }
     }
 
-    const linkedModuleSources = await removeLinkedSources({ ctx, sourceType, names: module })
+    const linkedModuleSources = await removeLinkedSources({ garden, sourceType, names: module })
 
-    ctx.log.info(`Unlinked module(s) ${module}`)
+    garden.log.info(`Unlinked module(s) ${module}`)
 
     return { result: linkedModuleSources }
   }

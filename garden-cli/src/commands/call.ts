@@ -14,30 +14,29 @@ import {
   Command,
   CommandResult,
   CommandParams,
-  ParameterValues,
   StringParameter,
 } from "./base"
 import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { pick, find } from "lodash"
-import { ServiceEndpoint, getEndpointUrl } from "../types/service"
+import { ServiceIngress, getIngressUrl } from "../types/service"
 import dedent = require("dedent")
 
-export const callArgs = {
+const callArgs = {
   serviceAndPath: new StringParameter({
-    help: "The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath).",
+    help: "The name of the service(s) to call followed by the ingress path (e.g. my-container/somepath).",
     required: true,
   }),
 }
 
-export type Args = ParameterValues<typeof callArgs>
+type Args = typeof callArgs
 
-export class CallCommand extends Command<typeof callArgs> {
+export class CallCommand extends Command<Args> {
   name = "call"
-  help = "Call a service endpoint."
+  help = "Call a service ingress endpoint."
 
   description = dedent`
-    This command resolves the deployed external endpoint for the given service and path, calls the given endpoint and
+    This command resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
     outputs the result.
 
     Examples:
@@ -45,17 +44,17 @@ export class CallCommand extends Command<typeof callArgs> {
         garden call my-container
         garden call my-container/some-path
 
-    Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
+    Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
   `
 
   arguments = callArgs
 
-  async action({ ctx, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist
-    const service = await ctx.getService(serviceName)
-    const status = await ctx.getServiceStatus({ serviceName })
+    const service = await garden.getService(serviceName)
+    const status = await garden.actions.getServiceStatus({ service })
 
     if (status.state !== "ready") {
       throw new RuntimeError(`Service ${service.name} is not running`, {
@@ -64,31 +63,31 @@ export class CallCommand extends Command<typeof callArgs> {
       })
     }
 
-    if (!status.endpoints) {
-      throw new ParameterError(`Service ${service.name} has no active endpoints`, {
+    if (!status.ingresses) {
+      throw new ParameterError(`Service ${service.name} has no active ingresses`, {
         serviceName: service.name,
         serviceStatus: status,
       })
     }
 
     // find the correct endpoint to call
-    let matchedEndpoint: ServiceEndpoint | null = null
+    let matchedIngress: ServiceIngress | null = null
     let matchedPath
 
     // we can't easily support raw TCP or UDP in a command like this
-    const endpoints = status.endpoints.filter(e => e.protocol === "http" || e.protocol === "https")
+    const ingresses = status.ingresses.filter(e => e.protocol === "http" || e.protocol === "https")
 
     if (!path) {
       // if no path is specified and there's a root endpoint (path === "/") we use that
-      const rootEndpoint = <ServiceEndpoint>find(endpoints, e => e.path === "/")
+      const rootIngress = <ServiceIngress>find(ingresses, e => e.path === "/")
 
-      if (rootEndpoint) {
-        matchedEndpoint = rootEndpoint
+      if (rootIngress) {
+        matchedIngress = rootIngress
         matchedPath = "/"
       } else {
         // if there's no root endpoint, pick the first endpoint
-        matchedEndpoint = endpoints[0]
-        matchedPath = endpoints[0].path
+        matchedIngress = ingresses[0]
+        matchedPath = ingresses[0].path
       }
 
       path = matchedPath
@@ -96,32 +95,32 @@ export class CallCommand extends Command<typeof callArgs> {
     } else {
       path = "/" + path
 
-      for (const endpoint of status.endpoints) {
-        if (endpoint.path) {
-          if (path.startsWith(endpoint.path) && (!matchedPath || endpoint.path.length > matchedPath.length)) {
-            matchedEndpoint = endpoint
-            matchedPath = endpoint.path
+      for (const ingress of status.ingresses) {
+        if (ingress.path) {
+          if (path.startsWith(ingress.path) && (!matchedPath || ingress.path.length > matchedPath.length)) {
+            matchedIngress = ingress
+            matchedPath = ingress.path
           }
         } else if (!matchedPath) {
-          matchedEndpoint = endpoint
+          matchedIngress = ingress
         }
       }
     }
 
-    if (!matchedEndpoint) {
-      throw new ParameterError(`Service ${service.name} does not have an HTTP/HTTPS endpoint at ${path}`, {
+    if (!matchedIngress) {
+      throw new ParameterError(`Service ${service.name} does not have an HTTP/HTTPS ingress at ${path}`, {
         serviceName: service.name,
         path,
-        availableEndpoints: status.endpoints,
+        availableIngresses: status.ingresses,
       })
     }
 
-    const url = resolve(getEndpointUrl(matchedEndpoint), path || matchedPath)
+    const url = resolve(getIngressUrl(matchedIngress), path || matchedPath)
     // TODO: support POST requests with request body
     const method = "get"
 
-    const entry = ctx.log.info({
-      msg: chalk.cyan(`Sending ${matchedEndpoint.protocol.toUpperCase()} GET request to `) + url + "\n",
+    const entry = garden.log.info({
+      msg: chalk.cyan(`Sending ${matchedIngress.protocol.toUpperCase()} GET request to `) + url + "\n",
       status: "active",
     })
 
@@ -132,7 +131,7 @@ export class CallCommand extends Command<typeof callArgs> {
       method,
       url,
       headers: {
-        host: matchedEndpoint.hostname,
+        host: matchedIngress.hostname,
       },
     })
 
@@ -142,18 +141,18 @@ export class CallCommand extends Command<typeof callArgs> {
     try {
       res = await req
       entry.setSuccess()
-      ctx.log.info(chalk.green(`${res.status} ${res.statusText}\n`))
+      garden.log.info(chalk.green(`${res.status} ${res.statusText}\n`))
     } catch (err) {
       res = err.response
       entry.setError()
       const error = res ? `${res.status} ${res.statusText}` : err.message
-      ctx.log.info(chalk.red(error + "\n"))
+      garden.log.info(chalk.red(error + "\n"))
       return {}
     }
 
     const resStr = isObject(res.data) ? JSON.stringify(res.data, null, 2) : res.data
 
-    res.data && ctx.log.info(chalk.white(resStr) + "\n")
+    res.data && garden.log.info(chalk.white(resStr) + "\n")
 
     return {
       result: {

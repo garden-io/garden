@@ -3,7 +3,7 @@ module:
   type: generic
   services:
     - name: service-b
-      endpoints:
+      ingresses:
         - path: /path-b
           containerPort: 8080
       dependencies:

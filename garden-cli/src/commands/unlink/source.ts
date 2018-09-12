@@ -12,7 +12,6 @@ import {
   Command,
   CommandResult,
   StringsParameter,
-  ParameterValues,
   BooleanParameter,
   CommandParams,
 } from "../base"
@@ -22,23 +21,23 @@ import {
   LinkedSource,
 } from "../../config-store"
 
-export const unlinkSourceArguments = {
+const unlinkSourceArguments = {
   source: new StringsParameter({
     help: "Name of the source(s) to unlink. Use comma separator to specify multiple sources.",
   }),
 }
 
-export const unlinkSourceOptions = {
+const unlinkSourceOptions = {
   all: new BooleanParameter({
     help: "Unlink all sources.",
     alias: "a",
   }),
 }
 
-type Args = ParameterValues<typeof unlinkSourceArguments>
-type Opts = ParameterValues<typeof unlinkSourceOptions>
+type Args = typeof unlinkSourceArguments
+type Opts = typeof unlinkSourceOptions
 
-export class UnlinkSourceCommand extends Command<typeof unlinkSourceArguments, typeof unlinkSourceOptions> {
+export class UnlinkSourceCommand extends Command<Args, Opts> {
   name = "source"
   help = "Unlink a previously linked remote source from its local directory."
   arguments = unlinkSourceArguments
@@ -54,23 +53,22 @@ export class UnlinkSourceCommand extends Command<typeof unlinkSourceArguments, t
         garden unlink source --all # unlinks all sources
   `
 
-  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
-
-    ctx.log.header({ emoji: "chains", command: "unlink source" })
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
+    garden.log.header({ emoji: "chains", command: "unlink source" })
 
     const sourceType = "project"
 
     const { source = [] } = args
 
     if (opts.all) {
-      await ctx.localConfigStore.set([localConfigKeys.linkedProjectSources], [])
-      ctx.log.info("Unlinked all sources")
+      await garden.localConfigStore.set([localConfigKeys.linkedProjectSources], [])
+      garden.log.info("Unlinked all sources")
       return { result: [] }
     }
 
-    const linkedProjectSources = await removeLinkedSources({ ctx, sourceType, names: source })
+    const linkedProjectSources = await removeLinkedSources({ garden, sourceType, names: source })
 
-    ctx.log.info(`Unlinked source(s) ${source}`)
+    garden.log.info(`Unlinked source(s) ${source}`)
 
     return { result: linkedProjectSources }
   }

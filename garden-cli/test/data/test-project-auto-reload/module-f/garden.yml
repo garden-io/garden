@@ -6,7 +6,7 @@ module:
     - name: service-f
       dependencies:
         - service-c
-      endpoints:
+      ingresses:
         - path: /path-f
           port: http
       ports:

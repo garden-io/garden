@@ -12,7 +12,6 @@ import {
   Command,
   CommandResult,
   CommandParams,
-  ParameterValues,
 } from "./base"
 import dedent = require("dedent")
 
@@ -27,13 +26,13 @@ export class InitCommand extends Command {
   async action() { return {} }
 }
 
-export const initEnvOptions = {
+const initEnvOptions = {
   force: new BooleanParameter({ help: "Force initalization of environment, ignoring the environment status check." }),
 }
 
-export type InitEnvOpts = ParameterValues<typeof initEnvOptions>
+type InitEnvOpts = typeof initEnvOptions
 
-export class InitEnvironmentCommand extends Command<any, InitEnvOpts> {
+export class InitEnvironmentCommand extends Command<{}, InitEnvOpts> {
   name = "environment"
   alias = "env"
   help = "Initializes your environment."
@@ -51,14 +50,14 @@ export class InitEnvironmentCommand extends Command<any, InitEnvOpts> {
 
   options = initEnvOptions
 
-  async action({ ctx, opts }: CommandParams<{}, InitEnvOpts>): Promise<CommandResult<EnvironmentStatusMap>> {
-    const { name } = ctx.getEnvironment()
-    ctx.log.header({ emoji: "gear", command: `Initializing ${name} environment` })
+  async action({ garden, opts }: CommandParams<{}, InitEnvOpts>): Promise<CommandResult<EnvironmentStatusMap>> {
+    const { name } = garden.environment
+    garden.log.header({ emoji: "gear", command: `Initializing ${name} environment` })
 
-    const result = await ctx.configureEnvironment({ force: opts.force })
+    const result = await garden.actions.prepareEnvironment({ force: opts.force })
 
-    ctx.log.info("")
-    ctx.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+    garden.log.info("")
+    garden.log.header({ emoji: "heavy_check_mark", command: `Done!` })
 
     return { result }
   }

@@ -13,8 +13,6 @@ import {
   Command,
   CommandResult,
   StringParameter,
-  ParameterValues,
-  BooleanParameter,
   ChoicesParameter,
   CommandParams,
 } from "../base"
@@ -28,8 +26,8 @@ import { prompts } from "./prompts"
 import { validate, joiIdentifier } from "../../config/common"
 import { ensureDir } from "fs-extra"
 
-export const createModuleOptions = {
-  name: new BooleanParameter({
+const createModuleOptions = {
+  name: new StringParameter({
     help: "Assigns a custom name to the module. (Defaults to name of the current directory.)",
   }),
   type: new ChoicesParameter({
@@ -38,14 +36,14 @@ export const createModuleOptions = {
   }),
 }
 
-export const createModuleArguments = {
+const createModuleArguments = {
   "module-dir": new StringParameter({
     help: "Directory of the module. (Defaults to current directory.)",
   }),
 }
 
-export type Args = ParameterValues<typeof createModuleArguments>
-export type Opts = ParameterValues<typeof createModuleOptions>
+type Args = typeof createModuleArguments
+type Opts = typeof createModuleOptions
 
 interface CreateModuleResult extends CommandResult {
   result: {
@@ -53,7 +51,7 @@ interface CreateModuleResult extends CommandResult {
   }
 }
 
-export class CreateModuleCommand extends Command<typeof createModuleArguments, typeof createModuleOptions> {
+export class CreateModuleCommand extends Command<Args, Opts> {
   name = "module"
   alias = "m"
   help = "Creates a new Garden module."
@@ -73,10 +71,10 @@ export class CreateModuleCommand extends Command<typeof createModuleArguments, t
   arguments = createModuleArguments
   options = createModuleOptions
 
-  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CreateModuleResult> {
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CreateModuleResult> {
     let errors: GardenBaseError[] = []
 
-    const moduleRoot = join(ctx.projectRoot, (args["module-dir"] || "").trim())
+    const moduleRoot = join(garden.projectRoot, (args["module-dir"] || "").trim())
     const moduleName = validate(
       opts.name || basename(moduleRoot),
       joiIdentifier(),
@@ -85,23 +83,23 @@ export class CreateModuleCommand extends Command<typeof createModuleArguments, t
 
     await ensureDir(moduleRoot)
 
-    ctx.log.header({ emoji: "house_with_garden", command: "create" })
-    ctx.log.info(`Initializing new module ${moduleName}`)
+    garden.log.header({ emoji: "house_with_garden", command: "create" })
+    garden.log.info(`Initializing new module ${moduleName}`)
 
     let type: ModuleType
 
     if (opts.type) {
       // Type passed as parameter
-      type = opts.type
+      type = <ModuleType>opts.type
       if (!availableModuleTypes.includes(type)) {
         throw new ParameterError("Module type not available", {})
       }
     } else {
       // Prompt for type
-      ctx.log.info("---------")
-      ctx.log.stop()
+      garden.log.info("---------")
+      garden.log.stop()
       type = (await prompts.addConfigForModule(moduleName)).type
-      ctx.log.info("---------")
+      garden.log.info("---------")
       if (!type) {
         return { result: {} }
       }
@@ -109,7 +107,7 @@ export class CreateModuleCommand extends Command<typeof createModuleArguments, t
 
     const module = prepareNewModuleConfig(moduleName, type, moduleRoot)
     try {
-      await dumpConfig(module, moduleSchema, ctx.log)
+      await dumpConfig(module, moduleSchema, garden.log)
     } catch (err) {
       errors.push(err)
     }

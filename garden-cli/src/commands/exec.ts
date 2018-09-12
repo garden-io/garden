@@ -13,33 +13,32 @@ import {
   Command,
   CommandResult,
   CommandParams,
-  ParameterValues,
   StringParameter,
+  StringsParameter,
 } from "./base"
 import dedent = require("dedent")
 
-export const runArgs = {
+const runArgs = {
   service: new StringParameter({
     help: "The service to exec the command in.",
     required: true,
   }),
-  command: new StringParameter({
+  command: new StringsParameter({
     help: "The command to run.",
     required: true,
   }),
 }
 
-export const runOpts = {
+const runOpts = {
   // interactive: new BooleanParameter({
   //   help: "Set to false to skip interactive mode and just output the command result",
   //   defaultValue: true,
   // }),
 }
 
-export type Args = ParameterValues<typeof runArgs>
-// export type Opts = ParameterValues<typeof runOpts>
+type Args = typeof runArgs
 
-export class ExecCommand extends Command<typeof runArgs, typeof runOpts> {
+export class ExecCommand extends Command<Args> {
   name = "exec"
   alias = "e"
   help = "Executes a command (such as an interactive shell) in a running service."
@@ -59,16 +58,17 @@ export class ExecCommand extends Command<typeof runArgs, typeof runOpts> {
   options = runOpts
   loggerType = LoggerType.basic
 
-  async action({ ctx, args }: CommandParams<Args>): Promise<CommandResult<ExecInServiceResult>> {
+  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
-    const command = args.command.split(" ")
+    const command = args.command || []
 
-    ctx.log.header({
+    garden.log.header({
       emoji: "runner",
-      command: `Running command ${chalk.cyan(args.command)} in service ${chalk.cyan(serviceName)}`,
+      command: `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
     })
 
-    const result = await ctx.execInService({ serviceName, command })
+    const service = await garden.getService(serviceName)
+    const result = await garden.actions.execInService({ service, command })
 
     return { result }
   }

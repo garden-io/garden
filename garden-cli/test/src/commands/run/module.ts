@@ -20,8 +20,6 @@ describe("RunModuleCommand", () => {
   })
 
   it("should run a module without a command param", async () => {
-    const ctx = garden.getPluginContext()
-
     await garden.addModule(makeTestModule({
       name: "run-test",
       path: garden.projectRoot,
@@ -30,8 +28,7 @@ describe("RunModuleCommand", () => {
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
-      ctx,
-      args: { module: "run-test", command: undefined },
+      args: { module: "run-test", command: [] },
       opts: { interactive: false, "force-build": false },
     })
 
@@ -49,8 +46,6 @@ describe("RunModuleCommand", () => {
   })
 
   it("should run a module with a command param", async () => {
-    const ctx = garden.getPluginContext()
-
     garden.addModule(makeTestModule({
       name: "run-test",
       path: garden.projectRoot,
@@ -59,8 +54,7 @@ describe("RunModuleCommand", () => {
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
-      ctx,
-      args: { module: "run-test", command: "my command" },
+      args: { module: "run-test", command: ["my", "command"] },
       opts: { interactive: false, "force-build": false },
     })
 

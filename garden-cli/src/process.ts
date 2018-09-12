@@ -14,14 +14,12 @@ import { Task } from "./tasks/base"
 import { TaskResults } from "./task-graph"
 import { FSWatcher } from "./watch"
 import { registerCleanupFunction } from "./util/util"
-import { PluginContext } from "./plugin-context"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 
 export type ProcessHandler = (module: Module) => Promise<Task[]>
 
 interface ProcessParams {
-  ctx: PluginContext
   garden: Garden,
   watch: boolean
   handler: ProcessHandler
@@ -43,14 +41,13 @@ export interface ProcessResults {
 }
 
 export async function processServices(
-  { ctx, garden, services, watch, handler, changeHandler }: ProcessServicesParams,
+  { garden, services, watch, handler, changeHandler }: ProcessServicesParams,
 ): Promise<ProcessResults> {
 
   const modules = Array.from(new Set(services.map(s => s.module)))
 
   return processModules({
     modules,
-    ctx,
     garden,
     watch,
     handler,
@@ -59,12 +56,12 @@ export async function processServices(
 }
 
 export async function processModules(
-  { ctx, garden, modules, watch, handler, changeHandler }: ProcessModulesParams,
+  { garden, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
   for (const module of modules) {
     const tasks = await handler(module)
-    if (isModuleLinked(module, ctx)) {
-      ctx.log.info(
+    if (isModuleLinked(module, garden)) {
+      garden.log.info(
         chalk.gray(`Reading module ${chalk.cyan(module.name)} from linked local path ${chalk.white(module.path)}`),
       )
     }
@@ -84,19 +81,19 @@ export async function processModules(
     changeHandler = handler
   }
 
-  const watcher = new FSWatcher(ctx)
+  const watcher = new FSWatcher(garden)
 
   const restartPromise = new Promise(async (resolve) => {
     await watcher.watchModules(modules,
       async (changedModule: Module | null, configChanged: boolean) => {
         if (configChanged) {
-          ctx.log.debug({ msg: `Config changed, reloading.` })
+          garden.log.debug({ msg: `Config changed, reloading.` })
           resolve()
           return
         }
 
         if (changedModule) {
-          ctx.log.debug({ msg: `Files changed for module ${changedModule.name}` })
+          garden.log.debug({ msg: `Files changed for module ${changedModule.name}` })
 
           await Bluebird.map(changeHandler!(changedModule), task => {
             garden.addTask(task)

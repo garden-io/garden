@@ -17,7 +17,6 @@ import {
   CommandParams,
   CommandResult,
   StringParameter,
-  ParameterValues,
   PathsParameter,
 } from "../base"
 import { GardenBaseError } from "../../exceptions"
@@ -36,7 +35,7 @@ import { getChildDirNames } from "../../util/util"
 import { validate, joiIdentifier } from "../../config/common"
 import { projectSchema } from "../../config/project"
 
-export const createProjectOptions = {
+const createProjectOptions = {
   "module-dirs": new PathsParameter({
     help: "Relative path to modules directory. Use comma as a separator to specify multiple directories",
   }),
@@ -45,14 +44,14 @@ export const createProjectOptions = {
   }),
 }
 
-export const createProjectArguments = {
+const createProjectArguments = {
   "project-dir": new StringParameter({
     help: "Directory of the project. (Defaults to current directory.)",
   }),
 }
 
-export type Args = ParameterValues<typeof createProjectArguments>
-export type Opts = ParameterValues<typeof createProjectOptions>
+type Args = typeof createProjectArguments
+type Opts = typeof createProjectOptions
 
 const flatten = (acc, val) => acc.concat(val)
 
@@ -63,7 +62,7 @@ interface CreateProjectResult extends CommandResult {
   }
 }
 
-export class CreateProjectCommand extends Command<typeof createProjectArguments, typeof createProjectOptions> {
+export class CreateProjectCommand extends Command<Args, Opts> {
   name = "project"
   alias = "p"
   help = "Creates a new Garden project."
@@ -87,11 +86,11 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
   arguments = createProjectArguments
   options = createProjectOptions
 
-  async action({ ctx, args, opts }: CommandParams<Args, Opts>): Promise<CreateProjectResult> {
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CreateProjectResult> {
     let moduleConfigs: ModuleConfigOpts[] = []
     let errors: GardenBaseError[] = []
 
-    const projectRoot = args["project-dir"] ? join(ctx.projectRoot, args["project-dir"].trim()) : ctx.projectRoot
+    const projectRoot = args["project-dir"] ? join(garden.projectRoot, args["project-dir"].trim()) : garden.projectRoot
     const moduleParentDirs = await Bluebird.map(opts["module-dirs"] || [], (dir: string) => resolve(projectRoot, dir))
     const projectName = validate(
       opts.name || basename(projectRoot),
@@ -101,11 +100,11 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
 
     await ensureDir(projectRoot)
 
-    ctx.log.header({ emoji: "house_with_garden", command: "create" })
-    ctx.log.info(`Initializing new Garden project ${projectName}`)
-    ctx.log.info("---------")
+    garden.log.header({ emoji: "house_with_garden", command: "create" })
+    garden.log.info(`Initializing new Garden project ${projectName}`)
+    garden.log.info("---------")
     // Stop logger while prompting
-    ctx.log.stop()
+    garden.log.stop()
 
     if (moduleParentDirs.length > 0) {
       // If module-dirs option provided we scan for modules in the parent dir(s) and add them one by one
@@ -128,13 +127,13 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
         .map(({ name, type }) => prepareNewModuleConfig(name, type, join(projectRoot, name)))
     }
 
-    ctx.log.info("---------")
-    const task = ctx.log.info({ msg: "Setting up project", status: "active" })
+    garden.log.info("---------")
+    const taskLog = garden.log.info({ msg: "Setting up project", status: "active" })
 
     for (const module of moduleConfigs) {
       await ensureDir(module.path)
       try {
-        await dumpConfig(module, moduleSchema, ctx.log)
+        await dumpConfig(module, moduleSchema, garden.log)
       } catch (err) {
         errors.push(err)
       }
@@ -147,19 +146,19 @@ export class CreateProjectCommand extends Command<typeof createProjectArguments,
     }
 
     try {
-      await dumpConfig(projectConfig, projectSchema, ctx.log)
+      await dumpConfig(projectConfig, projectSchema, garden.log)
     } catch (err) {
       errors.push(err)
     }
 
     if (errors.length === 0) {
-      task.setSuccess()
+      taskLog.setSuccess()
     } else {
-      task.setWarn({ msg: "Finished with errors", append: true })
+      taskLog.setWarn({ msg: "Finished with errors", append: true })
     }
 
     const docs = terminalLink("docs", "https://docs.garden.io")
-    ctx.log.info(`Project created! Be sure to check out our ${docs} for how to get sarted!`)
+    garden.log.info(`Project created! Be sure to check out our ${docs} for how to get sarted!`)
 
     return {
       result: {

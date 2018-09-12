@@ -17,23 +17,24 @@ import { DeploymentError, NotFoundError, TimeoutError, ConfigurationError } from
 import { GetServiceLogsResult, LoginStatus } from "../../types/plugin/outputs"
 import { RunResult, TestResult } from "../../types/plugin/outputs"
 import {
-  ConfigureEnvironmentParams,
-  DeleteConfigParams,
-  DestroyEnvironmentParams,
+  PrepareEnvironmentParams,
+  DeleteSecretParams,
+  CleanupEnvironmentParams,
   ExecInServiceParams,
-  GetConfigParams,
+  GetSecretParams,
   GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
   GetTestResultParams,
   PluginActionParamsBase,
   RunModuleParams,
-  SetConfigParams,
+  SetSecretParams,
   TestModuleParams,
   DeleteServiceParams,
+  RunServiceParams,
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
-import { ContainerModule, helpers, parseContainerModule } from "../container"
+import { ContainerModule, helpers, validateContainerModule } from "../container"
 import { deserializeValues, serializeValues, splitFirst, sleep } from "../../util/util"
 import { joiIdentifier } from "../../config/common"
 import { KubeApi } from "./api"
@@ -47,39 +48,39 @@ import { DEFAULT_TEST_TIMEOUT } from "../../constants"
 import { KubernetesProvider, name as providerName } from "./kubernetes"
 import { deleteContainerService, getContainerServiceStatus } from "./deployment"
 import { ServiceStatus } from "../../types/service"
-import { ParseModuleParams } from "../../types/plugin/params"
+import { ValidateModuleParams } from "../../types/plugin/params"
 
 const MAX_STORED_USERNAMES = 5
 
-export async function parseModule(params: ParseModuleParams<ContainerModule>) {
-  const config = await parseContainerModule(params)
+export async function validate(params: ValidateModuleParams<ContainerModule>) {
+  const config = await validateContainerModule(params)
 
-  // validate endpoint specs
-  const provider: KubernetesProvider = params.provider
+  // validate ingress specs
+  const provider: KubernetesProvider = params.ctx.provider
 
   for (const serviceConfig of config.serviceConfigs) {
-    for (const endpointSpec of serviceConfig.spec.endpoints) {
-      const hostname = endpointSpec.hostname || provider.config.defaultHostname
+    for (const ingressSpec of serviceConfig.spec.ingresses) {
+      const hostname = ingressSpec.hostname || provider.config.defaultHostname
 
       if (!hostname) {
         throw new ConfigurationError(
-          `No hostname configured for one of the endpoints on service ${serviceConfig.name}. ` +
-          `Please configure a default hostname or specify a hostname for the endpoint.`,
+          `No hostname configured for one of the ingresses on service ${serviceConfig.name}. ` +
+          `Please configure a default hostname or specify a hostname for the ingress.`,
           {
             serviceName: serviceConfig.name,
-            endpointSpec,
+            ingressSpec,
           },
         )
       }
 
       // make sure the hostname is set
-      endpointSpec.hostname = hostname
+      ingressSpec.hostname = hostname
     }
   }
 }
 
-export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStatusParams) {
-  const context = provider.config.context
+export async function getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
+  const context = ctx.provider.config.context
 
   try {
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
@@ -100,25 +101,25 @@ export async function getEnvironmentStatus({ ctx, provider }: GetEnvironmentStat
   }
 
   await Bluebird.all([
-    getMetadataNamespace(ctx, provider),
-    getAppNamespace(ctx, provider),
+    getMetadataNamespace(ctx, ctx.provider),
+    getAppNamespace(ctx, ctx.provider),
   ])
 
   return {
-    configured: true,
+    ready: true,
     detail: <any>{},
   }
 }
 
-export async function configureEnvironment({ }: ConfigureEnvironmentParams) {
+export async function prepareEnvironment({ }: PrepareEnvironmentParams) {
   // this happens implicitly in the `getEnvironmentStatus()` function
   return {}
 }
 
-export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentParams) {
-  const api = new KubeApi(provider)
-  const namespace = await getAppNamespace(ctx, provider)
-  const entry = ctx.log.info({
+export async function cleanupEnvironment({ ctx, logEntry }: CleanupEnvironmentParams) {
+  const api = new KubeApi(ctx.provider)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const entry = logEntry && logEntry.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace} (this may take a while)`,
     status: "active",
@@ -129,7 +130,7 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
     // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
     await api.core.deleteNamespace(namespace, <any>{})
   } catch (err) {
-    entry.setError(err.message)
+    entry && entry.setError(err.message)
     const availableNamespaces = await getAllGardenNamespaces(api)
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
@@ -157,10 +158,10 @@ export async function destroyEnvironment({ ctx, provider }: DestroyEnvironmentPa
 }
 
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-  const { ctx, logEntry, provider, service } = params
-  const namespace = await getAppNamespace(ctx, provider)
+  const { ctx, logEntry, service } = params
+  const namespace = await getAppNamespace(ctx, ctx.provider)
 
-  await deleteContainerService({ logEntry, namespace, provider, serviceName: service.name })
+  await deleteContainerService({ provider: ctx.provider, logEntry, namespace, serviceName: service.name })
 
   return getContainerServiceStatus(params)
 }
@@ -171,12 +172,11 @@ export async function getServiceOutputs({ service }: GetServiceOutputsParams<Con
   }
 }
 
-export async function execInService(
-  { ctx, provider, module, service, env, command, runtimeContext }: ExecInServiceParams<ContainerModule>,
-) {
-  const api = new KubeApi(provider)
-  const status = await getContainerServiceStatus({ ctx, provider, module, service, env, runtimeContext })
-  const namespace = await getAppNamespace(ctx, provider)
+export async function execInService(params: ExecInServiceParams<ContainerModule>) {
+  const { ctx, service, command } = params
+  const api = new KubeApi(ctx.provider)
+  const status = await getContainerServiceStatus(params)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
 
   // TODO: this check should probably live outside of the plugin
   if (!status.state || status.state !== "ready") {
@@ -218,10 +218,10 @@ export async function execInService(
 }
 
 export async function runModule(
-  { ctx, provider, module, command, interactive, runtimeContext, silent, timeout }: RunModuleParams<ContainerModule>,
+  { ctx, module, command, interactive, runtimeContext, silent, timeout }: RunModuleParams<ContainerModule>,
 ): Promise<RunResult> {
-  const context = provider.config.context
-  const namespace = await getAppNamespace(ctx, provider)
+  const context = ctx.provider.config.context
+  const namespace = await getAppNamespace(ctx, ctx.provider)
 
   const envArgs = Object.entries(runtimeContext.envVars).map(([k, v]) => `--env=${k}=${v}`)
 
@@ -269,8 +269,24 @@ export async function runModule(
   }
 }
 
+export async function runService(
+  { ctx, service, interactive, runtimeContext, silent, timeout, logEntry }:
+    RunServiceParams<ContainerModule>,
+) {
+  return runModule({
+    ctx,
+    module: service.module,
+    command: service.spec.command || [],
+    interactive,
+    runtimeContext,
+    silent,
+    timeout,
+    logEntry,
+  })
+}
+
 export async function testModule(
-  { ctx, provider, env, interactive, module, runtimeContext, silent, testConfig }:
+  { ctx, interactive, module, runtimeContext, silent, testConfig, logEntry }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -278,9 +294,18 @@ export async function testModule(
   runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
-  const result = await runModule({ ctx, provider, env, module, command, interactive, runtimeContext, silent, timeout })
+  const result = await runModule({
+    ctx,
+    module,
+    command,
+    interactive,
+    runtimeContext,
+    silent,
+    timeout,
+    logEntry,
+  })
 
-  const api = new KubeApi(provider)
+  const api = new KubeApi(ctx.provider)
 
   // store test result
   const testResult: TestResult = {
@@ -288,7 +313,7 @@ export async function testModule(
     testName,
   }
 
-  const ns = await getMetadataNamespace(ctx, provider)
+  const ns = await getMetadataNamespace(ctx, ctx.provider)
   const resultKey = getTestResultKey(module, testName, result.version)
   const body = {
     apiVersion: "v1",
@@ -316,10 +341,10 @@ export async function testModule(
 }
 
 export async function getTestResult(
-  { ctx, provider, module, testName, version }: GetTestResultParams<ContainerModule>,
+  { ctx, module, testName, version }: GetTestResultParams<ContainerModule>,
 ) {
-  const api = new KubeApi(provider)
-  const ns = await getMetadataNamespace(ctx, provider)
+  const api = new KubeApi(ctx.provider)
+  const ns = await getMetadataNamespace(ctx, ctx.provider)
   const resultKey = getTestResultKey(module, testName, version)
 
   try {
@@ -335,9 +360,9 @@ export async function getTestResult(
 }
 
 export async function getServiceLogs(
-  { ctx, provider, service, stream, tail }: GetServiceLogsParams<ContainerModule>,
+  { ctx, service, stream, tail }: GetServiceLogsParams<ContainerModule>,
 ) {
-  const context = provider.config.context
+  const context = ctx.provider.config.context
   const resourceType = service.spec.daemon ? "daemonset" : "deployment"
 
   const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
@@ -346,7 +371,7 @@ export async function getServiceLogs(
     kubectlArgs.push("--follow")
   }
 
-  const namespace = await getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
   const proc = kubectl(context, namespace).spawn(kubectlArgs)
   let timestamp: Date
 
@@ -374,12 +399,12 @@ export async function getServiceLogs(
   })
 }
 
-export async function getConfig({ ctx, provider, key }: GetConfigParams) {
-  const api = new KubeApi(provider)
-  const ns = await getMetadataNamespace(ctx, provider)
+export async function getSecret({ ctx, key }: GetSecretParams) {
+  const api = new KubeApi(ctx.provider)
+  const ns = await getMetadataNamespace(ctx, ctx.provider)
 
   try {
-    const res = await api.core.readNamespacedSecret(key.join("."), ns)
+    const res = await api.core.readNamespacedSecret(key, ns)
     return { value: Buffer.from(res.body.data.value, "base64").toString() }
   } catch (err) {
     if (err.code === 404) {
@@ -390,17 +415,16 @@ export async function getConfig({ ctx, provider, key }: GetConfigParams) {
   }
 }
 
-export async function setConfig({ ctx, provider, key, value }: SetConfigParams) {
+export async function setSecret({ ctx, key, value }: SetSecretParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
-  const api = new KubeApi(provider)
-  const ns = await getMetadataNamespace(ctx, provider)
-  const name = key.join(".")
+  const api = new KubeApi(ctx.provider)
+  const ns = await getMetadataNamespace(ctx, ctx.provider)
   const body = {
     body: {
       apiVersion: "v1",
       kind: "Secret",
       metadata: {
-        name,
+        name: key,
         annotations: {
           "garden.io/generated": "true",
         },
@@ -414,7 +438,7 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
     await api.core.createNamespacedSecret(ns, <any>body)
   } catch (err) {
     if (err.code === 409) {
-      await api.core.patchNamespacedSecret(name, ns, body)
+      await api.core.patchNamespacedSecret(key, ns, body)
     } else {
       throw err
     }
@@ -423,13 +447,12 @@ export async function setConfig({ ctx, provider, key, value }: SetConfigParams) 
   return {}
 }
 
-export async function deleteConfig({ ctx, provider, key }: DeleteConfigParams) {
-  const api = new KubeApi(provider)
-  const ns = await getMetadataNamespace(ctx, provider)
-  const name = key.join(".")
+export async function deleteSecret({ ctx, key }: DeleteSecretParams) {
+  const api = new KubeApi(ctx.provider)
+  const ns = await getMetadataNamespace(ctx, ctx.provider)
 
   try {
-    await api.core.deleteNamespacedSecret(name, ns, <any>{})
+    await api.core.deleteNamespacedSecret(key, ns, <any>{})
   } catch (err) {
     if (err.code === 404) {
       return { found: false }
@@ -449,8 +472,8 @@ export async function getLoginStatus({ ctx }: PluginActionParamsBase): Promise<L
   return { loggedIn: !!currentUsername }
 }
 
-export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatus> {
-  const entry = ctx.log.info({ section: "kubernetes", msg: "Logging in..." })
+export async function login({ ctx, logEntry }: PluginActionParamsBase): Promise<LoginStatus> {
+  const entry = logEntry && logEntry.info({ section: "kubernetes", msg: "Logging in..." })
   const localConfig = await ctx.localConfigStore.get()
 
   let currentUsername
@@ -462,7 +485,7 @@ export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatu
   }
 
   if (currentUsername) {
-    entry.setDone({
+    entry && entry.setDone({
       symbol: "info",
       msg: `Already logged in as user ${currentUsername}`,
     })
@@ -517,15 +540,15 @@ export async function login({ ctx }: PluginActionParamsBase): Promise<LoginStatu
   return { loggedIn: true }
 }
 
-export async function logout({ ctx }: PluginActionParamsBase): Promise<LoginStatus> {
-  const entry = ctx.log.info({ section: "kubernetes", msg: "Logging out..." })
+export async function logout({ ctx, logEntry }: PluginActionParamsBase): Promise<LoginStatus> {
+  const entry = logEntry && logEntry.info({ section: "kubernetes", msg: "Logging out..." })
   const localConfig = await ctx.localConfigStore.get()
   const k8sConfig = localConfig.kubernetes || {}
   if (k8sConfig.username) {
     await ctx.localConfigStore.delete([providerName, "username"])
-    entry.setSuccess("Logged out")
+    entry && entry.setSuccess("Logged out")
   } else {
-    entry.setSuccess("Already logged out")
+    entry && entry.setSuccess("Already logged out")
   }
   return { loggedIn: false }
 }

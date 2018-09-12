@@ -4,7 +4,7 @@ module:
   image: scratch
   services:
     - name: service-c
-      endpoints:
+      ingresses:
         - path: /path-c
           port: http
       ports:
