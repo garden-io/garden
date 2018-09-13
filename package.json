@@ -41,6 +41,7 @@
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "lerna run clean && git clean -X -f",
+    "changelog": "conventional-changelog -p angular -a -i CHANGELOG.md --commit-path . -s -r --pkg ./garden-cli",
     "dist": "lerna run dist",
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
     "generate-docs": "lerna run generate-docs",

@@ -13,6 +13,8 @@ import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import stringify = require("json-stringify-safe")
 
+import gitSemverTags = require("git-semver-tags")
+
 import { DeepPrimitiveMap } from "../config/common"
 import {
   getEnumKeys,
@@ -340,6 +342,10 @@ export class GardenCli {
 
 export async function run(): Promise<void> {
   let code
+  gitSemverTags(function (_err, tags) {
+    console.log("TAGS", tags)
+    //=> [ 'v2.0.0', 'v1.0.0' ]
+  })
   try {
     const cli = new GardenCli()
     const result = await cli.parse()

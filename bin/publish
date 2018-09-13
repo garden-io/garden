@@ -6,10 +6,10 @@ cd ${garden_root}
 
 ./bin/prepare-publish
 
-lerna version --no-push
+lerna version --no-push --git-tag-version
 git reset HEAD~1
 
-./node_modules/.bin/conventional-changelog -p angular -i CHANGELOG.md --commit-path . -s
+# ../node_modules/.bin/conventional-changelog -p angular -i CHANGELOG.md --commit-path . -s --pkg ./garden-cli
 git add CHANGELOG.md
 version=$(node -p "require('./lerna.json').version")
 git commit -m "chore(release): release ${version}"
