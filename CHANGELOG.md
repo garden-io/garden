@@ -1,5 +1,5 @@
-<a name=""></a>
-# [](https://github.com/garden-io/garden/compare/v0.3.0...v) (2018-09-10)
+<a name="0.6.0"></a>
+# [0.6.0](https://github.com/garden-io/garden/compare/v0.5.0...v0.6.0) (2018-09-10)
 
 
 ### Bug Fixes
@@ -56,7 +56,7 @@ module name.
 
 
 <a name="0.5.0"></a>
-# [0.5.0](https://github.com/garden-io/garden/compare/v0.3.0...v0.5.0) (2018-09-05)
+# [0.5.0](https://github.com/garden-io/garden/compare/v0.4.0...v0.5.0) (2018-09-05)
 
 
 ### Bug Fixes
@@ -102,7 +102,7 @@ module name.
 
 
 <a name="0.4.0"></a>
-# [0.4.0](https://github.com/garden-io/garden/compare/v0.3.0...v0.4.0) (2018-08-14)
+# [0.4.0](https://github.com/garden-io/garden/compare/v0.3.1...v0.4.0) (2018-08-14)
 
 
 ### Bug Fixes
