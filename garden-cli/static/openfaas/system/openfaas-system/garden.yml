@@ -4,7 +4,7 @@ module:
   type: helm
   repo: https://openfaas.github.io/faas-netes/
   chart: openfaas
-  version: 1.2.2
+  version: 1.2.3
   parameters:
     exposeServices: false
     functionNamespace: ${variables.function-namespace}
@@ -14,7 +14,11 @@ module:
         - host: ${variables.gateway-hostname}
           serviceName: gateway
           servicePort: 8080
-          path: /
+          path: /function/
+        - host: ${variables.gateway-hostname}
+          serviceName: gateway
+          servicePort: 8080
+          path: /system/
     faasnetesd:
       imagePullPolicy: IfNotPresent
     securityContext: false
