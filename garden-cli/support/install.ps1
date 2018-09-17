@@ -90,7 +90,7 @@ Function CheckChocolateyDeps {
         }
     }
     if ($install) {
-        & cinst $newArray
+        & cinst $missing
     }
 }
 
@@ -153,6 +153,7 @@ $chocDeps = (("git","git"),
              ("node","nodejs"),
              ("helm","kubernetes-helm"))
 CheckChocolateyDeps($chocDeps)
+[Console]::ResetColor()
 
 # Node Configuration.
 Write-Host("- Installing/updating Node.js build dependencies")
