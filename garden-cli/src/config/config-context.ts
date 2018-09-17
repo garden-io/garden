@@ -197,10 +197,18 @@ class ModuleContext extends ConfigContext {
   @schema(Joi.string().description("The current version of the module.").example(exampleVersion))
   public version: string
 
+  @schema(
+    Joi.string()
+      .description("The build path of the module.")
+      .example("/home/me/code/my-project/.garden/build/my-module"),
+  )
+  public buildPath: string
+
   constructor(root: ConfigContext, module: Module) {
     super(root)
     this.path = module.path
     this.version = module.version.versionString
+    this.buildPath = module.buildPath
   }
 }
 

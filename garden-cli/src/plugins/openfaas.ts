@@ -53,9 +53,11 @@ import { BaseServiceSpec } from "../config/service"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { deleteContainerService } from "./kubernetes/deployment"
 import { Provider, providerConfigBaseSchema } from "../config/project"
+import dedent = require("dedent")
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 const stackFilename = "stack.yml"
+const builderWorkDir = "/wd"
 
 export interface OpenFaasModuleSpec extends GenericModuleSpec {
   handler: string
@@ -91,9 +93,12 @@ const configSchema = providerConfigBaseSchema
   .keys({
     hostname: Joi.string()
       .hostname()
-      .description(
-        "The hostname to configure for the function gateway. " +
-        "Defaults to the default hostname of the configured Kubernetes provider.",
+      .description(dedent`
+        The hostname to configure for the function gateway.
+        Defaults to the default hostname of the configured Kubernetes provider.
+
+        Important: If you have other types of services, this should be different from their ingress hostnames,
+        or the other services should not expose paths under /function and /system to avoid routing conflicts.`,
       )
       .example("functions.mydomain.com"),
   })
@@ -104,7 +109,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
   config = validate(config, configSchema, { context: "OpenFaaS provider config" })
 
   return {
-    modules: [join(STATIC_DIR, "openfaas", "openfaas-builder")],
+    modules: [join(STATIC_DIR, "openfaas", "builder")],
     actions: {
       async getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
         const ofGarden = await getOpenFaasGarden(ctx)
@@ -145,15 +150,20 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
             { context: `module ${moduleConfig.name}` },
           )
 
-          // stack.yml is populated in the build handler below
-          moduleConfig.build.command = ["./faas-cli", "build", "-f", stackFilename]
+          // FIXME: this feels too magicky and convoluted, we should make this type of flow feel more natural
+          moduleConfig.build.command = [
+            "docker", "run", "-i",
+            "-v", `\${modules.${moduleConfig.name}.buildPath}:${builderWorkDir}`,
+            "-v", "/var/run/docker.sock:/var/run/docker.sock",
+            "--workdir", builderWorkDir,
+            `openfaas--builder:\${modules.openfaas--builder.version}`,
+            "faas-cli", "build", "-f", stackFilename,
+          ]
 
           moduleConfig.build.dependencies.push({
-            name: "openfaas-builder",
+            name: "builder",
             plugin: "openfaas",
-            copy: [
-              { source: "*", target: "." },
-            ],
+            copy: [],
           })
 
           moduleConfig.serviceConfigs = [{
@@ -206,9 +216,15 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           await writeStackFile(ctx, module, runtimeContext.envVars)
 
           // use faas-cli to do the deployment
-          await execa("./faas-cli", ["deploy", "-f", stackFilename], {
-            cwd: module.buildPath,
-          })
+          await execa("docker", [
+            "run", "-i",
+            "-v", `${module.buildPath}:${builderWorkDir}`,
+            "-v", "/var/run/docker.sock:/var/run/docker.sock",
+            "--workdir", builderWorkDir,
+            "--net", "host",
+            "openfaas/faas-cli:0.7.3",
+            "faas-cli", "deploy", "-f", stackFilename,
+          ])
 
           // wait until deployment is ready
           const k8sProvider = getK8sProvider(ctx)
@@ -252,7 +268,7 @@ async function writeStackFile(
     functions: {
       [module.name]: {
         lang: module.spec.lang,
-        handler: resolve(module.path, module.spec.handler),
+        handler: resolve(builderWorkDir, module.spec.handler),
         image,
         environment: envVars,
       },
@@ -404,7 +420,7 @@ export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
       dirname: "system",
       path: systemProjectPath,
       project: {
-        name: "garden-openfaas-system",
+        name: `${ctx.projectName}-openfaas`,
         environmentDefaults: {
           providers: [],
           variables: {},

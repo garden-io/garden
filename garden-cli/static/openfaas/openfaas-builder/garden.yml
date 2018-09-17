@@ -1,8 +1,0 @@
-module:
-  description: Base image used for building openfaas modules
-  name: openfaas-builder
-  type: generic
-  build:
-    command: [./bootstrap.sh]
-  env:
-    PLATFORM: ${local.platform}

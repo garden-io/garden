@@ -140,8 +140,8 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
     const provider = ctx.provider
     const chartPath = await getChartPath(module)
     const valuesPath = getValuesPath(chartPath)
-    const releaseName = getReleaseName(ctx, service)
     const namespace = await getAppNamespace(ctx, ctx.provider)
+    const releaseName = getReleaseName(namespace, service)
 
     const releaseStatus = await getReleaseStatus(ctx.provider, releaseName)
 
@@ -170,7 +170,8 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
 
   async deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
     const { ctx, logEntry, service } = params
-    const releaseName = getReleaseName(ctx, service)
+    const namespace = await getAppNamespace(ctx, ctx.provider)
+    const releaseName = getReleaseName(namespace, service)
     await helm(ctx.provider, "delete", "--purge", releaseName)
     logEntry && logEntry.setSuccess("Service deleted")
 
@@ -241,7 +242,7 @@ async function getChartObjects(ctx: PluginContext, service: Service) {
   const chartPath = await getChartPath(service.module)
   const valuesPath = getValuesPath(chartPath)
   const namespace = await getAppNamespace(ctx, ctx.provider)
-  const releaseName = getReleaseName(ctx, service)
+  const releaseName = getReleaseName(namespace, service)
 
   const objects = <KubernetesObject[]>safeLoadAll(await helm(ctx.provider,
     "template",
@@ -288,8 +289,8 @@ async function getServiceStatus(
   return { state, version: version.versionString }
 }
 
-function getReleaseName(ctx: PluginContext, service: Service) {
-  return `garden--${ctx.projectName}--${service.name}`
+function getReleaseName(namespace: string, service: Service) {
+  return `${namespace}--${service.name}`
 }
 
 async function getReleaseStatus(provider: KubernetesProvider, releaseName: string): Promise<ServiceStatus> {
