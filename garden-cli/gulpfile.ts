@@ -179,6 +179,7 @@ gulp.task("tslint-tests", () =>
  */
 gulp.task("update-brew", async () => {
   // clone the homebrew-garden tap repo
+  await ensureDir(tmpDir)
   const brewRepoDir = resolve(tmpDir, "homebrew-garden")
   if (await pathExists(brewRepoDir)) {
     await remove(brewRepoDir)
