@@ -2,6 +2,12 @@
 
 This guide will walk you through setting up the Garden framework.
 
+Please follow the guide for your operating system:
+
+* [macOS](#macos)
+* [Windows](#windows)
+* [Linux (or manual installation on other platforms)](#linux-manual-installation)
+
 ## Installation
 
 ### macOS
@@ -42,58 +48,34 @@ To later upgrade to the newest version, simply run `brew update` and then `brew 
 
 ### Windows
 
-You can run garden on Windows 10 Pro or Enterprise editions. Follow these instructions to get started.
+You can run Garden on Windows 10 Pro or Enterprise editions (The Home edition unfortunately does not work because it
+does not include support for virtualization). To install the Garden CLI please use our _automated installation script_,
+which will check for dependencies, install missing dependencies if needed, and finally install the `garden-cli`
+npm package.
 
-#### Step 1: Chocolatey
+The things the script will check for are the following:
 
-If you haven't already, install the [Chocolatey](https://chocolatey.org) package manager.
+* The [Chocolatey](https://chocolatey.org) package manager.
+* Whether you have Hyper-V enabled. This is required for _Docker for Windows_. If you do not already have it enabled,
+  the script will enable it but you will need to restart your computer before starting Docker for Windows.
+* Docker - We strongly recommend using the _Edge version_ of
+  [Docker for Windows](https://www.docker.com/docker-windows), which has built-in support for Kubernetes. It is also
+  _possible_ to configure Docker and Kubernetes differently, using minikube for example, but in most cases
+  Docker for Windows is much easier to install and configure, and is well supported. The script will check if Docker is
+  installed, and whether Kubernetes has been enabled as the default orchestrator.
+* Node.js - The script will install it via Chocolatey if it is missing, but note that _if you already have Node.js
+  installed, please make sure it is version 8.x or newer._
+* Git, rsync, Helm and stern. The script will install those if they are missing.
 
-#### Step 2: Enable Hyper-V
+To run the script, open PowerShell as an Administrator and run:
 
-This is required for _Docker for Windows_ to run. Open PowerShell as an administrator and run:
-
-```powershell
-Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
-```
-
-This will require a restart.
-
-#### Step 3: Docker for Windows
-
-Install the Edge version of [Docker for Windows](https://www.docker.com/docker-windows).
-
-Once installed, open the Docker for Windows settings, go to the Kubernetes section,
-tick `Enable Kubernetes` and save. Please refer to their
-[installation guide](https://docs.docker.com/engine/installation/) for details.
-
-#### Step 4: Install dependencies
-
-Open PowerShell as an administrator and run:
-
-```powershell
-# install choco packages (note: python is needed to build some dependencies)
-choco install -y git nodejs rsync kubernetes-helm
-
-# install Stern (currently not available as a choco package)
-[Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-Invoke-WebRequest -Uri "https://github.com/wercker/stern/releases/download/1.7.0/stern_windows_amd64.exe" -OutFile "$Env:SystemRoot\system32\stern.exe"
-
-# install build tools so that node-gyp works
-npm install --global --production windows-build-tools
-npm config set msvs_version 2015 --global
-```
-
-#### Step 5: Install `garden-cli`
-
-Once you have the dependencies set up, open a new PowerShell and install the Garden CLI via `npm`:
-
-```powershell
-npm install -g garden-cli
+```PowerShell
+Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/garden-cli/support/install.ps1'))
 ```
 
 To later upgrade to the newest version, run `npm install -g -U garden-cli`.
 
-### Linux / manual installation
+### Linux (manual installation)
 
 You need the following dependencies on your local machine to use Garden:
 
@@ -101,6 +83,7 @@ You need the following dependencies on your local machine to use Garden:
 * [Docker](https://docs.docker.com/)
 * Git
 * rsync
+* stern
 * [Helm](https://github.com/kubernetes/helm)
 * Local installation of Kubernetes and kubectl
 
