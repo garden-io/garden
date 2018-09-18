@@ -59,7 +59,7 @@ The things the script will check for are the following:
 * Whether you have Hyper-V enabled. This is required for _Docker for Windows_. If you do not already have it enabled,
   the script will enable it but you will need to restart your computer before starting Docker for Windows.
 * Docker - We strongly recommend using the _Edge version_ of
-  [Docker for Windows](https://www.docker.com/docker-windows), which has built-in support for Kubernetes. It is also
+  [Docker for Windows](https://docs.docker.com/docker-for-windows/edge-release-notes/), which has built-in support for Kubernetes. It is also
   _possible_ to configure Docker and Kubernetes differently, using minikube for example, but in most cases
   Docker for Windows is much easier to install and configure, and is well supported. The script will check if Docker is
   installed, and whether Kubernetes has been enabled as the default orchestrator.
