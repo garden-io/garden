@@ -244,7 +244,10 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           const provider = getK8sProvider(ctx)
           const namespace = await getAppNamespace(ctx, provider)
 
-          await deleteContainerService({ provider, logEntry, namespace, serviceName: service.name })
+          await deleteContainerService({
+            namespace, provider, serviceName: service.name,
+            deploymentOnly: true, logEntry,
+          })
 
           return await getServiceStatus(params)
         },

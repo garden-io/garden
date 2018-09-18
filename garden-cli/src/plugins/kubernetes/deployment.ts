@@ -22,14 +22,12 @@ import { RuntimeContext, ServiceStatus } from "../../types/service"
 import { createIngresses, getIngresses } from "./ingress"
 import { createServices } from "./service"
 import { waitForObjects, compareDeployedObjects } from "./status"
-import { applyMany } from "./kubectl"
+import { applyMany, deleteObjectsByLabel } from "./kubectl"
 import { getAppNamespace } from "./namespace"
 import { KubernetesObject } from "./helm"
 import { PluginContext } from "../../plugin-context"
-import { KubernetesProvider } from "./kubernetes"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { KubeApi } from "./api"
-import { LogEntry } from "../../logger/log-entry"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_CPU_LIMIT = "500m"
@@ -324,17 +322,19 @@ export async function createDeployment(
   return deployment
 }
 
-export async function deleteContainerService({ namespace, provider, serviceName, logEntry }: {
-  namespace: string,
-  provider: KubernetesProvider,
-  serviceName: string,
-  logEntry?: LogEntry,
-}) {
-  const api = new KubeApi(provider)
+export async function deleteContainerService(
+  { namespace, provider, serviceName, deploymentOnly, logEntry },
+) {
+
   let found = true
+  const context = provider.config.context
+  const api = new KubeApi(provider)
 
   try {
     await api.extensions.deleteNamespacedDeployment(serviceName, namespace, <any>{})
+    if (!deploymentOnly) {
+      await deleteObjectsByLabel(context, namespace, "service", serviceName)
+    }
   } catch (err) {
     if (err.code === 404) {
       found = false

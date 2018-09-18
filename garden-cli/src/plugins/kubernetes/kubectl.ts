@@ -37,6 +37,11 @@ export interface ApplyOptions {
   namespace?: string,
 }
 
+export interface DeleteOptions {
+  includeUninitialized?: boolean,
+  objectTypes?: string[]
+}
+
 export const KUBECTL_DEFAULT_TIMEOUT = 300
 
 export class Kubectl {
@@ -186,6 +191,31 @@ export async function applyMany(
   args.push("--output=json", "-f", "-")
 
   const result = await kubectl(context, namespace).call(args, { data })
+
+  try {
+    return JSON.parse(result.output)
+  } catch (_) {
+    return result.output
+  }
+}
+
+const defaultObjectTypesForDelete = ["deployment", "service", "ingress"]
+
+export async function deleteObjectsByLabel(
+  context: string, namespace: string, labelKey: string, labelValue: string,
+  { includeUninitialized = false, objectTypes = defaultObjectTypesForDelete }: DeleteOptions = {},
+) {
+
+  let args = [
+    "delete",
+    objectTypes.join(","),
+    "-l",
+    `${labelKey}=${labelValue}`,
+  ]
+
+  includeUninitialized && args.push("--include-uninitialized")
+
+  const result = await kubectl(context, namespace).call(args)
 
   try {
     return JSON.parse(result.output)
