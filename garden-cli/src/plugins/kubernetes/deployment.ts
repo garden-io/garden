@@ -323,18 +323,31 @@ export async function createDeployment(
 }
 
 export async function deleteContainerService(
-  { namespace, provider, serviceName, deploymentOnly, logEntry },
+  { namespace, provider, serviceName, logEntry },
+) {
+
+  const context = provider.config.context
+  await deleteContainerDeployment({ namespace, provider, serviceName, logEntry })
+  await deleteObjectsByLabel({
+    context,
+    namespace,
+    labelKey: "service",
+    labelValue: serviceName,
+    objectTypes: ["deployment", "service", "ingress"],
+    includeUninitialized: false,
+  })
+
+}
+
+export async function deleteContainerDeployment(
+  { namespace, provider, serviceName, logEntry },
 ) {
 
   let found = true
-  const context = provider.config.context
   const api = new KubeApi(provider)
 
   try {
     await api.extensions.deleteNamespacedDeployment(serviceName, namespace, <any>{})
-    if (!deploymentOnly) {
-      await deleteObjectsByLabel(context, namespace, "service", serviceName)
-    }
   } catch (err) {
     if (err.code === 404) {
       found = false

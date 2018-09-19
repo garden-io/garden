@@ -163,7 +163,7 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
   const provider = ctx.provider
 
   await deleteContainerService(
-    { provider, namespace, serviceName: service.name, deploymentOnly: false, logEntry })
+    { provider, namespace, serviceName: service.name, logEntry })
 
   return getContainerServiceStatus(params)
 }

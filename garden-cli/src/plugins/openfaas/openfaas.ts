@@ -9,24 +9,24 @@
 import * as Joi from "joi"
 import { join, resolve } from "path"
 import { resolve as urlResolve } from "url"
-import { STATIC_DIR } from "../constants"
-import { PluginError, ConfigurationError } from "../exceptions"
-import { Garden } from "../garden"
-import { PluginContext } from "../plugin-context"
-import { joiArray, validate, PrimitiveMap } from "../config/common"
-import { Module } from "../types/module"
-import { ValidateModuleResult } from "../types/plugin/outputs"
+import { STATIC_DIR } from "../../constants"
+import { PluginError, ConfigurationError } from "../../exceptions"
+import { Garden } from "../../garden"
+import { PluginContext } from "../../plugin-context"
+import { joiArray, validate, PrimitiveMap } from "../../config/common"
+import { Module } from "../../types/module"
+import { ValidateModuleResult } from "../../types/plugin/outputs"
 import {
   PrepareEnvironmentParams,
   GetEnvironmentStatusParams,
   ValidateModuleParams,
   DeleteServiceParams,
-} from "../types/plugin/params"
+} from "../../types/plugin/params"
 import {
   ServiceStatus,
   ServiceIngress,
   Service,
-} from "../types/service"
+} from "../../types/service"
 import {
   buildGenericModule,
   GenericModuleSpec,
@@ -34,30 +34,31 @@ import {
   GenericTestSpec,
   testGenericModule,
   getGenericModuleBuildStatus,
-} from "./generic"
-import { KubernetesProvider } from "./kubernetes/kubernetes"
-import { getNamespace, getAppNamespace } from "./kubernetes/namespace"
+} from "../generic"
+import { KubernetesProvider } from "../kubernetes/kubernetes"
+import { getNamespace, getAppNamespace } from "../kubernetes/namespace"
 import {
   DeployServiceParams,
   GetServiceStatusParams,
   BuildModuleParams,
   GetServiceOutputsParams,
-} from "../types/plugin/params"
+} from "../../types/plugin/params"
 import { every, values } from "lodash"
-import { dumpYaml, findByName } from "../util/util"
+import { dumpYaml, findByName } from "../../util/util"
 import * as execa from "execa"
-import { KubeApi } from "./kubernetes/api"
-import { waitForObjects, checkDeploymentStatus } from "./kubernetes/status"
-import { systemSymbol } from "./kubernetes/system"
-import { BaseServiceSpec } from "../config/service"
-import { GardenPlugin } from "../types/plugin/plugin"
-import { deleteContainerService } from "./kubernetes/deployment"
-import { Provider, providerConfigBaseSchema } from "../config/project"
+import { KubeApi } from "../kubernetes/api"
+import { waitForObjects, checkDeploymentStatus } from "../kubernetes/status"
+import { systemSymbol } from "../kubernetes/system"
+import { BaseServiceSpec } from "../../config/service"
+import { GardenPlugin } from "../../types/plugin/plugin"
+import { Provider, providerConfigBaseSchema } from "../../config/project"
 import dedent = require("dedent")
+import { faasCliCmd, faasCliDockerArgs } from "./faas-cli"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
-const stackFilename = "stack.yml"
-const builderWorkDir = "/wd"
+export const stackFilename = "stack.yml"
+export const builderWorkDir = "/wd"
+export const FAAS_CLI_IMAGE_ID = "openfaas/faas-cli:0.7.3"
 
 export interface OpenFaasModuleSpec extends GenericModuleSpec {
   handler: string
@@ -151,14 +152,11 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           )
 
           // FIXME: this feels too magicky and convoluted, we should make this type of flow feel more natural
-          moduleConfig.build.command = [
-            "docker", "run", "-i",
-            "-v", `\${modules.${moduleConfig.name}.buildPath}:${builderWorkDir}`,
-            "-v", "/var/run/docker.sock:/var/run/docker.sock",
-            "--workdir", builderWorkDir,
-            `openfaas--builder:\${modules.openfaas--builder.version}`,
-            "faas-cli", "build", "-f", stackFilename,
-          ]
+          moduleConfig.build.command = faasCliCmd({
+            buildPath: `\${modules.${moduleConfig.name}.buildPath}`,
+            imageId: `openfaas--builder:\${modules.openfaas--builder.version}`,
+            faasCmd: "build",
+          })
 
           moduleConfig.build.dependencies.push({
             name: "builder",
@@ -216,15 +214,12 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           await writeStackFile(ctx, module, runtimeContext.envVars)
 
           // use faas-cli to do the deployment
-          await execa("docker", [
-            "run", "-i",
-            "-v", `${module.buildPath}:${builderWorkDir}`,
-            "-v", "/var/run/docker.sock:/var/run/docker.sock",
-            "--workdir", builderWorkDir,
-            "--net", "host",
-            "openfaas/faas-cli:0.7.3",
-            "faas-cli", "deploy", "-f", stackFilename,
-          ])
+          await execa("docker", faasCliDockerArgs({
+            buildPath: module.buildPath,
+            imageId: FAAS_CLI_IMAGE_ID,
+            faasCmd: "deploy",
+            dockerOpts: ["--net", "host"],
+          }))
 
           // wait until deployment is ready
           const k8sProvider = getK8sProvider(ctx)
@@ -240,16 +235,37 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         },
 
         async deleteService(params: DeleteServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-          const { ctx, logEntry, service } = params
-          const provider = getK8sProvider(ctx)
-          const namespace = await getAppNamespace(ctx, provider)
+          const { ctx, logEntry, service, runtimeContext } = params
+          let status
+          let found = true
 
-          await deleteContainerService({
-            namespace, provider, serviceName: service.name,
-            deploymentOnly: true, logEntry,
-          })
+          try {
 
-          return await getServiceStatus(params)
+            status = await getServiceStatus({
+              ctx,
+              service,
+              runtimeContext,
+              module: service.module,
+            })
+
+            found = !!status.state
+
+            await execa("docker", faasCliDockerArgs({
+              buildPath: service.module.buildPath,
+              imageId: FAAS_CLI_IMAGE_ID,
+              faasCmd: "remove",
+              dockerOpts: ["--net", "host"],
+            }))
+
+          } catch (err) {
+            found = false
+          }
+
+          if (logEntry) {
+            found ? logEntry.setSuccess("Service deleted") : logEntry.setWarn("Service not deployed")
+          }
+
+          return status
         },
       },
     },

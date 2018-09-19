@@ -37,11 +37,6 @@ export interface ApplyOptions {
   namespace?: string,
 }
 
-export interface DeleteOptions {
-  includeUninitialized?: boolean,
-  objectTypes?: string[]
-}
-
 export const KUBECTL_DEFAULT_TIMEOUT = 300
 
 export class Kubectl {
@@ -199,12 +194,24 @@ export async function applyMany(
   }
 }
 
-const defaultObjectTypesForDelete = ["deployment", "service", "ingress"]
+export interface DeleteObjectsParams {
+  context: string,
+  namespace: string,
+  labelKey: string,
+  labelValue: string,
+  objectTypes: string[],
+  includeUninitialized?: boolean,
+}
 
 export async function deleteObjectsByLabel(
-  context: string, namespace: string, labelKey: string, labelValue: string,
-  { includeUninitialized = false, objectTypes = defaultObjectTypesForDelete }: DeleteOptions = {},
-) {
+  {
+    context,
+    namespace,
+    labelKey,
+    labelValue,
+    objectTypes,
+    includeUninitialized = false,
+  }: DeleteObjectsParams) {
 
   let args = [
     "delete",
