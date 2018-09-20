@@ -61,7 +61,7 @@ export async function getNamespace(
     if (!username) {
       throw new AuthenticationError(
         `User not logged into provider ${providerName}. Please specify defaultUsername in provider ` +
-        `config or run garden login.`,
+        `config or run garden init.`,
         { previousUsernames, provider: providerName },
       )
     }

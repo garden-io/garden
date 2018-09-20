@@ -15,6 +15,7 @@ import { moduleConfigSchema, ModuleConfig } from "../../config/module"
 
 export interface EnvironmentStatus {
   ready: boolean
+  needUserInput?: boolean
   detail?: any
 }
 
@@ -23,6 +24,11 @@ export const environmentStatusSchema = Joi.object()
     ready: Joi.boolean()
       .required()
       .description("Set to true if the environment is fully configured for a provider."),
+    needUserInput: Joi.boolean()
+      .description(
+        "Set to true if the environment needs user input to be initialized, " +
+        "and thus needs to be initialized via `garden init`.",
+      ),
     detail: Joi.object()
       .meta({ extendable: true })
       .description("Use this to include additional information that is specific to the provider."),
@@ -67,21 +73,6 @@ export const deleteSecretResultSchema = Joi.object()
       .required()
       .description("Set to true if the key was deleted, false if it was not found."),
   })
-
-export interface LoginStatus {
-  loggedIn: boolean
-}
-
-export const loginStatusSchema = Joi.object()
-  .keys({
-    loggedIn: Joi.boolean()
-      .required()
-      .description("Set to true if the user is already logged in, otherwise false."),
-  })
-
-export interface LoginStatusMap {
-  [key: string]: LoginStatus,
-}
 
 export interface ExecInServiceResult {
   code: number
@@ -263,10 +254,6 @@ export interface PluginActionOutputs {
   getSecret: Promise<GetSecretResult>
   setSecret: Promise<SetSecretResult>
   deleteSecret: Promise<DeleteSecretResult>
-
-  getLoginStatus: Promise<LoginStatus>
-  login: Promise<LoginStatus>
-  logout: Promise<LoginStatus>
 }
 
 export interface ServiceActionOutputs {

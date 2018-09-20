@@ -25,9 +25,6 @@ import {
   getSecretParamsSchema,
   setSecretParamsSchema,
   deleteSecretParamsSchema,
-  getLoginStatusParamsSchema,
-  loginParamsSchema,
-  logoutParamsSchema,
   getServiceStatusParamsSchema,
   deployServiceParamsSchema,
   deleteServiceParamsSchema,
@@ -56,7 +53,6 @@ import {
   getSecretResultSchema,
   getServiceLogsResultSchema,
   getTestResultSchema,
-  loginStatusSchema,
   ModuleActionOutputs,
   moduleTypeDescriptionSchema,
   PluginActionOutputs,
@@ -103,10 +99,15 @@ export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDe
   getEnvironmentStatus: {
     description: dedent`
       Check if the current environment is ready for use by this plugin. Use this action in combination
-      with \`prepareEnvironment\` to avoid unnecessary work on startup.
+      with \`prepareEnvironment\`.
 
-      Called before \`prepareEnvironment\`. If this returns \`{ ready: true }\`, the
+      Called before \`prepareEnvironment\`. If this returns \`ready: true\`, the
       \`prepareEnvironment\` action is not called.
+
+      If this returns \`needUserInput: true\`, the process may throw an error and guide the user to
+      run \`garden init\`, so that \`prepareEnvironment\` can safely ask for user input. Otherwise the
+      \`prepareEnvironment\` handler may be run implicitly ahead of actions like \`deployService\`,
+      \`runModule\` etc.
     `,
     paramsSchema: getEnvironmentStatusParamsSchema,
     resultSchema: environmentStatusSchema,
@@ -117,7 +118,13 @@ export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDe
       before deploying services.
 
       Called ahead of any service runtime actions (such as \`deployService\`,
-      \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`{ ready: true }\`.
+      \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\` or
+      \`needUserInput: true\`.
+
+      Important: If your handler does require user input, please be sure to indicate that via the
+      \`getEnvironmentStatus\` handler. If this provider's \`getEnvironmentStatus\` returns \`needUserInput: true\`,
+      this is only called via the \`garden init\` command, so that the handler can safely request user input via
+      the CLI.
     `,
     paramsSchema: prepareEnvironmentParamsSchema,
     resultSchema: prepareEnvironmentResultSchema,
@@ -125,6 +132,9 @@ export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDe
   cleanupEnvironment: {
     description: dedent`
       Clean up any runtime components, services etc. that this plugin has deployed in the environment.
+
+      Like \`prepareEnvironment\`, this is executed sequentially, so handlers are allowed to request user input
+      if necessary.
 
       Called by the \`garden delete environment\` command.
     `,
@@ -154,40 +164,6 @@ export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDe
     `,
     paramsSchema: deleteSecretParamsSchema,
     resultSchema: deleteSecretResultSchema,
-  },
-
-  getLoginStatus: {
-    description: dedent`
-      Check if the user needs to log in for the current environment. Use this in combination with
-      \`login\` if the plugin requires some form of authentication or identification before use.
-
-      Called before \`login\`, if a \`login\` handler is specified. If this returns \`{ loggedIn: true }\`,
-      the \`login\` action is not performed.
-    `,
-    paramsSchema: getLoginStatusParamsSchema,
-    resultSchema: loginStatusSchema,
-  },
-  login: {
-    description: dedent`
-      Execute an authentication flow needed before using this plugin in the current environment.
-
-      Unlike other action handlers, any configured \`login\` handlers are called synchronously and sequentially,
-      so the handler can, for example, trigger external authentication flows, request input from stdin or call
-      other CLIs that have a sequential flow requiring user input.
-
-      Called by the \`garden login\` command.
-    `,
-    paramsSchema: loginParamsSchema,
-    resultSchema: loginStatusSchema,
-  },
-  logout: {
-    description: dedent`
-      Clear any authentication previously performed for this plugin in the current environment.
-
-      Called by the \`garden login\` command.
-    `,
-    paramsSchema: logoutParamsSchema,
-    resultSchema: loginStatusSchema,
   },
 }
 

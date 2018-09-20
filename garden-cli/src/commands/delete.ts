@@ -85,7 +85,7 @@ export class DeleteEnvironmentCommand extends Command {
 
   description = dedent`
     This will trigger providers to clear up any deployments in a Garden environment and reset it.
-    When you then run \`garden configure env\` or any deployment command, the environment will be reconfigured.
+    When you then run \`garden init\`, the environment will be reconfigured.
 
     This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
     resources.

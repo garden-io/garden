@@ -165,7 +165,7 @@ Examples:
 Deletes a running environment.
 
 This will trigger providers to clear up any deployments in a Garden environment and reset it.
-When you then run `garden configure env` or any deployment command, the environment will be reconfigured.
+When you then run `garden init`, the environment will be reconfigured.
 
 This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
 resources.
@@ -307,22 +307,21 @@ Outputs the status of your environment.
 
     garden get status 
 
-### garden init environment
+### garden init
 
-Initializes your environment.
+Initialize system, environment or other runtime components.
 
-Generally, environments are initialized automatically as part of other commands that you run.
-However, this command is useful if you want to make sure the environment is ready before running
-another command, or if you need to force a re-initialization using the --force flag.
+This command needs to be run before first deploying a Garden project, and occasionally after updating Garden,
+plugins or project configuration.
 
 Examples:
 
-    garden init env
-    garden init env --force
+    garden init
+    garden init --force   # runs the init flows even if status checks report that the environment is ready
 
 ##### Usage
 
-    garden init environment [options]
+    garden init [options]
 
 ##### Options
 
@@ -375,32 +374,6 @@ Examples:
 | -------- | -------- | ----------- |
   | `module` | Yes | Name of the module to link.
   | `path` | Yes | Path to the local directory that containes the module.
-
-### garden login
-
-Log into configured providers for this project and environment.
-
-Executes the login flow for any provider that requires login (such as the `kubernetes` provider).
-
-Examples:
-
-     garden login
-
-##### Usage
-
-    garden login 
-
-### garden logout
-
-Log out of configured providers for this project and environment.
-
-Examples:
-
-     garden logout
-
-##### Usage
-
-    garden logout 
 
 ### garden logs
 

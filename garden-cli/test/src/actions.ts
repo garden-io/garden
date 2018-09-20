@@ -31,9 +31,6 @@ import {
   getSecretParamsSchema,
   setSecretParamsSchema,
   deleteSecretParamsSchema,
-  loginParamsSchema,
-  logoutParamsSchema,
-  getLoginStatusParamsSchema,
   publishModuleParamsSchema,
 } from "../../src/types/plugin/params"
 
@@ -58,15 +55,15 @@ describe("ActionHelper", () => {
       it("should return a map of statuses for providers that have a getEnvironmentStatus handler", async () => {
         const result = await actions.getEnvironmentStatus({})
         expect(result).to.eql({
-          "test-plugin": { ready: true },
-          "test-plugin-b": { ready: true },
+          "test-plugin": { ready: false },
+          "test-plugin-b": { ready: false },
         })
       })
 
       it("should optionally filter to single plugin", async () => {
         const result = await actions.getEnvironmentStatus({ pluginName: "test-plugin" })
         expect(result).to.eql({
-          "test-plugin": { ready: true },
+          "test-plugin": { ready: false },
         })
       })
     })
@@ -75,15 +72,15 @@ describe("ActionHelper", () => {
       it("should prepare the environment for each configured provider", async () => {
         const result = await actions.prepareEnvironment({})
         expect(result).to.eql({
-          "test-plugin": { ready: true },
-          "test-plugin-b": { ready: true },
+          "test-plugin": true,
+          "test-plugin-b": true,
         })
       })
 
       it("should optionally filter to single plugin", async () => {
         const result = await actions.prepareEnvironment({ pluginName: "test-plugin" })
         expect(result).to.eql({
-          "test-plugin": { ready: true },
+          "test-plugin": true,
         })
       })
     })
@@ -92,15 +89,15 @@ describe("ActionHelper", () => {
       it("should clean up environment for each configured provider", async () => {
         const result = await actions.cleanupEnvironment({})
         expect(result).to.eql({
-          "test-plugin": { ready: true },
-          "test-plugin-b": { ready: true },
+          "test-plugin": { ready: false },
+          "test-plugin-b": { ready: false },
         })
       })
 
       it("should optionally filter to single plugin", async () => {
         const result = await actions.cleanupEnvironment({ pluginName: "test-plugin" })
         expect(result).to.eql({
-          "test-plugin": { ready: true },
+          "test-plugin": { ready: false },
         })
       })
     })
@@ -123,57 +120,6 @@ describe("ActionHelper", () => {
       it("should delete a secret from the specified provider", async () => {
         const result = await actions.deleteSecret({ pluginName: "test-plugin", key: "foo" })
         expect(result).to.eql({ found: true })
-      })
-    })
-
-    describe("login", () => {
-      it("should run the login procedure for each provider", async () => {
-        const result = await actions.login({})
-        expect(result).to.eql({
-          "test-plugin": { loggedIn: true },
-          "test-plugin-b": { loggedIn: true },
-        })
-      })
-
-      it("should optionally filter to single plugin", async () => {
-        const result = await actions.login({ pluginName: "test-plugin" })
-        expect(result).to.eql({
-          "test-plugin": { loggedIn: true },
-        })
-      })
-    })
-
-    describe("logout", () => {
-      it("should run the logout procedure for each provider", async () => {
-        const result = await actions.logout({})
-        expect(result).to.eql({
-          "test-plugin": { loggedIn: true },
-          "test-plugin-b": { loggedIn: true },
-        })
-      })
-
-      it("should optionally filter to single plugin", async () => {
-        const result = await actions.logout({ pluginName: "test-plugin" })
-        expect(result).to.eql({
-          "test-plugin": { loggedIn: true },
-        })
-      })
-    })
-
-    describe("getLoginStatus", () => {
-      it("should get the login status for each provider", async () => {
-        const result = await actions.getLoginStatus({})
-        expect(result).to.eql({
-          "test-plugin": { loggedIn: true },
-          "test-plugin-b": { loggedIn: true },
-        })
-      })
-
-      it("should optionally filter to single plugin", async () => {
-        const result = await actions.getLoginStatus({ pluginName: "test-plugin" })
-        expect(result).to.eql({
-          "test-plugin": { loggedIn: true },
-        })
       })
     })
   })
@@ -354,7 +300,7 @@ const testPlugin: PluginFactory = async () => ({
     getEnvironmentStatus: async (params) => {
       validate(params, getEnvironmentStatusParamsSchema)
       return {
-        ready: true,
+        ready: false,
       }
     },
 
@@ -381,21 +327,6 @@ const testPlugin: PluginFactory = async () => ({
     deleteSecret: async (params) => {
       validate(params, deleteSecretParamsSchema)
       return { found: true }
-    },
-
-    login: async (params) => {
-      validate(params, loginParamsSchema)
-      return { loggedIn: true }
-    },
-
-    logout: async (params) => {
-      validate(params, logoutParamsSchema)
-      return { loggedIn: true }
-    },
-
-    getLoginStatus: async (params) => {
-      validate(params, getLoginStatusParamsSchema)
-      return { loggedIn: true }
     },
   },
   moduleActions: {

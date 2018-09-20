@@ -20,7 +20,6 @@ import {
   ExecInServiceResult,
   GetSecretResult,
   GetServiceLogsResult,
-  LoginStatusMap,
   ModuleActionOutputs,
   PushResult,
   RunResult,
@@ -53,9 +52,6 @@ import {
   ServiceActionParams,
   SetSecretParams,
   TestModuleParams,
-  GetLoginStatusParams,
-  LoginParams,
-  LogoutParams,
   GetEnvironmentStatusParams,
   PluginModuleActionParamsBase,
   PublishModuleParams,
@@ -73,6 +69,7 @@ import { getDeployTasks } from "./tasks/deploy"
 import { LogEntry } from "./logger/log-entry"
 import { createPluginContext } from "./plugin-context"
 import { CleanupEnvironmentParams } from "./types/plugin/params"
+import { ConfigurationError } from "./exceptions"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -115,35 +112,59 @@ export class ActionHelper implements TypeGuard {
     return Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h) })))
   }
 
+  /**
+   * Checks environment status and calls prepareEnvironment for each provider that isn't flagged as ready.
+   *
+   * If any of the getEnvironmentStatus handlers returns needUserInput=true, this throws and guides the user to
+   * run `garden init`
+   */
   async prepareEnvironment(
-    { force = false, pluginName, logEntry }:
-      { force?: boolean, pluginName?: string, logEntry?: LogEntry },
-  ): Promise<EnvironmentStatusMap> {
+    { force = false, pluginName, logEntry, allowUserInput = false }:
+      { force?: boolean, pluginName?: string, logEntry?: LogEntry, allowUserInput?: boolean },
+  ) {
     const handlers = this.garden.getActionHandlers("prepareEnvironment", pluginName)
+    const statuses = await this.getEnvironmentStatus({ pluginName })
 
-    const statuses = await this.getEnvironmentStatus({})
+    const needUserInput = Object.entries(statuses)
+      .map(([name, status]) => ({ ...status, name }))
+      .filter(status => status.needUserInput === true)
 
-    const result = await Bluebird.props(mapValues(handlers, async (handler, name) => {
+    if (!allowUserInput && needUserInput.length > 0) {
+      const names = needUserInput.map(s => s.name).join(", ")
+      const msgPrefix = needUserInput.length === 1
+        ? `Plugin ${names} has been updated or hasn't been configured, and requires user input.`
+        : `Plugins ${names} have been updated or haven't been configured, and require user input.`
+
+      throw new ConfigurationError(
+        `${msgPrefix}. Please run \`garden init\` and then re-run this command.`,
+        { statuses },
+      )
+    }
+
+    const output = {}
+
+    // sequentially go through the preparation steps, to allow plugins to request user input
+    for (const [name, handler] of Object.entries(handlers)) {
       const status = statuses[name] || { ready: false }
 
       if (status.ready && !force) {
-        return status
+        continue
       }
 
       const envLogEntry = (logEntry || this.garden.log).info({
         status: "active",
         section: name,
-        msg: "Configuring...",
+        msg: "Preparing environment...",
       })
 
-      const res = await handler({ ...this.commonParams(handler), force, status, logEntry: envLogEntry })
+      await handler({ ...this.commonParams(handler), force, status, logEntry: envLogEntry })
 
       envLogEntry.setSuccess("Configured")
 
-      return res
-    }))
+      output[name] = true
+    }
 
-    return <EnvironmentStatusMap>result
+    return output
   }
 
   async cleanupEnvironment(
@@ -152,23 +173,6 @@ export class ActionHelper implements TypeGuard {
     const handlers = this.garden.getActionHandlers("cleanupEnvironment", pluginName)
     await Bluebird.each(values(handlers), h => h({ ...this.commonParams(h) }))
     return this.getEnvironmentStatus({ pluginName })
-  }
-
-  async login({ pluginName }: ActionHelperParams<LoginParams>): Promise<LoginStatusMap> {
-    const handlers = this.garden.getActionHandlers("login", pluginName)
-    await Bluebird.each(values(handlers), h => h({ ...this.commonParams(h) }))
-    return this.getLoginStatus({ pluginName })
-  }
-
-  async logout({ pluginName }: ActionHelperParams<LogoutParams>): Promise<LoginStatusMap> {
-    const handlers = this.garden.getActionHandlers("logout", pluginName)
-    await Bluebird.each(values(handlers), h => h({ ...this.commonParams(h) }))
-    return this.getLoginStatus({ pluginName })
-  }
-
-  async getLoginStatus({ pluginName }: ActionHelperParams<GetLoginStatusParams>): Promise<LoginStatusMap> {
-    const handlers = this.garden.getActionHandlers("getLoginStatus", pluginName)
-    return Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h) })))
   }
 
   async getSecret(params: RequirePluginName<ActionHelperParams<GetSecretParams>>): Promise<GetSecretResult> {
