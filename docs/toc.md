@@ -8,7 +8,7 @@
 * [Using Garden](./using-garden/README.md)
   * [Features and usage](./using-garden/features-and-usage.md)
   * [Configuration files](./using-garden/configuration-files.md)
-  * [Plug-ins](./using-garden/plug-ins.md)
+  * [Providers](./using-garden/providers.md)
 * [Example projects](./using-garden/example-projects/README.md)
   * [Hello world](./using-garden/example-projects/hello-world.md)
   * [Simple project](./using-garden/example-projects/simple-project.md)
