@@ -19,7 +19,7 @@ import { LinkCommand } from "./link/link"
 import { LoginCommand } from "./login"
 import { LogoutCommand } from "./logout"
 import { LogsCommand } from "./logs"
-import { PushCommand } from "./push"
+import { PublishCommand } from "./publish"
 import { RunCommand } from "./run/run"
 import { ScanCommand } from "./scan"
 import { SetCommand } from "./set"
@@ -43,7 +43,7 @@ export const coreCommands: Command[] = [
   new LoginCommand(),
   new LogoutCommand(),
   new LogsCommand(),
-  new PushCommand(),
+  new PublishCommand(),
   new RunCommand(),
   new ScanCommand(),
   new SetCommand(),

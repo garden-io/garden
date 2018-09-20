@@ -28,6 +28,7 @@ import {
   SetSecretResult,
   TestResult,
   PluginActionOutputs,
+  PublishResult,
 } from "./types/plugin/outputs"
 import {
   BuildModuleParams,
@@ -57,6 +58,7 @@ import {
   LogoutParams,
   GetEnvironmentStatusParams,
   PluginModuleActionParamsBase,
+  PublishModuleParams,
 } from "./types/plugin/params"
 import {
   Service,
@@ -207,6 +209,12 @@ export class ActionHelper implements TypeGuard {
 
   async pushModule<T extends Module>(params: ModuleActionHelperParams<PushModuleParams<T>>): Promise<PushResult> {
     return this.callModuleHandler({ params, actionType: "pushModule", defaultHandler: dummyPushHandler })
+  }
+
+  async publishModule<T extends Module>(
+    params: ModuleActionHelperParams<PublishModuleParams<T>>,
+  ): Promise<PublishResult> {
+    return this.callModuleHandler({ params, actionType: "publishModule", defaultHandler: dummyPublishHandler })
   }
 
   async runModule<T extends Module>(params: ModuleActionHelperParams<RunModuleParams<T>>): Promise<RunResult> {
@@ -406,8 +414,15 @@ const dummyLogStreamer = async ({ service, logEntry }: GetServiceLogsParams) => 
   return {}
 }
 
-const dummyPushHandler = async ({ module }: PushModuleParams) => {
-  return { pushed: false, message: chalk.yellow(`No push handler available for module type ${module.type}`) }
+const dummyPushHandler = async () => {
+  return { pushed: false }
+}
+
+const dummyPublishHandler = async ({ module }) => {
+  return {
+    message: chalk.yellow(`No publish handler available for module type ${module.type}`),
+    published: false,
+  }
 }
 
 const dummyDeleteServiceHandler = async ({ module, logEntry }: DeleteServiceParams) => {

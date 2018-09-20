@@ -6,18 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployServiceParams, GetServiceStatusParams } from "../../types/plugin/params"
-import {
-  helpers,
-  ContainerModule,
-  ContainerService,
-} from "../container"
-import {
-  toPairs,
-  extend,
-  keyBy,
-  set,
-} from "lodash"
+import { DeployServiceParams, GetServiceStatusParams, PushModuleParams } from "../../types/plugin/params"
+import { helpers, ContainerModule, ContainerService } from "../container"
+import { toPairs, extend, keyBy, set } from "lodash"
 import { RuntimeContext, ServiceStatus } from "../../types/service"
 import { createIngresses, getIngresses } from "./ingress"
 import { createServices } from "./service"
@@ -28,6 +19,7 @@ import { KubernetesObject } from "./helm"
 import { PluginContext } from "../../plugin-context"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { KubeApi } from "./api"
+import { KubernetesProvider } from "./kubernetes"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_CPU_LIMIT = "500m"
@@ -78,7 +70,7 @@ export async function createContainerObjects(
   const version = service.module.version
   const provider = ctx.provider
   const namespace = await getAppNamespace(ctx, provider)
-  const deployment = await createDeployment(service, runtimeContext, namespace)
+  const deployment = await createDeployment(provider, service, runtimeContext, namespace)
   const kubeservices = await createServices(service, namespace)
   const api = new KubeApi(provider)
   const ingresses = await createIngresses(api, namespace, service)
@@ -95,7 +87,7 @@ export async function createContainerObjects(
 }
 
 export async function createDeployment(
-  service: ContainerService, runtimeContext: RuntimeContext, namespace: string,
+  provider: KubernetesProvider, service: ContainerService, runtimeContext: RuntimeContext, namespace: string,
 ): Promise<KubernetesObject> {
   const spec = service.spec
   // TODO: support specifying replica count
@@ -137,10 +129,6 @@ export async function createDeployment(
           restartPolicy: "Always",
           terminationGracePeriodSeconds: 10,
           dnsPolicy: "ClusterFirst",
-          // TODO: support private registries
-          // imagePullSecrets: [
-          //   { name: DOCKER_AUTH_SECRET_NAME },
-          // ],
         },
       },
     },
@@ -166,9 +154,12 @@ export async function createDeployment(
     valueFrom: { fieldRef: { fieldPath: "status.podIP" } },
   })
 
+  const registryConfig = provider.name === "local-kubernetes" ? undefined : provider.config.deploymentRegistry
+  const image = await helpers.getDeploymentImageId(service.module, registryConfig)
+
   const container: any = {
     name: service.name,
-    image: await helpers.getLocalImageId(service.module),
+    image,
     env,
     ports: [],
     // TODO: make these configurable
@@ -317,6 +308,11 @@ export async function createDeployment(
     deployment.spec.revisionHistoryLimit = 3
   }
 
+  if (provider.config.imagePullSecrets.length > 0) {
+    // add any configured imagePullSecrets
+    deployment.spec.template.spec.imagePullSecrets = provider.config.imagePullSecrets.map(s => ({ name: s.name }))
+  }
+
   deployment.spec.template.spec.containers = [container]
 
   return deployment
@@ -359,4 +355,21 @@ export async function deleteContainerDeployment(
   if (logEntry) {
     found ? logEntry.setSuccess("Service deleted") : logEntry.setWarn("Service not deployed")
   }
+}
+
+export async function pushModule({ ctx, module, logEntry }: PushModuleParams<ContainerModule>) {
+  if (!(await helpers.hasDockerfile(module))) {
+    logEntry && logEntry.setState({ msg: `Nothing to push` })
+    return { pushed: false }
+  }
+
+  const localId = await helpers.getLocalImageId(module)
+  const remoteId = await helpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
+
+  logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
+
+  await helpers.dockerCli(module, `tag ${localId} ${remoteId}`)
+  await helpers.dockerCli(module, `push ${remoteId}`)
+
+  return { pushed: true, message: `Pushed ${localId}` }
 }

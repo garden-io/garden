@@ -157,7 +157,6 @@ export interface BuildResult {
   version?: string
   details?: any
 }
-
 export const buildModuleResultSchema = Joi.object()
   .keys({
     buildLog: Joi.string()
@@ -177,12 +176,24 @@ export interface PushResult {
   pushed: boolean
   message?: string
 }
-
 export const pushModuleResultSchema = Joi.object()
   .keys({
     pushed: Joi.boolean()
       .required()
       .description("Set to true if the module was pushed."),
+    message: Joi.string()
+      .description("Optional result message."),
+  })
+
+export interface PublishResult {
+  published: boolean
+  message?: string
+}
+export const publishModuleResultSchema = Joi.object()
+  .keys({
+    published: Joi.boolean()
+      .required()
+      .description("Set to true if the module was published."),
     message: Joi.string()
       .description("Optional result message."),
   })
@@ -274,6 +285,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   getBuildStatus: Promise<BuildStatus>
   build: Promise<BuildResult>
   pushModule: Promise<PushResult>
+  publishModule: Promise<PublishResult>
   runModule: Promise<RunResult>
   testModule: Promise<TestResult>
   getTestResult: Promise<TestResult | null>

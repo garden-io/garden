@@ -154,6 +154,9 @@ export const buildModuleParamsSchema = moduleActionParamsSchema
 export interface PushModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
 export const pushModuleParamsSchema = moduleActionParamsSchema
 
+export interface PublishModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
+export const publishModuleParamsSchema = moduleActionParamsSchema
+
 export interface RunModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   command: string[]
   interactive: boolean
@@ -288,6 +291,7 @@ export interface ModuleActionParams<T extends Module = Module> {
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
   pushModule: PushModuleParams<T>
+  publishModule: PublishModuleParams<T>
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>

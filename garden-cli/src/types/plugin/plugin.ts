@@ -43,6 +43,7 @@ import {
   runModuleParamsSchema,
   testModuleParamsSchema,
   getTestResultParamsSchema,
+  publishModuleParamsSchema,
 } from "./params"
 import {
   buildModuleResultSchema,
@@ -65,6 +66,7 @@ import {
   setSecretResultSchema,
   testResultSchema,
   validateModuleResultSchema,
+  publishModuleResultSchema,
 } from "./outputs"
 import {
   ModuleActionParams,
@@ -301,6 +303,8 @@ export const moduleActionDescriptions: { [P in ModuleActionName | ServiceActionN
   build: {
     description: dedent`
       Build the current version of a module. This must wait until the build is complete before returning.
+
+      Called ahead of a number of actions, including \`deployService\`, \`pushModule\` and \`publishModule\`.
     `,
     paramsSchema: buildModuleParamsSchema,
     resultSchema: buildModuleResultSchema,
@@ -308,10 +312,32 @@ export const moduleActionDescriptions: { [P in ModuleActionName | ServiceActionN
 
   pushModule: {
     description: dedent`
-      Push the build for current version of a module to a remote, such as a registry or an artifact store.
+      Push the build for current version of a module to the deployment environment, making it accessible
+      to the development environment. An example being a container registry or artifact registry that's
+      available to the deployment environment when deploying.
+
+      Note the distinction to \`publishModule\` which may, depending on the module type, work similarly but
+      is only called when explicitly calling the \`garden publish\`.
+
+      This is usually not necessary for plugins that run locally.
+
+      Called before the \`deployService\` action.
     `,
     paramsSchema: pushModuleParamsSchema,
     resultSchema: pushModuleResultSchema,
+  },
+
+  publishModule: {
+    description: dedent`
+      Publish a built module to a remote registry.
+
+      Note the distinction to \`pushModule\` which may, depending on the module type, work similarly but
+      is automatically called ahead of \`deployService\`.
+
+      Called by the \`garden publish\` command.
+    `,
+    paramsSchema: publishModuleParamsSchema,
+    resultSchema: publishModuleResultSchema,
   },
 
   runModule: {

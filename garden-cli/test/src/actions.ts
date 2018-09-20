@@ -34,6 +34,7 @@ import {
   loginParamsSchema,
   logoutParamsSchema,
   getLoginStatusParamsSchema,
+  publishModuleParamsSchema,
 } from "../../src/types/plugin/params"
 
 const now = new Date()
@@ -431,6 +432,11 @@ const testPlugin: PluginFactory = async () => ({
       build: async (params) => {
         validate(params, buildModuleParamsSchema)
         return {}
+      },
+
+      publishModule: async (params) => {
+        validate(params, publishModuleParamsSchema)
+        return { published: true }
       },
 
       pushModule: async (params) => {

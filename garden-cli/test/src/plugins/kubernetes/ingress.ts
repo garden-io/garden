@@ -27,7 +27,13 @@ const basicConfig: KubernetesConfig = {
   name: "kubernetes",
   context: "my-cluster",
   defaultHostname: "my.domain.com",
+  deploymentRegistry: {
+    hostname: "foo.garden",
+    port: 5000,
+    namespace: "boo",
+  },
   forceSsl: false,
+  imagePullSecrets: [],
   ingressClass: "nginx",
   ingressHttpPort: 80,
   ingressHttpsPort: 443,
@@ -319,7 +325,7 @@ describe("createIngresses", () => {
       volumes: [],
     }
     const moduleConfig = {
-      allowPush: false,
+      allowPublish: false,
       build: {
         command: [],
         dependencies: [],

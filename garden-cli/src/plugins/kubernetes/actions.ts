@@ -18,17 +18,14 @@ import { GetServiceLogsResult, LoginStatus } from "../../types/plugin/outputs"
 import { RunResult, TestResult } from "../../types/plugin/outputs"
 import {
   PrepareEnvironmentParams,
-  DeleteSecretParams,
   CleanupEnvironmentParams,
   ExecInServiceParams,
-  GetSecretParams,
   GetEnvironmentStatusParams,
   GetServiceLogsParams,
   GetServiceOutputsParams,
   GetTestResultParams,
   PluginActionParamsBase,
   RunModuleParams,
-  SetSecretParams,
   TestModuleParams,
   DeleteServiceParams,
   RunServiceParams,
@@ -399,70 +396,6 @@ export async function getServiceLogs(
       resolve({})
     })
   })
-}
-
-export async function getSecret({ ctx, key }: GetSecretParams) {
-  const api = new KubeApi(ctx.provider)
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
-
-  try {
-    const res = await api.core.readNamespacedSecret(key, ns)
-    return { value: Buffer.from(res.body.data.value, "base64").toString() }
-  } catch (err) {
-    if (err.code === 404) {
-      return { value: null }
-    } else {
-      throw err
-    }
-  }
-}
-
-export async function setSecret({ ctx, key, value }: SetSecretParams) {
-  // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
-  const api = new KubeApi(ctx.provider)
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
-  const body = {
-    body: {
-      apiVersion: "v1",
-      kind: "Secret",
-      metadata: {
-        name: key,
-        annotations: {
-          "garden.io/generated": "true",
-        },
-      },
-      type: "generic",
-      stringData: { value },
-    },
-  }
-
-  try {
-    await api.core.createNamespacedSecret(ns, <any>body)
-  } catch (err) {
-    if (err.code === 409) {
-      await api.core.patchNamespacedSecret(key, ns, body)
-    } else {
-      throw err
-    }
-  }
-
-  return {}
-}
-
-export async function deleteSecret({ ctx, key }: DeleteSecretParams) {
-  const api = new KubeApi(ctx.provider)
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
-
-  try {
-    await api.core.deleteNamespacedSecret(key, ns, <any>{})
-  } catch (err) {
-    if (err.code === 404) {
-      return { found: false }
-    } else {
-      throw err
-    }
-  }
-  return { found: true }
 }
 
 export async function getLoginStatus({ ctx }: PluginActionParamsBase): Promise<LoginStatus> {

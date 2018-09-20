@@ -42,7 +42,8 @@ file, but you may also edit it directly (it's at `/etc/hosts` on most platforms)
 
 ## Usage
 
-Once you've completed the above, you can run deploy example project and the exposed ingress endpoints will be secured with TLS!
+Once you've completed the above, you can deploy the example project and the exposed ingress endpoints will be
+secured with TLS!
 
 Deploy the project:
 

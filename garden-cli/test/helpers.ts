@@ -179,7 +179,7 @@ export const defaultModuleConfig: ModuleConfig = {
   type: "test",
   name: "test",
   path: "bla",
-  allowPush: false,
+  allowPublish: false,
   variables: {},
   build: { command: [], dependencies: [] },
   spec: {
