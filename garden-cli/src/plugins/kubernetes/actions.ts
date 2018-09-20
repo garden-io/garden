@@ -160,8 +160,10 @@ export async function cleanupEnvironment({ ctx, logEntry }: CleanupEnvironmentPa
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
   const { ctx, logEntry, service } = params
   const namespace = await getAppNamespace(ctx, ctx.provider)
+  const provider = ctx.provider
 
-  await deleteContainerService({ provider: ctx.provider, logEntry, namespace, serviceName: service.name })
+  await deleteContainerService(
+    { provider, namespace, serviceName: service.name, logEntry })
 
   return getContainerServiceStatus(params)
 }

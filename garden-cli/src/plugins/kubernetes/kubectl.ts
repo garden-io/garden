@@ -193,3 +193,40 @@ export async function applyMany(
     return result.output
   }
 }
+
+export interface DeleteObjectsParams {
+  context: string,
+  namespace: string,
+  labelKey: string,
+  labelValue: string,
+  objectTypes: string[],
+  includeUninitialized?: boolean,
+}
+
+export async function deleteObjectsByLabel(
+  {
+    context,
+    namespace,
+    labelKey,
+    labelValue,
+    objectTypes,
+    includeUninitialized = false,
+  }: DeleteObjectsParams) {
+
+  let args = [
+    "delete",
+    objectTypes.join(","),
+    "-l",
+    `${labelKey}=${labelValue}`,
+  ]
+
+  includeUninitialized && args.push("--include-uninitialized")
+
+  const result = await kubectl(context, namespace).call(args)
+
+  try {
+    return JSON.parse(result.output)
+  } catch (_) {
+    return result.output
+  }
+}
