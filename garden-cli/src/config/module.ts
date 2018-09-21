@@ -59,7 +59,7 @@ export interface BuildConfig {
 export interface ModuleSpec { }
 
 export interface BaseModuleSpec {
-  allowPush: boolean
+  allowPublish: boolean
   build: BuildConfig
   description?: string
   name: string
@@ -89,7 +89,7 @@ export const baseModuleSpecSchema = Joi.object()
     variables: joiVariables()
       .description("Variables that this module can reference and expose as environment variables.")
       .example({ "my-variable": "some-value" }),
-    allowPush: Joi.boolean()
+    allowPublish: Joi.boolean()
       .default(true)
       .description("Set to false to disable pushing this module to remote registries."),
     build: Joi.object().keys({

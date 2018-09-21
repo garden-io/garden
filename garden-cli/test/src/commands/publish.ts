@@ -6,7 +6,7 @@ import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
 import { validateContainerModule } from "../../../src/plugins/container"
 import { PluginFactory } from "../../../src/types/plugin/plugin"
-import { PushCommand } from "../../../src/commands/push"
+import { PublishCommand } from "../../../src/commands/publish"
 import { makeTestGardenA } from "../../helpers"
 import { expectError, taskResultOutputs } from "../../helpers"
 import { ModuleVersion } from "../../../src/vcs/base"
@@ -21,8 +21,8 @@ const build = async () => {
   return { fresh: true }
 }
 
-const pushModule = async () => {
-  return { pushed: true }
+const publishModule = async () => {
+  return { published: true }
 }
 
 const testProvider: PluginFactory = () => {
@@ -32,7 +32,7 @@ const testProvider: PluginFactory = () => {
         validate: validateContainerModule,
         getBuildStatus,
         build,
-        pushModule,
+        publishModule,
       },
     },
   }
@@ -54,7 +54,7 @@ const testProviderB: PluginFactory = () => {
 
 testProviderB.pluginName = "test-plugin-b"
 
-const testProviderNoPush: PluginFactory = () => {
+const testProviderNoPublish: PluginFactory = () => {
   return {
     moduleActions: {
       container: {
@@ -66,7 +66,7 @@ const testProviderNoPush: PluginFactory = () => {
   }
 }
 
-testProviderNoPush.pluginName = "test-plugin"
+testProviderNoPublish.pluginName = "test-plugin"
 
 async function getTestGarden() {
   const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
@@ -74,12 +74,12 @@ async function getTestGarden() {
   return garden
 }
 
-describe("PushCommand", () => {
+describe("PublishCommand", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
 
-  it("should build and push modules in a project", async () => {
+  it("should build and publish modules in a project", async () => {
     const garden = await getTestGarden()
-    const command = new PushCommand()
+    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -95,15 +95,15 @@ describe("PushCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "build.module-b": { fresh: false },
-      "push.module-a": { pushed: true },
-      "push.module-b": { pushed: true },
-      "push.module-c": { pushed: false },
+      "publish.module-a": { published: true },
+      "publish.module-b": { published: true },
+      "publish.module-c": { published: false },
     })
   })
 
   it("should optionally force new build", async () => {
     const garden = await getTestGarden()
-    const command = new PushCommand()
+    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -119,15 +119,15 @@ describe("PushCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true },
       "build.module-b": { fresh: true },
-      "push.module-a": { pushed: true },
-      "push.module-b": { pushed: true },
-      "push.module-c": { pushed: false },
+      "publish.module-a": { published: true },
+      "publish.module-b": { published: true },
+      "publish.module-c": { published: false },
     })
   })
 
   it("should optionally build selected module", async () => {
     const garden = await getTestGarden()
-    const command = new PushCommand()
+    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -142,13 +142,13 @@ describe("PushCommand", () => {
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
-      "push.module-a": { pushed: true },
+      "publish.module-a": { published: true },
     })
   })
 
-  it("should respect allowPush flag", async () => {
+  it("should respect allowPublish flag", async () => {
     const garden = await getTestGarden()
-    const command = new PushCommand()
+    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -162,15 +162,15 @@ describe("PushCommand", () => {
     })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "push.module-c": { pushed: false },
+      "publish.module-c": { published: false },
     })
   })
 
-  it("should fail gracefully if module does not have a provider for push", async () => {
+  it("should fail gracefully if module does not have a provider for publish", async () => {
     const garden = await makeTestGardenA()
     await garden.clearBuilds()
 
-    const command = new PushCommand()
+    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -188,7 +188,10 @@ describe("PushCommand", () => {
         buildLog: "A",
         fresh: true,
       },
-      "push.module-a": { pushed: false, message: chalk.yellow("No push handler available for module type test") },
+      "publish.module-a": {
+        published: false,
+        message: chalk.yellow("No publish handler available for module type test"),
+      },
     })
   })
 
@@ -207,7 +210,7 @@ describe("PushCommand", () => {
     })
 
     it("should throw if module is dirty", async () => {
-      const command = new PushCommand()
+      const command = new PublishCommand()
 
       await expectError(() => command.action({
         garden,
@@ -221,8 +224,8 @@ describe("PushCommand", () => {
       }), "runtime")
     })
 
-    it("should optionally allow pushing dirty commits", async () => {
-      const command = new PushCommand()
+    it("should optionally allow publishing dirty commits", async () => {
+      const command = new PublishCommand()
 
       const { result } = await command.action({
         garden,
@@ -237,7 +240,7 @@ describe("PushCommand", () => {
 
       expect(taskResultOutputs(result!)).to.eql({
         "build.module-a": { fresh: true },
-        "push.module-a": { pushed: true },
+        "publish.module-a": { published: true },
       })
     })
   })

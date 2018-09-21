@@ -22,7 +22,7 @@ describe("plugins.container", () => {
   const handler = gardenPlugin()
   const validate = handler.moduleActions!.container!.validate!
   const build = handler.moduleActions!.container!.build!
-  const pushModule = handler.moduleActions!.container!.pushModule!
+  const publishModule = handler.moduleActions!.container!.publishModule!
   const getBuildStatus = handler.moduleActions!.container!.getBuildStatus!
 
   let garden: Garden
@@ -50,7 +50,7 @@ describe("plugins.container", () => {
     describe("getLocalImageId", () => {
       it("should create identifier with commit hash version if module has a Dockerfile", async () => {
         const module = await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -78,7 +78,7 @@ describe("plugins.container", () => {
 
       it("should create identifier with image name if module has no Dockerfile", async () => {
         const module = await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -105,10 +105,10 @@ describe("plugins.container", () => {
       })
     })
 
-    describe("getRemoteImageId", () => {
+    describe("getPublicImageId", () => {
       it("should use image name including version if specified", async () => {
         const module = await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -129,12 +129,12 @@ describe("plugins.container", () => {
           testConfigs: [],
         })
 
-        expect(await helpers.getRemoteImageId(module)).to.equal("some/image:1.1")
+        expect(await helpers.getPublicImageId(module)).to.equal("some/image:1.1")
       })
 
       it("should use image name if specified with commit hash if no version is set", async () => {
         const module = await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -155,12 +155,12 @@ describe("plugins.container", () => {
           testConfigs: [],
         })
 
-        expect(await helpers.getRemoteImageId(module)).to.equal("some/image:1234")
+        expect(await helpers.getPublicImageId(module)).to.equal("some/image:1234")
       })
 
       it("should use local id if no image name is set", async () => {
         const module = await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -182,7 +182,7 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "getLocalImageId", async () => "test:1234")
 
-        expect(await helpers.getRemoteImageId(module)).to.equal("test:1234")
+        expect(await helpers.getPublicImageId(module)).to.equal("test:1234")
       })
     })
   })
@@ -191,7 +191,7 @@ describe("plugins.container", () => {
     describe("validate", () => {
       it("should validate and parse a container module", async () => {
         const moduleConfig: ContainerModuleConfig = {
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: ["echo", "OK"],
             dependencies: [],
@@ -247,7 +247,7 @@ describe("plugins.container", () => {
         const result = await validate({ ctx, moduleConfig })
 
         expect(result).to.eql({
-          allowPush: false,
+          allowPublish: false,
           build: { command: ["echo", "OK"], dependencies: [] },
           name: "module-a",
           path: modulePath,
@@ -328,7 +328,7 @@ describe("plugins.container", () => {
 
       it("should fail with invalid port in ingress spec", async () => {
         const moduleConfig: ContainerModuleConfig = {
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: ["echo", "OK"],
             dependencies: [],
@@ -377,7 +377,7 @@ describe("plugins.container", () => {
 
       it("should fail with invalid port in httpGet healthcheck spec", async () => {
         const moduleConfig: ContainerModuleConfig = {
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: ["echo", "OK"],
             dependencies: [],
@@ -421,7 +421,7 @@ describe("plugins.container", () => {
 
       it("should fail with invalid port in tcpPort healthcheck spec", async () => {
         const moduleConfig: ContainerModuleConfig = {
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: ["echo", "OK"],
             dependencies: [],
@@ -464,7 +464,7 @@ describe("plugins.container", () => {
     describe("getBuildStatus", () => {
       it("should return ready:true if build exists locally", async () => {
         const module = td.object(await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -492,7 +492,7 @@ describe("plugins.container", () => {
 
       it("should return ready:false if build does not exist locally", async () => {
         const module = td.object(await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -522,7 +522,7 @@ describe("plugins.container", () => {
     describe("build", () => {
       it("pull image if image tag is set and the module doesn't container a Dockerfile", async () => {
         const module = td.object(await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -554,7 +554,7 @@ describe("plugins.container", () => {
 
       it("build image if module contains Dockerfile", async () => {
         const module = td.object(await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -592,10 +592,10 @@ describe("plugins.container", () => {
       })
     })
 
-    describe("pushModule", () => {
-      it("not push image if module doesn't container a Dockerfile", async () => {
+    describe("publishModule", () => {
+      it("not publish image if module doesn't container a Dockerfile", async () => {
         const module = td.object(await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -618,13 +618,13 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "hasDockerfile", async () => false)
 
-        const result = await pushModule({ ctx, module })
-        expect(result).to.eql({ pushed: false })
+        const result = await publishModule({ ctx, module })
+        expect(result).to.eql({ published: false })
       })
 
-      it("push image if module contains a Dockerfile", async () => {
+      it("publish image if module contains a Dockerfile", async () => {
         const module = td.object(await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -647,12 +647,12 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "hasDockerfile", async () => true)
         td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
-        td.replace(helpers, "getRemoteImageId", async () => "some/image:12345")
+        td.replace(helpers, "getPublicImageId", async () => "some/image:12345")
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await pushModule({ ctx, module })
-        expect(result).to.eql({ pushed: true })
+        const result = await publishModule({ ctx, module })
+        expect(result).to.eql({ message: "Published some/image:12345", published: true })
 
         td.verify(dockerCli(module, "tag some/image:12345 some/image:12345"), { times: 0 })
         td.verify(dockerCli(module, "push some/image:12345"))
@@ -660,7 +660,7 @@ describe("plugins.container", () => {
 
       it("tag image if remote id differs from local id", async () => {
         const module = td.object(await getTestModule({
-          allowPush: false,
+          allowPublish: false,
           build: {
             command: [],
             dependencies: [],
@@ -683,12 +683,12 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "hasDockerfile", async () => true)
         td.replace(helpers, "getLocalImageId", () => "some/image:12345")
-        td.replace(helpers, "getRemoteImageId", () => "some/image:1.1")
+        td.replace(helpers, "getPublicImageId", () => "some/image:1.1")
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await pushModule({ ctx, module })
-        expect(result).to.eql({ pushed: true })
+        const result = await publishModule({ ctx, module })
+        expect(result).to.eql({ message: "Published some/image:1.1", published: true })
 
         td.verify(dockerCli(module, "tag some/image:12345 some/image:1.1"))
         td.verify(dockerCli(module, "push some/image:1.1"))

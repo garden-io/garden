@@ -18,6 +18,8 @@ import { getEnvironmentStatus, prepareEnvironment } from "./actions"
 import { validate } from "../../config/common"
 import {
   gardenPlugin as k8sPlugin,
+  KubernetesBaseConfig,
+  kubernetesConfigBase,
   KubernetesConfig,
 } from "./kubernetes"
 import { getSystemGarden, isSystemGarden } from "./system"
@@ -26,7 +28,6 @@ import { LogEntry } from "../../logger/log-entry"
 import { homedir } from "os"
 import { helm } from "./helm"
 import { PluginContext } from "../../plugin-context"
-import { providerConfigBaseSchema } from "../../config/project"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -132,15 +133,13 @@ async function setMinikubeDockerEnv() {
   }
 }
 
-export interface LocalKubernetesConfig extends KubernetesConfig {
+export interface LocalKubernetesConfig extends KubernetesBaseConfig {
   _system?: Symbol
   _systemServices?: string[]
 }
 
-const configSchema = providerConfigBaseSchema
+const configSchema = kubernetesConfigBase
   .keys({
-    context: Joi.string()
-      .description("The kubectl context to use to connect to the Kubernetes cluster."),
     ingressHostname: Joi.string()
       .description("The hostname of the cluster's ingress controller."),
     _system: Joi.any().meta({ internal: true }),
@@ -153,7 +152,7 @@ const configSchema = providerConfigBaseSchema
 export const name = "local-kubernetes"
 
 export async function gardenPlugin({ projectName, config, logEntry }): Promise<GardenPlugin> {
-  config = validate(config, configSchema, { context: "kubernetes provider config" })
+  config = validate(config, configSchema, { context: "local-kubernetes provider config" })
 
   let context = config.context
   let defaultHostname = config.defaultHostname
@@ -208,12 +207,17 @@ export async function gardenPlugin({ projectName, config, logEntry }): Promise<G
     }
   }
 
-  const k8sConfig: LocalKubernetesConfig = {
+  const k8sConfig: KubernetesConfig = {
     name: config.name,
     context,
     defaultHostname,
     defaultUsername: "default",
+    deploymentRegistry: {
+      hostname: "foo.garden",   // this is not used by this plugin, but required by the base plugin
+      namespace: "_",
+    },
     forceSsl: false,
+    imagePullSecrets: config.imagePullSecrets,
     ingressHttpPort: 80,
     ingressHttpsPort: 443,
     ingressClass: "nginx",
@@ -225,8 +229,12 @@ export async function gardenPlugin({ projectName, config, logEntry }): Promise<G
 
   const plugin = k8sPlugin({ config: k8sConfig })
 
+  // override the environment configuration steps
   plugin.actions!.getEnvironmentStatus = getLocalEnvironmentStatus
   plugin.actions!.prepareEnvironment = configureLocalEnvironment
+
+  // no need to push before deploying locally
+  delete plugin.moduleActions!.container.pushModule
 
   return plugin
 }

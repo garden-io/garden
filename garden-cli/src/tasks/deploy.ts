@@ -10,7 +10,6 @@ import { flatten } from "lodash"
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { LogEntry } from "../logger/log-entry"
-import { BuildTask } from "./build"
 import { Task } from "./base"
 import {
   Service,
@@ -21,6 +20,7 @@ import { Module } from "../types/module"
 import { withDependants, computeAutoReloadDependants } from "../watch"
 import { getNames } from "../util/util"
 import { Garden } from "../garden"
+import { PushTask } from "./push"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -57,10 +57,10 @@ export class DeployTask extends Task {
       })
     })
 
-    deps.push(new BuildTask({
+    deps.push(new PushTask({
       garden: this.garden,
       module: this.service.module,
-      force: this.forceBuild,
+      forceBuild: this.forceBuild,
     }))
 
     return deps

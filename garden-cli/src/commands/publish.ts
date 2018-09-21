@@ -15,62 +15,62 @@ import {
   StringsParameter,
 } from "./base"
 import { Module } from "../types/module"
-import { PushTask } from "../tasks/push"
+import { PublishTask } from "../tasks/publish"
 import { RuntimeError } from "../exceptions"
 import { TaskResults } from "../task-graph"
 import { Garden } from "../garden"
 import dedent = require("dedent")
 
-const pushArgs = {
+const publishArgs = {
   module: new StringsParameter({
-    help: "The name of the module(s) to push (skip to push all modules). " +
+    help: "The name of the module(s) to publish (skip to publish all modules). " +
       "Use comma as separator to specify multiple modules.",
   }),
 }
 
-const pushOpts = {
+const publishOpts = {
   "force-build": new BooleanParameter({
-    help: "Force rebuild of module(s) before pushing.",
+    help: "Force rebuild of module(s) before publishing.",
   }),
   "allow-dirty": new BooleanParameter({
-    help: "Allow pushing dirty builds (with untracked/uncommitted files).",
+    help: "Allow publishing dirty builds (with untracked/uncommitted changes).",
   }),
 }
 
-type Args = typeof pushArgs
-type Opts = typeof pushOpts
+type Args = typeof publishArgs
+type Opts = typeof publishOpts
 
-export class PushCommand extends Command<Args, Opts> {
-  name = "push"
-  help = "Build and push built module(s) to remote registry."
+export class PublishCommand extends Command<Args, Opts> {
+  name = "publish"
+  help = "Build and publish module(s) to a remote registry."
 
   description = dedent`
-    Pushes built module artifacts for all or specified modules.
+    Publishes built module artifacts for all or specified modules.
     Also builds modules and dependencies if needed.
 
     Examples:
 
-        garden push                # push artifacts for all modules in the project
-        garden push my-container   # only push my-container
-        garden push --force-build  # force re-build of modules before pushing artifacts
-        garden push --allow-dirty  # allow pushing dirty builds (which usually triggers error)
+        garden publish                # publish artifacts for all modules in the project
+        garden publish my-container   # only publish my-container
+        garden publish --force-build  # force re-build of modules before publishing artifacts
+        garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
   `
 
-  arguments = pushArgs
-  options = pushOpts
+  arguments = publishArgs
+  options = publishOpts
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    garden.log.header({ emoji: "rocket", command: "Push modules" })
+    garden.log.header({ emoji: "rocket", command: "Publish modules" })
 
     const modules = await garden.getModules(args.module)
 
-    const results = await pushModules(garden, modules, !!opts["force-build"], !!opts["allow-dirty"])
+    const results = await publishModules(garden, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
-    return handleTaskResults(garden, "push", { taskResults: results })
+    return handleTaskResults(garden, "publish", { taskResults: results })
   }
 }
 
-export async function pushModules(
+export async function publishModules(
   garden: Garden,
   modules: Module<any>[],
   forceBuild: boolean,
@@ -87,7 +87,7 @@ export async function pushModules(
       )
     }
 
-    const task = new PushTask({ garden, module, forceBuild })
+    const task = new PublishTask({ garden, module, forceBuild })
     await garden.addTask(task)
   }
 

@@ -19,6 +19,7 @@ import {
 } from "../config/common"
 import { pathExists } from "fs-extra"
 import { join } from "path"
+import dedent = require("dedent")
 import { ConfigurationError } from "../exceptions"
 import {
   GardenPlugin,
@@ -27,7 +28,7 @@ import {
   BuildModuleParams,
   GetBuildStatusParams,
   ValidateModuleParams,
-  PushModuleParams,
+  PublishModuleParams,
 } from "../types/plugin/params"
 import { Service, ingressHostnameSchema } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
@@ -170,6 +171,33 @@ const serviceSchema = baseServiceSchema
       .description("List of volumes that should be mounted when deploying the container."),
   })
 
+export interface ContainerRegistryConfig {
+  hostname: string,
+  port?: number,
+  namespace: string,
+}
+
+export const containerRegistryConfigSchema = Joi.object()
+  .keys({
+    hostname: Joi.string()
+      .hostname()
+      .required()
+      .description("The hostname (and optionally port, if not the default port) of the registry.")
+      .example("gcr.io"),
+    port: Joi.number()
+      .integer()
+      .description("The port where the registry listens on, if not the default."),
+    namespace: Joi.string()
+      .default("_")
+      .description("The namespace in the registry where images should be pushed.")
+      .example("my-project"),
+  })
+  .required()
+  .description(dedent`
+    The registry where built containers should be pushed to, and then pulled to the cluster when deploying
+    services.
+  `)
+
 export interface ContainerService extends Service<ContainerModule> { }
 
 export interface ContainerTestSpec extends GenericTestSpec { }
@@ -184,6 +212,9 @@ export interface ContainerModuleSpec extends ModuleSpec {
 }
 
 export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
+
+export const defaultNamespace = "_"
+export const defaultTag = "latest"
 
 export const containerModuleSpecSchema = Joi.object()
   .keys({
@@ -212,29 +243,41 @@ export interface ContainerModule<
   T extends ContainerTestSpec = ContainerTestSpec,
   > extends Module<M, S, T> { }
 
-export async function getImage(module: ContainerModule) {
-  return module.spec.image
+interface ParsedImageId {
+  host?: string
+  namespace?: string
+  repository: string
+  tag: string
 }
 
 export const helpers = {
-  async getLocalImageId(module: ContainerModule) {
+  /**
+   * Returns the image ID used locally, when building and deploying to local environments
+   * (when we don't need to push to remote registries).
+   */
+  async getLocalImageId(module: ContainerModule): Promise<string> {
     if (await helpers.hasDockerfile(module)) {
       const { versionString } = module.version
       return `${module.name}:${versionString}`
     } else {
-      return getImage(module)
+      return module.spec.image!
     }
   },
 
-  async getRemoteImageId(module: ContainerModule) {
+  /**
+   * Returns the image ID to be used for publishing to container registries
+   * (not to be confused with the ID used when pushing to private deployment registries).
+   */
+  async getPublicImageId(module: ContainerModule) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    const image = await getImage(module)
+    const image = module.spec.image
+
     if (image) {
       let [imageName, version] = splitFirst(image, ":")
 
       if (version) {
-        // we use the specified version in the image name, if specified
-        // (allows specifying version on source images, and also setting specific version name when pushing images)
+        // we use the version in the image name, if specified
+        // (allows specifying version on source images, and also setting specific version name when publishing images)
         return image
       } else {
         const { versionString } = module.version
@@ -245,8 +288,73 @@ export const helpers = {
     }
   },
 
+  /**
+   * Returns the image ID to be used when pushing to deployment registries.
+   */
+  async getDeploymentImageId(module: ContainerModule, registryConfig?: ContainerRegistryConfig) {
+    const localId = await helpers.getLocalImageId(module)
+
+    if (!registryConfig) {
+      return localId
+    }
+
+    const parsedId = helpers.parseImageId(localId)
+
+    const host = registryConfig.port ? `${registryConfig.hostname}:${registryConfig.port}` : registryConfig.hostname
+
+    return helpers.unparseImageId({
+      host,
+      namespace: registryConfig.namespace,
+      repository: parsedId.repository,
+      tag: parsedId.tag,
+    })
+  },
+
+  parseImageId(imageId: string): ParsedImageId {
+    const parts = imageId.split("/")
+    let [repository, tag] = parts[0].split(":")
+    if (!tag) {
+      tag = defaultTag
+    }
+
+    if (parts.length === 1) {
+      return {
+        namespace: defaultNamespace,
+        repository,
+        tag,
+      }
+    } else if (parts.length === 2) {
+      return {
+        namespace: parts[0],
+        repository,
+        tag,
+      }
+    } else if (parts.length === 3) {
+      return {
+        host: parts[0],
+        namespace: parts[1],
+        repository,
+        tag,
+      }
+    } else {
+      throw new ConfigurationError(`Invalid container image tag: ${imageId}`, { imageId })
+    }
+  },
+
+  unparseImageId(parsed: ParsedImageId) {
+    const name = `${parsed.repository}:${parsed.tag}`
+
+    if (parsed.host) {
+      return `${parsed.host}/${parsed.namespace}/${name}`
+    } else if (parsed.namespace) {
+      return `${parsed.namespace}/${name}`
+    } else {
+      return name
+    }
+  },
+
   async pullImage(module: ContainerModule) {
-    const identifier = await helpers.getRemoteImageId(module)
+    const identifier = await helpers.getPublicImageId(module)
     await helpers.dockerCli(module, `pull ${identifier}`)
   },
 
@@ -358,7 +466,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
       async build({ module, logEntry }: BuildModuleParams<ContainerModule>) {
         const buildPath = module.buildPath
-        const image = await getImage(module)
+        const image = module.spec.image
 
         if (!!image && !(await helpers.hasDockerfile(module))) {
           if (await helpers.imageExistsLocally(module)) {
@@ -386,17 +494,16 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { fresh: true, details: { identifier } }
       },
 
-      async pushModule({ module, logEntry }: PushModuleParams<ContainerModule>) {
+      async publishModule({ module, logEntry }: PublishModuleParams<ContainerModule>) {
         if (!(await helpers.hasDockerfile(module))) {
-          logEntry && logEntry.setState({ msg: `Nothing to push` })
-          return { pushed: false }
+          logEntry && logEntry.setState({ msg: `Nothing to publish` })
+          return { published: false }
         }
 
         const localId = await helpers.getLocalImageId(module)
-        const remoteId = await helpers.getRemoteImageId(module)
+        const remoteId = await helpers.getPublicImageId(module)
 
-        // build doesn't exist, so we create it
-        logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
+        logEntry && logEntry.setState({ msg: `Publishing image ${remoteId}...` })
 
         if (localId !== remoteId) {
           await helpers.dockerCli(module, `tag ${localId} ${remoteId}`)
@@ -407,7 +514,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         // TODO: check if module already exists remotely?
         await helpers.dockerCli(module, `push ${remoteId}`)
 
-        return { pushed: true }
+        return { published: true, message: `Published ${remoteId}` }
       },
     },
   },

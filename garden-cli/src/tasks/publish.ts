@@ -9,29 +9,32 @@
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
-import { PushResult } from "../types/plugin/outputs"
+import { PublishResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
 import { Garden } from "../garden"
 
-export interface PushTaskParams {
+export interface PublishTaskParams {
   garden: Garden
   module: Module
   forceBuild: boolean
 }
 
-export class PushTask extends Task {
-  type = "push"
+export class PublishTask extends Task {
+  type = "publish"
 
   private module: Module
   private forceBuild: boolean
 
-  constructor({ garden, module, forceBuild }: PushTaskParams) {
+  constructor({ garden, module, forceBuild }: PublishTaskParams) {
     super({ garden, version: module.version })
     this.module = module
     this.forceBuild = forceBuild
   }
 
   async getDependencies() {
+    if (!this.module.allowPublish) {
+      return []
+    }
     return [new BuildTask({
       garden: this.garden,
       module: this.module,
@@ -44,39 +47,36 @@ export class PushTask extends Task {
   }
 
   getDescription() {
-    return `pushing module ${this.module.name}`
+    return `publishing module ${this.module.name}`
   }
 
-  async process(): Promise<PushResult> {
-    // avoid logging stuff if there is no push handler
-    const defaultHandler = async () => ({ pushed: false })
-    const handler = await this.garden.getModuleActionHandler({
-      moduleType: this.module.type,
-      actionType: "pushModule",
-      defaultHandler,
-    })
-
-    if (handler === defaultHandler) {
-      return { pushed: false }
+  async process(): Promise<PublishResult> {
+    if (!this.module.allowPublish) {
+      this.garden.log.info({
+        section: this.module.name,
+        msg: "Publishing disabled",
+        status: "active",
+      })
+      return { published: false }
     }
 
     const logEntry = this.garden.log.info({
       section: this.module.name,
-      msg: "Pushing",
+      msg: "Publishing",
       status: "active",
     })
 
-    let result: PushResult
+    let result: PublishResult
     try {
-      result = await this.garden.actions.pushModule({ module: this.module, logEntry })
+      result = await this.garden.actions.publishModule({ module: this.module, logEntry })
     } catch (err) {
       logEntry.setError()
       throw err
     }
 
-    if (result.pushed) {
+    if (result.published) {
       logEntry.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
-    } else if (result.message) {
+    } else {
       logEntry.setWarn({ msg: result.message, append: true })
     }
 

@@ -1,7 +1,7 @@
 module:
   name: module-c
   type: generic
-  allowPush: false
+  allowPublish: false
   services:
     - name: service-c
       ingresses:

@@ -75,7 +75,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         })
 
         return {
-          allowPush: true,
+          allowPublish: true,
           build: {
             command: [],
             dependencies: parsed.build.dependencies.concat([{

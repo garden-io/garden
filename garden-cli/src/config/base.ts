@@ -113,7 +113,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   if (moduleConfig) {
     // Built-in keys are validated here and the rest are put into the `spec` field
     moduleConfig = {
-      allowPush: moduleConfig.allowPush,
+      allowPublish: moduleConfig.allowPublish,
       build: moduleConfig.build,
       description: moduleConfig.description,
       name: moduleConfig.name,

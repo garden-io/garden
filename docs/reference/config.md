@@ -56,7 +56,7 @@ module:
   # Set to false to disable pushing this module to remote registries.
   #
   # Optional.
-  allowPush: true
+  allowPublish: true
 
   # Specify how to build the module. Note that plugins may specify additional keys on this object.
   #
@@ -246,7 +246,7 @@ module:
   # Set to false to disable pushing this module to remote registries.
   #
   # Optional.
-  allowPush: true
+  allowPublish: true
 
   # Specify how to build the module. Note that plugins may specify additional keys on this object.
   #
@@ -380,7 +380,7 @@ module:
   # Set to false to disable pushing this module to remote registries.
   #
   # Optional.
-  allowPush: true
+  allowPublish: true
 
   # Specify how to build the module. Note that plugins may specify additional keys on this object.
   #

@@ -46,7 +46,7 @@ describe("loadConfig", async () => {
       type: "test",
       description: undefined,
       repositoryUrl: undefined,
-      allowPush: true,
+      allowPublish: true,
       build: { command: ["echo", "A"], dependencies: [] },
       path: modulePathA,
       variables: {},

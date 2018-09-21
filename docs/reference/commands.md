@@ -430,36 +430,36 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--tail` | `-t` | boolean | Continuously stream new logs from the service(s).
 
-### garden push
+### garden publish
 
-Build and push built module(s) to remote registry.
+Build and publish module(s) to a remote registry.
 
-Pushes built module artifacts for all or specified modules.
+Publishes built module artifacts for all or specified modules.
 Also builds modules and dependencies if needed.
 
 Examples:
 
-    garden push                # push artifacts for all modules in the project
-    garden push my-container   # only push my-container
-    garden push --force-build  # force re-build of modules before pushing artifacts
-    garden push --allow-dirty  # allow pushing dirty builds (which usually triggers error)
+    garden publish                # publish artifacts for all modules in the project
+    garden publish my-container   # only publish my-container
+    garden publish --force-build  # force re-build of modules before publishing artifacts
+    garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
 
 ##### Usage
 
-    garden push [module] [options]
+    garden publish [module] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | No | The name of the module(s) to push (skip to push all modules). Use comma as separator to specify multiple modules.
+  | `module` | No | The name of the module(s) to publish (skip to publish all modules). Use comma as separator to specify multiple modules.
 
 ##### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force-build` |  | boolean | Force rebuild of module(s) before pushing.
-  | `--allow-dirty` |  | boolean | Allow pushing dirty builds (with untracked/uncommitted files).
+  | `--force-build` |  | boolean | Force rebuild of module(s) before publishing.
+  | `--allow-dirty` |  | boolean | Allow publishing dirty builds (with untracked/uncommitted changes).
 
 ### garden run module
 

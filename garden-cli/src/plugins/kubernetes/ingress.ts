@@ -6,16 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1Secret } from "@kubernetes/client-node"
 import { groupBy, omit, find } from "lodash"
 import { findByName } from "../../util/util"
 import { ContainerService, ContainerIngressSpec } from "../container"
-import { SecretRef, IngressTlsCertificate } from "./kubernetes"
+import { IngressTlsCertificate } from "./kubernetes"
 import { ServiceIngress, ServiceProtocol } from "../../types/service"
 import * as Bluebird from "bluebird"
 import { KubeApi } from "./api"
 import { ConfigurationError, PluginError } from "../../exceptions"
 import { certpem } from "certpem"
+import { ensureSecret } from "./secrets"
 
 interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
@@ -80,38 +80,6 @@ export async function createIngresses(api: KubeApi, namespace: string, service: 
       spec,
     }
   })
-}
-
-/**
- * Make sure the specified secret exists in the target namespace, copying it if necessary.
- */
-async function ensureSecret(api: KubeApi, secretRef: SecretRef, targetNamespace: string) {
-  let secret: V1Secret
-
-  try {
-    secret = (await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)).body
-  } catch (err) {
-    if (err.code === 404) {
-      throw new ConfigurationError(
-        `Could not find TLS secret '${secretRef.name}' in namespace '${secretRef.namespace}'. ` +
-        `Have you correctly configured your TLS secrets?`,
-        {
-          secretRef,
-        },
-      )
-    } else {
-      throw err
-    }
-  }
-
-  if (secretRef.namespace === targetNamespace) {
-    return
-  }
-
-  delete secret.metadata.resourceVersion
-  secret.metadata.namespace = targetNamespace
-
-  await api.upsert("Secret", targetNamespace, secret)
 }
 
 async function getIngress(

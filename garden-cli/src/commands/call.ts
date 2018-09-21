@@ -59,7 +59,7 @@ export class CallCommand extends Command<Args> {
     if (status.state !== "ready") {
       throw new RuntimeError(`Service ${service.name} is not running`, {
         serviceName: service.name,
-        state: status.state,
+        status,
       })
     }
 
