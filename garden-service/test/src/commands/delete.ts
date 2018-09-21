@@ -17,24 +17,26 @@ describe("DeleteSecretCommand", () => {
 
   it("should delete a secret", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log.info()
     const command = new DeleteSecretCommand()
 
     const key = "mykey"
     const value = "myvalue"
 
-    await garden.actions.setSecret({ key, value, pluginName })
+    await garden.actions.setSecret({ log, key, value, pluginName })
 
-    await command.action({ garden, args: { provider, key }, opts: {} })
+    await command.action({ garden, log, args: { provider, key }, opts: {} })
 
-    expect(await garden.actions.getSecret({ pluginName, key })).to.eql({ value: null })
+    expect(await garden.actions.getSecret({ log, pluginName, key })).to.eql({ value: null })
   })
 
   it("should throw on missing key", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log.info()
     const command = new DeleteSecretCommand()
 
     await expectError(
-      async () => await command.action({ garden, args: { provider, key: "foo" }, opts: {} }),
+      async () => await command.action({ garden, log, args: { provider, key: "foo" }, opts: {} }),
       "not-found",
     )
   })
@@ -69,8 +71,9 @@ describe("DeleteEnvironmentCommand", () => {
 
   it("should destroy environment", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
+    const log = garden.log.info()
 
-    const { result } = await command.action({ garden, args: {}, opts: {} })
+    const { result } = await command.action({ garden, log, args: {}, opts: {} })
 
     expect(result!["test-plugin"]["ready"]).to.be.false
   })
@@ -109,8 +112,9 @@ describe("DeleteServiceCommand", () => {
 
   it("should return the status of the deleted service", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
+    const log = garden.log.info()
 
-    const { result } = await command.action({ garden, args: { service: ["service-a"] }, opts: {} })
+    const { result } = await command.action({ garden, log, args: { service: ["service-a"] }, opts: {} })
     expect(result).to.eql({
       "service-a": { state: "unknown", ingresses: [] },
     })
@@ -118,8 +122,14 @@ describe("DeleteServiceCommand", () => {
 
   it("should return the status of the deleted services", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
+    const log = garden.log.info()
 
-    const { result } = await command.action({ garden, args: { service: ["service-a", "service-b"] }, opts: {} })
+    const { result } = await command.action({
+      garden,
+      log,
+      args: { service: ["service-a", "service-b"] },
+      opts: {},
+    })
     expect(result).to.eql({
       "service-a": { state: "unknown", ingresses: [] },
       "service-b": { state: "unknown", ingresses: [] },

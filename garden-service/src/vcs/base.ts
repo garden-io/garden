@@ -75,7 +75,7 @@ export interface RemoteSourceParams {
   url: string,
   name: string,
   sourceType: ExternalSourceType,
-  logEntry: LogNode,
+  log: LogNode,
 }
 
 export abstract class VcsHandler {

@@ -19,6 +19,7 @@ import { DependencyGraphNodeType } from "../dependency-graph"
 
 export interface TaskTaskParams {
   garden: Garden
+  log: LogEntry
   task: Task
   force: boolean
   forceBuild: boolean
@@ -32,8 +33,8 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
   private task: Task
   private forceBuild: boolean
 
-  constructor({ garden, task, force, forceBuild }: TaskTaskParams) {
-    super({ garden, force, version: task.module.version })
+  constructor({ garden, log, task, force, forceBuild }: TaskTaskParams) {
+    super({ garden, log, force, version: task.module.version })
     this.task = task
     this.forceBuild = forceBuild
   }
@@ -42,6 +43,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
 
     const buildTask = new BuildTask({
       garden: this.garden,
+      log: this.log,
       module: this.task.module,
       force: this.forceBuild,
     })
@@ -52,6 +54,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     const deployTasks = deps.service.map(service => {
       return new DeployTask({
         service,
+        log: this.log,
         garden: this.garden,
         force: false,
         forceBuild: false,
@@ -61,6 +64,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     const taskTasks = deps.task.map(task => {
       return new TaskTask({
         task,
+        log: this.log,
         garden: this.garden,
         force: false,
         forceBuild: false,
@@ -80,35 +84,34 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
   }
 
   async process() {
-
     const task = this.task
     const module = task.module
 
-    // combine all dependencies for all services in the module, to be sure we have all the context we need
-    const dg = await this.garden.getDependencyGraph()
-    const serviceDeps = (await dg.getDependencies(this.depType, this.getName(), false)).service
-    const runtimeContext = await prepareRuntimeContext(this.garden, module, serviceDeps)
-
-    const logEntry = this.garden.log.info({
+    const log = this.log.info({
       section: task.name,
       msg: "Running",
       status: "active",
     })
 
+    // combine all dependencies for all services in the module, to be sure we have all the context we need
+    const dg = await this.garden.getDependencyGraph()
+    const serviceDeps = (await dg.getDependencies(this.depType, this.getName(), false)).service
+    const runtimeContext = await prepareRuntimeContext(this.garden, log, module, serviceDeps)
+
     let result: RunTaskResult
     try {
       result = await this.garden.actions.runTask({
         task,
-        logEntry,
+        log,
         runtimeContext,
         interactive: false,
       })
     } catch (err) {
-      logEntry.setError()
+      log.setError()
       throw err
     }
 
-    logEntry.setSuccess({ msg: chalk.green(`Done (took ${logEntry.getDuration(1)} sec)`), append: true })
+    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
     return result
 

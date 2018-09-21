@@ -9,7 +9,7 @@
 import chalk from "chalk"
 
 import { RootLogNode, LogNode } from "./log-node"
-import { LogEntry, CreateOpts, resolveParam, EmojiName } from "./log-entry"
+import { LogEntry, CreateOpts, resolveParam } from "./log-entry"
 import { getChildEntries } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
@@ -110,18 +110,7 @@ export class Logger extends RootLogNode<LogEntry> {
     return getChildEntries(this).filter(entry => entry.opts.section === section)
   }
 
-  header(
-    { command, emoji, level = LogLevel.info }: { command: string, emoji?: EmojiName, level?: LogLevel },
-  ): LogEntry {
-    const msg = combine([
-      [chalk.bold.magenta(command)],
-      [emoji && this.useEmoji ? " " + printEmoji(emoji) : ""],
-      ["\n"],
-    ])
-    const lvlStr = LogLevel[level]
-    return this[lvlStr](msg)
-  }
-
+  // FIXME: This isn't currently used anywhere, we should find this another place and purpose.
   finish(
     { showDuration = true, level = LogLevel.info }: { showDuration?: boolean, level?: LogLevel } = {},
   ): LogEntry {

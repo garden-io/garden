@@ -13,10 +13,12 @@ import * as td from "testdouble"
 describe("RunModuleCommand", () => {
   // TODO: test optional flags
   let garden
+  let log
 
   beforeEach(async () => {
     td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
     garden = await makeTestGardenA()
+    log = garden.log.info()
   })
 
   it("should run a module without a command param", async () => {
@@ -28,6 +30,7 @@ describe("RunModuleCommand", () => {
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
+      log,
       args: { module: "run-test", command: [] },
       opts: { "interactive": false, "force-build": false },
     })
@@ -54,6 +57,7 @@ describe("RunModuleCommand", () => {
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
+      log,
       args: { module: "run-test", command: ["my", "command"] },
       opts: { "interactive": false, "force-build": false },
     })

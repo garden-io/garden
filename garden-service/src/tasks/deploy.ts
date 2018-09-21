@@ -26,8 +26,8 @@ export interface DeployTaskParams {
   service: Service
   force: boolean
   forceBuild: boolean
-  logEntry?: LogEntry
   fromWatch?: boolean
+  log: LogEntry
   hotReloadServiceNames?: string[]
 }
 
@@ -37,17 +37,15 @@ export class DeployTask extends BaseTask {
 
   private service: Service
   private forceBuild: boolean
-  private logEntry?: LogEntry
   private fromWatch: boolean
   private hotReloadServiceNames: string[]
 
   constructor(
-    { garden, service, force, forceBuild, logEntry, fromWatch = false, hotReloadServiceNames = [] }: DeployTaskParams,
+    { garden, log, service, force, forceBuild, fromWatch = false, hotReloadServiceNames = [] }: DeployTaskParams,
   ) {
-    super({ garden, force, version: service.module.version })
+    super({ garden, log, force, version: service.module.version })
     this.service = service
     this.forceBuild = forceBuild
-    this.logEntry = logEntry
     this.fromWatch = fromWatch
     this.hotReloadServiceNames = hotReloadServiceNames
   }
@@ -63,6 +61,7 @@ export class DeployTask extends BaseTask {
     const deployTasks = await Bluebird.map(deps.service, async (service) => {
       return new DeployTask({
         garden: this.garden,
+        log: this.log,
         service,
         force: false,
         forceBuild: this.forceBuild,
@@ -78,6 +77,7 @@ export class DeployTask extends BaseTask {
         return new TaskTask({
           task,
           garden: this.garden,
+          log: this.log,
           force: false,
           forceBuild: this.forceBuild,
         })
@@ -85,6 +85,7 @@ export class DeployTask extends BaseTask {
 
       const pushTask = new PushTask({
         garden: this.garden,
+        log: this.log,
         module: this.service.module,
         force: this.forceBuild,
         fromWatch: this.fromWatch,
@@ -104,7 +105,7 @@ export class DeployTask extends BaseTask {
   }
 
   async process(): Promise<ServiceStatus> {
-    const logEntry = (this.logEntry || this.garden.log).info({
+    const log = this.log.info({
       section: this.service.name,
       msg: "Checking status",
       status: "active",
@@ -116,7 +117,7 @@ export class DeployTask extends BaseTask {
     const status = await this.garden.actions.getServiceStatus({
       service: this.service,
       verifyHotReloadStatus: hotReloadEnabled ? "enabled" : "disabled",
-      logEntry,
+      log,
     })
 
     if (
@@ -125,14 +126,14 @@ export class DeployTask extends BaseTask {
       status.state === "ready"
     ) {
       // already deployed and ready
-      logEntry.setSuccess({
+      log.setSuccess({
         msg: `Version ${versionString} already deployed`,
         append: true,
       })
       return status
     }
 
-    logEntry.setState("Deploying")
+    log.setState("Deploying")
 
     const dependencies = await this.garden.getServices(this.service.config.dependencies)
 
@@ -140,17 +141,17 @@ export class DeployTask extends BaseTask {
     try {
       result = await this.garden.actions.deployService({
         service: this.service,
-        runtimeContext: await prepareRuntimeContext(this.garden, this.service.module, dependencies),
-        logEntry,
+        runtimeContext: await prepareRuntimeContext(this.garden, log, this.service.module, dependencies),
+        log,
         force: this.force,
         hotReload: hotReloadEnabled,
       })
     } catch (err) {
-      logEntry.setError()
+      log.setError()
       throw err
     }
 
-    logEntry.setSuccess({ msg: chalk.green(`Ready`), append: true })
+    log.setSuccess({ msg: chalk.green(`Ready`), append: true })
     return result
   }
 }

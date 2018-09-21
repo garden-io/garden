@@ -238,9 +238,12 @@ export class GardenCli {
           contextOpts.config = MOCK_CONFIG
         }
         garden = await Garden.factory(root, contextOpts)
+        // Indent -1 so that the children of this entry get printed with indent 0
+        const log = garden.log.info({ indent: -1 })
         // TODO: enforce that commands always output DeepPrimitiveMap
         result = await command.action({
           garden,
+          log,
           args: parsedArgs,
           opts: parsedOpts,
         })

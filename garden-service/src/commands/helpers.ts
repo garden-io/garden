@@ -12,9 +12,12 @@ import { uniq, flatten } from "lodash"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
 import { prepareRuntimeContext, Service } from "../types/service"
+import { LogEntry } from "../logger/log-entry"
 
 // Returns true if validation succeeded, false otherwise.
-export async function validateHotReloadOpt(garden: Garden, hotReloadServiceNames: string[]): Promise<boolean> {
+export async function validateHotReloadOpt(
+  garden: Garden, log: LogEntry, hotReloadServiceNames: string[],
+): Promise<boolean> {
   const incompatibleServices: Service[] = []
 
   for (const hotReloadService of await garden.getServices(hotReloadServiceNames)) {
@@ -39,32 +42,33 @@ export async function validateHotReloadOpt(garden: Garden, hotReloadServiceNames
 
       Aborting.
     `
-    garden.log.error({ msg: errMsg })
+    log.error({ msg: errMsg })
     return false
   }
 
 }
 
-export async function hotReloadAndLog(garden: Garden, module: Module) {
-
-  const logEntry = garden.log.info({
+export async function hotReloadAndLog(garden: Garden, log: LogEntry, module: Module) {
+  log.info({
     section: module.name,
     msg: "Hot reloading",
     status: "active",
   })
 
   const serviceDependencyNames = uniq(flatten(module.services.map(s => s.config.dependencies)))
-  const runtimeContext = await prepareRuntimeContext(garden, module, await garden.getServices(serviceDependencyNames))
+  const runtimeContext = await prepareRuntimeContext(
+    garden, log, module, await garden.getServices(serviceDependencyNames),
+  )
 
   try {
-    await garden.actions.hotReload({ module, runtimeContext })
+    await garden.actions.hotReload({ log, module, runtimeContext })
   } catch (err) {
-    logEntry.setError()
+    log.setError()
     throw err
   }
 
-  const msec = logEntry.getDuration(5) * 1000
-  logEntry.setSuccess({
+  const msec = log.getDuration(5) * 1000
+  log.setSuccess({
     msg: chalk.green(`Done (took ${msec} ms)`),
     append: true,
   })

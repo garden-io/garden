@@ -419,7 +419,7 @@ export interface GardenPlugin {
 
 export interface PluginFactoryParams<T extends Provider = any> {
   config: T["config"],
-  logEntry: LogNode,
+  log: LogNode,
   projectName: string,
 }
 

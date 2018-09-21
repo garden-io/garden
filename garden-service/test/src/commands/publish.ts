@@ -10,6 +10,7 @@ import { PublishCommand } from "../../../src/commands/publish"
 import { makeTestGardenA } from "../../helpers"
 import { expectError, taskResultOutputs } from "../../helpers"
 import { ModuleVersion } from "../../../src/vcs/base"
+import { LogEntry } from "../../../src/logger/log-entry"
 
 const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
 
@@ -50,10 +51,12 @@ describe("PublishCommand", () => {
 
   it("should build and publish modules in a project", async () => {
     const garden = await getTestGarden()
+    const log = garden.log.info()
     const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: {
         module: undefined,
       },
@@ -74,10 +77,12 @@ describe("PublishCommand", () => {
 
   it("should optionally force new build", async () => {
     const garden = await getTestGarden()
+    const log = garden.log.info()
     const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: {
         module: undefined,
       },
@@ -98,10 +103,12 @@ describe("PublishCommand", () => {
 
   it("should optionally build selected module", async () => {
     const garden = await getTestGarden()
+    const log = garden.log.info()
     const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: {
         module: ["module-a"],
       },
@@ -119,10 +126,12 @@ describe("PublishCommand", () => {
 
   it("should respect allowPublish flag", async () => {
     const garden = await getTestGarden()
+    const log = garden.log.info()
     const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: {
         module: ["module-c"],
       },
@@ -139,12 +148,14 @@ describe("PublishCommand", () => {
 
   it("should fail gracefully if module does not have a provider for publish", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log.info()
     await garden.clearBuilds()
 
     const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: {
         module: ["module-a"],
       },
@@ -168,6 +179,7 @@ describe("PublishCommand", () => {
 
   context("module is dirty", () => {
     let garden
+    let log: LogEntry
 
     beforeEach(async () => {
       td.replace(Garden.prototype, "resolveVersion", async (): Promise<ModuleVersion> => {
@@ -178,6 +190,7 @@ describe("PublishCommand", () => {
         }
       })
       garden = await getTestGarden()
+      log = garden.log.info()
     })
 
     it("should throw if module is dirty", async () => {
@@ -185,6 +198,7 @@ describe("PublishCommand", () => {
 
       await expectError(() => command.action({
         garden,
+        log,
         args: {
           module: ["module-a"],
         },
@@ -200,6 +214,7 @@ describe("PublishCommand", () => {
 
       const { result } = await command.action({
         garden,
+        log,
         args: {
           module: ["module-a"],
         },

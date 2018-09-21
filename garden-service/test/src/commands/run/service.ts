@@ -9,14 +9,17 @@ import {
 import { expect } from "chai"
 import { Garden } from "../../../../src/garden"
 import * as td from "testdouble"
+import { LogEntry } from "../../../../src/logger/log-entry"
 
 describe("RunServiceCommand", () => {
   // TODO: test optional flags
   let garden
+  let log: LogEntry
 
   beforeEach(async () => {
     td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
     garden = await makeTestGardenA()
+    log = garden.log.info()
   })
 
   it("should run a service", async () => {
@@ -28,6 +31,7 @@ describe("RunServiceCommand", () => {
     const cmd = new RunServiceCommand()
     const { result } = await cmd.action({
       garden,
+      log,
       args: { service: "test-service" },
       opts: { "force-build": false },
     })

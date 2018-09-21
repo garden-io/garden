@@ -12,9 +12,11 @@ import {
 import { LinkSourceCommand } from "../../../src/commands/link/source"
 import { UnlinkSourceCommand } from "../../../src/commands/unlink/source"
 import { Garden } from "../../../src/garden"
+import { LogEntry } from "../../../src/logger/log-entry"
 
 describe("UnlinkCommand", () => {
   let garden: Garden
+  let log: LogEntry
 
   describe("UnlinkModuleCommand", () => {
     const projectRoot = getDataDir("test-project-ext-module-sources")
@@ -23,10 +25,12 @@ describe("UnlinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
+      log = garden.log.info()
       stubExtSources(garden)
 
       await linkCmd.action({
         garden,
+        log,
         args: {
           module: "module-a",
           path: join(projectRoot, "mock-local-path", "module-a"),
@@ -35,6 +39,7 @@ describe("UnlinkCommand", () => {
       })
       await linkCmd.action({
         garden,
+        log,
         args: {
           module: "module-b",
           path: join(projectRoot, "mock-local-path", "module-b"),
@@ -43,6 +48,7 @@ describe("UnlinkCommand", () => {
       })
       await linkCmd.action({
         garden,
+        log,
         args: {
           module: "module-c",
           path: join(projectRoot, "mock-local-path", "module-c"),
@@ -58,6 +64,7 @@ describe("UnlinkCommand", () => {
     it("should unlink the provided modules", async () => {
       await unlinkCmd.action({
         garden,
+        log,
         args: { module: ["module-a", "module-b"] },
         opts: { all: false },
       })
@@ -70,6 +77,7 @@ describe("UnlinkCommand", () => {
     it("should unlink all modules", async () => {
       await unlinkCmd.action({
         garden,
+        log,
         args: { module: undefined },
         opts: { all: true },
       })
@@ -85,10 +93,13 @@ describe("UnlinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
+      log = garden.log.info()
+
       stubExtSources(garden)
 
       await linkCmd.action({
         garden,
+        log,
         args: {
           source: "source-a",
           path: join(projectRoot, "mock-local-path", "source-a"),
@@ -97,6 +108,7 @@ describe("UnlinkCommand", () => {
       })
       await linkCmd.action({
         garden,
+        log,
         args: {
           source: "source-b",
           path: join(projectRoot, "mock-local-path", "source-b"),
@@ -105,6 +117,7 @@ describe("UnlinkCommand", () => {
       })
       await linkCmd.action({
         garden,
+        log,
         args: {
           source: "source-c",
           path: join(projectRoot, "mock-local-path", "source-c"),
@@ -120,6 +133,7 @@ describe("UnlinkCommand", () => {
     it("should unlink the provided sources", async () => {
       await unlinkCmd.action({
         garden,
+        log,
         args: { source: ["source-a", "source-b"] },
         opts: { all: false },
       })
@@ -132,6 +146,7 @@ describe("UnlinkCommand", () => {
     it("should unlink all sources", async () => {
       await unlinkCmd.action({
         garden,
+        log,
         args: { source: undefined },
         opts: { all: true },
       })

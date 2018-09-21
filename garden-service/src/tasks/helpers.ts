@@ -15,13 +15,14 @@ import { Module } from "../types/module"
 import { Service } from "../types/service"
 import { Task } from "../types/task"
 import { DependencyGraphNode } from "../dependency-graph"
+import { LogEntry } from "../logger/log-entry"
 
 export async function getTasksForModule(
-  { garden, module, hotReloadServiceNames, force = false, forceBuild = false,
+  { garden, log, module, hotReloadServiceNames, force = false, forceBuild = false,
     fromWatch = false, includeDependants = false }:
     {
-      garden: Garden, module: Module, hotReloadServiceNames: string[], force?: boolean, forceBuild?: boolean,
-      fromWatch?: boolean, includeDependants?: boolean,
+      garden: Garden, log: LogEntry, module: Module, hotReloadServiceNames: string[], force?: boolean,
+      forceBuild?: boolean, fromWatch?: boolean, includeDependants?: boolean,
     },
 ) {
 
@@ -31,7 +32,7 @@ export async function getTasksForModule(
   let tasks: Task[] = []
 
   if (!includeDependants) {
-    buildTasks.push(new BuildTask({ garden, module, force: true, fromWatch, hotReloadServiceNames }))
+    buildTasks.push(new BuildTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
     services = module.services
     tasks = module.tasks
   } else {
@@ -51,7 +52,7 @@ export async function getTasksForModule(
       tasks = serviceDeps.task
     } else {
       const dependants = await dg.getDependantsForModule(module, dependantFilterFn)
-      buildTasks.push(new BuildTask({ garden, module, force: true, fromWatch, hotReloadServiceNames }))
+      buildTasks.push(new BuildTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
       dependantBuildModules = dependants.build
       services = module.services.concat(dependants.service)
       tasks = module.tasks.concat(dependants.task)
@@ -59,13 +60,13 @@ export async function getTasksForModule(
   }
 
   buildTasks.push(...dependantBuildModules
-    .map(m => new BuildTask({ garden, module: m, force: forceBuild, fromWatch, hotReloadServiceNames })))
+    .map(m => new BuildTask({ garden, log, module: m, force: forceBuild, fromWatch, hotReloadServiceNames })))
 
   const deployTasks = services
-    .map(service => new DeployTask({ garden, service, force, forceBuild, fromWatch, hotReloadServiceNames }))
+    .map(service => new DeployTask({ garden, log, service, force, forceBuild, fromWatch, hotReloadServiceNames }))
 
   const taskTasks = tasks
-    .map(task => new TaskTask({ garden, task, force, forceBuild }))
+    .map(task => new TaskTask({ garden, log, task, force, forceBuild }))
 
   return [...buildTasks, ...deployTasks, ...taskTasks]
 

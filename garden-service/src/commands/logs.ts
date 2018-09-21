@@ -55,7 +55,7 @@ export class LogsCommand extends Command<Args, Opts> {
   options = logsOpts
   loggerType = LoggerType.basic
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const tail = opts.tail
     const services = await garden.getServices(args.service)
 
@@ -74,7 +74,7 @@ export class LogsCommand extends Command<Args, Opts> {
         } catch { }
       }
 
-      garden.log.info({
+      log.info({
         section: entry.serviceName,
         msg: [timestamp, chalk.white(entry.msg)],
       })
@@ -85,9 +85,9 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     await Bluebird.map(services, async (service: Service<any>) => {
-      const status = await garden.actions.getServiceStatus({ service })
+      const status = await garden.actions.getServiceStatus({ log, service })
       if (status.state === "ready" || status.state === "outdated") {
-        await garden.actions.getServiceLogs({ service, stream, tail })
+        await garden.actions.getServiceLogs({ log, service, stream, tail })
       } else {
         await stream.write({
           serviceName: service.name,

@@ -86,7 +86,7 @@ export async function getContainerServiceStatus(
 }
 
 export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
-  const { ctx, service, runtimeContext, force, logEntry, hotReload } = params
+  const { ctx, service, runtimeContext, force, log, hotReload } = params
 
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const enableHotReload = !!hotReload && ctx.provider.name === "local-kubernetes"
@@ -96,7 +96,7 @@ export async function deployContainerService(params: DeployServiceParams<Contain
   // TODO: use Helm instead of kubectl apply
   const pruneSelector = "service=" + service.name
   await applyMany(ctx.provider.config.context, objects, { force, namespace, pruneSelector })
-  await waitForObjects({ ctx, provider: ctx.provider, service, objects, logEntry })
+  await waitForObjects({ ctx, provider: ctx.provider, service, objects, log })
 
   return getContainerServiceStatus(params)
 }
@@ -518,11 +518,11 @@ export function rsyncTargetPath(path: string) {
 }
 
 export async function deleteContainerService(
-  { namespace, provider, serviceName, logEntry },
+  { namespace, provider, serviceName, log },
 ) {
 
   const context = provider.config.context
-  await deleteContainerDeployment({ namespace, provider, serviceName, logEntry })
+  await deleteContainerDeployment({ namespace, provider, serviceName, log })
   await deleteObjectsByLabel({
     context,
     namespace,
@@ -535,7 +535,7 @@ export async function deleteContainerService(
 }
 
 export async function deleteContainerDeployment(
-  { namespace, provider, serviceName, logEntry },
+  { namespace, provider, serviceName, log },
 ) {
 
   let found = true
@@ -551,21 +551,21 @@ export async function deleteContainerDeployment(
     }
   }
 
-  if (logEntry) {
-    found ? logEntry.setSuccess("Service deleted") : logEntry.setWarn("Service not deployed")
+  if (log) {
+    found ? log.setSuccess("Service deleted") : log.setWarn("Service not deployed")
   }
 }
 
-export async function pushModule({ ctx, module, logEntry }: PushModuleParams<ContainerModule>) {
+export async function pushModule({ ctx, module, log }: PushModuleParams<ContainerModule>) {
   if (!(await helpers.hasDockerfile(module))) {
-    logEntry && logEntry.setState({ msg: `Nothing to push` })
+    log.setState({ msg: `Nothing to push` })
     return { pushed: false }
   }
 
   const localId = await helpers.getLocalImageId(module)
   const remoteId = await helpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
 
-  logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
+  log.setState({ msg: `Pushing image ${remoteId}...` })
 
   await helpers.dockerCli(module, ["tag", localId, remoteId])
   await helpers.dockerCli(module, ["push", remoteId])

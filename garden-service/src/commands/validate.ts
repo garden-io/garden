@@ -11,6 +11,7 @@ import {
   CommandParams,
   CommandResult,
 } from "./base"
+import { logHeader } from "../logger/util"
 import dedent = require("dedent")
 
 export class ValidateCommand extends Command {
@@ -21,8 +22,8 @@ export class ValidateCommand extends Command {
     Throws an error and exits with code 1 if something's not right in your garden.yml files.
   `
 
-  async action({ garden }: CommandParams): Promise<CommandResult> {
-    garden.log.header({ emoji: "heavy_check_mark", command: "validate" })
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
+    logHeader({ log, emoji: "heavy_check_mark", command: "validate" })
 
     await garden.getModules()
 

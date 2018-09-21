@@ -6,6 +6,7 @@ import {
 import { Garden } from "../../../src/garden"
 import { gardenPlugin } from "../../../src/plugins/generic"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../src/constants"
+import { LogEntry } from "../../../src/logger/log-entry"
 import {
   writeModuleVersionFile,
   readModuleVersionFile,
@@ -20,9 +21,11 @@ describe("generic plugin", () => {
   const moduleName = "module-a"
 
   let garden: Garden
+  let log: LogEntry
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { generic: gardenPlugin })
+    log = garden.log.info()
     await garden.clearBuilds()
   })
 
@@ -35,7 +38,7 @@ describe("generic plugin", () => {
 
       await writeModuleVersionFile(versionFilePath, version)
 
-      const result = await garden.actions.getBuildStatus({ module })
+      const result = await garden.actions.getBuildStatus({ log, module })
 
       expect(result.ready).to.be.true
     })
@@ -48,7 +51,7 @@ describe("generic plugin", () => {
       const buildPath = module.buildPath
       const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
 
-      await garden.actions.build({ module })
+      await garden.actions.build({ log, module })
 
       const versionFileContents = await readModuleVersionFile(versionFilePath)
 

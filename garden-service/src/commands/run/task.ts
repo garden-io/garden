@@ -23,6 +23,7 @@ import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 import { TaskTask } from "../../tasks/task"
 import { TaskResult } from "../../task-graph"
+import { logHeader } from "../../logger/util"
 
 const runArgs = {
   task: new StringParameter({
@@ -54,19 +55,16 @@ export class RunTaskCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult>> {
     const task = await garden.getTask(args.task)
     const module = task.module
 
     const msg = `Running task ${chalk.white(task.name)}`
 
-    garden.log.header({
-      emoji: "runner",
-      command: msg,
-    })
+    logHeader({ log, emoji: "runner", command: msg })
 
-    await garden.actions.prepareEnvironment({})
-    const taskTask = new TaskTask({ garden, task, force: true, forceBuild: opts["force-build"] })
+    await garden.actions.prepareEnvironment({ log })
+    const taskTask = new TaskTask({ garden, task, log, force: true, forceBuild: opts["force-build"] })
     await garden.addTask(taskTask)
     const result = (await garden.processTasks())[taskTask.getBaseKey()]
 
@@ -74,14 +72,14 @@ export class RunTaskCommand extends Command<Args, Opts> {
     const depNames = uniq(flatten(module.serviceConfigs.map(s => s.dependencies)))
     const deps = await garden.getServices(depNames)
 
-    const runtimeContext = await prepareRuntimeContext(garden, module, deps)
+    const runtimeContext = await prepareRuntimeContext(garden, log, module, deps)
 
-    printRuntimeContext(garden, runtimeContext)
+    printRuntimeContext(log, runtimeContext)
 
     garden.log.info("")
     garden.log.info(chalk.white(result.output.output))
     garden.log.info("")
-    garden.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+    logHeader({ log, emoji: "heavy_check_mark", command: `Done!` })
 
     return { result }
   }

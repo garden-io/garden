@@ -6,10 +6,12 @@ import { makeTestGardenA, taskResultOutputs } from "../../helpers"
 describe("commands.test", () => {
   it("should run all tests in a simple project", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log.info()
     const command = new TestCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: { module: undefined },
       opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
     })
@@ -41,10 +43,12 @@ describe("commands.test", () => {
 
   it("should optionally test single module", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log.info()
     const command = new TestCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: { module: ["module-a"] },
       opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
     })

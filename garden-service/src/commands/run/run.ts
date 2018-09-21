@@ -14,7 +14,7 @@ import { RunModuleCommand } from "./module"
 import { RunServiceCommand } from "./service"
 import { RunTaskCommand } from "./task"
 import { RunTestCommand } from "./test"
-import { Garden } from "../../garden"
+import { LogEntry } from "../../logger/log-entry"
 
 export class RunCommand extends Command {
   name = "run"
@@ -30,11 +30,11 @@ export class RunCommand extends Command {
   async action() { return {} }
 }
 
-export function printRuntimeContext(garden: Garden, runtimeContext: RuntimeContext) {
-  garden.log.verbose("-----------------------------------\n")
-  garden.log.verbose("Environment variables:")
-  garden.log.verbose(highlightYaml(safeDump(runtimeContext.envVars)))
-  garden.log.verbose("Dependencies:")
-  garden.log.verbose(highlightYaml(safeDump(runtimeContext.dependencies)))
-  garden.log.verbose("-----------------------------------\n")
+export function printRuntimeContext(log: LogEntry, runtimeContext: RuntimeContext) {
+  log.verbose("-----------------------------------\n")
+  log.verbose("Environment variables:")
+  log.verbose(highlightYaml(safeDump(runtimeContext.envVars)))
+  log.verbose("Dependencies:")
+  log.verbose(highlightYaml(safeDump(runtimeContext.dependencies)))
+  log.verbose("-----------------------------------\n")
 }

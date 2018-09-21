@@ -6,8 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogNode } from "./log-node"
-import { LogEntry, CreateOpts } from "./log-entry"
+import { LogNode, LogLevel } from "./log-node"
+import { LogEntry, CreateOpts, EmojiName } from "./log-entry"
+import { combine, printEmoji } from "./renderers"
+import chalk from "chalk"
 
 export interface Node {
   children: any[]
@@ -104,4 +106,21 @@ export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
   }
 
   return columns
+}
+
+interface LogHeaderOptions {
+  log: LogEntry
+  command: string
+  emoji?: EmojiName
+  level?: LogLevel
+}
+
+export function logHeader({ log, command, emoji, level = LogLevel.info }: LogHeaderOptions): LogEntry {
+  const msg = combine([
+    [chalk.bold.magenta(command)],
+    [emoji && log.root.useEmoji ? " " + printEmoji(emoji) : ""],
+    ["\n"],
+  ])
+  const lvlStr = LogLevel[level]
+  return log[lvlStr](msg)
 }

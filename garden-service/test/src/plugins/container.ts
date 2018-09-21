@@ -18,6 +18,7 @@ import {
 } from "../../helpers"
 import { moduleFromConfig } from "../../../src/types/module"
 import { ModuleConfig } from "../../../src/config/module"
+import { LogEntry } from "../../../src/logger/log-entry"
 
 describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -55,9 +56,11 @@ describe("plugins.container", () => {
 
   let garden: Garden
   let ctx: PluginContext
+  let log: LogEntry
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { container: gardenPlugin })
+    log = garden.log.info()
     ctx = garden.getPluginContext("container")
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
@@ -521,7 +524,7 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "imageExistsLocally", async () => true)
 
-        const result = await getBuildStatus({ ctx, module, buildDependencies: {} })
+        const result = await getBuildStatus({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ ready: true })
       })
 
@@ -530,7 +533,7 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "imageExistsLocally", async () => false)
 
-        const result = await getBuildStatus({ ctx, module, buildDependencies: {} })
+        const result = await getBuildStatus({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ ready: false })
       })
     })
@@ -545,7 +548,7 @@ describe("plugins.container", () => {
         td.replace(helpers, "pullImage", async () => null)
         td.replace(helpers, "imageExistsLocally", async () => false)
 
-        const result = await build({ ctx, module, buildDependencies: {} })
+        const result = await build({ ctx, log, module, buildDependencies: {} })
 
         expect(result).to.eql({ fetched: true })
       })
@@ -561,7 +564,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await build({ ctx, module, buildDependencies: {} })
+        const result = await build({ ctx, log, module, buildDependencies: {} })
 
         expect(result).to.eql({
           fresh: true,
@@ -584,7 +587,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await build({ ctx, module, buildDependencies: {} })
+        const result = await build({ ctx, log, module, buildDependencies: {} })
 
         expect(result).to.eql({
           fresh: true,
@@ -611,7 +614,7 @@ describe("plugins.container", () => {
 
         td.replace(helpers, "hasDockerfile", async () => false)
 
-        const result = await publishModule({ ctx, module, buildDependencies: {} })
+        const result = await publishModule({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ published: false })
       })
 
@@ -626,7 +629,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await publishModule({ ctx, module, buildDependencies: {} })
+        const result = await publishModule({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ message: "Published some/image:12345", published: true })
 
         td.verify(dockerCli(module, ["tag", "some/image:12345", "some/image:12345"]), { times: 0 })
@@ -644,7 +647,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(helpers, "dockerCli")
 
-        const result = await publishModule({ ctx, module, buildDependencies: {} })
+        const result = await publishModule({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ message: "Published some/image:1.1", published: true })
 
         td.verify(dockerCli(module, ["tag", "some/image:12345", "some/image:1.1"]))

@@ -69,7 +69,7 @@ const configSchema = kubernetesConfigBase
 
 export const name = "local-kubernetes"
 
-export async function gardenPlugin({ projectName, config, logEntry }): Promise<GardenPlugin> {
+export async function gardenPlugin({ projectName, config, log }): Promise<GardenPlugin> {
   config = validate(config, configSchema, { context: "local-kubernetes provider config" })
 
   let context = config.context
@@ -84,14 +84,14 @@ export async function gardenPlugin({ projectName, config, logEntry }): Promise<G
     if (currentContext && supportedContexts.includes(currentContext)) {
       // prefer current context if set and supported
       context = currentContext
-      logEntry.debug({ section: name, msg: `Using current context: ${context}` })
+      log.debug({ section: name, msg: `Using current context: ${context}` })
     } else if (kubeConfig.contexts) {
       const availableContexts = kubeConfig.contexts.map(c => c.name)
 
       for (const supportedContext of supportedContexts) {
         if (availableContexts.includes(supportedContext)) {
           context = supportedContext
-          logEntry.debug({ section: name, msg: `Using detected context: ${context}` })
+          log.debug({ section: name, msg: `Using detected context: ${context}` })
           break
         }
       }
@@ -100,7 +100,7 @@ export async function gardenPlugin({ projectName, config, logEntry }): Promise<G
 
   if (!context) {
     context = supportedContexts[0]
-    logEntry.debug({ section: name, msg: `No kubectl context auto-detected, using default: ${context}` })
+    log.debug({ section: name, msg: `No kubectl context auto-detected, using default: ${context}` })
   }
 
   if (context === "minikube") {

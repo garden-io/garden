@@ -17,6 +17,7 @@ import { TestResult } from "../types/plugin/outputs"
 import { BaseTask, TaskParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
 import { DependencyGraphNodeType } from "../dependency-graph"
 
 class TestError extends Error {
@@ -27,6 +28,7 @@ class TestError extends Error {
 
 export interface TestTaskParams {
   garden: Garden
+  log: LogEntry
   module: Module
   testConfig: TestConfig
   force: boolean
@@ -41,8 +43,8 @@ export class TestTask extends BaseTask {
   private testConfig: TestConfig
   private forceBuild: boolean
 
-  constructor({ garden, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
-    super({ garden, force, version })
+  constructor({ garden, log, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
+    super({ garden, log, force, version })
     this.module = module
     this.testConfig = testConfig
     this.force = force
@@ -67,6 +69,7 @@ export class TestTask extends BaseTask {
 
     const deps: BaseTask[] = [new BuildTask({
       garden: this.garden,
+      log: this.log,
       module: this.module,
       force: this.forceBuild,
     })]
@@ -74,6 +77,7 @@ export class TestTask extends BaseTask {
     for (const service of services) {
       deps.push(new DeployTask({
         garden: this.garden,
+        log: this.log,
         service,
         force: false,
         forceBuild: this.forceBuild,
@@ -96,7 +100,7 @@ export class TestTask extends BaseTask {
     const testResult = await this.getTestResult()
 
     if (testResult && testResult.success) {
-      const passedEntry = this.garden.log.info({
+      const passedEntry = this.log.info({
         section: this.module.name,
         msg: `${this.testConfig.name} tests`,
       })
@@ -104,18 +108,19 @@ export class TestTask extends BaseTask {
       return testResult
     }
 
-    const entry = this.garden.log.info({
+    const log = this.log.info({
       section: this.module.name,
       msg: `Running ${this.testConfig.name} tests`,
       status: "active",
     })
 
     const dependencies = await getTestDependencies(this.garden, this.testConfig)
-    const runtimeContext = await prepareRuntimeContext(this.garden, this.module, dependencies)
+    const runtimeContext = await prepareRuntimeContext(this.garden, log, this.module, dependencies)
 
     let result: TestResult
     try {
       result = await this.garden.actions.testModule({
+        log,
         interactive: false,
         module: this.module,
         runtimeContext,
@@ -123,13 +128,13 @@ export class TestTask extends BaseTask {
         testConfig: this.testConfig,
       })
     } catch (err) {
-      entry.setError()
+      log.setError()
       throw err
     }
     if (result.success) {
-      entry.setSuccess({ msg: chalk.green(`Success`), append: true })
+      log.setSuccess({ msg: chalk.green(`Success`), append: true })
     } else {
-      entry.setError({ msg: chalk.red(`Failed!`), append: true })
+      log.setError({ msg: chalk.red(`Failed!`), append: true })
       throw new TestError(result.output)
     }
 
@@ -142,6 +147,7 @@ export class TestTask extends BaseTask {
     }
 
     return this.garden.actions.getTestResult({
+      log: this.log,
       module: this.module,
       testName: this.testConfig.name,
       version: this.version,
@@ -150,25 +156,19 @@ export class TestTask extends BaseTask {
 }
 
 export async function getTestTasks(
-  { garden, module, name, force = false, forceBuild = false }:
-    { garden: Garden, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
+  { garden, log, module, name, force = false, forceBuild = false }:
+    { garden: Garden, log: LogEntry, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
 ) {
-  const tasks: Promise<TestTask>[] = []
+  const configs = module.testConfigs.filter(test => !name || test.name === name)
 
-  for (const test of module.testConfigs) {
-    if (name && test.name !== name) {
-      continue
-    }
-    tasks.push(TestTask.factory({
-      garden,
-      force,
-      forceBuild,
-      testConfig: test,
-      module,
-    }))
-  }
-
-  return Bluebird.all(tasks)
+  return Bluebird.map(configs, test => TestTask.factory({
+    garden,
+    log,
+    force,
+    forceBuild,
+    testConfig: test,
+    module,
+  }))
 }
 
 async function getTestDependencies(garden: Garden, testConfig: TestConfig) {

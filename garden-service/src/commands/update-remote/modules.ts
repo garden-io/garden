@@ -20,6 +20,7 @@ import { SourceConfig } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { hasRemoteSource } from "../../util/ext-source-util"
+import { logHeader } from "../../logger/util"
 
 const updateRemoteModulesArguments = {
   module: new StringsParameter({
@@ -44,10 +45,8 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  async action(
-    { garden, args }: CommandParams<Args>,
-  ): Promise<CommandResult<SourceConfig[]>> {
-    garden.log.header({ emoji: "hammer_and_wrench", command: "update-remote modules" })
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<SourceConfig[]>> {
+    logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote modules" })
 
     const { module } = args
     const modules = await garden.getModules(module)
@@ -74,7 +73,7 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
     // TODO Update remotes in parallel. Currently not possible since updating might
     // trigger a username and password prompt from git.
     for (const { name, repositoryUrl } of moduleSources) {
-      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "module", logEntry: garden.log })
+      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "module", log })
     }
 
     await pruneRemoteSources({ projectRoot: garden.projectRoot, type: "module", sources: moduleSources })

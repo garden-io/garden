@@ -65,8 +65,8 @@ async function prepareNamespaces({ ctx }: GetEnvironmentStatusParams) {
   ])
 }
 
-export async function getRemoteEnvironmentStatus({ ctx, logEntry }: GetEnvironmentStatusParams) {
-  const loggedIn = await getLoginStatus({ ctx })
+export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {
+  const loggedIn = await getLoginStatus({ ctx, log })
 
   if (!loggedIn) {
     return {
@@ -75,8 +75,8 @@ export async function getRemoteEnvironmentStatus({ ctx, logEntry }: GetEnvironme
     }
   }
 
-  await prepareNamespaces({ ctx })
-  await helm(ctx.provider, logEntry, "init", "--client-only")
+  await prepareNamespaces({ ctx, log })
+  await helm(ctx.provider, log, "init", "--client-only")
 
   return {
     ready: true,
@@ -84,12 +84,12 @@ export async function getRemoteEnvironmentStatus({ ctx, logEntry }: GetEnvironme
   }
 }
 
-export async function getLocalEnvironmentStatus({ ctx, logEntry }: GetEnvironmentStatusParams) {
+export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {
   let ready = true
   let needUserInput = false
 
-  await prepareNamespaces({ ctx })
-  await helm(ctx.provider, logEntry, "init", "--client-only")
+  await prepareNamespaces({ ctx, log })
+  await helm(ctx.provider, log, "init", "--client-only")
 
   // TODO: check if mkcert has been installed
   // TODO: check if all certs have been generated
@@ -97,7 +97,7 @@ export async function getLocalEnvironmentStatus({ ctx, logEntry }: GetEnvironmen
   // check if system services are deployed
   if (!isSystemGarden(ctx.provider)) {
     const sysGarden = await getSystemGarden(ctx.provider)
-    const sysStatus = await sysGarden.actions.getStatus()
+    const sysStatus = await sysGarden.actions.getStatus({ log })
 
     const systemReady = sysStatus.providers[ctx.provider.config.name].ready &&
       every(values(sysStatus.services).map(s => s.state === "ready"))
@@ -113,30 +113,30 @@ export async function getLocalEnvironmentStatus({ ctx, logEntry }: GetEnvironmen
   }
 }
 
-export async function prepareRemoteEnvironment({ ctx, logEntry }: PrepareEnvironmentParams) {
-  const loggedIn = await getLoginStatus({ ctx, logEntry })
+export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentParams) {
+  const loggedIn = await getLoginStatus({ ctx, log })
 
   if (!loggedIn) {
-    await login({ ctx, logEntry })
+    await login({ ctx, log })
   }
 
   return {}
 }
 
-export async function prepareLocalEnvironment({ ctx, force, logEntry }: PrepareEnvironmentParams) {
+export async function prepareLocalEnvironment({ ctx, force, log }: PrepareEnvironmentParams) {
   // make sure system services are deployed
   if (!isSystemGarden(ctx.provider)) {
-    await configureSystemServices({ ctx, force, logEntry })
+    await configureSystemServices({ ctx, force, log })
   }
 
   // TODO: make sure all certs have been generated
   return {}
 }
 
-export async function cleanupEnvironment({ ctx, logEntry }: CleanupEnvironmentParams) {
+export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams) {
   const api = new KubeApi(ctx.provider)
   const namespace = await getAppNamespace(ctx, ctx.provider)
-  const entry = logEntry && logEntry.info({
+  const entry = log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace} (this may take a while)`,
     status: "active",
@@ -154,7 +154,7 @@ export async function cleanupEnvironment({ ctx, logEntry }: CleanupEnvironmentPa
 
   entry && entry.setSuccess()
 
-  await logout({ ctx, logEntry })
+  await logout({ ctx, log })
 
   // Wait until namespace has been deleted
   const startTime = new Date().getTime()
@@ -187,8 +187,8 @@ async function getLoginStatus({ ctx }: PluginActionParamsBase) {
   return !!currentUsername
 }
 
-async function login({ ctx, logEntry }: PluginActionParamsBase) {
-  const entry = logEntry && logEntry.info({ section: "kubernetes", msg: "Logging in..." })
+async function login({ ctx, log }: PluginActionParamsBase) {
+  const entry = log.info({ section: "kubernetes", msg: "Logging in..." })
   const localConfig = await ctx.localConfigStore.get()
 
   let currentUsername
@@ -255,8 +255,8 @@ async function login({ ctx, logEntry }: PluginActionParamsBase) {
   return { loggedIn: true }
 }
 
-async function logout({ ctx, logEntry }: PluginActionParamsBase) {
-  const entry = logEntry && logEntry.info({ section: "kubernetes", msg: "Logging out..." })
+async function logout({ ctx, log }: PluginActionParamsBase) {
+  const entry = log.info({ section: "kubernetes", msg: "Logging out..." })
   const localConfig = await ctx.localConfigStore.get()
   const k8sConfig = localConfig.kubernetes || {}
 
@@ -269,15 +269,15 @@ async function logout({ ctx, logEntry }: PluginActionParamsBase) {
 }
 
 async function configureSystemServices(
-  { ctx, force, logEntry }:
-    { ctx: PluginContext, force: boolean, logEntry?: LogEntry },
+  { ctx, force, log }:
+    { ctx: PluginContext, force: boolean, log: LogEntry },
 ) {
   const provider = ctx.provider
   const sysGarden = await getSystemGarden(provider)
   const sysCtx = sysGarden.getPluginContext(provider.name)
 
   // TODO: need to add logic here to wait for tiller to be ready
-  await helm(sysCtx.provider, logEntry,
+  await helm(sysCtx.provider, log,
     "init", "--wait",
     "--service-account", "default",
     "--upgrade",
@@ -285,19 +285,20 @@ async function configureSystemServices(
 
   const sysStatus = await getLocalEnvironmentStatus({
     ctx: sysCtx,
-    logEntry,
+    log,
   })
 
   await prepareLocalEnvironment({
     ctx: sysCtx,
     force,
     status: sysStatus,
-    logEntry,
+    log,
   })
 
   // only deploy services if configured to do so (minikube bundles the required services as addons)
   if (!provider.config._systemServices || provider.config._systemServices.length > 0) {
     const results = await sysGarden.actions.deployServices({
+      log,
       serviceNames: provider.config._systemServices,
     })
 
