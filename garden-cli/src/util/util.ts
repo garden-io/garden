@@ -8,7 +8,7 @@
 
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
-import * as pty from "node-pty"
+const pty = require("node-pty-prebuilt")
 import * as exitHook from "async-exit-hook"
 import * as klaw from "klaw"
 import * as yaml from "js-yaml"
