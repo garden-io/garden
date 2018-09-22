@@ -63,13 +63,12 @@ describe("DeleteEnvironmentCommand", () => {
     }
   }
 
-  testProvider.pluginName = "test-plugin"
-
   const projectRootB = getDataDir("test-project-b")
   const command = new DeleteEnvironmentCommand()
+  const plugins = { "test-plugin": testProvider }
 
   it("should destroy environment", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
 
     const { result } = await command.action({ garden, args: {}, opts: {} })
 
@@ -103,13 +102,13 @@ describe("DeleteServiceCommand", () => {
     }
   }
 
-  testProvider.pluginName = "test-plugin"
+  const plugins = { "test-plugin": testProvider }
 
   const command = new DeleteServiceCommand()
   const projectRootB = getDataDir("test-project-b")
 
   it("should return the status of the deleted service", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
 
     const { result } = await command.action({ garden, args: { service: ["service-a"] }, opts: {} })
     expect(result).to.eql({
@@ -118,7 +117,7 @@ describe("DeleteServiceCommand", () => {
   })
 
   it("should return the status of the deleted services", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
 
     const { result } = await command.action({ garden, args: { service: ["service-a", "service-b"] }, opts: {} })
     expect(result).to.eql({

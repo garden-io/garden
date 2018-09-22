@@ -301,7 +301,7 @@ describe("createIngresses", () => {
   })
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, [gardenPlugin])
+    garden = await makeTestGarden(projectRoot, { container: gardenPlugin })
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 

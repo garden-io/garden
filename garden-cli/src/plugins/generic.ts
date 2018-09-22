@@ -32,7 +32,6 @@ import {
 } from "../types/plugin/params"
 import { BaseServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
-import { spawn } from "../util/util"
 import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/base"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import { ModuleSpec, ModuleConfig } from "../config/module"
@@ -107,7 +106,7 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
   const buildPath = module.buildPath
 
   if (config.build.command.length) {
-    const result = await execa.shell(
+    const res = await execa.shell(
       config.build.command.join(" "),
       {
         cwd: buildPath,
@@ -116,7 +115,7 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
     )
 
     output.fresh = true
-    output.buildLog = result.stdout
+    output.buildLog = res.stdout + res.stderr
   }
 
   // keep track of which version has been built
@@ -130,9 +129,8 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
   const startedAt = new Date()
   const command = testConfig.spec.command
 
-  const result = await spawn(
-    command[0],
-    command.slice(1),
+  const result = await execa.shell(
+    command.join(" "),
     {
       cwd: module.path,
       env: {
@@ -141,7 +139,7 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
         ...mapValues(module.spec.env, v => v + ""),
         ...mapValues(testConfig.spec.env, v => v + ""),
       },
-      ignoreError: true,
+      reject: false,
     },
   )
 
@@ -153,7 +151,7 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
     success: result.code === 0,
     startedAt,
     completedAt: new Date(),
-    output: result.output,
+    output: result.stdout + result.stderr,
   }
 }
 

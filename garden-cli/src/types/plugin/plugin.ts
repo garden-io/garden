@@ -383,9 +383,11 @@ export interface PluginFactoryParams<T extends Provider = any> {
 
 export interface PluginFactory<T extends Provider = any> {
   (params: PluginFactoryParams<T>): GardenPlugin | Promise<GardenPlugin>
-  pluginName?: string
 }
 export type RegisterPluginParam = string | PluginFactory
+export interface Plugins {
+  [name: string]: RegisterPluginParam
+}
 
 export const pluginSchema = Joi.object()
   .keys({

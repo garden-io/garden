@@ -38,38 +38,9 @@ const testProvider: PluginFactory = () => {
   }
 }
 
-testProvider.pluginName = "test-plugin"
-
-const testProviderB: PluginFactory = () => {
-  return {
-    moduleActions: {
-      container: {
-        validate: validateContainerModule,
-        getBuildStatus,
-        build,
-      },
-    },
-  }
-}
-
-testProviderB.pluginName = "test-plugin-b"
-
-const testProviderNoPublish: PluginFactory = () => {
-  return {
-    moduleActions: {
-      container: {
-        validate: validateContainerModule,
-        getBuildStatus,
-        build,
-      },
-    },
-  }
-}
-
-testProviderNoPublish.pluginName = "test-plugin"
-
 async function getTestGarden() {
-  const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+  const plugins = { "test-plugin": testProvider }
+  const garden = await Garden.factory(projectRootB, { plugins })
   await garden.clearBuilds()
   return garden
 }

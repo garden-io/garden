@@ -27,8 +27,8 @@ import {
 } from "@kubernetes/client-node"
 import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
 import { KubernetesProvider } from "./kubernetes"
-import * as isSubset from "is-subset"
 import { LogEntry } from "../../logger/log-entry"
+import { isSubset } from "../../util/is-subset"
 
 export interface RolloutStatus {
   state: ServiceState

@@ -39,7 +39,6 @@ import {
   pluginActionDescriptions,
   pluginModuleSchema,
   pluginSchema,
-  RegisterPluginParam,
 } from "./types/plugin/plugin"
 import { Environment, SourceConfig, defaultProvider } from "./config/project"
 import {
@@ -99,7 +98,7 @@ import { FileWriter } from "./logger/writers/file-writer"
 import { LogLevel } from "./logger/log-node"
 import { ActionHelper } from "./actions"
 import { createPluginContext } from "./plugin-context"
-import { ModuleAndServiceActions } from "./types/plugin/plugin"
+import { ModuleAndServiceActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -127,7 +126,7 @@ export interface ContextOpts {
   config?: GardenConfig,
   env?: string,
   logger?: Logger,
-  plugins?: RegisterPluginParam[],
+  plugins?: Plugins,
 }
 
 const scanLock = new AsyncLock()
@@ -181,7 +180,7 @@ export class Garden {
     this.actions = new ActionHelper(this)
   }
 
-  static async factory(currentDirectory: string, { env, config, logger, plugins = [] }: ContextOpts = {}) {
+  static async factory(currentDirectory: string, { env, config, logger, plugins = {} }: ContextOpts = {}) {
     let parsedConfig: GardenConfig
 
     if (config) {
@@ -289,8 +288,8 @@ export class Garden {
     )
 
     // Register plugins
-    for (const plugin of builtinPlugins.concat(plugins)) {
-      garden.registerPlugin(plugin)
+    for (const [name, pluginFactory] of Object.entries({ ...builtinPlugins, ...plugins })) {
+      garden.registerPlugin(name, pluginFactory)
     }
 
     // Load configured plugins
@@ -318,13 +317,11 @@ export class Garden {
     return this.taskGraph.processTasks()
   }
 
-  private registerPlugin(moduleOrFactory: RegisterPluginParam) {
+  private registerPlugin(name: string, moduleOrFactory: RegisterPluginParam) {
     let factory: PluginFactory
-    let name: string
 
     if (typeof moduleOrFactory === "function") {
       factory = moduleOrFactory
-      name = factory.pluginName || factory.name!
 
     } else if (isString(moduleOrFactory)) {
       let moduleNameOrLocation = moduleOrFactory
@@ -332,6 +329,8 @@ export class Garden {
 
       // allow relative references to project root
       if (parse(moduleNameOrLocation).dir !== "") {
+        console.log(this.projectRoot)
+        console.log(moduleNameOrLocation)
         moduleNameOrLocation = resolve(this.projectRoot, moduleNameOrLocation)
       }
 

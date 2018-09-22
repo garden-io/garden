@@ -44,10 +44,9 @@ const testProvider: PluginFactory = () => {
   }
 }
 
-testProvider.pluginName = "test-plugin"
-
 describe("commands.call", () => {
   const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
+  const plugins = { "test-plugin": testProvider }
 
   beforeEach(() => {
     nock.disableNetConnect()
@@ -59,7 +58,7 @@ describe("commands.call", () => {
   })
 
   it("should find the ingress for a service and call it with the specified path", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new CallCommand()
 
     nock("http://service-a.test-project-b.local.app.garden:32000")
@@ -77,7 +76,7 @@ describe("commands.call", () => {
   })
 
   it("should default to the path '/' if that is exposed if no path is requested", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new CallCommand()
 
     nock("http://service-a.test-project-b.local.app.garden:32000")
@@ -94,7 +93,7 @@ describe("commands.call", () => {
   })
 
   it("should otherwise use the first defined ingress if no path is requested", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new CallCommand()
 
     nock("http://service-b.test-project-b.local.app.garden:32000")
@@ -111,7 +110,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service isn't running", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new CallCommand()
 
     try {
@@ -125,7 +124,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no ingresses", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new CallCommand()
 
     try {
@@ -139,7 +138,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no matching ingresses", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new CallCommand()
 
     try {

@@ -20,6 +20,7 @@ import {
   PluginActions,
   PluginFactory,
   ModuleActions,
+  Plugins,
 } from "../src/types/plugin/plugin"
 import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
@@ -155,7 +156,6 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
     },
   }
 }
-testPlugin.pluginName = "test-plugin"
 
 export const testPluginB: PluginFactory = async (params) => {
   const plugin = await testPlugin(params)
@@ -164,7 +164,6 @@ export const testPluginB: PluginFactory = async (params) => {
   }
   return plugin
 }
-testPluginB.pluginName = "test-plugin-b"
 
 export const testPluginC: PluginFactory = async (params) => {
   const plugin = await testPlugin(params)
@@ -173,7 +172,6 @@ export const testPluginC: PluginFactory = async (params) => {
   }
   return plugin
 }
-testPluginC.pluginName = "test-plugin-c"
 
 export const defaultModuleConfig: ModuleConfig = {
   type: "test",
@@ -198,18 +196,18 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
   return { ...defaultModuleConfig, ...params }
 }
 
-export const makeTestGarden = async (projectRoot: string, extraPlugins: PluginFactory[] = []) => {
-  const testPlugins: PluginFactory[] = [
-    testPlugin,
-    testPluginB,
-    testPluginC,
-  ]
-  const plugins: PluginFactory[] = testPlugins.concat(extraPlugins)
+export const makeTestGarden = async (projectRoot: string, extraPlugins: Plugins = {}) => {
+  const testPlugins = {
+    "test-plugin": testPlugin,
+    "test-plugin-b": testPluginB,
+    "test-plugin-c": testPluginC,
+  }
+  const plugins = { ...testPlugins, ...extraPlugins }
 
   return Garden.factory(projectRoot, { plugins })
 }
 
-export const makeTestGardenA = async (extraPlugins: PluginFactory[] = []) => {
+export const makeTestGardenA = async (extraPlugins: Plugins = {}) => {
   return makeTestGarden(projectRootA, extraPlugins)
 }
 

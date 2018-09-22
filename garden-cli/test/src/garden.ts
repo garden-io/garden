@@ -45,19 +45,6 @@ describe("Garden", () => {
       expect(garden).to.be.ok
     })
 
-    it("should throw if registering same plugin twice", async () => {
-      try {
-        await Garden.factory(projectRootA, {
-          plugins: ["test-plugin", "test-plugin"],
-        })
-      } catch (err) {
-        expect(err.type).to.equal("configuration")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-
     it("should parse and resolve the config from the project root", async () => {
       const garden = await makeTestGardenA()
 
@@ -115,20 +102,23 @@ describe("Garden", () => {
 
     it("should throw if plugin module exports invalid name", async () => {
       const pluginPath = join(dataDir, "plugins", "invalid-exported-name.ts")
+      const plugins = { foo: pluginPath }
       const projectRoot = join(dataDir, "test-project-empty")
-      await expectError(async () => Garden.factory(projectRoot, { plugins: [pluginPath] }), "plugin")
+      await expectError(async () => Garden.factory(projectRoot, { plugins }), "plugin")
     })
 
     it("should throw if plugin module name is not a valid identifier", async () => {
       const pluginPath = join(dataDir, "plugins", "invalidModuleName.ts")
+      const plugins = { foo: pluginPath }
       const projectRoot = join(dataDir, "test-project-empty")
-      await expectError(async () => Garden.factory(projectRoot, { plugins: [pluginPath] }), "plugin")
+      await expectError(async () => Garden.factory(projectRoot, { plugins }), "plugin")
     })
 
     it("should throw if plugin module doesn't contain factory function", async () => {
       const pluginPath = join(dataDir, "plugins", "missing-factory.ts")
+      const plugins = { foo: pluginPath }
       const projectRoot = join(dataDir, "test-project-empty")
-      await expectError(async () => Garden.factory(projectRoot, { plugins: [pluginPath] }), "plugin")
+      await expectError(async () => Garden.factory(projectRoot, { plugins }), "plugin")
     })
   })
 

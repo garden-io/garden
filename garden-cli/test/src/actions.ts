@@ -43,7 +43,8 @@ describe("ActionHelper", () => {
   let service: Service
 
   before(async () => {
-    garden = await makeTestGardenA([testPlugin, testPluginB])
+    const plugins = { "test-plugin": testPlugin, "test-plugin-b": testPluginB }
+    garden = await makeTestGardenA(plugins)
     actions = garden.actions
     module = await garden.getModule("module-a")
     service = await garden.getService("service-a")
@@ -464,7 +465,5 @@ const testPlugin: PluginFactory = async () => ({
     },
   },
 })
-testPlugin.pluginName = "test-plugin"
 
 const testPluginB: PluginFactory = async (params) => omit(await testPlugin(params), ["moduleActions"])
-testPluginB.pluginName = "test-plugin-b"

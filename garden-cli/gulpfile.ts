@@ -52,7 +52,7 @@ const tmpDir = resolve(__dirname, "..", "tmp")
 
 const binPath = (name: string) => resolve(__dirname, "node_modules", ".bin", name)
 
-const destDir = "build"
+const destDir = resolve(__dirname, "build")
 
 const children: ChildProcess[] = []
 

@@ -57,16 +57,15 @@ const testProvider: PluginFactory = () => {
   }
 }
 
-testProvider.pluginName = "test-plugin"
-
 describe("DeployCommand", () => {
   const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
+  const plugins = { "test-plugin": testProvider }
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
   // TODO: Test with --watch flag
 
   it("should build and deploy all modules in a project", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new DeployCommand()
 
     const { result } = await command.action({
@@ -96,7 +95,7 @@ describe("DeployCommand", () => {
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+    const garden = await Garden.factory(projectRootB, { plugins })
     const command = new DeployCommand()
 
     const { result } = await command.action({

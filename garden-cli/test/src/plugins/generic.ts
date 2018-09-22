@@ -22,7 +22,7 @@ describe("generic plugin", () => {
   let garden: Garden
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, [gardenPlugin])
+    garden = await makeTestGarden(projectRoot, { generic: gardenPlugin })
     await garden.clearBuilds()
   })
 

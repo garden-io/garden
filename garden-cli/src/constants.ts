@@ -6,16 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
+import { resolve, join } from "path"
 
 export const MODULE_CONFIG_FILENAME = "garden.yml"
 export const LOCAL_CONFIG_FILENAME = "local-config.yml"
 export const STATIC_DIR = resolve(__dirname, "..", "static")
 export const GARDEN_DIR_NAME = ".garden"
-export const LOGS_DIR = `${GARDEN_DIR_NAME}/logs`
+export const LOGS_DIR = join(GARDEN_DIR_NAME, "logs")
 export const ERROR_LOG_FILENAME = "error.log"
-export const PROJECT_SOURCES_DIR_NAME = `${GARDEN_DIR_NAME}/sources/project`
-export const MODULE_SOURCES_DIR_NAME = `${GARDEN_DIR_NAME}/sources/module`
+export const PROJECT_SOURCES_DIR_NAME = join(GARDEN_DIR_NAME, "sources", "project")
+export const MODULE_SOURCES_DIR_NAME = join(GARDEN_DIR_NAME, "sources", "module")
 export const GARDEN_BUILD_VERSION_FILENAME = ".garden-build-version"
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_NAMESPACE = "default"

@@ -29,7 +29,7 @@ describe("plugins.container", () => {
   let ctx: PluginContext
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, [gardenPlugin])
+    garden = await makeTestGarden(projectRoot, { container: gardenPlugin })
     ctx = garden.getPluginContext("container")
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)

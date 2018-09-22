@@ -21,7 +21,7 @@ describe("commands.test", () => {
       },
       "test.module-a.unit": {
         success: true,
-        output: "OK\n",
+        output: "OK",
       },
       "build.module-b": {
         fresh: true,
@@ -30,11 +30,11 @@ describe("commands.test", () => {
       "build.module-c": {},
       "test.module-b.unit": {
         success: true,
-        output: "OK\n",
+        output: "OK",
       },
       "test.module-c.unit": {
         success: true,
-        output: "OK\n",
+        output: "OK",
       },
     })).to.be.true
   })
@@ -56,7 +56,7 @@ describe("commands.test", () => {
       },
       "test.module-a.unit": {
         success: true,
-        output: "OK\n",
+        output: "OK",
       },
     })).to.be.true
   })
