@@ -1,3 +1,74 @@
+<a name="0.7.0"></a>
+# [0.7.0](https://github.com/garden-io/garden/compare/v0.3.0...v0.7.0) (2018-09-17)
+
+
+### Bug Fixes
+
+* **call-command:** print correct protocol ([d973058](https://github.com/garden-io/garden/commit/d973058))
+* **cli:** allow empty path when calling services via `garden call` ([b5d4972](https://github.com/garden-io/garden/commit/b5d4972))
+* **cli:** show ANSI banner image instead of png in dev command ([bb3898f](https://github.com/garden-io/garden/commit/bb3898f))
+* **cli:** task results errors weren't handled properly ([b22b580](https://github.com/garden-io/garden/commit/b22b580))
+* **config:** remove name field from service endpoint spec ([9f6f9f0](https://github.com/garden-io/garden/commit/9f6f9f0))
+* **examples:** unused import in go-service ([25509cf](https://github.com/garden-io/garden/commit/25509cf))
+* **examples-projects:** fix integration test ([1d85a9d](https://github.com/garden-io/garden/commit/1d85a9d))
+* **gulpfile:** ensure tmp dir exists when updating brew tap ([3f2ace8](https://github.com/garden-io/garden/commit/3f2ace8))
+* **k8s:** build status was incorrectly reported for helm modules ([195eee4](https://github.com/garden-io/garden/commit/195eee4))
+* **k8s:** don't deploy system services when running minikube ([215cabd](https://github.com/garden-io/garden/commit/215cabd))
+* **k8s:** name releases based on their namespace ([5fe26e9](https://github.com/garden-io/garden/commit/5fe26e9))
+* **k8s:** wait for Tiller pod to be ready when initializing ([a5cd8eb](https://github.com/garden-io/garden/commit/a5cd8eb)), closes [#228](https://github.com/garden-io/garden/issues/228)
+* **logger:** ensure ansi chars in section don't break format ([323b6e9](https://github.com/garden-io/garden/commit/323b6e9))
+* fix ignore package import ([00721c3](https://github.com/garden-io/garden/commit/00721c3))
+* **multi-repo:** ensure external source gets updated if repo url changes ([881c3c7](https://github.com/garden-io/garden/commit/881c3c7))
+* **openfaas:** better cross-platform support ([d1c59d4](https://github.com/garden-io/garden/commit/d1c59d4))
+* **openfaas:** external endpoints had incorrect path ([64de898](https://github.com/garden-io/garden/commit/64de898))
+* **publish script:** ensure changelog is properly generated ([e2f1d8e](https://github.com/garden-io/garden/commit/e2f1d8e))
+* **publish-script:** set remote in git push command ([26356bf](https://github.com/garden-io/garden/commit/26356bf))
+* **tests:** ensure test project is clean between tests ([b7f6664](https://github.com/garden-io/garden/commit/b7f6664))
+* **versioning:** `resolveVersion` should not call `getTreeVersion` ([91ae14f](https://github.com/garden-io/garden/commit/91ae14f))
+* **versioning:** version string should include dirty timestamp ([61d29d0](https://github.com/garden-io/garden/commit/61d29d0))
+* add axios as dependency (was dev dependency) ([4ccdfd8](https://github.com/garden-io/garden/commit/4ccdfd8))
+* catch and log task errors as they happen ([46eef92](https://github.com/garden-io/garden/commit/46eef92))
+* fix publish script ([7d84751](https://github.com/garden-io/garden/commit/7d84751))
+* init file writers in Garden class ([d982b66](https://github.com/garden-io/garden/commit/d982b66))
+* windows install script ([0c2a2f0](https://github.com/garden-io/garden/commit/0c2a2f0))
+
+
+### Code Refactoring
+
+* **config:** make module name mandatory ([aa83d7f](https://github.com/garden-io/garden/commit/aa83d7f))
+* rename endpoints to ingresses ([dde932f](https://github.com/garden-io/garden/commit/dde932f))
+
+
+### Features
+
+* add 'delete service' command ([2b067c6](https://github.com/garden-io/garden/commit/2b067c6))
+* add exec command, to run commands in running service containers ([7f74edc](https://github.com/garden-io/garden/commit/7f74edc))
+* add multi-repo support ([740e858](https://github.com/garden-io/garden/commit/740e858))
+* add OpenFaaS plugin (experimental) ([39ff701](https://github.com/garden-io/garden/commit/39ff701))
+* add Windows support (experimental) ([9e9c218](https://github.com/garden-io/garden/commit/9e9c218))
+* allow configs from subdirectories ([bb464c3](https://github.com/garden-io/garden/commit/bb464c3))
+* **k8s:** allow specifying namespace to deploy to ([0aebc2b](https://github.com/garden-io/garden/commit/0aebc2b))
+* **k8s:** support custom hostnames and TLS certs ([1c004f7](https://github.com/garden-io/garden/commit/1c004f7))
+* **multi-repos:** allow file URLs ([c072dd9](https://github.com/garden-io/garden/commit/c072dd9))
+* windows installer ([70c44ab](https://github.com/garden-io/garden/commit/70c44ab))
+* windows installer cont'd (to be squashed) ([5ff7af5](https://github.com/garden-io/garden/commit/5ff7af5))
+
+
+### BREAKING CHANGES
+
+* **k8s:** Users may need to delete and re-init their projects when using the
+Kubernetes plugins after installing this update, because Helm may get
+confused by the changes.
+* Any `garden.yml` file that includes an `endpoints` key will need to
+be updated. Sorry. But this should be much clearer for users.
+* **config:** Endpoint names will have to be removed from module configs.
+* **config:** Module name no longer defaults to directory name but must be explicitly
+set in the module's garden.yml file. Any existing garden.yml module files
+without a name key must therefore be updated to expclitily provide the
+module name.
+
+
+
 <a name="0.6.0"></a>
 # [0.6.0](https://github.com/garden-io/garden/compare/v0.5.0...v0.6.0) (2018-09-10)
 
