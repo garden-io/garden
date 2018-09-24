@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { spawn } from "child_process"
+import * as spawn from "cross-spawn"
 import { extend } from "lodash"
 import { spawnPty } from "../../util/util"
 
