@@ -214,7 +214,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         },
 
         async deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-          const { ctx, module, service, logEntry, runtimeContext } = params
+          const { ctx, module, service, logEntry, runtimeContext, buildDependencies } = params
 
           // write the stack file again with environment variables
           await writeStackFile(ctx, module, runtimeContext.envVars)
@@ -236,7 +236,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         },
 
         async deleteService(params: DeleteServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-          const { ctx, logEntry, service, runtimeContext } = params
+          const { ctx, logEntry, service, runtimeContext, buildDependencies } = params
           let status
           let found = true
 
@@ -245,6 +245,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
               ctx,
               service,
               runtimeContext,
+              buildDependencies,
               module: service.module,
             })
 
