@@ -329,8 +329,6 @@ export class Garden {
 
       // allow relative references to project root
       if (parse(moduleNameOrLocation).dir !== "") {
-        console.log(this.projectRoot)
-        console.log(moduleNameOrLocation)
         moduleNameOrLocation = resolve(this.projectRoot, moduleNameOrLocation)
       }
 
