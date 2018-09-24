@@ -126,7 +126,6 @@ export abstract class ConfigContext {
           value,
           path,
           fullPath,
-          context,
         },
       )
     }

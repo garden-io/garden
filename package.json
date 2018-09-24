@@ -17,13 +17,19 @@
     "@lerna/version": "^3.0.2",
     "@types/bluebird": "^3.5.23",
     "@types/execa": "^0.9.0",
+    "@types/fs-extra": "^5.0.4",
+    "@types/handlebars": "^4.0.39",
+    "@types/lodash": "^4.14.117",
     "@types/node": "^10.7.0",
     "axios": "^0.18.0",
+    "fs-extra": "^7.0.0",
     "gulp": "^4.0.0",
     "gulp-cached": "^1.1.1",
     "gulp-license-check": "^1.2.1",
+    "handlebars": "^4.0.12",
     "husky": "^0.15.0-rc.13",
     "lerna": "^3.0.4",
+    "lodash": "^4.17.11",
     "shx": "^0.3.2",
     "snyk": "^1.90.2",
     "ts-node": "^7.0.1",
@@ -34,26 +40,26 @@
     "typescript-formatter": "^7.2.2"
   },
   "scripts": {
-    "build": "npm run clean && lerna run build",
+    "build": "npm run clean && gulp build",
     "check-docs": "git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date!' && exit 1)",
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "lerna run clean && git clean -X -f",
-    "dist": "lerna run dist",
+    "dist": "gulp dist",
     "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
-    "generate-docs": "lerna run generate-docs",
+    "generate-docs": "gulp generate-docs",
     "integ": "lerna run integ",
     "lint": "tslint -p . && tsfmt --verify && gulp check-licenses",
     "prepublishOnly": "npm run dist",
     "preversion": "npm test",
     "release": "./bin/publish",
     "release-canary": "./bin/publish-canary",
-    "test": "npm run clean && lerna run test"
+    "test": "npm run lint && npm run clean && gulp test"
   },
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E GIT_PARAMS",
-      "pre-push": "npm run check-package-lock && npm run lint && npm test && npm run integ"
+      "pre-push": "npm run check-package-lock && npm test && npm run integ"
     }
   },
   "snyk": true,

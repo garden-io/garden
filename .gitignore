@@ -2,8 +2,9 @@
 *.log
 npm-debug.log*
 
-# Node dependencies directory
+# vendor dependencies
 node_modules
+vendor/
 
 # IDEs
 .idea
@@ -24,3 +25,4 @@ coverage/
 gulpfile.js
 *.map
 *.tgz
+build/

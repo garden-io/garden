@@ -27,4 +27,5 @@ git push origin HEAD --no-verify
 # TODO: set this up to work with multiple packages
 cd garden-service
 npm publish
+cd ..
 gulp update-brew

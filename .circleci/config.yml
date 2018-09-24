@@ -6,15 +6,11 @@ version: 2
 jobs:
   build:
     docker:
-      # specify the version you desire here
       - image: circleci/node:10
+        environment:
+          GOPATH: /home/circleci/go
 
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mongo:3.4.4
-
-    working_directory: ~/repo
+    working_directory: ~/go/src/github.com/garden-io/garden
 
     steps:
       - checkout
@@ -22,29 +18,51 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
 
+      - run: export
+
       - run:
           name: Install apt dependencies
-          command: sudo apt install rsync cmake libicu-dev pkg-config
+          command: |
+            sudo add-apt-repository ppa:gophers/archive
+            sudo apt-get update
+            sudo apt install rsync cmake libicu-dev pkg-config golang-1.11-go
 
       - run:
           name: Install kubectl
           command: |
             curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
+      - run:
+          name: Install dep
+          command: |
+            mkdir -p $GOPATH/bin
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v3-dependencies-{{ checksum "package-lock.json" }}
+          - v0-npm-deps-{{ checksum "package-lock.json" }}
+      - restore_cache:
+          keys:
+          - v0-garden-service-deps-{{ checksum "garden-service/package-lock.json" }}
+      - restore_cache:
+          keys:
+          - v0-go-deps-{{ checksum "Gopkg.lock" }}
 
-      # install using package-lock only
+      # install dependencies
       - run: npm ci
       - run: node_modules/.bin/lerna bootstrap --ci
+      - run: $GOPATH/bin/dep ensure
 
       - save_cache:
-          paths:
-            - node_modules
-            - garden-service/node_modules
-          key: v3-dependencies-{{ checksum "package-lock.json" }}
+          paths: [node_modules]
+          key: v0-npm-deps-{{ checksum "package-lock.json" }}
+      - save_cache:
+          paths: [garden-service/node_modules]
+          key: v0-garden-service-deps-{{ checksum "garden-service/package-lock.json" }}
+      - save_cache:
+          paths: [vendor]
+          key: v0-go-deps-{{ checksum "Gopkg.lock" }}
 
       # a couple of special cases needed just for local builds
       - run: |
