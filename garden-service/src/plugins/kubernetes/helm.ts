@@ -136,7 +136,7 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
   getServiceStatus,
 
   async deployService(
-    { ctx, module, service, logEntry }: DeployServiceParams<HelmModule>,
+    { ctx, module, service, logEntry, force }: DeployServiceParams<HelmModule>,
   ): Promise<ServiceStatus> {
     const provider = ctx.provider
     const chartPath = await getChartPath(module)
@@ -147,20 +147,29 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
     const releaseStatus = await getReleaseStatus(ctx.provider, releaseName, logEntry)
 
     if (releaseStatus.state === "missing") {
-      await helm(provider, logEntry,
+      const installArgs = [
         "install", chartPath,
         "--name", releaseName,
         "--namespace", namespace,
         "--values", valuesPath,
         "--wait",
-      )
+      ]
+      if (force) {
+        installArgs.push("--replace")
+      }
+      await helm(provider, logEntry, ...installArgs)
     } else {
-      await helm(provider, logEntry,
+      const upgradeArgs = [
         "upgrade", releaseName, chartPath,
+        "--install",
         "--namespace", namespace,
         "--values", valuesPath,
         "--wait",
-      )
+      ]
+      if (force) {
+        upgradeArgs.push("--force")
+      }
+      await helm(provider, logEntry, ...upgradeArgs)
     }
 
     const objects = await getChartObjects(ctx, service, logEntry)
