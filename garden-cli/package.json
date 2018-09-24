@@ -145,6 +145,14 @@
     "view-report": "open coverage/index.html",
     "watch": "gulp watch"
   },
+  "pkg": {
+    "scripts": "build/**/*.js",
+    "assets": [
+      "package.json",
+      "node_modules/esprima/**/*",
+      "static/**/*"
+    ]
+  },
   "snyk": true,
   "gitHead": "b0647221a4d2ff06952bae58000b104215aed922"
 }
