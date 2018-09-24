@@ -208,7 +208,7 @@ async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): 
     .map(([k, v]) => set(values, k, v))
 
   const valuesPath = getValuesPath(chartPath)
-  dumpYaml(valuesPath, values)
+  await dumpYaml(valuesPath, values)
 
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)

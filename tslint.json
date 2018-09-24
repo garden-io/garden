@@ -36,6 +36,7 @@
     "no-console": false,
     "no-debugger": true,
     "no-eval": true,
+    "no-floating-promises": true,
     "no-invalid-template-strings": true,
     "no-invalid-this": true,
     "no-null-keyword": false,

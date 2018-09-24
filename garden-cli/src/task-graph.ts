@@ -7,6 +7,7 @@
  */
 
 import * as Bluebird from "bluebird"
+import * as PQueue from "p-queue"
 import chalk from "chalk"
 import { merge, padEnd, pick } from "lodash"
 import { Task, TaskDefinitionError } from "./tasks/base"
@@ -33,20 +34,7 @@ export interface TaskResults {
   [baseKey: string]: TaskResult
 }
 
-interface LogEntryMap { [key: string]: LogEntry }
-
 export const DEFAULT_CONCURRENCY = 4
-
-const taskStyle = chalk.cyan.bold
-
-function inProgressToStr(nodes) {
-  return `Currently in progress [${nodes.map(n => taskStyle(n.getKey())).join(", ")}]`
-}
-
-function remainingTasksToStr(num) {
-  const style = num === 0 ? chalk.green : chalk.yellow
-  return `Remaining tasks ${style.bold(String(num))}`
-}
 
 export class TaskGraph {
   private roots: TaskNodeMap
@@ -56,22 +44,26 @@ export class TaskGraph {
   private logEntryMap: LogEntryMap
 
   private resultCache: ResultCache
-  private opQueue: OperationQueue
+  private opQueue: PQueue
 
   constructor(private garden: Garden, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
     this.resultCache = new ResultCache()
-    this.opQueue = new OperationQueue(this)
+    this.opQueue = new PQueue({ concurrency: 1 })
     this.logEntryMap = {}
   }
 
-  addTask(task: Task): Promise<any> {
-    return this.opQueue.request({ type: "addTask", task })
+  async addTask(task: Task): Promise<void> {
+    return this.opQueue.add(() => this.addTaskInternal(task))
   }
 
-  async addTaskInternal(task: Task) {
+  async processTasks(): Promise<TaskResults> {
+    return this.opQueue.add(() => this.processTasksInternal())
+  }
+
+  private async addTaskInternal(task: Task) {
     const predecessor = this.getPredecessor(task)
     let node = this.getNode(task)
 
@@ -109,16 +101,10 @@ export class TaskGraph {
     const existing = this.index.getNode(task)
     return existing || new TaskNode(task)
   }
-
-  processTasks(): Promise<TaskResults> {
-    return this.opQueue.request({ type: "processTasks" })
-  }
-
   /*
     Process the graph until it's complete
    */
-  async processTasksInternal(): Promise<TaskResults> {
-
+  private async processTasksInternal(): Promise<TaskResults> {
     const _this = this
     const results: TaskResults = {}
 
@@ -480,80 +466,15 @@ class ResultCache {
 
 }
 
-// TODO: Add more typing to this class.
+interface LogEntryMap { [key: string]: LogEntry }
 
-/*
-  Used by TaskGraph to prevent race conditions e.g. when calling addTask or
-  processTasks.
-*/
-class OperationQueue {
-  queue: object[]
-  draining: boolean
+const taskStyle = chalk.cyan.bold
 
-  constructor(private taskGraph: TaskGraph) {
-    this.queue = []
-    this.draining = false
-  }
+function inProgressToStr(nodes) {
+  return `Currently in progress [${nodes.map(n => taskStyle(n.getKey())).join(", ")}]`
+}
 
-  request(opRequest): Promise<any> {
-    let findFn
-
-    switch (opRequest.type) {
-
-      case "addTask":
-        findFn = (o) => o.type === "addTask" && o.task.getBaseKey() === opRequest.task.getBaseKey()
-        break
-
-      case "processTasks":
-        findFn = (o) => o.type === "processTasks"
-        break
-    }
-
-    const existingOp = this.queue.find(findFn)
-
-    const prom = new Promise((resolver) => {
-      if (existingOp) {
-        existingOp["resolvers"].push(resolver)
-      } else {
-        this.queue.push({ ...opRequest, resolvers: [resolver] })
-      }
-    })
-
-    if (!this.draining) {
-      this.process()
-    }
-
-    return prom
-  }
-
-  async process() {
-    this.draining = true
-    const op = this.queue.shift()
-
-    if (!op) {
-      this.draining = false
-      return
-    }
-
-    switch (op["type"]) {
-
-      case "addTask":
-        const task = op["task"]
-        await this.taskGraph.addTaskInternal(task)
-        for (const resolver of op["resolvers"]) {
-          resolver()
-        }
-        break
-
-      case "processTasks":
-        const results = await this.taskGraph.processTasksInternal()
-        for (const resolver of op["resolvers"]) {
-          resolver(results)
-        }
-        break
-    }
-
-    this.process()
-  }
-
+function remainingTasksToStr(num) {
+  const style = num === 0 ? chalk.green : chalk.yellow
+  return `Remaining tasks ${style.bold(String(num))}`
 }

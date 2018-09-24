@@ -20,7 +20,6 @@ import {
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../log-node"
-import { sleep } from "../../util/util"
 import { getChildEntries, getTerminalWidth, interceptStream, validate } from "../util"
 import { Writer, WriterConfig } from "./base"
 
@@ -149,13 +148,11 @@ export class FancyTerminalWriter extends Writer {
         this.updatePending = true
 
         // Resume processing if idle and original update is still pending
-        const maybeResume = async () => {
-          await sleep(FANCY_LOGGER_THROTTLE_MS)
+        setTimeout(() => {
           if (this.updatePending) {
             this.handleGraphChange(logEntry, logger, true)
           }
-        }
-        maybeResume()
+        }, FANCY_LOGGER_THROTTLE_MS)
         return
       }
     }

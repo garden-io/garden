@@ -95,9 +95,7 @@ export async function processModules(
         if (changedModule) {
           garden.log.debug({ msg: `Files changed for module ${changedModule.name}` })
 
-          await Bluebird.map(changeHandler!(changedModule), task => {
-            garden.addTask(task)
-          })
+          await Bluebird.map(changeHandler!(changedModule), (task) => garden.addTask(task))
         }
 
         await garden.processTasks()

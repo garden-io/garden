@@ -149,7 +149,7 @@ export class FSWatcher {
 
       if (configChanged) {
         // The added/removed dir contains one or more garden.yml files
-        this.invalidateCachedForAll()
+        await this.invalidateCachedForAll()
         return changeHandler(null, true)
       }
 

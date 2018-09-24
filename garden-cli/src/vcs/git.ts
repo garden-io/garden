@@ -9,7 +9,6 @@
 import execa = require("execa")
 import { join } from "path"
 import { ensureDir, pathExists, stat } from "fs-extra"
-import { argv } from "process"
 import Bluebird = require("bluebird")
 
 import { NEW_MODULE_VERSION, VcsHandler, RemoteSourceParams } from "./base"
@@ -139,15 +138,4 @@ export class GitHandler extends VcsHandler {
     }
   }
 
-}
-
-// used by the build process to resolve and store the tree version for plugin modules
-if (require.main === module) {
-  const path = argv[2]
-  const handler = new GitHandler(path)
-
-  handler.getTreeVersion(path)
-    .then((treeVersion) => {
-      console.log(JSON.stringify(treeVersion, null, 4))
-    })
 }
