@@ -17,18 +17,12 @@ import {
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
 import {
-  prepareEnvironment,
-  cleanupEnvironment,
   deleteService,
   execInService,
-  getEnvironmentStatus,
   getServiceLogs,
   getServiceOutputs,
   getTestResult,
   testModule,
-  getLoginStatus,
-  login,
-  logout,
   runModule,
   runService,
 } from "./actions"
@@ -36,6 +30,7 @@ import { deployContainerService, getContainerServiceStatus, pushModule } from ".
 import { helmHandlers } from "./helm"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container"
+import { getRemoteEnvironmentStatus, prepareRemoteEnvironment, cleanupEnvironment } from "./init"
 
 export const name = "kubernetes"
 
@@ -164,15 +159,12 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
   return {
     config,
     actions: {
-      getEnvironmentStatus,
-      prepareEnvironment,
+      getEnvironmentStatus: getRemoteEnvironmentStatus,
+      prepareEnvironment: prepareRemoteEnvironment,
       cleanupEnvironment,
       getSecret,
       setSecret,
       deleteSecret,
-      getLoginStatus,
-      login,
-      logout,
     },
     moduleActions: {
       container: {

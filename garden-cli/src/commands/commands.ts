@@ -16,8 +16,6 @@ import { DeployCommand } from "./deploy"
 import { DevCommand } from "./dev"
 import { GetCommand } from "./get"
 import { LinkCommand } from "./link/link"
-import { LoginCommand } from "./login"
-import { LogoutCommand } from "./logout"
 import { LogsCommand } from "./logs"
 import { PublishCommand } from "./publish"
 import { RunCommand } from "./run/run"
@@ -40,8 +38,6 @@ export const coreCommands: Command[] = [
   new GetCommand(),
   new InitCommand(),
   new LinkCommand(),
-  new LoginCommand(),
-  new LogoutCommand(),
   new LogsCommand(),
   new PublishCommand(),
   new RunCommand(),

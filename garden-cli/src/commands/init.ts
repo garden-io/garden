@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { EnvironmentStatusMap } from "../types/plugin/outputs"
 import {
   BooleanParameter,
   Command,
@@ -15,50 +14,37 @@ import {
 } from "./base"
 import dedent = require("dedent")
 
-export class InitCommand extends Command {
-  name = "init"
-  help = "Initialize environment or other runtime components."
-
-  subCommands = [
-    InitEnvironmentCommand,
-  ]
-
-  async action() { return {} }
-}
-
-const initEnvOptions = {
+const initOpts = {
   force: new BooleanParameter({ help: "Force initalization of environment, ignoring the environment status check." }),
 }
 
-type InitEnvOpts = typeof initEnvOptions
+type Opts = typeof initOpts
 
-export class InitEnvironmentCommand extends Command<{}, InitEnvOpts> {
-  name = "environment"
-  alias = "env"
-  help = "Initializes your environment."
+export class InitCommand extends Command {
+  name = "init"
+  help = "Initialize system, environment or other runtime components."
 
   description = dedent`
-    Generally, environments are initialized automatically as part of other commands that you run.
-    However, this command is useful if you want to make sure the environment is ready before running
-    another command, or if you need to force a re-initialization using the --force flag.
+    This command needs to be run before first deploying a Garden project, and occasionally after updating Garden,
+    plugins or project configuration.
 
     Examples:
 
-        garden init env
-        garden init env --force
+        garden init
+        garden init --force   # runs the init flows even if status checks report that the environment is ready
   `
 
-  options = initEnvOptions
+  options = initOpts
 
-  async action({ garden, opts }: CommandParams<{}, InitEnvOpts>): Promise<CommandResult<EnvironmentStatusMap>> {
+  async action({ garden, opts }: CommandParams<{}, Opts>): Promise<CommandResult<{}>> {
     const { name } = garden.environment
     garden.log.header({ emoji: "gear", command: `Initializing ${name} environment` })
 
-    const result = await garden.actions.prepareEnvironment({ force: opts.force })
+    await garden.actions.prepareEnvironment({ force: opts.force, allowUserInput: true })
 
     garden.log.info("")
     garden.log.header({ emoji: "heavy_check_mark", command: `Done!` })
 
-    return { result }
+    return { result: {} }
   }
 }

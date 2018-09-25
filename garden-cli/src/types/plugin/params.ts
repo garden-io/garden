@@ -119,15 +119,6 @@ export interface DeleteSecretParams extends PluginActionParamsBase {
 }
 export const deleteSecretParamsSchema = getSecretParamsSchema
 
-export interface GetLoginStatusParams extends PluginActionParamsBase { }
-export const getLoginStatusParamsSchema = actionParamsSchema
-
-export interface LoginParams extends PluginActionParamsBase { }
-export const loginParamsSchema = actionParamsSchema
-
-export interface LogoutParams extends PluginActionParamsBase { }
-export const logoutParamsSchema = actionParamsSchema
-
 export interface PluginActionParams {
   getEnvironmentStatus: GetEnvironmentStatusParams
   prepareEnvironment: PrepareEnvironmentParams
@@ -136,10 +127,6 @@ export interface PluginActionParams {
   getSecret: GetSecretParams
   setSecret: SetSecretParams
   deleteSecret: DeleteSecretParams
-
-  getLoginStatus: GetLoginStatusParams
-  login: LoginParams
-  logout: LogoutParams
 }
 
 /**

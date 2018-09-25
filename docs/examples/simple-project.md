@@ -120,10 +120,11 @@ The [services](../guides/configuration.md#Services) directive is specific to con
 
 ## Deploying
 
-With this configuration we're almost ready to deploy. First, we'll need to create a user namespace for our environment with the login command:
+With this configuration we're almost ready to deploy. First, we'll need to make sure the environment is ready, by
+running the init command:
 
 ```sh
-$ garden login
+$ garden init
 ```
 
 Garden can now deploy our service to a local Kubernetes cluster:
