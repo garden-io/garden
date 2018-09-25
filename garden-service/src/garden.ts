@@ -57,6 +57,7 @@ import {
   ConfigurationError,
   ParameterError,
   PluginError,
+  RuntimeError,
 } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
@@ -99,6 +100,8 @@ import { LogLevel } from "./logger/log-node"
 import { ActionHelper } from "./actions"
 import { createPluginContext } from "./plugin-context"
 import { ModuleAndServiceActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
+import { SUPPORTED_PLATFORMS, SupportedPlatform } from "./constants"
+import { platform, arch } from "os"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -162,6 +165,18 @@ export class Garden {
     public readonly buildDir: BuildDir,
     logger?: Logger,
   ) {
+    // make sure we're on a supported platform
+    const currentPlatform = platform()
+    const currentArch = arch()
+
+    if (!SUPPORTED_PLATFORMS.includes(<SupportedPlatform>currentPlatform)) {
+      throw new RuntimeError(`Unsupported platform: ${currentPlatform}`, { platform: currentPlatform })
+    }
+
+    if (currentArch !== "x64") {
+      throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
+    }
+
     this.modulesScanned = false
     this.log = logger || getLogger()
     // TODO: Support other VCS options.

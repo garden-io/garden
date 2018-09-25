@@ -26,3 +26,6 @@ export const GARDEN_ANNOTATION_KEYS_SERVICE = GARDEN_ANNOTATION_PREFIX + "servic
 export const GARDEN_ANNOTATION_KEYS_VERSION = GARDEN_ANNOTATION_PREFIX + "version"
 
 export const DEFAULT_TEST_TIMEOUT = 60 * 1000
+
+export type SupportedPlatform = "linux" | "darwin" | "win32"
+export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]

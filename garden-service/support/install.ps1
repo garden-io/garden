@@ -5,12 +5,11 @@
 # 1. Checks whether Hyper-V is enabled.
 # 2. Checks whether Docker is installed.
 # 3. Checks whether Kubernetes is the default orchestrator for Docker.
-# 4. Installs Stern.
-# 5. Check if Chocolatey is installed, installs it if missing.
-# 6. Installs the listed dependencies using Chocolatey if they're not already
-#    present (currently git, nodejs, rsync, and kubernetes-helm).
-# 7. Installs or updates the windows-build-tools NPM package.
-# 8. Installs or updates the garden-cli NPM package.
+# 4. Check if Chocolatey is installed, installs it if missing.
+# 5. Installs the listed dependencies using Chocolatey if they're not already
+#    present (currently git, nodejs, rsync).
+# 6. Installs or updates the windows-build-tools NPM package.
+# 7. Installs or updates the garden-cli NPM package.
 #
 # To execute it run the following command in PowerShell:
 # Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/garden-cli/support/install.ps1'))
@@ -51,17 +50,6 @@ Function CheckKubernetes {
         return $false
     } else {
         Write-Host "- Kubernetes is enabled."
-    }
-    return $true
-}
-
-Function CheckStern {
-    if ((CheckIfExists("stern")) -eq $false) {
-        Write-Host "- Stern not found. Installing it..."
-        [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-        Invoke-WebRequest -Uri "https://github.com/wercker/stern/releases/download/1.7.0/stern_windows_amd64.exe" -OutFile "$Env:SystemRoot\system32\stern.exe"
-    ​} else {
-        Write-Host "- Stern is installed."
     }
     return $true
 }
@@ -141,7 +129,6 @@ Please note that you may need to answer prompts during the installation.
 if ((CheckHyperV) -eq $false) { return }
 if ((CheckDocker) -eq $false) { return }
 if ((CheckKubernetes) -eq $false) { return }
-if ((CheckStern) -eq $false) { return }
 if ((CheckChocolatey) -eq $false) { return }
 
 # chocDeps lists the chocolatey dependencies to be installed. It consists of
@@ -151,7 +138,6 @@ if ((CheckChocolatey) -eq $false) { return }
 $chocDeps = (("git","git"),
              ("rsync","rsync"),
              ("node","nodejs"),
-             ("helm","kubernetes-helm"))
 CheckChocolateyDeps($chocDeps)
 [Console]::ResetColor()
 
@@ -181,7 +167,7 @@ Please head over to https://docs.garden.io for more information on how to get st
 # Notes for testing:
 #
 # npm uninstall -g garden-cli windows-build-tools
-# choco uninstall git nodejs rsync kubernetes-helm
+# choco uninstall git nodejs rsync
 # rm -r -fo C:\ProgramData\chocolatey
 #
 # choco pack

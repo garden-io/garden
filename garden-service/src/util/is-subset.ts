@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 // NOTE: copied this from the is-subset package to avoid issues with their package manifest
 // (https://github.com/studio-b12/is-subset/pull/9)
 

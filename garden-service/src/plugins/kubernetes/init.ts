@@ -273,7 +273,7 @@ async function configureSystemServices(
   const sysCtx = sysGarden.getPluginContext(provider.name)
 
   // TODO: need to add logic here to wait for tiller to be ready
-  await helm(sysCtx.provider,
+  await helm(sysCtx.provider, logEntry,
     "init", "--wait",
     "--service-account", "default",
     "--upgrade",
