@@ -39,8 +39,8 @@ const cliPadEnd = (s: string, width: number): string => {
 }
 const truncateSection = (s: string) => cliTruncate(s, SECTION_PREFIX_WIDTH)
 const sectionStyle = (s: string) => chalk.cyan.italic(cliPadEnd(truncateSection(s), SECTION_PREFIX_WIDTH))
-const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
-const errorStyle = chalk.red
+export const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
+export const errorStyle = chalk.red
 
 /*** RENDER HELPERS ***/
 function insertVal(out: string[], idx: number, toRender: Function | string, renderArgs: any[]): string[] {
@@ -111,7 +111,9 @@ export function renderMsg(entry: LogEntry): string {
 
   const styleFn = status === "error" ? errorStyle : msgStyle
   if (isArray(msg)) {
-    return msg.map(styleFn).join(chalk.gray(" → "))
+    // We apply the style function to each item (as opposed to the entire string) in case some
+    // part of the message already has a style
+    return msg.map(str => styleFn(str)).join(styleFn(" → "))
   }
   return msg ? styleFn(msg) : ""
 }

@@ -4,6 +4,7 @@ import { BasicTerminalWriter } from "../../src/logger/writers/basic-terminal-wri
 import { FancyTerminalWriter } from "../../src/logger/writers/fancy-terminal-writer"
 import { getLogger } from "../../src/logger/logger"
 import { getChildNodes } from "../../src/logger/util"
+import { renderMsg, msgStyle, errorStyle } from "../../src/logger/renderers"
 
 const logger = getLogger()
 
@@ -215,6 +216,40 @@ describe("LogEntry", () => {
       expect(entry.opts.status).to.equal("warn")
       expect(entry.opts.symbol).to.equal("warning")
     })
+  })
+})
+
+describe("renderers", () => {
+  describe("renderMsg", () => {
+    it("should return an empty string if the entry is empty", () => {
+      const entry = logger.info()
+      expect(renderMsg(entry)).to.equal("")
+    })
+    it("should render the message with the message style", () => {
+      const entry = logger.info({ msg: "hello message" })
+      expect(renderMsg(entry)).to.equal(msgStyle("hello message"))
+    })
+    it("should join an array of messages with an arrow symbol and render with the message style", () => {
+      const entry = logger.info({ msg: ["message a", "message b"] })
+      expect(renderMsg(entry)).to.equal(msgStyle("message a") + msgStyle(" → ") + msgStyle("message b"))
+    })
+    it("should render the message without styles if the entry is from an intercepted stream", () => {
+      const entry = logger.info({ fromStdStream: true, msg: "hello stream" })
+      expect(renderMsg(entry)).to.equal("hello stream")
+    })
+    it("should join an array of messages and render without styles if the entry is from an intercepted stream", () => {
+      const entry = logger.info({ fromStdStream: true, msg: ["stream a", "stream b"] })
+      expect(renderMsg(entry)).to.equal("stream a stream b")
+    })
+    it("should render the message with the error style if the entry has error status", () => {
+      const entry = logger.info({ msg: "hello error", status: "error" })
+      expect(renderMsg(entry)).to.equal(errorStyle("hello error"))
+    })
+    it("should join an array of messages with an arrow symbol and render with the error style" +
+      " if the entry has error status", () => {
+        const entry = logger.info({ msg: ["error a", "error b"], status: "error" })
+        expect(renderMsg(entry)).to.equal(errorStyle("error a") + errorStyle(" → ") + errorStyle("error b"))
+      })
   })
 })
 
