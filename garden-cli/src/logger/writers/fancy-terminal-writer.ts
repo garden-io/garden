@@ -20,11 +20,16 @@ import {
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../log-node"
-import { getChildEntries, getTerminalWidth, interceptStream, validate } from "../util"
+import {
+  getChildEntries,
+  getTerminalWidth,
+  interceptStream,
+  validate,
+} from "../util"
 import { Writer, WriterConfig } from "./base"
 
-const FANCY_LOGGER_UPDATE_FREQUENCY_MS = 60
-const FANCY_LOGGER_THROTTLE_MS = 600
+const INTERVAL_MS = 60
+const THROTTLE_MS = 600
 
 const spinnerStyle = chalk.cyan
 
@@ -105,7 +110,7 @@ export class FancyTerminalWriter extends Writer {
     this.stopLoop()
     this.intervalID = setInterval(
       () => this.spin(entries, totalLines),
-      FANCY_LOGGER_UPDATE_FREQUENCY_MS,
+      INTERVAL_MS,
     )
   }
 
@@ -139,7 +144,7 @@ export class FancyTerminalWriter extends Writer {
     // Suspend processing and write immediately if a lot of data is being intercepted, e.g. when user is typing in input
     if (logEntry.fromStdStream() && !didWrite) {
       const now = Date.now()
-      const throttleProcessing = this.lastInterceptAt && (now - this.lastInterceptAt) < FANCY_LOGGER_THROTTLE_MS
+      const throttleProcessing = this.lastInterceptAt && (now - this.lastInterceptAt) < THROTTLE_MS
       this.lastInterceptAt = now
 
       if (throttleProcessing) {
@@ -152,7 +157,7 @@ export class FancyTerminalWriter extends Writer {
           if (this.updatePending) {
             this.handleGraphChange(logEntry, logger, true)
           }
-        }, FANCY_LOGGER_THROTTLE_MS)
+        }, THROTTLE_MS)
         return
       }
     }

@@ -29,7 +29,6 @@ export abstract class LogNode<T = LogEntry, U = CreateParam> {
 
   constructor(
     public readonly level: LogLevel,
-    public readonly depth: number,
     public readonly parent?: LogNode<T>,
     public readonly id?: string,
   ) {
@@ -46,7 +45,7 @@ export abstract class LogNode<T = LogEntry, U = CreateParam> {
 
   abstract createNode(level: LogLevel, parent: LogNode<T, U>, param?: U): T
 
-  protected addNode(level: LogLevel, param?: U): T {
+  protected appendNode(level: LogLevel, param?: U): T {
     const node = this.createNode(level, this, param)
     this.children.push(node)
     this.root.onGraphChange(node)
@@ -54,27 +53,27 @@ export abstract class LogNode<T = LogEntry, U = CreateParam> {
   }
 
   silly(param?: U): T {
-    return this.addNode(LogLevel.silly, param)
+    return this.appendNode(LogLevel.silly, param)
   }
 
   debug(param?: U): T {
-    return this.addNode(LogLevel.debug, param)
+    return this.appendNode(LogLevel.debug, param)
   }
 
   verbose(param?: U): T {
-    return this.addNode(LogLevel.verbose, param)
+    return this.appendNode(LogLevel.verbose, param)
   }
 
   info(param?: U): T {
-    return this.addNode(LogLevel.info, param)
+    return this.appendNode(LogLevel.info, param)
   }
 
   warn(param?: U): T {
-    return this.addNode(LogLevel.warn, param)
+    return this.appendNode(LogLevel.warn, param)
   }
 
   error(param?: U): T {
-    return this.addNode(LogLevel.error, param)
+    return this.appendNode(LogLevel.error, param)
   }
 
   /**

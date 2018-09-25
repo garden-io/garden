@@ -10,7 +10,7 @@ import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 
 import { RootLogNode, LogNode } from "./log-node"
-import { LogEntry, CreateOpts, createLogEntry, resolveParam } from "./log-entry"
+import { LogEntry, CreateOpts, resolveParam } from "./log-entry"
 import { getChildEntries } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
@@ -18,8 +18,6 @@ import { LogLevel } from "./log-node"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { combine } from "./renderers"
-
-const ROOT_DEPTH = -1
 
 export enum LoggerType {
   quiet = "quiet",
@@ -90,12 +88,12 @@ export class Logger extends RootLogNode<LogEntry> {
   }
 
   private constructor(config: LoggerConfig) {
-    super(config.level, ROOT_DEPTH)
+    super(config.level)
     this.writers = config.writers || []
   }
 
   createNode(level: LogLevel, _parent: LogNode, opts: CreateOpts) {
-    return createLogEntry(level, this, resolveParam(opts))
+    return new LogEntry({ level, parent: this, opts: resolveParam(opts) })
   }
 
   onGraphChange(entry: LogEntry) {
