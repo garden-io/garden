@@ -52,9 +52,9 @@ Examples:
 
 ### garden call
 
-Call a service endpoint.
+Call a service ingress endpoint.
 
-This command resolves the deployed external endpoint for the given service and path, calls the given endpoint and
+This command resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
 outputs the result.
 
 Examples:
@@ -62,7 +62,7 @@ Examples:
     garden call my-container
     garden call my-container/some-path
 
-Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
+Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 ##### Usage
 
@@ -72,7 +72,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS endpoints.
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `serviceAndPath` | Yes | The name of the service(s) to call followed by the endpoint path (e.g. my-container/somepath).
+  | `serviceAndPath` | Yes | The name of the service(s) to call followed by the ingress path (e.g. my-container/somepath).
 
 ### garden create project
 
@@ -135,28 +135,29 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` |  | boolean | Assigns a custom name to the module. (Defaults to name of the current directory.)
+  | `--name` |  | string | Assigns a custom name to the module. (Defaults to name of the current directory.)
   | `--type` |  | `container` `google-cloud-function` `npm-package`  | Type of module.
 
-### garden delete config
+### garden delete secret
 
-Delete a configuration variable from the environment.
+Delete a secret from the environment.
 
-Returns with an error if the provided key could not be found in the configuration.
+Returns with an error if the provided key could not be found by the provider.
 
 Examples:
 
-    garden delete config somekey
-    garden del config some.nested.key
+    garden delete secret kubernetes somekey
+    garden del secret local-kubernetes some-other-key
 
 ##### Usage
 
-    garden delete config <key> 
+    garden delete secret <provider> <key> 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
+  | `provider` | Yes | The name of the provider to remove the secret from.
   | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
 
 ### garden delete environment
@@ -164,7 +165,7 @@ Examples:
 Deletes a running environment.
 
 This will trigger providers to clear up any deployments in a Garden environment and reset it.
-When you then run `garden configure env` or any deployment command, the environment will be reconfigured.
+When you then run `garden init`, the environment will be reconfigured.
 
 This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
 resources.
@@ -275,26 +276,27 @@ Examples:
   | `service` | Yes | The service to exec the command in.
   | `command` | Yes | The command to run.
 
-### garden get config
+### garden get secret
 
-Get a configuration variable from the environment.
+Get a secret from the environment.
 
-Returns with an error if the provided key could not be found in the configuration.
+Returns with an error if the provided key could not be found.
 
 Examples:
 
-    garden get config somekey
-    garden get config some.nested.key
+    garden get secret kubernetes somekey
+    garden get secret local-kubernetes some-other-key
 
 ##### Usage
 
-    garden get config <key> 
+    garden get secret <provider> <key> 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
+  | `provider` | Yes | The name of the provider to read the secret from.
+  | `key` | Yes | The key of the configuration variable.
 
 ### garden get status
 
@@ -305,22 +307,21 @@ Outputs the status of your environment.
 
     garden get status 
 
-### garden init environment
+### garden init
 
-Initializes your environment.
+Initialize system, environment or other runtime components.
 
-Generally, environments are initialized automatically as part of other commands that you run.
-However, this command is useful if you want to make sure the environment is ready before running
-another command, or if you need to force a re-initialization using the --force flag.
+This command needs to be run before first deploying a Garden project, and occasionally after updating Garden,
+plugins or project configuration.
 
 Examples:
 
-    garden init env
-    garden init env --force
+    garden init
+    garden init --force   # runs the init flows even if status checks report that the environment is ready
 
 ##### Usage
 
-    garden init environment [options]
+    garden init [options]
 
 ##### Options
 
@@ -374,32 +375,6 @@ Examples:
   | `module` | Yes | Name of the module to link.
   | `path` | Yes | Path to the local directory that containes the module.
 
-### garden login
-
-Log into configured providers for this project and environment.
-
-Executes the login flow for any provider that requires login (such as the `kubernetes` provider).
-
-Examples:
-
-     garden login
-
-##### Usage
-
-    garden login 
-
-### garden logout
-
-Log out of configured providers for this project and environment.
-
-Examples:
-
-     garden logout
-
-##### Usage
-
-    garden logout 
-
 ### garden logs
 
 Retrieves the most recent logs for the specified service(s).
@@ -428,36 +403,36 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--tail` | `-t` | boolean | Continuously stream new logs from the service(s).
 
-### garden push
+### garden publish
 
-Build and push built module(s) to remote registry.
+Build and publish module(s) to a remote registry.
 
-Pushes built module artifacts for all or specified modules.
+Publishes built module artifacts for all or specified modules.
 Also builds modules and dependencies if needed.
 
 Examples:
 
-    garden push                # push artifacts for all modules in the project
-    garden push my-container   # only push my-container
-    garden push --force-build  # force re-build of modules before pushing artifacts
-    garden push --allow-dirty  # allow pushing dirty builds (which usually triggers error)
+    garden publish                # publish artifacts for all modules in the project
+    garden publish my-container   # only publish my-container
+    garden publish --force-build  # force re-build of modules before publishing artifacts
+    garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
 
 ##### Usage
 
-    garden push [module] [options]
+    garden publish [module] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | No | The name of the module(s) to push (skip to push all modules). Use comma as separator to specify multiple modules.
+  | `module` | No | The name of the module(s) to publish (skip to publish all modules). Use comma as separator to specify multiple modules.
 
 ##### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force-build` |  | boolean | Force rebuild of module(s) before pushing.
-  | `--allow-dirty` |  | boolean | Allow pushing dirty builds (with untracked/uncommitted files).
+  | `--force-build` |  | boolean | Force rebuild of module(s) before publishing.
+  | `--allow-dirty` |  | boolean | Allow publishing dirty builds (with untracked/uncommitted changes).
 
 ### garden run module
 
@@ -553,29 +528,32 @@ Scans your project and outputs an overview of all modules.
 
     garden scan 
 
-### garden set config
+### garden set secret
 
-Set a configuration variable in the environment.
+Set a secret value for a provider in an environment.
 
-These configuration values can be referenced in module templates, for example as environment variables.
+These secrets are handled by each provider, and may for example be exposed as environment
+variables for services or mounted as files, depending on how the provider is implemented
+and configured.
 
-_Note: The value is always stored as a string._
+_Note: The value is currently always stored as a string._
 
 Examples:
 
-    garden set config somekey myvalue
-    garden set config some.nested.key myvalue
+    garden set secret kubernetes somekey myvalue
+    garden set secret local-kubernets somekey myvalue
 
 ##### Usage
 
-    garden set config <key> <value> 
+    garden set secret <provider> <key> <value> 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
-  | `value` | Yes | The value of the configuration variable.
+  | `provider` | Yes | The name of the provider to store the secret with.
+  | `key` | Yes | A unique identifier for the secret.
+  | `value` | Yes | The value of the secret.
 
 ### garden test
 
@@ -736,4 +714,3 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 ##### Usage
 
     garden validate 
-

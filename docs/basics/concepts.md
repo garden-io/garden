@@ -36,8 +36,16 @@ For example, if you have a service called `my-service`, you can access its `/fea
 
 # Hot reload
 
-[PENDING]
+Hot reloading is updating a running service when its source files are changed, without re-building and re-deploying the whole thing. 
+
+In the case of a container, for example, we would not destroy the container, change the files, and then re-deploy a new container. Instead, we would update the changed files without stopping the running container, thus potentially not losing the current state of the application.
+
+Hot reload is off for all modules by default, and it needs to be enabled with the `hotReload` field a module's configuration file. For more detailed information, see the [configuring hot reload](./guides/configuring-hot-reload.md) guide.
 
 # Projects with multiple and/or remote repositories
 
-[PENDING]
+Garden projects may include sources hosted in any number of local or remote repositories. Remote sources may be later linked to local directories for convenience or to work offline. 
+
+You could have, for example, a project that has one local module, then one remote module from an external source, and then a second external source that contains, let's say, two more modules.
+
+For specifics see our [projects with multiple remote and local repos](./guides/multiple-and-remote-repos.md) guide.
