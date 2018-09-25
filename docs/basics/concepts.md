@@ -22,10 +22,22 @@ To sum it all up: A project consists of one or modules, and each module may depl
 
 # The build → test → deploy sequence
 
+One of the main tools of Garden to make the development of distributed systems extremely agile is the developer framework. You can call with `garden dev`.
+
+It is a combination of the `build`, `deploy` and `test` commands, that is, it builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests as you modify the code.
+
+The `build`, `deploy` and `test` commands, and by extension the `dev` command, are all dependency-aware. They will always build, test, and deploy modules in the right order so that all dependencies are respected.
+
 # How inter-service communication works
 
+Arguably the most important thing a distributed system needs to do is to allow its different parts to talk to one another. Garden makes inter-service communication extremely simple: a service's hostname is simply its name as declared in the configuration file.
 
+For example, if you have a service called `my-service`, you can access its `/feature` endpoint by simply calling `http://my-service/feature`.
 
 # Hot reload
 
+[PENDING]
+
 # Projects with multiple and/or remote repositories
+
+[PENDING]
