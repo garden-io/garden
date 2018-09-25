@@ -18,7 +18,7 @@ import { join } from "path"
 import { BuildTask } from "../tasks/build"
 import { Task } from "../tasks/base"
 import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
-import { getDeployTasks, getTasksForHotReload, getHotReloadModuleNames } from "../tasks/helpers"
+import { getTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
 import {
   Command,
   CommandResult,
@@ -28,9 +28,7 @@ import {
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { Module } from "../types/module"
-import { computeAutoReloadDependants, withDependants } from "../watch"
 import { getTestTasks } from "../tasks/test"
-import { getNames } from "../util/util"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -73,7 +71,6 @@ export class DevCommand extends Command<Args, Opts> {
 
     await garden.actions.prepareEnvironment({})
 
-    const autoReloadDependants = await computeAutoReloadDependants(garden)
     const modules = await garden.getModules()
 
     if (modules.length === 0) {
@@ -89,8 +86,7 @@ export class DevCommand extends Command<Args, Opts> {
       return {}
     }
 
-    const services = await garden.getServices()
-    const serviceNames = getNames(services)
+    const dependencyGraph = await garden.getDependencyGraph()
 
     const tasksForModule = (watch: boolean) => {
       return async (module: Module) => {
@@ -102,27 +98,21 @@ export class DevCommand extends Command<Args, Opts> {
         }
 
         const testModules: Module[] = watch
-          ? (await withDependants(garden, [module], autoReloadDependants))
+          ? (await dependencyGraph.withDependantModules([module]))
           : [module]
 
         const testTasks: Task[] = flatten(await Bluebird.map(
           testModules, m => getTestTasks({ garden, module: m })))
 
-        let tasks
-        if (watch && hotReload) {
-          tasks = testTasks.concat(await getTasksForHotReload({ garden, module, hotReloadServiceNames, serviceNames }))
-        } else {
-          tasks = testTasks.concat(await getDeployTasks({
-            garden,
-            module,
-            watch,
-            serviceNames,
-            hotReloadServiceNames,
-            force: watch,
-            forceBuild: watch,
-            includeDependants: watch,
-          }))
-        }
+        const tasks = testTasks.concat(await getTasksForModule({
+          garden,
+          module,
+          fromWatch: watch,
+          hotReloadServiceNames,
+          force: watch,
+          forceBuild: watch,
+          includeDependants: watch,
+        }))
 
         if (tasks.length === 0) {
           return [new BuildTask({ garden, module, force: watch })]

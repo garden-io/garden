@@ -339,10 +339,12 @@ describe("createIngresses", () => {
         buildArgs: {},
         image: "some/image:1.1",
         services: [],
+        tasks: [],
         tests: [],
       },
 
       serviceConfigs: [],
+      workflowConfigs: [],
       testConfigs: [],
     }
 

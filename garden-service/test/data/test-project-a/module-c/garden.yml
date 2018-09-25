@@ -9,3 +9,6 @@ module:
   tests:
     - name: unit
       command: [echo, OK]
+  tasks:
+    - name: workflow-c
+      command: [echo, OK]

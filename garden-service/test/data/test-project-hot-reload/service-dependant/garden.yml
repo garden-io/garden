@@ -21,3 +21,9 @@ module:
           port: http
       dependencies:
         - good-morning
+        # - dependant-task
+  tasks:
+    - name: dependant-task
+      command: [echo, dependant-task]
+      dependencies:
+        - service-dependant

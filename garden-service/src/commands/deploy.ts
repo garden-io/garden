@@ -18,10 +18,9 @@ import {
   StringsParameter,
 } from "./base"
 import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
-import { getDeployTasks, getTasksForHotReload, getHotReloadModuleNames } from "../tasks/helpers"
+import { getTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
-import { getNames } from "../util/util"
 
 const deployArgs = {
   service: new StringsParameter({
@@ -71,7 +70,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const services = await garden.getServices(args.service)
-    const serviceNames = getNames(services)
 
     if (services.length === 0) {
       garden.log.error({ msg: "No services found. Aborting." })
@@ -100,11 +98,10 @@ export class DeployCommand extends Command<Args, Opts> {
       garden,
       services,
       watch,
-      handler: async (module) => getDeployTasks({
+      handler: async (module) => getTasksForModule({
         garden,
         module,
-        serviceNames,
-        watch,
+        fromWatch: false,
         hotReloadServiceNames,
         force: opts.force,
         forceBuild: opts["force-build"],
@@ -112,12 +109,11 @@ export class DeployCommand extends Command<Args, Opts> {
       changeHandler: async (module) => {
         if (hotReloadModuleNames.has(module.name)) {
           await hotReloadAndLog(garden, module)
-          return getTasksForHotReload({ garden, module, hotReloadServiceNames, serviceNames })
-        } else {
-          return getDeployTasks({
-            garden, module, serviceNames, hotReloadServiceNames, force: true, forceBuild: true, watch: true,
-          })
         }
+        return getTasksForModule({
+          garden, module, hotReloadServiceNames, force: true, forceBuild: opts["force-build"],
+          fromWatch: true, includeDependants: true,
+        })
       },
     })
 

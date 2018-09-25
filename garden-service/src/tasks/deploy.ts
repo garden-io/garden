@@ -18,6 +18,9 @@ import {
 } from "../types/service"
 import { Garden } from "../garden"
 import { PushTask } from "./push"
+import { WorkflowTask } from "./workflow"
+import { DependencyGraphNodeType } from "../dependency-graph"
+// import { BuildTask } from "./build"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -25,51 +28,77 @@ export interface DeployTaskParams {
   force: boolean
   forceBuild: boolean
   logEntry?: LogEntry
-  //TODO: Move watch and hotReloadServiceNames to a new commandContext object?
-  watch?: boolean
+  fromWatch?: boolean
   hotReloadServiceNames?: string[]
 }
 
 export class DeployTask extends Task {
   type = "deploy"
+  depType: DependencyGraphNodeType = "service"
 
   private service: Service
   private forceBuild: boolean
   private logEntry?: LogEntry
-  private watch: boolean
-  private hotReloadServiceNames?: string[]
+  private fromWatch: boolean
+  private hotReloadServiceNames: string[]
 
-  constructor({ garden, service, force, forceBuild, logEntry, watch, hotReloadServiceNames }: DeployTaskParams) {
+  constructor(
+    { garden, service, force, forceBuild, logEntry, fromWatch = false, hotReloadServiceNames = [] }: DeployTaskParams,
+  ) {
     super({ garden, force, version: service.module.version })
     this.service = service
     this.forceBuild = forceBuild
     this.logEntry = logEntry
-    this.watch = !!watch
+    this.fromWatch = fromWatch
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   async getDependencies() {
-    const servicesToDeploy = (await this.garden.getServices(this.service.config.dependencies))
-      .filter(s => !includes(this.hotReloadServiceNames, s.name))
 
-    const deps: Task[] = await Bluebird.map(servicesToDeploy, async (service) => {
+    const dg = await this.garden.getDependencyGraph()
+
+    // We filter out service dependencies on services configured for hot reloading (if any)
+    const deps = await dg.getDependencies(this.depType, this.getName(), false,
+      (depNode) => !(depNode.type === this.depType && includes(this.hotReloadServiceNames, depNode.name)))
+
+    const deployTasks = await Bluebird.map(deps.service, async (service) => {
       return new DeployTask({
         garden: this.garden,
         service,
         force: false,
         forceBuild: this.forceBuild,
-        watch: this.watch,
+        fromWatch: this.fromWatch,
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
 
-    deps.push(new PushTask({
-      garden: this.garden,
-      module: this.service.module,
-      forceBuild: this.forceBuild,
-    }))
+    if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
+      return deployTasks
+    } else {
+      const workflowTasks = deps.workflow.map(workflow => {
+        return new WorkflowTask({
+          workflow,
+          garden: this.garden,
+          force: false,
+          forceBuild: this.forceBuild,
+        })
+      })
 
-    return deps
+      // const buildTask = new BuildTask({
+      //   garden: this.garden, module: this.service.module, force: true
+      // })
+
+      const pushTask = new PushTask({
+        garden: this.garden,
+        module: this.service.module,
+        force: this.forceBuild,
+        fromWatch: this.fromWatch,
+        hotReloadServiceNames: this.hotReloadServiceNames,
+      })
+
+      // return [ ...deployTasks, ...workflowTasks, buildTask]
+      return [...deployTasks, ...workflowTasks, pushTask]
+    }
   }
 
   protected getName() {

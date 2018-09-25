@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import deline = require("deline")
 import * as Joi from "joi"
 import { PrimitiveMap, joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray } from "./common"
 
@@ -23,7 +24,10 @@ export const baseServiceSchema = Joi.object()
   .keys({
     name: joiIdentifier().required(),
     dependencies: joiArray(joiIdentifier())
-      .description("The names of services that this service depends on at runtime."),
+      .description(deline`
+        The names of any services that this service depends on at runtime, and the names of any
+        tasks that should be executed before this service is deployed.
+      `),
     outputs: serviceOutputsSchema,
   })
   .unknown(true)

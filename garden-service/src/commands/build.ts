@@ -18,9 +18,7 @@ import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 import { processModules } from "../process"
-import { computeAutoReloadDependants, withDependants } from "../watch"
 import { Module } from "../types/module"
-import { hotReloadAndLog } from "./helpers"
 
 const buildArguments = {
   module: new StringsParameter({
@@ -61,8 +59,8 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
 
     await garden.clearBuilds()
 
-    const autoReloadDependants = await computeAutoReloadDependants(garden)
     const modules = await garden.getModules(args.module)
+    const dependencyGraph = await garden.getDependencyGraph()
     const moduleNames = modules.map(m => m.name)
 
     garden.log.header({ emoji: "hammer", command: "Build" })
@@ -73,12 +71,8 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
       watch: opts.watch,
       handler: async (module) => [new BuildTask({ garden, module, force: opts.force })],
       changeHandler: async (module: Module) => {
-
-        if (module.spec.hotReload) {
-          await hotReloadAndLog(garden, module)
-        }
-
-        return (await withDependants(garden, [module], autoReloadDependants))
+        const dependantModules = (await dependencyGraph.getDependants("build", module.name, true)).build
+        return [module].concat(dependantModules)
           .filter(m => moduleNames.includes(m.name))
           .map(m => new BuildTask({ garden, module: m, force: true }))
       },

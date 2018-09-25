@@ -24,7 +24,10 @@ export class ScanCommand extends Command {
     const modules = (await garden.getModules())
       .map(m => {
         m.services.forEach(s => delete s.module)
-        return omit(m, ["_ConfigType", "cacheContext", "serviceConfigs", "serviceNames"])
+        m.workflows.forEach(w => delete w.module)
+        return omit(m, [
+          "_ConfigType", "cacheContext", "serviceConfigs", "serviceNames", "workflowConfigs", "workflowNames",
+        ])
       })
 
     const output = { modules }

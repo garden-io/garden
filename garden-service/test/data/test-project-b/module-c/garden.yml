@@ -20,3 +20,6 @@ module:
   build:
     dependencies:
       - module-b
+  tasks:
+    - name: workflow-c
+      command: [echo, C]

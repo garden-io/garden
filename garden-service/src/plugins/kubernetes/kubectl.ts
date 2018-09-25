@@ -52,25 +52,25 @@ export class Kubectl {
   }
 
   private prepareArgs(args: string[], { tty }: SpawnOpts) {
-    const ops: string[] = []
+    const opts: string[] = []
 
     if (this.namespace) {
-      ops.push(`--namespace=${this.namespace}`)
+      opts.push(`--namespace=${this.namespace}`)
     }
 
     if (this.context) {
-      ops.push(`--context=${this.context}`)
+      opts.push(`--context=${this.context}`)
     }
 
     if (this.configPath) {
-      ops.push(`--kubeconfig=${this.configPath}`)
+      opts.push(`--kubeconfig=${this.configPath}`)
     }
 
     if (tty) {
-      ops.push("--tty")
+      opts.push("--tty")
     }
 
-    return ops.concat(args)
+    return args.concat(opts)
   }
 }
 

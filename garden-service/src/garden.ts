@@ -7,6 +7,7 @@
  */
 
 import Bluebird = require("bluebird")
+import deline = require("deline")
 import {
   parse,
   relative,
@@ -16,14 +17,16 @@ import {
 import {
   extend,
   flatten,
+  intersection,
   isString,
   fromPairs,
   merge,
   keyBy,
   cloneDeep,
+  pick,
   pickBy,
   sortBy,
-  uniqBy,
+  difference,
 } from "lodash"
 const AsyncLock = require("async-lock")
 
@@ -47,6 +50,8 @@ import {
   getNames,
   scanDirectory,
   pickKeys,
+  throwOnMissingNames,
+  uniqByName,
 } from "./util/util"
 import {
   DEFAULT_NAMESPACE,
@@ -63,6 +68,7 @@ import { VcsHandler, ModuleVersion } from "./vcs/base"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
 import { HotReloadHandler, HotReloadScheduler } from "./hotReloadScheduler"
+import { DependencyGraph } from "./dependency-graph"
 import {
   TaskGraph,
   TaskResults,
@@ -80,6 +86,7 @@ import {
 } from "./types/plugin/plugin"
 import { joiIdentifier, validate } from "./config/common"
 import { Service } from "./types/service"
+import { Workflow } from "./types/workflow"
 import { resolveTemplateStrings } from "./template-string"
 import {
   configSchema,
@@ -100,7 +107,7 @@ import { FileWriter } from "./logger/writers/file-writer"
 import { LogLevel } from "./logger/log-node"
 import { ActionHelper } from "./actions"
 import { createPluginContext } from "./plugin-context"
-import { ModuleAndServiceActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
+import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform } from "./constants"
 import { platform, arch } from "os"
 
@@ -108,8 +115,8 @@ export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
 }
 
-export interface ModuleActionHandlerMap<T extends keyof ModuleAndServiceActions> {
-  [actionName: string]: ModuleAndServiceActions[T]
+export interface ModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActions> {
+  [actionName: string]: ModuleAndRuntimeActions[T]
 }
 
 export type PluginActionMap = {
@@ -119,9 +126,9 @@ export type PluginActionMap = {
 }
 
 export type ModuleActionMap = {
-  [A in keyof ModuleAndServiceActions]: {
+  [A in keyof ModuleAndRuntimeActions]: {
     [moduleType: string]: {
-      [pluginName: string]: ModuleAndServiceActions[A],
+      [pluginName: string]: ModuleAndRuntimeActions[A],
     },
   }
 }
@@ -145,12 +152,14 @@ export class Garden {
   public readonly log: Logger
   public readonly actionHandlers: PluginActionMap
   public readonly moduleActionHandlers: ModuleActionMap
+  public dependencyGraph: DependencyGraph
 
   private readonly loadedPlugins: { [key: string]: GardenPlugin }
   private moduleConfigs: ModuleConfigMap
   private modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: PluginFactory }
-  private readonly serviceNameIndex: { [key: string]: string }
+  private readonly serviceNameIndex: { [key: string]: string } // service name -> module name
+  private readonly workflowNameIndex: { [key: string]: string } // workflow name -> module name
   private readonly hotReloadScheduler: HotReloadScheduler
   private readonly taskGraph: TaskGraph
 
@@ -188,6 +197,7 @@ export class Garden {
 
     this.moduleConfigs = {}
     this.serviceNameIndex = {}
+    this.workflowNameIndex = {}
     this.loadedPlugins = {}
     this.registeredPlugins = {}
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
@@ -566,28 +576,37 @@ export class Garden {
     return (await this.getModules([name], noScan))[0]
   }
 
+  async getDependencyGraph() {
+    if (!this.dependencyGraph) {
+      this.dependencyGraph = await DependencyGraph.factory(this)
+    }
+
+    return this.dependencyGraph
+  }
+
   /**
-   * Given the provided lists of build and service dependencies, return a list of all modules
-   * required to satisfy those dependencies.
+   * Given the provided lists of build and runtime (service/workflow) dependencies, return a list of all
+   * modules required to satisfy those dependencies.
    */
-  async resolveModuleDependencies(buildDependencies: BuildDependencyConfig[], serviceDependencies: string[]) {
-    const buildDeps = await Bluebird.map(buildDependencies, async (dep) => {
-      const moduleKey = getModuleKey(dep.name, dep.plugin)
-      const module = await this.getModule(moduleKey)
-      return [module].concat(await this.resolveModuleDependencies(module.build.dependencies, []))
-    })
+  async resolveDependencyModules(
+    buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[],
+  ): Promise<Module[]> {
+    const moduleNames = buildDependencies.map(d => getModuleKey(d.name, d.plugin))
+    const dg = await this.getDependencyGraph()
 
-    const runtimeDeps = await Bluebird.map(serviceDependencies, async (serviceName) => {
-      const service = await this.getService(serviceName)
-      return this.resolveModuleDependencies(
-        [{ name: service.module.name, copy: [] }],
-        service.config.dependencies || [],
-      )
-    })
+    const serviceNames = runtimeDependencies.filter(d => this.serviceNameIndex[d])
+    const workflowNames = runtimeDependencies.filter(d => this.workflowNameIndex[d])
 
-    const deps = flatten(buildDeps).concat(flatten(runtimeDeps))
+    const buildDeps = await dg.getDependenciesForMany("build", moduleNames, true)
+    const serviceDeps = await dg.getDependenciesForMany("service", serviceNames, true)
+    const workflowDeps = await dg.getDependenciesForMany("workflow", workflowNames, true)
 
-    return sortBy(uniqBy(deps, "name"), "name")
+    const modules = [
+      ...(await this.getModules(moduleNames)),
+      ...(await dg.modulesForRelations(await dg.mergeRelations(buildDeps, serviceDeps, workflowDeps))),
+    ]
+
+    return sortBy(uniqByName(modules), "name")
   }
 
   /**
@@ -595,7 +614,7 @@ export class Garden {
    * The combined version is a either the latest dirty module version (if any), or the hash of the module version
    * and the versions of its dependencies (in sorted order).
    */
-  async resolveVersion(moduleName: string, moduleDependencies: BuildDependencyConfig[], force = false) {
+  async resolveVersion(moduleName: string, moduleDependencies: (Module | BuildDependencyConfig)[], force = false) {
     const depModuleNames = moduleDependencies.map(m => m.name)
     depModuleNames.sort()
     const cacheKey = ["moduleVersions", moduleName, ...depModuleNames]
@@ -619,35 +638,132 @@ export class Garden {
     return version
   }
 
-  /*
-    Returns all services that are registered in this context, or the ones specified.
-    Scans for modules and services in the project root if it hasn't already been done.
-   */
-  async getServices(names?: string[], noScan?: boolean): Promise<Service[]> {
-    if (!this.modulesScanned && !noScan) {
-      await this.scanModules()
+  async getServiceOrWorkflow(name: string, noScan?: boolean): Promise<Service<Module> | Workflow<Module>> {
+    const service = (await this.getServices([name], noScan))[0]
+    const workflow = (await this.getWorkflows([name], noScan))[0]
+
+    if (!service && !workflow) {
+      throw new ParameterError(`Could not find service or task named ${name}`, {
+        missing: [name],
+        availableServices: Object.keys(this.serviceNameIndex),
+        availableWorkflows: Object.keys(this.workflowNameIndex),
+      })
     }
 
-    const picked = names ? pickKeys(this.serviceNameIndex, names, "service") : this.serviceNameIndex
-
-    return Bluebird.map(Object.entries(picked), async ([serviceName, moduleName]) => {
-      const module = await this.getModule(moduleName)
-      const config = findByName(module.serviceConfigs, serviceName)!
-
-      return {
-        name: serviceName,
-        config,
-        module,
-        spec: config.spec,
-      }
-    })
+    return service || workflow
   }
 
   /**
    * Returns the service with the specified name. Throws error if it doesn't exist.
    */
   async getService(name: string, noScan?: boolean): Promise<Service<Module>> {
-    return (await this.getServices([name], noScan))[0]
+    const service = (await this.getServices([name], noScan))[0]
+
+    if (!service) {
+      throw new ParameterError(`Could not find service ${name}`, {
+        missing: [name],
+        available: Object.keys(this.serviceNameIndex),
+      })
+    }
+
+    return service
+  }
+
+  async getWorkflow(name: string, noScan?: boolean): Promise<Workflow> {
+    const workflow = (await this.getWorkflows([name], noScan))[0]
+
+    if (!workflow) {
+      throw new ParameterError(`Could not find task ${name}`, {
+        missing: [name],
+        available: Object.keys(this.workflowNameIndex),
+      })
+    }
+
+    return workflow
+  }
+
+  /*
+    Returns all services that are registered in this context, or the ones specified.
+    If the names parameter is used and workflow names are included in it, they will be
+    ignored. Scans for modules and services in the project root if it hasn't already
+    been done.
+   */
+  async getServices(names?: string[], noScan?: boolean): Promise<Service[]> {
+    const services = (await this.getServicesAndWorkflows(names, noScan)).services
+    if (names) {
+      const workflowNames = Object.keys(this.workflowNameIndex)
+      throwOnMissingNames(difference(names, workflowNames), services, "service")
+    }
+    return services
+  }
+
+  /*
+    Returns all workflows that are registered in this context, or the ones specified.
+    If the names parameter is used and service names are included in it, they will be
+    ignored. Scans for modules and services in the project root if it hasn't already
+    been done.
+   */
+  async getWorkflows(names?: string[], noScan?: boolean): Promise<Workflow[]> {
+    const workflows = (await this.getServicesAndWorkflows(names, noScan)).workflows
+    if (names) {
+      const serviceNames = Object.keys(this.serviceNameIndex)
+      throwOnMissingNames(difference(names, serviceNames), workflows, "task")
+    }
+    return workflows
+  }
+
+  async getServicesAndWorkflows(names?: string[], noScan?: boolean) {
+    if (!this.modulesScanned && !noScan) {
+      await this.scanModules()
+    }
+
+    let pickedServices: { [key: string]: string }
+    let pickedWorkflows: { [key: string]: string }
+
+    if (names) {
+      const serviceNames = Object.keys(this.serviceNameIndex)
+      const workflowNames = Object.keys(this.workflowNameIndex)
+      pickedServices = pick(this.serviceNameIndex, intersection(names, serviceNames))
+      pickedWorkflows = pick(this.workflowNameIndex, intersection(names, workflowNames))
+    } else {
+      pickedServices = this.serviceNameIndex
+      pickedWorkflows = this.workflowNameIndex
+    }
+
+    return Bluebird.props({
+
+      services: Bluebird.map(Object.entries(pickedServices), async ([serviceName, moduleName]):
+        Promise<Service> => {
+
+        const module = await this.getModule(moduleName)
+        const config = findByName(module.serviceConfigs, serviceName)!
+
+        return {
+          name: serviceName,
+          config,
+          module,
+          spec: config.spec,
+        }
+
+      }),
+
+      workflows: Bluebird.map(Object.entries(pickedWorkflows), async ([workflowName, moduleName]):
+        Promise<Workflow> => {
+
+        const module = await this.getModule(moduleName)
+        const config = findByName(module.workflowConfigs, workflowName)!
+
+        return {
+          name: workflowName,
+          config,
+          module,
+          spec: config.spec,
+        }
+
+      }),
+
+    })
+
   }
 
   /*
@@ -713,10 +829,13 @@ export class Garden {
   }
 
   private async detectCircularDependencies() {
-    const modules = await this.getModules()
-    const services = await this.getServices()
+    const { modules, services, workflows } = await Bluebird.props({
+      modules: this.getModules(),
+      services: this.getServices(),
+      workflows: this.getWorkflows(),
+    })
 
-    return detectCircularDependencies(modules, services)
+    return detectCircularDependencies(modules, services, workflows)
   }
 
   /*
@@ -750,9 +869,9 @@ export class Garden {
       const serviceName = serviceConfig.name
 
       if (!force && this.serviceNameIndex[serviceName]) {
-        throw new ConfigurationError(
-          `Service names must be unique - ${serviceName} is declared multiple times ` +
-          `(in '${this.serviceNameIndex[serviceName]}' and '${config.name}')`,
+        throw new ConfigurationError(deline`
+          Service names must be unique - the service name ${serviceName} is declared multiple times
+          (in '${this.serviceNameIndex[serviceName]}' and '${config.name}')`,
           {
             serviceName,
             moduleA: this.serviceNameIndex[serviceName],
@@ -762,6 +881,40 @@ export class Garden {
       }
 
       this.serviceNameIndex[serviceName] = config.name
+    }
+
+    // Add to workflow-module map
+    for (const workflowConfig of config.workflowConfigs) {
+      const workflowName = workflowConfig.name
+
+      if (!force) {
+
+        if (this.serviceNameIndex[workflowName]) {
+          throw new ConfigurationError(deline`
+            Service and task names must be mutually unique - the task name ${workflowName} (declared in
+            '${config.name}') is also declared as a service name in '${this.serviceNameIndex[workflowName]}'`,
+            {
+              conflictingName: workflowName,
+              moduleA: config.name,
+              moduleB: this.serviceNameIndex[workflowName],
+            })
+        }
+
+        if (this.workflowNameIndex[workflowName]) {
+          throw new ConfigurationError(deline`
+            Task names must be unique - the task name ${workflowName} is declared multiple times (in
+            '${this.workflowNameIndex[workflowName]}' and '${config.name}')`,
+            {
+              taskName: workflowName,
+              moduleA: config.name,
+              moduleB: this.serviceNameIndex[workflowName],
+            })
+        }
+
+      }
+
+      this.workflowNameIndex[workflowName] = config.name
+
     }
 
     if (this.modulesScanned) {
@@ -849,7 +1002,7 @@ export class Garden {
   /**
    * Get a handler for the specified module action.
    */
-  public getModuleActionHandlers<T extends keyof ModuleAndServiceActions>(
+  public getModuleActionHandlers<T extends keyof ModuleAndRuntimeActions>(
     { actionType, moduleType, pluginName }:
       { actionType: T, moduleType: string, pluginName?: string },
   ): ModuleActionHandlerMap<T> {
@@ -906,10 +1059,10 @@ export class Garden {
   /**
    * Get the last configured handler for the specified action.
    */
-  public getModuleActionHandler<T extends keyof ModuleAndServiceActions>(
+  public getModuleActionHandler<T extends keyof ModuleAndRuntimeActions>(
     { actionType, moduleType, pluginName, defaultHandler }:
-      { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleAndServiceActions[T] },
-  ): ModuleAndServiceActions[T] {
+      { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleAndRuntimeActions[T] },
+  ): ModuleAndRuntimeActions[T] {
 
     const handlers = Object.values(this.getModuleActionHandlers({ actionType, moduleType, pluginName }))
 

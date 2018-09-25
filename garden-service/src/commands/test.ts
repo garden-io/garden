@@ -23,7 +23,6 @@ import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
-import { computeAutoReloadDependants, withDependants } from "../watch"
 
 const testArgs = {
   module: new StringsParameter({
@@ -69,10 +68,10 @@ export class TestCommand extends Command<Args, Opts> {
   options = testOpts
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    const autoReloadDependants = await computeAutoReloadDependants(garden)
+    const dependencyGraph = await garden.getDependencyGraph()
     let modules: Module[]
     if (args.module) {
-      modules = await withDependants(garden, await garden.getModules(args.module), autoReloadDependants)
+      modules = await dependencyGraph.withDependantModules(await garden.getModules(args.module))
     } else {
       // All modules are included in this case, so there's no need to compute dependants.
       modules = await garden.getModules()
@@ -95,7 +94,7 @@ export class TestCommand extends Command<Args, Opts> {
       watch: opts.watch,
       handler: async (module) => getTestTasks({ garden, module, name, force, forceBuild }),
       changeHandler: async (module) => {
-        const modulesToProcess = await withDependants(garden, [module], autoReloadDependants)
+        const modulesToProcess = await dependencyGraph.withDependantModules([module])
         return flatten(await Bluebird.map(
           modulesToProcess,
           m => getTestTasks({ garden, module: m, name, force, forceBuild })))

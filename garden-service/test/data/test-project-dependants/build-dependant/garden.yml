@@ -1,0 +1,15 @@
+module:
+  description: Build dependant
+  name: build-dependant
+  type: container
+  services:
+    - name: build-dependant
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /dependant
+          port: http
+  build:
+    dependencies:
+      - good-morning

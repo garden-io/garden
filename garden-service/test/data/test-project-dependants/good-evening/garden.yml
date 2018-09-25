@@ -1,0 +1,12 @@
+module:
+  description: Good evening greeting service
+  name: good-evening
+  type: container
+  services:
+    - name: good-evening
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /evening
+          port: http

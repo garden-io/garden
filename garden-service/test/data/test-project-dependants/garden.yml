@@ -1,0 +1,8 @@
+project:
+  name: test-project-dependants
+  environmentDefaults:
+    providers: []
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin

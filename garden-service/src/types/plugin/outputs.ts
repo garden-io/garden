@@ -137,7 +137,12 @@ export const moduleTypeDescriptionSchema = Joi.object()
   })
 
 export type ValidateModuleResult<T extends Module = Module> =
-  ModuleConfig<T["spec"], T["serviceConfigs"][0]["spec"], T["testConfigs"][0]["spec"]>
+  ModuleConfig<
+  T["spec"],
+  T["serviceConfigs"][0]["spec"],
+  T["testConfigs"][0]["spec"],
+  T["workflowConfigs"][0]["spec"]
+  >
 
 export const validateModuleResultSchema = moduleConfigSchema
 
@@ -156,7 +161,7 @@ export const buildModuleResultSchema = Joi.object()
     fetched: Joi.boolean()
       .description("Set to true if the build was fetched from a remote registry."),
     fresh: Joi.boolean()
-      .description("Set to true if the build was perfomed, false if it was already built, or fetched from a registry"),
+      .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
     version: Joi.string()
       .description("The version that was built."),
     details: Joi.object()
@@ -249,6 +254,53 @@ export const buildStatusSchema = Joi.object()
       .description("Whether an up-to-date build is ready for the module."),
   })
 
+export interface RunWorkflowResult extends RunResult {
+  moduleName: string
+  workflowName: string
+  command: string[]
+  version: ModuleVersion
+  success: boolean
+  startedAt: Date
+  completedAt: Date
+  output: string
+}
+
+export const runWorkflowResultSchema = Joi.object()
+  .keys({
+    moduleName: Joi.string()
+      .description("The name of the module that the task belongs to."),
+    workflowName: Joi.string()
+      .description("The name of the task that was run."),
+    command: Joi.array().items(Joi.string())
+      .required()
+      .description("The command that the task ran in the module."),
+    version: moduleVersionSchema,
+    success: Joi.boolean()
+      .required()
+      .description("Whether the task was successfully run."),
+    startedAt: Joi.date()
+      .required()
+      .description("When the task run was started."),
+    completedAt: Joi.date()
+      .required()
+      .description("When the task run was completed."),
+    output: Joi.string()
+      .required()
+      .allow("")
+      .description("The output log from the run."),
+  })
+
+export interface WorkflowStatus {
+  done: boolean
+}
+
+export const workflowStatusSchema = Joi.object()
+  .keys({
+    done: Joi.boolean()
+      .required()
+      .description("Whether the task has been successfully executed for the module's current version."),
+  })
+
 export interface PluginActionOutputs {
   getEnvironmentStatus: Promise<EnvironmentStatus>
   prepareEnvironment: Promise<PrepareEnvironmentResult>
@@ -267,6 +319,11 @@ export interface ServiceActionOutputs {
   execInService: Promise<ExecInServiceResult>
   getServiceLogs: Promise<{}>
   runService: Promise<RunResult>
+}
+
+export interface WorkflowActionOutputs {
+  getWorkflowStatus: Promise<WorkflowStatus>
+  runWorkflow: Promise<RunWorkflowResult>
 }
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {

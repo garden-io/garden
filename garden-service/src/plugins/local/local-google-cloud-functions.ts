@@ -102,6 +102,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           },
 
           serviceConfigs,
+          workflowConfigs: [],
           testConfigs: parsed.testConfigs,
         }
       },

@@ -31,6 +31,7 @@ import {
   ValidateModuleParams,
   RunModuleParams,
   RunServiceParams,
+  RunWorkflowParams,
   SetSecretParams,
 } from "../src/types/plugin/params"
 import {
@@ -125,6 +126,13 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             spec,
           }))
 
+          moduleConfig.workflowConfigs = moduleConfig.spec.tasks.map(t => ({
+            name: t.name,
+            dependencies: t.dependencies,
+            spec: t,
+            timeout: t.timeout,
+          }))
+
           moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
             name: t.name,
             dependencies: t.dependencies,
@@ -137,6 +145,9 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
 
         build: buildGenericModule,
         runModule,
+
+        async getServiceStatus() { return {} },
+        async deployService() { return {} },
 
         async runService(
           { ctx, service, interactive, runtimeContext, timeout, buildDependencies }: RunServiceParams,
@@ -152,8 +163,27 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           })
         },
 
-        async getServiceStatus() { return {} },
-        async deployService() { return {} },
+        async runWorkflow(
+          { ctx, workflow, interactive, runtimeContext, logEntry, buildDependencies }: RunWorkflowParams,
+        ) {
+          const result = await runModule({
+            ctx,
+            buildDependencies,
+            interactive,
+            logEntry,
+            runtimeContext,
+            module: workflow.module,
+            command: workflow.spec.command || [],
+            ignoreError: false,
+            timeout: workflow.spec.timeout || 9999,
+          })
+
+          return {
+            ...result,
+            workflowName: workflow.name,
+          }
+        },
+
       },
     },
   }
@@ -192,6 +222,7 @@ export const defaultModuleConfig: ModuleConfig = {
   },
   serviceConfigs: [],
   testConfigs: [],
+  workflowConfigs: [],
 }
 
 export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {

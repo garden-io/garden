@@ -151,6 +151,31 @@ describe("Garden", () => {
     })
   })
 
+  describe("getServicesAndWorkflows", () => {
+    it("should scan for modules and return all registered services and workflows in the context", async () => {
+      const garden = await makeTestGardenA()
+      const { services, workflows } = await garden.getServicesAndWorkflows()
+
+      expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
+      expect(getNames(workflows).sort()).to.eql(["workflow-a", "workflow-b", "workflow-c"])
+    })
+
+    it("should optionally return specified services and workflows in the context", async () => {
+      const garden = await makeTestGardenA()
+      const { services, workflows } = await garden.getServicesAndWorkflows(["service-b", "service-c", "workflow-a"])
+
+      expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
+      expect(getNames(workflows).sort()).to.eql(["workflow-a"])
+    })
+
+    it("should not throw if a named service or workflow is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      await garden.getServicesAndWorkflows(["not", "real"])
+    })
+
+  })
+
   describe("getServices", () => {
     it("should scan for modules and return all registered services in the context", async () => {
       const garden = await makeTestGardenA()
@@ -193,6 +218,81 @@ describe("Garden", () => {
 
       try {
         await garden.getServices(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+  })
+
+  describe("getWorkflows", () => {
+    it("should scan for modules and return all registered workflows in the context", async () => {
+      const garden = await makeTestGardenA()
+      const workflows = await garden.getWorkflows()
+
+      expect(getNames(workflows).sort()).to.eql(["workflow-a", "workflow-b", "workflow-c"])
+    })
+
+    it("should optionally return specified workflows in the context", async () => {
+      const garden = await makeTestGardenA()
+      const workflows = await garden.getWorkflows(["workflow-b", "workflow-c"])
+
+      expect(getNames(workflows).sort()).to.eql(["workflow-b", "workflow-c"])
+    })
+
+    it("should throw if named workflow is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      try {
+        await garden.getWorkflows(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+  })
+
+  describe("getWorkflow", () => {
+    it("should return the specified workflow", async () => {
+      const garden = await makeTestGardenA()
+      const workflow = await garden.getWorkflow("workflow-b")
+
+      expect(workflow.name).to.equal("workflow-b")
+    })
+
+    it("should throw if workflow is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      try {
+        await garden.getWorkflows(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+  })
+
+  describe("getServiceOrWorkflow", () => {
+    it("should return the specified service or workflow", async () => {
+      const garden = await makeTestGardenA()
+      const service = await garden.getServiceOrWorkflow("service-a")
+      const workflow = await garden.getServiceOrWorkflow("workflow-a")
+
+      expect(service.name).to.equal("service-a")
+      expect(workflow.name).to.equal("workflow-a")
+    })
+
+    it("should throw if no matching service or workflow was found", async () => {
+      const garden = await makeTestGardenA()
+
+      try {
+        await garden.getServiceOrWorkflow("bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -461,19 +561,19 @@ describe("Garden", () => {
   describe("resolveModuleDependencies", () => {
     it("should resolve build dependencies", async () => {
       const garden = await makeTestGardenA()
-      const modules = await garden.resolveModuleDependencies([{ name: "module-c", copy: [] }], [])
+      const modules = await garden.resolveDependencyModules([{ name: "module-c", copy: [] }], [])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should resolve service dependencies", async () => {
       const garden = await makeTestGardenA()
-      const modules = await garden.resolveModuleDependencies([], ["service-b"])
+      const modules = await garden.resolveDependencyModules([], ["service-b"])
       expect(getNames(modules)).to.eql(["module-a", "module-b"])
     })
 
     it("should combine module and service dependencies", async () => {
       const garden = await makeTestGardenA()
-      const modules = await garden.resolveModuleDependencies([{ name: "module-b", copy: [] }], ["service-c"])
+      const modules = await garden.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
   })

@@ -12,6 +12,7 @@ import { highlightYaml } from "../../util/util"
 import { Command } from "../base"
 import { RunModuleCommand } from "./module"
 import { RunServiceCommand } from "./service"
+import { RunWorkflowCommand } from "./workflow"
 import { RunTestCommand } from "./test"
 import { Garden } from "../../garden"
 
@@ -22,6 +23,7 @@ export class RunCommand extends Command {
   subCommands = [
     RunModuleCommand,
     RunServiceCommand,
+    RunWorkflowCommand,
     RunTestCommand,
   ]
 

@@ -15,7 +15,7 @@ import * as Cryo from "cryo"
 import * as _spawn from "cross-spawn"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { join, basename, win32, posix } from "path"
-import { find, pick, difference, fromPairs } from "lodash"
+import { find, pick, difference, fromPairs, uniqBy } from "lodash"
 import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
@@ -335,8 +335,12 @@ export function getNames<T extends ObjectWithName>(array: T[]) {
   return array.map(v => v.name)
 }
 
-export function findByName<T>(array: T[], name: string): T | undefined {
+export function findByName<T extends ObjectWithName>(array: T[], name: string): T | undefined {
   return find(array, ["name", name])
+}
+
+export function uniqByName<T extends ObjectWithName>(array: T[]): T[] {
+  return uniqBy(array, item => item.name)
 }
 
 /**
@@ -376,6 +380,15 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
   }
 
   return picked
+}
+
+export function throwOnMissingNames<T extends ObjectWithName>(names: string[], entries: T[], description: string) {
+  const available = getNames(entries)
+  const missing = difference(names, available)
+
+  if (missing.length) {
+    throw new ParameterError(`Could not find ${description}(s): ${missing.join(", ")}`, { available, missing })
+  }
 }
 
 export function hashString(s: string, length: number) {

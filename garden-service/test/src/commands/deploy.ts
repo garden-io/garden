@@ -10,9 +10,31 @@ import {
 import {
   DeployServiceParams,
   GetServiceStatusParams,
+  RunWorkflowParams,
 } from "../../../src/types/plugin/params"
 import { ServiceState, ServiceStatus } from "../../../src/types/service"
 import { taskResultOutputs } from "../../helpers"
+import { RunWorkflowResult } from "../../../src/types/plugin/outputs"
+
+const placeholderTimestamp = new Date()
+
+const placeholderWorkflowResult = (moduleName, workflowName, command) => ({
+  moduleName,
+  workflowName,
+  command,
+  version: {
+    versionString: "1",
+    dirtyTimestamp: null,
+    dependencyVersions: {},
+  },
+  success: true,
+  startedAt: placeholderTimestamp,
+  completedAt: placeholderTimestamp,
+  output: "out",
+})
+
+const workflowResultA = placeholderWorkflowResult("module-a", "workflow-a", ["echo", "A"])
+const workflowResultC = placeholderWorkflowResult("module-c", "workflow-c", ["echo", "C"])
 
 const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
@@ -45,6 +67,10 @@ const testProvider: PluginFactory = () => {
     return newStatus
   }
 
+  const runWorkflow = async ({ workflow }: RunWorkflowParams): Promise<RunWorkflowResult> => {
+    return placeholderWorkflowResult(workflow.module.name, workflow.name, workflow.spec.command)
+  }
+
   return {
     moduleActions: {
       container: {
@@ -52,6 +78,7 @@ const testProvider: PluginFactory = () => {
         build: buildGenericModule,
         deployService,
         getServiceStatus,
+        runWorkflow,
       },
     },
   }
@@ -85,6 +112,8 @@ describe("DeployCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
+      "workflow.workflow-a": workflowResultA,
+      "workflow.workflow-c": workflowResultC,
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
       "deploy.service-c": { version: "1", state: "ready" },
@@ -115,6 +144,9 @@ describe("DeployCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
+      "build.module-c": {},
+      "workflow.workflow-a": workflowResultA,
+      "workflow.workflow-c": workflowResultC,
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
       "push.module-a": { pushed: false },

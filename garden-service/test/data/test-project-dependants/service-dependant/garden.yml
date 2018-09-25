@@ -1,0 +1,20 @@
+module:
+  description: Service dependant
+  name: service-dependant
+  type: container
+  services:
+    - name: service-dependant
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /dependant
+          port: http
+      dependencies:
+        - good-morning
+        # - dependant-task
+  tasks:
+    - name: dependant-task
+      command: [echo, dependant-task]
+      dependencies:
+        - service-dependant

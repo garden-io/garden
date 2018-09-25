@@ -12,3 +12,6 @@ module:
   tests:
     - name: unit
       command: [echo, OK]
+  tasks:
+    - name: workflow-b
+      command: [echo, OK]

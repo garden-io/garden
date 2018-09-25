@@ -22,13 +22,13 @@ import {
   BuildResult,
   BuildStatus,
   ValidateModuleResult,
-  TestResult,
+  TestResult, WorkflowStatus, RunWorkflowResult,
 } from "../types/plugin/outputs"
 import {
   BuildModuleParams,
   GetBuildStatusParams,
   ValidateModuleParams,
-  TestModuleParams,
+  TestModuleParams, RunWorkflowParams,
 } from "../types/plugin/params"
 import { BaseServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
@@ -36,6 +36,7 @@ import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "..
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import execa = require("execa")
+import { BaseWorkflowSpec, baseWorkflowSpecSchema } from "../config/workflow"
 
 export const name = "generic"
 
@@ -51,6 +52,17 @@ export const genericTestSchema = baseTestSpecSchema
     env: joiEnvVars(),
   })
   .description("The test specification of a generic module.")
+
+export interface GenericWorkflowSpec extends BaseWorkflowSpec {
+  command: string[],
+}
+
+export const genericWorkflowSpecSchema = baseWorkflowSpecSchema
+  .keys({
+    command: Joi.array().items(Joi.string())
+      .description("The command to run in the module build context."),
+  })
+  .description("The task specification for a generic module.")
 
 export interface GenericModuleSpec extends ModuleSpec {
   env: { [key: string]: string },
@@ -155,12 +167,51 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
   }
 }
 
+export async function runGenericWorkflow(params: RunWorkflowParams): Promise<RunWorkflowResult> {
+  const { workflow } = params
+  const module = workflow.module
+  const command = workflow.spec.command
+  const startedAt = new Date()
+
+  const result = {
+    moduleName: module.name,
+    workflowName: workflow.name,
+    command,
+    version: module.version,
+    success: true,
+    startedAt,
+  }
+
+  if (command && command.length) {
+    const commandResult = await execa.shell(
+      command.join(" "),
+      {
+        cwd: module.buildPath,
+        env: { ...process.env, ...mapValues(module.spec.env, v => v.toString()) },
+      },
+    )
+
+    result["completedAt"] = new Date()
+    result["output"] = commandResult.stdout + commandResult.stderr
+  } else {
+    result["completedAt"] = startedAt
+    result["output"] = ""
+  }
+
+  return <RunWorkflowResult>{ ...result }
+}
+
+export async function getGenericWorkflowStatus(): Promise<WorkflowStatus> {
+  return { done: false }
+}
+
 export const genericPlugin: GardenPlugin = {
   moduleActions: {
     generic: {
       validate: parseGenericModule,
       getBuildStatus: getGenericModuleBuildStatus,
       build: buildGenericModule,
+      runWorkflow: runGenericWorkflow,
       testModule: testGenericModule,
     },
   },

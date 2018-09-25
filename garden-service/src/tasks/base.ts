@@ -10,6 +10,7 @@ import { TaskResults } from "../task-graph"
 import { ModuleVersion } from "../vcs/base"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
+import { DependencyGraphNodeType } from "../dependency-graph"
 
 export class TaskDefinitionError extends Error { }
 
@@ -21,6 +22,7 @@ export interface TaskParams {
 
 export abstract class Task {
   abstract type: string
+  abstract depType: DependencyGraphNodeType
   garden: Garden
   id: string
   force: boolean

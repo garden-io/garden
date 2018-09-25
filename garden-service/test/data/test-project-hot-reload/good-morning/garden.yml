@@ -19,6 +19,11 @@ module:
         httpGet:
           path: /_ah/health
           port: http
+      dependencies:
+        - good-morning-task
   build:
     dependencies:
       - build-dependency
+  tasks:
+    - name: good-morning-task
+      command: [echo, good-morning-task]

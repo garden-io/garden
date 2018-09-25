@@ -7,67 +7,14 @@
  */
 
 import { watch } from "chokidar"
-import {
-  mapValues,
-  set,
-  uniq,
-  values,
-} from "lodash"
 import { basename, parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
-import { Module, getModuleKey } from "./types/module"
+import { Module } from "./types/module"
 import { getIgnorer, scanDirectory } from "./util/util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
 import { Garden } from "./garden"
 
-export type AutoReloadDependants = { [key: string]: Module[] }
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
-
-/*
-  Resolves to modules and their build & service dependant modules (recursively).
-  Each module is represented at most once in the output.
-*/
-export async function withDependants(
-  garden: Garden,
-  modules: Module[],
-  autoReloadDependants: AutoReloadDependants,
-): Promise<Module[]> {
-  const moduleSet = new Set<string>()
-
-  const scanner = (module: Module) => {
-    moduleSet.add(module.name)
-    for (const dependant of (autoReloadDependants[module.name] || [])) {
-      if (!moduleSet.has(dependant.name)) {
-        scanner(dependant)
-      }
-    }
-  }
-  for (const m of modules) {
-    scanner(m)
-  }
-
-  // we retrieve the modules again to be sure we have the latest versions
-  return garden.getModules(Array.from(moduleSet))
-}
-
-export async function computeAutoReloadDependants(garden: Garden): Promise<AutoReloadDependants> {
-  const dependants = {}
-
-  for (const module of await garden.getModules()) {
-    const depModules: Module[] = await uniqueDependencyModules(garden, module)
-    for (const dep of depModules) {
-      set(dependants, [dep.name, module.name], module)
-    }
-  }
-
-  return mapValues(dependants, values)
-}
-
-async function uniqueDependencyModules(garden: Garden, module: Module): Promise<Module[]> {
-  const buildDeps = module.build.dependencies.map(d => getModuleKey(d.name, d.plugin))
-  const serviceDeps = (await garden.getServices(module.serviceDependencyNames)).map(s => s.module.name)
-  return garden.getModules(uniq(buildDeps.concat(serviceDeps)))
-}
 
 export class FSWatcher {
   private watcher

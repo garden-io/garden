@@ -8,3 +8,6 @@ module:
   tests:
     - name: unit
       command: [echo, OK]
+  tasks:
+    - name: workflow-a
+      command: [echo, OK]

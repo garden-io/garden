@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import dedent = require("dedent")
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { Module, getModuleKey } from "../types/module"
 import {
   ConfigurationError,
 } from "../exceptions"
 import { Service } from "../types/service"
+import { Workflow } from "../types/workflow"
 
 export type Cycle = string[]
 
@@ -22,10 +24,10 @@ export type Cycle = string[]
 
   Throws an error if cycles were found.
 */
-export async function detectCircularDependencies(modules: Module[], services: Service[]) {
+export async function detectCircularDependencies(modules: Module[], services: Service[], workflows: Workflow[]) {
   // Sparse matrices
   const buildGraph = {}
-  const serviceGraph = {}
+  const runtimeGraph = {}
 
   /*
     There's no need to account for test dependencies here, since any circularities there
@@ -38,30 +40,47 @@ export async function detectCircularDependencies(modules: Module[], services: Se
       set(buildGraph, [module.name, depName], { distance: 1, next: depName })
     }
 
-    // Service dependencies
+    // Runtime (service & workflow) dependencies
     for (const service of module.serviceConfigs || []) {
       for (const depName of service.dependencies) {
-        set(serviceGraph, [service.name, depName], { distance: 1, next: depName })
+        set(runtimeGraph, [service.name, depName], { distance: 1, next: depName })
+      }
+    }
+
+    for (const workflow of module.workflowConfigs || []) {
+      for (const depName of workflow.dependencies) {
+        set(runtimeGraph, [workflow.name, depName], { distance: 1, next: depName })
       }
     }
   }
 
   const serviceNames = services.map(s => s.name)
+  const workflowNames = workflows.map(w => w.name)
   const buildCycles = detectCycles(buildGraph, modules.map(m => m.name))
-  const serviceCycles = detectCycles(serviceGraph, serviceNames)
+  const runtimeCycles = detectCycles(runtimeGraph, serviceNames.concat(workflowNames))
 
-  if (buildCycles.length > 0 || serviceCycles.length > 0) {
+  if (buildCycles.length > 0 || runtimeCycles.length > 0) {
     const detail = {}
 
+    let errMsg = "Circular dependencies detected."
+
     if (buildCycles.length > 0) {
-      detail["circular-build-dependencies"] = cyclesToString(buildCycles)
+      const buildCyclesDescription = cyclesToString(buildCycles)
+      errMsg = errMsg.concat("\n\n" + dedent`
+        Circular build dependencies: ${buildCyclesDescription}
+      `)
+      detail["circular-build-dependencies"] = buildCyclesDescription
     }
 
-    if (serviceCycles.length > 0) {
-      detail["circular-service-dependencies"] = cyclesToString(serviceCycles)
+    if (runtimeCycles.length > 0) {
+      const runtimeCyclesDescription = cyclesToString(runtimeCycles)
+      errMsg = errMsg.concat("\n\n" + dedent`
+        Circular service/task dependencies: ${runtimeCyclesDescription}
+      `)
+      detail["circular-service-or-task-dependencies"] = runtimeCyclesDescription
     }
 
-    throw new ConfigurationError("Circular dependencies detected", detail)
+    throw new ConfigurationError(errMsg, detail)
   }
 }
 

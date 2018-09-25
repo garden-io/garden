@@ -11,3 +11,9 @@ module:
           port: http
       healthCheck:
         tcpPort: http
+  tasks:
+    - name: workflow-a
+      command: [echo, A]
+      dependencies:
+        - workflow-b
+        - service-b
