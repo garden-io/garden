@@ -63,7 +63,7 @@ export class LogsCommand extends Command<Args, Opts> {
     const stream = new Stream<ServiceLogEntry>()
 
     // TODO: use basic logger (no need for fancy stuff here, just causes flickering)
-    stream.forEach((entry) => {
+    void stream.forEach((entry) => {
       // TODO: color each service differently for easier visual parsing
       let timestamp = "                        "
 

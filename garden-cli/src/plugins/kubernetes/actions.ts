@@ -290,7 +290,7 @@ export async function getServiceLogs(
       try {
         timestamp = moment(timestampStr).toDate()
       } catch { }
-      stream.write({ serviceName: service.name, timestamp, msg })
+      void stream.write({ serviceName: service.name, timestamp, msg })
     })
 
   proc.stderr.pipe(process.stderr)
