@@ -65,7 +65,7 @@ export function combine(renderers: Renderers): string {
 
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
-  return padStart("", entry.depth * 3)
+  return padStart("", (entry.opts.indentationLevel || 0) * 3)
 }
 
 export function renderEmoji(entry: LogEntry): string {
@@ -129,26 +129,13 @@ export function renderDuration(entry: LogEntry): string {
 }
 
 export function formatForTerminal(entry: LogEntry): string {
-  let renderers
-  if (entry.depth > 0) {
-    // Skip section on child entries.
-    renderers = [
-      [leftPad, [entry]],
-      [renderSymbol, [entry]],
-      [renderEmoji, [entry]],
-      [renderMsg, [entry]],
-      [renderDuration, [entry]],
-      ["\n"],
-    ]
-  } else {
-    renderers = [
-      [renderSymbol, [entry]],
-      [renderSection, [entry]],
-      [renderEmoji, [entry]],
-      [renderMsg, [entry]],
-      [renderDuration, [entry]],
-      ["\n"],
-    ]
-  }
-  return combine(renderers)
+  return combine([
+    [leftPad, [entry]],
+    [renderSymbol, [entry]],
+    [renderSection, [entry]],
+    [renderEmoji, [entry]],
+    [renderMsg, [entry]],
+    [renderDuration, [entry]],
+    ["\n"],
+  ])
 }

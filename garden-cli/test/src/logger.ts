@@ -36,6 +36,27 @@ describe("LogNode", () => {
     })
   })
 
+  describe("appendNode", () => {
+    it("should add new child entries to the respective node", () => {
+      logger.error("error")
+      logger.warn("warn")
+      logger.info("info")
+      logger.verbose("verbose")
+      logger.debug("debug")
+      logger.silly("silly")
+
+      const prevLength = logger.children.length
+      const entry = logger.children[0]
+      const nested = entry.info("nested")
+      const deepNested = nested.info("deep")
+
+      expect(logger.children[0].children).to.have.lengthOf(1)
+      expect(logger.children[0].children[0]).to.eql(nested)
+      expect(logger.children[0].children[0].children[0]).to.eql(deepNested)
+      expect(logger.children).to.have.lengthOf(prevLength)
+    })
+  })
+
 })
 
 describe("RootLogNode", () => {
@@ -60,28 +81,6 @@ describe("RootLogNode", () => {
         LogLevel.debug,
         LogLevel.silly,
       ])
-    })
-  })
-
-  describe("addNode", () => {
-    it("should add new child entries to the respective node", () => {
-      logger.error("error")
-      logger.warn("warn")
-      logger.info("info")
-      logger.verbose("verbose")
-      logger.debug("debug")
-      logger.silly("silly")
-
-      const prevLength = logger.children.length
-      const entry = logger.children[0]
-      const nested = entry.info("nested")
-      const deepNested = nested.info("deep")
-
-      expect(logger.children[0].children).to.have.lengthOf(1)
-      expect(logger.children[0].children[0]).to.eql(nested)
-      expect(logger.children[0].children[0].children[0]).to.eql(deepNested)
-      expect(logger.children).to.have.lengthOf(prevLength)
-      expect(deepNested["depth"]).to.equal(2)
     })
   })
 
@@ -159,13 +158,35 @@ describe("Writers", () => {
 })
 
 describe("LogEntry", () => {
-  const entry = logger.info("")
+  const entry = logger.info()
+  describe("createNode", () => {
+    it("should set the correct indentation level", () => {
+      const nested = entry.info("nested")
+      const deepNested = nested.info("deep nested")
+      const deepDeepNested = deepNested.info("deep deep inside")
+      const deepDeepEmpty = deepDeepNested.info()
+      const indentations = [
+        nested.opts.indentationLevel,
+        deepNested.opts.indentationLevel,
+        deepDeepNested.opts.indentationLevel,
+        deepDeepEmpty.opts.indentationLevel,
+      ]
+      expect(indentations).to.eql([1, 2, 3, 3])
+    })
+  })
   describe("setState", () => {
     it("should update entry state and optionally append new msg to previous msg", () => {
       entry.setState("new")
-      expect(entry["opts"]["msg"]).to.equal("new")
+      expect(entry.opts.msg).to.equal("new")
       entry.setState({ msg: "new2", append: true })
-      expect(entry["opts"]["msg"]).to.eql(["new", "new2"])
+      expect(entry.opts.msg).to.eql(["new", "new2"])
+    })
+  })
+  describe("setState", () => {
+    it("should preserve status", () => {
+      entry.setSuccess()
+      entry.setState("change text")
+      expect(entry.opts.status).to.equal("success")
     })
   })
   describe("setDone", () => {

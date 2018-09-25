@@ -29,6 +29,7 @@ export interface UpdateOpts {
   showDuration?: boolean
   error?: GardenError
   status?: EntryStatus
+  indentationLevel?: number
 }
 
 export interface CreateOpts extends UpdateOpts {
@@ -40,18 +41,7 @@ export type CreateParam = string | CreateOpts
 export interface LogEntryConstructor {
   level: LogLevel
   opts: CreateOpts
-  depth: number
   parent: LogNode
-}
-
-export function createLogEntry(level: LogLevel, parent: LogNode, opts: CreateOpts): LogEntry {
-  const params: LogEntryConstructor = {
-    level,
-    opts,
-    parent,
-    depth: parent.depth + 1,
-  }
-  return new LogEntry(params)
 }
 
 // TODO Fix any cast
@@ -62,9 +52,9 @@ export function resolveParam<T extends UpdateOpts>(param?: string | T): T {
 export class LogEntry extends LogNode {
   public opts: UpdateOpts
 
-  constructor({ level, opts, depth, parent }: LogEntryConstructor) {
+  constructor({ level, opts, parent }: LogEntryConstructor) {
     const { id, ...otherOpts } = opts
-    super(level, depth, parent, id)
+    super(level, parent, id)
     this.opts = otherOpts
     if (this.level === LogLevel.error) {
       this.opts.status = "error"
@@ -110,11 +100,21 @@ export class LogEntry extends LogNode {
   }
 
   createNode(level: LogLevel, parent: LogNode, param?: CreateParam) {
-    return createLogEntry(level, parent, resolveParam(param))
+    // Empty entries inherit their parent's indentation level
+    let { indentationLevel } = this.opts
+    if (param) {
+      indentationLevel = (indentationLevel || 0) + 1
+    }
+    const opts = {
+      indentationLevel,
+      ...resolveParam(param),
+    }
+    return new LogEntry({ level, opts, parent })
   }
 
+  // Preserves status
   setState(param?: string | UpdateOpts): LogEntry {
-    this.deepSetState(resolveParam(param))
+    this.deepSetState({ ...resolveParam(param), status: this.opts.status })
     this.root.onGraphChange(this)
     return this
   }
