@@ -6,18 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 
 import { RootLogNode, LogNode } from "./log-node"
-import { LogEntry, CreateOpts, resolveParam } from "./log-entry"
+import { LogEntry, CreateOpts, resolveParam, EmojiName } from "./log-entry"
 import { getChildEntries } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
 import { LogLevel } from "./log-node"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
-import { combine } from "./renderers"
+import { combine, printEmoji } from "./renderers"
 
 export enum LoggerType {
   quiet = "quiet",
@@ -45,10 +44,12 @@ export function getCommonConfig(loggerType: LoggerType): LoggerConfig {
 export interface LoggerConfig {
   level: LogLevel
   writers?: Writer[]
+  useEmoji?: boolean
 }
 
 export class Logger extends RootLogNode<LogEntry> {
   public writers: Writer[]
+  public useEmoji: boolean
 
   private static instance: Logger
 
@@ -90,6 +91,7 @@ export class Logger extends RootLogNode<LogEntry> {
   private constructor(config: LoggerConfig) {
     super(config.level)
     this.writers = config.writers || []
+    this.useEmoji = config.useEmoji === false ? false : true
   }
 
   createNode(level: LogLevel, _parent: LogNode, opts: CreateOpts) {
@@ -109,11 +111,11 @@ export class Logger extends RootLogNode<LogEntry> {
   }
 
   header(
-    { command, emoji, level = LogLevel.info }: { command: string, emoji?: string, level?: LogLevel },
+    { command, emoji, level = LogLevel.info }: { command: string, emoji?: EmojiName, level?: LogLevel },
   ): LogEntry {
     const msg = combine([
       [chalk.bold.magenta(command)],
-      [emoji ? " " + nodeEmoji.get(emoji) : ""],
+      [emoji && this.useEmoji ? " " + printEmoji(emoji) : ""],
       ["\n"],
     ])
     const lvlStr = LogLevel[level]
@@ -124,7 +126,7 @@ export class Logger extends RootLogNode<LogEntry> {
     { showDuration = true, level = LogLevel.info }: { showDuration?: boolean, level?: LogLevel } = {},
   ): LogEntry {
     const msg = combine([
-      [`\n${nodeEmoji.get("sparkles")}  Finished`],
+      [this.useEmoji ? `\n${printEmoji("sparkles")} Finished` : "Finished"],
       [showDuration ? ` in ${chalk.bold(this.getDuration() + "s")}` : "!"],
       ["\n"],
     ])

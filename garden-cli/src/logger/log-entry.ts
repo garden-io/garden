@@ -14,6 +14,7 @@ import { LogNode, LogLevel } from "./log-node"
 import { getChildEntries } from "./util"
 import { GardenError } from "../exceptions"
 import { Omit } from "../util/util"
+import { Logger } from "./logger"
 
 export type EmojiName = keyof typeof nodeEmoji.emoji
 export type LogSymbol = keyof typeof logSymbols | "empty"
@@ -51,6 +52,7 @@ export function resolveParam<T extends UpdateOpts>(param?: string | T): T {
 
 export class LogEntry extends LogNode {
   public opts: UpdateOpts
+  public root: Logger
 
   constructor({ level, opts, parent }: LogEntryConstructor) {
     const { id, ...otherOpts } = opts

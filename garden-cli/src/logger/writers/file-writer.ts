@@ -109,7 +109,6 @@ export class FileWriter extends Writer {
     const out = this.render(entry)
     if (out) {
       if (!this.fileLogger) {
-
         this.fileLogger = this.initFileLogger()
       }
       this.fileLogger.log(levelToStr(entry.level), out)
