@@ -42,16 +42,13 @@ const tsConfigPath = resolve(__dirname, tsConfigFilename)
 const tsProject = ts.createProject(tsConfigFilename, {
   declaration: true,
 })
-const reporter = ts.reporter.longReporter()
 
 const tsSources = resolve(__dirname, "src", "**", "*.ts")
 const testTsSources = resolve(__dirname, "test", "**", "*.ts")
 const pegjsSources = resolve(__dirname, "src", "*.pegjs")
 
 const tmpDir = resolve(__dirname, "..", "tmp")
-
 const binPath = (name: string) => resolve(__dirname, "node_modules", ".bin", name)
-
 const destDir = resolve(__dirname, "build")
 
 const children: ChildProcess[] = []
@@ -132,23 +129,9 @@ gulp.task("pegjs-watch", () =>
 gulp.task("tsc", () =>
   tsProject.src()
     .pipe(sourcemaps.init())
-    .pipe(tsProject(reporter))
-    .on("error", die)
+    .pipe(tsProject(ts.reporter.fullReporter(true)))
     .pipe(sourcemaps.write())
     .pipe(gulp.dest(destDir)),
-)
-
-gulp.task("tsc-watch", () =>
-  _spawn(binPath("tsc"), [
-    "-w",
-    "--pretty",
-    "--declaration",
-    "-p", tsConfigPath,
-    "--outDir", destDir,
-    "--preserveWatchOutput",
-  ],
-    { stdio: "inherit" },
-  ),
 )
 
 gulp.task("tsfmt", (cb) => {
@@ -239,15 +222,19 @@ gulp.task("watch-code", () => {
     } catch (_) { }
   }
 
-  return gulp.watch([tsSources, testTsSources], gulp.parallel("generate-docs", "tslint", "tslint-tests"))
+  const task = gulp.series(
+    gulp.parallel("generate-docs", "tsc", "tslint", "tslint-tests"),
+    "build-container",
+  )
+
+  return gulp.watch([tsSources, testTsSources], task)
     .on("add", verify)
     .on("change", verify)
 })
 
-gulp.task("build", gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc"))
+gulp.task("build", gulp.series(
+  gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc")),
+)
 gulp.task("test", gulp.parallel("build", "mocha"))
-gulp.task("watch", gulp.series(
-  "build",
-  gulp.parallel("pegjs-watch", "tsc-watch", "watch-code"),
-))
+gulp.task("watch", gulp.parallel("pegjs-watch", "watch-code"))
 gulp.task("default", gulp.series("watch"))
