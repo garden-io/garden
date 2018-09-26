@@ -107,6 +107,10 @@ gulp.task("add-version-files", async () => {
   })
 })
 
+gulp.task("build-container", (cb) =>
+  spawn("docker", ["build", "-t", "garden-cli", __dirname], cb),
+)
+
 gulp.task("generate-docs", (cb) => {
   generateDocs(resolve(__dirname, "..", "docs"))
   cb()
@@ -233,8 +237,9 @@ gulp.task("watch-code", () => {
 })
 
 gulp.task("build", gulp.series(
-  gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc")),
-)
+  gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc"),
+  "build-container",
+))
 gulp.task("test", gulp.parallel("build", "mocha"))
 gulp.task("watch", gulp.parallel("pegjs-watch", "watch-code"))
 gulp.task("default", gulp.series("watch"))
