@@ -13,7 +13,7 @@ git reset HEAD~1
 # by searching for the string  "tag:" within commit messages. It should therefore run after the
 # version is updated in package.json but before the change is commited and tagged.
 
-./node_modules/.bin/conventional-changelog -p angular -i CHANGELOG.md --commit-path . -s --pkg ./garden-cli
+./node_modules/.bin/conventional-changelog -p angular -i CHANGELOG.md --commit-path . -s --pkg ./garden-service
 git add .
 version=$(node -p "require('./lerna.json').version")
 git commit -m "chore(release): release ${version}"
@@ -26,6 +26,6 @@ git push --tags --no-verify
 git push origin HEAD --no-verify
 
 # TODO: set this up to work with multiple packages
-cd garden-cli
+cd garden-service
 npm publish
 gulp update-brew

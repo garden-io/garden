@@ -3,7 +3,7 @@ set -e
 
 here=$(cd `dirname $0` && pwd)
 garden_root=$(cd ${here} && cd $(git rev-parse --show-toplevel) && pwd)
-garden_bin="node ${garden_root}/garden-cli/static/bin/garden"
+garden_bin="node ${garden_root}/garden-service/static/bin/garden"
 
 cd ${garden_root}/examples/hello-world
 

@@ -108,7 +108,7 @@ gulp.task("add-version-files", async () => {
 })
 
 gulp.task("build-container", (cb) =>
-  spawn("docker", ["build", "-t", "garden-cli", __dirname], cb),
+  spawn("docker", ["build", "-t", "garden-service", __dirname], cb),
 )
 
 gulp.task("generate-docs", (cb) => {

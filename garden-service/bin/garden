@@ -10,7 +10,7 @@ docker run -it \
   -v "$(cd ~ && pwd)/.docker:/root/.docker" \
   -v "$(cd ~ && pwd)/.kube:/root/.kube" \
   --workdir "/project/$(git rev-parse --show-prefix)" \
-  garden-cli "$@"
+  garden-service "$@"
 
   #-v "$(cd ~ && pwd)/.helm:/root/.helm" \
   #--entrypoint=/bin/sh \
