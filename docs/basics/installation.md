@@ -96,7 +96,7 @@ For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minik
 
 #### Step 3: Install other dependencies
 
-Use your preferred method or package manager to install `node` (version 8.x or higher), `git`, `rsync`.
+Use your preferred method or package manager to install `node` (version 8.x or higher), `git`, and `rsync`.
 
 On Ubuntu 18, you'd do `sudo apt install git rsync` for Git and rsync.
 
