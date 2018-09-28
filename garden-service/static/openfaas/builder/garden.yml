@@ -1,0 +1,6 @@
+module:
+  description: Base image used for building openfaas modules
+  name: builder
+  type: generic
+  build:
+    command: ["faas-cli", "template", "pull"]

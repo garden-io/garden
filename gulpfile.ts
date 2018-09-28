@@ -9,7 +9,7 @@
 const gulp = require("gulp")
 const checkLicense = require("gulp-license-check")
 
-const tsSources = ["garden-cli/src/**/*.ts"]
+const tsSources = ["garden-service/src/**/*.ts"]
 const pegjsSources = "src/*.pegjs"
 
 const licenseHeaderPath = "support/license-header.txt"

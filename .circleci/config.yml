@@ -43,7 +43,7 @@ jobs:
       - save_cache:
           paths:
             - node_modules
-            - garden-cli/node_modules
+            - garden-service/node_modules
           key: v3-dependencies-{{ checksum "package-lock.json" }}
 
       # a couple of special cases needed just for local builds

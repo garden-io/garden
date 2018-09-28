@@ -5,7 +5,7 @@
     }
   },
   "packages": [
-    "garden-cli/"
+    "garden-service/"
   ],
   "version": "0.7.0"
 }

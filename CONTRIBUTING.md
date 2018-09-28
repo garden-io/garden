@@ -31,7 +31,7 @@ at the script for Mac to see what's installed. Once dependencies are in place, a
 
 While developing the CLI, we recommend you run the dev command in your console:
 
-    cd garden-cli
+    cd garden-service
     npm run dev
 
 This will do an initial development build, `npm link` it to your global npm folder, and then watch for

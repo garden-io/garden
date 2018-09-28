@@ -26,7 +26,7 @@
     "target": "es6"
   },
   "exclude": [
-    "garden-cli/build",
+    "garden-service/build",
     "node_modules",
     "**/node_modules"
   ]
