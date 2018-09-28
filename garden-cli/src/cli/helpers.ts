@@ -51,11 +51,18 @@ ${chalk.bold(str.slice(0, 5).toUpperCase())}
 export const getKeys = (obj): string[] => Object.keys(obj || {})
 export const filterByKeys = (obj: any, keys: string[]): any => {
   return keys.reduce((memo, key) => {
-    if (obj[key]) {
+    if (obj.hasOwnProperty(key)) {
       memo[key] = obj[key]
     }
     return memo
   }, {})
+}
+
+// Add platforms/terminals?
+export function envSupportsEmoji() {
+  return process.platform === "darwin"
+    || process.env.TERM_PROGRAM === "Hyper"
+    || process.env.TERM_PROGRAM === "HyperTerm"
 }
 
 export type FalsifiedParams = { [key: string]: false }

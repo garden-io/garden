@@ -52,6 +52,7 @@ import {
   prepareArgConfig,
   prepareOptionConfig,
   styleConfig,
+  envSupportsEmoji,
 } from "./helpers"
 import { GardenConfig } from "../config/base"
 import { defaultEnvironments } from "../config/project"
@@ -124,6 +125,10 @@ export const GLOBAL_OPTIONS = {
     alias: "o",
     choices: Object.keys(OUTPUT_RENDERERS),
     help: "Output command result in specified format (note: disables progress logging).",
+  }),
+  emoji: new BooleanParameter({
+    help: "Enable emoji in output (defaults to true if the environment supports it).",
+    defaultValue: envSupportsEmoji(),
   }),
 }
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
@@ -206,10 +211,11 @@ export class GardenCli {
 
     const action = async (argv, cliContext) => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
+
       const parsedArgs = filterByKeys(argv, argKeys)
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
-      const { env, loglevel, silent, output } = parsedOpts
+      const { emoji, env, loglevel, silent, output } = parsedOpts
 
       // Init logger
       const level = getLogLevelFromArg(loglevel)
@@ -223,7 +229,7 @@ export class GardenCli {
         }
       }
 
-      const logger = Logger.initialize({ level, writers })
+      const logger = Logger.initialize({ level, writers, useEmoji: emoji })
       let garden: Garden
       let result
       do {

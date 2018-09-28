@@ -24,7 +24,7 @@ import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
-import { LogEntry } from "./log-entry"
+import { LogEntry, EmojiName } from "./log-entry"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -63,6 +63,13 @@ export function combine(renderers: Renderers): string {
   return applyRenderers(renderers)(initOutput).join("")
 }
 
+export function printEmoji(emoji: EmojiName) {
+  if (nodeEmoji.hasEmoji(emoji)) {
+    return `${nodeEmoji.get(emoji)}  `
+  }
+  return ""
+}
+
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
   return padStart("", (entry.opts.indentationLevel || 0) * 3)
@@ -70,8 +77,8 @@ export function leftPad(entry: LogEntry): string {
 
 export function renderEmoji(entry: LogEntry): string {
   const { emoji } = entry.opts
-  if (emoji && nodeEmoji.hasEmoji(emoji)) {
-    return `${nodeEmoji.get(emoji)}  `
+  if (emoji && entry.root.useEmoji) {
+    return printEmoji(emoji)
   }
   return ""
 }
