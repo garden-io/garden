@@ -91,5 +91,6 @@ export function getModuleCacheContext(config: ModuleConfig) {
 }
 
 export function getModuleKey(name: string, plugin?: string) {
-  return plugin ? `${plugin}--${name}` : name
+  const hasPrefix = !!name.match(/--/)
+  return (plugin && !hasPrefix) ? `${plugin}--${name}` : name
 }

@@ -577,8 +577,9 @@ export class Garden {
    * and the versions of its dependencies (in sorted order).
    */
   async resolveVersion(moduleName: string, moduleDependencies: BuildDependencyConfig[], force = false) {
-    const config = this.moduleConfigs[moduleName]
-    const cacheKey = ["moduleVersions", moduleName]
+    const depModuleNames = moduleDependencies.map(m => m.name)
+    depModuleNames.sort()
+    const cacheKey = ["moduleVersions", moduleName, ...depModuleNames]
 
     if (!force) {
       const cached = <ModuleVersion>this.cache.get(cacheKey)
@@ -588,6 +589,7 @@ export class Garden {
       }
     }
 
+    const config = this.moduleConfigs[moduleName]
     const dependencyKeys = moduleDependencies.map(dep => getModuleKey(dep.name, dep.plugin))
     const dependencies = Object.values(pickKeys(this.moduleConfigs, dependencyKeys, "module config"))
     const cacheContexts = dependencies.concat([config]).map(c => getModuleCacheContext(c))
