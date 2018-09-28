@@ -20,9 +20,8 @@ import {
 import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 import { Module } from "../types/module"
-import { TestTask } from "../tasks/test"
+import { getTestTasks } from "../tasks/test"
 import { computeAutoReloadDependants, withDependants } from "../watch"
-import { Garden } from "../garden"
 
 const testArgs = {
   module: new StringsParameter({
@@ -103,26 +102,4 @@ export class TestCommand extends Command<Args, Opts> {
 
     return handleTaskResults(garden, "test", results)
   }
-}
-
-export async function getTestTasks(
-  { garden, module, name, force = false, forceBuild = false }:
-    { garden: Garden, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
-) {
-  const tasks: Promise<TestTask>[] = []
-
-  for (const test of module.testConfigs) {
-    if (name && test.name !== name) {
-      continue
-    }
-    tasks.push(TestTask.factory({
-      garden,
-      force,
-      forceBuild,
-      testConfig: test,
-      module,
-    }))
-  }
-
-  return Bluebird.all(tasks)
 }

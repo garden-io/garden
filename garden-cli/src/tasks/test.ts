@@ -146,6 +146,28 @@ export class TestTask extends Task {
   }
 }
 
+export async function getTestTasks(
+  { garden, module, name, force = false, forceBuild = false }:
+    { garden: Garden, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
+) {
+  const tasks: Promise<TestTask>[] = []
+
+  for (const test of module.testConfigs) {
+    if (name && test.name !== name) {
+      continue
+    }
+    tasks.push(TestTask.factory({
+      garden,
+      force,
+      forceBuild,
+      testConfig: test,
+      module,
+    }))
+  }
+
+  return Bluebird.all(tasks)
+}
+
 async function getTestDependencies(garden: Garden, testConfig: TestConfig) {
   return garden.getServices(testConfig.dependencies)
 }

@@ -23,9 +23,9 @@ import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { readFile } from "fs-extra"
 import { Module } from "../types/module"
-import { getTestTasks } from "./test"
 import { computeAutoReloadDependants, withDependants } from "../watch"
 import { getDeployTasks } from "../tasks/deploy"
+import { getTestTasks } from "../tasks/test"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
