@@ -2,11 +2,11 @@ project:
   name: test-project-ext-project-sources
   sources:
     - name: source-a
-      repositoryUrl: https://my-git-server.com/source-a.git
+      repositoryUrl: https://my-git-server.com/source-a.git#master
     - name: source-b
-      repositoryUrl: https://my-git-server.com/source-b.git
+      repositoryUrl: https://my-git-server.com/source-b.git#master
     - name: source-c
-      repositoryUrl: https://my-git-server.com/source-c.git
+      repositoryUrl: https://my-git-server.com/source-c.git#master
   environmentDefaults:
     variables:
       some: variable

@@ -12,6 +12,7 @@ import { ensureDir, pathExists, stat } from "fs-extra"
 import Bluebird = require("bluebird")
 
 import { NEW_MODULE_VERSION, VcsHandler, RemoteSourceParams } from "./base"
+import { ConfigurationError } from "../exceptions"
 
 export const helpers = {
   gitCli: (cwd: string): (cmd: string, args: string[]) => Promise<string> => {
@@ -21,17 +22,25 @@ export const helpers = {
   },
 }
 
-function getGitUrlParts(url: string) {
-  const parts = url.split("#")
-  return { repositoryUrl: parts[0], hash: parts[1] }
+export function getCommitIdFromRefList(refList: string): string {
+  try {
+    return refList.split("\n")[0].split("\t")[0]
+  } catch (err) {
+    return refList
+  }
 }
 
-function parseRefList(res: string): string {
-  const refList = res.split("\n").map(str => {
-    const parts = str.split("\n")
-    return { commitId: parts[0], ref: parts[1] }
-  })
-  return refList[0].commitId
+export function parseGitUrl(url: string) {
+  const parts = url.split("#")
+  const parsed = { repositoryUrl: parts[0], hash: parts[1] }
+  if (!parsed.hash) {
+    throw new ConfigurationError(
+      "Repository URLs must contain a hash part pointing to a specific branch or tag" +
+      " (e.g. https://github.com/org/repo.git#master)",
+      { repositoryUrl: url },
+    )
+  }
+  return parsed
 }
 
 // TODO Consider moving git commands to separate (and testable) functions
@@ -94,14 +103,9 @@ export class GitHandler extends VcsHandler {
 
     if (!isCloned) {
       const entry = logEntry.info({ section: name, msg: `Fetching from ${url}`, status: "active" })
-      const { repositoryUrl, hash } = getGitUrlParts(url)
+      const { repositoryUrl, hash } = parseGitUrl(url)
 
-      const cmdOpts = ["--depth=1"]
-      if (hash) {
-        cmdOpts.push("--branch=hash")
-      }
-
-      await git("clone", [...cmdOpts, repositoryUrl, absPath])
+      await git("clone", ["--depth=1", `--branch=${hash}`, repositoryUrl, absPath])
 
       entry.setSuccess()
     }
@@ -112,25 +116,21 @@ export class GitHandler extends VcsHandler {
   async updateRemoteSource({ url, name, sourceType, logEntry }: RemoteSourceParams) {
     const absPath = join(this.projectRoot, this.getRemoteSourcePath(name, url, sourceType))
     const git = helpers.gitCli(absPath)
-    const { repositoryUrl, hash } = getGitUrlParts(url)
+    const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, logEntry })
 
     const entry = logEntry.info({ section: name, msg: "Getting remote state", status: "active" })
     await git("remote", ["update"])
 
-    const listRemoteArgs = hash ? [repositoryUrl, hash] : [repositoryUrl]
-    const showRefArgs = hash ? [hash] : []
-    const remoteCommitId = parseRefList(await git("ls-remote", listRemoteArgs))
-    const localCommitId = parseRefList(await git("show-ref", ["--hash", ...showRefArgs]))
+    const remoteCommitId = getCommitIdFromRefList(await git("ls-remote", [repositoryUrl, hash]))
+    const localCommitId = getCommitIdFromRefList(await git("show-ref", ["--hash", hash]))
 
     if (localCommitId !== remoteCommitId) {
       entry.setState(`Fetching from ${url}`)
 
-      const fetchArgs = hash ? ["origin", hash] : ["origin"]
-      const resetArgs = hash ? [`origin/${hash}`] : ["origin"]
-      await git("fetch", ["--depth=1", ...fetchArgs])
-      await git("reset", ["--hard", ...resetArgs])
+      await git("fetch", ["--depth=1", "origin", hash])
+      await git("reset", ["--hard", `origin/${hash}`])
 
       entry.setSuccess("Source updated")
     } else {
