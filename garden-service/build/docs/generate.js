@@ -1,0 +1,26 @@
+"use strict";
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = require("path");
+const commands_1 = require("./commands");
+const config_1 = require("./config");
+const process_1 = require("process");
+const template_strings_1 = require("./template-strings");
+function generateDocs(targetDir) {
+    const docsRoot = path_1.resolve(process.cwd(), targetDir);
+    commands_1.generateCommandReferenceDocs(docsRoot);
+    config_1.generateConfigReferenceDocs(docsRoot);
+    template_strings_1.generateTemplateStringReferenceDocs(docsRoot);
+}
+exports.generateDocs = generateDocs;
+if (require.main === module) {
+    generateDocs(process_1.argv[2]);
+}
+
+//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImRvY3MvZ2VuZXJhdGUudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IjtBQUFBOzs7Ozs7R0FNRzs7QUFFSCwrQkFBOEI7QUFDOUIseUNBQXlEO0FBQ3pELHFDQUFzRDtBQUN0RCxxQ0FBOEI7QUFDOUIseURBQXdFO0FBRXhFLFNBQWdCLFlBQVksQ0FBQyxTQUFpQjtJQUM1QyxNQUFNLFFBQVEsR0FBRyxjQUFPLENBQUMsT0FBTyxDQUFDLEdBQUcsRUFBRSxFQUFFLFNBQVMsQ0FBQyxDQUFBO0lBQ2xELHVDQUE0QixDQUFDLFFBQVEsQ0FBQyxDQUFBO0lBQ3RDLG9DQUEyQixDQUFDLFFBQVEsQ0FBQyxDQUFBO0lBQ3JDLHNEQUFtQyxDQUFDLFFBQVEsQ0FBQyxDQUFBO0FBQy9DLENBQUM7QUFMRCxvQ0FLQztBQUVELElBQUksT0FBTyxDQUFDLElBQUksS0FBSyxNQUFNLEVBQUU7SUFDM0IsWUFBWSxDQUFDLGNBQUksQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFBO0NBQ3RCIiwiZmlsZSI6ImRvY3MvZ2VuZXJhdGUuanMiLCJzb3VyY2VzQ29udGVudCI6WyIvKlxuICogQ29weXJpZ2h0IChDKSAyMDE4IEdhcmRlbiBUZWNobm9sb2dpZXMsIEluYy4gPGluZm9AZ2FyZGVuLmlvPlxuICpcbiAqIFRoaXMgU291cmNlIENvZGUgRm9ybSBpcyBzdWJqZWN0IHRvIHRoZSB0ZXJtcyBvZiB0aGUgTW96aWxsYSBQdWJsaWNcbiAqIExpY2Vuc2UsIHYuIDIuMC4gSWYgYSBjb3B5IG9mIHRoZSBNUEwgd2FzIG5vdCBkaXN0cmlidXRlZCB3aXRoIHRoaXNcbiAqIGZpbGUsIFlvdSBjYW4gb2J0YWluIG9uZSBhdCBodHRwOi8vbW96aWxsYS5vcmcvTVBMLzIuMC8uXG4gKi9cblxuaW1wb3J0IHsgcmVzb2x2ZSB9IGZyb20gXCJwYXRoXCJcbmltcG9ydCB7IGdlbmVyYXRlQ29tbWFuZFJlZmVyZW5jZURvY3MgfSBmcm9tIFwiLi9jb21tYW5kc1wiXG5pbXBvcnQgeyBnZW5lcmF0ZUNvbmZpZ1JlZmVyZW5jZURvY3MgfSBmcm9tIFwiLi9jb25maWdcIlxuaW1wb3J0IHsgYXJndiB9IGZyb20gXCJwcm9jZXNzXCJcbmltcG9ydCB7IGdlbmVyYXRlVGVtcGxhdGVTdHJpbmdSZWZlcmVuY2VEb2NzIH0gZnJvbSBcIi4vdGVtcGxhdGUtc3RyaW5nc1wiXG5cbmV4cG9ydCBmdW5jdGlvbiBnZW5lcmF0ZURvY3ModGFyZ2V0RGlyOiBzdHJpbmcpIHtcbiAgY29uc3QgZG9jc1Jvb3QgPSByZXNvbHZlKHByb2Nlc3MuY3dkKCksIHRhcmdldERpcilcbiAgZ2VuZXJhdGVDb21tYW5kUmVmZXJlbmNlRG9jcyhkb2NzUm9vdClcbiAgZ2VuZXJhdGVDb25maWdSZWZlcmVuY2VEb2NzKGRvY3NSb290KVxuICBnZW5lcmF0ZVRlbXBsYXRlU3RyaW5nUmVmZXJlbmNlRG9jcyhkb2NzUm9vdClcbn1cblxuaWYgKHJlcXVpcmUubWFpbiA9PT0gbW9kdWxlKSB7XG4gIGdlbmVyYXRlRG9jcyhhcmd2WzJdKVxufVxuIl19

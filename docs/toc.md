@@ -10,7 +10,6 @@
   * [Remote Clusters](./using-garden/remote-clusters.md)
   * [Hot Reload](./using-garden/hot-reload.md)
   * [Configuration files](./using-garden/configuration-files.md)
-  * [Providers](./using-garden/providers.md)
 * [Example projects](./example-projects/README.md)
   * [Hello world](./example-projects/hello-world.md)
   * [Simple project](./example-projects/simple-project.md)

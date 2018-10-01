@@ -1,0 +1,38 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+const lodash_1 = require("lodash");
+const generic = require("./generic");
+const container = require("./container");
+const gcf = require("./google/google-cloud-functions");
+const localGcf = require("./local/local-google-cloud-functions");
+const kubernetes = require("./kubernetes/kubernetes");
+const localKubernetes = require("./kubernetes/local");
+const npmPackage = require("./npm-package");
+const gae = require("./google/google-app-engine");
+const openfaas = require("./openfaas/openfaas");
+// These plugins are always registered
+exports.builtinPlugins = lodash_1.mapValues({
+    generic,
+    container,
+    "google-cloud-functions": gcf,
+    "local-google-cloud-functions": localGcf,
+    kubernetes,
+    "local-kubernetes": localKubernetes,
+    "npm-package": npmPackage,
+    "google-app-engine": gae,
+    openfaas,
+}, (m => m.gardenPlugin));
+// These plugins are always loaded
+exports.fixedPlugins = [
+    "generic",
+    "container",
+];
+
+//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInBsdWdpbnMvcGx1Z2lucy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQUFBOzs7Ozs7R0FNRztBQUNILG1DQUFrQztBQUVsQyxNQUFNLE9BQU8sR0FBRyxPQUFPLENBQUMsV0FBVyxDQUFDLENBQUE7QUFDcEMsTUFBTSxTQUFTLEdBQUcsT0FBTyxDQUFDLGFBQWEsQ0FBQyxDQUFBO0FBQ3hDLE1BQU0sR0FBRyxHQUFHLE9BQU8sQ0FBQyxpQ0FBaUMsQ0FBQyxDQUFBO0FBQ3RELE1BQU0sUUFBUSxHQUFHLE9BQU8sQ0FBQyxzQ0FBc0MsQ0FBQyxDQUFBO0FBQ2hFLE1BQU0sVUFBVSxHQUFHLE9BQU8sQ0FBQyx5QkFBeUIsQ0FBQyxDQUFBO0FBQ3JELE1BQU0sZUFBZSxHQUFHLE9BQU8sQ0FBQyxvQkFBb0IsQ0FBQyxDQUFBO0FBQ3JELE1BQU0sVUFBVSxHQUFHLE9BQU8sQ0FBQyxlQUFlLENBQUMsQ0FBQTtBQUMzQyxNQUFNLEdBQUcsR0FBRyxPQUFPLENBQUMsNEJBQTRCLENBQUMsQ0FBQTtBQUNqRCxNQUFNLFFBQVEsR0FBRyxPQUFPLENBQUMscUJBQXFCLENBQUMsQ0FBQTtBQUUvQyxzQ0FBc0M7QUFDekIsUUFBQSxjQUFjLEdBQUcsa0JBQVMsQ0FBQztJQUN0QyxPQUFPO0lBQ1AsU0FBUztJQUNULHdCQUF3QixFQUFFLEdBQUc7SUFDN0IsOEJBQThCLEVBQUUsUUFBUTtJQUN4QyxVQUFVO0lBQ1Ysa0JBQWtCLEVBQUUsZUFBZTtJQUNuQyxhQUFhLEVBQUUsVUFBVTtJQUN6QixtQkFBbUIsRUFBRSxHQUFHO0lBQ3hCLFFBQVE7Q0FDVCxFQUFFLENBQUMsQ0FBQyxDQUFDLEVBQUUsQ0FBQyxDQUFDLENBQUMsWUFBWSxDQUFDLENBQUMsQ0FBQTtBQUV6QixrQ0FBa0M7QUFDckIsUUFBQSxZQUFZLEdBQUc7SUFDMUIsU0FBUztJQUNULFdBQVc7Q0FDWixDQUFBIiwiZmlsZSI6InBsdWdpbnMvcGx1Z2lucy5qcyIsInNvdXJjZXNDb250ZW50IjpbIi8qXG4gKiBDb3B5cmlnaHQgKEMpIDIwMTggR2FyZGVuIFRlY2hub2xvZ2llcywgSW5jLiA8aW5mb0BnYXJkZW4uaW8+XG4gKlxuICogVGhpcyBTb3VyY2UgQ29kZSBGb3JtIGlzIHN1YmplY3QgdG8gdGhlIHRlcm1zIG9mIHRoZSBNb3ppbGxhIFB1YmxpY1xuICogTGljZW5zZSwgdi4gMi4wLiBJZiBhIGNvcHkgb2YgdGhlIE1QTCB3YXMgbm90IGRpc3RyaWJ1dGVkIHdpdGggdGhpc1xuICogZmlsZSwgWW91IGNhbiBvYnRhaW4gb25lIGF0IGh0dHA6Ly9tb3ppbGxhLm9yZy9NUEwvMi4wLy5cbiAqL1xuaW1wb3J0IHsgbWFwVmFsdWVzIH0gZnJvbSBcImxvZGFzaFwiXG5cbmNvbnN0IGdlbmVyaWMgPSByZXF1aXJlKFwiLi9nZW5lcmljXCIpXG5jb25zdCBjb250YWluZXIgPSByZXF1aXJlKFwiLi9jb250YWluZXJcIilcbmNvbnN0IGdjZiA9IHJlcXVpcmUoXCIuL2dvb2dsZS9nb29nbGUtY2xvdWQtZnVuY3Rpb25zXCIpXG5jb25zdCBsb2NhbEdjZiA9IHJlcXVpcmUoXCIuL2xvY2FsL2xvY2FsLWdvb2dsZS1jbG91ZC1mdW5jdGlvbnNcIilcbmNvbnN0IGt1YmVybmV0ZXMgPSByZXF1aXJlKFwiLi9rdWJlcm5ldGVzL2t1YmVybmV0ZXNcIilcbmNvbnN0IGxvY2FsS3ViZXJuZXRlcyA9IHJlcXVpcmUoXCIuL2t1YmVybmV0ZXMvbG9jYWxcIilcbmNvbnN0IG5wbVBhY2thZ2UgPSByZXF1aXJlKFwiLi9ucG0tcGFja2FnZVwiKVxuY29uc3QgZ2FlID0gcmVxdWlyZShcIi4vZ29vZ2xlL2dvb2dsZS1hcHAtZW5naW5lXCIpXG5jb25zdCBvcGVuZmFhcyA9IHJlcXVpcmUoXCIuL29wZW5mYWFzL29wZW5mYWFzXCIpXG5cbi8vIFRoZXNlIHBsdWdpbnMgYXJlIGFsd2F5cyByZWdpc3RlcmVkXG5leHBvcnQgY29uc3QgYnVpbHRpblBsdWdpbnMgPSBtYXBWYWx1ZXMoe1xuICBnZW5lcmljLFxuICBjb250YWluZXIsXG4gIFwiZ29vZ2xlLWNsb3VkLWZ1bmN0aW9uc1wiOiBnY2YsXG4gIFwibG9jYWwtZ29vZ2xlLWNsb3VkLWZ1bmN0aW9uc1wiOiBsb2NhbEdjZixcbiAga3ViZXJuZXRlcyxcbiAgXCJsb2NhbC1rdWJlcm5ldGVzXCI6IGxvY2FsS3ViZXJuZXRlcyxcbiAgXCJucG0tcGFja2FnZVwiOiBucG1QYWNrYWdlLFxuICBcImdvb2dsZS1hcHAtZW5naW5lXCI6IGdhZSxcbiAgb3BlbmZhYXMsXG59LCAobSA9PiBtLmdhcmRlblBsdWdpbikpXG5cbi8vIFRoZXNlIHBsdWdpbnMgYXJlIGFsd2F5cyBsb2FkZWRcbmV4cG9ydCBjb25zdCBmaXhlZFBsdWdpbnMgPSBbXG4gIFwiZ2VuZXJpY1wiLFxuICBcImNvbnRhaW5lclwiLFxuXVxuIl19

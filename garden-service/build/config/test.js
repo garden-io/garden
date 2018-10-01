@@ -1,0 +1,33 @@
+"use strict";
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const Joi = require("joi");
+const common_1 = require("./common");
+exports.baseTestSpecSchema = Joi.object()
+    .keys({
+    name: common_1.joiIdentifier()
+        .required()
+        .description("The name of the test."),
+    dependencies: common_1.joiArray(Joi.string())
+        .description("The names of services that must be running before the test is run."),
+    timeout: Joi.number()
+        .allow(null)
+        .default(null)
+        .description("Maximum duration (in seconds) of the test run."),
+})
+    .description("Required configuration for module tests.");
+exports.testConfigSchema = exports.baseTestSpecSchema
+    .keys({
+    spec: Joi.object()
+        .meta({ extendable: true })
+        .description("The configuration for the test, as specified by its module's provider."),
+})
+    .description("Configuration for a module test.");
+
+//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImNvbmZpZy90ZXN0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7QUFBQTs7Ozs7O0dBTUc7O0FBRUgsMkJBQTBCO0FBQzFCLHFDQUdpQjtBQVVKLFFBQUEsa0JBQWtCLEdBQUcsR0FBRyxDQUFDLE1BQU0sRUFBRTtLQUMzQyxJQUFJLENBQUM7SUFDSixJQUFJLEVBQUUsc0JBQWEsRUFBRTtTQUNsQixRQUFRLEVBQUU7U0FDVixXQUFXLENBQUMsdUJBQXVCLENBQUM7SUFDdkMsWUFBWSxFQUFFLGlCQUFRLENBQUMsR0FBRyxDQUFDLE1BQU0sRUFBRSxDQUFDO1NBQ2pDLFdBQVcsQ0FBQyxvRUFBb0UsQ0FBQztJQUNwRixPQUFPLEVBQUUsR0FBRyxDQUFDLE1BQU0sRUFBRTtTQUNsQixLQUFLLENBQUMsSUFBSSxDQUFDO1NBQ1gsT0FBTyxDQUFDLElBQUksQ0FBQztTQUNiLFdBQVcsQ0FBQyxnREFBZ0QsQ0FBQztDQUNqRSxDQUFDO0tBQ0QsV0FBVyxDQUFDLDBDQUEwQyxDQUFDLENBQUE7QUFPN0MsUUFBQSxnQkFBZ0IsR0FBRywwQkFBa0I7S0FDL0MsSUFBSSxDQUFDO0lBQ0osSUFBSSxFQUFFLEdBQUcsQ0FBQyxNQUFNLEVBQUU7U0FDZixJQUFJLENBQUMsRUFBRSxVQUFVLEVBQUUsSUFBSSxFQUFFLENBQUM7U0FDMUIsV0FBVyxDQUFDLHdFQUF3RSxDQUFDO0NBQ3pGLENBQUM7S0FDRCxXQUFXLENBQUMsa0NBQWtDLENBQUMsQ0FBQSIsImZpbGUiOiJjb25maWcvdGVzdC5qcyIsInNvdXJjZXNDb250ZW50IjpbIi8qXG4gKiBDb3B5cmlnaHQgKEMpIDIwMTggR2FyZGVuIFRlY2hub2xvZ2llcywgSW5jLiA8aW5mb0BnYXJkZW4uaW8+XG4gKlxuICogVGhpcyBTb3VyY2UgQ29kZSBGb3JtIGlzIHN1YmplY3QgdG8gdGhlIHRlcm1zIG9mIHRoZSBNb3ppbGxhIFB1YmxpY1xuICogTGljZW5zZSwgdi4gMi4wLiBJZiBhIGNvcHkgb2YgdGhlIE1QTCB3YXMgbm90IGRpc3RyaWJ1dGVkIHdpdGggdGhpc1xuICogZmlsZSwgWW91IGNhbiBvYnRhaW4gb25lIGF0IGh0dHA6Ly9tb3ppbGxhLm9yZy9NUEwvMi4wLy5cbiAqL1xuXG5pbXBvcnQgKiBhcyBKb2kgZnJvbSBcImpvaVwiXG5pbXBvcnQge1xuICBqb2lBcnJheSxcbiAgam9pSWRlbnRpZmllcixcbn0gZnJvbSBcIi4vY29tbW9uXCJcblxuZXhwb3J0IGludGVyZmFjZSBUZXN0U3BlYyB7IH1cblxuZXhwb3J0IGludGVyZmFjZSBCYXNlVGVzdFNwZWMgZXh0ZW5kcyBUZXN0U3BlYyB7XG4gIG5hbWU6IHN0cmluZ1xuICBkZXBlbmRlbmNpZXM6IHN0cmluZ1tdXG4gIHRpbWVvdXQ6IG51bWJlciB8IG51bGxcbn1cblxuZXhwb3J0IGNvbnN0IGJhc2VUZXN0U3BlY1NjaGVtYSA9IEpvaS5vYmplY3QoKVxuICAua2V5cyh7XG4gICAgbmFtZTogam9pSWRlbnRpZmllcigpXG4gICAgICAucmVxdWlyZWQoKVxuICAgICAgLmRlc2NyaXB0aW9uKFwiVGhlIG5hbWUgb2YgdGhlIHRlc3QuXCIpLFxuICAgIGRlcGVuZGVuY2llczogam9pQXJyYXkoSm9pLnN0cmluZygpKVxuICAgICAgLmRlc2NyaXB0aW9uKFwiVGhlIG5hbWVzIG9mIHNlcnZpY2VzIHRoYXQgbXVzdCBiZSBydW5uaW5nIGJlZm9yZSB0aGUgdGVzdCBpcyBydW4uXCIpLFxuICAgIHRpbWVvdXQ6IEpvaS5udW1iZXIoKVxuICAgICAgLmFsbG93KG51bGwpXG4gICAgICAuZGVmYXVsdChudWxsKVxuICAgICAgLmRlc2NyaXB0aW9uKFwiTWF4aW11bSBkdXJhdGlvbiAoaW4gc2Vjb25kcykgb2YgdGhlIHRlc3QgcnVuLlwiKSxcbiAgfSlcbiAgLmRlc2NyaXB0aW9uKFwiUmVxdWlyZWQgY29uZmlndXJhdGlvbiBmb3IgbW9kdWxlIHRlc3RzLlwiKVxuXG5leHBvcnQgaW50ZXJmYWNlIFRlc3RDb25maWc8VCBleHRlbmRzIFRlc3RTcGVjID0gVGVzdFNwZWM+IGV4dGVuZHMgQmFzZVRlc3RTcGVjIHtcbiAgLy8gUGx1Z2lucyBjYW4gYWRkIGN1c3RvbSBmaWVsZHMgdGhhdCBhcmUga2VwdCBoZXJlXG4gIHNwZWM6IFRcbn1cblxuZXhwb3J0IGNvbnN0IHRlc3RDb25maWdTY2hlbWEgPSBiYXNlVGVzdFNwZWNTY2hlbWFcbiAgLmtleXMoe1xuICAgIHNwZWM6IEpvaS5vYmplY3QoKVxuICAgICAgLm1ldGEoeyBleHRlbmRhYmxlOiB0cnVlIH0pXG4gICAgICAuZGVzY3JpcHRpb24oXCJUaGUgY29uZmlndXJhdGlvbiBmb3IgdGhlIHRlc3QsIGFzIHNwZWNpZmllZCBieSBpdHMgbW9kdWxlJ3MgcHJvdmlkZXIuXCIpLFxuICB9KVxuICAuZGVzY3JpcHRpb24oXCJDb25maWd1cmF0aW9uIGZvciBhIG1vZHVsZSB0ZXN0LlwiKVxuIl19
