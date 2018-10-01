@@ -86,7 +86,7 @@ export const joiRepositoryUrl = () => Joi
   })
   .description(
     "A remote respository URL. Currently only supports git servers. Must contain a hash part" +
-    " pointing to a specific branch or tag with the format: <git remote url>#<branch|tag>",
+    " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>",
   )
   .example("git+https://github.com/org/repo.git#v2.0")
 

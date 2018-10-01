@@ -16,6 +16,7 @@ import {
   joiRepositoryUrl,
 } from "./common"
 import { TestConfig, TestSpec } from "./test"
+import dedent = require("dedent")
 
 export interface BuildCopySpec {
   source: string
@@ -80,7 +81,13 @@ export const baseModuleSpecSchema = Joi.object()
       .description("The name of this module.")
       .example("my-sweet-module"),
     description: Joi.string(),
-    repositoryUrl: joiRepositoryUrl(),
+    repositoryUrl: joiRepositoryUrl()
+      .description(
+        dedent`${joiRepositoryUrl().describe().description}
+
+        Garden will import the repository source code into this module, but read the config from
+        the local garden.yml file`,
+      ),
     variables: joiVariables()
       .description("Variables that this module can reference and expose as environment variables.")
       .example({ "my-variable": "some-value" }),

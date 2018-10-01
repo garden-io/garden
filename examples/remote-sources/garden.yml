@@ -1,0 +1,7 @@
+project:
+  name: remote-sources
+  sources:
+    - name: web-services
+      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#master
+    - name: db-services
+      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#master
