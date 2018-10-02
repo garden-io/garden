@@ -80,9 +80,7 @@ module:
   type: container
   services:
     - name: node-service
-      .
-      .
-      .
+      ...
       dependencies:
         - go-service
 ```

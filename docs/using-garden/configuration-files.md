@@ -9,14 +9,14 @@ In addition, each of the project's [modules](../guides/glossary.md#module)' `gar
 module's top-level directory.
 
 To get started, create a `garden.yml` file in the top-level directory of your repository, and a `garden.yml` file
-in the top-level directory of each of the modules you'd like do define for your project.
+in the top-level directory of each of the modules you'd like to define for your project.
 
 To decide how to split your project up into modules, it's useful to consider what parts of it are built as a single
 step, and what the dependency relationships are between your build steps. For example, each container and each
 serverless function should be represented by its own module.
 
 Below, we'll be using examples from the
-[hello-world example project](https://github.com/garden-io/garden/tree/master/examples/hello-world), which touches
+[Hello world](./example-projects/hello-world.md) example project, which touches
 on many of the things you're likely to want to configure in a project.
 
 ## Project Configuration
@@ -43,10 +43,10 @@ environment-specific provider configuration. The above only configures a `local`
 further environments, such as a remote Kubernetes environment.
 
 Here, project-wide configuration variables can also be specified (global, and/or environment-specific). These are
-then available for interpolation in any string scalar value in any module's `garden.yml`.
+then available for substitution in any string value in any module's `garden.yml`.
 
 For example, assuming the above project configuration, `"foo-${variables.my-variable}-bar"` would evaluate to
-`"foo-hello-variable-bar"` when used as a scalar string value in a module's `garden.yml`.
+`"foo-hello-variable-bar"` when used as a string value in a module's `garden.yml`.
 
 ## Module Configuration
 
@@ -54,7 +54,7 @@ Below, we'll use the module configurations of `hello-function` and `hello-contai
 [hello-world example project](https://github.com/garden-io/garden/tree/master/examples/hello-world)
 as examples to illustrate some of the primary module-level configuration options.
 
-The following is a snippet from [`hello-container`'s module config](#hello-function-module-configuration):
+The following is a snippet from `hello-container`'s [module config](#hello-function-module-configuration):
 
 ```yaml
 module:
@@ -88,23 +88,23 @@ modules use the same name.
 ### type
 
 A [module](../guides/glossary.md#module)'s `type` specifies what kind of module this is, which will control how the
-module's code gets built, tested, deployed etc. The module types are defined by _plugins_. The built-in plug-ins
+module's code gets built, tested, deployed, etc. The module types are defined by _providers_. The built-in providers
 include `container` and `generic` (which basically provides a way to run commands locally).
 
 The example above is a `container` module, and the `hello-function` module is an `openfaas` module
 (which is one of many ways to run functions-as-a-service on Kubernetes).
 
-In this particular project, the `container` module type is deployed by the `local-kubernetes` plugin, and the
-`openfaas` module is built and deployed by the corresponding `openfaas` plugin.
+In this particular project, the `container` module type is deployed by the `local-kubernetes` provider, and the
+`openfaas` module is built and deployed by the corresponding `openfaas` provider.
 
 ### build
 
-A module's build configuration is specified via the `build` directive.
+A module's build configuration is specified via the `build` directive, and the implementation of what `build` does varies depending on which provider is responsible for that module.
 
-Here, the `build.command` subdirective sets the CLI command run during builds. A module's build command is executed
+Regardless of the implementation, a module's build command is executed
 with its working directory set to a copy of the module's top-level directory, located at
 `[project-root]/.garden/build/[module-name]`. This internal directory is referred to as the module's
-[build directory](../guides/glossary.md#build-directory).
+[build directory](../reference/glossary.md#build-directory).
 
 The `.garden` directory should not be modified by users, since this may lead to unexpected errors when the Garden CLI
 tools are used in the project.
@@ -115,7 +115,7 @@ you simply need to build one container before another because it's used as a bas
 
 In other cases, you may actually need files to be copied from one built module to another.
 The `copy` key indicates what files/folders, if any, should be copied from the required module's build directory to the
-module in question after the required module is built (`source`), and where they should be copied (`target`).
+module in question after the required module is built (`source`), and where they should be copied to (`target`).
 
 In the above example, we copy the entire contents of `hello-npm-package`'s build directory, after it has been built,
 into the `libraries/hello-npm-package/` in the `hello-container` build directory, _before the container is built_.
@@ -128,7 +128,7 @@ part of your runtime stack.
 How services are configured will depend on the module type. An `openfaas` module always contains a single service. A
 `container` module can contain any number of services (or none at all, if it's just used as a base image, for example).
 
-The following is a snippet from [`hello-container's`'s module config](#hello-container-module-configuration):
+The following is a snippet from [`hello-container`](#hello-container-module-configuration)'s module config:
 
 ```yaml
 module:
@@ -153,11 +153,11 @@ module:
 ```
 
 Here the `services` directive defines the services exposed by the module. We only have one service in this example,
-but you might for example add another service, for example a background worker, that is started using a different
+but you may add another service, for example a background worker, that is started using a different
 `command`.
 
 For more details on how to configure services in a `container` module, please refer to the
-[config reference](../reference/config.md).
+[Config Files Reference](../reference/config-files-reference.md).
 
 ## Tests
 
@@ -194,8 +194,8 @@ Tests can be run via `garden test`, as well as `garden dev`.
 
 ## Next steps
 
-We highly recommend browsing through the [examples directory](https://github.com/garden-io/garden/tree/master/examples)
-to see different examples of how projects and modules can be configured.
+We highly recommend browsing through the [Example projects](../example-projects/README.md) to see different examples of how projects and modules can be configured.
 
-Also be sure to look at the configuration [reference](../reference/config.md) for more details on each of the available
+Also be sure to look at the [Config Files Reference](../reference/config-files-reference.md)
+ for more details on each of the available
 configuration keys.
