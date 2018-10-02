@@ -4,9 +4,9 @@ This guide will walk you through setting up the Garden framework. It assumes you
 
 ## Using the CLI
 
-With the CLI installed, we can now try out a few commands using the [Simple Project](./using-garden/example-projects/simple-project.md) from our [example projects](./using-garden/example-projects/README.md). The example consists of a couple of simple services.
+With the CLI installed, we can now try out a few commands using the [Simple Project](./using-garden/example-projects/simple-project.md) from our [example projects](./using-garden/example-projects/README.md). The example project consists of a couple of simple modules, each defining one service.
 
-_Note: check if Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
+_Note: Check if Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
 
 Clone the repo and change into the `simple-project`  directory:
 
@@ -21,25 +21,25 @@ First, let's check the environment status by running the following from the proj
 $ garden get status
 ```
 
-The response tells us how the environment is configured and the status of the providers. Next, we'll build our services with:
+The response tells us how the environment is configured and the status of the providers. Next, we'll build our modules with:
 
 ```sh
 $ garden build
 ```
 
-Then we'll deploy the services with:
+This builds Docker images for `go-service` and `node-service` respectively. Next, we'll deploy the services with:
 
 ```sh
 $ garden deploy
 ```
 
-And that's it! The services are now running on the Garden framework. You can see for yourself by querying the `/hello` endpoint of the container with:
+And that's it! The `garden build` step above is actually unnecessary (only included here for clarity), since `garden deploy` will also rebuild modules as needed. The services are now running on the Garden framework. You can see for yourself by querying the `/hello` endpoint of `go-service`'s running container:
 
 ```sh
 $ garden call go-service/hello-go
 ```
 
-To run tests you can use:
+To run tests for all modules:
 
 ```sh
 $ garden test
@@ -55,4 +55,4 @@ Go ahead, leave it running and change one of the files in the project, then watc
 
 That's it for now. Check out our [Using Garden](./using-garden/README.md) section for other features like hot reload, remote clusters, integration tests, and lots more. 
 
-To see how a Garden project is configured from scratch check out the [Simple Project](../guides/simple-project.md) guide for a more in-depth presentation.
+To see how a Garden project is configured from scratch check, out the [Simple Project](../guides/simple-project.md) guide for a more in-depth presentation.

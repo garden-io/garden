@@ -24,15 +24,14 @@ If you haven't already set up homebrew, please follow [their instructions](https
 
 To install Docker, Kubernetes and kubectl, we strongly recommend Docker for Mac (edge version).
 
-_Note: you need to install the **edge version** of Docker for Mac in
-order to enable Kubernetes support._
+_Note: you need to install the **edge version** of Docker for Mac to enable Kubernetes support._
 
 Once installed, open the Docker for Mac preferences, go to the Kubernetes section,
 tick `Enable Kubernetes` and save. Please refer to their
 [installation guide](https://docs.docker.com/engine/installation/) for details.
 
 Alternatively, you can use Minikube. We generally find it less stable and more hassle to
-configure and use, but we do fully support it on Mac if you have it running. Please look at the 
+configure and use, but we do fully support it on Mac. Please look at the 
 [Minikube Instructions](#minikube-instructions) section for details.
 
 #### Step 3: Install `garden-cli`
@@ -49,8 +48,8 @@ To later upgrade to the newest version, simply run `brew update` and then `brew 
 
 ### Windows
 
-You can run Garden on Windows 10 Pro or Enterprise editions (The Home edition unfortunately does not work because it
-does support virtualization). To install the Garden CLI please use our _automated installation script_, which will
+You can run Garden on Windows 10 Pro or Enterprise editions (unfortunately, the Home edition does not work, because it
+does not support virtualization). To install the Garden CLI, please use our _automated installation script_, which will
 check for dependencies, install missing dependencies if needed, and finally install the `garden-cli` npm package.
 
 The script will check for the following:
@@ -59,13 +58,12 @@ The script will check for the following:
 * Whether you have Hyper-V enabled. This is required for _Docker for Windows_. If you do not already have it enabled,
   the script will enable it (you will then need to restart your computer before starting Docker for Windows).
 * Docker - We strongly recommend using the _Edge version_ of
-  [Docker for Windows](https://www.docker.com/docker-windows), which has built-in support for Kubernetes. It is also
-  _possible_ to configure Docker and Kubernetes differently, using Minikube for example, but in most cases
-  Docker for Windows is much easier to install and configure, and is well supported. The script will check if Docker is
+  [Docker for Windows](https://www.docker.com/docker-windows), which has built-in support for Kubernetes. Garden also supports different configurations of Docker and Kubernetes, using Minikube for example, but
+  Docker for Windows is generally easier to install and configure, and is well supported. The script will check if Docker is
   installed, and whether Kubernetes has been enabled as the default orchestrator.
-* Node.js - The script will install it via Chocolatey if it is missing, but note that _if you already have Node.js
+* Node.js - The script will install it via Chocolatey if it is missing. _If you already have Node.js
   installed, please make sure it is version 8.x or newer._
-* Git and rsync. The script will install those if they are missing.
+* Git and rsync - The script will install those if they are missing.
 
 To run the script, open PowerShell as an Administrator and run:
 
@@ -100,7 +98,11 @@ Use your preferred method or package manager to install `node` (version 8.x or h
 
 On Ubuntu 18, you'd do `sudo apt install git rsync` for Git and rsync.
 
-For Node, we recommend using nvm. You can install it with `curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash`, then restart your terminal and install Node with `nvm install node`.
+To install Node, we recommend using nvm. You can install nvm e.g. by executing the following in a shell:
+```sh
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
+```
+and restarting your terminal. You can then install Node via `nvm install node`.
 
 #### Step 4: Install `garden-cli`
 
@@ -132,7 +134,9 @@ platforms.
 
 Once Minikube and the appropriate driver for your OS is installed, you can start it by running:
 
-    minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
+```sh
+minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
+```
 
 You'll also need to have Docker (for macOS, we recommend [Docker for Mac](https://docs.docker.com/engine/installation/))
 and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed.
@@ -140,9 +144,9 @@ and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed
 ## Usage
 
 The `local-kubernetes` plugin attempts to automatically detect if it is installed and set the appropriate context
-for connecting to the local Kubernetes instance. In most cases you should not have to update your `garden.yml`
-since it uses the `local-kubernetes` plugin by default, but you can configure it explicitly in your project
-`garden.yml` like so:
+for connecting to the local Kubernetes instance. In most cases you should not have to update your `garden.yml`,
+since it uses the `local-kubernetes` plugin by default, but you can configure it explicitly in your project-level
+`garden.yml` as follows:
 
 ```yaml
 project:
@@ -153,9 +157,9 @@ project:
           context: minikube
 ```
 
-If you happen to have installed both Minikube and the Docker for Mac version with Kubernetes enabled,
+If you happen to have installed both Minikube and a version of Docker for Mac with Kubernetes support enabled,
 `garden` will choose whichever one is configured as the current context in your `kubectl` configuration, and if neither
-is set as the current context, Docker for Mac is preferred by default._
+is set as the current context, Docker for Mac is preferred by default.
 
 (If you're not yet familiar with Garden configuration files, see: [Configuration files](./using-garden/configuration-files.md))
 
