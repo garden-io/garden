@@ -126,8 +126,13 @@ export function renderMsg(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
-  const { section } = entry.opts
-  return section ? `${sectionStyle(section)} → ` : ""
+  const { msg, section } = entry.opts
+  if (section && msg) {
+    return `${sectionStyle(section)} → `
+  } else if (section) {
+    return sectionStyle(section)
+  }
+  return ""
 }
 
 export function renderDuration(entry: LogEntry): string {
@@ -138,6 +143,11 @@ export function renderDuration(entry: LogEntry): string {
 }
 
 export function formatForTerminal(entry: LogEntry): string {
+  const { msg, section, emoji, showDuration, symbol } = entry.opts
+  const empty = [msg, section, emoji, showDuration, symbol].every(val => val === undefined)
+  if (empty) {
+    return ""
+  }
   return combine([
     [leftPad, [entry]],
     [renderSymbol, [entry]],

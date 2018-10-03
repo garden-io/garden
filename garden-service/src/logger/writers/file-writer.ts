@@ -14,7 +14,6 @@ import { ensureDir, truncate } from "fs-extra"
 import { LogLevel } from "../log-node"
 import { LogEntry } from "../log-entry"
 import { Writer } from "./base"
-import { validate } from "../util"
 import {
   renderError,
   renderMsg,
@@ -44,6 +43,14 @@ const DEFAULT_FILE_TRANSPORT_OPTIONS: FileTransportOptions = {
 }
 
 const levelToStr = (lvl: LogLevel): string => LogLevel[lvl]
+
+export function render(level: LogLevel, entry: LogEntry): string | null {
+  if (level >= entry.level) {
+    const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
+    return stripAnsi(renderFn(entry))
+  }
+  return null
+}
 
 export class FileWriter extends Writer {
   private fileLogger: winston.Logger | null
@@ -98,11 +105,7 @@ export class FileWriter extends Writer {
   }
 
   render(entry: LogEntry): string | null {
-    if (validate(this.level, entry)) {
-      const renderFn = entry.level === LogLevel.error ? renderError : renderMsg
-      return stripAnsi(renderFn(entry))
-    }
-    return null
+    return render(this.level, entry)
   }
 
   onGraphChange(entry: LogEntry) {

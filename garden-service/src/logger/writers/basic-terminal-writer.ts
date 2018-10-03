@@ -10,7 +10,6 @@ import { LogLevel } from "../log-node"
 import { formatForTerminal } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
-import { validate } from "../util"
 import { Writer } from "./base"
 
 export class BasicTerminalWriter extends Writer {
@@ -18,7 +17,7 @@ export class BasicTerminalWriter extends Writer {
 
   render(entry: LogEntry, logger: Logger): string | null {
     const level = this.level || logger.level
-    if (validate(level, entry)) {
+    if (level >= entry.level) {
       return formatForTerminal(entry)
     }
     return null
