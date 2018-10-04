@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa = require("execa")
 import * as Joi from "joi"
 import {
   safeLoad,
@@ -46,6 +45,8 @@ import { compareDeployedObjects, waitForObjects, checkObjectStatus } from "./sta
 import { getGenericModuleBuildStatus } from "../generic"
 import { ServiceSpec } from "../../config/service"
 import { KubeApi } from "./api"
+import { BinaryCmd } from "../../util/ext-tools"
+import { LogEntry } from "../../logger/log-entry"
 
 export interface KubernetesObject {
   apiVersion: string
@@ -143,10 +144,10 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
     const namespace = await getAppNamespace(ctx, ctx.provider)
     const releaseName = getReleaseName(namespace, service)
 
-    const releaseStatus = await getReleaseStatus(ctx.provider, releaseName)
+    const releaseStatus = await getReleaseStatus(ctx.provider, releaseName, logEntry)
 
     if (releaseStatus.state === "missing") {
-      await helm(provider,
+      await helm(provider, logEntry,
         "install", chartPath,
         "--name", releaseName,
         "--namespace", namespace,
@@ -154,7 +155,7 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
         "--wait",
       )
     } else {
-      await helm(provider,
+      await helm(provider, logEntry,
         "upgrade", releaseName, chartPath,
         "--namespace", namespace,
         "--values", valuesPath,
@@ -162,7 +163,7 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
       )
     }
 
-    const objects = await getChartObjects(ctx, service)
+    const objects = await getChartObjects(ctx, service, logEntry)
     await waitForObjects({ ctx, provider, service, objects, logEntry })
 
     return {}
@@ -172,7 +173,7 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
     const { ctx, logEntry, service } = params
     const namespace = await getAppNamespace(ctx, ctx.provider)
     const releaseName = getReleaseName(namespace, service)
-    await helm(ctx.provider, "delete", "--purge", releaseName)
+    await helm(ctx.provider, logEntry, "delete", "--purge", releaseName)
     logEntry && logEntry.setSuccess("Service deleted")
 
     return await getServiceStatus(params)
@@ -196,13 +197,13 @@ async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): 
     fetchArgs.push("--repo", config.spec.repo)
   }
   logEntry && logEntry.setState("Fetching chart...")
-  await helm(ctx.provider, ...fetchArgs)
+  await helm(ctx.provider, logEntry, ...fetchArgs)
 
   const chartPath = await getChartPath(module)
 
   // create the values.yml file (merge the configured parameters into the default values)
   logEntry && logEntry.setState("Preparing chart...")
-  const values = safeLoad(await helm(ctx.provider, "inspect", "values", chartPath)) || {}
+  const values = safeLoad(await helm(ctx.provider, logEntry, "inspect", "values", chartPath)) || {}
 
   Object.entries(flattenValues(config.spec.parameters))
     .map(([k, v]) => set(values, k, v))
@@ -221,11 +222,44 @@ async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): 
   return { fresh: true }
 }
 
-export function helm(provider: KubernetesProvider, ...args: string[]) {
-  return execa.stdout("helm", [
-    "--kube-context", provider.config.context,
-    ...args,
-  ])
+const helmCmd = new BinaryCmd({
+  name: "helm",
+  specs: {
+    darwin: {
+      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-darwin-amd64.tar.gz",
+      sha256: "7c4e6bfbc211d6b984ffb4fa490ce9ac112cc4b9b8d859ece27045b8514c1ed1",
+      extract: {
+        format: "tar",
+        executablePath: ["darwin-amd64", "helm"],
+      },
+    },
+    linux: {
+      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz",
+      sha256: "0fa2ed4983b1e4a3f90f776d08b88b0c73fd83f305b5b634175cb15e61342ffe",
+      extract: {
+        format: "tar",
+        executablePath: ["linux-amd64", "helm"],
+      },
+    },
+    win32: {
+      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-windows-amd64.tar.gz",
+      sha256: "2e82324e33fa76352373d8944d847bee22e4607e9a6c348431663c5cf4ee188e",
+      extract: {
+        format: "tar",
+        executablePath: ["windows-amd64", "helm.exe"],
+      },
+    },
+  },
+})
+
+export function helm(provider: KubernetesProvider, logEntry: LogEntry | undefined, ...args: string[]) {
+  return helmCmd.stdout({
+    logEntry,
+    args: [
+      "--kube-context", provider.config.context,
+      ...args,
+    ],
+  })
 }
 
 async function getChartPath(module: HelmModule) {
@@ -238,13 +272,13 @@ function getValuesPath(chartPath: string) {
   return join(chartPath, "garden-values.yml")
 }
 
-async function getChartObjects(ctx: PluginContext, service: Service) {
+async function getChartObjects(ctx: PluginContext, service: Service, logEntry?: LogEntry) {
   const chartPath = await getChartPath(service.module)
   const valuesPath = getValuesPath(chartPath)
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const releaseName = getReleaseName(namespace, service)
 
-  const objects = <KubernetesObject[]>safeLoadAll(await helm(ctx.provider,
+  const objects = <KubernetesObject[]>safeLoadAll(await helm(ctx.provider, logEntry,
     "template",
     "--name", releaseName,
     "--namespace", namespace,
@@ -270,7 +304,7 @@ async function getServiceStatus(
   }
 
   // first check if the installed objects on the cluster match the current code
-  const objects = await getChartObjects(ctx, service)
+  const objects = await getChartObjects(ctx, service, logEntry)
   const matched = await compareDeployedObjects(ctx, objects)
 
   if (!matched) {
@@ -293,9 +327,11 @@ function getReleaseName(namespace: string, service: Service) {
   return `${namespace}--${service.name}`
 }
 
-async function getReleaseStatus(provider: KubernetesProvider, releaseName: string): Promise<ServiceStatus> {
+async function getReleaseStatus(
+  provider: KubernetesProvider, releaseName: string, logEntry?: LogEntry,
+): Promise<ServiceStatus> {
   try {
-    const res = JSON.parse(await helm(provider, "status", releaseName, "--output", "json"))
+    const res = JSON.parse(await helm(provider, logEntry, "status", releaseName, "--output", "json"))
     const statusCode = res.info.status.code
     return {
       state: helmStatusCodeMap[statusCode],

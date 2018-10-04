@@ -25,6 +25,7 @@ import chalk from "chalk"
 import hasAnsi = require("has-ansi")
 import { safeDump } from "js-yaml"
 import { GARDEN_DIR_NAME } from "../constants"
+import { createHash } from "crypto"
 // NOTE: Importing from ignore/ignore doesn't work on Windows
 const ignore = require("ignore")
 
@@ -456,4 +457,10 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
   }
 
   return picked
+}
+
+export function hashString(s: string, length: number) {
+  const urlHash = createHash("sha256")
+  urlHash.update(s)
+  return urlHash.digest("hex").slice(0, length)
 }

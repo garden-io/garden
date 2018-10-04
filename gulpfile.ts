@@ -20,7 +20,7 @@ gulp.task("check-licenses", () =>
   gulp.src([...tsSources, pegjsSources])
     .pipe(checkLicense({
       path: licenseHeaderPath,
-      blocking: false,
+      blocking: true,
       logInfo: false,
       logError: true,
     })),

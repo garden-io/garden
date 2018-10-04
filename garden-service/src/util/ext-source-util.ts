@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createHash } from "crypto"
 import { uniqBy } from "lodash"
 import chalk from "chalk"
 import pathIsInside = require("path-is-inside")
@@ -23,6 +22,7 @@ import { ParameterError } from "../exceptions"
 import { Module } from "../types/module"
 import { join } from "path"
 import { Garden } from "../garden"
+import { hashString } from "./util"
 
 export type ExternalSourceType = "project" | "module"
 
@@ -41,9 +41,7 @@ export function getRemoteSourcePath({ name, url, sourceType }:
 }
 
 export function hashRepoUrl(url: string) {
-  const urlHash = createHash("sha256")
-  urlHash.update(url)
-  return urlHash.digest("hex").slice(0, 10)
+  return hashString(url, 10)
 }
 
 export function hasRemoteSource(module: Module): boolean {

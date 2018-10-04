@@ -65,7 +65,7 @@ The things the script will check for are the following:
   installed, and whether Kubernetes has been enabled as the default orchestrator.
 * Node.js - The script will install it via Chocolatey if it is missing, but note that _if you already have Node.js
   installed, please make sure it is version 8.x or newer._
-* Git, rsync, Helm and stern. The script will install those if they are missing.
+* Git and rsync. The script will install those if they are missing.
 
 To run the script, open PowerShell as an Administrator and run:
 
@@ -83,8 +83,6 @@ You need the following dependencies on your local machine to use Garden:
 * [Docker](https://docs.docker.com/)
 * Git
 * rsync
-* stern
-* [Helm](https://github.com/kubernetes/helm)
 * Local installation of Kubernetes and kubectl
 
 #### Step 1: Docker
@@ -98,8 +96,7 @@ For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minik
 
 #### Step 3: Install other dependencies
 
-Use your preferred method or package manager to install `node` (version 8.x or higher), `git`, `rsync` and
-[Helm](https://github.com/kubernetes/helm).
+Use your preferred method or package manager to install `node` (version 8.x or higher), `git` and `rsync`.
 
 #### Step 4: Install `garden-cli`
 
