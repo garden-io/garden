@@ -137,7 +137,7 @@ if ((CheckChocolatey) -eq $false) { return }
 # name.
 $chocDeps = (("git","git"),
              ("rsync","rsync"),
-             ("node","nodejs"),
+             ("node","nodejs"))
 CheckChocolateyDeps($chocDeps)
 [Console]::ResetColor()
 
