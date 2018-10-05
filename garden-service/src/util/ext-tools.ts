@@ -142,6 +142,7 @@ export class BinaryCmd extends Cmd {
           reject(new ParameterError(`Invalid archive format: ${format}`, { name: this.name, spec: this.spec }))
         }
 
+        endStream = extractor
         response.data.pipe(extractor)
 
         extractor.on("error", (err) => {
