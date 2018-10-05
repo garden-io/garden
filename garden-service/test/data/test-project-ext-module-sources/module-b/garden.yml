@@ -1,6 +1,6 @@
 module:
   name: module-b
-  repositoryUrl: https://my-git-server.com/module-b.git
+  repositoryUrl: https://my-git-server.com/module-b.git#master
   type: test
   services:
     - name: service-b

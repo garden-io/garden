@@ -85,10 +85,10 @@ export const joiRepositoryUrl = () => Joi
     ],
   })
   .description(
-    "A remote respository URL. Currently only supports git servers. Use hash notation (#) to point to" +
-    " a specific branch or tag",
+    "A remote respository URL. Currently only supports git servers. Must contain a hash part" +
+    " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>",
   )
-  .example("<git remote url>#<branch|tag> or git+https://github.com/organization/some-module.git#v2.0")
+  .example("git+https://github.com/org/repo.git#v2.0")
 
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean"

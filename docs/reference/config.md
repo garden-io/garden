@@ -35,11 +35,13 @@ module:
 
   description:
 
-  # A remote repository URL to fetch the module from. Garden will read the garden.yml config from
-  # the local module. Currently only supports git servers.
+  # A remote respository URL. Currently only supports git servers. Must contain a hash part
+  # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
   #
-  # Example: "<git remote url>#<branch|tag> or
-  # git+https://github.com/organization/some-module.git#v2.0"
+  # Garden will import the repository source code into this module, but read the config from
+  # the local garden.yml file
+  #
+  # Example: "git+https://github.com/org/repo.git#v2.0"
   #
   # Optional.
   repositoryUrl:
@@ -189,11 +191,10 @@ project:
       # Required.
       name:
 
-      # A remote respository URL. Currently only supports git servers. Use hash notation (#) to
-      # point to a specific branch or tag
+      # A remote respository URL. Currently only supports git servers. Must contain a hash part
+      # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
       #
-      # Example: "<git remote url>#<branch|tag> or
-      # git+https://github.com/organization/some-module.git#v2.0"
+      # Example: "git+https://github.com/org/repo.git#v2.0"
       #
       # Required.
       repositoryUrl:
@@ -225,11 +226,13 @@ module:
 
   description:
 
-  # A remote repository URL to fetch the module from. Garden will read the garden.yml config from
-  # the local module. Currently only supports git servers.
+  # A remote respository URL. Currently only supports git servers. Must contain a hash part
+  # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
   #
-  # Example: "<git remote url>#<branch|tag> or
-  # git+https://github.com/organization/some-module.git#v2.0"
+  # Garden will import the repository source code into this module, but read the config from
+  # the local garden.yml file
+  #
+  # Example: "git+https://github.com/org/repo.git#v2.0"
   #
   # Optional.
   repositoryUrl:
@@ -359,11 +362,13 @@ module:
 
   description:
 
-  # A remote repository URL to fetch the module from. Garden will read the garden.yml config from
-  # the local module. Currently only supports git servers.
+  # A remote respository URL. Currently only supports git servers. Must contain a hash part
+  # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
   #
-  # Example: "<git remote url>#<branch|tag> or
-  # git+https://github.com/organization/some-module.git#v2.0"
+  # Garden will import the repository source code into this module, but read the config from
+  # the local garden.yml file
+  #
+  # Example: "git+https://github.com/org/repo.git#v2.0"
   #
   # Optional.
   repositoryUrl:

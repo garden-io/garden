@@ -548,7 +548,7 @@ describe("Garden", () => {
     it("should return the path to the project source if source type is project", async () => {
       projectRoot = getDataDir("test-project-ext-project-sources")
       const ctx = await makeGardenContext(projectRoot)
-      const repositoryUrl = "foo"
+      const repositoryUrl = "https://github.com/org/repo.git#master"
       const path = await ctx.loadExtSourcePath({ repositoryUrl, name: "source-a", sourceType: "project" })
       const repoUrlHash = hashRepoUrl(repositoryUrl)
       expect(path).to.equal(join(projectRoot, ".garden", "sources", "project", `source-a--${repoUrlHash}`))
@@ -557,7 +557,7 @@ describe("Garden", () => {
     it("should return the path to the module source if source type is module", async () => {
       projectRoot = getDataDir("test-project-ext-module-sources")
       const ctx = await makeGardenContext(projectRoot)
-      const repositoryUrl = "foo"
+      const repositoryUrl = "https://github.com/org/repo.git#master"
       const path = await ctx.loadExtSourcePath({ repositoryUrl, name: "module-a", sourceType: "module" })
       const repoUrlHash = hashRepoUrl(repositoryUrl)
       expect(path).to.equal(join(projectRoot, ".garden", "sources", "module", `module-a--${repoUrlHash}`))
@@ -574,7 +574,11 @@ describe("Garden", () => {
       }]
       await ctx.localConfigStore.set(["linkedProjectSources"], linked)
 
-      const path = await ctx.loadExtSourcePath({ name: "source-a", repositoryUrl: "", sourceType: "project" })
+      const path = await ctx.loadExtSourcePath({
+        name: "source-a",
+        repositoryUrl: "https://github.com/org/repo.git#master",
+        sourceType: "project",
+      })
 
       expect(path).to.equal(join(projectRoot, "mock-local-path", "source-a"))
     })
@@ -590,7 +594,11 @@ describe("Garden", () => {
       }]
       await ctx.localConfigStore.set(["linkedModuleSources"], linked)
 
-      const path = await ctx.loadExtSourcePath({ name: "module-a", repositoryUrl: "", sourceType: "module" })
+      const path = await ctx.loadExtSourcePath({
+        name: "module-a",
+        repositoryUrl: "https://github.com/org/repo.git#master",
+        sourceType: "module",
+      })
 
       expect(path).to.equal(join(projectRoot, "mock-local-path", "module-a"))
     })
