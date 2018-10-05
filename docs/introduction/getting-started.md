@@ -70,7 +70,7 @@ The things the script will check for are the following:
 To run the script, open PowerShell as an Administrator and run:
 
 ```PowerShell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/garden-cli/support/install.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/garden-service/support/install.ps1'))
 ```
 
 To later upgrade to the newest version, run `npm install -g -U garden-cli`.
