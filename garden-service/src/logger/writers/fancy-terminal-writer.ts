@@ -24,7 +24,6 @@ import {
   getChildEntries,
   getTerminalWidth,
   interceptStream,
-  validate,
 } from "../util"
 import { Writer, WriterConfig } from "./base"
 
@@ -191,7 +190,7 @@ export class FancyTerminalWriter extends Writer {
     let currentLineNumber = 0
 
     return getChildEntries(logger)
-      .filter(entry => validate(level, entry))
+      .filter(entry => level >= entry.level)
       .reduce((acc: TerminalEntry[], entry: LogEntry): TerminalEntry[] => {
         let spinnerFrame = ""
         let spinnerX
@@ -223,12 +222,14 @@ export class FancyTerminalWriter extends Writer {
           }))
           .pop()!
 
-        acc.push({
-          key: entry.key,
-          lineNumber: currentLineNumber,
-          spinnerCoords,
-          text,
-        })
+        if (text) {
+          acc.push({
+            key: entry.key,
+            lineNumber: currentLineNumber,
+            spinnerCoords,
+            text,
+          })
+        }
 
         currentLineNumber += text.split("\n").length - 1
 

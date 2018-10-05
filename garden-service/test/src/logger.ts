@@ -1,10 +1,20 @@
 import { expect } from "chai"
+import chalk from "chalk"
+import * as stripAnsi from "strip-ansi"
+
 import { LogLevel } from "../../src/logger/log-node"
 import { BasicTerminalWriter } from "../../src/logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../../src/logger/writers/fancy-terminal-writer"
 import { getLogger } from "../../src/logger/logger"
 import { getChildNodes } from "../../src/logger/util"
-import { renderMsg, msgStyle, errorStyle } from "../../src/logger/renderers"
+import {
+  renderMsg,
+  msgStyle,
+  errorStyle,
+  formatForTerminal,
+  renderError,
+} from "../../src/logger/renderers"
+import { render } from "../../src/logger/writers/file-writer"
 
 const logger = getLogger()
 
@@ -88,74 +98,89 @@ describe("RootLogNode", () => {
 })
 
 describe("Writers", () => {
-  describe("BasicTerminalWriter.render", () => {
-    it("should return a string if level is geq than entry level and entry contains a message", () => {
-      const writer = new BasicTerminalWriter()
-      const entry = logger.info("")
-      const out = writer.render(entry, logger)
-      expect(out).to.eql("\n")
-    })
-    it("should override root level if level is set", () => {
-      const writer = new BasicTerminalWriter({ level: LogLevel.verbose })
-      const entry = logger.verbose("")
-      const out = writer.render(entry, logger)
-      expect(out).to.eql("\n")
-    })
-    it("should return null if entry level is geq to writer level", () => {
-      const writer = new BasicTerminalWriter()
-      const entry = logger.verbose("")
-      const out = writer.render(entry, logger)
-      expect(out).to.eql(null)
-    })
-    it("should return null if entry is empty", () => {
-      const writer = new BasicTerminalWriter()
-      const entry = logger.info()
-      const out = writer.render(entry, logger)
-      expect(out).to.eql(null)
-    })
-    it("should return null if entry has no message", () => {
-      const writer = new BasicTerminalWriter()
-      const entry = logger.info({})
-      const out = writer.render(entry, logger)
-      expect(out).to.eql(null)
+  describe("BasicTerminalWriter", () => {
+    describe("render", () => {
+      it("should return a string if level is geq than entry level and entry contains a message", () => {
+        const writer = new BasicTerminalWriter()
+        const entry = logger.info("")
+        const out = writer.render(entry, logger)
+        expect(out).to.eql("\n")
+      })
+      it("should override root level if level is set", () => {
+        const writer = new BasicTerminalWriter({ level: LogLevel.verbose })
+        const entry = logger.verbose("")
+        const out = writer.render(entry, logger)
+        expect(out).to.eql("\n")
+      })
+      it("should return null if entry level is geq to writer level", () => {
+        const writer = new BasicTerminalWriter()
+        const entry = logger.verbose("abc")
+        const out = writer.render(entry, logger)
+        expect(out).to.eql(null)
+      })
+      it("should return an empty string if entry is empty", () => {
+        const writer = new BasicTerminalWriter()
+        const entry = logger.info()
+        const out = writer.render(entry, logger)
+        expect(out).to.eql("")
+      })
     })
   })
 
-  describe("FancyTerminalWriter.toTerminalEntries", () => {
-    const writer = new FancyTerminalWriter()
-    const verboseWriter = new FancyTerminalWriter({ level: LogLevel.verbose })
-    writer.stop()
-    verboseWriter.stop()
-    it("should map a LogNode into an array of entries with line numbers and spinner positions", () => {
-      logger.info("1 line") // 0
-      logger.info("2 lines\n") // 1
-      logger.info("1 line") // 3
-      logger.info("3 lines\n\n") // 4
-      const spinner = logger.info({ msg: "spinner", status: "active" }) // 7
-      spinner.info({ msg: "nested spinner", status: "active" }) // 8
-      const terminalEntries = writer.toTerminalEntries(logger)
-      const lineNumbers = terminalEntries.map(e => e.lineNumber)
-      const spinners = terminalEntries.filter(e => !!e.spinnerCoords).map(e => e.spinnerCoords)
-      expect(lineNumbers).to.eql([0, 1, 3, 4, 7, 8])
-      expect(spinners).to.eql([[0, 7], [3, 8]])
-    })
-    it("should override root level if level is set", () => {
-      const entry = logger.verbose("")
-      const terminalEntries = verboseWriter.toTerminalEntries(logger)
-      expect(terminalEntries[0].key).to.eql(entry.key)
-    })
-    it("should skip entry if entry level is geq to writer level", () => {
-      logger.verbose("")
-      const terminalEntries = writer.toTerminalEntries(logger)
-      expect(terminalEntries).to.eql([])
-    })
-    it("should skip entry if entry is empty", () => {
-      logger.info()
-      const terminalEntries = writer.toTerminalEntries(logger)
-      expect(terminalEntries).to.eql([])
+  describe("FancyTerminalWriter", () => {
+    describe("toTerminalEntries", () => {
+      const writer = new FancyTerminalWriter()
+      const verboseWriter = new FancyTerminalWriter({ level: LogLevel.verbose })
+      writer.stop()
+      verboseWriter.stop()
+      it("should map a LogNode into an array of entries with line numbers and spinner positions", () => {
+        logger.info("1 line") // 0
+        logger.info("2 lines\n") // 1
+        logger.info("1 line") // 3
+        logger.info("3 lines\n\n") // 4
+        const spinner = logger.info({ msg: "spinner", status: "active" }) // 7
+        spinner.info({ msg: "nested spinner", status: "active" }) // 8
+        const terminalEntries = writer.toTerminalEntries(logger)
+        const lineNumbers = terminalEntries.map(e => e.lineNumber)
+        const spinners = terminalEntries.filter(e => !!e.spinnerCoords).map(e => e.spinnerCoords)
+        expect(lineNumbers).to.eql([0, 1, 3, 4, 7, 8])
+        expect(spinners).to.eql([[0, 7], [3, 8]])
+      })
+      it("should override root level if level is set", () => {
+        const entry = logger.verbose("")
+        const terminalEntries = verboseWriter.toTerminalEntries(logger)
+        expect(terminalEntries[0].key).to.eql(entry.key)
+      })
+      it("should skip entry if entry level is geq to writer level", () => {
+        logger.verbose("")
+        const terminalEntries = writer.toTerminalEntries(logger)
+        expect(terminalEntries).to.eql([])
+      })
+      it("should skip entry if entry is empty", () => {
+        logger.info()
+        const terminalEntries = writer.toTerminalEntries(logger)
+        expect(terminalEntries).to.eql([])
+      })
     })
   })
 
+  describe("FileWriter", () => {
+    describe("render", () => {
+      it("should render message without ansi characters", () => {
+        const entry = logger.info(chalk.red("hello"))
+        expect(render(LogLevel.info, entry)).to.equal("hello")
+      })
+      it("should render error message if entry level is error", () => {
+        const entry = logger.error("error")
+        const expectedOutput = stripAnsi(renderError(entry))
+        expect(render(LogLevel.info, entry)).to.equal(expectedOutput)
+      })
+      it("should return null if entry level is geq to writer level", () => {
+        const entry = logger.silly("silly")
+        expect(render(LogLevel.info, entry)).to.equal(null)
+      })
+    })
+  })
 })
 
 describe("LogEntry", () => {
@@ -250,6 +275,16 @@ describe("renderers", () => {
         const entry = logger.info({ msg: ["error a", "error b"], status: "error" })
         expect(renderMsg(entry)).to.equal(errorStyle("error a") + errorStyle(" → ") + errorStyle("error b"))
       })
+  })
+  describe("formatForTerminal", () => {
+    it("should return the entry as a formatted string with a new line character", () => {
+      const entry = logger.info("")
+      expect(formatForTerminal(entry)).to.equal("\n")
+    })
+    it("should return an empty string without a new line if the entry is empty", () => {
+      const entry = logger.info()
+      expect(formatForTerminal(entry)).to.equal("")
+    })
   })
 })
 

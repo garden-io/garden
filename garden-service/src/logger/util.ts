@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogNode, LogLevel } from "./log-node"
+import { LogNode } from "./log-node"
 import { LogEntry, CreateOpts } from "./log-entry"
 
 export interface Node {
@@ -104,8 +104,4 @@ export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
   }
 
   return columns
-}
-
-export function validate(level: LogLevel, entry: LogEntry): boolean {
-  return level >= entry.level && entry.opts.msg !== undefined
 }
