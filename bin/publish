@@ -7,20 +7,19 @@ cd ${garden_root}
 ./bin/prepare-publish
 
 lerna version --no-push
+
+version=v$(node -p "require('./lerna.json').version")
+
+# Add the changelog to the release commit created by lerna
+git fetch --tags
 git reset HEAD~1
-
-# Note: conventional-changelog reads the current version from package.json and finds previous versions
-# by searching for the string  "tag:" within commit messages. It should therefore run after the
-# version is updated in package.json but before the change is commited and tagged.
-
-./node_modules/.bin/conventional-changelog -p angular -i CHANGELOG.md --commit-path . -s --pkg ./garden-service
+git-chglog -o=CHANGELOG.md v0.1.0..${version}
 git add .
-version=$(node -p "require('./lerna.json').version")
 git commit -m "chore(release): release ${version}"
 
 # We need to re-create the tag created by lerna since adding the changelog changes the commit hash
-git tag -d v${version}
-git tag -a v${version} -m "v${version}"
+git tag -d ${version}
+git tag -a ${version} -m "${version}"
 
 git push --tags --no-verify
 git push origin HEAD --no-verify
