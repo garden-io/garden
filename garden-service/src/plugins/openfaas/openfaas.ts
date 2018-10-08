@@ -141,7 +141,8 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
       async cleanupEnvironment({ ctx }: CleanupEnvironmentParams) {
         const ofGarden = await getOpenFaasGarden(ctx)
-        return ofGarden.actions.cleanupEnvironment({})
+        await ofGarden.actions.cleanupEnvironment({})
+        return {}
       },
     },
     moduleActions: {
