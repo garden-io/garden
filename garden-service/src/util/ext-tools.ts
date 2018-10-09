@@ -7,9 +7,9 @@
  */
 
 import { platform, homedir } from "os"
-import { pathExists, createWriteStream, ensureDir } from "fs-extra"
+import { pathExists, createWriteStream, ensureDir, chmod, remove } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
-import { join } from "path"
+import { join, dirname } from "path"
 import { hashString } from "./util"
 import Axios from "axios"
 import * as execa from "execa"
@@ -69,6 +69,7 @@ export class BinaryCmd extends Cmd {
   private targetFilename: string
   private downloadPath: string
   private executablePath: string
+  private defaultCwd: string
 
   constructor(spec: BinaryCmdSpec) {
     super()
@@ -93,6 +94,7 @@ export class BinaryCmd extends Cmd {
       ? this.spec.extract.executablePath
       : [this.name]
     this.executablePath = join(this.downloadPath, ...executableSubpath)
+    this.defaultCwd = dirname(this.executablePath)
   }
 
   private async download(logEntry?: LogEntry) {
@@ -174,9 +176,16 @@ export class BinaryCmd extends Cmd {
             ))
           }
 
-          debug && debug.setSuccess("Done")
-          logEntry && logEntry.setSuccess(`Fetched ${this.name}`)
-          resolve()
+          chmod(this.executablePath, 0o755, (chmodErr) => {
+            if (chmodErr) {
+              remove(this.downloadPath, () => reject(chmodErr))
+              return
+            }
+
+            debug && debug.setSuccess("Done")
+            logEntry && logEntry.setSuccess(`Fetched ${this.name}`)
+            resolve()
+          })
         })
       })
     })
@@ -184,7 +193,7 @@ export class BinaryCmd extends Cmd {
 
   async exec({ cwd, args, logEntry }: ExecParams) {
     await this.download(logEntry)
-    return execa(this.executablePath, args || [], { cwd })
+    return execa(this.executablePath, args || [], { cwd: cwd || this.defaultCwd })
   }
 
   async stdout(params: ExecParams) {

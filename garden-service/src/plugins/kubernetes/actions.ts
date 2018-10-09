@@ -175,7 +175,7 @@ export async function runModule(
 }
 
 export async function runService(
-  { ctx, service, interactive, runtimeContext, silent, timeout, logEntry }:
+  { ctx, service, interactive, runtimeContext, silent, timeout, logEntry, buildDependencies }:
     RunServiceParams<ContainerModule>,
 ) {
   return runModule({
@@ -187,11 +187,12 @@ export async function runService(
     silent,
     timeout,
     logEntry,
+    buildDependencies,
   })
 }
 
 export async function testModule(
-  { ctx, interactive, module, runtimeContext, silent, testConfig, logEntry }:
+  { ctx, interactive, module, runtimeContext, silent, testConfig, logEntry, buildDependencies }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -208,6 +209,7 @@ export async function testModule(
     silent,
     timeout,
     logEntry,
+    buildDependencies,
   })
 
   const api = new KubeApi(ctx.provider)

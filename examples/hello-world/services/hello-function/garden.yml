@@ -3,7 +3,3 @@ module:
   name: hello-function
   type: openfaas
   lang: node
-  tests:
-    - name: unit
-      command: [npm, test]
-

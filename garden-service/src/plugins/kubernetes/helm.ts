@@ -136,7 +136,7 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
   getServiceStatus,
 
   async deployService(
-    { ctx, module, service, logEntry }: DeployServiceParams<HelmModule>,
+    { ctx, module, service, logEntry, force }: DeployServiceParams<HelmModule>,
   ): Promise<ServiceStatus> {
     const provider = ctx.provider
     const chartPath = await getChartPath(module)
@@ -147,20 +147,29 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
     const releaseStatus = await getReleaseStatus(ctx.provider, releaseName, logEntry)
 
     if (releaseStatus.state === "missing") {
-      await helm(provider, logEntry,
+      const installArgs = [
         "install", chartPath,
         "--name", releaseName,
         "--namespace", namespace,
         "--values", valuesPath,
         "--wait",
-      )
+      ]
+      if (force) {
+        installArgs.push("--replace")
+      }
+      await helm(provider, logEntry, ...installArgs)
     } else {
-      await helm(provider, logEntry,
+      const upgradeArgs = [
         "upgrade", releaseName, chartPath,
+        "--install",
         "--namespace", namespace,
         "--values", valuesPath,
         "--wait",
-      )
+      ]
+      if (force) {
+        upgradeArgs.push("--force")
+      }
+      await helm(provider, logEntry, ...upgradeArgs)
     }
 
     const objects = await getChartObjects(ctx, service, logEntry)
@@ -295,12 +304,12 @@ async function getChartObjects(ctx: PluginContext, service: Service, logEntry?: 
 }
 
 async function getServiceStatus(
-  { ctx, service, module, logEntry }: GetServiceStatusParams<HelmModule>,
+  { ctx, service, module, logEntry, buildDependencies }: GetServiceStatusParams<HelmModule>,
 ): Promise<ServiceStatus> {
   // need to build to be able to check the status
-  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, logEntry })
+  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, logEntry, buildDependencies })
   if (!buildStatus.ready) {
-    await build({ ctx, module, logEntry })
+    await build({ ctx, module, logEntry, buildDependencies })
   }
 
   // first check if the installed objects on the cluster match the current code

@@ -110,7 +110,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       validate: parseGcfModule,
 
       async deployService(
-        { ctx, module, service, runtimeContext, logEntry }: DeployServiceParams<GcfModule>,
+        { ctx, module, service, runtimeContext, logEntry, buildDependencies }: DeployServiceParams<GcfModule>,
       ) {
         // TODO: provide env vars somehow to function
         const project = getProject(service, ctx.provider)
@@ -126,7 +126,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           "--trigger-http",
         ])
 
-        return getServiceStatus({ ctx, module, service, runtimeContext, logEntry })
+        return getServiceStatus({ ctx, module, service, runtimeContext, logEntry, buildDependencies })
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GcfModule>) {

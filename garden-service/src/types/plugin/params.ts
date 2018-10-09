@@ -10,7 +10,7 @@ import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
 import { ModuleVersion, moduleVersionSchema } from "../../vcs/base"
-import { Primitive, joiPrimitive, joiArray } from "../../config/common"
+import { Primitive, joiPrimitive, joiArray, joiIdentifierMap } from "../../config/common"
 import { Module, moduleSchema } from "../module"
 import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "../service"
 import { EnvironmentStatus, ServiceLogEntry, environmentStatusSchema } from "./outputs"
@@ -39,10 +39,13 @@ const actionParamsSchema = Joi.object()
 
 export interface PluginModuleActionParamsBase<T extends Module = Module> extends PluginActionParamsBase {
   module: T
+  buildDependencies: { [name: string]: Module }
 }
 const moduleActionParamsSchema = actionParamsSchema
   .keys({
     module: moduleSchema,
+    buildDependencies: joiIdentifierMap(moduleSchema)
+      .description("All build dependencies of this module, keyed by name."),
   })
 
 export interface PluginServiceActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {

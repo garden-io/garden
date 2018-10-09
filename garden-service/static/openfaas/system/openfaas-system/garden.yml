@@ -1,6 +1,6 @@
 module:
-  description: Kubernetes dashboard configuration
-  name: openfaas-system
+  description: OpenFaaS runtime
+  name: system
   type: helm
   repo: https://openfaas.github.io/faas-netes/
   chart: openfaas

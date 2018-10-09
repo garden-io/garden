@@ -7,7 +7,8 @@
  */
 
 import chalk from "chalk"
-import { ChildProcess, spawn } from "child_process"
+import { ChildProcess } from "child_process"
+import * as spawn from "cross-spawn"
 import { extend } from "lodash"
 import { encodeYamlMulti, spawnPty } from "../../util/util"
 import { RuntimeError } from "../../exceptions"

@@ -1,6 +1,14 @@
 module:
-  description: Base image used for building openfaas modules
+  description: Used for pre-fetching templates, before building containers
   name: builder
   type: generic
   build:
-    command: ["faas-cli", "template", "pull"]
+    command: [
+      "rm", "-rf", "templates",
+      "&&",
+      "git", "clone", "https://github.com/openfaas/templates.git",
+      "&&",
+      "cd templates",
+      "&&",
+      "git", "checkout", "85fca87",
+    ]
