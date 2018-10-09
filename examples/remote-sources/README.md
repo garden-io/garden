@@ -70,12 +70,12 @@ project:
   name: remote-sources
   sources:
     - name: web-services
-      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#master
+      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.0
     - name: db-services
-      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#master
+      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
 ```
 
-> Remote repository URLs must contain a hash part that references a specific branch or tag, e.g. `https://github.com/org/repo.git/#v1.0`.
+> Remote repository URLs must contain a hash part that references a specific branch or tag, e.g. `https://github.com/org/repo.git/#my-tag-or-branch`. The remote repositories used in this example all contain the tag `v0.1.0`. Read more about Git tagging [here](https://git-scm.com/book/en/v2/Git-Basics-Tagging).
 
 ### Configuring remote modules
 
@@ -94,7 +94,7 @@ module:
   description: worker
   type: container
   name: jworker
-  repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#master
+  repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.1.0
   services:
     - name: javaworker
       dependencies:
