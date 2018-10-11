@@ -240,7 +240,7 @@ export const containerRegistryConfigSchema = Joi.object()
       .example("my-project"),
   })
   .required()
-  .description(dedent`
+  .description(deline`
     The registry where built containers should be pushed to, and then pulled to the cluster when deploying
     services.
   `)
@@ -495,20 +495,22 @@ export async function validateContainerModule({ moduleConfig }: ValidateModulePa
     // Verify that sync targets are mutually disjoint - i.e. that no target is a subdirectory of
     // another target.
     const targets = hotReloadConfig.sync.map(syncSpec => syncSpec.target)
-    const invalidTargetPairs: string[] = []
+    const invalidTargetDescriptions: string[] = []
     for (const t of targets) {
       for (const t2 of targets) {
         if (t2.startsWith(t) && t !== t2) {
-          invalidTargetPairs.push(`${t} is a subdirectory of ${t2}.`)
+          invalidTargetDescriptions.push(`${t} is a subdirectory of ${t2}.`)
         }
       }
     }
 
-    if (invalidTargetPairs.length > 0) {
+    if (invalidTargetDescriptions.length > 0) {
       throw new ConfigurationError(
-        dedent`Hot reload configuration invalid - a target may not be a subdirectory of another target.\n
-        ${invalidTargetPairs.join("\n")}`,
-        { invalidTargetPairs },
+        dedent`Invalid hot reload configuration - a target may not be a subdirectory of another target \
+        in the same module.
+
+        ${invalidTargetDescriptions.join("\n")}`,
+        { invalidTargetDescriptions, hotReloadConfig },
       )
     }
   }

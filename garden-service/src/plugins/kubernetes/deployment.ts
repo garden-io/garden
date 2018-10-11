@@ -42,7 +42,7 @@ interface KubeEnvVar {
 }
 
 export async function getContainerServiceStatus(
-  { ctx, module, service, runtimeContext }: GetServiceStatusParams<ContainerModule>,
+  { ctx, module, service, runtimeContext, verifyHotReloadStatus }: GetServiceStatusParams<ContainerModule>,
 ): Promise<ServiceStatus> {
 
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -52,20 +52,25 @@ export async function getContainerServiceStatus(
   const namespace = await getAppNamespace(ctx, ctx.provider)
   let enableHotReload
 
-  try {
-    const currentDeployment = (await api.extensions
-      .readNamespacedDeployment(service.name, namespace))
+  if (verifyHotReloadStatus) {
+    enableHotReload = verifyHotReloadStatus === "enabled" ? true : false
+  } else {
+    // Create deployment objects with the current deployment's hot reload state, if any
+    try {
+      const currentDeployment = (await api.extensions
+        .readNamespacedDeployment(service.name, namespace))
 
-    const hr = get(
-      currentDeployment,
-      ["body", "metadata", "annotations", "garden.io/hotReload"])
-    enableHotReload = hr === "true"
-  } catch (err) {
-    if (err.code === 404) {
-      // Deployment was not found
-      enableHotReload = false
-    } else {
-      throw err
+      const hr = get(
+        currentDeployment,
+        ["body", "metadata", "annotations", "garden.io/hotReload"])
+      enableHotReload = hr === "true"
+    } catch (err) {
+      if (err.code === 404) {
+        // Deployment was not found
+        enableHotReload = false
+      } else {
+        throw err
+      }
     }
   }
 
@@ -82,11 +87,10 @@ export async function getContainerServiceStatus(
 }
 
 export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
-  const { ctx, service, runtimeContext, force, logEntry, watch } = params
+  const { ctx, service, runtimeContext, force, logEntry, hotReload } = params
 
   const namespace = await getAppNamespace(ctx, ctx.provider)
-  const module = service.module
-  const enableHotReload = !!watch && !!module.spec.hotReload && ctx.provider.name === "local-kubernetes"
+  const enableHotReload = !!hotReload && ctx.provider.name === "local-kubernetes"
   const objects = await createContainerObjects(ctx, service, runtimeContext,
     enableHotReload)
 
@@ -108,7 +112,7 @@ export async function createContainerObjects(
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const api = new KubeApi(ctx.provider)
   const ingresses = await createIngresses(api, namespace, service)
-  const deployment = await createDeployment(service, runtimeContext, namespace, enableHotReload)
+  const deployment = await createDeployment(ctx.provider, service, runtimeContext, namespace, enableHotReload)
   const kubeservices = await createServices(service, namespace, enableHotReload)
 
   const objects = [deployment, ...kubeservices, ...ingresses]
@@ -124,7 +128,7 @@ export async function createContainerObjects(
 
 export async function createDeployment(
   provider: KubernetesProvider, service: ContainerService,
-  runtimeContext: RuntimeContext, namespace: string, enableHotReload: boolean
+  runtimeContext: RuntimeContext, namespace: string, enableHotReload: boolean,
 ): Promise<KubernetesObject> {
 
   const module = service.module

@@ -367,7 +367,7 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
  * TODO: This function is repetitive of waitForObjects above.
  */
 export async function waitForServices(
-  ctx: PluginContext, runtimeContext: RuntimeContext, services: Service[],
+  ctx: PluginContext, runtimeContext: RuntimeContext, services: Service[], buildDependencies,
 ): Promise<boolean> {
   let ready
   const startTime = new Date().getTime()
@@ -375,8 +375,9 @@ export async function waitForServices(
   while (true) {
 
     ready = (await Bluebird.map(services, async (service) => {
-      const state = (await getContainerServiceStatus({ ctx, service, runtimeContext, module: service.module }))
-        .state
+      const state = (await getContainerServiceStatus({
+        ctx, buildDependencies, service, runtimeContext, module: service.module,
+      })).state
       return state === "ready" || state === "outdated"
     })).every(serviceReady => serviceReady)
 

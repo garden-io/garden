@@ -153,7 +153,7 @@ describe("ActionHelper", () => {
     })
 
     describe("hotReload", () => {
-      it.only("should correctly call the corresponding plugin handler", async () => {
+      it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.hotReload({
           module,
           runtimeContext: {

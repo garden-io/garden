@@ -176,7 +176,7 @@ project:
         {}
 
       # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-      # start with a letter, and cannot end with a dash) and additionally cannot contain
+      # start with a letter,and cannot end with a dash) and additionally cannot contain
       # consecutive dashes or be longer than 63 characters.
       #
       # Required.
@@ -452,7 +452,7 @@ module:
     #
     # Optional.
     - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-      # start with a letter, and cannot end with a dash) and additionally cannot contain
+      # start with a letter,and cannot end with a dash) and additionally cannot contain
       # consecutive dashes or be longer than 63 characters.
       #
       # Required.
@@ -463,7 +463,7 @@ module:
       # Optional.
       dependencies: 
         # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes,
-        # must start with a letter, and cannot end with a dash) and additionally cannot contain
+        # must start with a letter,and cannot end with a dash) and additionally cannot contain
         # consecutive dashes or be longer than 63 characters.
         #
         # Optional.

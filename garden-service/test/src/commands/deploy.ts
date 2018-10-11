@@ -74,6 +74,7 @@ describe("DeployCommand", () => {
         service: undefined,
       },
       opts: {
+        "hot-reload": undefined,
         watch: false,
         force: false,
         "force-build": true,
@@ -104,6 +105,7 @@ describe("DeployCommand", () => {
         service: ["service-b"],
       },
       opts: {
+        "hot-reload": undefined,
         watch: false,
         force: false,
         "force-build": true,

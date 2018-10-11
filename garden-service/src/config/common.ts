@@ -38,7 +38,6 @@ export const joiIdentifier = () => Joi.string()
   .max(63)
   .description(
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter," +
-    " " +
     "and cannot end with a dash) and additionally cannot contain consecutive dashes or be longer than 63 characters.",
   )
 

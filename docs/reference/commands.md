@@ -210,11 +210,12 @@ Deploy service(s) to your environment.
 
     Examples:
 
-        garden deploy              # deploy all modules in the project
-        garden deploy my-service   # only deploy my-service
-        garden deploy --force      # force re-deploy of modules, even if they're already deployed
-        garden deploy --watch      # watch for changes to code
-        garden deploy --env stage  # deploy your services to an environment called stage
+        garden deploy                         # deploy all modules in the project
+        garden deploy my-service              # only deploy my-service
+        garden deploy --force                 # force re-deploy of modules, even if they're already deployed
+        garden deploy --watch                 # watch for changes to code
+        garden deploy --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
+        garden deploy --env stage             # deploy your services to an environment called stage
   
 
 ##### Usage
@@ -225,7 +226,7 @@ Deploy service(s) to your environment.
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `service` | No | The name of the service(s) to deploy (skip to deploy all services). Use comma as separator to specify multiple services.
+  | `service` | No | The name(s) of the service(s) to deploy (skip to deploy all services). Use comma as separator to specify multiple services.
 
 ##### Options
 
@@ -234,6 +235,7 @@ Deploy service(s) to your environment.
   | `--force` |  | boolean | Force redeploy of service(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
+  | `--hot-reload` |  | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as separator to specify multiple services. When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
 
 ### garden dev
 
@@ -247,11 +249,18 @@ Starts the garden development console.
     Examples:
 
         garden dev
+        garden dev --hot-reload=foo-service,bar-service # enable hot reloading for foo-service and bar-service
   
 
 ##### Usage
 
-    garden dev 
+    garden dev [options]
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--hot-reload` |  | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as separator to specify multiple services.
 
 ### garden exec
 

@@ -8,5 +8,6 @@ static/**/.garden-version
 support/**/*.js
 support/**/*.map
 support/**/*.d.ts
-test/**/*.js
-test/**/*.map
+test/*.js
+test/src/**/*.js
+test/integ/**/*.js

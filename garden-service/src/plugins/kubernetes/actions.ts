@@ -8,8 +8,6 @@
 
 import * as Bluebird from "bluebird"
 import * as execa from "execa"
-import * as inquirer from "inquirer"
-import * as Joi from "joi"
 import * as split from "split"
 import { includes } from "lodash"
 import moment = require("moment")
@@ -137,17 +135,13 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
 }
 
 export async function hotReload(
-  { ctx, runtimeContext, module }: HotReloadParams<ContainerModule>,
+  { ctx, runtimeContext, module, buildDependencies }: HotReloadParams<ContainerModule>,
 ): Promise<HotReloadResult> {
-  const hotReloadConfig = module.spec.hotReload
-
-  if (!hotReloadConfig) {
-    return {}
-  }
+  const hotReloadConfig = module.spec.hotReload!
 
   const services = module.services
 
-  if (!await waitForServices(ctx, runtimeContext, services)) {
+  if (!await waitForServices(ctx, runtimeContext, services, buildDependencies)) {
     // Service deployment timed out, skip hot reload
     return {}
   }

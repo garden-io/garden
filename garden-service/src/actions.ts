@@ -67,7 +67,7 @@ import { mapValues, values, keyBy, omit } from "lodash"
 import { Omit } from "./util/util"
 import { RuntimeContext } from "./types/service"
 import { processServices, ProcessResults } from "./process"
-import { getDeployTasks } from "./tasks/deploy"
+import { getDeployTasks } from "./tasks/helpers"
 import { LogEntry } from "./logger/log-entry"
 import { createPluginContext } from "./plugin-context"
 import { CleanupEnvironmentParams } from "./types/plugin/params"
@@ -229,7 +229,9 @@ export class ActionHelper implements TypeGuard {
 
   async hotReload<T extends Module>(params: ModuleActionHelperParams<HotReloadParams<T>>)
     : Promise<HotReloadResult> {
-    return this.callModuleHandler(({ params, actionType: "hotReload" }))
+    return this.garden.hotReload(params.module.name, async () => {
+      return this.callModuleHandler(({ params, actionType: "hotReload" }))
+    })
   }
 
   async testModule<T extends Module>(params: ModuleActionHelperParams<TestModuleParams<T>>): Promise<TestResult> {
@@ -333,9 +335,9 @@ export class ActionHelper implements TypeGuard {
         garden: this.garden,
         module,
         serviceNames,
+        hotReloadServiceNames: [],
         force,
         forceBuild,
-        includeDependants: false,
       }),
     })
   }

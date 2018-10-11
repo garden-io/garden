@@ -203,10 +203,14 @@ export const getTestResultParamsSchema = moduleActionParamsSchema
 /**
  * Service actions
  */
+
+export type hotReloadStatus = "enabled" | "disabled"
+
 export interface GetServiceStatusParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
-  watch?: boolean
   runtimeContext: RuntimeContext
+  verifyHotReloadStatus?: hotReloadStatus
 }
+
 export const getServiceStatusParamsSchema = serviceActionParamsSchema
   .keys({
     runtimeContext: runtimeContextSchema,
@@ -214,7 +218,7 @@ export const getServiceStatusParamsSchema = serviceActionParamsSchema
 
 export interface DeployServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
   force: boolean,
-  watch?: boolean,
+  hotReload?: boolean,
   runtimeContext: RuntimeContext
 }
 export const deployServiceParamsSchema = serviceActionParamsSchema

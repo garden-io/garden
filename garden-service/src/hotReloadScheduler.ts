@@ -29,14 +29,20 @@ export class HotReloadScheduler {
 
     const pendingRequest = this.pending[moduleName]
 
-    const prom = new Promise((resolver) => {
+    const prom = new Promise((resolve, reject) => {
       if (pendingRequest) {
-        pendingRequest.addResolver(resolver)
+        pendingRequest.addPromiseCallbacks(resolve, reject)
       } else {
-        this.pending[moduleName] = new HotReloadRequest(hotReloadHandler)
+        this.pending[moduleName] = new HotReloadRequest(hotReloadHandler, resolve, reject)
       }
     })
 
+    /**
+     * We disable the no-floating-promises tslint rule when calling this.process, since we are, in fact,
+     * properly handling these promises, though the control flow here is somewhat unusual (by design).
+     */
+
+    // tslint:disable-next-line:no-floating-promises
     this.process(moduleName)
 
     return prom
@@ -53,30 +59,43 @@ export class HotReloadScheduler {
     delete this.pending[moduleName]
     await request.process()
 
+    // tslint:disable-next-line:no-floating-promises
     this.process(moduleName)
   }
 
 }
 
+type PromiseCallback = (any) => any
+
 class HotReloadRequest {
   private handler: HotReloadHandler
-  private resolvers: ((any) => any)[]
+  private promiseCallbacks: {
+    resolve: PromiseCallback
+    reject: PromiseCallback,
+  }[]
 
-  constructor(handler: HotReloadHandler) {
+  constructor(handler: HotReloadHandler, resolve: PromiseCallback, reject: PromiseCallback) {
     this.handler = handler
-    this.resolvers = []
+    this.promiseCallbacks = [{ resolve, reject }]
   }
 
-  addResolver(resolver: () => any) {
-    this.resolvers.push(resolver)
+  addPromiseCallbacks(resolve: () => any, reject: () => any) {
+    this.promiseCallbacks.push({ resolve, reject })
   }
 
   async process() {
-    const result = await this.handler()
-    for (const resolver of this.resolvers) {
-      resolver(result)
+    try {
+      const result = await this.handler()
+      for (const { resolve } of this.promiseCallbacks) {
+        resolve(result)
+      }
+    } catch (error) {
+      for (const { reject } of this.promiseCallbacks) {
+        reject(error)
+      }
+    } finally {
+      this.promiseCallbacks = []
     }
-    this.resolvers = []
   }
 
 }
