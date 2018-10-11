@@ -12,7 +12,7 @@ import { ensureDir, pathExists, stat } from "fs-extra"
 import Bluebird = require("bluebird")
 
 import { NEW_MODULE_VERSION, VcsHandler, RemoteSourceParams } from "./base"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, RuntimeError } from "../exceptions"
 
 export const helpers = {
   gitCli: (cwd: string): (cmd: string, args: string[]) => Promise<string> => {
@@ -105,7 +105,15 @@ export class GitHandler extends VcsHandler {
       const entry = logEntry.info({ section: name, msg: `Fetching from ${url}`, status: "active" })
       const { repositoryUrl, hash } = parseGitUrl(url)
 
-      await git("clone", ["--depth=1", `--branch=${hash}`, repositoryUrl, absPath])
+      try {
+        await git("clone", ["--depth=1", `--branch=${hash}`, repositoryUrl, absPath])
+      } catch (err) {
+        entry.setError()
+        throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
+          repositoryUrl: url,
+          message: err.message,
+        })
+      }
 
       entry.setSuccess()
     }
@@ -129,8 +137,16 @@ export class GitHandler extends VcsHandler {
     if (localCommitId !== remoteCommitId) {
       entry.setState(`Fetching from ${url}`)
 
-      await git("fetch", ["--depth=1", "origin", hash])
-      await git("reset", ["--hard", `origin/${hash}`])
+      try {
+        await git("fetch", ["--depth=1", "origin", hash])
+        await git("reset", ["--hard", `origin/${hash}`])
+      } catch (err) {
+        entry.setError()
+        throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
+          repositoryUrl: url,
+          message: err.message,
+        })
+      }
 
       entry.setSuccess("Source updated")
     } else {
