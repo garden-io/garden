@@ -528,8 +528,8 @@ export async function pushModule({ ctx, module, logEntry }: PushModuleParams<Con
 
   logEntry && logEntry.setState({ msg: `Pushing image ${remoteId}...` })
 
-  await helpers.dockerCli(module, `tag ${localId} ${remoteId}`)
-  await helpers.dockerCli(module, `push ${remoteId}`)
+  await helpers.dockerCli(module, ["tag", localId, remoteId])
+  await helpers.dockerCli(module, ["push", remoteId])
 
   return { pushed: true, message: `Pushed ${localId}` }
 }

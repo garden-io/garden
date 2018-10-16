@@ -7,9 +7,10 @@
  */
 
 import * as Joi from "joi"
-import * as childProcess from "child-process-promise"
 import dedent = require("dedent")
 import deline = require("deline")
+import execa = require("execa")
+
 import { Module } from "../types/module"
 import {
   absolutePathRegex,
@@ -254,6 +255,7 @@ export const containerTestSchema = genericTestSchema
 export interface ContainerModuleSpec extends ModuleSpec {
   buildArgs: PrimitiveMap,
   image?: string,
+  dockerfile?: string,
   services: ContainerServiceSpec[],
   tests: ContainerTestSpec[],
   hotReload?: HotReloadConfigSpec,
@@ -276,6 +278,8 @@ export const containerModuleSpecSchema = Joi.object()
         Specify the image name for the container. Should be a valid docker image identifier. If specified and
         the module does not contain a Dockerfile, this image will be used to deploy the container services.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
+    dockerfile: Joi.string().uri(<any>{ relativeOnly: true })
+      .description("POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile."),
     services: joiArray(serviceSchema)
       .unique("name")
       .description("List of services to deploy from this container module."),
@@ -296,6 +300,13 @@ interface ParsedImageId {
   namespace?: string
   repository: string
   tag: string
+}
+
+function getDockerfilePath(basePath: string, dockerfile?: string) {
+  if (dockerfile) {
+    return join(basePath, dockerfile)
+  }
+  return join(basePath, "Dockerfile")
 }
 
 export const helpers = {
@@ -403,24 +414,32 @@ export const helpers = {
 
   async pullImage(module: ContainerModule) {
     const identifier = await helpers.getPublicImageId(module)
-    await helpers.dockerCli(module, `pull ${identifier}`)
+    await helpers.dockerCli(module, ["pull", identifier])
   },
 
   async imageExistsLocally(module: ContainerModule) {
     const identifier = await helpers.getLocalImageId(module)
-    const exists = (await helpers.dockerCli(module, `images ${identifier} -q`)).stdout.trim().length > 0
+    const exists = (await helpers.dockerCli(module, ["images", identifier, "-q"])).length > 0
     return exists ? identifier : null
   },
 
-  async dockerCli(module: ContainerModule, args) {
+  async dockerCli(module: ContainerModule, args: string[]) {
     // TODO: use dockerode instead of CLI
-    return childProcess.exec("docker " + args, { cwd: module.buildPath, maxBuffer: 1024 * 1024 })
+    return execa.stdout("docker", args, { cwd: module.buildPath, maxBuffer: 1024 * 1024 })
   },
 
   async hasDockerfile(module: ContainerModule) {
-    const buildPath = module.buildPath
-    return pathExists(join(buildPath, "Dockerfile"))
+    return pathExists(helpers.getDockerfilePathFromModule(module))
   },
+
+  getDockerfilePathFromModule(module: ContainerModule) {
+    return getDockerfilePath(module.buildPath, module.spec.dockerfile)
+  },
+
+  getDockerfilePathFromConfig(config: ModuleConfig) {
+    return getDockerfilePath(config.path, config.spec.dockerfile)
+  },
+
 }
 
 export async function validateContainerModule({ moduleConfig }: ValidateModuleParams<ContainerModule>) {
@@ -481,8 +500,17 @@ export async function validateContainerModule({ moduleConfig }: ValidateModulePa
     timeout: t.timeout,
   }))
 
+  const hasDockerfile = await pathExists(helpers.getDockerfilePathFromConfig(moduleConfig))
+
+  if (moduleConfig.spec.dockerfile && !hasDockerfile) {
+    throw new ConfigurationError(
+      `Dockerfile not found at specififed path ${moduleConfig.spec.dockerfile} for module ${moduleConfig.name}`,
+      {},
+    )
+  }
+
   // make sure we can build the thing
-  if (!moduleConfig.spec.image && !(await pathExists(join(moduleConfig.path, "Dockerfile")))) {
+  if (!moduleConfig.spec.image && !hasDockerfile) {
     throw new ConfigurationError(
       `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
       {},
@@ -556,14 +584,23 @@ export const gardenPlugin = (): GardenPlugin => ({
         // build doesn't exist, so we create it
         logEntry && logEntry.setState(`Building ${identifier}...`)
 
+        const cmdOpts = ["build", "-t", identifier]
         const buildArgs = Object.entries(module.spec.buildArgs).map(([key, value]) => {
           // TODO: may need to escape this
           return `--build-arg ${key}=${value}`
         }).join(" ")
 
+        if (buildArgs) {
+          cmdOpts.push(buildArgs)
+        }
+
+        if (module.spec.dockerfile) {
+          cmdOpts.push("--file", helpers.getDockerfilePathFromModule(module))
+        }
+
         // TODO: log error if it occurs
         // TODO: stream output to log if at debug log level
-        await helpers.dockerCli(module, `build ${buildArgs} -t ${identifier} ${buildPath}`)
+        await helpers.dockerCli(module, [...cmdOpts, buildPath])
 
         return { fresh: true, details: { identifier } }
       },
@@ -580,13 +617,13 @@ export const gardenPlugin = (): GardenPlugin => ({
         logEntry && logEntry.setState({ msg: `Publishing image ${remoteId}...` })
 
         if (localId !== remoteId) {
-          await helpers.dockerCli(module, `tag ${localId} ${remoteId}`)
+          await helpers.dockerCli(module, ["tag", localId, remoteId])
         }
 
         // TODO: log error if it occurs
         // TODO: stream output to log if at debug log level
         // TODO: check if module already exists remotely?
-        await helpers.dockerCli(module, `push ${remoteId}`)
+        await helpers.dockerCli(module, ["push", remoteId])
 
         return { published: true, message: `Published ${remoteId}` }
       },

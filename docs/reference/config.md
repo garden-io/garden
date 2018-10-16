@@ -444,6 +444,11 @@ module:
   # Optional.
   image:
 
+  # POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile.
+  #
+  # Optional.
+  dockerfile:
+
   # List of services to deploy from this container module.
   #
   # Optional.
