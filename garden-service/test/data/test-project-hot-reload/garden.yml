@@ -1,0 +1,10 @@
+project:
+  name: hot-reload
+  environmentDefaults:
+    providers:
+      - name: container
+      - name: npm-package
+  environments:
+    - name: local
+      providers:
+        - name: local-kubernetes

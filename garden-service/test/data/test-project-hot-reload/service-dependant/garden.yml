@@ -1,0 +1,23 @@
+module:
+  description: Service dependant
+  name: service-dependant
+  type: container
+  hotReload:
+    sync:
+      - target: /app/
+  services:
+    - name: service-dependant
+      command: [npm, start]
+      hotReloadCommand: [npm, run, dev]
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /dependant
+          port: http
+      healthCheck:
+        httpGet:
+          path: /_ah/health
+          port: http
+      dependencies:
+        - good-morning

@@ -1,4 +1,5 @@
 kubernetes:
-  username: hello
   previous-usernames:
     - hello
+linkedModuleSources: []
+linkedProjectSources: []

@@ -20,6 +20,7 @@ import dedent = require("dedent")
 import { processModules } from "../process"
 import { computeAutoReloadDependants, withDependants } from "../watch"
 import { Module } from "../types/module"
+import { hotReloadAndLog } from "./helpers"
 
 const buildArguments = {
   module: new StringsParameter({
@@ -72,6 +73,11 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
       watch: opts.watch,
       handler: async (module) => [new BuildTask({ garden, module, force: opts.force })],
       changeHandler: async (module: Module) => {
+
+        if (module.spec.hotReload) {
+          await hotReloadAndLog(garden, module)
+        }
+
         return (await withDependants(garden, [module], autoReloadDependants))
           .filter(m => moduleNames.includes(m.name))
           .map(m => new BuildTask({ garden, module: m, force: true }))

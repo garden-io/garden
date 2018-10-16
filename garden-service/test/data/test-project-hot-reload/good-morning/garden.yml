@@ -1,0 +1,24 @@
+module:
+  description: Good morning greeting service
+  name: good-morning
+  type: container
+  hotReload:
+    sync:
+      - target: /app/
+  services:
+    - name: good-morning
+      command: [npm, start]
+      hotReloadCommand: [npm, run, dev]
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /morning
+          port: http
+      healthCheck:
+        httpGet:
+          path: /_ah/health
+          port: http
+  build:
+    dependencies:
+      - build-dependency

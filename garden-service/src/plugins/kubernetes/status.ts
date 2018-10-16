@@ -8,7 +8,7 @@
 
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import { Service, ServiceState } from "../../types/service"
+import { RuntimeContext, Service, ServiceState } from "../../types/service"
 import { sleep } from "../../util/util"
 import { KubeApi } from "./api"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
@@ -27,8 +27,9 @@ import {
 } from "@kubernetes/client-node"
 import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
 import { KubernetesProvider } from "./kubernetes"
-import { LogEntry } from "../../logger/log-entry"
 import { isSubset } from "../../util/is-subset"
+import { LogEntry } from "../../logger/log-entry"
+import { getContainerServiceStatus } from "./deployment"
 
 export interface RolloutStatus {
   state: ServiceState
@@ -357,6 +358,40 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
   }
 
   logEntry && logEntry.verbose({ symbol: "info", section: service.name, msg: `Service deployed` })
+}
+
+/**
+ * Resolves to true if the requested services were ready, or became ready within a timeout limit.
+ * Resolves to false otherwise.
+ *
+ * TODO: This function is repetitive of waitForObjects above.
+ */
+export async function waitForServices(
+  ctx: PluginContext, runtimeContext: RuntimeContext, services: Service[], buildDependencies,
+): Promise<boolean> {
+  let ready
+  const startTime = new Date().getTime()
+
+  while (true) {
+
+    ready = (await Bluebird.map(services, async (service) => {
+      const state = (await getContainerServiceStatus({
+        ctx, buildDependencies, service, runtimeContext, module: service.module,
+      })).state
+      return state === "ready" || state === "outdated"
+    })).every(serviceReady => serviceReady)
+
+    if (ready) {
+      return true
+    }
+
+    if (new Date().getTime() - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
+      return false
+    }
+
+    await sleep(2000)
+  }
+
 }
 
 /**

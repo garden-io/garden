@@ -1,0 +1,16 @@
+{
+  "name": "good-morning",
+  "version": "1.0.0",
+  "description": "Good morning greeting service",
+  "main": "index.js",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "nodemon main.js",
+    "test": "echo OK"
+  },
+  "author": "garden.io <info@garden.io>",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.2"
+  }
+}

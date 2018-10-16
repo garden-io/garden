@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import deline = require("deline")
 import {
   BooleanParameter,
   Command,
@@ -14,15 +15,16 @@ import {
   handleTaskResults,
   StringsParameter,
 } from "./base"
-import { getDeployTasks } from "../tasks/deploy"
+import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
+import { getDeployTasks, getTasksForHotReload, getHotReloadModuleNames } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 import { getNames } from "../util/util"
 
 const deployArgs = {
   service: new StringsParameter({
-    help: "The name of the service(s) to deploy (skip to deploy all services). " +
-      "Use comma as separator to specify multiple services.",
+    help: deline`The name(s) of the service(s) to deploy (skip to deploy all services).
+      Use comma as separator to specify multiple services.`,
   }),
 }
 
@@ -30,6 +32,12 @@ const deployOpts = {
   force: new BooleanParameter({ help: "Force redeploy of service(s)." }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
   watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-deploy.", alias: "w" }),
+  "hot-reload": new StringsParameter({
+    help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
+      Use comma as separator to specify multiple services. When this option is used,
+      the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
+    `,
+  }),
 }
 
 type Args = typeof deployArgs
@@ -48,11 +56,12 @@ export class DeployCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden deploy              # deploy all modules in the project
-        garden deploy my-service   # only deploy my-service
-        garden deploy --force      # force re-deploy of modules, even if they're already deployed
-        garden deploy --watch      # watch for changes to code
-        garden deploy --env stage  # deploy your services to an environment called stage
+        garden deploy                         # deploy all modules in the project
+        garden deploy my-service              # only deploy my-service
+        garden deploy --force                 # force re-deploy of modules, even if they're already deployed
+        garden deploy --watch                 # watch for changes to code
+        garden deploy --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
+        garden deploy --env stage             # deploy your services to an environment called stage
   `
 
   arguments = deployArgs
@@ -63,8 +72,21 @@ export class DeployCommand extends Command<Args, Opts> {
     const serviceNames = getNames(services)
 
     if (services.length === 0) {
-      garden.log.warn({ msg: "No services found. Aborting." })
+      garden.log.error({ msg: "No services found. Aborting." })
       return { result: {} }
+    }
+
+    let watch
+    const hotReloadServiceNames = opts["hot-reload"] || []
+    const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
+
+    if (opts["hot-reload"]) {
+      if (!validateHotReloadOpt(garden, hotReloadServiceNames)) {
+        return { result: {} }
+      }
+      watch = true
+    } else {
+      watch = opts.watch
     }
 
     garden.log.header({ emoji: "rocket", command: "Deploy" })
@@ -75,23 +97,26 @@ export class DeployCommand extends Command<Args, Opts> {
     const results = await processServices({
       garden,
       services,
-      watch: opts.watch,
+      watch,
       handler: async (module) => getDeployTasks({
         garden,
         module,
         serviceNames,
+        watch,
+        hotReloadServiceNames,
         force: opts.force,
         forceBuild: opts["force-build"],
-        includeDependants: false,
       }),
-      changeHandler: async (module) => getDeployTasks({
-        garden,
-        module,
-        serviceNames,
-        force: true,
-        forceBuild: true,
-        includeDependants: true,
-      }),
+      changeHandler: async (module) => {
+        if (hotReloadModuleNames.has(module.name)) {
+          await hotReloadAndLog(garden, module)
+          return getTasksForHotReload({ garden, module, hotReloadServiceNames, serviceNames })
+        } else {
+          return getDeployTasks({
+            garden, module, serviceNames, hotReloadServiceNames, force: true, forceBuild: true, watch: true,
+          })
+        }
+      },
     })
 
     return handleTaskResults(garden, "deploy", results)

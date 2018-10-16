@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten } from "lodash"
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
+import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { Task } from "./base"
 import {
@@ -16,9 +16,6 @@ import {
   ServiceStatus,
   prepareRuntimeContext,
 } from "../types/service"
-import { Module } from "../types/module"
-import { withDependants, computeAutoReloadDependants } from "../watch"
-import { getNames } from "../util/util"
 import { Garden } from "../garden"
 import { PushTask } from "./push"
 
@@ -28,6 +25,9 @@ export interface DeployTaskParams {
   force: boolean
   forceBuild: boolean
   logEntry?: LogEntry
+  //TODO: Move watch and hotReloadServiceNames to a new commandContext object?
+  watch?: boolean
+  hotReloadServiceNames?: string[]
 }
 
 export class DeployTask extends Task {
@@ -36,24 +36,30 @@ export class DeployTask extends Task {
   private service: Service
   private forceBuild: boolean
   private logEntry?: LogEntry
+  private watch: boolean
+  private hotReloadServiceNames?: string[]
 
-  constructor({ garden, service, force, forceBuild, logEntry }: DeployTaskParams) {
+  constructor({ garden, service, force, forceBuild, logEntry, watch, hotReloadServiceNames }: DeployTaskParams) {
     super({ garden, force, version: service.module.version })
     this.service = service
     this.forceBuild = forceBuild
     this.logEntry = logEntry
+    this.watch = !!watch
+    this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   async getDependencies() {
-    const serviceDeps = this.service.config.dependencies
-    const services = await this.garden.getServices(serviceDeps)
+    const servicesToDeploy = (await this.garden.getServices(this.service.config.dependencies))
+      .filter(s => !includes(this.hotReloadServiceNames, s.name))
 
-    const deps: Task[] = await Bluebird.map(services, async (service) => {
+    const deps: Task[] = await Bluebird.map(servicesToDeploy, async (service) => {
       return new DeployTask({
         garden: this.garden,
         service,
         force: false,
         forceBuild: this.forceBuild,
+        watch: this.watch,
+        hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
 
@@ -83,7 +89,12 @@ export class DeployTask extends Task {
 
     // TODO: get version from build task results
     const { versionString } = await this.service.module.version
-    const status = await this.garden.actions.getServiceStatus({ service: this.service, logEntry })
+    const hotReloadEnabled = includes(this.hotReloadServiceNames, this.service.name)
+    const status = await this.garden.actions.getServiceStatus({
+      service: this.service,
+      verifyHotReloadStatus: hotReloadEnabled ? "enabled" : "disabled",
+      logEntry,
+    })
 
     if (
       !this.force &&
@@ -109,6 +120,7 @@ export class DeployTask extends Task {
         runtimeContext: await prepareRuntimeContext(this.garden, this.service.module, dependencies),
         logEntry,
         force: this.force,
+        hotReload: hotReloadEnabled,
       })
     } catch (err) {
       logEntry.setError()
@@ -118,27 +130,4 @@ export class DeployTask extends Task {
     logEntry.setSuccess({ msg: chalk.green(`Ready`), append: true })
     return result
   }
-}
-
-export async function getDeployTasks(
-  { garden, module, serviceNames, force = false, forceBuild = false, includeDependants = false }:
-    {
-      garden: Garden, module: Module, serviceNames?: string[] | null,
-      force?: boolean, forceBuild?: boolean, includeDependants?: boolean,
-    },
-) {
-
-  const modulesToProcess = includeDependants
-    ? (await withDependants(garden, [module], await computeAutoReloadDependants(garden)))
-    : [module]
-
-  const moduleServices = flatten(await Bluebird.map(
-    modulesToProcess,
-    m => garden.getServices(getNames(m.serviceConfigs))))
-
-  const servicesToProcess = serviceNames
-    ? moduleServices.filter(s => serviceNames.includes(s.name))
-    : moduleServices
-
-  return servicesToProcess.map(service => new DeployTask({ garden, service, force, forceBuild }))
 }

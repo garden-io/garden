@@ -8,10 +8,14 @@
 
 import * as Joi from "joi"
 import * as childProcess from "child-process-promise"
+import dedent = require("dedent")
+import deline = require("deline")
 import { Module } from "../types/module"
 import {
+  absolutePathRegex,
   joiEnvVars,
   joiIdentifier,
+  joiUserIdentifier,
   joiArray,
   validate,
   PrimitiveMap,
@@ -19,7 +23,6 @@ import {
 } from "../config/common"
 import { pathExists } from "fs-extra"
 import { join } from "path"
-import dedent = require("dedent")
 import { ConfigurationError } from "../exceptions"
 import {
   GardenPlugin,
@@ -28,6 +31,7 @@ import {
   BuildModuleParams,
   GetBuildStatusParams,
   ValidateModuleParams,
+  HotReloadParams,
   PublishModuleParams,
 } from "../types/plugin/params"
 import { Service, ingressHostnameSchema } from "../types/service"
@@ -51,7 +55,7 @@ export interface ServicePortSpec {
   protocol: ServicePortProtocol
   containerPort: number
   hostPort?: number
-  nodePort?: number
+  nodePort?: number | null
 }
 
 export interface ServiceVolumeSpec {
@@ -76,9 +80,47 @@ export interface ContainerServiceSpec extends BaseServiceSpec {
   ingresses: ContainerIngressSpec[],
   env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
+  hotReloadCommand?: string[],
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
 }
+
+export interface SyncSpec {
+  source: string
+  target: string
+}
+
+const hotReloadSyncSchema = Joi.object()
+  .keys({
+    source: Joi.string().uri(<any>{ relativeOnly: true })
+      .default(".")
+      .description(deline`
+        POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
+        Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.`),
+    target: Joi.string().uri(<any>{ relativeOnly: true })
+      .regex(absolutePathRegex)
+      .required()
+      .description(deline`
+        POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
+        not allowed.`),
+  })
+
+export interface HotReloadConfigSpec {
+  sync: SyncSpec[],
+}
+
+const hotReloadConfigSchema = Joi.object()
+  .keys({
+    sync: Joi.array().items(hotReloadSyncSchema).required()
+      .description(
+        "Specify one or more source files or directories to automatically sync into the running container.",
+      ),
+  })
+  .description(deline`
+    When this field is used, the files or directories specified within are automatically synced into the
+    running container when they're modified. Additionally, any of this module's services that define a
+    \`hotReloadCommand\` will be run with that command instead of the one specified in their \`command\` field.
+    This behavior is only active while a Garden command with the -w (watch) flag, or \`garden dev\`, is running.`)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
@@ -128,16 +170,15 @@ const portSchema = Joi.object()
     hostPort: Joi.number()
       .meta({ deprecated: true }),
     nodePort: Joi.number()
-      .description(
-        "Set this to expose the service on the specified port on the host node " +
-        "(may not be supported by all providers).",
-      ),
+      .description(deline`
+        Set this to expose the service on the specified port on the host node
+        (may not be supported by all providers).`),
   })
   .required()
 
 const volumeSchema = Joi.object()
   .keys({
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .required()
       .description("The name of the allocated volume."),
     containerPath: Joi.string()
@@ -163,6 +204,12 @@ const serviceSchema = baseServiceSchema
     env: joiEnvVars(),
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),
+    hotReloadCommand: Joi.array().items(Joi.string())
+      .description(deline`
+        If this module uses the \`hotReload\` field, the container will be run with
+        these arguments instead of those in \`command\` while a Garden command with the -w
+        (watch) flag, or \`garden dev\`, is running.`,
+      ),
     ports: joiArray(portSchema)
       .unique("name")
       .description("List of ports that the service container exposes."),
@@ -193,7 +240,7 @@ export const containerRegistryConfigSchema = Joi.object()
       .example("my-project"),
   })
   .required()
-  .description(dedent`
+  .description(deline`
     The registry where built containers should be pushed to, and then pulled to the cluster when deploying
     services.
   `)
@@ -209,6 +256,7 @@ export interface ContainerModuleSpec extends ModuleSpec {
   image?: string,
   services: ContainerServiceSpec[],
   tests: ContainerTestSpec[],
+  hotReload?: HotReloadConfigSpec,
 }
 
 export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
@@ -224,16 +272,16 @@ export const containerModuleSpecSchema = Joi.object()
       .description("Specify build arguments when building the container image."),
     // TODO: validate the image name format
     image: Joi.string()
-      .description(
-        "Specify the image name for the container. Should be a valid docker image identifier. If specified and " +
-        "the module does not contain a Dockerfile, this image will be used to deploy the container services. " +
-        "If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.",
-      ),
+      .description(deline`
+        Specify the image name for the container. Should be a valid docker image identifier. If specified and
+        the module does not contain a Dockerfile, this image will be used to deploy the container services.
+        If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
     services: joiArray(serviceSchema)
       .unique("name")
       .description("List of services to deploy from this container module."),
     tests: joiArray(containerTestSchema)
       .description("A list of tests to run in the module."),
+    hotReload: hotReloadConfigSchema,
   })
   .description("Configuration for a container module.")
 
@@ -441,6 +489,32 @@ export async function validateContainerModule({ moduleConfig }: ValidateModulePa
     )
   }
 
+  // validate hot reload configuration
+  const hotReloadConfig = moduleConfig.spec.hotReload
+  if (hotReloadConfig) {
+    // Verify that sync targets are mutually disjoint - i.e. that no target is a subdirectory of
+    // another target.
+    const targets = hotReloadConfig.sync.map(syncSpec => syncSpec.target)
+    const invalidTargetDescriptions: string[] = []
+    for (const t of targets) {
+      for (const t2 of targets) {
+        if (t2.startsWith(t) && t !== t2) {
+          invalidTargetDescriptions.push(`${t} is a subdirectory of ${t2}.`)
+        }
+      }
+    }
+
+    if (invalidTargetDescriptions.length > 0) {
+      throw new ConfigurationError(
+        dedent`Invalid hot reload configuration - a target may not be a subdirectory of another target \
+        in the same module.
+
+        ${invalidTargetDescriptions.join("\n")}`,
+        { invalidTargetDescriptions, hotReloadConfig },
+      )
+    }
+  }
+
   return moduleConfig
 }
 
@@ -516,6 +590,11 @@ export const gardenPlugin = (): GardenPlugin => ({
 
         return { published: true, message: `Published ${remoteId}` }
       },
+
+      async hotReload(_: HotReloadParams) {
+        return {}
+      },
+
     },
   },
 })
