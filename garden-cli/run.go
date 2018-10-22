@@ -1,19 +1,32 @@
 package main
 
 import (
-	"path"
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
+	"path"
+
+	"github.com/garden-io/garden/garden-cli/dockerutil"
 )
 
-// TODO: we may want to use one of the docker go client libs instead of shelling out here, but this works for now so...
-func runGardenService(projectName string, gitRoot string, relPath string, args []string) error {
+func runGardenService(projectName string, gitRoot string, relPath string, watch bool, args []string) error {
 	homeDir := getHomeDir()
 	gardenHomeDir := getGardenHomeDir()
 	containerName := "garden-run-" + randSeq(6)
 	workingDir := path.Join("/project", relPath)
+	projectID := getProjectID(gitRoot)
+	volumeName := dockerutil.GetVolumeName(projectName, projectID)
+
+	// If the command requires a file system watch we mount the dedicated project volume,
+	// if not we just bind mount the project dir directly
+	var projectVolume string
+	if watch {
+		if !dockerutil.HasVolume(volumeName) {
+			log.Fatal("No volume found for project")
+		}
+		projectVolume = volumeName
+	} else {
+		projectVolume = gitRoot
+	}
 
 	dockerArgs := append(
 		[]string{
@@ -25,9 +38,9 @@ func runGardenService(projectName string, gitRoot string, relPath string, args [
 			"--volume", fmt.Sprintf("%s/.docker:/root/.docker", homeDir),
 			"--volume", fmt.Sprintf("%s:/root/.garden", gardenHomeDir),
 			"--volume", fmt.Sprintf("%s/.kube:/root/.kube", homeDir),
-			// Mount the project directory.
-			// TODO: sync into a garden-sync container instead
-			"--volume", fmt.Sprintf("%s:/project:delegated", gitRoot),
+			"--volume", fmt.Sprintf("%s/.git:/root/garden/.git", gardenHomeDir),
+			// Mount the project directory, either as a bind mount or as a named volume
+			"--volume", fmt.Sprintf("%s:/project:delegated", projectVolume),
 			"--workdir", workingDir,
 			"--name", containerName,
 			// TODO: use particular version of garden-service container
@@ -35,19 +48,6 @@ func runGardenService(projectName string, gitRoot string, relPath string, args [
 		},
 		args...,
 	)
-	// fmt.Println("docker ", args)
 
-	binary, err := exec.LookPath("docker")
-	if err != nil {
-		log.Fatal("Could not find docker - Garden requires docker to be installed in order to run.")
-	}
-
-	cmd := exec.Command(binary, dockerArgs...)
-
-	cmd.Env = os.Environ()
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-
-	return cmd.Run()
+	return dockerutil.Exec(dockerArgs, false)
 }

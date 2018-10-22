@@ -43,8 +43,31 @@ func main() {
 	relPath, err := filepath.Rel(strings.TrimSpace(gitRoot), cwd)
 	check(err)
 
-	err = runGardenService(projectName, gitRoot, relPath, os.Args[1:])
+	args := os.Args[1:]
+	watch := fsWatchEnabled(args)
+
+	if watch {
+		err = runSyncContainer(projectName, gitRoot, relPath)
+		if err != nil {
+			os.Exit(1)
+		}
+	}
+
+	err = runGardenService(projectName, gitRoot, relPath, watch, args)
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+// FIXME: We need a proper way to check if the command requires file system watch. This is not it.
+func fsWatchEnabled(args []string) bool {
+	if len(args) > 0 && args[0] == "dev" {
+		return true
+	}
+	for _, el := range args {
+		if el == "--watch" || el == "-w" || el == "hot-reload" {
+			return true
+		}
+	}
+	return false
 }
