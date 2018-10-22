@@ -58,7 +58,6 @@
     "log-symbols": "^2.2.0",
     "moment": "^2.22.2",
     "node-emoji": "^1.8.1",
-    "node-pty-prebuilt": "^0.7.6",
     "normalize-url": "^3.2.0",
     "p-queue": "^3.0.0",
     "path-is-inside": "^1.0.2",

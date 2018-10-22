@@ -8,7 +8,6 @@
 
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
-const pty = require("node-pty-prebuilt")
 import * as exitHook from "async-exit-hook"
 import * as klaw from "klaw"
 import * as yaml from "js-yaml"
@@ -17,12 +16,10 @@ import * as _spawn from "cross-spawn"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { join, basename, win32, posix } from "path"
 import { find, pick, difference, fromPairs } from "lodash"
-import { TimeoutError, ParameterError } from "../exceptions"
-import { PassThrough } from "stream"
+import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
-import hasAnsi = require("has-ansi")
 import { safeDump } from "js-yaml"
 import { GARDEN_DIR_NAME } from "../constants"
 import { createHash } from "crypto"
@@ -139,18 +136,13 @@ export async function sleep(msec) {
   return new Promise(resolve => setTimeout(resolve, msec))
 }
 
-export interface SpawnParams {
+export interface SpawnOpts {
   timeout?: number
   cwd?: string
   data?: Buffer
   ignoreError?: boolean
   env?: { [key: string]: string | undefined }
-}
-
-export interface SpawnPtyParams extends SpawnParams {
-  silent?: boolean
   tty?: boolean
-  bufferOutput?: boolean
 }
 
 export interface SpawnOutput {
@@ -161,11 +153,11 @@ export interface SpawnOutput {
   proc: any
 }
 
-export function spawn(
-  cmd: string, args: string[],
-  { timeout = 0, cwd, data, ignoreError = false, env }: SpawnParams = {},
-) {
-  const proc = _spawn(cmd, args, { cwd, env })
+export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
+  const { timeout = 0, cwd, data, ignoreError = false, env, tty } = opts
+
+  const stdio = tty ? "inherit" : "pipe"
+  const proc = _spawn(cmd, args, { cwd, env, stdio })
 
   const result: SpawnOutput = {
     code: 0,
@@ -175,33 +167,46 @@ export function spawn(
     proc,
   }
 
-  proc.stdout.on("data", (s) => {
-    result.output += s
-    result.stdout! += s
-  })
+  let _process = <any>process
 
-  proc.stderr.on("data", (s) => {
-    result.output += s
-    result.stderr! += s
-  })
+  if (tty) {
+    if (data) {
+      throw new ParameterError(`Cannot pipe to stdin when tty=true`, { cmd, args, opts })
+    }
 
-  if (data) {
-    proc.stdin.end(data)
+    _process.stdin.setEncoding("utf8")
+
+    // raw mode is not available if we're running without a TTY
+    _process.stdin.setRawMode && _process.stdin.setRawMode(true)
+
+  } else {
+    proc.stdout.on("data", (s) => {
+      result.output += s
+      result.stdout! += s
+    })
+
+    proc.stderr.on("data", (s) => {
+      result.output += s
+      result.stderr! += s
+    })
+
+    if (data) {
+      proc.stdin.end(data)
+    }
   }
 
   return new Promise<SpawnOutput>((resolve, reject) => {
     let _timeout
 
-    const _reject = (msg: string) => {
-      const err = new Error(msg)
-      extend(err, <any>result)
+    const _reject = (err: GardenError) => {
+      extend(err.detail, <any>result)
       reject(err)
     }
 
     if (timeout > 0) {
       _timeout = setTimeout(() => {
         proc.kill("SIGKILL")
-        _reject(`kubectl timed out after ${timeout} seconds.`)
+        _reject(new TimeoutError(`${cmd} timed out after ${timeout} seconds.`, { cmd, args, opts }))
       }, timeout * 1000)
     }
 
@@ -212,93 +217,7 @@ export function spawn(
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
-        _reject("Process exited with code " + code)
-      }
-    })
-  })
-}
-
-export function spawnPty(
-  cmd: string, args: string[],
-  {
-    silent = false, tty = false, timeout = 0, cwd,
-    bufferOutput = true, data, ignoreError = false,
-  }: SpawnPtyParams = {},
-): Bluebird<any> {
-  let _process = <any>process
-
-  let proc: any = pty.spawn(cmd, args, {
-    cwd,
-    name: "xterm-color",
-    cols: _process.stdout.columns,
-    rows: _process.stdout.rows,
-  })
-
-  _process.stdin.setEncoding("utf8")
-
-  // raw mode is not available if we're running without a TTY
-  tty && _process.stdin.setRawMode && _process.stdin.setRawMode(true)
-
-  const result: SpawnOutput = {
-    code: 0,
-    output: "",
-    proc,
-  }
-
-  proc.on("data", (output) => {
-    const str = output.toString()
-
-    if (bufferOutput) {
-      result.output += str
-    }
-
-    if (!silent) {
-      process.stdout.write(hasAnsi(str) ? str : chalk.white(str))
-    }
-  })
-
-  if (data) {
-    const bufferStream = new PassThrough()
-    bufferStream.end(data + "\n\0")
-    bufferStream.pipe(proc)
-    proc.end()
-  }
-
-  if (tty) {
-    process.stdin.pipe(proc)
-  }
-
-  return new Bluebird((resolve, _reject) => {
-    let _timeout
-
-    const reject = (err: any) => {
-      err.output = result.output
-      err.proc = result.proc
-      console.log(err.output)
-      _reject(err)
-    }
-
-    if (timeout > 0) {
-      _timeout = setTimeout(() => {
-        proc.kill("SIGKILL")
-        const err = new TimeoutError(`${cmd} command timed out after ${timeout} seconds.`, { cmd, timeout })
-        reject(err)
-      }, timeout * 1000)
-    }
-
-    proc.on("exit", (code) => {
-      _timeout && clearTimeout(_timeout)
-
-      // make sure raw input is decoupled
-      tty && _process.stdin.setRawMode && _process.stdin.setRawMode(false)
-      result.code = code
-
-      if (code === 0 || ignoreError) {
-        resolve(result)
-      } else {
-        const err: any = new Error("Process exited with code " + code)
-        err.code = code
-        reject(err)
+        _reject(new RuntimeError(`${cmd} exited with code ${code}`, { cmd, args, opts }))
       }
     })
   })

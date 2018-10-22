@@ -102,7 +102,6 @@ export class RunModuleCommand extends Command<Args, Opts> {
       module,
       command,
       runtimeContext,
-      silent: false,
       interactive: opts.interactive,
     })
 

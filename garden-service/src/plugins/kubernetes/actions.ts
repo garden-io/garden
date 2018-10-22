@@ -90,7 +90,7 @@ export async function getServiceOutputs({ service }: GetServiceOutputsParams<Con
 }
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
-  const { ctx, service, command } = params
+  const { ctx, service, command, interactive } = params
   const api = new KubeApi(ctx.provider)
   const status = await getContainerServiceStatus(params)
   const namespace = await getAppNamespace(ctx, ctx.provider)
@@ -123,12 +123,11 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   }
 
   // exec in the pod via kubectl
-  const kubecmd = ["exec", "-it", pod.metadata.name, "--", ...command]
-  const res = await kubectl(api.context, namespace).tty(kubecmd, {
+  const kubecmd = ["exec", "-i", pod.metadata.name, "--", ...command]
+  const res = await kubectl(api.context, namespace).call(kubecmd, {
     ignoreError: true,
-    silent: false,
     timeout: 999999,
-    tty: true,
+    tty: interactive,
   })
 
   return { code: res.code, output: res.output }
@@ -170,7 +169,7 @@ export async function hotReload(
 }
 
 export async function runModule(
-  { ctx, module, command, interactive, runtimeContext, silent, timeout }: RunModuleParams<ContainerModule>,
+  { ctx, module, command, interactive, runtimeContext, timeout }: RunModuleParams<ContainerModule>,
 ): Promise<RunResult> {
   const context = ctx.provider.config.context
   const namespace = await getAppNamespace(ctx, ctx.provider)
@@ -185,7 +184,6 @@ export async function runModule(
     `--image=${image}`,
     "--restart=Never",
     "--command",
-    "--tty",
     "--rm",
     "-i",
     "--quiet",
@@ -203,9 +201,8 @@ export async function runModule(
 
   const startedAt = new Date()
 
-  const res = await kubectl(context, namespace).tty(kubecmd, {
+  const res = await kubectl(context, namespace).call(kubecmd, {
     ignoreError: true,
-    silent: !interactive || silent, // shouldn't be silent in interactive mode
     timeout,
     tty: interactive,
   })
@@ -222,7 +219,7 @@ export async function runModule(
 }
 
 export async function runService(
-  { ctx, service, interactive, runtimeContext, silent, timeout, logEntry, buildDependencies }:
+  { ctx, service, interactive, runtimeContext, timeout, logEntry, buildDependencies }:
     RunServiceParams<ContainerModule>,
 ) {
   return runModule({
@@ -231,7 +228,6 @@ export async function runService(
     command: service.spec.command || [],
     interactive,
     runtimeContext,
-    silent,
     timeout,
     logEntry,
     buildDependencies,
@@ -239,7 +235,7 @@ export async function runService(
 }
 
 export async function testModule(
-  { ctx, interactive, module, runtimeContext, silent, testConfig, logEntry, buildDependencies }:
+  { ctx, interactive, module, runtimeContext, testConfig, logEntry, buildDependencies }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -253,7 +249,6 @@ export async function testModule(
     command,
     interactive,
     runtimeContext,
-    silent,
     timeout,
     logEntry,
     buildDependencies,
