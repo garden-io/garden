@@ -33,7 +33,6 @@ const npmBinPath = (name: string) => resolve(__dirname, "node_modules", ".bin", 
 const destDir = resolve(__dirname, "build")
 const binDir = resolve(__dirname, "bin")
 
-// make sure logger is initialized
 module.exports = (gulp) => {
   gulp.task("add-version-files", () => spawn(join(binDir, "add-version-files.ts"), []))
 

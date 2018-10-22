@@ -37,7 +37,7 @@ func main() {
 			"Current directory is not in a git repository (Garden projects currently need to be inside a git repository)",
 		)
 	}
-	gitRoot := string(gitRootBytes)
+	gitRoot := strings.TrimSpace(string(gitRootBytes))
 
 	// run the command in the service container
 	relPath, err := filepath.Rel(strings.TrimSpace(gitRoot), cwd)

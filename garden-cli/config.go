@@ -65,6 +65,8 @@ func getProjectID(projectDir string) string {
 		projectID = strings.TrimSpace(string(idData))
 	} else {
 		projectID = randSeq(8)
+		err := ioutil.WriteFile(idPath, []byte(projectID), 0644)
+		check(err)
 	}
 
 	return projectID

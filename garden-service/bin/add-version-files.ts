@@ -8,12 +8,13 @@ import { resolve } from "path"
 import * as Bluebird from "bluebird"
 import { writeFile } from "fs-extra"
 
+// make sure logger is initialized
 try {
   Logger.initialize({ level: LogLevel.info })
 } catch (_) { }
 
 async function addVersionFiles() {
-  const staticPath = resolve(__dirname, "static")
+  const staticPath = resolve(__dirname, "..", "static")
   const garden = await Garden.factory(staticPath)
 
   const modules = await garden.getModules()
