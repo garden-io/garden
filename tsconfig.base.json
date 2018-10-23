@@ -27,7 +27,10 @@
   },
   "exclude": [
     "garden-service/build",
+    "garden-service/vendor",
+    "garden-service/tmp",
     "node_modules",
-    "**/node_modules"
+    "**/node_modules",
+    "tmp"
   ]
 }

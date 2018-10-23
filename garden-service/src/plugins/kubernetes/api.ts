@@ -84,7 +84,7 @@ export class KubeApi {
     const config = getSecret(this.context)
 
     for (const [name, cls] of Object.entries(apiTypes)) {
-      const api = new cls(config.getCurrentCluster().server)
+      const api = new cls(config.getCurrentCluster()!.server)
       this[name] = this.proxyApi(api, config)
     }
   }

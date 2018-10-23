@@ -61,6 +61,7 @@
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E GIT_PARAMS",
+      "post-pull": "git submodule update --init",
       "pre-push": "npm run check-package-lock && npm test && npm run integ"
     }
   },
