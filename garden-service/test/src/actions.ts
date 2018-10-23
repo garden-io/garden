@@ -176,7 +176,6 @@ describe("ActionHelper", () => {
             envVars: { FOO: "bar" },
             dependencies: {},
           },
-          silent: false,
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -272,7 +271,7 @@ describe("ActionHelper", () => {
 
     describe("execInService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.execInService({ service, command: ["foo"] })
+        const result = await actions.execInService({ service, command: ["foo"], interactive: false })
         expect(result).to.eql({ code: 0, output: "bla bla" })
       })
     })
@@ -294,7 +293,6 @@ describe("ActionHelper", () => {
             envVars: { FOO: "bar" },
             dependencies: {},
           },
-          silent: false,
         })
         expect(result).to.eql({
           moduleName: service.module.name,

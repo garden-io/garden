@@ -71,7 +71,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     printRuntimeContext(garden, runtimeContext)
 
-    const result = await garden.actions.runService({ service, runtimeContext, silent: false, interactive: true })
+    const result = await garden.actions.runService({ service, runtimeContext, interactive: true })
 
     return { result }
   }

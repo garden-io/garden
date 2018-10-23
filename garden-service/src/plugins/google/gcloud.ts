@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as spawn from "cross-spawn"
-import { extend } from "lodash"
-import { spawnPty } from "../../util/util"
+import { spawn, SpawnOpts } from "../../util/util"
 
 export interface GCloudParams {
   data?: Buffer,
@@ -37,67 +35,10 @@ export class GCloud {
     this.project = project
   }
 
-  async call(
-    args: string[],
-    { data, ignoreError = false, silent = true, timeout = DEFAULT_TIMEOUT, cwd }: GCloudParams = {},
-  ): Promise<GCloudOutput> {
-
-    const out: GCloudOutput = {
-      code: 0,
-      output: "",
-      stdout: "",
-      stderr: "",
-    }
-
-    const proc = spawn("gcloud", this.prepareArgs(args), { cwd })
-
-    proc.stdout.on("data", (s) => {
-      if (!silent) {
-        process.stdout.write(s)
-      }
-      out.output += s
-      out.stdout! += s
-    })
-
-    proc.stderr.on("data", (s) => {
-      if (!silent) {
-        process.stderr.write(s)
-      }
-      out.output += s
-      out.stderr! += s
-    })
-
-    if (data) {
-      proc.stdin.end(data)
-    }
-
-    return new Promise<GCloudOutput>((resolve, reject) => {
-      let _timeout
-
-      const _reject = (msg: string) => {
-        const err = new Error(msg)
-        extend(err, <any>out)
-        reject(err)
-      }
-
-      if (timeout > 0) {
-        _timeout = setTimeout(() => {
-          proc.kill("SIGKILL")
-          _reject(`gcloud timed out after ${timeout} seconds.`)
-        }, timeout * 1000)
-      }
-
-      proc.on("close", (code) => {
-        _timeout && clearTimeout(_timeout)
-        out.code = code
-
-        if (code === 0 || ignoreError) {
-          resolve(out)
-        } else {
-          _reject("Process exited with code " + code)
-        }
-      })
-    })
+  async call(args: string[], opts: SpawnOpts = {}): Promise<GCloudOutput> {
+    const { data, ignoreError = false, timeout = DEFAULT_TIMEOUT } = opts
+    const preparedArgs = this.prepareArgs(args)
+    return spawn("gcloud", preparedArgs, { ignoreError, data, timeout })
   }
 
   async json(args: string[], opts: GCloudParams = {}): Promise<any> {
@@ -108,10 +49,6 @@ export class GCloud {
     const result = await this.call(args, opts)
 
     return JSON.parse(result.output)
-  }
-
-  async tty(args: string[], { silent = true, cwd }: { silent?: boolean, cwd?: string } = {}): Promise<GCloudOutput> {
-    return spawnPty("gcloud", this.prepareArgs(args), { silent, cwd, tty: true })
   }
 
   private prepareArgs(args: string[]) {

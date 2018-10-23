@@ -68,7 +68,7 @@ export class ExecCommand extends Command<Args> {
     })
 
     const service = await garden.getService(serviceName)
-    const result = await garden.actions.execInService({ service, command })
+    const result = await garden.actions.execInService({ service, command, interactive: true })
 
     return { result }
   }

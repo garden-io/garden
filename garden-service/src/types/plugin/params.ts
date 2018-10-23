@@ -157,7 +157,6 @@ export interface RunModuleParams<T extends Module = Module> extends PluginModule
   command: string[]
   interactive: boolean
   runtimeContext: RuntimeContext
-  silent: boolean
   timeout?: number
 }
 const runBaseParams = {
@@ -242,12 +241,14 @@ export const getServiceOutputsParamsSchema = serviceActionParamsSchema
 export interface ExecInServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
   command: string[]
   runtimeContext: RuntimeContext
+  interactive: boolean
 }
 export const execInServiceParamsSchema = serviceActionParamsSchema
   .keys({
     command: joiArray(Joi.string())
       .description("The command to run alongside the service."),
     runtimeContext: runtimeContextSchema,
+    interactive: Joi.boolean(),
   })
 
 export interface GetServiceLogsParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
@@ -271,7 +272,6 @@ export const getServiceLogsParamsSchema = serviceActionParamsSchema
 export interface RunServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
   interactive: boolean
   runtimeContext: RuntimeContext
-  silent: boolean
   timeout?: number
 }
 export const runServiceParamsSchema = serviceActionParamsSchema
