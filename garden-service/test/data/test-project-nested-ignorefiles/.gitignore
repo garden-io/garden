@@ -1,0 +1,5 @@
+foo
+b/file-from-root-gitignore # should not be ignored
+b/b-subdir/file-from-root-gitignore # should not be ignored
+
+bar/baz

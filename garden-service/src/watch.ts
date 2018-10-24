@@ -10,7 +10,7 @@ import { watch } from "chokidar"
 import { basename, parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
-import { getIgnorer, scanDirectory } from "./util/util"
+import { scanDirectory } from "./util/util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
 import { Garden } from "./garden"
 
@@ -24,8 +24,7 @@ export class FSWatcher {
 
   async watchModules(modules: Module[], changeHandler: ChangeHandler) {
 
-    const projectRoot = this.garden.projectRoot
-    const ignorer = await getIgnorer(projectRoot)
+    const { ignorer, projectRoot } = this.garden
 
     const onFileChanged = this.makeFileChangedHandler(modules, changeHandler)
 

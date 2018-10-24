@@ -1,0 +1,8 @@
+project:
+  name: test-project-no-ignorefiles
+  environmentDefaults:
+    providers: []
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin

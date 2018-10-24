@@ -9,10 +9,12 @@
 import Bluebird = require("bluebird")
 import deline = require("deline")
 import {
+  basename,
   parse,
   relative,
   resolve,
   sep,
+  dirname,
 } from "path"
 import {
   extend,
@@ -46,13 +48,13 @@ import {
 import { Environment, SourceConfig, defaultProvider } from "./config/project"
 import {
   findByName,
-  getIgnorer,
   getNames,
   scanDirectory,
   pickKeys,
   throwOnMissingNames,
   uniqByName,
 } from "./util/util"
+import { GardenIgnorer } from "./util/garden-ignorer"
 import {
   DEFAULT_NAMESPACE,
   MODULE_CONFIG_FILENAME,
@@ -155,6 +157,7 @@ export class Garden {
   public dependencyGraph: DependencyGraph
 
   private readonly loadedPlugins: { [key: string]: GardenPlugin }
+  public ignorer: GardenIgnorer
   private moduleConfigs: ModuleConfigMap
   private modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: PluginFactory }
@@ -768,6 +771,7 @@ export class Garden {
 
   /*
     Scans the project root for modules and adds them to the context.
+    Also scans for ignorefiles.
    */
   async scanModules(force = false) {
     return scanLock.acquire("scan-modules", async () => {
@@ -785,12 +789,14 @@ export class Garden {
       }
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
+
+      await this.scanIgnorefiles()
+
       const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
-        const ignorer = await getIgnorer(dir)
         const scanOpts = {
           filter: (path) => {
             const relPath = relative(dir, path)
-            return !ignorer.ignores(relPath)
+            return !this.ignorer.ignores(relPath)
           },
         }
         const paths: string[] = []
@@ -826,6 +832,29 @@ export class Garden {
       )
       this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
     })
+  }
+
+  private async scanIgnorefiles() {
+    const ignorefileDirPaths: Set<string> = new Set()
+
+    for await (const item of scanDirectory(this.projectRoot)) {
+      if (!item) {
+        continue
+      }
+
+      // We handle ignorefiles at projectRoot specially in GardenIgnorer.factory, so we skip them here.
+      if (dirname(item.path) === this.projectRoot) {
+        continue
+      }
+
+      const filename = basename(item.path)
+
+      if (filename === ".gitignore" || filename === ".gardenignore") {
+        ignorefileDirPaths.add(dirname(item.path))
+      }
+    }
+
+    this.ignorer = await GardenIgnorer.factory(this.projectRoot, Array.from(ignorefileDirPaths))
   }
 
   private async detectCircularDependencies() {

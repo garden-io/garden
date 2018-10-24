@@ -13,18 +13,15 @@ import * as klaw from "klaw"
 import * as yaml from "js-yaml"
 import * as Cryo from "cryo"
 import * as _spawn from "cross-spawn"
-import { pathExists, readFile, writeFile } from "fs-extra"
-import { join, basename, win32, posix } from "path"
+import { readFile, writeFile } from "fs-extra"
+import { basename, win32, posix } from "path"
 import { find, pick, difference, fromPairs, uniqBy } from "lodash"
 import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 import { safeDump } from "js-yaml"
-import { GARDEN_DIR_NAME } from "../constants"
 import { createHash } from "crypto"
-// NOTE: Importing from ignore/ignore doesn't work on Windows
-const ignore = require("ignore")
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -106,30 +103,6 @@ export async function getChildDirNames(parentDir: string): Promise<string[]> {
     dirNames.push(basename(item.path))
   }
   return dirNames
-}
-
-export async function getIgnorer(rootPath: string) {
-  // TODO: this doesn't handle nested .gitignore files, we should revisit
-  const gitignorePath = join(rootPath, ".gitignore")
-  const gardenignorePath = join(rootPath, ".gardenignore")
-  const ig = ignore()
-
-  if (await pathExists(gitignorePath)) {
-    ig.add((await readFile(gitignorePath)).toString())
-  }
-
-  if (await pathExists(gardenignorePath)) {
-    ig.add((await readFile(gardenignorePath)).toString())
-  }
-
-  // should we be adding this (or more) by default?
-  ig.add([
-    "node_modules",
-    ".git",
-    GARDEN_DIR_NAME,
-  ])
-
-  return ig
 }
 
 export async function sleep(msec) {

@@ -1,0 +1,8 @@
+project:
+  name: test-project-nested-ignorefiles
+  environmentDefaults:
+    providers: []
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin
