@@ -32,6 +32,7 @@ RUN apk add --no-cache --virtual .deps \
   && apk del .deps
 
 # garden code
+ADD bin /garden/bin
 ADD build /garden/build
 ADD static /garden/static
 

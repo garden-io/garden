@@ -15,23 +15,23 @@ import { createHash } from "crypto"
 
 const children: ChildProcess[] = []
 
-export function spawn(cmd, args, cb) {
-  const child = _spawn(cmd, args, { stdio: "pipe", shell: true, env: process.env })
+export async function spawn(cmd: string, args: string[], cwd?: string) {
+  const child = _spawn(cmd, args, { stdio: "pipe", shell: true, env: process.env, cwd })
   children.push(child)
 
   const output: string[] = []
   child.stdout.on("data", (data) => output.push(data.toString()))
   child.stderr.on("data", (data) => output.push(data.toString()))
 
-  child.on("exit", (code) => {
-    if (code !== 0) {
-      console.log(output.join(""))
-      die()
-    }
-    cb()
+  return new Promise((resolve, reject) => {
+    child.on("exit", (code) => {
+      if (code !== 0) {
+        console.log(output.join(""))
+        reject(output)
+      }
+      resolve()
+    })
   })
-
-  return child
 }
 
 function die() {
