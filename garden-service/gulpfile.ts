@@ -36,7 +36,7 @@ const binDir = resolve(__dirname, "bin")
 module.exports = (gulp) => {
   gulp.task("add-version-files", () => spawn(join(binDir, "add-version-files.ts"), []))
 
-  gulp.task("build-container", () => spawn("docker", ["build", "-t", "garden-service", __dirname]))
+  gulp.task("build-container", () => spawn("docker", ["build", "-t", "gardenengine/garden-service:latest", __dirname]))
 
   gulp.task("generate-docs", () => spawn(join(binDir, "generate-docs.ts"), []))
 

@@ -2,51 +2,67 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"path"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/garden-io/garden/garden-cli/dockerutil"
+	"github.com/garden-io/garden/garden-cli/util"
 )
 
-func runGardenService(projectName string, gitRoot string, relPath string, watch bool, args []string) error {
-	homeDir := getHomeDir()
+func runGardenService(projectName string, gitRoot string, relPath string, args []string) error {
+	homeDir := util.GetHomeDir()
 	gardenHomeDir := getGardenHomeDir()
 	projectID := getProjectID(gitRoot)
 	containerName := "garden-service--" + projectName + "-" + projectID
-	workingDir := path.Join("/project", relPath)
+	workingDir := path.Join(ProjectPath, relPath)
 	volumeName := dockerutil.GetVolumeName(projectName, projectID)
 
-	// If the command requires a file system watch we mount the dedicated project volume,
-	// if not we just bind mount the project dir directly
-	var projectVolume string
-	if watch {
-		if !dockerutil.HasVolume(volumeName) {
-			log.Fatal("No volume found for project")
-		}
-		projectVolume = volumeName
-	} else {
-		projectVolume = gitRoot
+	serviceContainer, found := dockerutil.FindContainer(containerName)
+
+	if found && serviceContainer.State != "running" {
+		err := dockerutil.StartContainer(serviceContainer.ID)
+		util.Check(err)
 	}
 
-	dockerArgs := append(
-		[]string{
-			"run", "-i", "--tty", "--rm",
-			// Give the container direct access to the host network.
-			"--net", "host",
-			// Mount docker socket and configuration directories.
-			"--volume", "/var/run/docker.sock:/var/run/docker.sock",
-			"--volume", fmt.Sprintf("%s/.docker:/root/.docker", homeDir),
-			"--volume", fmt.Sprintf("%s:/root/.garden", gardenHomeDir),
-			"--volume", fmt.Sprintf("%s/.kube:/root/.kube", homeDir),
-			// Mount the project directory, either as a bind mount or as a named volume
-			"--volume", fmt.Sprintf("%s:/project:delegated", projectVolume),
-			"--workdir", workingDir,
-			"--name", containerName,
-			// TODO: use particular version of garden-service container
-			"garden-service",
-		},
-		args...,
-	)
+	if !found {
+		volumeMounts := []mount.Mount{
+			{
+				Type:   mount.TypeVolume,
+				Source: volumeName,
+				Target: ProjectPath,
+			},
+		}
+		bindMounts := []string{
+			"/var/run/docker.sock:/var/run/docker.sock",
+			fmt.Sprintf("%s/.docker:/root/.docker", homeDir),
+			fmt.Sprintf("%s/.kube:/root/.kube", homeDir),
+			// we mount ~/.git and ~/.ssh to allow the container to pull down private git repos
+			fmt.Sprintf("%s/.git:/root/.git", homeDir),
+			fmt.Sprintf("%s/.ssh:/root/.ssh", homeDir),
+			fmt.Sprintf("%s:/root/.garden", gardenHomeDir),
+		}
 
-	return dockerutil.Exec(dockerArgs, false)
+		containerConfig := container.Config{
+			Image:      ServiceImage,
+			Tty:        true,
+			OpenStdin:  true,
+			Cmd:        []string{"/bin/sh"},
+			WorkingDir: workingDir,
+		}
+
+		hostConfig := container.HostConfig{
+			Binds:       bindMounts,
+			Mounts:      volumeMounts,
+			AutoRemove:  true,
+			NetworkMode: "host", // TODO Test if correct
+		}
+
+		_, err := dockerutil.RunContainer(containerConfig, hostConfig, containerName)
+		util.Check(err)
+	}
+
+	// run the command inside the garden-service container
+	execArgs := append([]string{"exec", "-it", containerName, "garden"}, args...)
+	return dockerutil.Exec(execArgs, false)
 }

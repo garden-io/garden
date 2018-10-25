@@ -10,7 +10,10 @@ import { join } from "path"
 import { spawn } from "../support/support-util"
 
 module.exports = (gulp) => {
-  gulp.task("build-container", () => spawn("docker", ["build", "-t", "garden-sync", join(__dirname)]))
+  gulp.task("build-container", () => spawn(
+    "docker",
+    ["build", "-t", "gardenengine/garden-sync:latest", join(__dirname)],
+  ))
 }
 
 if (process.cwd() === __dirname) {
