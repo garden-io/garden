@@ -4,17 +4,60 @@
 #
 version: 2
 jobs:
+  build-go:
+    docker:
+      - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/garden-io/garden
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - pkg-cache-{{ checksum "Gopkg.lock" }}
+      - run:
+          name: Install dep
+          command: |
+            if [ ! -d /go/src/github.com/garden-io/garden/vendor ]; then
+                curl -L -s https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o /go/bin/dep
+                chmod +x /go/bin/dep
+                /go/bin/dep ensure
+            fi
+      - save_cache:
+          key: pkg-cache-{{ checksum "Gopkg.lock" }}
+          paths:
+            - "/go/src/github.com/garden-io/garden/vendor"
+      - run:
+          name: Build All
+          command: |
+            cd garden-cli
+            package_name="garden"
+            platforms=("windows/amd64" "windows/386" "darwin/amd64" "linux/amd64")
+            for platform in "${platforms[@]}"
+            do
+                platform_split=(${platform//\// })
+                GOOS=${platform_split[0]}
+                GOARCH=${platform_split[1]}
+                output_name=$package_name'-'$GOOS'-'$GOARCH
+                if [ $GOOS = "windows" ]; then
+                    output_name+='.exe'
+                fi
+
+                env GOOS=$GOOS GOARCH=$GOARCH go build -o build/$output_name
+                if [ $? -ne 0 ]; then
+                    echo 'An error has occurred! Aborting the script execution...'
+                    exit 1
+                fi
+            done
+      - store_artifacts:
+          path: garden-cli/build
+          destination: /downloads
   test-node:
     docker:
-      # specify the version you desire here
       - image: circleci/node:10
     steps:
       - checkout
+      - run: sudo apt-get update && sudo apt-get install rsync
       - setup_remote_docker:
           docker_layer_caching: true
-
-      - run: sudo apt-get update && sudo apt-get install rsync
-
       # Download and cache dependencies
       - restore_cache:
           keys:
@@ -40,17 +83,18 @@ jobs:
 
       # build, lint and run tests
       - run:
-          name: npm build
-          command: npm run build
+          name: ci-build
+          command: npm run ci-build
       - run:
-          name: npm lint
+          name: npm run lint
           command: npm run lint
       - run:
           name: npm test
-          command: npm test
+          command: npm run ci-test
 
 workflows:
  version: 2
  all-tests:
    jobs:
+     - build-go
      - test-node
