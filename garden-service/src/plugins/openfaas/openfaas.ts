@@ -107,7 +107,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
   config = validate(config, configSchema, { context: "OpenFaaS provider config" })
 
   return {
-    modules: [join(STATIC_DIR, "openfaas", "builder")],
+    modules: [join(STATIC_DIR, "openfaas", "templates")],
     actions: {
       async getEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
         const ofGarden = await getOpenFaasGarden(ctx)
@@ -155,10 +155,10 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           )
 
           moduleConfig.build.dependencies.push({
-            name: "builder",
+            name: "templates",
             plugin: "openfaas",
             copy: [{
-              source: "templates/template",
+              source: "template",
               target: ".",
             }],
           })
@@ -187,7 +187,6 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         getBuildStatus: getGenericModuleBuildStatus,
 
         async build({ ctx, module }: BuildModuleParams<OpenFaasModule>) {
-          // prepare the stack.yml file, before handing off the build to the generic handler
           await writeStackFile(ctx, module, {})
 
           const buildLog = await faasCli.stdout({
