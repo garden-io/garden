@@ -7,17 +7,18 @@
  */
 
 import { platform, homedir } from "os"
-import { pathExists, createWriteStream, ensureDir, chmod, remove } from "fs-extra"
+import { pathExists, createWriteStream, ensureDir, chmod, remove, move } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
-import { join, dirname } from "path"
+import { join, dirname, basename } from "path"
 import { hashString } from "./util"
 import Axios from "axios"
 import * as execa from "execa"
 import * as tar from "tar"
 import { SupportedPlatform } from "../constants"
 import { LogEntry } from "../logger/log-entry"
-import { Extract } from "unzip"
+import { Extract } from "unzipper"
 import { createHash } from "crypto"
+import * as uuid from "uuid"
 
 const globalGardenPath = join(homedir(), ".garden")
 const toolsPath = join(globalGardenPath, "tools")
@@ -65,10 +66,11 @@ export class BinaryCmd extends Cmd {
   name: string
   spec: BinarySpec
 
-  private toolDir: string
-  private targetFilename: string
-  private downloadPath: string
+  private toolPath: string
+  private versionDirname: string
+  private versionPath: string
   private executablePath: string
+  private executableSubpath: string[]
   private defaultCwd: string
 
   constructor(spec: BinaryCmdSpec) {
@@ -86,109 +88,55 @@ export class BinaryCmd extends Cmd {
 
     this.name = spec.name
     this.spec = platformSpec
-    this.toolDir = join(toolsPath, this.name)
-    this.targetFilename = hashString(this.spec.url, 16)
-    this.downloadPath = join(this.toolDir, this.targetFilename)
+    this.toolPath = join(toolsPath, this.name)
+    this.versionDirname = hashString(this.spec.url, 16)
+    this.versionPath = join(this.toolPath, this.versionDirname)
 
-    const executableSubpath = this.spec.extract
+    this.executableSubpath = this.spec.extract
       ? this.spec.extract.executablePath
-      : [this.name]
-    this.executablePath = join(this.downloadPath, ...executableSubpath)
+      : [basename(this.spec.url)]
+    this.executablePath = join(this.versionPath, ...this.executableSubpath)
     this.defaultCwd = dirname(this.executablePath)
   }
 
   private async download(logEntry?: LogEntry) {
+    // TODO: use lockfile to avoid multiple downloads of the same thing
+    // (we avoid a race condition by downloading to a temporary path, so it's more about efficiency)
+
     if (await pathExists(this.executablePath)) {
       return
     }
 
+    const tmpPath = join(this.toolPath, this.versionDirname + "." + uuid.v4().substr(0, 8))
+    const tmpExecutable = join(tmpPath, ...this.executableSubpath)
+
     logEntry && logEntry.setState(`Fetching ${this.name}...`)
     const debug = logEntry && logEntry.debug(`Downloading ${this.spec.url}...`)
 
-    const response = await Axios({
-      method: "GET",
-      url: this.spec.url,
-      responseType: "stream",
-    })
-    let endStream = response.data
-    let extractor
+    await ensureDir(tmpPath)
 
-    await ensureDir(this.downloadPath)
+    try {
+      await this.fetch(tmpPath, logEntry)
 
-    // compute the sha256 checksum
-    const hash = createHash("sha256")
-    hash.setEncoding("hex")
-    response.data.pipe(hash)
-
-    // return a promise and resolve when download finishes
-    return new Promise((resolve, reject) => {
-      response.data.on("error", (err) => {
-        logEntry && logEntry.setError(`Failed fetching ${this.spec.url}`)
-        reject(err)
-      })
-
-      if (!this.spec.extract) {
-        response.data.pipe(createWriteStream(this.executablePath))
-      } else {
-        const format = this.spec.extract.format
-
-        if (format === "tar") {
-          extractor = tar.x({
-            C: this.downloadPath,
-            strict: true,
-            onwarn: entry => console.log(entry),
-          })
-        } else if (format === "zip") {
-          extractor = Extract({ path: this.downloadPath })
-        } else {
-          reject(new ParameterError(`Invalid archive format: ${format}`, { name: this.name, spec: this.spec }))
-        }
-
-        endStream = extractor
-        response.data.pipe(extractor)
-
-        extractor.on("error", (err) => {
-          logEntry && logEntry.setError(`Failed extracting ${format} archive ${this.spec.url}`)
-          reject(err)
-        })
+      if (!(await pathExists(tmpExecutable))) {
+        throw new ConfigurationError(
+          `Archive ${this.spec.url} does not contain a file at ${join(...this.spec.extract!.executablePath)}`,
+          { name: this.name, spec: this.spec },
+        )
       }
 
-      endStream.on("end", (_) => {
-        // validate sha256 if provided
-        const sha256 = hash.read()
+      await chmod(tmpExecutable, 0o755)
+      await move(tmpPath, this.versionPath, { overwrite: true })
 
-        if (this.spec.sha256 && sha256 !== this.spec.sha256) {
-          reject(new DownloadError(
-            `Invalid checksum from ${this.spec.url} (got ${sha256})`,
-            { name: this.name, spec: this.spec, sha256 },
-          ))
-        }
+    } finally {
+      // make sure tmp path is cleared after errors
+      if (await pathExists(tmpPath)) {
+        await remove(tmpPath)
+      }
+    }
 
-        pathExists(this.executablePath, (err, exists) => {
-          if (err) {
-            reject(err)
-          }
-
-          if (!exists) {
-            reject(new ConfigurationError(
-              `Archive ${this.spec.url} does not contain a file at ${join(...this.spec.extract!.executablePath)}`,
-              { name: this.name, spec: this.spec },
-            ))
-          }
-
-          chmod(this.executablePath, 0o755, (chmodErr) => {
-            if (chmodErr) {
-              remove(this.downloadPath, () => reject(chmodErr))
-              return
-            }
-
-            debug && debug.setSuccess("Done")
-            logEntry && logEntry.setSuccess(`Fetched ${this.name}`)
-            resolve()
-          })
-        })
-      })
-    })
+    debug && debug.setSuccess("Done")
+    logEntry && logEntry.setSuccess(`Fetched ${this.name}`)
   }
 
   async exec({ cwd, args, logEntry }: ExecParams) {
@@ -199,5 +147,68 @@ export class BinaryCmd extends Cmd {
   async stdout(params: ExecParams) {
     const res = await this.exec(params)
     return res.stdout
+  }
+
+  private async fetch(targetPath: string, logEntry?: LogEntry) {
+    const response = await Axios({
+      method: "GET",
+      url: this.spec.url,
+      responseType: "stream",
+    })
+
+    // compute the sha256 checksum
+    const hash = createHash("sha256")
+    hash.setEncoding("hex")
+    response.data.pipe(hash)
+
+    return new Promise((resolve, reject) => {
+      response.data.on("error", (err) => {
+        logEntry && logEntry.setError(`Failed fetching ${response.request.url}`)
+        reject(err)
+      })
+
+      hash.on("readable", () => {
+        // validate sha256 if provided
+        const sha256 = hash.read()
+
+        if (this.spec.sha256 && sha256 !== this.spec.sha256) {
+          reject(new DownloadError(
+            `Invalid checksum from ${this.spec.url} (got ${sha256})`,
+            { name: this.name, spec: this.spec, sha256 },
+          ))
+        }
+      })
+
+      if (!this.spec.extract) {
+        const targetExecutable = join(targetPath, ...this.executableSubpath)
+        response.data.pipe(createWriteStream(targetExecutable))
+        response.data.on("end", () => resolve())
+      } else {
+        const format = this.spec.extract.format
+        let extractor
+
+        if (format === "tar") {
+          extractor = tar.x({
+            C: targetPath,
+            strict: true,
+            onwarn: entry => console.log(entry),
+          })
+          extractor.on("end", () => resolve())
+        } else if (format === "zip") {
+          extractor = Extract({ path: targetPath })
+          extractor.on("close", () => resolve())
+        } else {
+          reject(new ParameterError(`Invalid archive format: ${format}`, { name: this.name, spec: this.spec }))
+          return
+        }
+
+        response.data.pipe(extractor)
+
+        extractor.on("error", (err) => {
+          logEntry && logEntry.setError(`Failed extracting ${format} archive ${this.spec.url}`)
+          reject(err)
+        })
+      }
+    })
   }
 }

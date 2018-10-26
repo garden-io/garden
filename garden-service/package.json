@@ -69,7 +69,7 @@
     "ts-stream": "^1.0.1",
     "typescript-memoize": "^1.0.0-alpha.3",
     "uniqid": "^5.0.3",
-    "unzip": "^0.1.11",
+    "unzipper": "^0.9.4",
     "uuid": "^3.3.2",
     "winston": "^3.0.0",
     "wrap-ansi": "^3.0.1"
@@ -109,6 +109,7 @@
     "@types/tar": "^4.0.0",
     "@types/uniqid": "^4.1.2",
     "@types/unzip": "^0.1.1",
+    "@types/unzipper": "^0.9.1",
     "@types/wrap-ansi": "^3.0.0",
     "chai": "^4.1.2",
     "gulp": "^4.0.0",
