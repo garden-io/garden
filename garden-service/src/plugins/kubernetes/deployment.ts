@@ -249,8 +249,11 @@ export async function createDeployment(
 
   if (enableHotReload) {
     configureHotReload(deployment, container, spec, module.spec, env, imageId)
-  } else {
-    deployment.spec.template.spec.containers = [container]
+  }
+
+  if (!deployment.spec.template.spec.volumes.length) {
+    // this is important for status checks to work correctly
+    delete deployment.spec.template.spec.volumes
   }
 
   return deployment
@@ -293,7 +296,6 @@ function deploymentConfig(
           // TODO: set this for non-system pods
           // automountServiceAccountToken: false,  // this prevents the pod from accessing the kubernetes API
           containers: [],
-          initContainers: [],
           // TODO: make restartPolicy configurable
           restartPolicy: "Always",
           terminationGracePeriodSeconds: 10,
@@ -459,7 +461,7 @@ function configureHotReload(deployment, container, serviceSpec, moduleSpec, env,
     emptyDir: {},
   })
 
-  deployment.spec.template.spec.initContainers.push(initContainer)
+  deployment.spec.template.spec.initContainers = [initContainer]
 
   deployment.spec.template.spec.containers = [container, rsyncContainer]
 
