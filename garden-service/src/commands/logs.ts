@@ -84,10 +84,17 @@ export class LogsCommand extends Command<Args, Opts> {
       }
     })
 
-    // NOTE: This will work differently when we have Elasticsearch set up for logging, but is
-    //       quite servicable for now.
     await Bluebird.map(services, async (service: Service<any>) => {
-      await garden.actions.getServiceLogs({ service, stream, tail })
+      const status = await garden.actions.getServiceStatus({ service })
+      if (status.state === "ready" || status.state === "outdated") {
+        await garden.actions.getServiceLogs({ service, stream, tail })
+      } else {
+        await stream.write({
+          serviceName: service.name,
+          timestamp: new Date(),
+          msg: chalk.yellow(`<Service not running (state: ${status.state}). Please deploy the service and try again.>`),
+        })
+      }
     })
 
     return { result }

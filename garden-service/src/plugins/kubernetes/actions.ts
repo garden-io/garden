@@ -337,8 +337,6 @@ export async function getServiceLogs(
       void stream.write({ serviceName: service.name, timestamp, msg })
     })
 
-  proc.stderr.pipe(process.stderr)
-
   return new Promise<GetServiceLogsResult>((resolve, reject) => {
     proc.on("error", reject)
 

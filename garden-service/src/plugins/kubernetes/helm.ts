@@ -314,10 +314,10 @@ async function getServiceStatus(
 
   // first check if the installed objects on the cluster match the current code
   const objects = await getChartObjects(ctx, service, logEntry)
-  const matched = await compareDeployedObjects(ctx, objects)
+  let state = await compareDeployedObjects(ctx, objects)
 
-  if (!matched) {
-    return { state: "outdated" }
+  if (state !== "ready") {
+    return { state }
   }
 
   // then check if the rollout is complete
@@ -327,7 +327,7 @@ async function getServiceStatus(
   const { ready } = await checkObjectStatus(api, namespace, objects)
 
   // TODO: set state to "unhealthy" if any status is "unhealthy"
-  const state = ready ? "ready" : "deploying"
+  state = ready ? "ready" : "deploying"
 
   return { state, version: version.versionString }
 }

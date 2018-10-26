@@ -397,11 +397,14 @@ export async function waitForServices(
 /**
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
-export async function compareDeployedObjects(ctx: PluginContext, objects: KubernetesObject[]): Promise<boolean> {
+export async function compareDeployedObjects(ctx: PluginContext, objects: KubernetesObject[]): Promise<ServiceState> {
   const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, ctx.provider, obj))
+  let missing = true
 
   for (let [obj, existingSpec] of zip(objects, existingObjects)) {
     if (existingSpec && obj) {
+      missing = false
+
       // the API version may implicitly change when deploying
       existingSpec.apiVersion = obj.apiVersion
 
@@ -436,19 +439,21 @@ export async function compareDeployedObjects(ctx: PluginContext, objects: Kubern
       obj = <KubernetesObject>removeNull(obj)
     }
 
-    if (!existingSpec || !isSubset(existingSpec, obj)) {
+    if (existingSpec && !isSubset(existingSpec, obj)) {
       // console.log(JSON.stringify(obj, null, 4))
       // console.log(JSON.stringify(existingSpec, null, 4))
       // console.log("----------------------------------------------------")
       // throw new Error("bla")
-      return false
+      return "outdated"
     }
   }
 
-  return true
+  return missing ? "missing" : "ready"
 }
 
-async function getDeployedObject(ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesObject) {
+async function getDeployedObject(
+  ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesObject,
+): Promise<KubernetesObject | null> {
   const api = new KubeApi(provider)
   const namespace = obj.metadata.namespace || await getAppNamespace(ctx, provider)
 
