@@ -60,17 +60,31 @@ export class GitHandler extends VcsHandler {
       ]) || NEW_MODULE_VERSION
     } catch (err) {
       if (err.code === 128) {
-        // not in a repo root, return default version
+        // not in a repo root, use default version
         commitHash = NEW_MODULE_VERSION
+      } else {
+        throw err
       }
     }
 
     let latestDirty = 0
+    let modifiedFiles: string[] = []
 
-    const res = await git("diff-index", ["--name-only", "HEAD", path]) + "\n"
-      + await git("ls-files", ["--other", "--exclude-standard", path])
+    try {
+      modifiedFiles = (await git("diff-index", ["--name-only", "HEAD", path])).split("\n")
+    } catch (err) {
+      if (err.code === 128) {
+        // no commit in repo, use default version
+        commitHash = NEW_MODULE_VERSION
+      } else {
+        throw err
+      }
+    }
 
-    const dirtyFiles: string[] = res.split("\n").filter((f) => f.length > 0)
+    const newFiles = (await git("ls-files", ["--other", "--exclude-standard", path])).split("\n")
+
+    const dirtyFiles: string[] = modifiedFiles.concat(newFiles).filter((f) => f.length > 0)
+
     // for dirty trees, we append the last modified time of last modified or added file
     if (dirtyFiles.length) {
       const repoRoot = await git("rev-parse", ["--show-toplevel"])
