@@ -21,9 +21,9 @@ If you haven't already set up homebrew, please follow [their instructions](https
 
 #### Step 2: Docker and local Kubernetes
 
-To install Docker, Kubernetes and kubectl, we strongly recommend Docker for Mac (edge version).
+To install Docker, Kubernetes and kubectl, we strongly recommend Docker for Mac.
 
-_Note: you need to install the **edge version** of Docker for Mac in
+_Note: If you have an older version installed, you may need to update it in
 order to enable Kubernetes support._
 
 Once installed, open the Docker for Mac preferences, go to the Kubernetes section,
@@ -43,29 +43,15 @@ brew tap garden-io/garden
 brew install garden-cli
 ```
 
-To later upgrade to the newest version, simply run `brew update` and then `brew upgrade garden-cli`
-(or `brew upgrade` to upgrade all your Homebrew packages).
+To later upgrade to the newest version, simply run `brew update` and then `brew upgrade garden-cli`.
 
 ### Windows
 
 You can run Garden on Windows 10 Pro or Enterprise editions (The Home edition unfortunately does not work because it
-does not include support for virtualization). To install the Garden CLI please use our _automated installation script_,
-which will check for dependencies, install missing dependencies if needed, and finally install the `garden-cli`
-npm package.
+does not include support for virtualization).
 
-The things the script will check for are the following:
-
-* The [Chocolatey](https://chocolatey.org) package manager.
-* Whether you have Hyper-V enabled. This is required for _Docker for Windows_. If you do not already have it enabled,
-  the script will enable it but you will need to restart your computer before starting Docker for Windows.
-* Docker - We strongly recommend using the _Edge version_ of
-  [Docker for Windows](https://docs.docker.com/docker-for-windows/edge-release-notes/), which has built-in support for Kubernetes. It is also
-  _possible_ to configure Docker and Kubernetes differently, using minikube for example, but in most cases
-  Docker for Windows is much easier to install and configure, and is well supported. The script will check if Docker is
-  installed, and whether Kubernetes has been enabled as the default orchestrator.
-* Node.js - The script will install it via Chocolatey if it is missing, but note that _if you already have Node.js
-  installed, please make sure it is version 8.x or newer._
-* Git and rsync. The script will install those if they are missing.
+To install the Garden CLI please use our automated installation script,
+which will check for dependencies, install missing dependencies if needed, and finally install the Garden CLI.
 
 To run the script, open PowerShell as an Administrator and run:
 
@@ -73,13 +59,20 @@ To run the script, open PowerShell as an Administrator and run:
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/garden-service/support/install.ps1'))
 ```
 
-To later upgrade to the newest version, run `npm install -g -U garden-cli`.
+The things the script will check for are the following:
+
+* The [Chocolatey](https://chocolatey.org) package manager. The script installs it automatically if necessary.
+* _git_, _rsync_ and _Docker for Windows_. The script will install or upgrade those via Chocolatey.
+* Whether you have Hyper-V enabled. This is required for _Docker for Windows_. If you do not already have it enabled,
+  the script will enable it but you will need to restart your computer before starting Docker for Windows.
+* Whether you have Kubernetes enabled in your _Docker for Windows_ installation.
+
+To later upgrade to the newest version, simply re-run the above script.
 
 ### Linux (manual installation)
 
 You need the following dependencies on your local machine to use Garden:
 
-* Node.js >= 8.x
 * [Docker](https://docs.docker.com/)
 * Git
 * rsync
@@ -96,7 +89,7 @@ For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minik
 
 #### Step 3: Install other dependencies
 
-Use your preferred method or package manager to install `node` (version 8.x or higher), `git` and `rsync`.
+Use your preferred method or package manager to install `git` and `rsync`.
 
 #### Step 4: Install `garden-cli`
 
