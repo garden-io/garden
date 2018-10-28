@@ -28,15 +28,15 @@ ${chalk.bold(str.slice(0, 5).toUpperCase())}
   ${chalk.italic(str.slice(7))}`
   ),
   usageCommandPlaceholder: str => chalk.blue(str),
-  usagePositionals: str => chalk.magenta(str),
-  usageArgsPlaceholder: str => chalk.magenta(str),
+  usagePositionals: str => chalk.cyan(str),
+  usageArgsPlaceholder: str => chalk.cyan(str),
   usageOptionsPlaceholder: str => chalk.yellow(str),
   group: (str: string) => {
     const cleaned = str.endsWith(":") ? str.slice(0, -1) : str
     return chalk.bold(cleaned.toUpperCase())
   },
   flags: (str, _type) => {
-    const style = str.startsWith("-") ? chalk.green : chalk.magenta
+    const style = str.startsWith("-") ? chalk.green : chalk.cyan
     return style(str)
   },
   hints: str => chalk.gray(str),
