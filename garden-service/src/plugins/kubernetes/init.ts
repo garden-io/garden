@@ -65,7 +65,7 @@ async function prepareNamespaces({ ctx }: GetEnvironmentStatusParams) {
   ])
 }
 
-export async function getRemoteEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
+export async function getRemoteEnvironmentStatus({ ctx, logEntry }: GetEnvironmentStatusParams) {
   const loggedIn = await getLoginStatus({ ctx })
 
   if (!loggedIn) {
@@ -76,6 +76,7 @@ export async function getRemoteEnvironmentStatus({ ctx }: GetEnvironmentStatusPa
   }
 
   await prepareNamespaces({ ctx })
+  await helm(ctx.provider, logEntry, "init", "--client-only")
 
   return {
     ready: true,
@@ -83,11 +84,12 @@ export async function getRemoteEnvironmentStatus({ ctx }: GetEnvironmentStatusPa
   }
 }
 
-export async function getLocalEnvironmentStatus({ ctx }: GetEnvironmentStatusParams) {
+export async function getLocalEnvironmentStatus({ ctx, logEntry }: GetEnvironmentStatusParams) {
   let ready = true
   let needUserInput = false
 
   await prepareNamespaces({ ctx })
+  await helm(ctx.provider, logEntry, "init", "--client-only")
 
   // TODO: check if mkcert has been installed
   // TODO: check if all certs have been generated
