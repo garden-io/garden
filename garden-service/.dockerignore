@@ -8,3 +8,4 @@ gulpfile.ts
 .dockerignore
 .gitignore
 tsconfig.*
+**/.garden
