@@ -56,7 +56,7 @@ which will check for dependencies, install missing dependencies if needed, and f
 To run the script, open PowerShell as an Administrator and run:
 
 ```PowerShell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/garden-service/support/install.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/support/install.ps1'))
 ```
 
 The things the script will check for are the following:
