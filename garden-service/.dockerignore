@@ -9,3 +9,4 @@ gulpfile.ts
 .gitignore
 tsconfig.*
 **/.garden
+**/node_modules

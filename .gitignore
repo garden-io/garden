@@ -4,13 +4,13 @@ npm-debug.log*
 
 # vendor dependencies
 node_modules
-vendor/
+/vendor/
 
 # IDEs
 .idea
 *.iml
-/.vscode
-/.vs
+.vscode
+.vs
 
 # Runtime files
 .garden
