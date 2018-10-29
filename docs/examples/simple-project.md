@@ -1,6 +1,6 @@
 # Simple Project
 
-In this guide, we'll walk you through configuring a simple project to run on the Garden framework. The project will consist of two Dockerized web services that communicate with one another, along with unit and integration tests.
+In this guide, we'll walk you through configuring a simple project to run on Garden. The project will consist of two Dockerized web services that communicate with one another, along with unit and integration tests.
 
 In what follows you'll learn how to:
 
@@ -13,23 +13,23 @@ In what follows you'll learn how to:
 
 ## Before you get started
 
-This tutorial assumes that you have already have a running [installation of Garden](../introduction/getting-started.md).
+This tutorial assumes that you have already have a running [installation of Garden](../basics/installation.md).
 
 ## Clone the example repo
 
-The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/master/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/master/examples/simple-project-start/) example and work our way from there. The complete version is under [simple-project](https://github.com/garden-io/garden/tree/master/examples/simple-project).
+The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/master/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/master/examples/simple-project-start/) example and work our way from there. The final version is under [simple-project](https://github.com/garden-io/garden/tree/master/examples/simple-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
 ```sh
-$ git clone https://github.com/garden-io/garden/examples.git
+$ git clone https://github.com/garden-io/garden.git
 $ cd garden/examples/simple-project-start
 $ tree .
 .
 └── services
     ├── go-service
-    │   ├── Dockerfile
-    │   └── webserver
-    │       └── main.go
+    │   ├── Dockerfile
+    │   └── webserver
+    │       └── main.go
     └── node-service
         ├── Dockerfile
         ├── app.js
@@ -41,13 +41,13 @@ $ tree .
 5 directories, 7 files
  ```
 
-As you can see the project consists of two super simple services and their accompanying Dockerfiles. One of the core tenets of multi-service backends is being able to pick the right tool for the job, and therefore we have a Node.js service and a Golang service, that we can pretend have different responsibilities.
+As you can see, the project consists of two super simple services and their accompanying Dockerfiles. One of the core tenets of multi-service backends is being able to pick the right tool for the job, and therefore we have a Node.js service and a Go service, that we can pretend have different responsibilities.
 
 The task at hand is to configure these services so that they can run on the Garden framework.
 
 ## Project-wide configuration
 
-To begin with, every project needs a project-wide `garden.yml` [configuration file](../guides/configuration.md#Config) at the root level. There we define, among other things, the name of the project, and the [providers](../guides/glossary.md#Provider) used for each [plugin](../guides/glossary.md#Plugin) the project requires.
+To begin with, every project needs a project-wide `garden.yml` [configuration file](../using-garden/configuration-files.md) at the root level. There we define, among other things, the name of the project, and the [providers](../reference/glossary.md#Provider) the project requires.
 
 Let's go ahead and create one:
 
@@ -66,11 +66,11 @@ project:
         - name: local-kubernetes
 ```
 
-Above, we've specified the name of our project and configured it to use the local-kubernetes plugin for local development. Note, that this file must be located in the project root directory.
+Above, we've specified the name of our project and configured it to use the local-kubernetes provider for local development. Note that this file must be located in the project root directory.
 
 ## Module configuration
 
-Now, let's turn to our services. Services live inside [modules](../guides/glossary.md#Module), and each module has it's own `garden.yml` configuration file.
+Now, let's turn to our services. Services live inside [modules](../reference/glossary.md#Module), and each module has its own `garden.yml` configuration file.
 
 We'll start with the module for the `node-service`:
 
@@ -92,7 +92,7 @@ By running the `scan` command we can see that Garden detects our module config:
 $ garden scan
 - name: node-service
   type: container
-  path: /Users/eysi/code/simple-project/services/node-service
+  path: /Users/username/code/simple-project/services/node-service
   description: Node service container
   version:
     versionString: 2c8818986d-1528373640
@@ -116,7 +116,7 @@ module:
         - path: /hello-node
           port: http
 ```
-The [services](../guides/configuration.md#Services) directive is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The sub-directives tell Garden how to start the service and which ingress endpoints to expose.
+The [services](../using-garden/configuration-files.md#Services) field is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The sub-directives tell Garden how to start the service and which ingress endpoints to expose.
 
 ## Deploying
 
@@ -144,7 +144,7 @@ $ garden call node-service/hello-node
 Hello from Node server!
 ```
 
-In a similar manner, we create a config file for our `go-service`:
+In a similar manner, we create a config file for our `go-service` with
 
 ```sh
 $ touch services/go-service/garden.yml
@@ -188,7 +188,7 @@ Looks good! Let's take stock:
 
 ## Inter-service communication
 
-Calling our `go-service` from our `node-service` is straightforward from within the application code. Crack open `services/node-service/app.js` with your favorite editor and add the following:
+Calling the `go-service` from the `node-service` is straightforward from within the application code. Open `services/node-service/app.js` with your favorite editor and add the following:
 
 ```javascript
 const request = require('request-promise')
@@ -307,4 +307,4 @@ module:
 
 And that's it! Our services are up and running locally, dependencies are resolved, and tests are ready to run.
 
-Check out some of our other [Guides](../guides/README.md) for more of an in-depth look at the Garden framework.
+Check out some of our other [Example projects](./examples/README.md) for more of an in-depth look.

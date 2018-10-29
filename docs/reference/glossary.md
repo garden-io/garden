@@ -17,23 +17,17 @@ is a subdirectory of the [project](#project) repository's top-level directory.
 Each module has a [plugin](#plugin) type, and may define one or more [services](#service).
 
 Essentially, a project is organized into modules at the granularity of its *build* steps. A module's build step may
-depend on one or more other modules, as specified in its `garden.yml`, in which case those modules will be built
+depend on one or more other modules having already been built, as specified in its `garden.yml`, in which case those modules will be built
 first, and their build output made available to the requiring module's build step.
 
-#### Plugin
-A [module's](#module) plugin type defines its behavior when it is built, deployed, run and tested. Currently,
-`container` is the only stable plugin type, but plugin types for serverless functions and for build-only use cases
-(such as NPM modules) are under development.
+#### Provider
+A [module's](#module) plugin type defines its behavior when it is built, deployed, run and tested. Currently, `container` (for "standard" containerized services) and `openfaas` (for serverless functions) are the only stable plugin types.
 
 #### Project
 The top-level unit of organization in Garden. A project consists of one or more [modules](#module), along with a
 project-level [`garden.yml` configuration file](../guides/configuration.md#project-configuration).
 
 Garden CLI commands are run in the context of a project, and are aware of all its modules and services.
-
-Currently, Garden projects assume that all their modules are rooted in subdirectories of the same Git repository, with
-the project-level `garden.yml` located in the repository's top-level directory. In a future release, this mono-repo
-structure will be made optional.
 
 #### Provider
 An implementation of a [plugin type](#plugin) (e.g. `local-kubernetes` for the `container` plugin).
