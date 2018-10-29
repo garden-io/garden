@@ -1,4 +1,4 @@
-# Running against a remote Kubernetes cluster
+# Using Garden with a remote Kubernetes cluster
 
 Below are some notes on steps you need to take before deploying Garden projects to a remote Kubernetes cluster.
 
@@ -6,7 +6,7 @@ Many of the steps are not specific to Garden as such, so you may have already pe
 and/or may need to follow the provided links in each section for details on how to perform the steps you have
 not yet completed.
 
-## Setup
+## Setup 
 
 ### Connecting to the cluster
 
@@ -117,7 +117,7 @@ project:
   defaultEnvironment: dev
 ```
 
-You also need to login to the `docker` CLI, so that images can be pushed to the registry. Please refer
+You also need to login to the `docker` CLI, so that images can be pushed to the registry. Please refer
 to your registry's documentation on how to do that (for Docker Hub you simply run `docker login`).
 
 ### Permissions

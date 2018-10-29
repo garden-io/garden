@@ -1,5 +1,6 @@
 # Reference
 
-* [Commands](./commands.md)
-* [Config](./config.md)
-* [Template strings](./template-strings.md)
+* [Glossary](./glossary.md)
+* [Template Strings](./template-strings.md)
+* [Commands Reference](./command-reference.md)
+* [Config Files Reference](./config-files-reference.md)

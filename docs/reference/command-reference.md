@@ -724,4 +724,3 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 ##### Usage
 
     garden validate 
-
