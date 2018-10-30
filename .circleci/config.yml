@@ -66,8 +66,6 @@ jobs:
           keys:
           - garden-service-{{ checksum "garden-service/package-lock.json" }}
 
-      - run: git submodule update --init --recursive
-
       # only install if node_modules wasn't cached
       - run: if [ ! -d "node_modules" ]; then npm ci; fi
       - save_cache:

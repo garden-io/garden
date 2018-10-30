@@ -1,4 +1,0 @@
-[submodule "garden-service/vendor/github.com/garden-io/javascript"]
-	path = garden-service/vendor/github.com/garden-io/javascript
-	url = git+ssh://git@github.com/garden-io/javascript
-	branch = fix-electron-issues
