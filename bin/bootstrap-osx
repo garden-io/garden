@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="cmake git kubectl kubernetes-helm stern rsync icu4c pkg-config faas-cli dep git-chglog"
+BREW_DEPS="jq cmake git kubectl kubernetes-helm stern rsync icu4c pkg-config faas-cli dep git-chglog"
 
 brew update
 brew install ${BREW_DEPS}
