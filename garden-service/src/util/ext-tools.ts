@@ -171,6 +171,11 @@ export class BinaryCmd extends Cmd {
         // validate sha256 if provided
         const sha256 = hash.read()
 
+        // end of stream event
+        if (sha256 === null) {
+          return
+        }
+
         if (this.spec.sha256 && sha256 !== this.spec.sha256) {
           reject(new DownloadError(
             `Invalid checksum from ${this.spec.url} (got ${sha256})`,
