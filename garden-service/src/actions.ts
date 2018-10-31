@@ -125,6 +125,9 @@ export class ActionHelper implements TypeGuard {
       { force?: boolean, pluginName?: string, logEntry?: LogEntry, allowUserInput?: boolean },
   ) {
     const handlers = this.garden.getActionHandlers("prepareEnvironment", pluginName)
+    // FIXME: We're calling getEnvironmentStatus before preparing the environment.
+    // Results in 404 errors for unprepared/missing services.
+    // See: https://github.com/garden-io/garden/issues/353
     const statuses = await this.getEnvironmentStatus({ pluginName })
 
     const needUserInput = Object.entries(statuses)
