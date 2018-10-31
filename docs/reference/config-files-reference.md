@@ -35,11 +35,11 @@ module:
 
   description:
 
-  # A remote respository URL. Currently only supports git servers. Must contain a hash part
+  # A remote repository URL. Currently only supports git servers. Must contain a hash suffix
   # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
   #
-  # Garden will import the repository source code into this module, but read the config from
-  # the local garden.yml file
+  # Garden will import the repository source code into this module, but read the module's
+  # config from the local garden.yml file.
   #
   # Example: "git+https://github.com/org/repo.git#v2.0"
   #
@@ -55,16 +55,16 @@ module:
   variables: 
     {}
 
-  # Set to false to disable pushing this module to remote registries.
+  # When false, disables pushing this module to remote registries.
   #
   # Optional.
   allowPublish: true
 
-  # Specify how to build the module. Note that plugins may specify additional keys on this object.
+  # Specify how to build the module. Note that plugins may define additional keys on this object.
   #
   # Optional.
   build: 
-    # The command to run inside the module directory to perform the build.
+    # The command to run inside the module's directory to perform the build.
     #
     # Example:
     #   - npm
@@ -82,7 +82,7 @@ module:
     #
     # Optional.
     dependencies: 
-      - # Module name to build ahead of this module
+      - # Module name to build ahead of this module.
         #
         # Required.
         name:
@@ -103,7 +103,7 @@ module:
             # Optional.
             target:
 
-# The configuration for a Garden project. This should be specified in the garden.yml file in your
+# Configuration for a Garden project. This should be specified in the garden.yml file in your
 # project root.
 #
 # Optional.
@@ -120,8 +120,8 @@ project:
   # Optional.
   defaultEnvironment:
 
-  # Default environment settings, that are inherited (but can be overridden) by each configured
-  # environment
+  # Default environment settings. These are inherited (but can be overridden) by each configured
+  # environment.
   #
   # Example:
   #   providers: []
@@ -134,7 +134,7 @@ project:
     #
     # Optional.
     providers: 
-      - # The name of the provider plugin to configure.
+      - # The name of the provider plugin to use.
         #
         # Example: "local-kubernetes"
         #
@@ -162,7 +162,7 @@ project:
       #
       # Optional.
       providers: 
-        - # The name of the provider plugin to configure.
+        - # The name of the provider plugin to use.
           #
           # Example: "local-kubernetes"
           #
@@ -176,13 +176,13 @@ project:
         {}
 
       # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-      # start with a letter,and cannot end with a dash) and additionally cannot contain
-      # consecutive dashes or be longer than 63 characters.
+      # start with a letter, and cannot end with a dash) and additionally cannot contain
+      # consecutive dashes, or be longer than 63 characters.
       #
       # Required.
       name:
 
-  # A list of remote sources to import into project
+  # A list of remote sources to import into project.
   #
   # Optional.
   sources: 
@@ -191,7 +191,7 @@ project:
       # Required.
       name:
 
-      # A remote respository URL. Currently only supports git servers. Must contain a hash part
+      # A remote repository URL. Currently only supports git servers. Must contain a hash suffix
       # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
       #
       # Example: "git+https://github.com/org/repo.git#v2.0"
@@ -226,11 +226,11 @@ module:
 
   description:
 
-  # A remote respository URL. Currently only supports git servers. Must contain a hash part
+  # A remote repository URL. Currently only supports git servers. Must contain a hash suffix
   # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
   #
-  # Garden will import the repository source code into this module, but read the config from
-  # the local garden.yml file
+  # Garden will import the repository source code into this module, but read the module's
+  # config from the local garden.yml file.
   #
   # Example: "git+https://github.com/org/repo.git#v2.0"
   #
@@ -246,16 +246,16 @@ module:
   variables: 
     {}
 
-  # Set to false to disable pushing this module to remote registries.
+  # When false, disables pushing this module to remote registries.
   #
   # Optional.
   allowPublish: true
 
-  # Specify how to build the module. Note that plugins may specify additional keys on this object.
+  # Specify how to build the module. Note that plugins may define additional keys on this object.
   #
   # Optional.
   build: 
-    # The command to run inside the module directory to perform the build.
+    # The command to run inside the module's directory to perform the build.
     #
     # Example:
     #   - npm
@@ -273,7 +273,7 @@ module:
     #
     # Optional.
     dependencies: 
-      - # Module name to build ahead of this module
+      - # Module name to build ahead of this module.
         #
         # Required.
         name:
@@ -313,7 +313,7 @@ module:
       # Required.
       name:
 
-      # The names of services that must be running before the test is run.
+      # Names of the services that must be running before the test is run.
       #
       # Optional.
       dependencies: 
@@ -362,11 +362,11 @@ module:
 
   description:
 
-  # A remote respository URL. Currently only supports git servers. Must contain a hash part
+  # A remote repository URL. Currently only supports git servers. Must contain a hash suffix
   # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
   #
-  # Garden will import the repository source code into this module, but read the config from
-  # the local garden.yml file
+  # Garden will import the repository source code into this module, but read the module's
+  # config from the local garden.yml file.
   #
   # Example: "git+https://github.com/org/repo.git#v2.0"
   #
@@ -382,16 +382,16 @@ module:
   variables: 
     {}
 
-  # Set to false to disable pushing this module to remote registries.
+  # When false, disables pushing this module to remote registries.
   #
   # Optional.
   allowPublish: true
 
-  # Specify how to build the module. Note that plugins may specify additional keys on this object.
+  # Specify how to build the module. Note that plugins may define additional keys on this object.
   #
   # Optional.
   build: 
-    # The command to run inside the module directory to perform the build.
+    # The command to run inside the module's directory to perform the build.
     #
     # Example:
     #   - npm
@@ -409,7 +409,7 @@ module:
     #
     # Optional.
     dependencies: 
-      - # Module name to build ahead of this module
+      - # Module name to build ahead of this module.
         #
         # Required.
         name:
@@ -430,16 +430,16 @@ module:
             # Optional.
             target:
 
-  # Specify build arguments when building the container image.
+  # Specify build arguments to use when building the container image.
   #
   # Optional.
   buildArgs: 
     {}
 
-  # Specify the image name for the container. Should be a valid docker image identifier. If
-  # specified and the module does not contain a Dockerfile, this image will be used to deploy the
-  # container services. If specified and the module does contain a Dockerfile, this identifier is
-  # used when pushing the built image.
+  # Specify the image name for the container. Should be a valid Docker image identifier. If
+  # specified and the module does not contain a Dockerfile, this image will be used to deploy
+  # services for this module. If specified and the module does contain a Dockerfile, this
+  # identifier is used when pushing the built image.
   #
   # Optional.
   image:
@@ -449,7 +449,7 @@ module:
   # Optional.
   dockerfile:
 
-  # List of services to deploy from this container module.
+  # The list of services to deploy from this container module.
   #
   # Optional.
   services: 
@@ -457,8 +457,8 @@ module:
     #
     # Optional.
     - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-      # start with a letter,and cannot end with a dash) and additionally cannot contain
-      # consecutive dashes or be longer than 63 characters.
+      # start with a letter, and cannot end with a dash) and additionally cannot contain
+      # consecutive dashes, or be longer than 63 characters.
       #
       # Required.
       name:
@@ -468,13 +468,13 @@ module:
       # Optional.
       dependencies: 
         # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes,
-        # must start with a letter,and cannot end with a dash) and additionally cannot contain
-        # consecutive dashes or be longer than 63 characters.
+        # must start with a letter, and cannot end with a dash) and additionally cannot contain
+        # consecutive dashes, or be longer than 63 characters.
         #
         # Optional.
         -
 
-      # Key/value map, keys must be valid identifiers.
+      # Key/value map. Keys must be valid identifiers.
       #
       # Optional.
       outputs: 
@@ -500,8 +500,7 @@ module:
       # Optional.
       ingresses: 
         - # The hostname that should route to this service. Defaults to the default hostname
-          # configured
-          # in the provider configuration.
+          # configured in the provider configuration.
           #
           # Note that if you're developing locally you may need to add this hostname to your hosts
           # file.
@@ -530,7 +529,7 @@ module:
       #
       # Optional.
       healthCheck: 
-        # Set this to check the service's health by making an HTTP request
+        # Set this to check the service's health by making an HTTP request.
         #
         # Optional.
         httpGet: 
@@ -559,8 +558,7 @@ module:
         tcpPort:
 
       # If this module uses the `hotReload` field, the container will be run with these arguments
-      # instead of those in `command` while a Garden command with the -w (watch) flag, or `garden
-      # dev`, is running.
+      # instead of those in `command` when the service is deployed with hot reloading enabled.
       #
       # Optional.
       hotReloadCommand: 
@@ -573,7 +571,7 @@ module:
         #
         # Required.
         - # The name of the port (used when referencing the port elsewhere in the service
-          # configuration.
+          # configuration).
           #
           # Required.
           name:
@@ -624,7 +622,7 @@ module:
       # Required.
       name:
 
-      # The names of services that must be running before the test is run.
+      # Names of the services that must be running before the test is run.
       #
       # Optional.
       dependencies: 
@@ -651,8 +649,8 @@ module:
   # When this field is used, the files or directories specified within are automatically synced
   # into the running container when they're modified. Additionally, any of this module's services
   # that define a `hotReloadCommand` will be run with that command instead of the one specified in
-  # their `command` field. This behavior is only active while a Garden command with the -w (watch)
-  # flag, or `garden dev`, is running.
+  # their `command` field. Services are only deployed with hot reloading enabled when their names
+  # are passed to the `--hot-reload` option in a call to the `deploy` or `dev` command.
   #
   # Optional.
   hotReload: 

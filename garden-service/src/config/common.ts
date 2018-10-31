@@ -37,8 +37,8 @@ export const joiIdentifier = () => Joi.string()
   .regex(identifierRegex)
   .max(63)
   .description(
-    "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter," +
-    "and cannot end with a dash) and additionally cannot contain consecutive dashes or be longer than 63 characters.",
+    "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
+    "and cannot end with a dash) and additionally cannot contain consecutive dashes, or be longer than 63 characters.",
   )
 
 export const joiStringMap = (valueSchema: JoiObject) => Joi
@@ -56,13 +56,13 @@ export const joiUserIdentifier = () => Joi.string()
 export const joiIdentifierMap = (valueSchema: JoiObject) => Joi
   .object().pattern(identifierRegex, valueSchema)
   .default(() => ({}), "{}")
-  .description("Key/value map, keys must be valid identifiers.")
+  .description("Key/value map. Keys must be valid identifiers.")
 
 export const joiVariables = () => Joi
   .object().pattern(/[\w\d]+/i, joiPrimitive())
   .default(() => ({}), "{}")
   .unknown(false)
-  .description("Key/value map, keys may contain letters and numbers, and values must be primitives.")
+  .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
 
 export const joiEnvVarName = () => Joi
   .string().regex(envVarRegex)
@@ -96,7 +96,7 @@ export const joiRepositoryUrl = () => Joi
     ],
   })
   .description(
-    "A remote respository URL. Currently only supports git servers. Must contain a hash part" +
+    "A remote repository URL. Currently only supports git servers. Must contain a hash suffix" +
     " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>",
   )
   .example("git+https://github.com/org/repo.git#v2.0")

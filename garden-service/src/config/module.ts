@@ -44,7 +44,7 @@ export interface BuildDependencyConfig {
 
 export const buildDependencySchema = Joi.object().keys({
   name: joiIdentifier().required()
-    .description("Module name to build ahead of this module"),
+    .description("Module name to build ahead of this module."),
   plugin: joiIdentifier()
     .meta({ internal: true })
     .description("The name of plugin that provides the build dependency."),
@@ -85,26 +85,26 @@ export const baseModuleSpecSchema = Joi.object()
       .description(
         dedent`${joiRepositoryUrl().describe().description}
 
-        Garden will import the repository source code into this module, but read the config from
-        the local garden.yml file`,
+        Garden will import the repository source code into this module, but read the module's
+        config from the local garden.yml file.`,
       ),
     variables: joiVariables()
       .description("Variables that this module can reference and expose as environment variables.")
       .example({ "my-variable": "some-value" }),
     allowPublish: Joi.boolean()
       .default(true)
-      .description("Set to false to disable pushing this module to remote registries."),
+      .description("When false, disables pushing this module to remote registries."),
     build: Joi.object().keys({
       // TODO: move this out of base spec
       command: joiArray(Joi.string())
-        .description("The command to run inside the module directory to perform the build.")
+        .description("The command to run inside the module's directory to perform the build.")
         .example(["npm", "run", "build"]),
       dependencies: joiArray(buildDependencySchema)
         .description("A list of modules that must be built before this module is built.")
         .example([{ name: "some-other-module-name" }]),
     })
       .default(() => ({ dependencies: [] }), "{}")
-      .description("Specify how to build the module. Note that plugins may specify additional keys on this object."),
+      .description("Specify how to build the module. Note that plugins may define additional keys on this object."),
   })
   .required()
   .unknown(true)

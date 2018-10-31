@@ -55,7 +55,7 @@ Examples:
 
 Call a service ingress endpoint.
 
-This command resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
+Resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
 outputs the result.
 
 Examples:
@@ -79,7 +79,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 Creates a new Garden project.
 
-This command walks the user through setting up a new Garden project and
+Walks the user through setting up a new Garden project and
 generates scaffolding based on user input.
 
 Examples:
@@ -656,7 +656,7 @@ Examples:
 
 Update remote sources.
 
-This command updates the remote sources declared in the project level `garden.yml` config file.
+Updates the remote sources declared in the project level `garden.yml` config file.
 
 Examples:
 
@@ -677,7 +677,7 @@ Examples:
 
 Update remote modules.
 
-This command updates remote modules, i.e. modules that have a `repositoryUrl` field
+Updates remote modules, i.e. modules that have a `repositoryUrl` field
 in their `garden.yml` config that points to a remote repository.
 
 Examples:

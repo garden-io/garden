@@ -24,7 +24,7 @@ export interface ProviderConfig {
 export const providerConfigBaseSchema = Joi.object()
   .keys({
     name: joiIdentifier().required()
-      .description("The name of the provider plugin to configure.")
+      .description("The name of the provider plugin to use.")
       .example("local-kubernetes"),
   })
   .unknown(true)
@@ -79,7 +79,7 @@ export const projectSourceSchema = Joi.object()
 
 export const projectSourcesSchema = joiArray(projectSourceSchema)
   .unique("name")
-  .description("A list of remote sources to import into project")
+  .description("A list of remote sources to import into project.")
 
 export interface ProjectConfig {
   name: string
@@ -125,7 +125,7 @@ export const projectSchema = Joi.object()
       .default(() => environmentDefaults, safeDump(environmentDefaults))
       .example(environmentDefaults)
       .description(
-        "Default environment settings, that are inherited (but can be overridden) by each configured environment",
+        "Default environment settings. These are inherited (but can be overridden) by each configured environment.",
       ),
     environments: joiArray(environmentConfigSchema.keys({ name: joiIdentifier().required() }))
       .unique("name")
@@ -136,7 +136,7 @@ export const projectSchema = Joi.object()
   })
   .required()
   .description(
-    "The configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
+    "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
   )
 
 // this is used for default handlers in the action handler

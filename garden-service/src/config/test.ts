@@ -26,7 +26,7 @@ export const baseTestSpecSchema = Joi.object()
       .required()
       .description("The name of the test."),
     dependencies: joiArray(Joi.string())
-      .description("The names of services that must be running before the test is run."),
+      .description("Names of the services that must be running before the test is run."),
     timeout: Joi.number()
       .allow(null)
       .default(null)
