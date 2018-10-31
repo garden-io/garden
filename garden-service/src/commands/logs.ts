@@ -23,8 +23,8 @@ import dedent = require("dedent")
 
 const logsArgs = {
   service: new StringsParameter({
-    help: "The name of the service(s) to logs (skip to logs all services). " +
-      "Use comma as separator to specify multiple services.",
+    help: "The name(s) of the service(s) to log (skip to log all services). " +
+      "Use comma as a separator to specify multiple services.",
   }),
 }
 

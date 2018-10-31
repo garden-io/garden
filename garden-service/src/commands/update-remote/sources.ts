@@ -22,7 +22,7 @@ import { SourceConfig } from "../../config/project"
 
 const updateRemoteSourcesArguments = {
   source: new StringsParameter({
-    help: "Name of the remote source(s) to update. Use comma separator to specify multiple sources.",
+    help: "The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.",
   }),
 }
 
@@ -34,11 +34,11 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   arguments = updateRemoteSourcesArguments
 
   description = dedent`
-    Update the remote sources declared in the project config.
+    Updates the remote sources declared in the project level \`garden.yml\` config file.
 
     Examples:
 
-        garden update-remote sources            # update all remote sources in the project config
+        garden update-remote sources            # update all remote sources
         garden update-remote sources my-source  # update remote source my-source
   `
 

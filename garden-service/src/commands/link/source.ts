@@ -42,7 +42,7 @@ export class LinkSourceCommand extends Command<Args> {
   description = dedent`
     After linking a remote source, Garden will read it from its local directory instead of
     from the remote URL. Garden can only link remote sources that have been declared in the project
-    level garden.yml config.
+    level \`garden.yml\` config.
 
     Examples:
 

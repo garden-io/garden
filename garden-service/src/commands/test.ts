@@ -8,6 +8,8 @@
 
 import * as Bluebird from "bluebird"
 import { flatten } from "lodash"
+import dedent = require("dedent")
+
 import {
   BooleanParameter,
   Command,
@@ -25,8 +27,8 @@ import { computeAutoReloadDependants, withDependants } from "../watch"
 
 const testArgs = {
   module: new StringsParameter({
-    help: "The name of the module(s) to deploy (skip to test all modules). " +
-      "Use comma as separator to specify multiple modules.",
+    help: "The name(s) of the module(s) to test (skip to test all modules). " +
+      "Use comma as a separator to specify multiple modules.",
   }),
 }
 
@@ -47,20 +49,20 @@ export class TestCommand extends Command<Args, Opts> {
   name = "test"
   help = "Test all or specified modules."
 
-  description = `
+  description = dedent`
     Runs all or specified tests defined in the project. Also builds modules and dependencies,
-    and deploy service dependencies if needed.
+    and deploys service dependencies if needed.
 
     Optionally stays running and automatically re-runs tests if their module source
     (or their dependencies' sources) change.
 
     Examples:
 
-        garden test              # run all tests in the project
-        garden test my-module    # run all tests in the my-module module
-        garden test -n integ     # run all tests with the name 'integ' in the project
-        garden test --force      # force tests to be re-run, even if they're already run successfully
-        garden test --watch      # watch for changes to code
+        garden test               # run all tests in the project
+        garden test my-module     # run all tests in the my-module module
+        garden test --name integ  # run all tests with the name 'integ' in the project
+        garden test --force       # force tests to be re-run, even if they've already run successfully
+        garden test --watch       # watch for changes to code
   `
 
   arguments = testArgs

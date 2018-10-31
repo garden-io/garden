@@ -162,7 +162,7 @@ export class BooleanParameter extends Parameter<boolean> {
 
 // TODO: maybe this should be a global option?
 export class EnvironmentOption extends StringParameter {
-  constructor({ help = "The environment (and optionally namespace) to work against" } = {}) {
+  constructor({ help = "The environment (and optionally namespace) to work against." } = {}) {
     super({
       help,
       required: false,

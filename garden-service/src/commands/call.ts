@@ -24,7 +24,7 @@ import dedent = require("dedent")
 
 const callArgs = {
   serviceAndPath: new StringParameter({
-    help: "The name of the service(s) to call followed by the ingress path (e.g. my-container/somepath).",
+    help: "The name(s) of the service(s) to call followed by the ingress path (e.g. my-container/somepath).",
     required: true,
   }),
 }
@@ -36,7 +36,7 @@ export class CallCommand extends Command<Args> {
   help = "Call a service ingress endpoint."
 
   description = dedent`
-    This command resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
+    Resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
     outputs the result.
 
     Examples:

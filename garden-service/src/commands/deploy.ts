@@ -7,6 +7,8 @@
  */
 
 import deline = require("deline")
+import dedent = require("dedent")
+
 import {
   BooleanParameter,
   Command,
@@ -24,7 +26,7 @@ import { getNames } from "../util/util"
 const deployArgs = {
   service: new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy (skip to deploy all services).
-      Use comma as separator to specify multiple services.`,
+      Use comma as a separator to specify multiple services.`,
   }),
 }
 
@@ -34,7 +36,7 @@ const deployOpts = {
   watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-deploy.", alias: "w" }),
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
-      Use comma as separator to specify multiple services. When this option is used,
+      Use comma as a separator to specify multiple services. When this option is used,
       the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
     `,
   }),
@@ -47,7 +49,7 @@ export class DeployCommand extends Command<Args, Opts> {
   name = "deploy"
   help = "Deploy service(s) to your environment."
 
-  description = `
+  description = dedent`
     Deploys all or specified services, taking into account service dependency order.
     Also builds modules and dependencies if needed.
 

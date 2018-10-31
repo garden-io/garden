@@ -22,13 +22,13 @@ import { prepareRuntimeContext } from "../../types/service"
 
 const runArgs = {
   service: new StringParameter({
-    help: "The service to run",
+    help: "The service to run.",
     required: true,
   }),
 }
 
 const runOpts = {
-  "force-build": new BooleanParameter({ help: "Force rebuild of module" }),
+  "force-build": new BooleanParameter({ help: "Force rebuild of module." }),
 }
 
 type Args = typeof runArgs
@@ -36,7 +36,7 @@ type Opts = typeof runOpts
 
 export class RunServiceCommand extends Command<Args, Opts> {
   name = "service"
-  help = "Run an ad-hoc instance of the specified service"
+  help = "Run an ad-hoc instance of the specified service."
 
   description = dedent`
     This can be useful for debugging or ad-hoc experimentation with services.
