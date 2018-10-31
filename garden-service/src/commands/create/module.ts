@@ -53,7 +53,6 @@ interface CreateModuleResult extends CommandResult {
 
 export class CreateModuleCommand extends Command<Args, Opts> {
   name = "module"
-  alias = "m"
   help = "Creates a new Garden module."
 
   description = dedent`

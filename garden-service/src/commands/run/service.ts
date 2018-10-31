@@ -36,7 +36,6 @@ type Opts = typeof runOpts
 
 export class RunServiceCommand extends Command<Args, Opts> {
   name = "service"
-  alias = "s"
   help = "Run an ad-hoc instance of the specified service"
 
   description = dedent`

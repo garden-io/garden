@@ -51,7 +51,6 @@ type Opts = typeof runOpts
 
 export class RunModuleCommand extends Command<Args, Opts> {
   name = "module"
-  alias = "m"
   help = "Run an ad-hoc instance of a module."
 
   description = dedent`

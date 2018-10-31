@@ -12,7 +12,6 @@ import { CreateModuleCommand } from "./module"
 
 export class CreateCommand extends Command {
   name = "create"
-  alias = "r"
   help = "Create a new project or add a new module"
 
   subCommands = [

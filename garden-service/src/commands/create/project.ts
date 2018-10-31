@@ -64,7 +64,6 @@ interface CreateProjectResult extends CommandResult {
 
 export class CreateProjectCommand extends Command<Args, Opts> {
   name = "project"
-  alias = "p"
   help = "Creates a new Garden project."
 
   description = dedent`
