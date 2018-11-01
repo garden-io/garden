@@ -40,7 +40,6 @@ type Args = typeof runArgs
 
 export class ExecCommand extends Command<Args> {
   name = "exec"
-  alias = "e"
   help = "Executes a command (such as an interactive shell) in a running service."
 
   description = dedent`

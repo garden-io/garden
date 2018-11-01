@@ -23,7 +23,7 @@ import {
 
 const unlinkModuleArguments = {
   module: new StringsParameter({
-    help: "Name of the module(s) to unlink. Use comma separator to specify multiple modules.",
+    help: "The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.",
   }),
 }
 
@@ -49,8 +49,8 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden unlink module my-module # unlinks my-module
-        garden unlink module --all # unlink all modules
+        garden unlink module my-module  # unlinks my-module
+        garden unlink module --all      # unlink all modules
   `
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {

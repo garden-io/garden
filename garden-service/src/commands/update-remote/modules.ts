@@ -23,7 +23,7 @@ import { hasRemoteSource } from "../../util/ext-source-util"
 
 const updateRemoteModulesArguments = {
   module: new StringsParameter({
-    help: "Name of the remote module(s) to update. Use comma separator to specify multiple modules.",
+    help: "The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.",
   }),
 }
 
@@ -35,8 +35,8 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
   arguments = updateRemoteModulesArguments
 
   description = dedent`
-    Remote modules are modules that have a repositoryUrl field
-    in their garden.yml config that points to a remote repository.
+    Updates remote modules, i.e. modules that have a \`repositoryUrl\` field
+    in their \`garden.yml\` config that points to a remote repository.
 
     Examples:
 

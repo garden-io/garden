@@ -19,7 +19,7 @@ import { describeParameters } from "../commands/base"
 
 export function generateCommandReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
-  const outputPath = resolve(referenceDir, "commands.md")
+  const outputPath = resolve(referenceDir, "command-reference.md")
 
   const commands = flatten(coreCommands.map(cmd => {
     if (cmd.subCommands && cmd.subCommands.length) {

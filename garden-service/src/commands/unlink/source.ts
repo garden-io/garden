@@ -23,7 +23,7 @@ import {
 
 const unlinkSourceArguments = {
   source: new StringsParameter({
-    help: "Name of the source(s) to unlink. Use comma separator to specify multiple sources.",
+    help: "The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.",
   }),
 }
 
@@ -49,8 +49,8 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden unlink source my-source # unlinks my-source
-        garden unlink source --all # unlinks all sources
+        garden unlink source my-source  # unlinks my-source
+        garden unlink source --all      # unlinks all sources
   `
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {

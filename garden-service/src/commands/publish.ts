@@ -23,8 +23,8 @@ import dedent = require("dedent")
 
 const publishArgs = {
   module: new StringsParameter({
-    help: "The name of the module(s) to publish (skip to publish all modules). " +
-      "Use comma as separator to specify multiple modules.",
+    help: "The name(s) of the module(s) to publish (skip to publish all modules). " +
+      "Use comma as a separator to specify multiple modules.",
   }),
 }
 

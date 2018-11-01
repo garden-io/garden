@@ -49,7 +49,6 @@ type Opts = typeof runOpts
 
 export class RunTestCommand extends Command<Args, Opts> {
   name = "test"
-  alias = "t"
   help = "Run the specified module test."
 
   description = dedent`

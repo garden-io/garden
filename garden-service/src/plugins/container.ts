@@ -121,7 +121,8 @@ const hotReloadConfigSchema = Joi.object()
     When this field is used, the files or directories specified within are automatically synced into the
     running container when they're modified. Additionally, any of this module's services that define a
     \`hotReloadCommand\` will be run with that command instead of the one specified in their \`command\` field.
-    This behavior is only active while a Garden command with the -w (watch) flag, or \`garden dev\`, is running.`)
+    Services are only deployed with hot reloading enabled when their names are passed to the \`--hot-reload\` option
+    in a call to the \`deploy\` or \`dev\` command.`)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
@@ -149,7 +150,7 @@ const healthCheckSchema = Joi.object()
           .description("The name of the port where the service's health check endpoint should be available."),
         scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
       })
-      .description("Set this to check the service's health by making an HTTP request"),
+      .description("Set this to check the service's health by making an HTTP request."),
     command: Joi.array().items(Joi.string())
       .description("Set this to check the service's health by running a command in its container."),
     tcpPort: Joi.string()
@@ -160,7 +161,7 @@ const portSchema = Joi.object()
   .keys({
     name: joiIdentifier()
       .required()
-      .description("The name of the port (used when referencing the port elsewhere in the service configuration."),
+      .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
     protocol: Joi.string()
       .allow("TCP", "UDP")
       .default(DEFAULT_PORT_PROTOCOL)
@@ -208,8 +209,8 @@ const serviceSchema = baseServiceSchema
     hotReloadCommand: Joi.array().items(Joi.string())
       .description(deline`
         If this module uses the \`hotReload\` field, the container will be run with
-        these arguments instead of those in \`command\` while a Garden command with the -w
-        (watch) flag, or \`garden dev\`, is running.`,
+        these arguments instead of those in \`command\` when the service is deployed
+        with hot reloading enabled.`,
       ),
     ports: joiArray(portSchema)
       .unique("name")
@@ -271,18 +272,18 @@ export const containerModuleSpecSchema = Joi.object()
     buildArgs: Joi.object()
       .pattern(/.+/, joiPrimitive())
       .default(() => ({}), "{}")
-      .description("Specify build arguments when building the container image."),
+      .description("Specify build arguments to use when building the container image."),
     // TODO: validate the image name format
     image: Joi.string()
       .description(deline`
-        Specify the image name for the container. Should be a valid docker image identifier. If specified and
-        the module does not contain a Dockerfile, this image will be used to deploy the container services.
+        Specify the image name for the container. Should be a valid Docker image identifier. If specified and
+        the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
     dockerfile: Joi.string().uri(<any>{ relativeOnly: true })
       .description("POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile."),
     services: joiArray(serviceSchema)
       .unique("name")
-      .description("List of services to deploy from this container module."),
+      .description("The list of services to deploy from this container module."),
     tests: joiArray(containerTestSchema)
       .description("A list of tests to run in the module."),
     hotReload: hotReloadConfigSchema,

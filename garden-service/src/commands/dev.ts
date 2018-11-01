@@ -8,6 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import deline = require("deline")
+import dedent = require("dedent")
 import chalk from "chalk"
 import { readFile } from "fs-extra"
 import { flatten } from "lodash"
@@ -38,7 +39,7 @@ const devArgs = {}
 const devOpts = {
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
-      Use comma as separator to specify multiple services.
+      Use comma as a separator to specify multiple services.
     `}),
 }
 
@@ -50,7 +51,7 @@ export class DevCommand extends Command<Args, Opts> {
   name = "dev"
   help = "Starts the garden development console."
 
-  description = `
+  description = dedent`
     The Garden dev console is a combination of the \`build\`, \`deploy\` and \`test\` commands.
     It builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests
     as you modify the code.

@@ -24,7 +24,7 @@ import { hotReloadAndLog } from "./helpers"
 
 const buildArguments = {
   module: new StringsParameter({
-    help: "Specify module(s) to build. Use comma separator to specify multiple modules.",
+    help: "Specify module(s) to build. Use comma as a separator to specify multiple modules.",
   }),
 }
 

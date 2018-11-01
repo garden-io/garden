@@ -28,7 +28,7 @@ import { ensureDir } from "fs-extra"
 
 const createModuleOptions = {
   name: new StringParameter({
-    help: "Assigns a custom name to the module. (Defaults to name of the current directory.)",
+    help: "Assigns a custom name to the module (defaults to name of the current directory)",
   }),
   type: new ChoicesParameter({
     help: "Type of module.",
@@ -38,7 +38,7 @@ const createModuleOptions = {
 
 const createModuleArguments = {
   "module-dir": new StringParameter({
-    help: "Directory of the module. (Defaults to current directory.)",
+    help: "Directory of the module (defaults to current directory).",
   }),
 }
 
@@ -53,12 +53,9 @@ interface CreateModuleResult extends CommandResult {
 
 export class CreateModuleCommand extends Command<Args, Opts> {
   name = "module"
-  alias = "m"
   help = "Creates a new Garden module."
 
   description = dedent`
-    Creates a new Garden module of the given type
-
     Examples:
 
         garden create module # creates a new module in the current directory (module name defaults to directory name)

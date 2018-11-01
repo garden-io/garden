@@ -37,16 +37,16 @@ import { projectSchema } from "../../config/project"
 
 const createProjectOptions = {
   "module-dirs": new PathsParameter({
-    help: "Relative path to modules directory. Use comma as a separator to specify multiple directories",
+    help: "Relative path to modules directory. Use comma as a separator to specify multiple directories.",
   }),
   name: new StringParameter({
-    help: "Assigns a custom name to the project. (Defaults to name of the current directory.)",
+    help: "Assigns a custom name to the project (defaults to name of the current directory).",
   }),
 }
 
 const createProjectArguments = {
   "project-dir": new StringParameter({
-    help: "Directory of the project. (Defaults to current directory.)",
+    help: "Directory of the project (defaults to current directory).",
   }),
 }
 
@@ -64,11 +64,10 @@ interface CreateProjectResult extends CommandResult {
 
 export class CreateProjectCommand extends Command<Args, Opts> {
   name = "project"
-  alias = "p"
   help = "Creates a new Garden project."
 
   description = dedent`
-    The 'create project' command walks the user through setting up a new Garden project and
+    Walks the user through setting up a new Garden project and
     generates scaffolding based on user input.
 
     Examples:
@@ -76,8 +75,8 @@ export class CreateProjectCommand extends Command<Args, Opts> {
         garden create project # creates a new Garden project in the current directory (project name defaults to
         directory name)
         garden create project my-project # creates a new Garden project in my-project directory
-        garden create project --module-dirs=path/to/modules1,path/to/modules2
-        # creates a new Garden project and looks for pre-existing modules in the modules1 and modules2 directories
+        garden create project --module-dirs=path/to/modules-a,path/to/modules-b
+        # creates a new Garden project and looks for pre-existing modules in the modules-a and modules-b directories
         garden create project --name my-project
         # creates a new Garden project in the current directory and names it my-project
   `
