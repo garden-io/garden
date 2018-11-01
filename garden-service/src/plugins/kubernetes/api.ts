@@ -15,7 +15,7 @@ import {
   Apiextensions_v1beta1Api,
   V1Secret,
   Policy_v1beta1Api,
-} from "@kubernetes/client-node"
+} from "@drubin/client-node"
 import { join } from "path"
 import { readFileSync } from "fs"
 import { safeLoad } from "js-yaml"
