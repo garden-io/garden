@@ -114,7 +114,6 @@ async function checkPodStatus(obj: KubernetesObject, pods: V1Pod[]): Promise<Rol
 export async function checkDeploymentStatus(
   api: KubeApi, namespace: string, obj: KubernetesObject, resourceVersion?: number,
 ): Promise<RolloutStatus> {
-  //
   const out: RolloutStatus = {
     state: "unhealthy",
     obj,
@@ -301,10 +300,24 @@ export async function checkObjectStatus(
   const statuses: RolloutStatus[] = await Bluebird.map(objects, async (obj, i) => {
     const handler = objHandlers[obj.kind]
     const prevStatus = prevStatuses && prevStatuses[i]
-    const status: RolloutStatus = handler
-      ? await handler(api, namespace, obj, prevStatus && prevStatus.resourceVersion)
+    let status: RolloutStatus
+    if (handler) {
+      try {
+        status = await handler(api, namespace, obj, prevStatus && prevStatus.resourceVersion)
+      } catch (err) {
+        // We handle 404s specifically since this might be invoked before some objects are deployed
+        // See: https://github.com/garden-io/garden/issues/353
+        // TODO: Figure out whether we'll need this check after issue #353 above has been resolved
+        if (err.code === 404) {
+          status = { state: "missing", obj }
+        } else {
+          throw err
+        }
+      }
+    } else {
       // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
-      : { state: "ready", obj }
+      status = { state: "ready", obj }
+    }
 
     if (status.state !== "ready") {
       ready = false
