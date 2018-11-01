@@ -307,4 +307,4 @@ module:
 
 And that's it! Our services are up and running locally, dependencies are resolved, and tests are ready to run.
 
-Check out some of our other [Example projects](./examples/README.md) for more of an in-depth look.
+Check out some of our other [Example projects](./README.md) for more of an in-depth look.

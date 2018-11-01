@@ -1,7 +1,7 @@
 ## garden.yml reference
 
 Below is the full schema for the `garden.yml` configuration files. For an introduction,
-please look at our [configuration guide](../guides/configuration.md).
+please look at our [configuration guide](../using-garden/configuration-files.md).
 
 Note that individual module types, e.g. `container`, add additional configuration keys. The built-in module types
 are listed in the [Built-in module types](#built-in-module-types) section. Please refer to those for more details

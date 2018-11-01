@@ -1,6 +1,6 @@
 # Features and Usage
 
-Now that you've had a glimpse of the basic Garden commands in the [Quick Start](./basics/quick-start.md) guide, and a brief look at the main [Concepts](../basics/concepts.md) we'll be dealing with, let's go through what some typical Garden workflows look like.
+Now that you've had a glimpse of the basic Garden commands in the [Quick Start](../basics/quick-start.md) guide, and a brief look at the main [Concepts](../basics/concepts.md) we'll be dealing with, let's go through what some typical Garden workflows look like.
 
 ## Starting a new project
 
