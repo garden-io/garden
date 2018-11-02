@@ -1,0 +1,6 @@
+#!/bin/bash -e
+
+# linter before git check so we can lint docs even if they are 'dirty'
+find docs -name '*.md' -type f -exec markdown-link-check  {} \;
+
+git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date!' && exit 1)
