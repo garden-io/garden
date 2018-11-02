@@ -37,13 +37,13 @@ Garden is also designed to be pluggable and modular, with Kubernetes being just 
 Over time we will add native support for a variety of platforms, including AWS (Lambda, ECS, Fargate and more),
 GCP, Heroku, OpenFaaS... and the list will continue growing.
 
-Please read the [Motivation](https://docs.garden.io/introduction/motivation) section in our documentation
+Please read the [Motivation](https://docs.garden.io/home#motivation) section in our documentation
 for a brief discussion on why we're building Garden.
 
 
 ## Usage
 
-Head over to our [Getting Started guide](https://docs.garden.io/introduction/getting-started) for details
+Head over to the [Basics](https://docs.garden.io/basics) section in our documentation for details
 on how to set up and use Garden, or look through our [Simple Project](https://docs.garden.io/examples/simple-project)
 guide to get a quick sense of how it works.
 
