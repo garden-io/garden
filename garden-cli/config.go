@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/garden-io/garden/garden-cli/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -25,7 +26,7 @@ func findProject(cwd string) (string, string) {
 
 		if _, err := os.Stat(configPath); !os.IsNotExist(err) {
 			configYaml, err := ioutil.ReadFile(configPath)
-			check(err)
+			util.Check(err)
 
 			config := Config{}
 
@@ -53,7 +54,7 @@ func findProject(cwd string) (string, string) {
 // TODO: might wanna use a lockfile for concurrency here
 func getProjectID(projectDir string) string {
 	gardenDir := path.Join(projectDir, ".garden")
-	ensureDir(gardenDir)
+	util.EnsureDir(gardenDir)
 
 	idPath := path.Join(gardenDir, "id")
 
@@ -61,12 +62,12 @@ func getProjectID(projectDir string) string {
 
 	if _, err := os.Stat(idPath); !os.IsNotExist(err) {
 		idData, err := ioutil.ReadFile(idPath)
-		check(err)
+		util.Check(err)
 		projectID = strings.TrimSpace(string(idData))
 	} else {
-		projectID = randSeq(8)
+		projectID = util.RandSeq(8)
 		err := ioutil.WriteFile(idPath, []byte(projectID), 0644)
-		check(err)
+		util.Check(err)
 	}
 
 	return projectID
@@ -74,10 +75,10 @@ func getProjectID(projectDir string) string {
 
 func getGardenHomeDir() string {
 	// TODO: allow override via env var
-	homeDir := getHomeDir()
+	homeDir := util.GetHomeDir()
 	gardenHome := path.Join(homeDir, ".garden")
 
-	ensureDir(gardenHome)
+	util.EnsureDir(gardenHome)
 
 	return gardenHome
 }

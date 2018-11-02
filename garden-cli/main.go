@@ -6,12 +6,30 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/garden-io/garden/garden-cli/dockerutil"
+	"github.com/garden-io/garden/garden-cli/util"
 )
+
+// A CLI for running Garden commands in a garden-service container.
+//
+// For a new project the flow is as follows:
+//
+// 	1. Create a named garden-sync volume for the project
+// 	2.1 Create and start a garden-sync container, mount the named volume and bind
+// 	mount the project directory
+// 	2.2 Sync the contents of the mounted project directory into the named volume
+// 	2.3 Start a process inside the sync-container that watches for changes to the mounted project directory and
+// 	syncs with the volume
+// 	3.1 Start a garden-service container and mount the garden-sync volume
+// 	3.2 Run the command inside the garden-service container
+//
+// For an existing project the CLI execs into to garden-service container and runs the command.
 
 func main() {
 	// find the project garden.yml
 	cwd, err := os.Getwd()
-	check(err)
+	util.Check(err)
 
 	_, projectName := findProject(cwd)
 
@@ -21,12 +39,23 @@ func main() {
 		log.Fatal("Could not find git (Garden requires git to be installed)")
 	}
 
+	_, err = exec.LookPath("docker")
+	if err != nil {
+		log.Fatal("Could not find docker - Garden requires docker to be installed in order to run.")
+	}
+
 	_, err = exec.LookPath("kubectl")
 	if err != nil {
 		log.Fatal(
 			"Could not find kubectl " +
 				"(Garden requires a configured local Kubernetes cluster and for kubectl to be configured to access it)",
 		)
+	}
+
+	// make sure the docker daemon is running
+	_, err = dockerutil.Ping()
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
 	cmd := exec.Command(git, "rev-parse", "--show-toplevel")
@@ -41,29 +70,16 @@ func main() {
 
 	// run the command in the service container
 	relPath, err := filepath.Rel(strings.TrimSpace(gitRoot), cwd)
-	check(err)
+	util.Check(err)
 
-	args := os.Args[1:]
-	watch := fsWatchEnabled(args)
+	err = runSyncService(projectName, gitRoot, relPath)
+	util.Check(err)
 
-	if watch {
-		err := runSyncContainer(projectName, gitRoot, relPath)
-		check(err)
+	err = runGardenService(projectName, gitRoot, relPath, os.Args[1:])
+	// do not print error if garden-service errors or if SIGINT
+	if err != nil && err.Error() != "exit status 1" && err.Error() != "exit status 130" {
+		util.Check(err)
+		os.Exit(1)
 	}
 
-	err = runGardenService(projectName, gitRoot, relPath, watch, args)
-	check(err)
-}
-
-// FIXME: We need a proper way to check if the command requires file system watch. This is not it.
-func fsWatchEnabled(args []string) bool {
-	if len(args) > 0 && args[0] == "dev" {
-		return true
-	}
-	for _, el := range args {
-		if el == "--watch" || el == "-w" || el == "hot-reload" {
-			return true
-		}
-	}
-	return false
 }
