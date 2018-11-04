@@ -19,4 +19,5 @@
   * [Glossary](./reference/glossary.md)
   * [Commands Reference](./reference/command-reference.md)
   * [Config Files Reference](./reference/config-files-reference.md)
+  * [Template Strings Reference](./reference/template-strings.md)
 * [FAQs](./faqs.md)
