@@ -27,13 +27,9 @@ WORKDIR /garden
 
 # npm dependencies
 ADD scripts /garden/scripts
-ADD vendor /garden/vendor
 ADD package.json package-lock.json /garden/
 
-# npm screws up the preinstall script, so we need to run it manually
-RUN ./scripts/installVendorDeps.sh && \
-  npm install --production --ignore-scripts && \
-  npm cache clean --force
+RUN npm install --production
 
 # garden code
 ADD bin /garden/bin
