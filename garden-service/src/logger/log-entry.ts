@@ -30,7 +30,7 @@ export interface UpdateOpts {
   showDuration?: boolean
   error?: GardenError
   status?: EntryStatus
-  indentationLevel?: number
+  indent?: number
 }
 
 export interface CreateOpts extends UpdateOpts {
@@ -103,12 +103,12 @@ export class LogEntry extends LogNode {
 
   createNode(level: LogLevel, parent: LogNode, param?: CreateParam) {
     // Empty entries inherit their parent's indentation level
-    let { indentationLevel } = this.opts
+    let { indent } = this.opts
     if (param) {
-      indentationLevel = (indentationLevel || 0) + 1
+      indent = (indent || 0) + 1
     }
     const opts = {
-      indentationLevel,
+      indent,
       ...resolveParam(param),
     }
     return new LogEntry({ level, opts, parent })
