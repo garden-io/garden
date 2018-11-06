@@ -1,18 +1,30 @@
-# Javascript Node CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-javascript/ for more details
-#
-version: 2
-jobs:
-  build-go:
+# Javascript Node CircleCI 2.1 configuration file
+version: 2.1
+
+# Shared config to use between jobs
+# These can be used to inject shared variables
+# see https://blog.daemonl.com/2016/02/yaml.html
+.references:
+  go-config: &go-config
     docker:
-      - image: circleci/golang:1.10
+    - image: circleci/golang:1.10
     working_directory: /go/src/github.com/garden-io/garden
+
+  node-config: &node-config
+    docker:
+      - image: circleci/node:10
+
+# Reuseable commands to execute in jobs
+# see https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version21
+# and example https://github.com/mapbox/mapbox-gl-native/blob/master/circle.yml
+commands:
+  go_install_deps:
+    description: "Installs and caches dependencies with dep"
     steps:
-      - checkout
       - restore_cache:
           keys:
             - pkg-cache-{{ checksum "Gopkg.lock" }}
+      - run: go get -u github.com/jstemmer/go-junit-report
       - run:
           name: Install dep
           command: |
@@ -25,34 +37,34 @@ jobs:
           key: pkg-cache-{{ checksum "Gopkg.lock" }}
           paths:
             - "/go/src/github.com/garden-io/garden/vendor"
+
+jobs:
+  test-go:
+    <<: *go-config
+    steps:
+      - checkout
+      - go_install_deps
       - run:
-          name: Build All
+          name: Unit Tests
           command: |
             cd garden-cli
-            package_name="garden"
-            platforms=("windows/amd64" "windows/386" "darwin/amd64" "linux/amd64")
-            for platform in "${platforms[@]}"
-            do
-                platform_split=(${platform//\// })
-                GOOS=${platform_split[0]}
-                GOARCH=${platform_split[1]}
-                output_name=$package_name'-'$GOOS'-'$GOARCH
-                if [ $GOOS = "windows" ]; then
-                    output_name+='.exe'
-                fi
-
-                env GOOS=$GOOS GOARCH=$GOARCH go build -o build/$output_name
-                if [ $? -ne 0 ]; then
-                    echo 'An error has occurred! Aborting the script execution...'
-                    exit 1
-                fi
-            done
+            go test -v 2>&1 | go-junit-report > /tmp/report.xml
       - store_artifacts:
-          path: garden-cli/build
+          path: /tmp/report.xml
+      - store_test_results:
+          path: /tmp/
+  build-go:
+    <<: *go-config
+    steps:
+      - checkout
+      - go_install_deps
+      - run: go get -u github.com/goreleaser/goreleaser
+      - run: cd garden-cli && goreleaser --snapshot --rm-dist
+      - store_artifacts:
+          path: garden-cli/dist/
           destination: /downloads
   test-node:
-    docker:
-      - image: circleci/node:10
+    <<: *node-config
     steps:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
@@ -99,5 +111,8 @@ workflows:
  version: 2
  all-tests:
    jobs:
-     - build-go
+     - test-go
      - test-node
+     # Fast enough to run on every branch
+     - build-go
+
