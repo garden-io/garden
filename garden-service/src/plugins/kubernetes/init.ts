@@ -152,6 +152,8 @@ export async function cleanupEnvironment({ ctx, logEntry }: CleanupEnvironmentPa
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
 
+  entry && entry.setSuccess()
+
   await logout({ ctx, logEntry })
 
   // Wait until namespace has been deleted

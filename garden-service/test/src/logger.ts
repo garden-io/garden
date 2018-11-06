@@ -192,10 +192,10 @@ describe("LogEntry", () => {
       const deepDeepNested = deepNested.info("deep deep inside")
       const deepDeepEmpty = deepDeepNested.info()
       const indentations = [
-        nested.opts.indentationLevel,
-        deepNested.opts.indentationLevel,
-        deepDeepNested.opts.indentationLevel,
-        deepDeepEmpty.opts.indentationLevel,
+        nested.opts.indent,
+        deepNested.opts.indent,
+        deepDeepNested.opts.indent,
+        deepDeepEmpty.opts.indent,
       ]
       expect(indentations).to.eql([1, 2, 3, 3])
     })
