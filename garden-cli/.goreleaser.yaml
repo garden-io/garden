@@ -1,0 +1,24 @@
+project_name: garden-cli
+
+
+archive:
+  format_overrides:
+    - goos: windows
+      format: zip
+
+builds:
+  - binary: garden
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      # -s Omit the symbol table and debug information.
+      # -w Omit the DWARF symbol table.
+      # These are the defaults specified by goreleaser:
+      # https://github.com/goreleaser/goreleaser/blob/682c811106f56ffe06c4212de546aec62161fb9d/internal/builders/golang/build.go#L46
+      - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}}
