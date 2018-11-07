@@ -55,14 +55,14 @@
     "preversion": "npm test",
     "release": "./bin/publish",
     "release-canary": "./bin/publish-canary",
-    "test": "npm run lint && npm run clean && gulp test",
-    "ci-build": "gulp garden-service:build",
-    "ci-test": "gulp test"
+    "test": "gulp test",
+    "ci-build": "gulp garden-service:ci-build",
+    "ci-test": "gulp garden-service:mocha"
   },
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E GIT_PARAMS",
-      "pre-push": "npm run check-package-lock && npm test && npm run integ"
+      "pre-push": "npm run check-package-lock && npm run lint && npm test && npm run integ"
     }
   },
   "snyk": true,

@@ -126,6 +126,11 @@ module.exports = (gulp) => {
     gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc"),
     "build-container",
   ))
+
+  gulp.task("ci-build", gulp.parallel(
+    "add-version-files", "generate-docs", "pegjs", "tsc",
+  ))
+
   gulp.task("test", gulp.parallel("build", "mocha"))
   gulp.task("watch", gulp.parallel("pegjs-watch", "watch-code"))
   gulp.task("watch-light", gulp.parallel("pegjs-watch", "tsc-watch", "watch-code-light"))
