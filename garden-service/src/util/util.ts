@@ -133,6 +133,8 @@ export async function getIgnorer(rootPath: string): Promise<Ignorer> {
     ".git",
     "*.log",
     GARDEN_DIR_NAME,
+    // TODO Take a better look at the temp files mutagen creates
+    ".mutagen-*",
   ])
 
   return ig
