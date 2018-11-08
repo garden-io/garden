@@ -8,23 +8,28 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/garden-io/garden/garden-cli/dockerutil"
 	"github.com/garden-io/garden/garden-cli/util"
+	"github.com/pkg/errors"
 )
 
-func runGardenService(projectName string, gitRoot string, relPath string, args []string) error {
+// Runs the garden service container and executes the command inside the container
+func runServiceContainer(containerName string, volumeName string, relPath string) error {
 	homeDir := util.GetHomeDir()
 	gardenHomeDir := getGardenHomeDir()
-	projectID := getProjectID(gitRoot)
-	containerName := "garden-service--" + projectName + "-" + projectID
 	workingDir := path.Join(ProjectPath, relPath)
-	volumeName := dockerutil.GetVolumeName(projectName, projectID)
 
-	serviceContainer, found := dockerutil.FindContainer(containerName)
-
-	if found && serviceContainer.State != "running" {
-		err := dockerutil.StartContainer(serviceContainer.ID)
-		util.Check(err)
+	serviceContainer, found, err := dockerutil.FindContainer(containerName)
+	if err != nil {
+		return err
 	}
 
+	// Start the container if found but not running
+	if found && serviceContainer.State != "running" {
+		if err := dockerutil.StartContainer(serviceContainer.ID); err != nil {
+			return errors.Wrap(err, "unable to start garden service container")
+		}
+	}
+
+	// Create and run the container if not found
 	if !found {
 		volumeMounts := []mount.Mount{
 			{
@@ -37,8 +42,7 @@ func runGardenService(projectName string, gitRoot string, relPath string, args [
 			"/var/run/docker.sock:/var/run/docker.sock",
 			fmt.Sprintf("%s/.docker:/root/.docker", homeDir),
 			fmt.Sprintf("%s/.kube:/root/.kube", homeDir),
-			// we mount ~/.git and ~/.ssh to allow the container to pull down private git repos
-			fmt.Sprintf("%s/.git:/root/.git", homeDir),
+			// we mount ~/.ssh to allow the container to pull down private git repos
 			fmt.Sprintf("%s/.ssh:/root/.ssh", homeDir),
 			fmt.Sprintf("%s:/root/.garden", gardenHomeDir),
 		}
@@ -58,11 +62,10 @@ func runGardenService(projectName string, gitRoot string, relPath string, args [
 			NetworkMode: "host", // TODO Test if correct
 		}
 
-		_, err := dockerutil.RunContainer(containerConfig, hostConfig, containerName)
-		util.Check(err)
+		if _, err := dockerutil.RunContainer(containerConfig, hostConfig, containerName); err != nil {
+			return errors.Wrap(err, "unable to run garden service container")
+		}
 	}
 
-	// run the command inside the garden-service container
-	execArgs := append([]string{"exec", "-it", containerName, "garden"}, args...)
-	return dockerutil.Exec(execArgs, false)
+	return nil
 }

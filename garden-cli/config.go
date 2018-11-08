@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -71,6 +72,10 @@ func getProjectID(projectDir string) string {
 	}
 
 	return projectID
+}
+
+func makeResourceName(prefix string, name string, id string) string {
+	return fmt.Sprintf("%s--%s-%s", prefix, name, id)
 }
 
 func getGardenHomeDir() string {

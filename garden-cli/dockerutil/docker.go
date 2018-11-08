@@ -1,8 +1,8 @@
+// Package dockerutil containes utility funtions for interacting with the Docker SDK.
 package dockerutil
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/exec"
 
@@ -12,21 +12,28 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/garden-io/garden/garden-cli/util"
+	"github.com/pkg/errors"
 )
 
 func RunContainer(
 	containerConfig container.Config, hostConfig container.HostConfig, containerName string,
 ) (container.ContainerCreateCreatedBody, error) {
-	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	util.Check(err)
 
-	resp, err := cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, containerName)
-	util.Check(err)
+	var resp container.ContainerCreateCreatedBody
+	ctx := context.Background()
 
-	err = StartContainer(resp.ID)
+	resp, err = cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, containerName)
+	if err != nil {
+		return resp, errors.Wrap(err, "unable to run container "+containerName)
+	}
 
-	return resp, err
+	if err := StartContainer(resp.ID); err != nil {
+		return resp, errors.Wrap(err, "unable to start container "+containerName)
+	}
+
+	return resp, nil
 }
 
 func StartContainer(containerID string) error {
@@ -37,11 +44,7 @@ func StartContainer(containerID string) error {
 }
 
 func Exec(args []string, silent bool) error {
-	binary, err := exec.LookPath("docker")
-	if err != nil {
-		log.Fatal("Could not find docker - Garden requires docker to be installed in order to run.")
-	}
-
+	binary := util.GetBin("docker")
 	cmd := exec.Command(binary, args...)
 
 	cmd.Env = os.Environ()
@@ -54,64 +57,64 @@ func Exec(args []string, silent bool) error {
 	return cmd.Run()
 }
 
-func FindContainer(containerName string) (types.Container, bool) {
+func FindContainer(containerName string) (types.Container, bool, error) {
 	cli, err := client.NewEnvClient()
 	util.Check(err)
+
+	var container types.Container
+	found := false
 
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
 		All: true,
 	})
-	util.Check(err)
-
-	var container types.Container
+	if err != nil {
+		return container, found, errors.Wrap(err, "unable to get container list")
+	}
 
 	for _, con := range containers {
 		if con.Names[0] == "/"+containerName {
-			container = con
-			return container, true
+			found = true
+			return con, found, nil
 		}
 	}
-	return container, false
+	return container, found, nil
 }
 
 func StopContainer(id string) error {
 	cli, err := client.NewEnvClient()
 	util.Check(err)
 
-	err = cli.ContainerStop(context.Background(), id, nil)
-	return err
+	return cli.ContainerStop(context.Background(), id, nil)
 }
 
-func CreateVolume(volumeName string) error {
+func CreateVolume(volumeName string) (types.Volume, error) {
 	cli, err := client.NewEnvClient()
 	util.Check(err)
 
-	_, err = cli.VolumeCreate(context.Background(), volume.VolumesCreateBody{
+	return cli.VolumeCreate(context.Background(), volume.VolumesCreateBody{
 		Name: volumeName,
 	})
-	return err
 }
 
-func FindVolume(volumeName string) (*types.Volume, bool) {
+func FindVolume(volumeName string) (*types.Volume, bool, error) {
 	cli, err := client.NewEnvClient()
 	util.Check(err)
 
-	volumeResponse, err := cli.VolumeList(context.Background(), filters.NewArgs())
-	util.Check(err)
-
+	found := false
 	var volume *types.Volume
+
+	volumeResponse, err := cli.VolumeList(context.Background(), filters.NewArgs())
+	if err != nil {
+		return volume, found, errors.Wrap(err, "unable to get volume list")
+	}
 
 	for _, vol := range volumeResponse.Volumes {
 		if vol.Name == volumeName {
-			volume = vol
-			return volume, true
+			found = true
+			return vol, found, nil
 		}
 	}
-	return volume, false
-}
-
-func GetVolumeName(projectName string, projectID string) string {
-	return "garden-volume--" + projectName + "-" + projectID
+	return volume, found, nil
 }
 
 func Ping() (types.Ping, error) {

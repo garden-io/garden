@@ -1,8 +1,11 @@
 package util
 
 import (
+	"fmt"
+	"log"
 	"math/rand"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/mitchellh/go-homedir"
@@ -43,4 +46,12 @@ func GetHomeDir() string {
 // Makes sure the given directory path exists.
 func EnsureDir(path string) {
 	os.MkdirAll(path, os.ModePerm)
+}
+
+func GetBin(binary string) string {
+	binary, err := exec.LookPath(binary)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Could not find %s - Garden requires %s to be installed in order to run.", binary, binary))
+	}
+	return binary
 }
