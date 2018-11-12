@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ValidateModuleParams } from "../../types/plugin/params"
+import { ConfigureModuleParams } from "../../types/plugin/params"
 import { join } from "path"
 import {
   GcfModule,
-  parseGcfModule,
+  configureGcfModule,
 } from "../google/google-cloud-functions"
 import {
   GardenPlugin,
@@ -33,8 +33,8 @@ export const gardenPlugin = (): GardenPlugin => ({
 
   moduleActions: {
     "google-cloud-function": {
-      async validate(params: ValidateModuleParams<GcfModule>) {
-        const parsed = await parseGcfModule(params)
+      async configure(params: ConfigureModuleParams<GcfModule>) {
+        const parsed = await configureGcfModule(params)
 
         // convert the module and services to containers to run locally
         const serviceConfigs: ServiceConfig<ContainerServiceSpec>[] = parsed.serviceConfigs.map((s) => {

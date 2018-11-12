@@ -27,7 +27,7 @@ import { mapValues, fromPairs } from "lodash"
 import {
   DeleteSecretParams,
   GetSecretParams,
-  ValidateModuleParams,
+  ConfigureModuleParams,
   RunModuleParams,
   RunServiceParams,
   RunTaskParams,
@@ -92,7 +92,7 @@ export const testModuleSpecSchema = containerModuleSpecSchema
     tasks: joiArray(testModuleTaskSchema),
   })
 
-export async function validateTestModule({ moduleConfig }: ValidateModuleParams) {
+export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
   moduleConfig.spec = validate(
     moduleConfig.spec,
     testModuleSpecSchema,
@@ -155,7 +155,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
     moduleActions: {
       test: {
         testModule: testExecModule,
-        validate: validateTestModule,
+        configure: configureTestModule,
         build: buildExecModule,
         runModule,
 

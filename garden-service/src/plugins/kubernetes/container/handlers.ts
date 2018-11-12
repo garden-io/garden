@@ -12,15 +12,15 @@ import { getServiceLogs } from "./logs"
 import { execInService, runContainerModule, runContainerService, runContainerTask } from "./run"
 import { testContainerModule } from "./test"
 import { ConfigurationError } from "../../../exceptions"
-import { validateContainerModule } from "../../container/container"
+import { configureContainerModule } from "../../container/container"
 import { KubernetesProvider } from "../kubernetes"
-import { ValidateModuleParams } from "../../../types/plugin/params"
+import { ConfigureModuleParams } from "../../../types/plugin/params"
 import { getContainerServiceStatus, getServiceOutputs } from "./status"
 import { getTestResult } from "../test"
 import { ContainerModule } from "../../container/config"
 
-async function validate(params: ValidateModuleParams<ContainerModule>) {
-  const config = await validateContainerModule(params)
+async function configure(params: ConfigureModuleParams<ContainerModule>) {
+  const config = await configureContainerModule(params)
 
   // validate ingress specs
   const provider: KubernetesProvider = params.ctx.provider
@@ -49,6 +49,7 @@ async function validate(params: ValidateModuleParams<ContainerModule>) {
 }
 
 export const containerHandlers = {
+  configure,
   deployService: deployContainerService,
   deleteService,
   execInService,
@@ -62,5 +63,4 @@ export const containerHandlers = {
   runService: runContainerService,
   runTask: runContainerTask,
   testModule: testContainerModule,
-  validate,
 }

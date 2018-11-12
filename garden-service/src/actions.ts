@@ -402,7 +402,7 @@ export class ActionHelper implements TypeGuard {
     return (<Function>handler)(handlerParams)
   }
 
-  private async callModuleHandler<T extends keyof Omit<ModuleActions, "describeType" | "validate">>(
+  private async callModuleHandler<T extends keyof Omit<ModuleActions, "describeType" | "configure">>(
     { params, actionType, defaultHandler }:
       { params: ModuleActionHelperParams<ModuleActionParams[T]>, actionType: T, defaultHandler?: ModuleActions[T] },
   ): Promise<ModuleActionOutputs[T]> {

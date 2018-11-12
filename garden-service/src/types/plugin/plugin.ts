@@ -38,7 +38,7 @@ import {
   getServiceLogsParamsSchema,
   runServiceParamsSchema,
   describeModuleTypeParamsSchema,
-  validateModuleParamsSchema,
+  configureModuleParamsSchema,
   getBuildStatusParamsSchema,
   buildModuleParamsSchema,
   pushModuleParamsSchema,
@@ -71,7 +71,7 @@ import {
   TaskActionOutputs,
   setSecretResultSchema,
   testResultSchema,
-  validateModuleResultSchema,
+  configureModuleResultSchema,
   publishModuleResultSchema,
   taskStatusSchema,
   runTaskResultSchema,
@@ -291,9 +291,9 @@ export const moduleActionDescriptions:
     paramsSchema: describeModuleTypeParamsSchema,
     resultSchema: moduleTypeDescriptionSchema,
   },
-  validate: {
+  configure: {
     description: dedent`
-      Validate and optionally transform the given module configuration.
+      Validate and transform the given module configuration.
 
       Note that this does not need to perform structural schema validation (the framework does that
       automatically), but should in turn perform semantic validation to make sure the configuration is sane.
@@ -303,8 +303,8 @@ export const moduleActionDescriptions:
       framework configuration fields, this action needs to specify those via the \`serviceConfigs\` and
       \`testConfigs\` output keys.
     `,
-    paramsSchema: validateModuleParamsSchema,
-    resultSchema: validateModuleResultSchema,
+    paramsSchema: configureModuleParamsSchema,
+    resultSchema: configureModuleResultSchema,
   },
 
   getBuildStatus: {

@@ -3,16 +3,14 @@ import { Garden } from "../../../src/garden"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
 import { buildExecModule } from "../../../src/plugins/exec"
-import {
-  PluginFactory,
-} from "../../../src/types/plugin/plugin"
+import { PluginFactory } from "../../../src/types/plugin/plugin"
 import {
   DeployServiceParams,
   GetServiceStatusParams,
   RunTaskParams,
 } from "../../../src/types/plugin/params"
 import { ServiceState, ServiceStatus } from "../../../src/types/service"
-import { taskResultOutputs, validateTestModule } from "../../helpers"
+import { taskResultOutputs, configureTestModule } from "../../helpers"
 import { RunTaskResult } from "../../../src/types/plugin/outputs"
 
 const placeholderTimestamp = new Date()
@@ -73,7 +71,7 @@ const testProvider: PluginFactory = () => {
   return {
     moduleActions: {
       test: {
-        validate: validateTestModule,
+        configure: configureTestModule,
         build: buildExecModule,
         deployService,
         getServiceStatus,
