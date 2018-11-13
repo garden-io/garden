@@ -13,6 +13,13 @@ import { Module } from "../module"
 import { ServiceStatus } from "../service"
 import { moduleConfigSchema, ModuleConfig } from "../../config/module"
 import { DashboardPage, dashboardPagesSchema } from "../../config/dashboard"
+import { ProviderConfig, providerConfigBaseSchema, Provider } from "../../config/project"
+
+export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConfig> extends Provider<T> { }
+export const configureProviderResultSchema = Joi.object()
+  .keys({
+    config: providerConfigBaseSchema,
+  })
 
 export interface EnvironmentStatus {
   ready: boolean
@@ -308,6 +315,8 @@ export const taskStatusSchema = Joi.object()
   })
 
 export interface PluginActionOutputs {
+  configureProvider: Promise<ConfigureProviderResult>
+
   getEnvironmentStatus: Promise<EnvironmentStatus>
   prepareEnvironment: Promise<PrepareEnvironmentResult>
   cleanupEnvironment: Promise<CleanupEnvironmentResult>

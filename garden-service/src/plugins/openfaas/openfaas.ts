@@ -106,10 +106,9 @@ const configSchema = providerConfigBaseSchema
 
 type OpenFaasProvider = Provider<OpenFaasConfig>
 
-export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlugin {
-  config = validate(config, configSchema, { context: "OpenFaaS provider config" })
-
+export function gardenPlugin(): GardenPlugin {
   return {
+    configSchema,
     modules: [join(STATIC_DIR, "openfaas", "templates")],
     actions: {
       async getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {

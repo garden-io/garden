@@ -381,7 +381,7 @@ export class ActionHelper implements TypeGuard {
     }
   }
 
-  private async callActionHandler<T extends keyof PluginActions>(
+  private async callActionHandler<T extends keyof Omit<PluginActions, "configureProvider">>(
     { params, actionType, pluginName, defaultHandler }:
       {
         params: ActionHelperParams<PluginActionParams[T]>,

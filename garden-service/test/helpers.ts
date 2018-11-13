@@ -126,7 +126,7 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
 }
 
 export const testPlugin: PluginFactory = (): GardenPlugin => {
-  const _config = {}
+  const secrets = {}
 
   return {
     actions: {
@@ -135,17 +135,17 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
       },
 
       async setSecret({ key, value }: SetSecretParams) {
-        _config[key] = value
+        secrets[key] = value
         return {}
       },
 
       async getSecret({ key }: GetSecretParams) {
-        return { value: _config[key] || null }
+        return { value: secrets[key] || null }
       },
 
       async deleteSecret({ key }: DeleteSecretParams) {
-        if (_config[key]) {
-          delete _config[key]
+        if (secrets[key]) {
+          delete secrets[key]
           return { found: true }
         } else {
           return { found: false }
