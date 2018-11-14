@@ -10,7 +10,6 @@ import * as Bluebird from "bluebird"
 import { flatten } from "lodash"
 import { computeAutoReloadDependants, withDependants } from "../watch"
 import { DeployTask } from "./deploy"
-import { BuildTask } from "./build"
 import { getNames } from "../util/util"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
@@ -29,14 +28,10 @@ export async function getTasksForHotReload(
     await computeAutoReloadDependants(garden)))
     .filter(m => !hotReloadModuleNames.has(m.name))
 
-  const buildTask = new BuildTask({ garden, module, force: true })
-
-  const deployTasks = (await servicesForModules(garden, modulesForDeployment, serviceNames))
+  return (await servicesForModules(garden, modulesForDeployment, serviceNames))
     .map(service => new DeployTask({
       garden, service, force: true, forceBuild: true, watch: true, hotReloadServiceNames,
     }))
-
-  return [buildTask, ...deployTasks]
 
 }
 
