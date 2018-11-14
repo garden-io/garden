@@ -108,7 +108,8 @@ export class BuildDir {
     sourcePath = stripWildcard(sourcePath)
     destinationPath = stripWildcard(destinationPath)
 
-    await execa("rsync", ["-rptgo", sourcePath, destinationPath])
+    // --exclude is required for modules where the module and project are in the same directory
+    await execa("rsync", ["-rptgo", `--exclude=${GARDEN_DIR_NAME}`, sourcePath, destinationPath])
   }
 }
 
