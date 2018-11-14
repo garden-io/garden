@@ -159,7 +159,7 @@ export async function hotReload(
       .nodePort
 
     await Bluebird.map(hotReloadConfig.sync, async ({ source, target }) => {
-      const src = rsyncSourcePath(module, source)
+      const src = rsyncSourcePath(module.path, source)
       const destination = `rsync://${hostname}:${rsyncNodePort}/volume/${rsyncTargetPath(target)}`
       await execa("rsync", ["-vrptgo", src, destination])
     })

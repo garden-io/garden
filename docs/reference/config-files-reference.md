@@ -663,11 +663,15 @@ module:
         # top-level directory. Must be a relative path if provided. Defaults to the module's
         # top-level directory if no value is provided.
         #
+        # Example: "src"
+        #
         # Optional.
         source: .
 
         # POSIX-style absolute path to sync the directory to inside the container. The root path
         # (i.e. "/") is not allowed.
+        #
+        # Example: "/app/src"
         #
         # Required.
         target:
