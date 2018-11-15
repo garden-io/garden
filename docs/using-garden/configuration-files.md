@@ -157,7 +157,7 @@ but you may add another service, for example a background worker, that is starte
 `command`.
 
 For more details on how to configure services in a `container` module, please refer to the
-[Config Files Reference](../reference/config-files-reference.md).
+[Config Files Reference](../reference/config.md).
 
 ## Tests
 
@@ -196,6 +196,6 @@ Tests can be run via `garden test`, as well as `garden dev`.
 
 We highly recommend browsing through the [Example projects](../examples/README.md) to see different examples of how projects and modules can be configured.
 
-Also be sure to look at the [Config Files Reference](../reference/config-files-reference.md)
+Also be sure to look at the [Config Files Reference](../reference/config.md)
  for more details on each of the available
 configuration fields.

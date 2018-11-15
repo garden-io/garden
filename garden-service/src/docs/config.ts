@@ -169,7 +169,7 @@ export function renderSchemaDescription(description: Joi.Description, opts: Rend
 
 export function generateConfigReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
-  const outputPath = resolve(referenceDir, "config-files-reference.md")
+  const outputPath = resolve(referenceDir, "config.md")
 
   const yaml = renderSchemaDescription(configSchema.describe(), { required: true })
   const moduleTypes = builtInModuleTypes.map(({ name, schema }) => {

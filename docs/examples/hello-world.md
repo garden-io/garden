@@ -85,7 +85,7 @@ module:
           port: http
 ```
 
-Lastly, health checks currently have three possible types: `httpGet`, `command`, and `tcpPort`. They're specified in the [Config Files Reference](../reference/config-files-reference.md). 
+Lastly, health checks currently have three possible types: `httpGet`, `command`, and `tcpPort`. They're specified in the [Config Files Reference](../reference/config.md).
 
 For the Hello World project, we'll use the first one. This `healthCheck` endpoint will be pinged periodically to ensure that the service is still healthy. Here's what it looks like:
 

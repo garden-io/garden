@@ -9,7 +9,7 @@ Several named environment configurations may be defined (e.g. _dev_, _testing_, 
 
 #### Module
 The basic unit of configuration in Garden. A module is defined by its
-[`garden.yml` configuration file](./config-files-reference.md), located in the module's top-level
+[`garden.yml` configuration file](./config.md), located in the module's top-level
 directory,
 which
 is a subdirectory of the [project](#project) repository's top-level directory.
@@ -25,7 +25,7 @@ A [module's](#module) plugin type defines its behavior when it is built, deploye
 
 #### Project
 The top-level unit of organization in Garden. A project consists of one or more [modules](#module), along with a
-project-level [`garden.yml` configuration file](./config-files-reference.md).
+project-level [`garden.yml` configuration file](./config.md).
 
 Garden CLI commands are run in the context of a project, and are aware of all its modules and services.
 
@@ -34,7 +34,7 @@ An implementation of a plugin type (e.g. `local-kubernetes` for the `container` 
 
 #### Service
 The unit of deployment in Garden. Services are defined in their parent [module](#module)'s `garden.yml`, each
-exposing [one or more ingress endpoints](./config-files-reference.md#container).
+exposing [one or more ingress endpoints](./config.md#container).
 
 Services may depend on services defined in other modules, in which case those services will be deployed first, and
 their deployment output made available to the requiring service's deploy step.
