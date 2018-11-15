@@ -97,13 +97,15 @@ const hotReloadSyncSchema = Joi.object()
       .default(".")
       .description(deline`
         POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-        Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.`),
+        Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.`)
+      .example("src"),
     target: Joi.string().uri(<any>{ relativeOnly: true })
       .regex(absolutePathRegex)
       .required()
       .description(deline`
         POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
-        not allowed.`),
+        not allowed.`)
+      .example("/app/src"),
   })
 
 export interface HotReloadConfigSpec {
@@ -521,25 +523,27 @@ export async function validateContainerModule({ moduleConfig }: ValidateModulePa
   // validate hot reload configuration
   const hotReloadConfig = moduleConfig.spec.hotReload
   if (hotReloadConfig) {
-    // Verify that sync targets are mutually disjoint - i.e. that no target is a subdirectory of
-    // another target.
+    const invalidPairDescriptions: string[] = []
     const targets = hotReloadConfig.sync.map(syncSpec => syncSpec.target)
-    const invalidTargetDescriptions: string[] = []
+
+    // Verify that sync targets are mutually disjoint - i.e. that no target is a subdirectory of
+    // another target. Mounting directories into mounted directories will cause unexpected results
     for (const t of targets) {
       for (const t2 of targets) {
         if (t2.startsWith(t) && t !== t2) {
-          invalidTargetDescriptions.push(`${t} is a subdirectory of ${t2}.`)
+          invalidPairDescriptions.push(`${t} is a subdirectory of ${t2}.`)
         }
       }
     }
 
-    if (invalidTargetDescriptions.length > 0) {
+    if (invalidPairDescriptions.length > 0) {
+      // TODO: Adapt this message to also handle source errors
       throw new ConfigurationError(
         dedent`Invalid hot reload configuration - a target may not be a subdirectory of another target \
         in the same module.
 
-        ${invalidTargetDescriptions.join("\n")}`,
-        { invalidTargetDescriptions, hotReloadConfig },
+        ${invalidPairDescriptions.join("\n")}`,
+        { invalidPairDescriptions, hotReloadConfig },
       )
     }
   }

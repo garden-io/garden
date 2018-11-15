@@ -7,7 +7,7 @@
  */
 
 import deline = require("deline")
-import { resolve } from "path"
+import { resolve, normalize } from "path"
 import {
   extend,
   get,
@@ -16,9 +16,8 @@ import {
   toPairs,
 } from "lodash"
 import { DeployServiceParams, GetServiceStatusParams, PushModuleParams } from "../../types/plugin/params"
-import { Module } from "../../types/module"
 import { RuntimeContext, Service, ServiceStatus } from "../../types/service"
-import { helpers, ContainerModule, ContainerService } from "../container"
+import { helpers, ContainerModule, ContainerService, SyncSpec } from "../container"
 import { createIngresses, getIngresses } from "./ingress"
 import { createServices, RSYNC_PORT, RSYNC_PORT_NAME } from "./service"
 import { waitForObjects, compareDeployedObjects } from "./status"
@@ -399,15 +398,18 @@ function configureVolumes(deployment, container, spec): void {
 */
 function configureHotReload(deployment, container, serviceSpec, moduleSpec, env, imageId) {
 
-  const syncVolumeName = `garden-sync-volume-${serviceSpec.name}`
-  const targets = moduleSpec.hotReload.sync.map(pair => pair.target)
+  const syncVolumeName = `garden-sync`
 
-  const copyCommand = `cp -r ${targets.join(" ")} /.garden/hot_reload`
+  // We're copying the target folder, not just its contents
+  const syncConfig = moduleSpec.hotReload.sync
+  const targets = syncConfig.map(pair => removeTrailingSlashes(pair.target))
+
+  const copyCommands = makeCopyCommands(syncConfig)
 
   const initContainer = {
     name: "garden-sync-init",
     image: imageId,
-    command: ["sh", "-c", copyCommand],
+    command: ["sh", "-c", copyCommands],
     env,
     imagePullPolicy: "IfNotPresent",
     volumeMounts: [{
@@ -438,7 +440,7 @@ function configureHotReload(deployment, container, serviceSpec, moduleSpec, env,
   }
 
   const rsyncContainer = {
-    name: "garden-rsync-container",
+    name: "garden-rsync",
     image: "eugenmayer/rsync",
     imagePullPolicy: "IfNotPresent",
     volumeMounts: [{
@@ -467,16 +469,51 @@ function configureHotReload(deployment, container, serviceSpec, moduleSpec, env,
 
 }
 
-export function rsyncSourcePath(module: Module, sourcePath: string) {
-  return resolve(module.path, sourcePath)
+/**
+ * Creates the initial copy command for the sync init container.
+ *
+ * This handles copying the contents from source into a volume for
+ * the rsync container to update.
+ *
+ * This needs to deal with nested pathing as well as root.
+ * This will first create the path, and then copy the contents from the
+ * docker image into the shared volume as a base for the rsync command
+ * to update.
+ *
+ * @param syncConfig
+ */
+export function makeCopyCommands(syncConfig: SyncSpec[]) {
+  const commands = syncConfig.map(({ source, target }) => {
+    const adjustedSource = `${removeTrailingSlashes(source)}/.`
+    const absTarget = normalize(`/.garden/hot_reload/${target}/`)
+    return `mkdir -p ${absTarget} && cp -r ${adjustedSource} ${absTarget}`
+  })
+  return commands.join(" && ")
+}
+
+/**
+ * Ensure that there's no trailing slash
+ *
+ * converts /src/foo/ into /src/foo
+ * @param path
+ */
+export function removeTrailingSlashes(path: string) {
+  return path.replace(/\/*$/, "")
+}
+
+export function rsyncSourcePath(modulePath: string, sourcePath: string) {
+  return resolve(modulePath, sourcePath)
     .replace(/\/*$/, "/") // ensure (exactly one) trailing slash
 }
 
 /**
  * Removes leading slash, and ensures there's exactly one trailing slash.
+ *
+ * converts /src/foo into src/foo/
+ * @param target
  */
-export function rsyncTargetPath(target: string) {
-  return target.replace(/^\/*/, "")
+export function rsyncTargetPath(path: string) {
+  return path.replace(/^\/*/, "")
     .replace(/\/*$/, "/")
 }
 
