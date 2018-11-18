@@ -5,20 +5,36 @@ import { identifierRegex, validate, envVarRegex } from "../../../src/config/comm
 import { expectError } from "../../helpers"
 
 describe("envVarRegex", () => {
-  it("should accept a valid env var name", () => {
-    expect(envVarRegex.test("MY_ENV_VAR")).to.be.true
+  it("should fail on invalid env variables", () => {
+    const testCases = [
+      "GARDEN",
+      "garden",
+      "GARDEN_ENV_VAR",
+      "garden_",
+      "123",
+      ".",
+      "MY-ENV_VAR",
+    ]
+    for (const tc of testCases) {
+      const result = envVarRegex.test(tc)
+      expect(result, tc).to.be.false
+    }
   })
 
-  it("should disallow dashes", () => {
-    expect(envVarRegex.test("MY-ENV_VAR")).to.be.false
-  })
-
-  it("should disallow lowercase chars", () => {
-    expect(envVarRegex.test("my_env_var")).to.be.false
-  })
-
-  it("should disallow strings starting with GARDEN", () => {
-    expect(envVarRegex.test("GARDEN_ENV_VAR")).to.be.false
+  it("should pass on valid env variables", () => {
+    const testCases = [
+      "GAR",
+      "_test_",
+      "MY_ENV_VAR",
+      "A_123",
+      "_2134",
+      "a_b_c",
+      "A_B_C_",
+    ]
+    for (const tc of testCases) {
+      const result = envVarRegex.test(tc)
+      expect(result, tc).to.be.true
+    }
   })
 })
 

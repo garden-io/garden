@@ -31,7 +31,7 @@ export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.strin
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
 export const identifierRegex = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const userIdentifierRegex = /^(?!garden)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
-export const envVarRegex = /^(?!GARDEN)[A-Z_][A-Z0-9_]*$/
+export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_]*$/i
 
 export const joiIdentifier = () => Joi.string()
   .regex(identifierRegex)
@@ -64,20 +64,13 @@ export const joiVariables = () => Joi
   .unknown(false)
   .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
 
-export const joiEnvVarName = () => Joi
-  .string().regex(envVarRegex)
-  .description(
-    "Valid POSIX environment variable name (may contain letters, numbers and underscores and must start with a " +
-    "letter). Must be uppercase, and must not start with `GARDEN`.",
-  )
-
 export const joiEnvVars = () => Joi
   .object().pattern(envVarRegex, joiPrimitive())
   .default(() => ({}), "{}")
   .unknown(false)
   .description(
     "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
-    "(must be uppercase, may not start with `GARDEN`) and values must be primitives.",
+    "(must not start with `GARDEN`) and values must be primitives.",
   )
 
 export const joiArray = (schema) => Joi

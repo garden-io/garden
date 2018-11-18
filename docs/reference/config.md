@@ -295,7 +295,7 @@ module:
             target:
 
   # Key/value map of environment variables. Keys must be valid POSIX environment variable names
-  # (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+  # (must not start with `GARDEN`) and values must be primitives.
   #
   # Optional.
   env: 
@@ -331,7 +331,7 @@ module:
         -
 
       # Key/value map of environment variables. Keys must be valid POSIX environment variable
-      # names (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+      # names (must not start with `GARDEN`) and values must be primitives.
       #
       # Optional.
       env: 
@@ -519,7 +519,7 @@ module:
           port:
 
       # Key/value map of environment variables. Keys must be valid POSIX environment variable
-      # names (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+      # names (must not start with `GARDEN`) and values must be primitives.
       #
       # Optional.
       env: 
@@ -640,7 +640,7 @@ module:
         -
 
       # Key/value map of environment variables. Keys must be valid POSIX environment variable
-      # names (must be uppercase, may not start with `GARDEN`) and values must be primitives.
+      # names (must not start with `GARDEN`) and values must be primitives.
       #
       # Optional.
       env: 
