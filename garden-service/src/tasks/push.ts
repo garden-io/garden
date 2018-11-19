@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { PushResult } from "../types/plugin/outputs"
-import { Task } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../dependency-graph"
 
@@ -22,7 +22,7 @@ export interface PushTaskParams {
   hotReloadServiceNames?: string[]
 }
 
-export class PushTask extends Task {
+export class PushTask extends BaseTask {
   type = "push"
   depType: DependencyGraphNodeType = "push"
 

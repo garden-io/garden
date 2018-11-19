@@ -20,7 +20,7 @@ export interface TaskParams {
   version: ModuleVersion
 }
 
-export abstract class Task {
+export abstract class BaseTask {
   abstract type: string
   abstract depType: DependencyGraphNodeType
   garden: Garden
@@ -28,7 +28,7 @@ export abstract class Task {
   force: boolean
   version: ModuleVersion
 
-  dependencies: Task[]
+  dependencies: BaseTask[]
 
   constructor(initArgs: TaskParams) {
     this.garden = initArgs.garden
@@ -38,7 +38,7 @@ export abstract class Task {
     this.version = initArgs.version
   }
 
-  async getDependencies(): Promise<Task[]> {
+  async getDependencies(): Promise<BaseTask[]> {
     return this.dependencies
   }
 

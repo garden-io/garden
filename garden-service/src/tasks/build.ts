@@ -10,7 +10,7 @@ import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { Module, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/outputs"
-import { Task } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../dependency-graph"
 import { getHotReloadModuleNames } from "./helpers"
@@ -23,7 +23,7 @@ export interface BuildTaskParams {
   hotReloadServiceNames?: string[]
 }
 
-export class BuildTask extends Task {
+export class BuildTask extends BaseTask {
   type = "build"
   depType: DependencyGraphNodeType = "build"
 

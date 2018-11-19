@@ -10,14 +10,14 @@ import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { Module } from "./types/module"
 import { Service } from "./types/service"
-import { Task } from "./tasks/base"
+import { BaseTask } from "./tasks/base"
 import { TaskResults } from "./task-graph"
 import { FSWatcher } from "./watch"
 import { registerCleanupFunction } from "./util/util"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 
-export type ProcessHandler = (module: Module) => Promise<Task[]>
+export type ProcessHandler = (module: Module) => Promise<BaseTask[]>
 
 interface ProcessParams {
   garden: Garden,

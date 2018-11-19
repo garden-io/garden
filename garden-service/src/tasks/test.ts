@@ -14,7 +14,7 @@ import { ModuleVersion } from "../vcs/base"
 import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
-import { Task, TaskParams } from "../tasks/base"
+import { BaseTask, TaskParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../dependency-graph"
@@ -33,7 +33,7 @@ export interface TestTaskParams {
   forceBuild: boolean
 }
 
-export class TestTask extends Task {
+export class TestTask extends BaseTask {
   type = "test"
   depType: DependencyGraphNodeType = "test"
 
@@ -65,7 +65,7 @@ export class TestTask extends Task {
     const dg = await this.garden.getDependencyGraph()
     const services = (await dg.getDependencies(this.depType, this.getName(), false)).service
 
-    const deps: Task[] = [new BuildTask({
+    const deps: BaseTask[] = [new BuildTask({
       garden: this.garden,
       module: this.module,
       force: this.forceBuild,

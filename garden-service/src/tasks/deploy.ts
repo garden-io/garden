@@ -10,7 +10,7 @@ import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
-import { Task } from "./base"
+import { BaseTask } from "./base"
 import {
   Service,
   ServiceStatus,
@@ -32,7 +32,7 @@ export interface DeployTaskParams {
   hotReloadServiceNames?: string[]
 }
 
-export class DeployTask extends Task {
+export class DeployTask extends BaseTask {
   type = "deploy"
   depType: DependencyGraphNodeType = "service"
 

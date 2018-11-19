@@ -6,13 +6,13 @@ import { resolve } from "path"
 import { Garden } from "../../../src/garden"
 import { makeTestGarden, dataDir } from "../../helpers"
 import { getTasksForModule } from "../../../src/tasks/helpers"
-import { Task } from "../../../src/tasks/base"
+import { BaseTask } from "../../../src/tasks/base"
 
-async function sortedBaseKeysWithDependencies(tasks: Task[]): Promise<string[]> {
+async function sortedBaseKeysWithDependencies(tasks: BaseTask[]): Promise<string[]> {
   return sortedBaseKeys(flatten([tasks].concat(await Bluebird.map(tasks, t => t.getDependencies()))))
 }
 
-function sortedBaseKeys(tasks: Task[]): string[] {
+function sortedBaseKeys(tasks: BaseTask[]): string[] {
   return uniq(tasks.map(t => t.getBaseKey())).sort()
 }
 

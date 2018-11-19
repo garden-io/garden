@@ -1,6 +1,6 @@
 import { join } from "path"
 import { expect } from "chai"
-import { Task } from "../../src/tasks/base"
+import { BaseTask } from "../../src/tasks/base"
 import {
   TaskGraph,
   TaskResult,
@@ -20,7 +20,7 @@ interface TestTaskOptions {
   throwError?: boolean
 }
 
-class TestTask extends Task {
+class TestTask extends BaseTask {
   type = "test"
   depType: DependencyGraphNodeType = "test"
   name: string
@@ -31,7 +31,7 @@ class TestTask extends Task {
   constructor(
     garden: Garden,
     name: string,
-    dependencies?: Task[],
+    dependencies?: BaseTask[],
     options?: TestTaskOptions,
   ) {
     super({

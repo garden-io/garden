@@ -16,7 +16,7 @@ import moment = require("moment")
 import { join } from "path"
 
 import { BuildTask } from "../tasks/build"
-import { Task } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
 import { getTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
 import {
@@ -101,7 +101,7 @@ export class DevCommand extends Command<Args, Opts> {
           ? (await dependencyGraph.withDependantModules([module]))
           : [module]
 
-        const testTasks: Task[] = flatten(await Bluebird.map(
+        const testTasks: BaseTask[] = flatten(await Bluebird.map(
           testModules, m => getTestTasks({ garden, module: m })))
 
         const tasks = testTasks.concat(await getTasksForModule({

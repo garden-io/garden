@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { Task } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { Workflow } from "../types/workflow"
 import { BuildTask } from "./build"
@@ -25,7 +25,7 @@ export interface WorkflowTaskParams {
   logEntry?: LogEntry
 }
 
-export class WorkflowTask extends Task {
+export class WorkflowTask extends BaseTask {
   type = "workflow"
   depType: DependencyGraphNodeType = "workflow"
 
@@ -38,7 +38,7 @@ export class WorkflowTask extends Task {
     this.forceBuild = forceBuild
   }
 
-  async getDependencies(): Promise<Task[]> {
+  async getDependencies(): Promise<BaseTask[]> {
 
     const buildTask = new BuildTask({
       garden: this.garden,

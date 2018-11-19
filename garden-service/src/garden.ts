@@ -94,7 +94,7 @@ import {
   loadConfig,
   findProjectConfig,
 } from "./config/base"
-import { Task } from "./tasks/base"
+import { BaseTask } from "./tasks/base"
 import { LocalConfigStore } from "./config-store"
 import { detectCircularDependencies } from "./util/detectCycles"
 import {
@@ -337,7 +337,7 @@ export class Garden {
     return this.buildDir.clear()
   }
 
-  async addTask(task: Task) {
+  async addTask(task: BaseTask) {
     await this.taskGraph.addTask(task)
   }
 
