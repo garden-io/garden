@@ -8,6 +8,7 @@ import {
 } from "../../src/task-graph"
 import { makeTestGarden } from "../helpers"
 import { Garden } from "../../src/garden"
+import { DependencyGraphNodeType } from "../../src/dependency-graph"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
@@ -21,6 +22,7 @@ interface TestTaskOptions {
 
 class TestTask extends Task {
   type = "test"
+  depType: DependencyGraphNodeType = "test"
   name: string
   callback: TestTaskCallback | null
   id: string

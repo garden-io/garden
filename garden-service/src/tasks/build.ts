@@ -8,7 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { Module } from "../types/module"
+import { Module, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/outputs"
 import { Task } from "../tasks/base"
 import { Garden } from "../garden"
@@ -58,11 +58,11 @@ export class BuildTask extends Task {
   }
 
   protected getName() {
-    return this.module.name
+    return getModuleKey(this.module.name, this.module.plugin)
   }
 
   getDescription() {
-    return `building ${this.module.name}`
+    return `building ${this.getName()}`
   }
 
   async process(): Promise<BuildResult> {
@@ -75,7 +75,7 @@ export class BuildTask extends Task {
     }
 
     const logEntry = this.garden.log.info({
-      section: this.module.name,
+      section: this.getName(),
       msg: "Building",
       status: "active",
     })

@@ -9,7 +9,8 @@
 import * as Bluebird from "bluebird"
 import { flatten, fromPairs, pick, uniq } from "lodash"
 import { Garden } from "./garden"
-import { Module } from "./types/module"
+import { BuildDependencyConfig } from "./config/module"
+import { Module, getModuleKey } from "./types/module"
 import { Service } from "./types/service"
 import { Workflow } from "./types/workflow"
 import { TestConfig } from "./config/test"
@@ -66,34 +67,37 @@ export class DependencyGraph {
 
     for (const module of modules) {
 
+      const moduleKey = this.keyForModule(module)
+
       // Build dependencies
-      const buildNode = this.getNode("build", module.name, module.name)
+      const buildNode = this.getNode("build", moduleKey, moduleKey)
       for (const buildDep of module.build.dependencies) {
-        this.addRelation(buildNode, "build", buildDep.name, buildDep.name)
+        const buildDepKey = getModuleKey(buildDep.name, buildDep.plugin)
+        this.addRelation(buildNode, "build", buildDepKey, buildDepKey)
       }
 
       // Service dependencies
       for (const serviceConfig of module.serviceConfigs) {
-        const serviceNode = this.getNode("service", serviceConfig.name, module.name)
-        this.addRelation(serviceNode, "build", module.name, module.name)
+        const serviceNode = this.getNode("service", serviceConfig.name, moduleKey)
+        this.addRelation(serviceNode, "build", moduleKey, moduleKey)
         for (const depName of serviceConfig.dependencies) {
           if (this.serviceMap[depName]) {
-            this.addRelation(serviceNode, "service", depName, this.serviceMap[depName].module.name)
+            this.addRelation(serviceNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
           } else {
-            this.addRelation(serviceNode, "workflow", depName, this.workflowMap[depName].module.name)
+            this.addRelation(serviceNode, "workflow", depName, this.keyForModule(this.workflowMap[depName].module))
           }
         }
       }
 
       // Workflow dependencies
       for (const workflowConfig of module.workflowConfigs) {
-        const workflowNode = this.getNode("workflow", workflowConfig.name, module.name)
-        this.addRelation(workflowNode, "build", module.name, module.name)
+        const workflowNode = this.getNode("workflow", workflowConfig.name, moduleKey)
+        this.addRelation(workflowNode, "build", moduleKey, moduleKey)
         for (const depName of workflowConfig.dependencies) {
           if (this.serviceMap[depName]) {
-            this.addRelation(workflowNode, "service", depName, this.serviceMap[depName].module.name)
+            this.addRelation(workflowNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
           } else {
-            this.addRelation(workflowNode, "workflow", depName, this.workflowMap[depName].module.name)
+            this.addRelation(workflowNode, "workflow", depName, this.keyForModule(this.workflowMap[depName].module))
           }
         }
       }
@@ -103,18 +107,23 @@ export class DependencyGraph {
         const testConfigName = `${module.name}.${testConfig.name}`
         this.testConfigMap[testConfigName] = testConfig
         this.testConfigModuleMap[testConfigName] = module
-        const testNode = this.getNode("test", testConfigName, module.name)
-        this.addRelation(testNode, "build", module.name, module.name)
+        const testNode = this.getNode("test", testConfigName, moduleKey)
+        this.addRelation(testNode, "build", moduleKey, moduleKey)
         for (const depName of testConfig.dependencies) {
           if (this.serviceMap[depName]) {
-            this.addRelation(testNode, "service", depName, this.serviceMap[depName].module.name)
+            this.addRelation(testNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
           } else {
-            this.addRelation(testNode, "workflow", depName, this.workflowMap[depName].module.name)
+            this.addRelation(testNode, "workflow", depName, this.keyForModule(this.workflowMap[depName].module))
           }
         }
       }
 
     }
+  }
+
+  // Convenience method used in the constructor above.
+  keyForModule(module: Module | BuildDependencyConfig) {
+    return getModuleKey(module.name, module.plugin)
   }
 
   /**
@@ -278,6 +287,18 @@ export class DependencyGraph {
     }
   }
 
+  // For testing/debugging.
+  renderGraph() {
+    const nodes = Object.values(this.index)
+    const edges: string[][] = []
+    for (const node of nodes) {
+      for (const dep of node.dependencies) {
+        edges.push([nodeKey(node.type, node.name), nodeKey(dep.type, dep.name)])
+      }
+    }
+    return edges
+  }
+
 }
 
 export class DependencyGraphNode {
@@ -334,18 +355,10 @@ export class DependencyGraphNode {
 
 }
 
+/**
+ * Note: If type === "build", name should be a prefix-qualified module name, as
+ * returned by keyForModule or getModuleKey.
+ */
 function nodeKey(type: DependencyGraphNodeType, name: string) {
   return `${type}.${name}`
-}
-
-// for testing/debugging
-export function renderGraph(graph: DependencyGraph) {
-  const nodes = Object.values(graph.index)
-  const edges: string[][] = []
-  for (const node of nodes) {
-    for (const dep of node.dependencies) {
-      edges.push([nodeKey(node.type, node.name), nodeKey(dep.type, dep.name)])
-    }
-  }
-  return edges
 }
