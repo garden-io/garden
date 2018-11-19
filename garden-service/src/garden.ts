@@ -86,7 +86,7 @@ import {
 } from "./types/plugin/plugin"
 import { joiIdentifier, validate } from "./config/common"
 import { Service } from "./types/service"
-import { Workflow } from "./types/workflow"
+import { Task } from "./types/task"
 import { resolveTemplateStrings } from "./template-string"
 import {
   configSchema,
@@ -159,7 +159,7 @@ export class Garden {
   private modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: PluginFactory }
   private readonly serviceNameIndex: { [key: string]: string } // service name -> module name
-  private readonly workflowNameIndex: { [key: string]: string } // workflow name -> module name
+  private readonly taskNameIndex: { [key: string]: string } // task name -> module name
   private readonly hotReloadScheduler: HotReloadScheduler
   private readonly taskGraph: TaskGraph
 
@@ -197,7 +197,7 @@ export class Garden {
 
     this.moduleConfigs = {}
     this.serviceNameIndex = {}
-    this.workflowNameIndex = {}
+    this.taskNameIndex = {}
     this.loadedPlugins = {}
     this.registeredPlugins = {}
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
@@ -585,7 +585,7 @@ export class Garden {
   }
 
   /**
-   * Given the provided lists of build and runtime (service/workflow) dependencies, return a list of all
+   * Given the provided lists of build and runtime (service/task) dependencies, return a list of all
    * modules required to satisfy those dependencies.
    */
   async resolveDependencyModules(
@@ -595,15 +595,15 @@ export class Garden {
     const dg = await this.getDependencyGraph()
 
     const serviceNames = runtimeDependencies.filter(d => this.serviceNameIndex[d])
-    const workflowNames = runtimeDependencies.filter(d => this.workflowNameIndex[d])
+    const taskNames = runtimeDependencies.filter(d => this.taskNameIndex[d])
 
     const buildDeps = await dg.getDependenciesForMany("build", moduleNames, true)
     const serviceDeps = await dg.getDependenciesForMany("service", serviceNames, true)
-    const workflowDeps = await dg.getDependenciesForMany("workflow", workflowNames, true)
+    const taskDeps = await dg.getDependenciesForMany("task", taskNames, true)
 
     const modules = [
       ...(await this.getModules(moduleNames)),
-      ...(await dg.modulesForRelations(await dg.mergeRelations(buildDeps, serviceDeps, workflowDeps))),
+      ...(await dg.modulesForRelations(await dg.mergeRelations(buildDeps, serviceDeps, taskDeps))),
     ]
 
     return sortBy(uniqByName(modules), "name")
@@ -638,19 +638,19 @@ export class Garden {
     return version
   }
 
-  async getServiceOrWorkflow(name: string, noScan?: boolean): Promise<Service<Module> | Workflow<Module>> {
+  async getServiceOrTask(name: string, noScan?: boolean): Promise<Service<Module> | Task<Module>> {
     const service = (await this.getServices([name], noScan))[0]
-    const workflow = (await this.getWorkflows([name], noScan))[0]
+    const task = (await this.getTasks([name], noScan))[0]
 
-    if (!service && !workflow) {
+    if (!service && !task) {
       throw new ParameterError(`Could not find service or task named ${name}`, {
         missing: [name],
         availableServices: Object.keys(this.serviceNameIndex),
-        availableWorkflows: Object.keys(this.workflowNameIndex),
+        availableTasks: Object.keys(this.taskNameIndex),
       })
     }
 
-    return service || workflow
+    return service || task
   }
 
   /**
@@ -669,65 +669,65 @@ export class Garden {
     return service
   }
 
-  async getWorkflow(name: string, noScan?: boolean): Promise<Workflow> {
-    const workflow = (await this.getWorkflows([name], noScan))[0]
+  async getTask(name: string, noScan?: boolean): Promise<Task> {
+    const task = (await this.getTasks([name], noScan))[0]
 
-    if (!workflow) {
+    if (!task) {
       throw new ParameterError(`Could not find task ${name}`, {
         missing: [name],
-        available: Object.keys(this.workflowNameIndex),
+        available: Object.keys(this.taskNameIndex),
       })
     }
 
-    return workflow
+    return task
   }
 
   /*
     Returns all services that are registered in this context, or the ones specified.
-    If the names parameter is used and workflow names are included in it, they will be
+    If the names parameter is used and task names are included in it, they will be
     ignored. Scans for modules and services in the project root if it hasn't already
     been done.
    */
   async getServices(names?: string[], noScan?: boolean): Promise<Service[]> {
-    const services = (await this.getServicesAndWorkflows(names, noScan)).services
+    const services = (await this.getServicesAndTasks(names, noScan)).services
     if (names) {
-      const workflowNames = Object.keys(this.workflowNameIndex)
-      throwOnMissingNames(difference(names, workflowNames), services, "service")
+      const taskNames = Object.keys(this.taskNameIndex)
+      throwOnMissingNames(difference(names, taskNames), services, "service")
     }
     return services
   }
 
   /*
-    Returns all workflows that are registered in this context, or the ones specified.
+    Returns all tasks that are registered in this context, or the ones specified.
     If the names parameter is used and service names are included in it, they will be
     ignored. Scans for modules and services in the project root if it hasn't already
     been done.
    */
-  async getWorkflows(names?: string[], noScan?: boolean): Promise<Workflow[]> {
-    const workflows = (await this.getServicesAndWorkflows(names, noScan)).workflows
+  async getTasks(names?: string[], noScan?: boolean): Promise<Task[]> {
+    const tasks = (await this.getServicesAndTasks(names, noScan)).tasks
     if (names) {
       const serviceNames = Object.keys(this.serviceNameIndex)
-      throwOnMissingNames(difference(names, serviceNames), workflows, "task")
+      throwOnMissingNames(difference(names, serviceNames), tasks, "task")
     }
-    return workflows
+    return tasks
   }
 
-  async getServicesAndWorkflows(names?: string[], noScan?: boolean) {
+  async getServicesAndTasks(names?: string[], noScan?: boolean) {
     if (!this.modulesScanned && !noScan) {
       await this.scanModules()
     }
 
     let pickedServices: { [key: string]: string }
-    let pickedWorkflows: { [key: string]: string }
+    let pickedTasks: { [key: string]: string }
 
     if (names) {
       const serviceNames = Object.keys(this.serviceNameIndex)
-      const workflowNames = Object.keys(this.workflowNameIndex)
+      const taskNames = Object.keys(this.taskNameIndex)
       pickedServices = pick(this.serviceNameIndex, intersection(names, serviceNames))
-      pickedWorkflows = pick(this.workflowNameIndex, intersection(names, workflowNames))
+      pickedTasks = pick(this.taskNameIndex, intersection(names, taskNames))
     } else {
       pickedServices = this.serviceNameIndex
-      pickedWorkflows = this.workflowNameIndex
+      pickedTasks = this.taskNameIndex
     }
 
     return Bluebird.props({
@@ -747,14 +747,14 @@ export class Garden {
 
       }),
 
-      workflows: Bluebird.map(Object.entries(pickedWorkflows), async ([workflowName, moduleName]):
-        Promise<Workflow> => {
+      tasks: Bluebird.map(Object.entries(pickedTasks), async ([taskName, moduleName]):
+        Promise<Task> => {
 
         const module = await this.getModule(moduleName)
-        const config = findByName(module.workflowConfigs, workflowName)!
+        const config = findByName(module.taskConfigs, taskName)!
 
         return {
-          name: workflowName,
+          name: taskName,
           config,
           module,
           spec: config.spec,
@@ -829,13 +829,13 @@ export class Garden {
   }
 
   private async detectCircularDependencies() {
-    const { modules, services, workflows } = await Bluebird.props({
+    const { modules, services, tasks } = await Bluebird.props({
       modules: this.getModules(),
       services: this.getServices(),
-      workflows: this.getWorkflows(),
+      tasks: this.getTasks(),
     })
 
-    return detectCircularDependencies(modules, services, workflows)
+    return detectCircularDependencies(modules, services, tasks)
   }
 
   /*
@@ -883,37 +883,37 @@ export class Garden {
       this.serviceNameIndex[serviceName] = config.name
     }
 
-    // Add to workflow-module map
-    for (const workflowConfig of config.workflowConfigs) {
-      const workflowName = workflowConfig.name
+    // Add to task-module map
+    for (const taskConfig of config.taskConfigs) {
+      const taskName = taskConfig.name
 
       if (!force) {
 
-        if (this.serviceNameIndex[workflowName]) {
+        if (this.serviceNameIndex[taskName]) {
           throw new ConfigurationError(deline`
-            Service and task names must be mutually unique - the task name ${workflowName} (declared in
-            '${config.name}') is also declared as a service name in '${this.serviceNameIndex[workflowName]}'`,
+            Service and task names must be mutually unique - the task name ${taskName} (declared in
+            '${config.name}') is also declared as a service name in '${this.serviceNameIndex[taskName]}'`,
             {
-              conflictingName: workflowName,
+              conflictingName: taskName,
               moduleA: config.name,
-              moduleB: this.serviceNameIndex[workflowName],
+              moduleB: this.serviceNameIndex[taskName],
             })
         }
 
-        if (this.workflowNameIndex[workflowName]) {
+        if (this.taskNameIndex[taskName]) {
           throw new ConfigurationError(deline`
-            Task names must be unique - the task name ${workflowName} is declared multiple times (in
-            '${this.workflowNameIndex[workflowName]}' and '${config.name}')`,
+            Task names must be unique - the task name ${taskName} is declared multiple times (in
+            '${this.taskNameIndex[taskName]}' and '${config.name}')`,
             {
-              taskName: workflowName,
+              taskName,
               moduleA: config.name,
-              moduleB: this.serviceNameIndex[workflowName],
+              moduleB: this.serviceNameIndex[taskName],
             })
         }
 
       }
 
-      this.workflowNameIndex[workflowName] = config.name
+      this.taskNameIndex[taskName] = config.name
 
     }
 

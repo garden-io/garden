@@ -13,5 +13,5 @@ module:
     - name: unit
       command: [echo, OK]
   tasks:
-    - name: workflow-b
+    - name: task-b
       command: [echo, OK]

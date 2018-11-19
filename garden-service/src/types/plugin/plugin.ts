@@ -23,7 +23,7 @@ import {
   ModuleActionParams,
   PluginActionParams,
   ServiceActionParams,
-  WorkflowActionParams,
+  TaskActionParams,
   prepareEnvironmentParamsSchema,
   cleanupEnvironmentParamsSchema,
   getEnvironmentStatusParamsSchema,
@@ -46,7 +46,7 @@ import {
   runModuleParamsSchema,
   testModuleParamsSchema,
   getTestResultParamsSchema,
-  publishModuleParamsSchema, getWorkflowStatusParamsSchema, runWorkflowParamsSchema,
+  publishModuleParamsSchema, getTaskStatusParamsSchema, runTaskParamsSchema,
 } from "./params"
 import {
   buildModuleResultSchema,
@@ -66,11 +66,11 @@ import {
   hotReloadResultSchema,
   runResultSchema,
   ServiceActionOutputs,
-  WorkflowActionOutputs,
+  TaskActionOutputs,
   setSecretResultSchema,
   testResultSchema,
   validateModuleResultSchema,
-  publishModuleResultSchema, workflowStatusSchema, runWorkflowResultSchema,
+  publishModuleResultSchema, taskStatusSchema, runTaskResultSchema,
 } from "./outputs"
 
 export type PluginActions = {
@@ -81,8 +81,8 @@ export type ServiceActions<T extends Module = Module> = {
   [P in keyof ServiceActionParams<T>]: (params: ServiceActionParams<T>[P]) => ServiceActionOutputs[P]
 }
 
-export type WorkflowActions<T extends Module = Module> = {
-  [P in keyof WorkflowActionParams<T>]: (params: WorkflowActionParams<T>[P]) => WorkflowActionOutputs[P]
+export type TaskActions<T extends Module = Module> = {
+  [P in keyof TaskActionParams<T>]: (params: TaskActionParams<T>[P]) => TaskActionOutputs[P]
 }
 
 export type ModuleActions<T extends Module = Module> = {
@@ -90,11 +90,11 @@ export type ModuleActions<T extends Module = Module> = {
 }
 
 export type ModuleAndRuntimeActions<T extends Module = Module> =
-  ModuleActions<T> & ServiceActions<T> & WorkflowActions<T>
+  ModuleActions<T> & ServiceActions<T> & TaskActions<T>
 
 export type PluginActionName = keyof PluginActions
 export type ServiceActionName = keyof ServiceActions
-export type WorkflowActionName = keyof WorkflowActions
+export type TaskActionName = keyof TaskActions
 export type ModuleActionName = keyof ModuleActions
 
 export interface PluginActionDescription {
@@ -241,28 +241,28 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
   },
 }
 
-export const workflowActionDescriptions: { [P in WorkflowActionName]: PluginActionDescription } = {
-  getWorkflowStatus: {
+export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescription } = {
+  getTaskStatus: {
     description: dedent`
       Check and return the execution status of a task, i.e. whether the task has been successfully
       completed for the module's current version.
     `,
-    paramsSchema: getWorkflowStatusParamsSchema,
-    resultSchema: workflowStatusSchema,
+    paramsSchema: getTaskStatusParamsSchema,
+    resultSchema: taskStatusSchema,
   },
-  runWorkflow: {
+  runTask: {
     description: dedent`
       Runs a task within the context of its module. This should wait until execution completes, and
       should ideally attach it to the terminal (i.e. pipe the output from the task to the console,
       as well as pipe input from the console to the running task).
     `,
-    paramsSchema: runWorkflowParamsSchema,
-    resultSchema: runWorkflowResultSchema,
+    paramsSchema: runTaskParamsSchema,
+    resultSchema: runTaskResultSchema,
   },
 }
 
 export const moduleActionDescriptions:
-  { [P in ModuleActionName | ServiceActionName | WorkflowActionName]: PluginActionDescription } = {
+  { [P in ModuleActionName | ServiceActionName | TaskActionName]: PluginActionDescription } = {
   // TODO: implement this method (it is currently not defined or used)
   describeType: {
     description: dedent`
@@ -397,7 +397,7 @@ export const moduleActionDescriptions:
 
   ...serviceActionDescriptions,
 
-  ...workflowActionDescriptions,
+  ...taskActionDescriptions,
 }
 
 export const pluginActionNames: PluginActionName[] = <PluginActionName[]>Object.keys(pluginActionDescriptions)

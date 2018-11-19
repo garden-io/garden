@@ -40,7 +40,7 @@ describe("TaskHelpers", () => {
       expect(sortedBaseKeys(tasks)).to.eql([
         "build.good-morning",
         "deploy.good-morning",
-        "workflow.good-morning-task",
+        "task.good-morning-task",
       ])
 
       expect(await sortedBaseKeysWithDependencies(tasks)).to.eql([
@@ -48,7 +48,7 @@ describe("TaskHelpers", () => {
         "build.good-morning",
         "deploy.good-morning",
         "push.good-morning",
-        "workflow.good-morning-task",
+        "task.good-morning-task",
       ].sort())
     })
 
@@ -62,13 +62,13 @@ describe("TaskHelpers", () => {
 
             "build.good-morning",
             "deploy.good-morning",
-            "workflow.good-morning-task",
+            "task.good-morning-task",
 
             "build.build-dependant",
             "deploy.build-dependant",
 
             "deploy.service-dependant",
-            "workflow.dependant-task",
+            "task.dependant-task",
           ].sort(),
           withDependencies: [
             "build.build-dependency",
@@ -78,7 +78,7 @@ describe("TaskHelpers", () => {
             "build.good-morning",
             "push.good-morning",
             "deploy.good-morning",
-            "workflow.good-morning-task",
+            "task.good-morning-task",
 
             "build.build-dependant",
             "push.build-dependant",
@@ -87,7 +87,7 @@ describe("TaskHelpers", () => {
             "build.service-dependant",
             "push.service-dependant",
             "deploy.service-dependant",
-            "workflow.dependant-task",
+            "task.dependant-task",
           ].sort(),
         },
         {
@@ -95,13 +95,13 @@ describe("TaskHelpers", () => {
           withoutDependencies: [
             "build.good-morning",
             "deploy.good-morning",
-            "workflow.good-morning-task",
+            "task.good-morning-task",
 
             "build.build-dependant",
             "deploy.build-dependant",
 
             "deploy.service-dependant",
-            "workflow.dependant-task",
+            "task.dependant-task",
           ].sort(),
           withDependencies: [
             "build.build-dependency",
@@ -109,7 +109,7 @@ describe("TaskHelpers", () => {
             "build.good-morning",
             "push.good-morning",
             "deploy.good-morning",
-            "workflow.good-morning-task",
+            "task.good-morning-task",
 
             "build.build-dependant",
             "push.build-dependant",
@@ -118,7 +118,7 @@ describe("TaskHelpers", () => {
             "build.service-dependant",
             "push.service-dependant",
             "deploy.service-dependant",
-            "workflow.dependant-task",
+            "task.dependant-task",
           ].sort(),
         },
         {
@@ -139,14 +139,14 @@ describe("TaskHelpers", () => {
         },
         {
           moduleName: "service-dependant",
-          withoutDependencies: ["build.service-dependant", "deploy.service-dependant", "workflow.dependant-task"],
+          withoutDependencies: ["build.service-dependant", "deploy.service-dependant", "task.dependant-task"],
           withDependencies: [
             "deploy.good-morning",
 
             "build.service-dependant",
             "push.service-dependant",
             "deploy.service-dependant",
-            "workflow.dependant-task",
+            "task.dependant-task",
           ].sort(),
         },
       ]
@@ -176,12 +176,12 @@ describe("TaskHelpers", () => {
           },
           {
             moduleName: "good-morning",
-            withoutDependencies: ["deploy.service-dependant", "workflow.dependant-task"],
+            withoutDependencies: ["deploy.service-dependant", "task.dependant-task"],
             withDependencies: [
               "build.service-dependant",
               "push.service-dependant",
               "deploy.service-dependant",
-              "workflow.dependant-task",
+              "task.dependant-task",
             ].sort(),
           },
           {
@@ -200,12 +200,12 @@ describe("TaskHelpers", () => {
           },
           {
             moduleName: "service-dependant",
-            withoutDependencies: ["build.service-dependant", "deploy.service-dependant", "workflow.dependant-task"],
+            withoutDependencies: ["build.service-dependant", "deploy.service-dependant", "task.dependant-task"],
             withDependencies: [
               "build.service-dependant",
               "push.service-dependant",
               "deploy.service-dependant",
-              "workflow.dependant-task",
+              "task.dependant-task",
             ].sort(),
           },
         ]

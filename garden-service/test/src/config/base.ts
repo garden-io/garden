@@ -54,7 +54,7 @@ describe("loadConfig", async () => {
       spec: {
         services: [{ name: "service-a" }],
         tasks: [{
-          name: "workflow-a",
+          name: "task-a",
           command: ["echo", "OK"],
         }],
         tests: [{
@@ -64,7 +64,7 @@ describe("loadConfig", async () => {
       },
 
       serviceConfigs: [],
-      workflowConfigs: [],
+      taskConfigs: [],
       testConfigs: [],
     })
   })

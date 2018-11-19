@@ -16,7 +16,7 @@ import {
 } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
-import { getGenericWorkflowStatus } from "../generic"
+import { getGenericTaskStatus } from "../generic"
 import {
   deleteService,
   execInService,
@@ -27,7 +27,7 @@ import {
   testModule,
   runModule,
   runService,
-  runWorkflow,
+  runTask,
 } from "./actions"
 import { deployContainerService, getContainerServiceStatus, pushModule } from "./deployment"
 import { helmHandlers } from "./helm"
@@ -173,7 +173,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
       container: {
         getServiceStatus: getContainerServiceStatus,
         deployService: deployContainerService,
-        getWorkflowStatus: getGenericWorkflowStatus,
+        getTaskStatus: getGenericTaskStatus,
         deleteService,
         getServiceOutputs,
         execInService,
@@ -182,7 +182,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
         hotReload,
         testModule,
         runService,
-        runWorkflow,
+        runTask,
         getTestResult,
         getServiceLogs,
       },

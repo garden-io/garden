@@ -7,7 +7,7 @@ import { expect } from "chai"
 import { omit } from "lodash"
 import { Module } from "../../src/types/module"
 import { Service } from "../../src/types/service"
-import { Workflow } from "../../src/types/workflow"
+import { Task } from "../../src/types/task"
 import Stream from "ts-stream"
 import { ServiceLogEntry } from "../../src/types/plugin/outputs"
 import {
@@ -27,8 +27,8 @@ import {
   execInServiceParamsSchema,
   getServiceLogsParamsSchema,
   runServiceParamsSchema,
-  getWorkflowStatusParamsSchema,
-  runWorkflowParamsSchema,
+  getTaskStatusParamsSchema,
+  runTaskParamsSchema,
   getEnvironmentStatusParamsSchema,
   prepareEnvironmentParamsSchema,
   cleanupEnvironmentParamsSchema,
@@ -45,7 +45,7 @@ describe("ActionHelper", () => {
   let actions: ActionHelper
   let module: Module
   let service: Service
-  let workflow: Workflow
+  let task: Task
 
   before(async () => {
     const plugins = { "test-plugin": testPlugin, "test-plugin-b": testPluginB }
@@ -53,7 +53,7 @@ describe("ActionHelper", () => {
     actions = garden.actions
     module = await garden.getModule("module-a")
     service = await garden.getService("service-a")
-    workflow = await garden.getWorkflow("workflow-a")
+    task = await garden.getTask("task-a")
   })
 
   // Note: The test plugins below implicitly validate input params for each of the tests
@@ -312,10 +312,10 @@ describe("ActionHelper", () => {
     })
   })
 
-  describe("runWorkflow", () => {
+  describe("runTask", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actions.runWorkflow({
-        workflow,
+      const result = await actions.runTask({
+        task,
         interactive: true,
         runtimeContext: {
           envVars: { FOO: "bar" },
@@ -323,14 +323,14 @@ describe("ActionHelper", () => {
         },
       })
       expect(result).to.eql({
-        moduleName: workflow.module.name,
-        workflowName: workflow.name,
+        moduleName: task.module.name,
+        taskName: task.name,
         command: ["foo"],
         completedAt: now,
         output: "bla bla",
         success: true,
         startedAt: now,
-        version: workflow.module.version,
+        version: task.module.version,
       })
     })
   })
@@ -390,7 +390,7 @@ const testPlugin: PluginFactory = async () => ({
           spec,
         }))
 
-        const workflowConfigs = (params.moduleConfig.spec.tasks || []).map(spec => ({
+        const taskConfigs = (params.moduleConfig.spec.tasks || []).map(spec => ({
           name: spec.name,
           dependencies: spec.dependencies || [],
           spec,
@@ -399,7 +399,7 @@ const testPlugin: PluginFactory = async () => ({
         return {
           ...params.moduleConfig,
           serviceConfigs,
-          workflowConfigs,
+          taskConfigs,
         }
       },
 
@@ -515,19 +515,19 @@ const testPlugin: PluginFactory = async () => ({
         }
       },
 
-      getWorkflowStatus: async (params) => {
-        validate(params, getWorkflowStatusParamsSchema)
+      getTaskStatus: async (params) => {
+        validate(params, getTaskStatusParamsSchema)
         return {
           done: true,
         }
       },
 
-      runWorkflow: async (params) => {
-        validate(params, runWorkflowParamsSchema)
-        const module = params.workflow.module
+      runTask: async (params) => {
+        validate(params, runTaskParamsSchema)
+        const module = params.task.module
         return {
           moduleName: module.name,
-          workflowName: params.workflow.name,
+          taskName: params.task.name,
           command: ["foo"],
           completedAt: now,
           output: "bla bla",

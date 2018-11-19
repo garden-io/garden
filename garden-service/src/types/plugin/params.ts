@@ -14,11 +14,11 @@ import { ModuleVersion, moduleVersionSchema } from "../../vcs/base"
 import { Primitive, joiPrimitive, joiArray, joiIdentifierMap } from "../../config/common"
 import { Module, moduleSchema } from "../module"
 import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "../service"
-import { Workflow } from "../workflow"
+import { Task } from "../task"
 import { EnvironmentStatus, ServiceLogEntry, environmentStatusSchema } from "./outputs"
 import { moduleConfigSchema } from "../../config/module"
 import { testConfigSchema } from "../../config/test"
-import { workflowSchema } from "../../config/workflow"
+import { taskSchema } from "../../config/task"
 
 export interface PluginActionContextParams {
   ctx: PluginContext
@@ -61,12 +61,12 @@ const serviceActionParamsSchema = moduleActionParamsSchema
     service: serviceSchema,
   })
 
-export interface PluginWorkflowActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
-  workflow: Workflow<T>
+export interface PluginTaskActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+  task: Task<T>
 }
-const workflowActionParamsSchema = moduleActionParamsSchema
+const taskActionParamsSchema = moduleActionParamsSchema
   .keys({
-    workflow: workflowSchema,
+    task: taskSchema,
   })
 
 /**
@@ -289,17 +289,17 @@ export const runServiceParamsSchema = serviceActionParamsSchema
   .keys(runBaseParams)
 
 /**
- * Workflow actions
+ * Task actions
  */
-export interface GetWorkflowStatusParams<T extends Module = Module> extends PluginWorkflowActionParamsBase<T> { }
-export const getWorkflowStatusParamsSchema = workflowActionParamsSchema
+export interface GetTaskStatusParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> { }
+export const getTaskStatusParamsSchema = taskActionParamsSchema
 
-export interface RunWorkflowParams<T extends Module = Module> extends PluginWorkflowActionParamsBase<T> {
+export interface RunTaskParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> {
   interactive: boolean
   runtimeContext: RuntimeContext
   timeout?: number
 }
-export const runWorkflowParamsSchema = workflowActionParamsSchema
+export const runTaskParamsSchema = taskActionParamsSchema
   .keys(runBaseParams)
 
 export interface ServiceActionParams<T extends Module = Module> {
@@ -312,9 +312,9 @@ export interface ServiceActionParams<T extends Module = Module> {
   runService: RunServiceParams<T>
 }
 
-export interface WorkflowActionParams<T extends Module = Module> {
-  getWorkflowStatus: GetWorkflowStatusParams<T>
-  runWorkflow: RunWorkflowParams<T>
+export interface TaskActionParams<T extends Module = Module> {
+  getTaskStatus: GetTaskStatusParams<T>
+  runTask: RunTaskParams<T>
 }
 
 export interface ModuleActionParams<T extends Module = Module> {

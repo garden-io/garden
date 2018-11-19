@@ -31,7 +31,7 @@ import {
   ValidateModuleParams,
   RunModuleParams,
   RunServiceParams,
-  RunWorkflowParams,
+  RunTaskParams,
   SetSecretParams,
 } from "../src/types/plugin/params"
 import {
@@ -126,7 +126,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             spec,
           }))
 
-          moduleConfig.workflowConfigs = moduleConfig.spec.tasks.map(t => ({
+          moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
             name: t.name,
             dependencies: t.dependencies,
             spec: t,
@@ -163,8 +163,8 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           })
         },
 
-        async runWorkflow(
-          { ctx, workflow, interactive, runtimeContext, logEntry, buildDependencies }: RunWorkflowParams,
+        async runTask(
+          { ctx, task, interactive, runtimeContext, logEntry, buildDependencies }: RunTaskParams,
         ) {
           const result = await runModule({
             ctx,
@@ -172,15 +172,15 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             interactive,
             logEntry,
             runtimeContext,
-            module: workflow.module,
-            command: workflow.spec.command || [],
+            module: task.module,
+            command: task.spec.command || [],
             ignoreError: false,
-            timeout: workflow.spec.timeout || 9999,
+            timeout: task.spec.timeout || 9999,
           })
 
           return {
             ...result,
-            workflowName: workflow.name,
+            taskName: task.name,
           }
         },
 
@@ -222,7 +222,7 @@ export const defaultModuleConfig: ModuleConfig = {
   },
   serviceConfigs: [],
   testConfigs: [],
-  workflowConfigs: [],
+  taskConfigs: [],
 }
 
 export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {

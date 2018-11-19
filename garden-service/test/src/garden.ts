@@ -151,27 +151,27 @@ describe("Garden", () => {
     })
   })
 
-  describe("getServicesAndWorkflows", () => {
-    it("should scan for modules and return all registered services and workflows in the context", async () => {
+  describe("getServicesAndTasks", () => {
+    it("should scan for modules and return all registered services and tasks in the context", async () => {
       const garden = await makeTestGardenA()
-      const { services, workflows } = await garden.getServicesAndWorkflows()
+      const { services, tasks } = await garden.getServicesAndTasks()
 
       expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
-      expect(getNames(workflows).sort()).to.eql(["workflow-a", "workflow-b", "workflow-c"])
+      expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
     })
 
-    it("should optionally return specified services and workflows in the context", async () => {
+    it("should optionally return specified services and tasks in the context", async () => {
       const garden = await makeTestGardenA()
-      const { services, workflows } = await garden.getServicesAndWorkflows(["service-b", "service-c", "workflow-a"])
+      const { services, tasks } = await garden.getServicesAndTasks(["service-b", "service-c", "task-a"])
 
       expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
-      expect(getNames(workflows).sort()).to.eql(["workflow-a"])
+      expect(getNames(tasks).sort()).to.eql(["task-a"])
     })
 
-    it("should not throw if a named service or workflow is missing", async () => {
+    it("should not throw if a named service or task is missing", async () => {
       const garden = await makeTestGardenA()
 
-      await garden.getServicesAndWorkflows(["not", "real"])
+      await garden.getServicesAndTasks(["not", "real"])
     })
 
   })
@@ -227,26 +227,26 @@ describe("Garden", () => {
     })
   })
 
-  describe("getWorkflows", () => {
-    it("should scan for modules and return all registered workflows in the context", async () => {
+  describe("getTasks", () => {
+    it("should scan for modules and return all registered tasks in the context", async () => {
       const garden = await makeTestGardenA()
-      const workflows = await garden.getWorkflows()
+      const tasks = await garden.getTasks()
 
-      expect(getNames(workflows).sort()).to.eql(["workflow-a", "workflow-b", "workflow-c"])
+      expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
     })
 
-    it("should optionally return specified workflows in the context", async () => {
+    it("should optionally return specified tasks in the context", async () => {
       const garden = await makeTestGardenA()
-      const workflows = await garden.getWorkflows(["workflow-b", "workflow-c"])
+      const tasks = await garden.getTasks(["task-b", "task-c"])
 
-      expect(getNames(workflows).sort()).to.eql(["workflow-b", "workflow-c"])
+      expect(getNames(tasks).sort()).to.eql(["task-b", "task-c"])
     })
 
-    it("should throw if named workflow is missing", async () => {
+    it("should throw if named task is missing", async () => {
       const garden = await makeTestGardenA()
 
       try {
-        await garden.getWorkflows(["bla"])
+        await garden.getTasks(["bla"])
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -256,19 +256,19 @@ describe("Garden", () => {
     })
   })
 
-  describe("getWorkflow", () => {
-    it("should return the specified workflow", async () => {
+  describe("getTask", () => {
+    it("should return the specified task", async () => {
       const garden = await makeTestGardenA()
-      const workflow = await garden.getWorkflow("workflow-b")
+      const task = await garden.getTask("task-b")
 
-      expect(workflow.name).to.equal("workflow-b")
+      expect(task.name).to.equal("task-b")
     })
 
-    it("should throw if workflow is missing", async () => {
+    it("should throw if task is missing", async () => {
       const garden = await makeTestGardenA()
 
       try {
-        await garden.getWorkflows(["bla"])
+        await garden.getTasks(["bla"])
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -278,21 +278,21 @@ describe("Garden", () => {
     })
   })
 
-  describe("getServiceOrWorkflow", () => {
-    it("should return the specified service or workflow", async () => {
+  describe("getServiceOrTask", () => {
+    it("should return the specified service or task", async () => {
       const garden = await makeTestGardenA()
-      const service = await garden.getServiceOrWorkflow("service-a")
-      const workflow = await garden.getServiceOrWorkflow("workflow-a")
+      const service = await garden.getServiceOrTask("service-a")
+      const task = await garden.getServiceOrTask("task-a")
 
       expect(service.name).to.equal("service-a")
-      expect(workflow.name).to.equal("workflow-a")
+      expect(task.name).to.equal("task-a")
     })
 
-    it("should throw if no matching service or workflow was found", async () => {
+    it("should throw if no matching service or task was found", async () => {
       const garden = await makeTestGardenA()
 
       try {
-        await garden.getServiceOrWorkflow("bla")
+        await garden.getServiceOrTask("bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return

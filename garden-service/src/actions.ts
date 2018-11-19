@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { Garden } from "./garden"
 import { PrimitiveMap } from "./config/common"
 import { Module, ModuleMap } from "./types/module"
-import { ModuleActions, ServiceActions, PluginActions, WorkflowActions } from "./types/plugin/plugin"
+import { ModuleActions, ServiceActions, PluginActions, TaskActions } from "./types/plugin/plugin"
 import {
   BuildResult,
   BuildStatus,
@@ -28,8 +28,8 @@ import {
   TestResult,
   PluginActionOutputs,
   PublishResult,
-  RunWorkflowResult,
-  WorkflowActionOutputs,
+  RunTaskResult,
+  TaskActionOutputs,
   HotReloadResult,
 } from "./types/plugin/outputs"
 import {
@@ -59,9 +59,9 @@ import {
   GetEnvironmentStatusParams,
   PluginModuleActionParamsBase,
   PublishModuleParams,
-  PluginWorkflowActionParamsBase,
-  RunWorkflowParams,
-  WorkflowActionParams,
+  PluginTaskActionParamsBase,
+  RunTaskParams,
+  TaskActionParams,
 } from "./types/plugin/params"
 import {
   Service,
@@ -105,7 +105,7 @@ type ServiceActionHelperParams<T extends PluginServiceActionParamsBase> =
   Omit<T, "module" | "buildDependencies" | "runtimeContext" | keyof PluginActionContextParams>
   & { runtimeContext?: RuntimeContext, pluginName?: string }
 
-type WorkflowActionHelperParams<T extends PluginWorkflowActionParamsBase> =
+type TaskActionHelperParams<T extends PluginTaskActionParamsBase> =
   Omit<T, "module" | "buildDependencies" | keyof PluginActionContextParams>
   & { runtimeContext?: RuntimeContext, pluginName?: string }
 
@@ -312,11 +312,11 @@ export class ActionHelper implements TypeGuard {
   //endregion
 
   //===========================================================================
-  //region Workflow Methods
+  //region Task Methods
   //===========================================================================
 
-  async runWorkflow(params: WorkflowActionHelperParams<RunWorkflowParams>): Promise<RunWorkflowResult> {
-    return this.callWorkflowHandler({ params, actionType: "runWorkflow" })
+  async runTask(params: TaskActionHelperParams<RunTaskParams>): Promise<RunTaskResult> {
+    return this.callTaskHandler({ params, actionType: "runTask" })
   }
 
   //endregion
@@ -452,16 +452,16 @@ export class ActionHelper implements TypeGuard {
     return (<Function>handler)(handlerParams)
   }
 
-  private async callWorkflowHandler<T extends keyof WorkflowActions>(
+  private async callTaskHandler<T extends keyof TaskActions>(
     { params, actionType, defaultHandler }:
       {
-        params: WorkflowActionHelperParams<WorkflowActionParams[T]>, actionType: T,
-        defaultHandler?: WorkflowActions[T],
+        params: TaskActionHelperParams<TaskActionParams[T]>, actionType: T,
+        defaultHandler?: TaskActions[T],
       },
-  ): Promise<WorkflowActionOutputs[T]> {
+  ): Promise<TaskActionOutputs[T]> {
 
-    const { workflow } = <any>params
-    const module = workflow.module
+    const { task } = <any>params
+    const module = task.module
 
     const handler = await this.garden.getModuleActionHandler({
       moduleType: module.type,
@@ -476,7 +476,7 @@ export class ActionHelper implements TypeGuard {
       ...this.commonParams(handler),
       ...<object>params,
       module,
-      workflow,
+      task,
       buildDependencies,
     }
 

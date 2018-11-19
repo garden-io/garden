@@ -10,11 +10,11 @@ module:
         - name: http
           containerPort: 8080
       dependencies:
-        - workflow-a
+        - task-a
   build:
     command: [echo, A]
   tasks:
-    - name: workflow-a
+    - name: task-a
       command: [echo, A]
       dependencies:
-        - workflow-c
+        - task-c

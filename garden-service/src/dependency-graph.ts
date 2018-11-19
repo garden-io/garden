@@ -12,25 +12,25 @@ import { Garden } from "./garden"
 import { BuildDependencyConfig } from "./config/module"
 import { Module, getModuleKey } from "./types/module"
 import { Service } from "./types/service"
-import { Workflow } from "./types/workflow"
+import { Task } from "./types/task"
 import { TestConfig } from "./config/test"
 import { uniqByName } from "./util/util"
 
-export type DependencyGraphNodeType = "build" | "service" | "workflow" | "test"
+export type DependencyGraphNodeType = "build" | "service" | "task" | "test"
   | "push" | "publish" // these two types are currently not represented in DependencyGraph
 
 // The primary output type (for dependencies and dependants).
 export type DependencyRelations = {
   build: Module[],
   service: Service[],
-  workflow: Workflow[],
+  task: Task[],
   test: TestConfig[],
 }
 
 type DependencyRelationNames = {
   build: string[],
   service: string[],
-  workflow: string[],
+  task: string[],
   test: string[],
 }
 
@@ -41,27 +41,27 @@ export class DependencyGraph {
   index: { [key: string]: DependencyGraphNode }
   private garden: Garden
   private serviceMap: { [key: string]: Service }
-  private workflowMap: { [key: string]: Workflow }
+  private taskMap: { [key: string]: Task }
   private testConfigMap: { [key: string]: TestConfig }
   private testConfigModuleMap: { [key: string]: Module }
 
   static async factory(garden: Garden) {
-    const { modules, services, workflows } = await Bluebird.props({
+    const { modules, services, tasks } = await Bluebird.props({
       modules: garden.getModules(),
       services: garden.getServices(),
-      workflows: garden.getWorkflows(),
+      tasks: garden.getTasks(),
     })
 
-    return new DependencyGraph(garden, modules, services, workflows)
+    return new DependencyGraph(garden, modules, services, tasks)
   }
 
-  constructor(garden: Garden, modules: Module[], services: Service[], workflows: Workflow[]) {
+  constructor(garden: Garden, modules: Module[], services: Service[], tasks: Task[]) {
 
     this.garden = garden
     this.index = {}
 
     this.serviceMap = fromPairs(services.map(s => [s.name, s]))
-    this.workflowMap = fromPairs(workflows.map(w => [w.name, w]))
+    this.taskMap = fromPairs(tasks.map(w => [w.name, w]))
     this.testConfigMap = {}
     this.testConfigModuleMap = {}
 
@@ -84,20 +84,20 @@ export class DependencyGraph {
           if (this.serviceMap[depName]) {
             this.addRelation(serviceNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
           } else {
-            this.addRelation(serviceNode, "workflow", depName, this.keyForModule(this.workflowMap[depName].module))
+            this.addRelation(serviceNode, "task", depName, this.keyForModule(this.taskMap[depName].module))
           }
         }
       }
 
-      // Workflow dependencies
-      for (const workflowConfig of module.workflowConfigs) {
-        const workflowNode = this.getNode("workflow", workflowConfig.name, moduleKey)
-        this.addRelation(workflowNode, "build", moduleKey, moduleKey)
-        for (const depName of workflowConfig.dependencies) {
+      // Task dependencies
+      for (const taskConfig of module.taskConfigs) {
+        const taskNode = this.getNode("task", taskConfig.name, moduleKey)
+        this.addRelation(taskNode, "build", moduleKey, moduleKey)
+        for (const depName of taskConfig.dependencies) {
           if (this.serviceMap[depName]) {
-            this.addRelation(workflowNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
+            this.addRelation(taskNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
           } else {
-            this.addRelation(workflowNode, "workflow", depName, this.keyForModule(this.workflowMap[depName].module))
+            this.addRelation(taskNode, "task", depName, this.keyForModule(this.taskMap[depName].module))
           }
         }
       }
@@ -113,7 +113,7 @@ export class DependencyGraph {
           if (this.serviceMap[depName]) {
             this.addRelation(testNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
           } else {
-            this.addRelation(testNode, "workflow", depName, this.keyForModule(this.workflowMap[depName].module))
+            this.addRelation(testNode, "task", depName, this.keyForModule(this.taskMap[depName].module))
           }
         }
       }
@@ -145,15 +145,15 @@ export class DependencyGraph {
 
   // Recursive.
   async getDependantsForModule(module: Module, filterFn?: DependencyRelationFilterFn): Promise<DependencyRelations> {
-    const runtimeDependencies = uniq(module.serviceDependencyNames.concat(module.workflowDependencyNames))
+    const runtimeDependencies = uniq(module.serviceDependencyNames.concat(module.taskDependencyNames))
     const serviceNames = runtimeDependencies.filter(d => this.serviceMap[d])
-    const workflowNames = runtimeDependencies.filter(d => this.workflowMap[d])
+    const taskNames = runtimeDependencies.filter(d => this.taskMap[d])
 
     return this.mergeRelations(... await Bluebird.all([
       this.getDependants("build", module.name, true, filterFn),
       // this.getDependantsForMany("build", module.build.dependencies.map(d => d.name), true, filterFn),
       this.getDependantsForMany("service", serviceNames, true, filterFn),
-      this.getDependantsForMany("workflow", workflowNames, true, filterFn),
+      this.getDependantsForMany("task", taskNames, true, filterFn),
     ]))
   }
 
@@ -189,14 +189,14 @@ export class DependencyGraph {
    */
   async mergeRelations(...relationArr: DependencyRelations[]): Promise<DependencyRelations> {
     const names = {}
-    for (const type of ["build", "service", "workflow", "test"]) {
+    for (const type of ["build", "service", "task", "test"]) {
       names[type] = uniqByName(flatten(relationArr.map(r => r[type]))).map(r => r.name)
     }
 
     return this.relationsFromNames({
       build: names["build"],
       service: names["service"],
-      workflow: names["workflow"],
+      task: names["task"],
       test: names["test"],
     })
   }
@@ -205,7 +205,7 @@ export class DependencyGraph {
     const moduleNames = uniq(flatten([
       relations.build,
       relations.service.map(s => s.module),
-      relations.workflow.map(w => w.module),
+      relations.task.map(w => w.module),
       relations.test.map(t => this.testConfigModuleMap[t.name]),
     ]).map(m => m.name))
     // We call getModules to ensure that the returned modules have up-to-date versions.
@@ -216,7 +216,7 @@ export class DependencyGraph {
     return this.relationsFromNames({
       build: this.uniqueNames(nodes, "build"),
       service: this.uniqueNames(nodes, "service"),
-      workflow: this.uniqueNames(nodes, "workflow"),
+      task: this.uniqueNames(nodes, "task"),
       test: this.uniqueNames(nodes, "test"),
     })
   }
@@ -225,7 +225,7 @@ export class DependencyGraph {
     return Bluebird.props({
       build: this.garden.getModules(names.build),
       service: this.garden.getServices(names.service),
-      workflow: this.garden.getWorkflows(names.workflow),
+      task: this.garden.getTasks(names.task),
       test: Object.values(pick(this.testConfigMap, names.test)),
     })
   }

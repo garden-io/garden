@@ -22,7 +22,7 @@ import {
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
-import { WorkflowTask } from "../../tasks/workflow"
+import { TaskTask } from "../../tasks/task"
 
 const runArgs = {
   task: new StringParameter({
@@ -38,7 +38,7 @@ const runOpts = {
 type Args = typeof runArgs
 type Opts = typeof runOpts
 
-export class RunWorkflowCommand extends Command<Args, Opts> {
+export class RunTaskCommand extends Command<Args, Opts> {
   name = "task"
   alias = "t"
   help = "Run a task (in the context of its parent module)."
@@ -55,10 +55,10 @@ export class RunWorkflowCommand extends Command<Args, Opts> {
   options = runOpts
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
-    const workflow = await garden.getWorkflow(args.task)
-    const module = workflow.module
+    const task = await garden.getTask(args.task)
+    const module = task.module
 
-    const msg = `Running task ${chalk.white(workflow.name)}`
+    const msg = `Running task ${chalk.white(task.name)}`
 
     garden.log.header({
       emoji: "runner",
@@ -67,8 +67,8 @@ export class RunWorkflowCommand extends Command<Args, Opts> {
 
     await garden.actions.prepareEnvironment({})
 
-    const workflowTask = new WorkflowTask({ garden, workflow, force: true, forceBuild: opts["force-build"] })
-    for (const depTask of await workflowTask.getDependencies()) {
+    const taskTask = new TaskTask({ garden, task, force: true, forceBuild: opts["force-build"] })
+    for (const depTask of await taskTask.getDependencies()) {
       await garden.addTask(depTask)
     }
     await garden.processTasks()
@@ -83,7 +83,7 @@ export class RunWorkflowCommand extends Command<Args, Opts> {
 
     garden.log.info("")
 
-    const result = await garden.actions.runWorkflow({ workflow, runtimeContext, interactive: true })
+    const result = await garden.actions.runTask({ task, runtimeContext, interactive: true })
 
     garden.log.info(chalk.white(result.output))
 

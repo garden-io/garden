@@ -17,7 +17,7 @@ import {
   joiRepositoryUrl,
 } from "./common"
 import { TestConfig, TestSpec } from "./test"
-import { WorkflowConfig, WorkflowSpec } from "./workflow"
+import { TaskConfig, TaskSpec } from "./task"
 
 export interface BuildCopySpec {
   source: string
@@ -117,7 +117,7 @@ export interface ModuleConfig
   M extends ModuleSpec = any,
   S extends ServiceSpec = any,
   T extends TestSpec = any,
-  W extends WorkflowSpec = any,
+  W extends TaskSpec = any,
   >
   extends BaseModuleSpec {
 
@@ -125,7 +125,7 @@ export interface ModuleConfig
 
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]
-  workflowConfigs: WorkflowConfig<W>[]
+  taskConfigs: TaskConfig<W>[]
 
   // Plugins can add custom fields that are kept here
   spec: M

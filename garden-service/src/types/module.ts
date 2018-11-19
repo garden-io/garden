@@ -11,8 +11,8 @@ import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ServiceSpec } from "../config/service"
-import { Workflow, workflowFromConfig } from "./workflow"
-import { WorkflowSpec, workflowSchema } from "../config/workflow"
+import { Task, taskFromConfig } from "./task"
+import { TaskSpec, taskSchema } from "../config/task"
 import { ModuleVersion, moduleVersionSchema } from "../vcs/base"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
@@ -29,7 +29,7 @@ export interface Module<
   M extends ModuleSpec = any,
   S extends ServiceSpec = any,
   T extends TestSpec = any,
-  W extends WorkflowSpec = any,
+  W extends TaskSpec = any,
   > extends ModuleConfig<M, S, T, W> {
   buildPath: string
   version: ModuleVersion
@@ -38,9 +38,9 @@ export interface Module<
   serviceNames: string[]
   serviceDependencyNames: string[]
 
-  workflows: Workflow<Module<M, S, T, W>>[]
-  workflowNames: string[]
-  workflowDependencyNames: string[]
+  tasks: Task<Module<M, S, T, W>>[]
+  taskNames: string[]
+  taskDependencyNames: string[]
 
   _ConfigType: ModuleConfig<M, S, T, W>
 }
@@ -62,13 +62,13 @@ export const moduleSchema = moduleConfigSchema
     serviceDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the services and tasks that the services in this module depend on."),
-    workflows: joiArray(Joi.lazy(() => workflowSchema))
+    tasks: joiArray(Joi.lazy(() => taskSchema))
       .required()
       .description("A list of all the tasks that the module provides."),
-    workflowNames: joiArray(joiIdentifier())
+    taskNames: joiArray(joiIdentifier())
       .required()
       .description("The names of the tasks that the module provides."),
-    workflowDependencyNames: joiArray(joiIdentifier())
+    taskDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the tasks and services that the tasks in this module depend on."),
   })
@@ -94,10 +94,10 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
       .map(serviceConfig => serviceConfig.dependencies)
       .filter(deps => !!deps))),
 
-    workflows: [],
-    workflowNames: getNames(config.workflowConfigs),
-    workflowDependencyNames: uniq(flatten(config.workflowConfigs
-      .map(workflowConfig => workflowConfig.dependencies)
+    tasks: [],
+    taskNames: getNames(config.taskConfigs),
+    taskDependencyNames: uniq(flatten(config.taskConfigs
+      .map(taskConfig => taskConfig.dependencies)
       .filter(deps => !!deps))),
 
     _ConfigType: config,
@@ -105,7 +105,7 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
 
   module.services = config.serviceConfigs.map(serviceConfig => serviceFromConfig(module, serviceConfig))
 
-  module.workflows = config.workflowConfigs.map(workflowConfig => workflowFromConfig(module, workflowConfig))
+  module.tasks = config.taskConfigs.map(taskConfig => taskFromConfig(module, taskConfig))
 
   return module
 }

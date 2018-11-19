@@ -22,13 +22,13 @@ import {
   BuildResult,
   BuildStatus,
   ValidateModuleResult,
-  TestResult, WorkflowStatus, RunWorkflowResult,
+  TestResult, TaskStatus, RunTaskResult,
 } from "../types/plugin/outputs"
 import {
   BuildModuleParams,
   GetBuildStatusParams,
   ValidateModuleParams,
-  TestModuleParams, RunWorkflowParams,
+  TestModuleParams, RunTaskParams,
 } from "../types/plugin/params"
 import { BaseServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
@@ -36,7 +36,7 @@ import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "..
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import execa = require("execa")
-import { BaseWorkflowSpec, baseWorkflowSpecSchema } from "../config/workflow"
+import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
 
 export const name = "generic"
 
@@ -53,11 +53,11 @@ export const genericTestSchema = baseTestSpecSchema
   })
   .description("The test specification of a generic module.")
 
-export interface GenericWorkflowSpec extends BaseWorkflowSpec {
+export interface GenericTaskSpec extends BaseTaskSpec {
   command: string[],
 }
 
-export const genericWorkflowSpecSchema = baseWorkflowSpecSchema
+export const genericTaskSpecSchema = baseTaskSpecSchema
   .keys({
     command: Joi.array().items(Joi.string())
       .description("The command to run in the module build context."),
@@ -167,15 +167,15 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
   }
 }
 
-export async function runGenericWorkflow(params: RunWorkflowParams): Promise<RunWorkflowResult> {
-  const { workflow } = params
-  const module = workflow.module
-  const command = workflow.spec.command
+export async function runGenericTask(params: RunTaskParams): Promise<RunTaskResult> {
+  const { task } = params
+  const module = task.module
+  const command = task.spec.command
   const startedAt = new Date()
 
   const result = {
     moduleName: module.name,
-    workflowName: workflow.name,
+    taskName: task.name,
     command,
     version: module.version,
     success: true,
@@ -198,10 +198,10 @@ export async function runGenericWorkflow(params: RunWorkflowParams): Promise<Run
     result["output"] = ""
   }
 
-  return <RunWorkflowResult>{ ...result }
+  return <RunTaskResult>{ ...result }
 }
 
-export async function getGenericWorkflowStatus(): Promise<WorkflowStatus> {
+export async function getGenericTaskStatus(): Promise<TaskStatus> {
   return { done: false }
 }
 
@@ -211,7 +211,7 @@ export const genericPlugin: GardenPlugin = {
       validate: parseGenericModule,
       getBuildStatus: getGenericModuleBuildStatus,
       build: buildGenericModule,
-      runWorkflow: runGenericWorkflow,
+      runTask: runGenericTask,
       testModule: testGenericModule,
     },
   },

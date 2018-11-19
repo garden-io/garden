@@ -141,7 +141,7 @@ export type ValidateModuleResult<T extends Module = Module> =
   T["spec"],
   T["serviceConfigs"][0]["spec"],
   T["testConfigs"][0]["spec"],
-  T["workflowConfigs"][0]["spec"]
+  T["taskConfigs"][0]["spec"]
   >
 
 export const validateModuleResultSchema = moduleConfigSchema
@@ -254,9 +254,9 @@ export const buildStatusSchema = Joi.object()
       .description("Whether an up-to-date build is ready for the module."),
   })
 
-export interface RunWorkflowResult extends RunResult {
+export interface RunTaskResult extends RunResult {
   moduleName: string
-  workflowName: string
+  taskName: string
   command: string[]
   version: ModuleVersion
   success: boolean
@@ -265,11 +265,11 @@ export interface RunWorkflowResult extends RunResult {
   output: string
 }
 
-export const runWorkflowResultSchema = Joi.object()
+export const runTaskResultSchema = Joi.object()
   .keys({
     moduleName: Joi.string()
       .description("The name of the module that the task belongs to."),
-    workflowName: Joi.string()
+    taskName: Joi.string()
       .description("The name of the task that was run."),
     command: Joi.array().items(Joi.string())
       .required()
@@ -290,11 +290,11 @@ export const runWorkflowResultSchema = Joi.object()
       .description("The output log from the run."),
   })
 
-export interface WorkflowStatus {
+export interface TaskStatus {
   done: boolean
 }
 
-export const workflowStatusSchema = Joi.object()
+export const taskStatusSchema = Joi.object()
   .keys({
     done: Joi.boolean()
       .required()
@@ -321,9 +321,9 @@ export interface ServiceActionOutputs {
   runService: Promise<RunResult>
 }
 
-export interface WorkflowActionOutputs {
-  getWorkflowStatus: Promise<WorkflowStatus>
-  runWorkflow: Promise<RunWorkflowResult>
+export interface TaskActionOutputs {
+  getTaskStatus: Promise<TaskStatus>
+  runTask: Promise<RunTaskResult>
 }
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {

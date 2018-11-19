@@ -9,5 +9,5 @@ module:
     - name: unit
       command: [echo, OK]
   tasks:
-    - name: workflow-a
+    - name: task-a
       command: [echo, OK]

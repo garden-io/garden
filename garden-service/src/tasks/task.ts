@@ -9,32 +9,32 @@
 import chalk from "chalk"
 import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
-import { Workflow } from "../types/workflow"
+import { Task } from "../types/task"
 import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { LogEntry } from "../logger/log-entry"
-import { RunWorkflowResult } from "../types/plugin/outputs"
+import { RunTaskResult } from "../types/plugin/outputs"
 import { prepareRuntimeContext } from "../types/service"
 import { DependencyGraphNodeType } from "../dependency-graph"
 
-export interface WorkflowTaskParams {
+export interface TaskTaskParams {
   garden: Garden
-  workflow: Workflow
+  task: Task
   force: boolean
   forceBuild: boolean
   logEntry?: LogEntry
 }
 
-export class WorkflowTask extends BaseTask {
-  type = "workflow"
-  depType: DependencyGraphNodeType = "workflow"
+export class TaskTask extends BaseTask { // ... to be renamed soon.
+  type = "task"
+  depType: DependencyGraphNodeType = "task"
 
-  private workflow: Workflow
+  private task: Task
   private forceBuild: boolean
 
-  constructor({ garden, workflow, force, forceBuild }: WorkflowTaskParams) {
-    super({ garden, force, version: workflow.module.version })
-    this.workflow = workflow
+  constructor({ garden, task, force, forceBuild }: TaskTaskParams) {
+    super({ garden, force, version: task.module.version })
+    this.task = task
     this.forceBuild = forceBuild
   }
 
@@ -42,7 +42,7 @@ export class WorkflowTask extends BaseTask {
 
     const buildTask = new BuildTask({
       garden: this.garden,
-      module: this.workflow.module,
+      module: this.task.module,
       force: this.forceBuild,
     })
 
@@ -58,31 +58,31 @@ export class WorkflowTask extends BaseTask {
       })
     })
 
-    const workflowTasks = deps.workflow.map(workflow => {
-      return new WorkflowTask({
-        workflow,
+    const taskTasks = deps.task.map(task => {
+      return new TaskTask({
+        task,
         garden: this.garden,
         force: false,
         forceBuild: false,
       })
     })
 
-    return [buildTask, ...deployTasks, ...workflowTasks]
+    return [buildTask, ...deployTasks, ...taskTasks]
 
   }
 
   protected getName() {
-    return this.workflow.name
+    return this.task.name
   }
 
   getDescription() {
-    return `running task ${this.workflow.name} in module ${this.workflow.module.name}`
+    return `running task ${this.task.name} in module ${this.task.module.name}`
   }
 
   async process() {
 
-    const workflow = this.workflow
-    const module = workflow.module
+    const task = this.task
+    const module = task.module
 
     // combine all dependencies for all services in the module, to be sure we have all the context we need
     const dg = await this.garden.getDependencyGraph()
@@ -90,15 +90,15 @@ export class WorkflowTask extends BaseTask {
     const runtimeContext = await prepareRuntimeContext(this.garden, module, serviceDeps)
 
     const logEntry = this.garden.log.info({
-      section: workflow.name,
+      section: task.name,
       msg: "Running",
       status: "active",
     })
 
-    let result: RunWorkflowResult
+    let result: RunTaskResult
     try {
-      result = await this.garden.actions.runWorkflow({
-        workflow,
+      result = await this.garden.actions.runTask({
+        task,
         logEntry,
         runtimeContext,
         interactive: false,

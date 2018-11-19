@@ -24,7 +24,7 @@ import {
   TestModuleParams,
   DeleteServiceParams,
   RunServiceParams,
-  RunWorkflowParams,
+  RunTaskParams,
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
 import { ContainerModule, helpers, validateContainerModule } from "../container"
@@ -237,9 +237,9 @@ export async function runService(
   })
 }
 
-export async function runWorkflow(
-  { ctx, workflow, interactive, runtimeContext, logEntry, buildDependencies }:
-    RunWorkflowParams<ContainerModule>,
+export async function runTask(
+  { ctx, task, interactive, runtimeContext, logEntry, buildDependencies }:
+    RunTaskParams<ContainerModule>,
 ) {
   const result = await runModule({
     ctx,
@@ -247,15 +247,15 @@ export async function runWorkflow(
     interactive,
     logEntry,
     runtimeContext,
-    module: workflow.module,
-    command: workflow.spec.command || [],
+    module: task.module,
+    command: task.spec.command || [],
     ignoreError: false,
-    timeout: workflow.spec.timeout || 9999,
+    timeout: task.spec.timeout || 9999,
   })
 
   return {
     ...result,
-    workflowName: workflow.name,
+    taskName: task.name,
   }
 }
 

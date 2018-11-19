@@ -49,7 +49,7 @@ describe("plugins.container", () => {
     },
 
     serviceConfigs: [],
-    workflowConfigs: [],
+    taskConfigs: [],
     testConfigs: [],
   }
 
@@ -127,7 +127,7 @@ describe("plugins.container", () => {
           },
 
           serviceConfigs: [],
-          workflowConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         })
 
@@ -226,7 +226,7 @@ describe("plugins.container", () => {
               volumes: [],
             }],
             tasks: [{
-              name: "workflow-a",
+              name: "task-a",
               command: ["echo", "OK"],
               dependencies: [],
               timeout: null,
@@ -241,7 +241,7 @@ describe("plugins.container", () => {
           },
 
           serviceConfigs: [],
-          workflowConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 
@@ -278,7 +278,7 @@ describe("plugins.container", () => {
               }],
             tasks:
               [{
-                name: "workflow-a",
+                name: "task-a",
                 command: ["echo", "OK"],
                 dependencies: [],
                 timeout: null,
@@ -317,17 +317,17 @@ describe("plugins.container", () => {
                 volumes: [],
               },
             }],
-          workflowConfigs:
+          taskConfigs:
             [{
               dependencies: [],
-              name: "workflow-a",
+              name: "task-a",
               spec: {
                 command: [
                   "echo",
                   "OK",
                 ],
                 dependencies: [],
-                name: "workflow-a",
+                name: "task-a",
                 timeout: null,
               },
               timeout: null,
@@ -390,7 +390,7 @@ describe("plugins.container", () => {
               volumes: [],
             }],
             tasks: [{
-              name: "workflow-a",
+              name: "task-a",
               command: ["echo"],
               dependencies: [],
               timeout: null,
@@ -405,7 +405,7 @@ describe("plugins.container", () => {
           },
 
           serviceConfigs: [],
-          workflowConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 
@@ -447,7 +447,7 @@ describe("plugins.container", () => {
               volumes: [],
             }],
             tasks: [{
-              name: "workflow-a",
+              name: "task-a",
               command: ["echo"],
               dependencies: [],
               timeout: null,
@@ -456,7 +456,7 @@ describe("plugins.container", () => {
           },
 
           serviceConfigs: [],
-          workflowConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 
@@ -495,7 +495,7 @@ describe("plugins.container", () => {
               volumes: [],
             }],
             tasks: [{
-              name: "workflow-a",
+              name: "task-a",
               command: ["echo"],
               dependencies: [],
               timeout: null,
@@ -504,7 +504,7 @@ describe("plugins.container", () => {
           },
 
           serviceConfigs: [],
-          workflowConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 

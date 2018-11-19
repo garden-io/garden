@@ -1,17 +1,17 @@
 import { expect } from "chai"
 import { omit } from "lodash"
-import { RunWorkflowCommand } from "../../../../src/commands/run/workflow"
+import { RunTaskCommand } from "../../../../src/commands/run/task"
 import { makeTestGardenA } from "../../../helpers"
 
-describe("RunWorkflowCommand", () => {
+describe("RunTaskCommand", () => {
 
-  it("should run a workflow", async () => {
+  it("should run a task", async () => {
     const garden = await makeTestGardenA()
-    const cmd = new RunWorkflowCommand()
+    const cmd = new RunTaskCommand()
 
     const { result } = await cmd.action({
       garden,
-      args: { task: "workflow-a" },
+      args: { task: "task-a" },
       opts: { "force-build": false },
     })
 
@@ -20,7 +20,7 @@ describe("RunWorkflowCommand", () => {
       moduleName: "module-a",
       output: "OK",
       success: true,
-      workflowName: "workflow-a",
+      taskName: "task-a",
     }
 
     const omittedKeys = ["completedAt", "startedAt", "version"]

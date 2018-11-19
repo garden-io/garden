@@ -9,11 +9,11 @@
 import { flatten, intersection } from "lodash"
 import { DeployTask } from "./deploy"
 import { BuildTask } from "./build"
-import { WorkflowTask } from "./workflow"
+import { TaskTask } from "./task"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
 import { Service } from "../types/service"
-import { Workflow } from "../types/workflow"
+import { Task } from "../types/task"
 import { DependencyGraphNode } from "../dependency-graph"
 
 export async function getTasksForModule(
@@ -28,12 +28,12 @@ export async function getTasksForModule(
   let buildTasks: BuildTask[] = []
   let dependantBuildModules: Module[] = []
   let services: Service[] = []
-  let workflows: Workflow[] = []
+  let tasks: Task[] = []
 
   if (!includeDependants) {
     buildTasks.push(new BuildTask({ garden, module, force: true, fromWatch, hotReloadServiceNames }))
     services = module.services
-    workflows = module.workflows
+    tasks = module.tasks
   } else {
     const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
     const dg = await garden.getDependencyGraph()
@@ -48,13 +48,13 @@ export async function getTasksForModule(
 
       dependantBuildModules = serviceDeps.build
       services = serviceDeps.service
-      workflows = serviceDeps.workflow
+      tasks = serviceDeps.task
     } else {
       const dependants = await dg.getDependantsForModule(module, dependantFilterFn)
       buildTasks.push(new BuildTask({ garden, module, force: true, fromWatch, hotReloadServiceNames }))
       dependantBuildModules = dependants.build
       services = module.services.concat(dependants.service)
-      workflows = module.workflows.concat(dependants.workflow)
+      tasks = module.tasks.concat(dependants.task)
     }
   }
 
@@ -64,10 +64,10 @@ export async function getTasksForModule(
   const deployTasks = services
     .map(service => new DeployTask({ garden, service, force, forceBuild, fromWatch, hotReloadServiceNames }))
 
-  const workflowTasks = workflows
-    .map(workflow => new WorkflowTask({ garden, workflow, force, forceBuild }))
+  const taskTasks = tasks
+    .map(task => new TaskTask({ garden, task, force, forceBuild }))
 
-  return [...buildTasks, ...deployTasks, ...workflowTasks]
+  return [...buildTasks, ...deployTasks, ...taskTasks]
 
 }
 

@@ -13,7 +13,7 @@ import {
   ConfigurationError,
 } from "../exceptions"
 import { Service } from "../types/service"
-import { Workflow } from "../types/workflow"
+import { Task } from "../types/task"
 
 export type Cycle = string[]
 
@@ -24,7 +24,7 @@ export type Cycle = string[]
 
   Throws an error if cycles were found.
 */
-export async function detectCircularDependencies(modules: Module[], services: Service[], workflows: Workflow[]) {
+export async function detectCircularDependencies(modules: Module[], services: Service[], tasks: Task[]) {
   // Sparse matrices
   const buildGraph = {}
   const runtimeGraph = {}
@@ -40,24 +40,24 @@ export async function detectCircularDependencies(modules: Module[], services: Se
       set(buildGraph, [module.name, depName], { distance: 1, next: depName })
     }
 
-    // Runtime (service & workflow) dependencies
+    // Runtime (service & task) dependencies
     for (const service of module.serviceConfigs || []) {
       for (const depName of service.dependencies) {
         set(runtimeGraph, [service.name, depName], { distance: 1, next: depName })
       }
     }
 
-    for (const workflow of module.workflowConfigs || []) {
-      for (const depName of workflow.dependencies) {
-        set(runtimeGraph, [workflow.name, depName], { distance: 1, next: depName })
+    for (const task of module.taskConfigs || []) {
+      for (const depName of task.dependencies) {
+        set(runtimeGraph, [task.name, depName], { distance: 1, next: depName })
       }
     }
   }
 
   const serviceNames = services.map(s => s.name)
-  const workflowNames = workflows.map(w => w.name)
+  const taskNames = tasks.map(w => w.name)
   const buildCycles = detectCycles(buildGraph, modules.map(m => m.name))
-  const runtimeCycles = detectCycles(runtimeGraph, serviceNames.concat(workflowNames))
+  const runtimeCycles = detectCycles(runtimeGraph, serviceNames.concat(taskNames))
 
   if (buildCycles.length > 0 || runtimeCycles.length > 0) {
     const detail = {}

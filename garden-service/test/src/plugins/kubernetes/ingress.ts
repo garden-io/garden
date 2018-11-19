@@ -344,7 +344,7 @@ describe("createIngresses", () => {
       },
 
       serviceConfigs: [],
-      workflowConfigs: [],
+      taskConfigs: [],
       testConfigs: [],
     }
 

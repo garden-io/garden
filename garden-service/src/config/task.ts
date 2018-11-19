@@ -13,15 +13,15 @@ import {
   joiIdentifier,
 } from "./common"
 
-export interface WorkflowSpec { }
+export interface TaskSpec { }
 
-export interface BaseWorkflowSpec extends WorkflowSpec {
+export interface BaseTaskSpec extends TaskSpec {
   name: string
   dependencies: string[]
   timeout: number | null
 }
 
-export const baseWorkflowSpecSchema = Joi.object()
+export const baseTaskSpecSchema = Joi.object()
   .keys({
     name: joiIdentifier()
       .required()
@@ -39,12 +39,12 @@ export const baseWorkflowSpecSchema = Joi.object()
   })
   .description("Required configuration for module tasks.")
 
-export interface WorkflowConfig<T extends WorkflowSpec = WorkflowSpec> extends BaseWorkflowSpec {
+export interface TaskConfig<T extends TaskSpec = TaskSpec> extends BaseTaskSpec {
   // Plugins can add custom fields that are kept here
   spec: T
 }
 
-export const workflowConfigSchema = baseWorkflowSpecSchema
+export const taskConfigSchema = baseTaskSpecSchema
   .keys({
     spec: Joi.object()
       .meta({ extendable: true })
@@ -52,13 +52,13 @@ export const workflowConfigSchema = baseWorkflowSpecSchema
   })
   .description("The configuration for a module's task.")
 
-export const workflowSchema = Joi.object()
+export const taskSchema = Joi.object()
   .options({ presence: "required" })
   .keys({
     name: joiIdentifier()
       .description("The name of the task."),
     module: Joi.object().unknown(true),
-    config: workflowConfigSchema,
+    config: taskConfigSchema,
     spec: Joi.object()
       .meta({ extendable: true })
       .description("The configuration of the task (specific to each plugin)."),

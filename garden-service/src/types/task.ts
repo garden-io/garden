@@ -7,16 +7,16 @@
  */
 
 import { Module } from "./module"
-import { WorkflowConfig } from "../config/workflow"
+import { TaskConfig } from "../config/task"
 
-export interface Workflow<M extends Module = Module> {
+export interface Task<M extends Module = Module> {
   name: string
   module: M
-  config: M["workflowConfigs"][0]
-  spec: M["workflowConfigs"][0]["spec"]
+  config: M["taskConfigs"][0]
+  spec: M["taskConfigs"][0]["spec"]
 }
 
-export function workflowFromConfig<M extends Module = Module>(module: M, config: WorkflowConfig): Workflow<M> {
+export function taskFromConfig<M extends Module = Module>(module: M, config: TaskConfig): Task<M> {
   return {
     name: config.name,
     module,

@@ -18,7 +18,7 @@ import {
 } from "../types/service"
 import { Garden } from "../garden"
 import { PushTask } from "./push"
-import { WorkflowTask } from "./workflow"
+import { TaskTask } from "./task"
 import { DependencyGraphNodeType } from "../dependency-graph"
 // import { BuildTask } from "./build"
 
@@ -75,9 +75,9 @@ export class DeployTask extends BaseTask {
     if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
       return deployTasks
     } else {
-      const workflowTasks = deps.workflow.map(workflow => {
-        return new WorkflowTask({
-          workflow,
+      const taskTasks = deps.task.map(task => {
+        return new TaskTask({
+          task,
           garden: this.garden,
           force: false,
           forceBuild: this.forceBuild,
@@ -96,8 +96,8 @@ export class DeployTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
-      // return [ ...deployTasks, ...workflowTasks, buildTask]
-      return [...deployTasks, ...workflowTasks, pushTask]
+      // return [ ...deployTasks, ...taskTasks, buildTask]
+      return [...deployTasks, ...taskTasks, pushTask]
     }
   }
 

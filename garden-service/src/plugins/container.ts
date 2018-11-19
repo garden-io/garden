@@ -42,8 +42,8 @@ import { keyBy } from "lodash"
 import {
   genericTestSchema,
   GenericTestSpec,
-  GenericWorkflowSpec,
-  genericWorkflowSpecSchema,
+  GenericTaskSpec,
+  genericTaskSpecSchema,
 } from "./generic"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
@@ -260,11 +260,11 @@ export interface ContainerTestSpec extends GenericTestSpec { }
 
 export const containerTestSchema = genericTestSchema
 
-export interface ContainerWorkflowSpec extends GenericWorkflowSpec {
+export interface ContainerTaskSpec extends GenericTaskSpec {
   command: string[],
 }
 
-export const containerWorkflowSchema = genericWorkflowSpecSchema
+export const containerTaskSchema = genericTaskSpecSchema
   .keys({
     command: Joi.array().items(Joi.string())
       .description("The command that the task should run inside the container."),
@@ -277,7 +277,7 @@ export interface ContainerModuleSpec extends ModuleSpec {
   hotReload?: HotReloadConfigSpec,
   services: ContainerServiceSpec[],
   tests: ContainerTestSpec[],
-  tasks: ContainerWorkflowSpec[],
+  tasks: ContainerTaskSpec[],
 }
 
 export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
@@ -305,8 +305,8 @@ export const containerModuleSpecSchema = Joi.object()
       .description("The list of services to deploy from this container module."),
     tests: joiArray(containerTestSchema)
       .description("A list of tests to run in the module."),
-    // We use the user-facing term "tasks" as the key here, instead of "workflows".
-    tasks: joiArray(containerWorkflowSchema)
+    // We use the user-facing term "tasks" as the key here, instead of "tasks".
+    tasks: joiArray(containerTaskSchema)
       .description(deline`
         A list of tasks that can be run from this container module. These can be used as dependencies for services
         (executed before the service is deployed) or for other tasks.
@@ -525,7 +525,7 @@ export async function validateContainerModule({ moduleConfig }: ValidateModulePa
     timeout: t.timeout,
   }))
 
-  moduleConfig.workflowConfigs = moduleConfig.spec.tasks.map(t => ({
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
     name: t.name,
     dependencies: t.dependencies,
     spec: t,
