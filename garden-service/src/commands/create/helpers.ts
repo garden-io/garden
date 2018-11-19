@@ -8,13 +8,8 @@
 
 import * as Joi from "joi"
 import {
-  containerTemplate,
-  googleCloudFunctionTemplate,
-  npmPackageTemplate,
-  ModuleConfigOpts,
   ModuleType,
   moduleTemplate,
-  ConfigOpts,
 } from "./config-templates"
 import { join } from "path"
 import { pathExists } from "fs-extra"
@@ -22,28 +17,19 @@ import { validate } from "../../config/common"
 import { dumpYaml } from "../../util/util"
 import { MODULE_CONFIG_FILENAME } from "../../constants"
 import { LogNode } from "../../logger/log-node"
+import { NewModuleOpts, CommonOpts } from "./project"
 
-export function prepareNewModuleConfig(name: string, type: ModuleType, path: string): ModuleConfigOpts {
-  const moduleTypeTemplate = {
-    container: containerTemplate,
-    "google-cloud-function": googleCloudFunctionTemplate,
-    "npm-package": npmPackageTemplate,
-  }[type]
+export function prepareNewModuleOpts(name: string, type: ModuleType, path: string): NewModuleOpts {
   return {
     name,
     type,
     path,
-    config: {
-      module: {
-        ...moduleTemplate(name, type),
-        ...moduleTypeTemplate(name),
-      },
-    },
+    config: moduleTemplate(name, type),
   }
 }
 
-export async function dumpConfig(configOpts: ConfigOpts, schema: Joi.Schema, logger: LogNode) {
-  const { config, name, path } = configOpts
+export async function dumpConfig(opts: CommonOpts, schema: Joi.Schema, logger: LogNode) {
+  const { config, name, path } = opts
   const yamlPath = join(path, MODULE_CONFIG_FILENAME)
   const task = logger.info({
     msg: `Writing config for ${name}`,

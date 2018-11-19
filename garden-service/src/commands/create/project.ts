@@ -21,19 +21,21 @@ import {
 } from "../base"
 import { GardenBaseError } from "../../exceptions"
 import {
-  prepareNewModuleConfig,
+  prepareNewModuleOpts,
   dumpConfig,
 } from "./helpers"
 import { prompts } from "./prompts"
 import {
   projectTemplate,
-  ModuleConfigOpts,
-  ProjectConfigOpts,
-  moduleSchema,
+  ModuleTemplate,
+  ModuleType,
+  ProjectTemplate,
 } from "./config-templates"
 import { getChildDirNames } from "../../util/util"
 import { validate, joiIdentifier } from "../../config/common"
-import { projectSchema } from "../../config/project"
+import { configSchema } from "../../config/base"
+
+const flatten = (acc, val) => acc.concat(val)
 
 const createProjectOptions = {
   "module-dirs": new PathsParameter({
@@ -53,12 +55,25 @@ const createProjectArguments = {
 type Args = typeof createProjectArguments
 type Opts = typeof createProjectOptions
 
-const flatten = (acc, val) => acc.concat(val)
+export interface CommonOpts {
+  name: string
+  path: string
+  config: ModuleTemplate | ProjectTemplate
+}
+
+export interface NewModuleOpts extends CommonOpts {
+  type: ModuleType
+  config: ModuleTemplate
+}
+
+export interface NewProjectOpts extends CommonOpts {
+  config: ProjectTemplate
+}
 
 interface CreateProjectResult extends CommandResult {
   result: {
-    projectConfig: ProjectConfigOpts,
-    moduleConfigs: ModuleConfigOpts[],
+    project: NewProjectOpts,
+    modules: NewModuleOpts[],
   }
 }
 
@@ -86,7 +101,7 @@ export class CreateProjectCommand extends Command<Args, Opts> {
   options = createProjectOptions
 
   async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CreateProjectResult> {
-    let moduleConfigs: ModuleConfigOpts[] = []
+    let moduleOpts: NewModuleOpts[] = []
     let errors: GardenBaseError[] = []
 
     const projectRoot = args["project-dir"] ? join(garden.projectRoot, args["project-dir"].trim()) : garden.projectRoot
@@ -107,13 +122,13 @@ export class CreateProjectCommand extends Command<Args, Opts> {
 
     if (moduleParentDirs.length > 0) {
       // If module-dirs option provided we scan for modules in the parent dir(s) and add them one by one
-      moduleConfigs = (await Bluebird.mapSeries(moduleParentDirs, async parentDir => {
+      moduleOpts = (await Bluebird.mapSeries(moduleParentDirs, async parentDir => {
         const moduleNames = await getChildDirNames(parentDir)
 
-        return Bluebird.reduce(moduleNames, async (acc: ModuleConfigOpts[], moduleName: string) => {
+        return Bluebird.reduce(moduleNames, async (acc: NewModuleOpts[], moduleName: string) => {
           const { type } = await prompts.addConfigForModule(moduleName)
           if (type) {
-            acc.push(prepareNewModuleConfig(moduleName, type, join(parentDir, moduleName)))
+            acc.push(prepareNewModuleOpts(moduleName, type, join(parentDir, moduleName)))
           }
           return acc
         }, [])
@@ -122,30 +137,30 @@ export class CreateProjectCommand extends Command<Args, Opts> {
         .filter(m => m)
     } else {
       // Otherwise we prompt the user for modules to add
-      moduleConfigs = (await prompts.repeatAddModule())
-        .map(({ name, type }) => prepareNewModuleConfig(name, type, join(projectRoot, name)))
+      moduleOpts = (await prompts.repeatAddModule())
+        .map(({ name, type }) => prepareNewModuleOpts(name, type, join(projectRoot, name)))
     }
 
     garden.log.info("---------")
     const taskLog = garden.log.info({ msg: "Setting up project", status: "active" })
 
-    for (const module of moduleConfigs) {
+    for (const module of moduleOpts) {
       await ensureDir(module.path)
       try {
-        await dumpConfig(module, moduleSchema, garden.log)
+        await dumpConfig(module, configSchema, garden.log)
       } catch (err) {
         errors.push(err)
       }
     }
 
-    const projectConfig: ProjectConfigOpts = {
+    const projectOpts: NewProjectOpts = {
       path: projectRoot,
       name: projectName,
-      config: projectTemplate(projectName, moduleConfigs.map(module => module.type)),
+      config: projectTemplate(projectName, moduleOpts.map(module => module.type)),
     }
 
     try {
-      await dumpConfig(projectConfig, projectSchema, garden.log)
+      await dumpConfig(projectOpts, configSchema, garden.log)
     } catch (err) {
       errors.push(err)
     }
@@ -161,8 +176,8 @@ export class CreateProjectCommand extends Command<Args, Opts> {
 
     return {
       result: {
-        moduleConfigs,
-        projectConfig,
+        modules: moduleOpts,
+        project: projectOpts,
       },
       errors,
     }

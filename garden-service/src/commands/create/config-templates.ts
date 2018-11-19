@@ -7,13 +7,12 @@
  */
 
 import { capitalize, camelCase, uniq } from "lodash"
-import * as Joi from "joi"
 
 import { DeepPartial } from "../../util/util"
 import { ContainerModuleSpec } from "../../plugins/container"
 import { GcfModuleSpec } from "../../plugins/google/google-cloud-functions"
 import { ProjectConfig } from "../../config/project"
-import { BaseModuleSpec, ModuleConfig, baseModuleSpecSchema } from "../../config/module"
+import { ModuleConfig } from "../../config/module"
 
 /**
  * Ideally there would be some mechanism to discover available module types,
@@ -32,23 +31,12 @@ export const availableModuleTypes = <ModuleType[]>Object.keys(MODULE_PROVIDER_MA
 
 export type ModuleType = keyof typeof MODULE_PROVIDER_MAP
 
-export const moduleSchema = Joi.object().keys({
-  module: baseModuleSpecSchema,
-})
-
-export interface ConfigOpts {
-  name: string
-  path: string
-  config: { module: Partial<ModuleConfig> } | Partial<ProjectConfig>
+export interface ProjectTemplate {
+  project: Partial<ProjectConfig>
 }
 
-export interface ModuleConfigOpts extends ConfigOpts {
-  type: ModuleType
-  config: { module: Partial<ModuleConfig> }
-}
-
-export interface ProjectConfigOpts extends ConfigOpts {
-  config: Partial<ProjectConfig>
+export interface ModuleTemplate {
+  module: Partial<ModuleConfig>
 }
 
 const noCase = (str: string) => str.replace(/-|_/g, " ")
@@ -85,22 +73,34 @@ export function npmPackageTemplate(_moduleName: string): any {
   return {}
 }
 
-export const projectTemplate = (name: string, moduleTypes: ModuleType[]): Partial<ProjectConfig> => {
+export const projectTemplate = (name: string, moduleTypes: ModuleType[]): ProjectTemplate => {
   const providers = uniq(moduleTypes).map(type => ({ name: MODULE_PROVIDER_MAP[type] }))
   return {
-    name,
-    environments: [
-      {
-        name: "local",
-        providers,
-        variables: {},
-      },
-    ],
+    project: {
+      name,
+      environments: [
+        {
+          name: "local",
+          providers,
+          variables: {},
+        },
+      ],
+    },
   }
 }
 
-export const moduleTemplate = (name: string, type: ModuleType): Partial<BaseModuleSpec> => ({
-  name,
-  type,
-  description: `${titleize(name)} ${noCase(type)}`,
-})
+export const moduleTemplate = (name: string, type: ModuleType): ModuleTemplate => {
+  const moduleTypeTemplate = {
+    container: containerTemplate,
+    "google-cloud-function": googleCloudFunctionTemplate,
+    "npm-package": npmPackageTemplate,
+  }[type]
+  return {
+    module: {
+      name,
+      type,
+      description: `${titleize(name)} ${noCase(type)}`,
+      ...moduleTypeTemplate(name),
+    },
+  }
+}
