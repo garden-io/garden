@@ -1,0 +1,27 @@
+project:
+  name: gatsby-hot-reload
+  environments:
+  - name: local
+    providers:
+    - name: local-kubernetes
+
+module:
+  description: Minimal Gatsby example
+  name: website
+  type: container
+  hotReload:
+    sync:
+      - target: /app/src
+        source: src
+  services:
+    - name: website
+      command: [npm, run, dev]
+      hotReloadCommand: [npm, run, dev]
+      env:
+        GATSBY_WEBPACK_PUBLICPATH: /
+      ports:
+        - name: http
+          containerPort: 8000
+      ingresses:
+        - path: /
+          port: http
