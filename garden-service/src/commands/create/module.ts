@@ -8,6 +8,7 @@
 
 import { basename, join } from "path"
 import dedent = require("dedent")
+import { ensureDir } from "fs-extra"
 
 import {
   Command,
@@ -17,14 +18,15 @@ import {
   CommandParams,
 } from "../base"
 import { ParameterError, GardenBaseError } from "../../exceptions"
-import { availableModuleTypes, ModuleType, moduleSchema, ModuleConfigOpts } from "./config-templates"
+import { availableModuleTypes, ModuleType } from "./config-templates"
 import {
-  prepareNewModuleConfig,
+  prepareNewModuleOpts,
   dumpConfig,
 } from "./helpers"
 import { prompts } from "./prompts"
 import { validate, joiIdentifier } from "../../config/common"
-import { ensureDir } from "fs-extra"
+import { NewModuleOpts } from "./project"
+import { configSchema } from "../../config/base"
 
 const createModuleOptions = {
   name: new StringParameter({
@@ -47,7 +49,7 @@ type Opts = typeof createModuleOptions
 
 interface CreateModuleResult extends CommandResult {
   result: {
-    module?: ModuleConfigOpts,
+    module?: NewModuleOpts,
   }
 }
 
@@ -102,14 +104,14 @@ export class CreateModuleCommand extends Command<Args, Opts> {
       }
     }
 
-    const module = prepareNewModuleConfig(moduleName, type, moduleRoot)
+    const moduleOpts = prepareNewModuleOpts(moduleName, type, moduleRoot)
     try {
-      await dumpConfig(module, moduleSchema, garden.log)
+      await dumpConfig(moduleOpts, configSchema, garden.log)
     } catch (err) {
       errors.push(err)
     }
     return {
-      result: { module },
+      result: { module: moduleOpts },
       errors,
     }
   }

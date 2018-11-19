@@ -54,8 +54,8 @@ describe("CreateProjectCommand", () => {
       args: { "project-dir": "" },
       opts: { name: "", "module-dirs": [] },
     })
-    const modules = result.moduleConfigs.map(m => pick(m, ["name", "type", "path"]))
-    const project = pick(result.projectConfig, ["name", "path"])
+    const modules = result.modules.map(m => pick(m, ["name", "type", "path"]))
+    const project = pick(result.project, ["name", "path"])
 
     expect({ modules, project }).to.eql({
       modules: [
@@ -77,7 +77,7 @@ describe("CreateProjectCommand", () => {
       args: { "project-dir": "new-project" },
       opts: { name: "", "module-dirs": [] },
     })
-    expect(pick(result.projectConfig, ["name", "path"])).to.eql({
+    expect(pick(result.project, ["name", "path"])).to.eql({
       name: "new-project",
       path: join(garden.projectRoot, "new-project"),
     })
@@ -91,7 +91,7 @@ describe("CreateProjectCommand", () => {
       args: { "project-dir": "" },
       opts: { name: "my-project", "module-dirs": [] },
     })
-    expect(pick(result.projectConfig, ["name", "path"])).to.eql({
+    expect(pick(result.project, ["name", "path"])).to.eql({
       name: "my-project",
       path: join(garden.projectRoot),
     })
@@ -105,7 +105,7 @@ describe("CreateProjectCommand", () => {
       args: { "project-dir": "" },
       opts: { name: "", "module-dirs": ["."] },
     })
-    expect(result.moduleConfigs.map(m => pick(m, ["name", "type", "path"]))).to.eql([
+    expect(result.modules.map(m => pick(m, ["name", "type", "path"]))).to.eql([
       { type: "container", name: "module-a", path: join(garden.projectRoot, "module-a") },
       { type: "container", name: "module-b", path: join(garden.projectRoot, "module-b") },
     ])
@@ -119,7 +119,7 @@ describe("CreateProjectCommand", () => {
       args: { "project-dir": "" },
       opts: { name: "", "module-dirs": ["module-a", "module-b"] },
     })
-    expect(result.moduleConfigs.map(m => pick(m, ["name", "type", "path"]))).to.eql([
+    expect(result.modules.map(m => pick(m, ["name", "type", "path"]))).to.eql([
       { type: "container", name: "child-module-a", path: join(garden.projectRoot, "module-a", "child-module-a") },
       { type: "container", name: "child-module-b", path: join(garden.projectRoot, "module-b", "child-module-b") },
     ])
