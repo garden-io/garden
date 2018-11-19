@@ -1,5 +1,4 @@
 import * as Bluebird from "bluebird"
-import deline = require("deline")
 import { expect } from "chai"
 import { flatten, uniq } from "lodash"
 import { resolve } from "path"
@@ -52,7 +51,7 @@ describe("TaskHelpers", () => {
       ].sort())
     })
 
-    describe("returns the correct set of tasks for the changed module and its dependants", () => {
+    context("without hot reloading enabled", () => {
       const expectedBaseKeysByChangedModule = [
         {
           moduleName: "build-dependency",
@@ -166,64 +165,63 @@ describe("TaskHelpers", () => {
 
     })
 
-    describe(deline`returns the correct set of tasks for the changed module and its dependants
-        (with hot reloading)`, () => {
-        const expectedBaseKeysByChangedModule = [
-          {
-            moduleName: "build-dependency",
-            withoutDependencies: ["build.build-dependency", "deploy.build-dependency"],
-            withDependencies: ["build.build-dependency", "push.build-dependency", "deploy.build-dependency"].sort(),
-          },
-          {
-            moduleName: "good-morning",
-            withoutDependencies: ["deploy.service-dependant", "task.dependant-task"],
-            withDependencies: [
-              "build.service-dependant",
-              "push.service-dependant",
-              "deploy.service-dependant",
-              "task.dependant-task",
-            ].sort(),
-          },
-          {
-            moduleName: "good-evening",
-            withoutDependencies: ["build.good-evening", "deploy.good-evening"],
-            withDependencies: ["build.good-evening", "push.good-evening", "deploy.good-evening"].sort(),
-          },
-          {
-            moduleName: "build-dependant",
-            withoutDependencies: ["build.build-dependant", "deploy.build-dependant"],
-            withDependencies: [
-              "build.build-dependant",
-              "push.build-dependant",
-              "deploy.build-dependant",
-            ].sort(),
-          },
-          {
-            moduleName: "service-dependant",
-            withoutDependencies: ["build.service-dependant", "deploy.service-dependant", "task.dependant-task"],
-            withDependencies: [
-              "build.service-dependant",
-              "push.service-dependant",
-              "deploy.service-dependant",
-              "task.dependant-task",
-            ].sort(),
-          },
-        ]
+    context("with hot reloading enabled", () => {
+      const expectedBaseKeysByChangedModule = [
+        {
+          moduleName: "build-dependency",
+          withoutDependencies: ["build.build-dependency", "deploy.build-dependency"],
+          withDependencies: ["build.build-dependency", "push.build-dependency", "deploy.build-dependency"].sort(),
+        },
+        {
+          moduleName: "good-morning",
+          withoutDependencies: ["deploy.service-dependant", "task.dependant-task"],
+          withDependencies: [
+            "build.service-dependant",
+            "push.service-dependant",
+            "deploy.service-dependant",
+            "task.dependant-task",
+          ].sort(),
+        },
+        {
+          moduleName: "good-evening",
+          withoutDependencies: ["build.good-evening", "deploy.good-evening"],
+          withDependencies: ["build.good-evening", "push.good-evening", "deploy.good-evening"].sort(),
+        },
+        {
+          moduleName: "build-dependant",
+          withoutDependencies: ["build.build-dependant", "deploy.build-dependant"],
+          withDependencies: [
+            "build.build-dependant",
+            "push.build-dependant",
+            "deploy.build-dependant",
+          ].sort(),
+        },
+        {
+          moduleName: "service-dependant",
+          withoutDependencies: ["build.service-dependant", "deploy.service-dependant", "task.dependant-task"],
+          withDependencies: [
+            "build.service-dependant",
+            "push.service-dependant",
+            "deploy.service-dependant",
+            "task.dependant-task",
+          ].sort(),
+        },
+      ]
 
-        for (const { moduleName, withoutDependencies, withDependencies } of expectedBaseKeysByChangedModule) {
-          it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
-            const module = await garden.getModule(<string>moduleName)
-            const tasks = await getTasksForModule({
-              garden, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
-              fromWatch: true, includeDependants: true,
-            })
-            expect(sortedBaseKeys(tasks)).to.eql(withoutDependencies)
-            expect(await sortedBaseKeysWithDependencies(tasks)).to.eql(withDependencies)
+      for (const { moduleName, withoutDependencies, withDependencies } of expectedBaseKeysByChangedModule) {
+        it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
+          const module = await garden.getModule(<string>moduleName)
+          const tasks = await getTasksForModule({
+            garden, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
+            fromWatch: true, includeDependants: true,
           })
+          expect(sortedBaseKeys(tasks)).to.eql(withoutDependencies)
+          expect(await sortedBaseKeysWithDependencies(tasks)).to.eql(withDependencies)
+        })
 
-        }
+      }
 
-      })
+    })
 
   })
 

@@ -2,7 +2,7 @@ const express = require("express")
 const knex = require("knex")({
   client: "postgresql",
   connection: {
-    host: "postgres-service",
+    host: "postgres",
     port: 5432,
     database: "postgres",
     user: "postgres",

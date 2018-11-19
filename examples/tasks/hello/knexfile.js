@@ -2,7 +2,7 @@ module.exports = {
   development: {
     client: "postgresql",
     connection: {
-      host: "postgres-service",
+      host: "postgres",
       port: 5432,
       database: "postgres",
       user: "postgres",

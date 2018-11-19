@@ -498,7 +498,7 @@ Examples:
 
 Run a task (in the context of its parent module).
 
-This is useful for re-running tasks on the go, for example after writing/modifying database migrations.
+This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
 
 Examples:
 

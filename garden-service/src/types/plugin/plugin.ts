@@ -46,7 +46,9 @@ import {
   runModuleParamsSchema,
   testModuleParamsSchema,
   getTestResultParamsSchema,
-  publishModuleParamsSchema, getTaskStatusParamsSchema, runTaskParamsSchema,
+  publishModuleParamsSchema,
+  getTaskStatusParamsSchema,
+  runTaskParamsSchema,
 } from "./params"
 import {
   buildModuleResultSchema,
@@ -70,7 +72,9 @@ import {
   setSecretResultSchema,
   testResultSchema,
   validateModuleResultSchema,
-  publishModuleResultSchema, taskStatusSchema, runTaskResultSchema,
+  publishModuleResultSchema,
+  taskStatusSchema,
+  runTaskResultSchema,
 } from "./outputs"
 
 export type PluginActions = {

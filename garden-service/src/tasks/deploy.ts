@@ -20,7 +20,6 @@ import { Garden } from "../garden"
 import { PushTask } from "./push"
 import { TaskTask } from "./task"
 import { DependencyGraphNodeType } from "../dependency-graph"
-// import { BuildTask } from "./build"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -84,10 +83,6 @@ export class DeployTask extends BaseTask {
         })
       })
 
-      // const buildTask = new BuildTask({
-      //   garden: this.garden, module: this.service.module, force: true
-      // })
-
       const pushTask = new PushTask({
         garden: this.garden,
         module: this.service.module,
@@ -96,7 +91,6 @@ export class DeployTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
-      // return [ ...deployTasks, ...taskTasks, buildTask]
       return [...deployTasks, ...taskTasks, pushTask]
     }
   }

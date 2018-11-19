@@ -684,7 +684,7 @@ module:
   #
   # Optional.
   tasks: 
-    # The task specification for a generic module.
+    # A task that can be run in this module.
     #
     # Optional.
     - # The name of the task.

@@ -70,7 +70,7 @@ export class Kubectl {
       opts.push("--tty")
     }
 
-    return args.concat(opts)
+    return opts.concat(args)
   }
 }
 

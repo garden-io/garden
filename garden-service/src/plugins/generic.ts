@@ -62,7 +62,7 @@ export const genericTaskSpecSchema = baseTaskSpecSchema
     command: Joi.array().items(Joi.string())
       .description("The command to run in the module build context."),
   })
-  .description("The task specification for a generic module.")
+  .description("A task that can be run in this module.")
 
 export interface GenericModuleSpec extends ModuleSpec {
   env: { [key: string]: string },
@@ -173,14 +173,8 @@ export async function runGenericTask(params: RunTaskParams): Promise<RunTaskResu
   const command = task.spec.command
   const startedAt = new Date()
 
-  const result = {
-    moduleName: module.name,
-    taskName: task.name,
-    command,
-    version: module.version,
-    success: true,
-    startedAt,
-  }
+  let completedAt
+  let output
 
   if (command && command.length) {
     const commandResult = await execa.shell(
@@ -191,14 +185,23 @@ export async function runGenericTask(params: RunTaskParams): Promise<RunTaskResu
       },
     )
 
-    result["completedAt"] = new Date()
-    result["output"] = commandResult.stdout + commandResult.stderr
+    completedAt = new Date()
+    output = commandResult.stdout + commandResult.stderr
   } else {
-    result["completedAt"] = startedAt
-    result["output"] = ""
+    completedAt = startedAt
+    output = ""
   }
 
-  return <RunTaskResult>{ ...result }
+  return <RunTaskResult>{
+    moduleName: module.name,
+    taskName: task.name,
+    command,
+    version: module.version,
+    success: true,
+    output,
+    startedAt,
+    completedAt,
+  }
 }
 
 export async function getGenericTaskStatus(): Promise<TaskStatus> {

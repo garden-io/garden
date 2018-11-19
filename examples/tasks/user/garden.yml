@@ -1,9 +1,9 @@
 module:
-  name: user-service
+  name: user
   description: User-listing service written in Ruby
   type: container
   services:
-    - name: user-service
+    - name: user
       command: [ruby, app.rb]
       ports:
         - name: http

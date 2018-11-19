@@ -1,9 +1,9 @@
 module:
-  name: hello-service
+  name: hello
   description: Greeting service
   type: container
   services:
-    - name: hello-service
+    - name: hello
       command: [npm, start]
       ports:
         - name: http
@@ -18,7 +18,6 @@ module:
       command: [npm, test]
   tasks:
     - name: node-migration
-      # sleep to give postgres time to get ready
-      command: ["sleep 5 && knex migrate:latest"]
+      command: [knex, migrate:latest]
       dependencies:
-        - postgres-service
+        - postgres

@@ -1,6 +1,6 @@
 development:
   adapter: postgresql
   port: 5432
-  host: postgres-service
+  host: postgres
   database: postgres
   username: postgres

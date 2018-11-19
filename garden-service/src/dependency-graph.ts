@@ -16,6 +16,7 @@ import { Task } from "./types/task"
 import { TestConfig } from "./config/test"
 import { uniqByName } from "./util/util"
 
+// Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 export type DependencyGraphNodeType = "build" | "service" | "task" | "test"
   | "push" | "publish" // these two types are currently not represented in DependencyGraph
 
@@ -36,6 +37,10 @@ type DependencyRelationNames = {
 
 export type DependencyRelationFilterFn = (DependencyGraphNode) => boolean
 
+/**
+ * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
+ * dependant relationships.
+ */
 export class DependencyGraph {
 
   index: { [key: string]: DependencyGraphNode }
@@ -126,14 +131,13 @@ export class DependencyGraph {
     return getModuleKey(module.name, module.plugin)
   }
 
-  /**
+  /*
    * If filterFn is provided to any of the methods below that accept it, matching nodes
    * (and their dependencies/dependants, if recursive = true) are ignored.
    */
 
   /**
-   * Returns the set union of modules with the set union of their dependants (across all dependency types).
-   * Recursive.
+   * Returns the set union of modules with the set union of their dependants (across all dependency types, recursively).
    */
   async withDependantModules(modules: Module[], filterFn?: DependencyRelationFilterFn): Promise<Module[]> {
     const dependants = flatten(await Bluebird.map(modules, m => this.getDependantsForModule(m, filterFn)))
@@ -143,7 +147,9 @@ export class DependencyGraph {
     return this.garden.getModules(uniq(modules.concat(dependantModules).map(m => m.name)))
   }
 
-  // Recursive.
+  /**
+   * Returns all build and runtime dependants of module and its services & tasks (recursively).
+   */
   async getDependantsForModule(module: Module, filterFn?: DependencyRelationFilterFn): Promise<DependencyRelations> {
     const runtimeDependencies = uniq(module.serviceDependencyNames.concat(module.taskDependencyNames))
     const serviceNames = runtimeDependencies.filter(d => this.serviceMap[d])
@@ -151,24 +157,41 @@ export class DependencyGraph {
 
     return this.mergeRelations(... await Bluebird.all([
       this.getDependants("build", module.name, true, filterFn),
-      // this.getDependantsForMany("build", module.build.dependencies.map(d => d.name), true, filterFn),
       this.getDependantsForMany("service", serviceNames, true, filterFn),
       this.getDependantsForMany("task", taskNames, true, filterFn),
     ]))
   }
 
+  /**
+   * Returns all dependencies of a node in DependencyGraph. As noted above, each DependencyGraphNodeType corresponds
+   * to a Task class (e.g. BuildTask, DeployTask, ...), and name corresponds to the value returned by its getName
+   * instance method.
+   *
+   * If recursive = true, also includes those dependencies' dependencies, etc.
+   */
   async getDependencies(
     nodeType: DependencyGraphNodeType, name: string, recursive: boolean, filterFn?: DependencyRelationFilterFn,
   ): Promise<DependencyRelations> {
     return this.toRelations(this.getDependencyNodes(nodeType, name, recursive, filterFn))
   }
 
+  /**
+   * Returns all dependants of a node in DependencyGraph. As noted above, each DependencyGraphNodeType corresponds
+   * to a Task class (e.g. BuildTask, DeployTask, ...), and name corresponds to the value returned by its getName
+   * instance method.
+   *
+   * If recursive = true, also includes those dependants' dependants, etc.
+   */
   async getDependants(
     nodeType: DependencyGraphNodeType, name: string, recursive: boolean, filterFn?: DependencyRelationFilterFn,
   ): Promise<DependencyRelations> {
     return this.toRelations(this.getDependantNodes(nodeType, name, recursive, filterFn))
   }
 
+  /**
+   * Same as getDependencies above, but returns the set union of the dependencies of the nodes in the graph
+   * having type = nodeType and name = name (computed recursively or shallowly for all).
+   */
   async getDependenciesForMany(
     nodeType: DependencyGraphNodeType, names: string[], recursive: boolean, filterFn?: DependencyRelationFilterFn,
   ): Promise<DependencyRelations> {
@@ -176,6 +199,10 @@ export class DependencyGraph {
       names.map(name => this.getDependencyNodes(nodeType, name, recursive, filterFn))))
   }
 
+  /**
+   * Same as getDependants above, but returns the set union of the dependants of the nodes in the graph
+   * having type = nodeType and name = name (computed recursively or shallowly for all).
+   */
   async getDependantsForMany(
     nodeType: DependencyGraphNodeType, names: string[], recursive: boolean, filterFn?: DependencyRelationFilterFn,
   ): Promise<DependencyRelations> {
@@ -184,8 +211,7 @@ export class DependencyGraph {
   }
 
   /**
-   * Computes the set union for each node type across relationArr (i.e. concatenates
-   * and deduplicates for each key).
+   * Returns the set union for each node type across relationArr (i.e. concatenates and deduplicates for each key).
    */
   async mergeRelations(...relationArr: DependencyRelations[]): Promise<DependencyRelations> {
     const names = {}
@@ -201,6 +227,9 @@ export class DependencyGraph {
     })
   }
 
+  /**
+   * Returns the (unique by name) list of modules represented in relations.
+   */
   async modulesForRelations(relations: DependencyRelations): Promise<Module[]> {
     const moduleNames = uniq(flatten([
       relations.build,

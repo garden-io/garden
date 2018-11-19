@@ -23,8 +23,16 @@ describe("RunTaskCommand", () => {
       taskName: "task-a",
     }
 
-    const omittedKeys = ["completedAt", "startedAt", "version"]
-    expect(omit(result, omittedKeys)).to.eql(expected)
+    const omittedKeys = [
+      "dependencyResults",
+      "description",
+      "type",
+      "completedAt",
+      "startedAt",
+      "version",
+    ]
+
+    expect(omit(result!.output, omittedKeys)).to.eql(expected)
   })
 
 })

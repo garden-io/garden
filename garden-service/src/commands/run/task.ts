@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import { RunResult } from "../../types/plugin/outputs"
 import {
   BooleanParameter,
   Command,
@@ -23,6 +22,7 @@ import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 import { TaskTask } from "../../tasks/task"
+import { TaskResult } from "../../task-graph"
 
 const runArgs = {
   task: new StringParameter({
@@ -44,7 +44,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
   help = "Run a task (in the context of its parent module)."
 
   description = dedent`
-    This is useful for re-running tasks on the go, for example after writing/modifying database migrations.
+    This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
 
     Examples:
 
@@ -54,7 +54,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult>> {
     const task = await garden.getTask(args.task)
     const module = task.module
 
@@ -66,12 +66,9 @@ export class RunTaskCommand extends Command<Args, Opts> {
     })
 
     await garden.actions.prepareEnvironment({})
-
     const taskTask = new TaskTask({ garden, task, force: true, forceBuild: opts["force-build"] })
-    for (const depTask of await taskTask.getDependencies()) {
-      await garden.addTask(depTask)
-    }
-    await garden.processTasks()
+    await garden.addTask(taskTask)
+    const result = (await garden.processTasks())[taskTask.getBaseKey()]
 
     // combine all dependencies for all services in the module, to be sure we have all the context we need
     const depNames = uniq(flatten(module.serviceConfigs.map(s => s.dependencies)))
@@ -82,11 +79,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
     printRuntimeContext(garden, runtimeContext)
 
     garden.log.info("")
-
-    const result = await garden.actions.runTask({ task, runtimeContext, interactive: true })
-
-    garden.log.info(chalk.white(result.output))
-
+    garden.log.info(chalk.white(result.output.output))
     garden.log.info("")
     garden.log.header({ emoji: "heavy_check_mark", command: `Done!` })
 
