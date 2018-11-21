@@ -1,4 +1,33 @@
 
+<a name="v0.8.0-rc3"></a>
+## [v0.8.0-rc3](https://github.com/garden-io/garden/compare/v0.8.0-rc2...v0.8.0-rc3) (2018-11-21)
+
+### Bug Fixes
+
+* docs, comments & various fixes ([2d081a0](https://github.com/garden-io/garden/commit/2d081a0))
+* use plugin-prefixed module names in dep calcs ([7f65c9a](https://github.com/garden-io/garden/commit/7f65c9a))
+* fix broken doc links ([4a96f4c](https://github.com/garden-io/garden/commit/4a96f4c))
+* allow env variables to be lower case ([b79609c](https://github.com/garden-io/garden/commit/b79609c))
+* fixes to hot reload source/target handling ([271917b](https://github.com/garden-io/garden/commit/271917b))
+* recursive bug copying .garden into .garden ([7855982](https://github.com/garden-io/garden/commit/7855982))
+* skip build task during hot-reloading ([5e24716](https://github.com/garden-io/garden/commit/5e24716))
+* set log state to success after deleting env ([19ef038](https://github.com/garden-io/garden/commit/19ef038))
+* **create-command:** add project key to generated config and fix tests ([63cca8f](https://github.com/garden-io/garden/commit/63cca8f))
+
+### Code Refactoring
+
+* rename "workflow" to "task" ([4c7230a](https://github.com/garden-io/garden/commit/4c7230a))
+* rename Task to BaseTask ([9b40291](https://github.com/garden-io/garden/commit/9b40291))
+* **build:** remove dependancy on git submodule for k8s ([d284494](https://github.com/garden-io/garden/commit/d284494))
+* **error-messages:** improve error message for check-docs ([5c4fb3a](https://github.com/garden-io/garden/commit/5c4fb3a))
+* **go-cli:** use docker sdk and keep containers running ([85dfd13](https://github.com/garden-io/garden/commit/85dfd13))
+* **go-cli:** install bin deps where Garden expects them ([13fa57c](https://github.com/garden-io/garden/commit/13fa57c))
+
+### Features
+
+* tasks/workflows implemented ([de9275b](https://github.com/garden-io/garden/commit/de9275b))
+
+
 <a name="v0.8.0-rc2"></a>
 ## [v0.8.0-rc2](https://github.com/garden-io/garden/compare/v0.8.0-rc1...v0.8.0-rc2) (2018-11-01)
 
