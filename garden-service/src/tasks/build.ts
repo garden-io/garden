@@ -8,44 +8,61 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { Module } from "../types/module"
+import { Module, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/outputs"
-import { Task } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
+import { DependencyGraphNodeType } from "../dependency-graph"
+import { getHotReloadModuleNames } from "./helpers"
 
 export interface BuildTaskParams {
   garden: Garden
   module: Module
   force: boolean
+  fromWatch?: boolean
+  hotReloadServiceNames?: string[]
 }
 
-export class BuildTask extends Task {
+export class BuildTask extends BaseTask {
   type = "build"
+  depType: DependencyGraphNodeType = "build"
 
   private module: Module
+  private fromWatch: boolean
+  private hotReloadServiceNames: string[]
 
-  constructor({ garden, force, module }: BuildTaskParams) {
+  constructor({ garden, module, force, fromWatch = false, hotReloadServiceNames = [] }: BuildTaskParams) {
     super({ garden, force, version: module.version })
     this.module = module
+    this.fromWatch = fromWatch
+    this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   async getDependencies(): Promise<BuildTask[]> {
-    const deps = await this.garden.resolveModuleDependencies(this.module.build.dependencies, [])
+    const dg = await this.garden.getDependencyGraph()
+    const hotReloadModuleNames = await getHotReloadModuleNames(this.garden, this.hotReloadServiceNames)
+
+    // We ignore build dependencies on modules with services deployed with hot reloading
+    const deps = (await dg.getDependencies(this.depType, this.getName(), false)).build
+      .filter(module => !hotReloadModuleNames.has(module.name))
+
     return Bluebird.map(deps, async (m: Module) => {
       return new BuildTask({
         garden: this.garden,
         module: m,
         force: this.force,
+        fromWatch: this.fromWatch,
+        hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
   }
 
   protected getName() {
-    return this.module.name
+    return getModuleKey(this.module.name, this.module.plugin)
   }
 
   getDescription() {
-    return `building ${this.module.name}`
+    return `building ${this.getName()}`
   }
 
   async process(): Promise<BuildResult> {
@@ -58,7 +75,7 @@ export class BuildTask extends Task {
     }
 
     const logEntry = this.garden.log.info({
-      section: this.module.name,
+      section: this.getName(),
       msg: "Building",
       status: "active",
     })

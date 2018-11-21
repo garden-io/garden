@@ -14,9 +14,10 @@ import { ModuleVersion } from "../vcs/base"
 import { BuildTask } from "./build"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
-import { Task, TaskParams } from "../tasks/base"
+import { BaseTask, TaskParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
+import { DependencyGraphNodeType } from "../dependency-graph"
 
 class TestError extends Error {
   toString() {
@@ -32,8 +33,9 @@ export interface TestTaskParams {
   forceBuild: boolean
 }
 
-export class TestTask extends Task {
+export class TestTask extends BaseTask {
   type = "test"
+  depType: DependencyGraphNodeType = "test"
 
   private module: Module
   private testConfig: TestConfig
@@ -60,9 +62,10 @@ export class TestTask extends Task {
       return []
     }
 
-    const services = await this.garden.getServices(this.testConfig.dependencies)
+    const dg = await this.garden.getDependencyGraph()
+    const services = (await dg.getDependencies(this.depType, this.getName(), false)).service
 
-    const deps: Task[] = [new BuildTask({
+    const deps: BaseTask[] = [new BuildTask({
       garden: this.garden,
       module: this.module,
       force: this.forceBuild,
@@ -176,6 +179,6 @@ async function getTestDependencies(garden: Garden, testConfig: TestConfig) {
  * Determine the version of the test run, based on the version of the module and each of its dependencies.
  */
 async function getTestVersion(garden: Garden, module: Module, testConfig: TestConfig): Promise<ModuleVersion> {
-  const moduleDeps = await garden.resolveModuleDependencies(module.build.dependencies, testConfig.dependencies)
+  const moduleDeps = await garden.resolveDependencyModules(module.build.dependencies, testConfig.dependencies)
   return garden.resolveVersion(module.name, moduleDeps)
 }

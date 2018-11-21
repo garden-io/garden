@@ -143,6 +143,7 @@
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build && git clean -X -f",
     "dev": "npm run clean && gulp build && npm link && gulp watch",
+    "dev-light": "npm run clean && gulp build && npm link && gulp watch-light",
     "dist": "npm run build",
     "generate-docs": "gulp generate-docs",
     "integ": "./test/integ/run",

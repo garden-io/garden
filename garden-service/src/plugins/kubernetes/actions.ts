@@ -24,6 +24,7 @@ import {
   TestModuleParams,
   DeleteServiceParams,
   RunServiceParams,
+  RunTaskParams,
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
 import { ContainerModule, helpers, validateContainerModule } from "../container"
@@ -169,7 +170,9 @@ export async function hotReload(
 }
 
 export async function runModule(
-  { ctx, module, command, interactive, runtimeContext, timeout }: RunModuleParams<ContainerModule>,
+  {
+    ctx, module, command, ignoreError = true, interactive, runtimeContext, timeout,
+  }: RunModuleParams<ContainerModule>,
 ): Promise<RunResult> {
   const context = ctx.provider.config.context
   const namespace = await getAppNamespace(ctx, ctx.provider)
@@ -202,7 +205,7 @@ export async function runModule(
   const startedAt = new Date()
 
   const res = await kubectl(context, namespace).call(kubecmd, {
-    ignoreError: true,
+    ignoreError,
     timeout,
     tty: interactive,
   })
@@ -211,10 +214,10 @@ export async function runModule(
     moduleName: module.name,
     command,
     version,
-    success: res.code === 0,
     startedAt,
     completedAt: new Date(),
     output: res.output,
+    success: res.code === 0,
   }
 }
 
@@ -232,6 +235,28 @@ export async function runService(
     logEntry,
     buildDependencies,
   })
+}
+
+export async function runTask(
+  { ctx, task, interactive, runtimeContext, logEntry, buildDependencies }:
+    RunTaskParams<ContainerModule>,
+) {
+  const result = await runModule({
+    ctx,
+    buildDependencies,
+    interactive,
+    logEntry,
+    runtimeContext,
+    module: task.module,
+    command: task.spec.command || [],
+    ignoreError: false,
+    timeout: task.spec.timeout || 9999,
+  })
+
+  return {
+    ...result,
+    taskName: task.name,
+  }
 }
 
 export async function testModule(

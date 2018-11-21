@@ -1,6 +1,6 @@
 import { join } from "path"
 import { expect } from "chai"
-import { Task } from "../../src/tasks/base"
+import { BaseTask } from "../../src/tasks/base"
 import {
   TaskGraph,
   TaskResult,
@@ -8,6 +8,7 @@ import {
 } from "../../src/task-graph"
 import { makeTestGarden } from "../helpers"
 import { Garden } from "../../src/garden"
+import { DependencyGraphNodeType } from "../../src/dependency-graph"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 
@@ -19,8 +20,9 @@ interface TestTaskOptions {
   throwError?: boolean
 }
 
-class TestTask extends Task {
+class TestTask extends BaseTask {
   type = "test"
+  depType: DependencyGraphNodeType = "test"
   name: string
   callback: TestTaskCallback | null
   id: string
@@ -29,7 +31,7 @@ class TestTask extends Task {
   constructor(
     garden: Garden,
     name: string,
-    dependencies?: Task[],
+    dependencies?: BaseTask[],
     options?: TestTaskOptions,
   ) {
     super({

@@ -39,7 +39,12 @@ import { Service, ingressHostnameSchema } from "../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
-import { genericTestSchema, GenericTestSpec } from "./generic"
+import {
+  genericTestSchema,
+  GenericTestSpec,
+  GenericTaskSpec,
+  genericTaskSpecSchema,
+} from "./generic"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
 
@@ -255,13 +260,24 @@ export interface ContainerTestSpec extends GenericTestSpec { }
 
 export const containerTestSchema = genericTestSchema
 
+export interface ContainerTaskSpec extends GenericTaskSpec {
+  command: string[],
+}
+
+export const containerTaskSchema = genericTaskSpecSchema
+  .keys({
+    command: Joi.array().items(Joi.string())
+      .description("The command that the task should run inside the container."),
+  })
+
 export interface ContainerModuleSpec extends ModuleSpec {
   buildArgs: PrimitiveMap,
   image?: string,
   dockerfile?: string,
+  hotReload?: HotReloadConfigSpec,
   services: ContainerServiceSpec[],
   tests: ContainerTestSpec[],
-  hotReload?: HotReloadConfigSpec,
+  tasks: ContainerTaskSpec[],
 }
 
 export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
@@ -281,6 +297,7 @@ export const containerModuleSpecSchema = Joi.object()
         Specify the image name for the container. Should be a valid Docker image identifier. If specified and
         the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
+    hotReload: hotReloadConfigSchema,
     dockerfile: Joi.string().uri(<any>{ relativeOnly: true })
       .description("POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile."),
     services: joiArray(serviceSchema)
@@ -288,14 +305,19 @@ export const containerModuleSpecSchema = Joi.object()
       .description("The list of services to deploy from this container module."),
     tests: joiArray(containerTestSchema)
       .description("A list of tests to run in the module."),
-    hotReload: hotReloadConfigSchema,
+    // We use the user-facing term "tasks" as the key here, instead of "tasks".
+    tasks: joiArray(containerTaskSchema)
+      .description(deline`
+        A list of tasks that can be run from this container module. These can be used as dependencies for services
+        (executed before the service is deployed) or for other tasks.
+      `),
   })
   .description("Configuration for a container module.")
 
 export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
-  T extends ContainerTestSpec = ContainerTestSpec,
+  T extends ContainerTestSpec = ContainerTestSpec
   > extends Module<M, S, T> { }
 
 interface ParsedImageId {
@@ -497,6 +519,13 @@ export async function validateContainerModule({ moduleConfig }: ValidateModulePa
   })
 
   moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    spec: t,
+    timeout: t.timeout,
+  }))
+
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
     name: t.name,
     dependencies: t.dependencies,
     spec: t,

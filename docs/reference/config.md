@@ -313,7 +313,8 @@ module:
       # Required.
       name:
 
-      # Names of the services that must be running before the test is run.
+      # The names of any services that must be running, and the names of any tasks that must be
+      # executed, before the test is run.
       #
       # Optional.
       dependencies: 
@@ -444,6 +445,36 @@ module:
   # Optional.
   image:
 
+  # When this field is used, the files or directories specified within are automatically synced
+  # into the running container when they're modified. Additionally, any of this module's services
+  # that define a `hotReloadCommand` will be run with that command instead of the one specified in
+  # their `command` field. Services are only deployed with hot reloading enabled when their names
+  # are passed to the `--hot-reload` option in a call to the `deploy` or `dev` command.
+  #
+  # Optional.
+  hotReload: 
+    # Specify one or more source files or directories to automatically sync into the running
+    # container.
+    #
+    # Required.
+    sync: 
+      - # POSIX-style path of the directory to sync to the target, relative to the module's
+        # top-level directory. Must be a relative path if provided. Defaults to the module's
+        # top-level directory if no value is provided.
+        #
+        # Example: "src"
+        #
+        # Optional.
+        source: .
+
+        # POSIX-style absolute path to sync the directory to inside the container. The root path
+        # (i.e. "/") is not allowed.
+        #
+        # Example: "/app/src"
+        #
+        # Required.
+        target:
+
   # POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile.
   #
   # Optional.
@@ -463,7 +494,8 @@ module:
       # Required.
       name:
 
-      # The names of services that this service depends on at runtime.
+      # The names of any services that this service depends on at runtime, and the names of any
+      # tasks that should be executed before this service is deployed.
       #
       # Optional.
       dependencies: 
@@ -622,7 +654,8 @@ module:
       # Required.
       name:
 
-      # Names of the services that must be running before the test is run.
+      # The names of any services that must be running, and the names of any tasks that must be
+      # executed, before the test is run.
       #
       # Optional.
       dependencies: 
@@ -646,34 +679,35 @@ module:
       env: 
         {}
 
-  # When this field is used, the files or directories specified within are automatically synced
-  # into the running container when they're modified. Additionally, any of this module's services
-  # that define a `hotReloadCommand` will be run with that command instead of the one specified in
-  # their `command` field. Services are only deployed with hot reloading enabled when their names
-  # are passed to the `--hot-reload` option in a call to the `deploy` or `dev` command.
+  # A list of tasks that can be run from this container module. These can be used as dependencies
+  # for services (executed before the service is deployed) or for other tasks.
   #
   # Optional.
-  hotReload: 
-    # Specify one or more source files or directories to automatically sync into the running
-    # container.
+  tasks: 
+    # A task that can be run in this module.
     #
-    # Required.
-    sync: 
-      - # POSIX-style path of the directory to sync to the target, relative to the module's
-        # top-level directory. Must be a relative path if provided. Defaults to the module's
-        # top-level directory if no value is provided.
-        #
-        # Example: "src"
-        #
-        # Optional.
-        source: .
+    # Optional.
+    - # The name of the task.
+      #
+      # Required.
+      name:
 
-        # POSIX-style absolute path to sync the directory to inside the container. The root path
-        # (i.e. "/") is not allowed.
-        #
-        # Example: "/app/src"
-        #
-        # Required.
-        target:
+      # The names of any tasks that must be executed, and the names of any services that must be
+      # running, before this task is executed.
+      #
+      # Optional.
+      dependencies: 
+        -
+
+      # Maximum duration (in seconds) of the task's execution.
+      #
+      # Optional.
+      timeout: null
+
+      # The command that the task should run inside the container.
+      #
+      # Optional.
+      command: 
+        -
 ```
 

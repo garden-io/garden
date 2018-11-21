@@ -20,8 +20,13 @@ import { serviceOutputsSchema } from "../../config/service"
 import { LogNode } from "../../logger/log-node"
 import { Provider } from "../../config/project"
 import {
+  ModuleActionParams,
+  PluginActionParams,
+  ServiceActionParams,
+  TaskActionParams,
   prepareEnvironmentParamsSchema,
   cleanupEnvironmentParamsSchema,
+  getEnvironmentStatusParamsSchema,
   getSecretParamsSchema,
   setSecretParamsSchema,
   deleteSecretParamsSchema,
@@ -42,6 +47,8 @@ import {
   testModuleParamsSchema,
   getTestResultParamsSchema,
   publishModuleParamsSchema,
+  getTaskStatusParamsSchema,
+  runTaskParamsSchema,
 } from "./params"
 import {
   buildModuleResultSchema,
@@ -61,17 +68,14 @@ import {
   hotReloadResultSchema,
   runResultSchema,
   ServiceActionOutputs,
+  TaskActionOutputs,
   setSecretResultSchema,
   testResultSchema,
   validateModuleResultSchema,
   publishModuleResultSchema,
+  taskStatusSchema,
+  runTaskResultSchema,
 } from "./outputs"
-import {
-  ModuleActionParams,
-  PluginActionParams,
-  ServiceActionParams,
-  getEnvironmentStatusParamsSchema,
-} from "./params"
 
 export type PluginActions = {
   [P in keyof PluginActionParams]: (params: PluginActionParams[P]) => PluginActionOutputs[P]
@@ -81,14 +85,20 @@ export type ServiceActions<T extends Module = Module> = {
   [P in keyof ServiceActionParams<T>]: (params: ServiceActionParams<T>[P]) => ServiceActionOutputs[P]
 }
 
+export type TaskActions<T extends Module = Module> = {
+  [P in keyof TaskActionParams<T>]: (params: TaskActionParams<T>[P]) => TaskActionOutputs[P]
+}
+
 export type ModuleActions<T extends Module = Module> = {
   [P in keyof ModuleActionParams<T>]: (params: ModuleActionParams<T>[P]) => ModuleActionOutputs[P]
 }
 
-export type ModuleAndServiceActions<T extends Module = Module> = ModuleActions<T> & ServiceActions<T>
+export type ModuleAndRuntimeActions<T extends Module = Module> =
+  ModuleActions<T> & ServiceActions<T> & TaskActions<T>
 
 export type PluginActionName = keyof PluginActions
 export type ServiceActionName = keyof ServiceActions
+export type TaskActionName = keyof TaskActions
 export type ModuleActionName = keyof ModuleActions
 
 export interface PluginActionDescription {
@@ -235,7 +245,28 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
   },
 }
 
-export const moduleActionDescriptions: { [P in ModuleActionName | ServiceActionName]: PluginActionDescription } = {
+export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescription } = {
+  getTaskStatus: {
+    description: dedent`
+      Check and return the execution status of a task, i.e. whether the task has been successfully
+      completed for the module's current version.
+    `,
+    paramsSchema: getTaskStatusParamsSchema,
+    resultSchema: taskStatusSchema,
+  },
+  runTask: {
+    description: dedent`
+      Runs a task within the context of its module. This should wait until execution completes, and
+      should ideally attach it to the terminal (i.e. pipe the output from the task to the console,
+      as well as pipe input from the console to the running task).
+    `,
+    paramsSchema: runTaskParamsSchema,
+    resultSchema: runTaskResultSchema,
+  },
+}
+
+export const moduleActionDescriptions:
+  { [P in ModuleActionName | ServiceActionName | TaskActionName]: PluginActionDescription } = {
   // TODO: implement this method (it is currently not defined or used)
   describeType: {
     description: dedent`
@@ -369,10 +400,11 @@ export const moduleActionDescriptions: { [P in ModuleActionName | ServiceActionN
   },
 
   ...serviceActionDescriptions,
+
+  ...taskActionDescriptions,
 }
 
 export const pluginActionNames: PluginActionName[] = <PluginActionName[]>Object.keys(pluginActionDescriptions)
-export const serviceActionNames: ServiceActionName[] = <ServiceActionName[]>Object.keys(serviceActionDescriptions)
 export const moduleActionNames: ModuleActionName[] = <ModuleActionName[]>Object.keys(moduleActionDescriptions)
 
 export interface GardenPlugin {
@@ -382,7 +414,7 @@ export interface GardenPlugin {
   modules?: string[]
 
   actions?: Partial<PluginActions>
-  moduleActions?: { [moduleType: string]: Partial<ModuleAndServiceActions> }
+  moduleActions?: { [moduleType: string]: Partial<ModuleAndRuntimeActions> }
 }
 
 export interface PluginFactoryParams<T extends Provider = any> {

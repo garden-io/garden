@@ -151,6 +151,31 @@ describe("Garden", () => {
     })
   })
 
+  describe("getServicesAndTasks", () => {
+    it("should scan for modules and return all registered services and tasks in the context", async () => {
+      const garden = await makeTestGardenA()
+      const { services, tasks } = await garden.getServicesAndTasks()
+
+      expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
+      expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
+    })
+
+    it("should optionally return specified services and tasks in the context", async () => {
+      const garden = await makeTestGardenA()
+      const { services, tasks } = await garden.getServicesAndTasks(["service-b", "service-c", "task-a"])
+
+      expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
+      expect(getNames(tasks).sort()).to.eql(["task-a"])
+    })
+
+    it("should not throw if a named service or task is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      await garden.getServicesAndTasks(["not", "real"])
+    })
+
+  })
+
   describe("getServices", () => {
     it("should scan for modules and return all registered services in the context", async () => {
       const garden = await makeTestGardenA()
@@ -193,6 +218,81 @@ describe("Garden", () => {
 
       try {
         await garden.getServices(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+  })
+
+  describe("getTasks", () => {
+    it("should scan for modules and return all registered tasks in the context", async () => {
+      const garden = await makeTestGardenA()
+      const tasks = await garden.getTasks()
+
+      expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
+    })
+
+    it("should optionally return specified tasks in the context", async () => {
+      const garden = await makeTestGardenA()
+      const tasks = await garden.getTasks(["task-b", "task-c"])
+
+      expect(getNames(tasks).sort()).to.eql(["task-b", "task-c"])
+    })
+
+    it("should throw if named task is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      try {
+        await garden.getTasks(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+  })
+
+  describe("getTask", () => {
+    it("should return the specified task", async () => {
+      const garden = await makeTestGardenA()
+      const task = await garden.getTask("task-b")
+
+      expect(task.name).to.equal("task-b")
+    })
+
+    it("should throw if task is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      try {
+        await garden.getTasks(["bla"])
+      } catch (err) {
+        expect(err.type).to.equal("parameter")
+        return
+      }
+
+      throw new Error("Expected error")
+    })
+  })
+
+  describe("getServiceOrTask", () => {
+    it("should return the specified service or task", async () => {
+      const garden = await makeTestGardenA()
+      const service = await garden.getServiceOrTask("service-a")
+      const task = await garden.getServiceOrTask("task-a")
+
+      expect(service.name).to.equal("service-a")
+      expect(task.name).to.equal("task-a")
+    })
+
+    it("should throw if no matching service or task was found", async () => {
+      const garden = await makeTestGardenA()
+
+      try {
+        await garden.getServiceOrTask("bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -461,19 +561,19 @@ describe("Garden", () => {
   describe("resolveModuleDependencies", () => {
     it("should resolve build dependencies", async () => {
       const garden = await makeTestGardenA()
-      const modules = await garden.resolveModuleDependencies([{ name: "module-c", copy: [] }], [])
+      const modules = await garden.resolveDependencyModules([{ name: "module-c", copy: [] }], [])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should resolve service dependencies", async () => {
       const garden = await makeTestGardenA()
-      const modules = await garden.resolveModuleDependencies([], ["service-b"])
+      const modules = await garden.resolveDependencyModules([], ["service-b"])
       expect(getNames(modules)).to.eql(["module-a", "module-b"])
     })
 
     it("should combine module and service dependencies", async () => {
       const garden = await makeTestGardenA()
-      const modules = await garden.resolveModuleDependencies([{ name: "module-b", copy: [] }], ["service-c"])
+      const modules = await garden.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
   })

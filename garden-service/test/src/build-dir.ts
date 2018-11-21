@@ -56,10 +56,8 @@ describe("BuildDir", () => {
       join(buildDirA, "some-dir", "some-file"),
     ]
 
-    const buildDirPrettyPrint = nodetree(garden.buildDir.buildDirPath)
-
     for (const p of copiedPaths) {
-      expect(await pathExists(p)).to.eql(true, buildDirPrettyPrint)
+      expect(await pathExists(p)).to.eql(true)
     }
   })
 
@@ -98,8 +96,7 @@ describe("BuildDir", () => {
       const notCopiedPath = join(buildDirD, "B", "build", "unused.txt")
       expect(await pathExists(notCopiedPath)).to.eql(false)
     } catch (e) {
-      const buildDirPrettyPrint = nodetree(garden.buildDir.buildDirPath)
-      console.log(buildDirPrettyPrint)
+      console.log(nodetree(garden.buildDir.buildDirPath))
       throw e
     }
   })

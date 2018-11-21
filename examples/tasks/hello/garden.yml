@@ -1,0 +1,23 @@
+module:
+  name: hello
+  description: Greeting service
+  type: container
+  services:
+    - name: hello
+      command: [npm, start]
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /hello
+          port: http
+      dependencies:
+        - node-migration
+  tests:
+    - name: unit
+      command: [npm, test]
+  tasks:
+    - name: node-migration
+      command: [knex, migrate:latest]
+      dependencies:
+        - postgres

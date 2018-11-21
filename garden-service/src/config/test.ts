@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import deline = require("deline")
 import * as Joi from "joi"
 import {
   joiArray,
@@ -26,7 +27,10 @@ export const baseTestSpecSchema = Joi.object()
       .required()
       .description("The name of the test."),
     dependencies: joiArray(Joi.string())
-      .description("Names of the services that must be running before the test is run."),
+      .description(deline`
+        The names of any services that must be running, and the names of any
+        tasks that must be executed, before the test is run.
+      `),
     timeout: Joi.number()
       .allow(null)
       .default(null)

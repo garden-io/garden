@@ -44,10 +44,12 @@ describe("plugins.container", () => {
     spec: {
       buildArgs: {},
       services: [],
+      tasks: [],
       tests: [],
     },
 
     serviceConfigs: [],
+    taskConfigs: [],
     testConfigs: [],
   }
 
@@ -120,10 +122,12 @@ describe("plugins.container", () => {
             buildArgs: {},
             image: "some/image",
             services: [],
+            tasks: [],
             tests: [],
           },
 
           serviceConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         })
 
@@ -221,6 +225,12 @@ describe("plugins.container", () => {
               outputs: {},
               volumes: [],
             }],
+            tasks: [{
+              name: "task-a",
+              command: ["echo", "OK"],
+              dependencies: [],
+              timeout: null,
+            }],
             tests: [{
               name: "unit",
               command: ["echo", "OK"],
@@ -231,6 +241,7 @@ describe("plugins.container", () => {
           },
 
           serviceConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 
@@ -265,6 +276,13 @@ describe("plugins.container", () => {
                 outputs: {},
                 volumes: [],
               }],
+            tasks:
+              [{
+                name: "task-a",
+                command: ["echo", "OK"],
+                dependencies: [],
+                timeout: null,
+              }],
             tests:
               [{
                 name: "unit",
@@ -298,6 +316,21 @@ describe("plugins.container", () => {
                 outputs: {},
                 volumes: [],
               },
+            }],
+          taskConfigs:
+            [{
+              dependencies: [],
+              name: "task-a",
+              spec: {
+                command: [
+                  "echo",
+                  "OK",
+                ],
+                dependencies: [],
+                name: "task-a",
+                timeout: null,
+              },
+              timeout: null,
             }],
           testConfigs:
             [{
@@ -356,6 +389,12 @@ describe("plugins.container", () => {
               outputs: {},
               volumes: [],
             }],
+            tasks: [{
+              name: "task-a",
+              command: ["echo"],
+              dependencies: [],
+              timeout: null,
+            }],
             tests: [{
               name: "unit",
               command: ["echo", "OK"],
@@ -366,6 +405,7 @@ describe("plugins.container", () => {
           },
 
           serviceConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 
@@ -406,10 +446,17 @@ describe("plugins.container", () => {
               outputs: {},
               volumes: [],
             }],
+            tasks: [{
+              name: "task-a",
+              command: ["echo"],
+              dependencies: [],
+              timeout: null,
+            }],
             tests: [],
           },
 
           serviceConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 
@@ -447,10 +494,17 @@ describe("plugins.container", () => {
               outputs: {},
               volumes: [],
             }],
+            tasks: [{
+              name: "task-a",
+              command: ["echo"],
+              dependencies: [],
+              timeout: null,
+            }],
             tests: [],
           },
 
           serviceConfigs: [],
+          taskConfigs: [],
           testConfigs: [],
         }
 

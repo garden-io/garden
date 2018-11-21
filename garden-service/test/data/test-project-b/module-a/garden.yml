@@ -9,5 +9,12 @@ module:
       ports:
         - name: http
           containerPort: 8080
+      dependencies:
+        - task-a
   build:
     command: [echo, A]
+  tasks:
+    - name: task-a
+      command: [echo, A]
+      dependencies:
+        - task-c

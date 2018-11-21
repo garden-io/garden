@@ -10,32 +10,42 @@ import chalk from "chalk"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { PushResult } from "../types/plugin/outputs"
-import { Task } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
+import { DependencyGraphNodeType } from "../dependency-graph"
 
 export interface PushTaskParams {
   garden: Garden
   module: Module
-  forceBuild: boolean
+  force: boolean
+  fromWatch?: boolean
+  hotReloadServiceNames?: string[]
 }
 
-export class PushTask extends Task {
+export class PushTask extends BaseTask {
   type = "push"
+  depType: DependencyGraphNodeType = "push"
 
+  force: boolean
   private module: Module
-  private forceBuild: boolean
+  private fromWatch: boolean
+  private hotReloadServiceNames: string[]
 
-  constructor({ garden, module, forceBuild }: PushTaskParams) {
+  constructor({ garden, module, force, fromWatch = false, hotReloadServiceNames = [] }: PushTaskParams) {
     super({ garden, version: module.version })
     this.module = module
-    this.forceBuild = forceBuild
+    this.force = force
+    this.fromWatch = fromWatch
+    this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   async getDependencies() {
     return [new BuildTask({
       garden: this.garden,
       module: this.module,
-      force: this.forceBuild,
+      force: this.force,
+      fromWatch: this.fromWatch,
+      hotReloadServiceNames: this.hotReloadServiceNames,
     })]
   }
 

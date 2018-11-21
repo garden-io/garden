@@ -10,8 +10,9 @@ import chalk from "chalk"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { PublishResult } from "../types/plugin/outputs"
-import { Task } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
+import { DependencyGraphNodeType } from "../dependency-graph"
 
 export interface PublishTaskParams {
   garden: Garden
@@ -19,8 +20,9 @@ export interface PublishTaskParams {
   forceBuild: boolean
 }
 
-export class PublishTask extends Task {
+export class PublishTask extends BaseTask {
   type = "publish"
+  depType: DependencyGraphNodeType = "publish"
 
   private module: Module
   private forceBuild: boolean

@@ -6,64 +6,72 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
-import { flatten } from "lodash"
-import { computeAutoReloadDependants, withDependants } from "../watch"
+import { flatten, intersection } from "lodash"
 import { DeployTask } from "./deploy"
-import { getNames } from "../util/util"
+import { BuildTask } from "./build"
+import { TaskTask } from "./task"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
+import { Service } from "../types/service"
+import { Task } from "../types/task"
+import { DependencyGraphNode } from "../dependency-graph"
 
-/**
- * @param hotReloadServiceNames - names of services with hot reloading enabled (should not be redeployed)
- */
-export async function getTasksForHotReload(
-  { garden, module, hotReloadServiceNames, serviceNames }:
-    { garden: Garden, module: Module, hotReloadServiceNames: string[], serviceNames: string[] },
+export async function getTasksForModule(
+  { garden, module, hotReloadServiceNames, force = false, forceBuild = false,
+    fromWatch = false, includeDependants = false }:
+    {
+      garden: Garden, module: Module, hotReloadServiceNames: string[], force?: boolean, forceBuild?: boolean,
+      fromWatch?: boolean, includeDependants?: boolean,
+    },
 ) {
 
-  const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
+  let buildTasks: BuildTask[] = []
+  let dependantBuildModules: Module[] = []
+  let services: Service[] = []
+  let tasks: Task[] = []
 
-  const modulesForDeployment = (await withDependants(garden, [module],
-    await computeAutoReloadDependants(garden)))
-    .filter(m => !hotReloadModuleNames.has(m.name))
+  if (!includeDependants) {
+    buildTasks.push(new BuildTask({ garden, module, force: true, fromWatch, hotReloadServiceNames }))
+    services = module.services
+    tasks = module.tasks
+  } else {
+    const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
+    const dg = await garden.getDependencyGraph()
 
-  return (await servicesForModules(garden, modulesForDeployment, serviceNames))
-    .map(service => new DeployTask({
-      garden, service, force: true, forceBuild: true, watch: true, hotReloadServiceNames,
-    }))
+    const dependantFilterFn = (dependantNode: DependencyGraphNode) => {
+      return !hotReloadModuleNames.has(dependantNode.moduleName)
+    }
+
+    if (intersection(module.serviceNames, hotReloadServiceNames).length) {
+      // Hot reloading is enabled for one or more of module's services.
+      const serviceDeps = await dg.getDependantsForMany("service", module.serviceNames, true, dependantFilterFn)
+
+      dependantBuildModules = serviceDeps.build
+      services = serviceDeps.service
+      tasks = serviceDeps.task
+    } else {
+      const dependants = await dg.getDependantsForModule(module, dependantFilterFn)
+      buildTasks.push(new BuildTask({ garden, module, force: true, fromWatch, hotReloadServiceNames }))
+      dependantBuildModules = dependants.build
+      services = module.services.concat(dependants.service)
+      tasks = module.tasks.concat(dependants.task)
+    }
+  }
+
+  buildTasks.push(...dependantBuildModules
+    .map(m => new BuildTask({ garden, module: m, force: forceBuild, fromWatch, hotReloadServiceNames })))
+
+  const deployTasks = services
+    .map(service => new DeployTask({ garden, service, force, forceBuild, fromWatch, hotReloadServiceNames }))
+
+  const taskTasks = tasks
+    .map(task => new TaskTask({ garden, task, force, forceBuild }))
+
+  return [...buildTasks, ...deployTasks, ...taskTasks]
 
 }
 
 export async function getHotReloadModuleNames(garden: Garden, hotReloadServiceNames: string[]): Promise<Set<string>> {
   return new Set(flatten((await garden.getServices(hotReloadServiceNames || []))
     .map(s => s.module.name)))
-}
-
-export async function getDeployTasks(
-  { garden, module, serviceNames, hotReloadServiceNames, force = false, forceBuild = false,
-    watch = false, includeDependants = false }:
-    {
-      garden: Garden, module: Module, serviceNames?: string[], hotReloadServiceNames: string[],
-      force?: boolean, forceBuild?: boolean, watch?: boolean, includeDependants?: boolean,
-    },
-) {
-
-  const modulesForDeployment = includeDependants
-    ? (await withDependants(garden, [module], await computeAutoReloadDependants(garden)))
-    : [module]
-
-  return (await servicesForModules(garden, modulesForDeployment, serviceNames))
-    .map(service => new DeployTask({ garden, service, force, forceBuild, watch, hotReloadServiceNames }))
-
-}
-
-async function servicesForModules(garden: Garden, modules: Module[], serviceNames?: string[]) {
-  const moduleServices = flatten(await Bluebird.map(
-    modules,
-    m => garden.getServices(getNames(m.serviceConfigs))))
-
-  return serviceNames
-    ? moduleServices.filter(s => serviceNames.includes(s.name))
-    : moduleServices
 }

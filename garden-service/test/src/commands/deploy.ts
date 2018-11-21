@@ -10,9 +10,31 @@ import {
 import {
   DeployServiceParams,
   GetServiceStatusParams,
+  RunTaskParams,
 } from "../../../src/types/plugin/params"
 import { ServiceState, ServiceStatus } from "../../../src/types/service"
 import { taskResultOutputs } from "../../helpers"
+import { RunTaskResult } from "../../../src/types/plugin/outputs"
+
+const placeholderTimestamp = new Date()
+
+const placeholderTaskResult = (moduleName, taskName, command) => ({
+  moduleName,
+  taskName,
+  command,
+  version: {
+    versionString: "1",
+    dirtyTimestamp: null,
+    dependencyVersions: {},
+  },
+  success: true,
+  startedAt: placeholderTimestamp,
+  completedAt: placeholderTimestamp,
+  output: "out",
+})
+
+const taskResultA = placeholderTaskResult("module-a", "task-a", ["echo", "A"])
+const taskResultC = placeholderTaskResult("module-c", "task-c", ["echo", "C"])
 
 const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
@@ -45,6 +67,10 @@ const testProvider: PluginFactory = () => {
     return newStatus
   }
 
+  const runTask = async ({ task }: RunTaskParams): Promise<RunTaskResult> => {
+    return placeholderTaskResult(task.module.name, task.name, task.spec.command)
+  }
+
   return {
     moduleActions: {
       container: {
@@ -52,6 +78,7 @@ const testProvider: PluginFactory = () => {
         build: buildGenericModule,
         deployService,
         getServiceStatus,
+        runTask,
       },
     },
   }
@@ -85,6 +112,8 @@ describe("DeployCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
+      "task.task-a": taskResultA,
+      "task.task-c": taskResultC,
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
       "deploy.service-c": { version: "1", state: "ready" },
@@ -115,6 +144,9 @@ describe("DeployCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
+      "build.module-c": {},
+      "task.task-a": taskResultA,
+      "task.task-c": taskResultC,
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
       "push.module-a": { pushed: false },

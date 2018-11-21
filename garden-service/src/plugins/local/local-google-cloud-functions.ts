@@ -102,6 +102,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           },
 
           serviceConfigs,
+          taskConfigs: [],
           testConfigs: parsed.testConfigs,
         }
       },

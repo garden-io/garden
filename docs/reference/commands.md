@@ -446,9 +446,9 @@ This is useful for debugging or ad-hoc experimentation with modules.
 
 Examples:
 
-    garden run module my-container           # run an ad-hoc instance of a my-container container and attach to it
-    garden run module my-container /bin/sh   # run an interactive shell in a new my-container container
-    garden run module my-container --i=false /some/script  # execute a script in my-container and return the output
+    garden run module my-container                                   # run an ad-hoc instance of a my-container container and attach to it
+    garden run module my-container /bin/sh                           # run an interactive shell in a new my-container container
+    garden run module my-container --interactive=false /some/script  # execute a script in my-container and return the output
 
 ##### Usage
 
@@ -493,6 +493,32 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force-build` |  | boolean | Force rebuild of module.
+
+### garden run task
+
+Run a task (in the context of its parent module).
+
+This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
+
+Examples:
+
+    garden run task my-db-migration   # run my-migration
+
+##### Usage
+
+    garden run task <task> [options]
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `task` | Yes | The name of the task to run.
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--force-build` |  | boolean | Force rebuild of module before running.
 
 ### garden run test
 

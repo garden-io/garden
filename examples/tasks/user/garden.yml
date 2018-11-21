@@ -1,0 +1,19 @@
+module:
+  name: user
+  description: User-listing service written in Ruby
+  type: container
+  services:
+    - name: user
+      command: [ruby, app.rb]
+      ports:
+        - name: http
+          containerPort: 8084
+      dependencies:
+        - ruby-migration
+  tasks:
+    - name: ruby-migration
+      command: [rake, db:migrate]
+      dependencies:
+        # node-migration creates the users table, which has to exist before we use
+        # ruby-migration to insert records into it.
+        - node-migration

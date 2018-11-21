@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Joi from "joi"
 import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
@@ -13,10 +14,11 @@ import { ModuleVersion, moduleVersionSchema } from "../../vcs/base"
 import { Primitive, joiPrimitive, joiArray, joiIdentifierMap } from "../../config/common"
 import { Module, moduleSchema } from "../module"
 import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "../service"
+import { Task } from "../task"
 import { EnvironmentStatus, ServiceLogEntry, environmentStatusSchema } from "./outputs"
-import * as Joi from "joi"
 import { moduleConfigSchema } from "../../config/module"
 import { testConfigSchema } from "../../config/test"
+import { taskSchema } from "../../config/task"
 
 export interface PluginActionContextParams {
   ctx: PluginContext
@@ -57,6 +59,14 @@ const serviceActionParamsSchema = moduleActionParamsSchema
     runtimeContext: runtimeContextSchema
       .optional(),
     service: serviceSchema,
+  })
+
+export interface PluginTaskActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+  task: Task<T>
+}
+const taskActionParamsSchema = moduleActionParamsSchema
+  .keys({
+    task: taskSchema,
   })
 
 /**
@@ -157,6 +167,7 @@ export interface RunModuleParams<T extends Module = Module> extends PluginModule
   command: string[]
   interactive: boolean
   runtimeContext: RuntimeContext
+  ignoreError?: boolean
   timeout?: number
 }
 const runBaseParams = {
@@ -277,6 +288,20 @@ export interface RunServiceParams<T extends Module = Module> extends PluginServi
 export const runServiceParamsSchema = serviceActionParamsSchema
   .keys(runBaseParams)
 
+/**
+ * Task actions
+ */
+export interface GetTaskStatusParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> { }
+export const getTaskStatusParamsSchema = taskActionParamsSchema
+
+export interface RunTaskParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> {
+  interactive: boolean
+  runtimeContext: RuntimeContext
+  timeout?: number
+}
+export const runTaskParamsSchema = taskActionParamsSchema
+  .keys(runBaseParams)
+
 export interface ServiceActionParams<T extends Module = Module> {
   getServiceStatus: GetServiceStatusParams<T>
   deployService: DeployServiceParams<T>
@@ -285,6 +310,11 @@ export interface ServiceActionParams<T extends Module = Module> {
   execInService: ExecInServiceParams<T>
   getServiceLogs: GetServiceLogsParams<T>
   runService: RunServiceParams<T>
+}
+
+export interface TaskActionParams<T extends Module = Module> {
+  getTaskStatus: GetTaskStatusParams<T>
+  runTask: RunTaskParams<T>
 }
 
 export interface ModuleActionParams<T extends Module = Module> {

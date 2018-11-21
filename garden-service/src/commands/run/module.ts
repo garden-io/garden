@@ -58,9 +58,12 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden run module my-container           # run an ad-hoc instance of a my-container container and attach to it
-        garden run module my-container /bin/sh   # run an interactive shell in a new my-container container
-        garden run module my-container --i=false /some/script  # execute a script in my-container and return the output
+        garden run module my-container                                   # run an ad-hoc instance of a my-container \
+         container and attach to it
+        garden run module my-container /bin/sh                           # run an interactive shell in a new \
+         my-container container
+        garden run module my-container --interactive=false /some/script  # execute a script in my-container and \
+         return the output
   `
 
   arguments = runArgs

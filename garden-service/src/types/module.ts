@@ -11,6 +11,8 @@ import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ServiceSpec } from "../config/service"
+import { Task, taskFromConfig } from "./task"
+import { TaskSpec, taskSchema } from "../config/task"
 import { ModuleVersion, moduleVersionSchema } from "../vcs/base"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
@@ -27,15 +29,20 @@ export interface Module<
   M extends ModuleSpec = any,
   S extends ServiceSpec = any,
   T extends TestSpec = any,
-  > extends ModuleConfig<M, S, T> {
+  W extends TaskSpec = any,
+  > extends ModuleConfig<M, S, T, W> {
   buildPath: string
   version: ModuleVersion
 
-  services: Service<Module<M, S, T>>[]
+  services: Service<Module<M, S, T, W>>[]
   serviceNames: string[]
   serviceDependencyNames: string[]
 
-  _ConfigType: ModuleConfig<M, S, T>
+  tasks: Task<Module<M, S, T, W>>[]
+  taskNames: string[]
+  taskDependencyNames: string[]
+
+  _ConfigType: ModuleConfig<M, S, T, W>
 }
 
 export const moduleSchema = moduleConfigSchema
@@ -54,7 +61,16 @@ export const moduleSchema = moduleConfigSchema
       .description("The names of the services that the module provides."),
     serviceDependencyNames: joiArray(joiIdentifier())
       .required()
-      .description("The names of all the services that the services in this module depend on."),
+      .description("The names of all the services and tasks that the services in this module depend on."),
+    tasks: joiArray(Joi.lazy(() => taskSchema))
+      .required()
+      .description("A list of all the tasks that the module provides."),
+    taskNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of the tasks that the module provides."),
+    taskDependencyNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of all the tasks and services that the tasks in this module depend on."),
   })
 
 export interface ModuleMap<T extends Module = Module> {
@@ -78,10 +94,18 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
       .map(serviceConfig => serviceConfig.dependencies)
       .filter(deps => !!deps))),
 
+    tasks: [],
+    taskNames: getNames(config.taskConfigs),
+    taskDependencyNames: uniq(flatten(config.taskConfigs
+      .map(taskConfig => taskConfig.dependencies)
+      .filter(deps => !!deps))),
+
     _ConfigType: config,
   }
 
   module.services = config.serviceConfigs.map(serviceConfig => serviceFromConfig(module, serviceConfig))
+
+  module.tasks = config.taskConfigs.map(taskConfig => taskFromConfig(module, taskConfig))
 
   return module
 }

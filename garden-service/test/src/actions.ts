@@ -1,12 +1,13 @@
 import { Garden } from "../../src/garden"
 import { makeTestGardenA } from "../helpers"
-import { PluginFactory, PluginActions, ModuleAndServiceActions } from "../../src/types/plugin/plugin"
+import { PluginFactory, PluginActions, ModuleAndRuntimeActions } from "../../src/types/plugin/plugin"
 import { validate } from "../../src/config/common"
 import { ActionHelper } from "../../src/actions"
 import { expect } from "chai"
 import { omit } from "lodash"
 import { Module } from "../../src/types/module"
 import { Service } from "../../src/types/service"
+import { Task } from "../../src/types/task"
 import Stream from "ts-stream"
 import { ServiceLogEntry } from "../../src/types/plugin/outputs"
 import {
@@ -26,6 +27,8 @@ import {
   execInServiceParamsSchema,
   getServiceLogsParamsSchema,
   runServiceParamsSchema,
+  getTaskStatusParamsSchema,
+  runTaskParamsSchema,
   getEnvironmentStatusParamsSchema,
   prepareEnvironmentParamsSchema,
   cleanupEnvironmentParamsSchema,
@@ -42,6 +45,7 @@ describe("ActionHelper", () => {
   let actions: ActionHelper
   let module: Module
   let service: Service
+  let task: Task
 
   before(async () => {
     const plugins = { "test-plugin": testPlugin, "test-plugin-b": testPluginB }
@@ -49,6 +53,7 @@ describe("ActionHelper", () => {
     actions = garden.actions
     module = await garden.getModule("module-a")
     service = await garden.getService("service-a")
+    task = await garden.getTask("task-a")
   })
 
   // Note: The test plugins below implicitly validate input params for each of the tests
@@ -306,6 +311,29 @@ describe("ActionHelper", () => {
       })
     })
   })
+
+  describe("runTask", () => {
+    it("should correctly call the corresponding plugin handler", async () => {
+      const result = await actions.runTask({
+        task,
+        interactive: true,
+        runtimeContext: {
+          envVars: { FOO: "bar" },
+          dependencies: {},
+        },
+      })
+      expect(result).to.eql({
+        moduleName: task.module.name,
+        taskName: task.name,
+        command: ["foo"],
+        completedAt: now,
+        output: "bla bla",
+        success: true,
+        startedAt: now,
+        version: task.module.version,
+      })
+    })
+  })
 })
 
 const testPlugin: PluginFactory = async () => ({
@@ -343,7 +371,7 @@ const testPlugin: PluginFactory = async () => ({
     },
   },
   moduleActions: {
-    test: <ModuleAndServiceActions>{
+    test: <ModuleAndRuntimeActions>{
       describeType: async (params) => {
         validate(params, describeModuleTypeParamsSchema)
         return {
@@ -362,9 +390,16 @@ const testPlugin: PluginFactory = async () => ({
           spec,
         }))
 
+        const taskConfigs = (params.moduleConfig.spec.tasks || []).map(spec => ({
+          name: spec.name,
+          dependencies: spec.dependencies || [],
+          spec,
+        }))
+
         return {
           ...params.moduleConfig,
           serviceConfigs,
+          taskConfigs,
         }
       },
 
@@ -471,6 +506,28 @@ const testPlugin: PluginFactory = async () => ({
         validate(params, runServiceParamsSchema)
         return {
           moduleName: params.module.name,
+          command: ["foo"],
+          completedAt: now,
+          output: "bla bla",
+          success: true,
+          startedAt: now,
+          version: params.module.version,
+        }
+      },
+
+      getTaskStatus: async (params) => {
+        validate(params, getTaskStatusParamsSchema)
+        return {
+          done: true,
+        }
+      },
+
+      runTask: async (params) => {
+        validate(params, runTaskParamsSchema)
+        const module = params.task.module
+        return {
+          moduleName: module.name,
+          taskName: params.task.name,
           command: ["foo"],
           completedAt: now,
           output: "bla bla",

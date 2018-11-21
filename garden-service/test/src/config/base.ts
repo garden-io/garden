@@ -53,6 +53,10 @@ describe("loadConfig", async () => {
 
       spec: {
         services: [{ name: "service-a" }],
+        tasks: [{
+          name: "task-a",
+          command: ["echo", "OK"],
+        }],
         tests: [{
           name: "unit",
           command: ["echo", "OK"],
@@ -60,6 +64,7 @@ describe("loadConfig", async () => {
       },
 
       serviceConfigs: [],
+      taskConfigs: [],
       testConfigs: [],
     })
   })

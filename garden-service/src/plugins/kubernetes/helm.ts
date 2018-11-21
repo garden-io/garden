@@ -22,7 +22,7 @@ import {
   validate,
 } from "../../config/common"
 import { Module } from "../../types/module"
-import { ModuleAndServiceActions } from "../../types/plugin/plugin"
+import { ModuleAndRuntimeActions } from "../../types/plugin/plugin"
 import {
   BuildModuleParams,
   DeployServiceParams,
@@ -110,7 +110,7 @@ const helmStatusCodeMap: { [code: number]: ServiceState } = {
   8: "deploying", // PENDING_ROLLBACK
 }
 
-export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
+export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
   async validate({ moduleConfig }: ValidateModuleParams): Promise<ValidateModuleResult> {
     moduleConfig.spec = validate(
       moduleConfig.spec,

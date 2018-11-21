@@ -60,6 +60,18 @@ module.exports = (gulp) => {
       .pipe(gulp.dest(destDir)),
   )
 
+  gulp.task("tsc-watch", () =>
+    spawn(npmBinPath("tsc"), [
+      "-w",
+      "--pretty",
+      "--declaration",
+      "-p", tsConfigPath,
+      "--outDir", destDir,
+      "--preserveWatchOutput",
+    ],
+    ),
+  )
+
   gulp.task("tsfmt", () => spawn(npmBinPath("tsfmt"), ["--verify"]))
 
   gulp.task("tslint", () =>
@@ -98,12 +110,25 @@ module.exports = (gulp) => {
       .on("change", verify)
   })
 
+  gulp.task("watch-code-light", () => {
+    const verify = (path) => {
+      try {
+        _spawn(npmBinPath("tsfmt"), ["--verify", path], { stdio: "inherit" })
+      } catch (_) { }
+    }
+
+    return gulp.watch([tsSources, testTsSources], gulp.parallel("generate-docs", "tslint", "tslint-tests"))
+      .on("add", verify)
+      .on("change", verify)
+  })
+
   gulp.task("build", gulp.series(
     gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc"),
     "build-container",
   ))
   gulp.task("test", gulp.parallel("build", "mocha"))
   gulp.task("watch", gulp.parallel("pegjs-watch", "watch-code"))
+  gulp.task("watch-light", gulp.parallel("pegjs-watch", "tsc-watch", "watch-code-light"))
   gulp.task("default", gulp.series("watch"))
 }
 

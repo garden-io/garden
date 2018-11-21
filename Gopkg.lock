@@ -66,6 +66,17 @@
   version = "v0.3.3"
 
 [[projects]]
+  branch = "master"
+  digest = "1:0b9298e02a671b0ca5b94fa82c5820e0458006751e20cd74e75a14a0b4cc085c"
+  name = "github.com/garden-io/garden"
+  packages = [
+    "garden-cli/dockerutil",
+    "garden-cli/util",
+  ]
+  pruneopts = "UT"
+  revision = "be8fed2658027bc70f8c2776376e0b17c7301b1d"
+
+[[projects]]
   digest = "1:78bbb1ba5b7c3f2ed0ea1eab57bdd3859aec7e177811563edc41198a760b06af"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
@@ -120,6 +131,8 @@
     "github.com/docker/docker/api/types/mount",
     "github.com/docker/docker/api/types/volume",
     "github.com/docker/docker/client",
+    "github.com/garden-io/garden/garden-cli/dockerutil",
+    "github.com/garden-io/garden/garden-cli/util",
     "github.com/mitchellh/go-homedir",
     "gopkg.in/yaml.v2",
   ]

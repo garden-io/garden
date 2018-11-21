@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { Garden } from "./garden"
 import { PrimitiveMap } from "./config/common"
 import { Module, ModuleMap } from "./types/module"
-import { ModuleActions, ServiceActions, PluginActions } from "./types/plugin/plugin"
+import { ModuleActions, ServiceActions, PluginActions, TaskActions } from "./types/plugin/plugin"
 import {
   BuildResult,
   BuildStatus,
@@ -28,6 +28,8 @@ import {
   TestResult,
   PluginActionOutputs,
   PublishResult,
+  RunTaskResult,
+  TaskActionOutputs,
   HotReloadResult,
 } from "./types/plugin/outputs"
 import {
@@ -57,6 +59,9 @@ import {
   GetEnvironmentStatusParams,
   PluginModuleActionParamsBase,
   PublishModuleParams,
+  PluginTaskActionParamsBase,
+  RunTaskParams,
+  TaskActionParams,
 } from "./types/plugin/params"
 import {
   Service,
@@ -67,7 +72,7 @@ import { mapValues, values, keyBy, omit } from "lodash"
 import { Omit } from "./util/util"
 import { RuntimeContext } from "./types/service"
 import { processServices, ProcessResults } from "./process"
-import { getDeployTasks } from "./tasks/helpers"
+import { getTasksForModule } from "./tasks/helpers"
 import { LogEntry } from "./logger/log-entry"
 import { createPluginContext } from "./plugin-context"
 import { CleanupEnvironmentParams } from "./types/plugin/params"
@@ -91,11 +96,17 @@ export interface DeployServicesParams {
 // avoid having to specify common params on each action helper call
 type ActionHelperParams<T extends PluginActionParamsBase> =
   Omit<T, keyof PluginActionContextParams> & { pluginName?: string }
+
 type ModuleActionHelperParams<T extends PluginModuleActionParamsBase> =
   Omit<T, "buildDependencies" | keyof PluginActionContextParams> & { pluginName?: string }
 // additionally make runtimeContext param optional
+
 type ServiceActionHelperParams<T extends PluginServiceActionParamsBase> =
   Omit<T, "module" | "buildDependencies" | "runtimeContext" | keyof PluginActionContextParams>
+  & { runtimeContext?: RuntimeContext, pluginName?: string }
+
+type TaskActionHelperParams<T extends PluginTaskActionParamsBase> =
+  Omit<T, "module" | "buildDependencies" | keyof PluginActionContextParams>
   & { runtimeContext?: RuntimeContext, pluginName?: string }
 
 type RequirePluginName<T> = T & { pluginName: string }
@@ -301,11 +312,21 @@ export class ActionHelper implements TypeGuard {
   //endregion
 
   //===========================================================================
+  //region Task Methods
+  //===========================================================================
+
+  async runTask(params: TaskActionHelperParams<RunTaskParams>): Promise<RunTaskResult> {
+    return this.callTaskHandler({ params, actionType: "runTask" })
+  }
+
+  //endregion
+
+  //===========================================================================
   //region Helper Methods
   //===========================================================================
 
   private async getBuildDependencies(module: Module): Promise<ModuleMap> {
-    const dependencies = await this.garden.resolveModuleDependencies(module.build.dependencies, [])
+    const dependencies = await this.garden.resolveDependencyModules(module.build.dependencies, [])
     return keyBy(dependencies, "name")
   }
 
@@ -334,10 +355,9 @@ export class ActionHelper implements TypeGuard {
       services,
       garden: this.garden,
       watch: false,
-      handler: async (module) => getDeployTasks({
+      handler: async (module) => getTasksForModule({
         garden: this.garden,
         module,
-        serviceNames,
         hotReloadServiceNames: [],
         force,
         forceBuild,
@@ -426,6 +446,37 @@ export class ActionHelper implements TypeGuard {
       ...<object>params,
       module,
       runtimeContext,
+      buildDependencies,
+    }
+
+    return (<Function>handler)(handlerParams)
+  }
+
+  private async callTaskHandler<T extends keyof TaskActions>(
+    { params, actionType, defaultHandler }:
+      {
+        params: TaskActionHelperParams<TaskActionParams[T]>, actionType: T,
+        defaultHandler?: TaskActions[T],
+      },
+  ): Promise<TaskActionOutputs[T]> {
+
+    const { task } = <any>params
+    const module = task.module
+
+    const handler = await this.garden.getModuleActionHandler({
+      moduleType: module.type,
+      actionType,
+      pluginName: params.pluginName,
+      defaultHandler,
+    })
+
+    const buildDependencies = await this.getBuildDependencies(module)
+
+    const handlerParams: any = {
+      ...this.commonParams(handler),
+      ...<object>params,
+      module,
+      task,
       buildDependencies,
     }
 

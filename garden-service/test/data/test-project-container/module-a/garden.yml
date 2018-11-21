@@ -11,3 +11,9 @@ module:
           port: http
       healthCheck:
         tcpPort: http
+  tasks:
+    - name: task-a
+      command: [echo, A]
+      dependencies:
+        - task-b
+        - service-b

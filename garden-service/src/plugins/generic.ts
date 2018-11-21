@@ -22,13 +22,13 @@ import {
   BuildResult,
   BuildStatus,
   ValidateModuleResult,
-  TestResult,
+  TestResult, TaskStatus, RunTaskResult,
 } from "../types/plugin/outputs"
 import {
   BuildModuleParams,
   GetBuildStatusParams,
   ValidateModuleParams,
-  TestModuleParams,
+  TestModuleParams, RunTaskParams,
 } from "../types/plugin/params"
 import { BaseServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
@@ -36,6 +36,7 @@ import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "..
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import execa = require("execa")
+import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
 
 export const name = "generic"
 
@@ -51,6 +52,17 @@ export const genericTestSchema = baseTestSpecSchema
     env: joiEnvVars(),
   })
   .description("The test specification of a generic module.")
+
+export interface GenericTaskSpec extends BaseTaskSpec {
+  command: string[],
+}
+
+export const genericTaskSpecSchema = baseTaskSpecSchema
+  .keys({
+    command: Joi.array().items(Joi.string())
+      .description("The command to run in the module build context."),
+  })
+  .description("A task that can be run in this module.")
 
 export interface GenericModuleSpec extends ModuleSpec {
   env: { [key: string]: string },
@@ -155,12 +167,54 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
   }
 }
 
+export async function runGenericTask(params: RunTaskParams): Promise<RunTaskResult> {
+  const { task } = params
+  const module = task.module
+  const command = task.spec.command
+  const startedAt = new Date()
+
+  let completedAt
+  let output
+
+  if (command && command.length) {
+    const commandResult = await execa.shell(
+      command.join(" "),
+      {
+        cwd: module.buildPath,
+        env: { ...process.env, ...mapValues(module.spec.env, v => v.toString()) },
+      },
+    )
+
+    completedAt = new Date()
+    output = commandResult.stdout + commandResult.stderr
+  } else {
+    completedAt = startedAt
+    output = ""
+  }
+
+  return <RunTaskResult>{
+    moduleName: module.name,
+    taskName: task.name,
+    command,
+    version: module.version,
+    success: true,
+    output,
+    startedAt,
+    completedAt,
+  }
+}
+
+export async function getGenericTaskStatus(): Promise<TaskStatus> {
+  return { done: false }
+}
+
 export const genericPlugin: GardenPlugin = {
   moduleActions: {
     generic: {
       validate: parseGenericModule,
       getBuildStatus: getGenericModuleBuildStatus,
       build: buildGenericModule,
+      runTask: runGenericTask,
       testModule: testGenericModule,
     },
   },

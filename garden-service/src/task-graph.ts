@@ -10,7 +10,7 @@ import * as Bluebird from "bluebird"
 import * as PQueue from "p-queue"
 import chalk from "chalk"
 import { merge, padEnd, pick } from "lodash"
-import { Task, TaskDefinitionError } from "./tasks/base"
+import { BaseTask, TaskDefinitionError } from "./tasks/base"
 
 import { LogEntry } from "./logger/log-entry"
 import { toGardenError } from "./exceptions"
@@ -55,7 +55,7 @@ export class TaskGraph {
     this.logEntryMap = {}
   }
 
-  async addTask(task: Task): Promise<void> {
+  async addTask(task: BaseTask): Promise<void> {
     return this.opQueue.add(() => this.addTaskInternal(task))
   }
 
@@ -63,7 +63,7 @@ export class TaskGraph {
     return this.opQueue.add(() => this.processTasksInternal())
   }
 
-  private async addTaskInternal(task: Task) {
+  private async addTaskInternal(task: BaseTask) {
     const predecessor = this.getPredecessor(task)
     let node = this.getNode(task)
 
@@ -97,7 +97,7 @@ export class TaskGraph {
     }
   }
 
-  private getNode(task: Task): TaskNode {
+  private getNode(task: BaseTask): TaskNode {
     const existing = this.index.getNode(task)
     return existing || new TaskNode(task)
   }
@@ -181,7 +181,7 @@ export class TaskGraph {
     this.logTaskComplete(node, success)
   }
 
-  private getPredecessor(task: Task): TaskNode | null {
+  private getPredecessor(task: BaseTask): TaskNode | null {
     const key = task.getKey()
     const baseKey = task.getBaseKey()
     const predecessors = this.index.getNodes()
@@ -292,7 +292,7 @@ export class TaskGraph {
   }
 }
 
-function getIndexKey(task: Task) {
+function getIndexKey(task: BaseTask) {
   const key = task.getKey()
 
   if (!task.type || !key || task.type.length === 0 || key.length === 0) {
@@ -312,7 +312,7 @@ class TaskNodeMap {
     this.length = 0
   }
 
-  getNode(task: Task) {
+  getNode(task: BaseTask) {
     const indexKey = getIndexKey(task)
     const element = this.index.get(indexKey)
     return element
@@ -344,12 +344,12 @@ class TaskNodeMap {
 }
 
 class TaskNode {
-  task: Task
+  task: BaseTask
 
   private dependencies: TaskNodeMap
   private dependants: TaskNodeMap
 
-  constructor(task: Task) {
+  constructor(task: BaseTask) {
     this.task = task
     this.dependencies = new TaskNodeMap()
     this.dependants = new TaskNodeMap()

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import dedent = require("dedent")
 import * as Joi from "joi"
 import { ServiceConfig, ServiceSpec } from "./service"
 import {
@@ -16,7 +17,7 @@ import {
   joiRepositoryUrl,
 } from "./common"
 import { TestConfig, TestSpec } from "./test"
-import dedent = require("dedent")
+import { TaskConfig, TaskSpec } from "./task"
 
 export interface BuildCopySpec {
   source: string
@@ -112,13 +113,19 @@ export const baseModuleSpecSchema = Joi.object()
   .meta({ extendable: true })
 
 export interface ModuleConfig
-  <M extends ModuleSpec = any, S extends ServiceSpec = any, T extends TestSpec = any>
+  <
+  M extends ModuleSpec = any,
+  S extends ServiceSpec = any,
+  T extends TestSpec = any,
+  W extends TaskSpec = any,
+  >
   extends BaseModuleSpec {
 
   plugin?: string   // used to identify modules that are bundled as part of a plugin
 
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]
+  taskConfigs: TaskConfig<W>[]
 
   // Plugins can add custom fields that are kept here
   spec: M

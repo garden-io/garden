@@ -1,0 +1,15 @@
+module:
+  description: postgres container
+  type: container
+  name: postgres
+  image: postgres:9.4
+  services:
+    - name: postgres
+      volumes:
+        - name: data
+          containerPath: /db-data
+      ports:
+        - name: db
+          containerPort: 5432
+      healthCheck:
+        command: [psql, -w, -U, postgres, -d, postgres, -c, "SELECT 1"]

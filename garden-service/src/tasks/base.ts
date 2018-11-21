@@ -10,6 +10,7 @@ import { TaskResults } from "../task-graph"
 import { ModuleVersion } from "../vcs/base"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
+import { DependencyGraphNodeType } from "../dependency-graph"
 
 export class TaskDefinitionError extends Error { }
 
@@ -19,14 +20,15 @@ export interface TaskParams {
   version: ModuleVersion
 }
 
-export abstract class Task {
+export abstract class BaseTask {
   abstract type: string
+  abstract depType: DependencyGraphNodeType
   garden: Garden
   id: string
   force: boolean
   version: ModuleVersion
 
-  dependencies: Task[]
+  dependencies: BaseTask[]
 
   constructor(initArgs: TaskParams) {
     this.garden = initArgs.garden
@@ -36,7 +38,7 @@ export abstract class Task {
     this.version = initArgs.version
   }
 
-  async getDependencies(): Promise<Task[]> {
+  async getDependencies(): Promise<BaseTask[]> {
     return this.dependencies
   }
 
