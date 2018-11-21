@@ -123,8 +123,8 @@ md -Force $gardenTmpPath | Out-Null
 
 # Download and extract the archive to $gardenBinPath
 # TODO: change this to point to the latest stable instead of the hard-coded version
-$url = "https://github.com/garden-io/garden/releases/download/v0.8.0-rc3/garden-0.8.0-rc3-windows-amd64.zip"
-$zipPath = "$gardenTmpPath\garden-0.8.0-rc3-windows-amd64.zip"
+$url = "https://github.com/garden-io/garden/releases/download/v0.8.0-rc4/garden-0.8.0-rc4-windows-amd64.zip"
+$zipPath = "$gardenTmpPath\garden-0.8.0-rc4-windows-amd64.zip"
 
 Write-Host "-> Downloading $url..."
 if (-not ([Net.ServicePointManager]::SecurityProtocol).ToString().Contains([Net.SecurityProtocolType]::Tls12)) {

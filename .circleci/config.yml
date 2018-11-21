@@ -228,6 +228,7 @@ jobs:
           paths:
             # Save the built output for future
             - garden-service/build/
+            - garden-service/static/
   test-node:
     <<: *node-config
     steps:
