@@ -22,3 +22,20 @@ builds:
       # These are the defaults specified by goreleaser:
       # https://github.com/goreleaser/goreleaser/blob/682c811106f56ffe06c4212de546aec62161fb9d/internal/builders/golang/build.go#L46
       - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}}
+release:
+  # If set to true, will not auto-publish the release.
+  # Default is false.
+  draft: true
+
+  # If set to true, will mark the release as not ready for production.
+  # Default is false.
+  prerelease: true
+
+  # You can change the name of the GitHub release.
+  # Default is ``
+  name_template: "v{{.Version}}"
+
+  # You can disable this pipe in order to not upload any artifacts to
+  # GitHub.
+  # Defaults to false.
+  disable: true

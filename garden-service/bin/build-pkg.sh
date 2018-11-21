@@ -29,13 +29,16 @@ rm -rf linux-amd64
 mkdir linux-amd64
 mv garden-cli-linux linux-amd64/garden
 cp -r ../tmp/dist/static linux-amd64
-tar -czf garden-${version}-${commit_hash}-linux-amd64.tar.gz linux-amd64
+tar -czf garden-pkg-${version}-linux-amd64.tar.gz linux-amd64
+echo "  -> cleaning up tmp files"
+rm -rf linux-amd64
 
-echo "  -> win-amd64"
-rm -rf win-amd64
-mkdir win-amd64
-mv garden-cli-win.exe win-amd64/garden.exe
-cp -r ../tmp/dist/static win-amd64
-zip -q -r garden-${version}-${commit_hash}-win-amd64.zip win-amd64
-
-echo "Done!"
+echo "  -> windows-amd64"
+rm -rf windows-amd64
+mkdir windows-amd64
+# Name should match go release and other standards using full "windows" name
+mv garden-cli-win.exe windows-amd64/garden.exe
+cp -r ../tmp/dist/static windows-amd64
+zip -q -r garden-pkg-${version}-windows-amd64.zip windows-amd64
+echo "  -> cleaning up tmp files"
+rm -rf windows-amd64

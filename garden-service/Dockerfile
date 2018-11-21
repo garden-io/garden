@@ -26,7 +26,6 @@ RUN apk add --no-cache \
 WORKDIR /garden
 
 # npm dependencies
-ADD scripts /garden/scripts
 ADD package.json package-lock.json /garden/
 
 RUN npm install --production

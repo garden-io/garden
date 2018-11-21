@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
 # linter before git check so we can lint docs even if they are 'dirty'
-find docs -name '*.md' -type f -exec markdown-link-check  {} \;
-
+find docs -name '*.md' -type f -exec ./node_modules/.bin/markdown-link-check  {} \;
+# Needs to generate clean docs before we can validate they are update to date
+npm run generate-docs
 git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"npm run generate-docs\" and commit the changes\n' && exit 1)
