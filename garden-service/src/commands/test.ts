@@ -32,13 +32,13 @@ const testArgs = {
 }
 
 const testOpts = {
-  name: new StringOption({
+  "name": new StringOption({
     help: "Only run tests with the specfied name (e.g. unit or integ).",
     alias: "n",
   }),
-  force: new BooleanParameter({ help: "Force re-test of module(s).", alias: "f" }),
+  "force": new BooleanParameter({ help: "Force re-test of module(s).", alias: "f" }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
-  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-test.", alias: "w" }),
+  "watch": new BooleanParameter({ help: "Watch for changes in module(s) and auto-test.", alias: "w" }),
 }
 
 type Args = typeof testArgs

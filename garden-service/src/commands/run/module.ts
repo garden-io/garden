@@ -39,7 +39,7 @@ const runArgs = {
 const runOpts = {
   // TODO: we could provide specific parameters like this by adding commands for specific modules, via plugins
   //entrypoint: new StringParameter({ help: "Override default entrypoint in module" }),
-  interactive: new BooleanParameter({
+  "interactive": new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result.",
     defaultValue: true,
   }),

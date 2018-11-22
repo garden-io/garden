@@ -47,7 +47,7 @@
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "lerna run clean && git clean -X -f",
     "dist": "gulp dist",
-    "fix-format": "node_modules/.bin/tslint -p . --fix && node_modules/.bin/tsfmt -r",
+    "fix-format": "tslint -p . --fix && tsfmt -r",
     "generate-docs": "gulp generate-docs",
     "integ": "lerna run integ",
     "lint": "tslint -p . && tsfmt --verify && gulp check-licenses",

@@ -11,7 +11,7 @@ describe("commands.test", () => {
     const { result } = await command.action({
       garden,
       args: { module: undefined },
-      opts: { name: undefined, force: true, "force-build": true, watch: false },
+      opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
     })
 
     expect(isSubset(taskResultOutputs(result!), {
@@ -46,7 +46,7 @@ describe("commands.test", () => {
     const { result } = await command.action({
       garden,
       args: { module: ["module-a"] },
-      opts: { name: undefined, force: true, "force-build": true, watch: false },
+      opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
     })
 
     expect(isSubset(taskResultOutputs(result!), {
