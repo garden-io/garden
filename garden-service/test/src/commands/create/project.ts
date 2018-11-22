@@ -52,7 +52,7 @@ describe("CreateProjectCommand", () => {
     const { result } = await cmd.action({
       garden,
       args: { "project-dir": "" },
-      opts: { name: "", "module-dirs": [] },
+      opts: { "name": "", "module-dirs": [] },
     })
     const modules = result.modules.map(m => pick(m, ["name", "type", "path"]))
     const project = pick(result.project, ["name", "path"])
@@ -75,7 +75,7 @@ describe("CreateProjectCommand", () => {
     const { result } = await cmd.action({
       garden,
       args: { "project-dir": "new-project" },
-      opts: { name: "", "module-dirs": [] },
+      opts: { "name": "", "module-dirs": [] },
     })
     expect(pick(result.project, ["name", "path"])).to.eql({
       name: "new-project",
@@ -89,7 +89,7 @@ describe("CreateProjectCommand", () => {
     const { result } = await cmd.action({
       garden,
       args: { "project-dir": "" },
-      opts: { name: "my-project", "module-dirs": [] },
+      opts: { "name": "my-project", "module-dirs": [] },
     })
     expect(pick(result.project, ["name", "path"])).to.eql({
       name: "my-project",
@@ -103,7 +103,7 @@ describe("CreateProjectCommand", () => {
     const { result } = await cmd.action({
       garden,
       args: { "project-dir": "" },
-      opts: { name: "", "module-dirs": ["."] },
+      opts: { "name": "", "module-dirs": ["."] },
     })
     expect(result.modules.map(m => pick(m, ["name", "type", "path"]))).to.eql([
       { type: "container", name: "module-a", path: join(garden.projectRoot, "module-a") },
@@ -117,7 +117,7 @@ describe("CreateProjectCommand", () => {
     const { result } = await cmd.action({
       garden,
       args: { "project-dir": "" },
-      opts: { name: "", "module-dirs": ["module-a", "module-b"] },
+      opts: { "name": "", "module-dirs": ["module-a", "module-b"] },
     })
     expect(result.modules.map(m => pick(m, ["name", "type", "path"]))).to.eql([
       { type: "container", name: "child-module-a", path: join(garden.projectRoot, "module-a", "child-module-a") },
@@ -132,7 +132,7 @@ describe("CreateProjectCommand", () => {
       async () => await cmd.action({
         garden,
         args: { "project-dir": "___" },
-        opts: { name: "", "module-dirs": [] },
+        opts: { "name": "", "module-dirs": [] },
       }),
       "configuration",
     )
@@ -145,7 +145,7 @@ describe("CreateProjectCommand", () => {
       async () => await cmd.action({
         garden,
         args: { "project-dir": "" },
-        opts: { name: "___", "module-dirs": [] },
+        opts: { "name": "___", "module-dirs": [] },
       }),
       "configuration",
     )

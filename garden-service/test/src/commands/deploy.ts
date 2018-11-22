@@ -102,8 +102,8 @@ describe("DeployCommand", () => {
       },
       opts: {
         "hot-reload": undefined,
-        watch: false,
-        force: false,
+        "watch": false,
+        "force": false,
         "force-build": true,
       },
     })
@@ -135,8 +135,8 @@ describe("DeployCommand", () => {
       },
       opts: {
         "hot-reload": undefined,
-        watch: false,
-        force: false,
+        "watch": false,
+        "force": false,
         "force-build": true,
       },
     })

@@ -22,7 +22,7 @@ import { ModuleConfig } from "../../config/module"
  * Alternatively, consider co-locating the templates with the plugins.
  */
 export const MODULE_PROVIDER_MAP = {
-  container: "local-kubernetes",
+  "container": "local-kubernetes",
   "google-cloud-function": "local-google-cloud-functions",
   "npm-package": "npm-package",
 }
@@ -91,7 +91,7 @@ export const projectTemplate = (name: string, moduleTypes: ModuleType[]): Projec
 
 export const moduleTemplate = (name: string, type: ModuleType): ModuleTemplate => {
   const moduleTypeTemplate = {
-    container: containerTemplate,
+    "container": containerTemplate,
     "google-cloud-function": googleCloudFunctionTemplate,
     "npm-package": npmPackageTemplate,
   }[type]

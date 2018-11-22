@@ -29,7 +29,7 @@ describe("RunModuleCommand", () => {
     const { result } = await cmd.action({
       garden,
       args: { module: "run-test", command: [] },
-      opts: { interactive: false, "force-build": false },
+      opts: { "interactive": false, "force-build": false },
     })
 
     const expected: RunResult = {
@@ -55,7 +55,7 @@ describe("RunModuleCommand", () => {
     const { result } = await cmd.action({
       garden,
       args: { module: "run-test", command: ["my", "command"] },
-      opts: { interactive: false, "force-build": false },
+      opts: { "interactive": false, "force-build": false },
     })
 
     const expected: RunResult = {

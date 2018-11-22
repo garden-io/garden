@@ -37,7 +37,7 @@ const runArgs = {
 }
 
 const runOpts = {
-  interactive: new BooleanParameter({
+  "interactive": new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result.",
     defaultValue: true,
   }),

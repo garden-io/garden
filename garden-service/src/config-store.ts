@@ -175,7 +175,7 @@ export interface LocalConfig {
 
 const kubernetesLocalConfigSchema = Joi.object()
   .keys({
-    username: joiIdentifier().allow("").optional(),
+    "username": joiIdentifier().allow("").optional(),
     "previous-usernames": Joi.array().items(joiIdentifier()).optional(),
   })
   .meta({ internal: true })

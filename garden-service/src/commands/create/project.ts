@@ -41,7 +41,7 @@ const createProjectOptions = {
   "module-dirs": new PathsParameter({
     help: "Relative path to modules directory. Use comma as a separator to specify multiple directories.",
   }),
-  name: new StringParameter({
+  "name": new StringParameter({
     help: "Assigns a custom name to the project (defaults to name of the current directory).",
   }),
 }
