@@ -141,7 +141,11 @@ describe("TaskHelpers", () => {
         },
         {
           moduleName: "service-dependant",
-          withoutDependencies: ["build.service-dependant", "deploy.service-dependant", "task.dependant-task"],
+          withoutDependencies: [
+            "build.service-dependant",
+            "deploy.service-dependant",
+            "task.dependant-task",
+          ],
           withDependencies: [
             "deploy.good-morning",
 
