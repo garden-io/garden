@@ -30,5 +30,7 @@ module:
       command: [npm, test]
     - name: integ
       command: [npm, run, integ]
+      env:
+        FUNCTION_ENDPOINT: ${services.hello-function.outputs.endpoint}
       dependencies:
         - hello-function
