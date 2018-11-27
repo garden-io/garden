@@ -36,7 +36,7 @@ _Note: `source` refers to the path within the dependency module being specified,
 Runtime dependencies, on the other hand, are irrelevant at build time, but required for execution. For example, as we can see in the `app.js` file, the `hello-container` module depends on `hello-function` being up and running:
 
 ```js
-const functionEndpoint = process.env.GARDEN_SERVICES_HELLO_FUNCTION_ENDPOINT
+const functionEndpoint = process.env.FUNCTION_ENDPOINT
 ```
 
 So let's see how to make sure `hello-function` is running before `hello-container`:
@@ -48,6 +48,8 @@ module:
   name: hello-container
   services:
     ...
+      env:
+        FUNCTION_ENDPOINT: ${services.hello-function.outputs.endpoint}
       dependencies:
         - hello-function
 ```

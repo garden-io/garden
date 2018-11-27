@@ -4,7 +4,7 @@ const hello = require("./libraries/hello-npm-package")
 
 const app = express()
 
-const functionEndpoint = process.env.GARDEN_SERVICES_HELLO_FUNCTION_ENDPOINT
+const functionEndpoint = process.env.FUNCTION_ENDPOINT
 
 app.get("/hello", (req, res) => {
   // Query the example cloud function and return the response
