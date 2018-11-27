@@ -96,7 +96,8 @@ export class CreateModuleCommand extends Command<Args, Opts> {
     } else {
       // Prompt for type
       log.info("---------")
-      log.stop()
+      // Stop logger while prompting
+      log.stopAll()
       type = (await prompts.addConfigForModule(moduleName)).type
       log.info("---------")
       if (!type) {

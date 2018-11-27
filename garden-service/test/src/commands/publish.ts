@@ -51,7 +51,7 @@ describe("PublishCommand", () => {
 
   it("should build and publish modules in a project", async () => {
     const garden = await getTestGarden()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new PublishCommand()
 
     const { result } = await command.action({
@@ -77,7 +77,7 @@ describe("PublishCommand", () => {
 
   it("should optionally force new build", async () => {
     const garden = await getTestGarden()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new PublishCommand()
 
     const { result } = await command.action({
@@ -103,7 +103,7 @@ describe("PublishCommand", () => {
 
   it("should optionally build selected module", async () => {
     const garden = await getTestGarden()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new PublishCommand()
 
     const { result } = await command.action({
@@ -126,7 +126,7 @@ describe("PublishCommand", () => {
 
   it("should respect allowPublish flag", async () => {
     const garden = await getTestGarden()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new PublishCommand()
 
     const { result } = await command.action({
@@ -148,7 +148,7 @@ describe("PublishCommand", () => {
 
   it("should fail gracefully if module does not have a provider for publish", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     await garden.clearBuilds()
 
     const command = new PublishCommand()
@@ -190,7 +190,7 @@ describe("PublishCommand", () => {
         }
       })
       garden = await getTestGarden()
-      log = garden.log.info()
+      log = garden.log
     })
 
     it("should throw if module is dirty", async () => {

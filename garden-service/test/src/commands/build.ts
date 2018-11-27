@@ -6,7 +6,7 @@ import { taskResultOutputs } from "../../helpers"
 describe("commands.build", () => {
   it("should build all modules in a project", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({
@@ -25,7 +25,7 @@ describe("commands.build", () => {
 
   it("should optionally build single module and its dependencies", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({

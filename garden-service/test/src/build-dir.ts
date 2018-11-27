@@ -63,7 +63,7 @@ describe("BuildDir", () => {
 
   it("should sync dependency products to their specified destinations", async () => {
     const garden = await makeGarden()
-    const log = garden.log.info()
+    const log = garden.log
 
     try {
       await garden.clearBuilds()

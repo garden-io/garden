@@ -165,13 +165,13 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
         },
 
         async runTask(
-          { ctx, task, interactive, runtimeContext, logEntry, buildDependencies }: RunTaskParams,
+          { ctx, task, interactive, runtimeContext, log, buildDependencies }: RunTaskParams,
         ) {
           const result = await runModule({
             ctx,
             buildDependencies,
             interactive,
-            logEntry,
+            log,
             runtimeContext,
             module: task.module,
             command: task.spec.command || [],

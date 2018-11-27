@@ -32,6 +32,7 @@ import {
   GardenError,
   PluginError,
   toGardenError,
+  InternalError,
 } from "../exceptions"
 import { Garden, ContextOpts } from "../garden"
 
@@ -67,17 +68,14 @@ const OUTPUT_RENDERERS = {
   },
 }
 
-const logLevelKeys = getEnumKeys(LogLevel)
-// Allow string or numeric log levels
-const logLevelChoices = [...logLevelKeys, ...range(logLevelKeys.length).map(String)]
+const FILE_WRITER_CONFIGS = [
+  { filename: "development.log" },
+  { filename: ERROR_LOG_FILENAME, level: LogLevel.error },
+  { filename: ERROR_LOG_FILENAME, level: LogLevel.error, path: ".", truncatePrevious: true },
+]
 
-const getLogLevelFromArg = (level: string) => {
-  const lvl = parseInt(level, 10)
-  if (lvl) {
-    return lvl
-  }
-  return LogLevel[level]
-}
+const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
+const DEFAULT_CLI_LOGGER_TYPE = LoggerType.fancy
 
 // For initializing garden without a project config
 export const MOCK_CONFIG: GardenConfig = {
@@ -99,6 +97,11 @@ export const MOCK_CONFIG: GardenConfig = {
   },
 }
 
+const getLogLevelNames = () => getEnumKeys(LogLevel)
+const getNumericLogLevels = () => range(getLogLevelNames().length)
+// Allow string or numeric log levels as CLI choices
+const getLogLevelChoices = () => [...getLogLevelNames(), ...getNumericLogLevels().map(String)]
+
 export const GLOBAL_OPTIONS = {
   root: new StringParameter({
     alias: "r",
@@ -113,7 +116,7 @@ export const GLOBAL_OPTIONS = {
   env: new EnvironmentOption(),
   loglevel: new ChoicesParameter({
     alias: "l",
-    choices: logLevelChoices,
+    choices: getLogLevelChoices(),
     help:
       "Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 " +
       "(highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.",
@@ -131,8 +134,39 @@ export const GLOBAL_OPTIONS = {
     defaultValue: envSupportsEmoji(),
   }),
 }
-const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
-const DEFAULT_CLI_LOGGER_TYPE = LoggerType.fancy
+
+function parseLogLevel(level: string): LogLevel {
+  let lvl: LogLevel
+  const parsed = parseInt(level, 10)
+  if (parsed) {
+    lvl = parsed
+  } else {
+    lvl = LogLevel[level]
+  }
+  if (!getNumericLogLevels().includes(lvl)) {
+    throw new InternalError(
+      `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
+      {},
+    )
+  }
+  return lvl
+}
+
+function initLogger({ level, logEnabled, loggerType, emoji }: {
+  level: LogLevel, logEnabled: boolean, loggerType: LoggerType, emoji: boolean,
+}) {
+  let writers: Writer[] = []
+
+  if (logEnabled) {
+    if (loggerType === LoggerType.fancy) {
+      writers.push(new FancyTerminalWriter())
+    } else if (loggerType === LoggerType.basic) {
+      writers.push(new BasicTerminalWriter())
+    }
+  }
+
+  return Logger.initialize({ level, writers, useEmoji: emoji })
+}
 
 export interface ParseResults {
   argv: any
@@ -146,8 +180,9 @@ interface SywacParseResults extends ParseResults {
 }
 
 export class GardenCli {
-  program: any
-  commands: { [key: string]: Command } = {}
+  private program: any
+  private commands: { [key: string]: Command } = {}
+  private fileWritersInitialized: boolean = false
 
   constructor() {
     const version = require("../../package.json").version
@@ -169,11 +204,26 @@ export class GardenCli {
       .style(styleConfig)
 
     const commands = coreCommands
-
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
     commands.forEach(command => this.addCommand(command, this.program))
     globalOptions.forEach(([key, opt]) => this.addGlobalOption(key, opt))
+  }
+
+  async initFileWriters(logger: Logger, projectRoot: string) {
+    if (this.fileWritersInitialized) {
+      return
+    }
+    for (const config of FILE_WRITER_CONFIGS) {
+      logger.writers.push(
+        await FileWriter.factory({
+          level: logger.level,
+          root: projectRoot,
+          ...config,
+        }),
+      )
+    }
+    this.fileWritersInitialized = true
   }
 
   addGlobalOption(key: string, option: Parameter<any>): void {
@@ -211,35 +261,36 @@ export class GardenCli {
 
     const action = async (argv, cliContext) => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
-
       const parsedArgs = filterByKeys(argv, argKeys)
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
       const { emoji, env, loglevel, silent, output } = parsedOpts
 
       // Init logger
-      const level = getLogLevelFromArg(loglevel)
-      let writers: Writer[] = []
+      const logEnabled = !silent && !output && loggerType !== LoggerType.quiet
+      const level = parseLogLevel(loglevel)
+      const logger = initLogger({ level, logEnabled, loggerType, emoji })
 
-      if (!silent && !output && loggerType !== LoggerType.quiet) {
-        if (loggerType === LoggerType.fancy) {
-          writers.push(new FancyTerminalWriter())
-        } else if (loggerType === LoggerType.basic) {
-          writers.push(new BasicTerminalWriter())
-        }
+      // Currently we initialise an empty placeholder log entry and pass that to the
+      // framework as opposed to the logger itself. This is mainly for type conformity.
+      // A log entry has the same capabilities as the logger itself (they both extend a log node)
+      // but can additionally be updated after it's created, whereas the logger can create only new
+      // entries (i.e. print new lines).
+      const log = logger.placeholder()
+
+      const contextOpts: ContextOpts = { env, log }
+      if (command.noProject) {
+        contextOpts.config = MOCK_CONFIG
       }
-
-      const logger = Logger.initialize({ level, writers, useEmoji: emoji })
       let garden: Garden
       let result
       do {
-        const contextOpts: ContextOpts = { env, logger }
-        if (command.noProject) {
-          contextOpts.config = MOCK_CONFIG
-        }
         garden = await Garden.factory(root, contextOpts)
-        // Indent -1 so that the children of this entry get printed with indent 0
-        const log = garden.log.info({ indent: -1 })
+
+        // Register log file writers. We need to do this after the Garden class is initialised because
+        // the file writers depend on the project root.
+        await this.initFileWriters(logger, garden.projectRoot)
+
         // TODO: enforce that commands always output DeepPrimitiveMap
         result = await command.action({
           garden,

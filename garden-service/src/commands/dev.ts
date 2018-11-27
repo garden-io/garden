@@ -65,7 +65,7 @@ export class DevCommand extends Command<Args, Opts> {
   async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
-    console.log(data.toString())
+    log.info(data.toString())
 
     log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
 

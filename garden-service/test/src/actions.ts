@@ -52,7 +52,7 @@ describe("ActionHelper", () => {
   before(async () => {
     const plugins = { "test-plugin": testPlugin, "test-plugin-b": testPluginB }
     garden = await makeTestGardenA(plugins)
-    log = garden.log.info()
+    log = garden.log
     actions = garden.actions
     module = await garden.getModule("module-a")
     service = await garden.getService("service-a")
@@ -323,6 +323,7 @@ describe("ActionHelper", () => {
   describe("runTask", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const result = await actions.runTask({
+        log,
         task,
         interactive: true,
         runtimeContext: {

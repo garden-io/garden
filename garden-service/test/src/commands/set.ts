@@ -8,7 +8,7 @@ describe("SetSecretCommand", () => {
 
   it("should set a config variable", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new SetSecretCommand()
 
     await command.action({

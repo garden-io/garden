@@ -17,7 +17,7 @@ describe("DeleteSecretCommand", () => {
 
   it("should delete a secret", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new DeleteSecretCommand()
 
     const key = "mykey"
@@ -32,7 +32,7 @@ describe("DeleteSecretCommand", () => {
 
   it("should throw on missing key", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new DeleteSecretCommand()
 
     await expectError(
@@ -71,7 +71,7 @@ describe("DeleteEnvironmentCommand", () => {
 
   it("should destroy environment", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
-    const log = garden.log.info()
+    const log = garden.log
 
     const { result } = await command.action({ garden, log, args: {}, opts: {} })
 
@@ -112,7 +112,7 @@ describe("DeleteServiceCommand", () => {
 
   it("should return the status of the deleted service", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
-    const log = garden.log.info()
+    const log = garden.log
 
     const { result } = await command.action({ garden, log, args: { service: ["service-a"] }, opts: {} })
     expect(result).to.eql({
@@ -122,7 +122,7 @@ describe("DeleteServiceCommand", () => {
 
   it("should return the status of the deleted services", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
-    const log = garden.log.info()
+    const log = garden.log
 
     const { result } = await command.action({
       garden,

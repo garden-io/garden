@@ -8,7 +8,7 @@ describe("commands.validate", () => {
   for (const [name, path] of Object.entries(getExampleProjects())) {
     it(`should successfully validate the ${name} project`, async () => {
       const garden = await Garden.factory(path)
-      const log = garden.log.info()
+      const log = garden.log
       const command = new ValidateCommand()
 
       await command.action({
@@ -29,7 +29,7 @@ describe("commands.validate", () => {
   it("should fail validating the bad-module project", async () => {
     const root = join(__dirname, "data", "validate", "bad-module")
     const garden = await Garden.factory(root)
-    const log = garden.log.info()
+    const log = garden.log
     const command = new ValidateCommand()
 
     await expectError(async () => await command.action({

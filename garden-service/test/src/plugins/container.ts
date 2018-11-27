@@ -60,7 +60,7 @@ describe("plugins.container", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { container: gardenPlugin })
-    log = garden.log.info()
+    log = garden.log
     ctx = garden.getPluginContext("container")
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)

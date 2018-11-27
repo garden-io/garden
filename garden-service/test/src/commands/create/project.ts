@@ -48,7 +48,7 @@ describe("CreateProjectCommand", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot)
-    log = garden.log.info()
+    log = garden.log
   })
 
   afterEach(async () => {

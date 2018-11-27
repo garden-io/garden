@@ -23,7 +23,7 @@ describe("UpdateRemoteCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      log = garden.log.info()
+      log = garden.log
       stubGitCli()
     })
 
@@ -83,7 +83,7 @@ describe("UpdateRemoteCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      log = garden.log.info()
+      log = garden.log
       stubExtSources(garden)
     })
 

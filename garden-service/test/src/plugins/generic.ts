@@ -25,7 +25,7 @@ describe("generic plugin", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { generic: gardenPlugin })
-    log = garden.log.info()
+    log = garden.log
     await garden.clearBuilds()
   })
 

@@ -43,36 +43,42 @@ export abstract class LogNode<T = LogEntry, U = CreateParam> {
     this.children = []
   }
 
-  abstract createNode(level: LogLevel, parent: LogNode<T, U>, param?: U): T
+  protected abstract createNode(level: LogLevel, param: U): T
 
-  protected appendNode(level: LogLevel, param?: U): T {
-    const node = this.createNode(level, this, param)
+  /**
+   * A placeholder entry is an empty entry whose children should be aligned with the parent context.
+   * Useful for setting a placeholder in the middle of the log that can later be populated.
+   */
+  abstract placeholder(level: LogLevel): T
+
+  protected appendNode(level: LogLevel, param: U): T {
+    const node = this.createNode(level, param)
     this.children.push(node)
     this.root.onGraphChange(node)
     return node
   }
 
-  silly(param?: U): T {
+  silly(param: U): T {
     return this.appendNode(LogLevel.silly, param)
   }
 
-  debug(param?: U): T {
+  debug(param: U): T {
     return this.appendNode(LogLevel.debug, param)
   }
 
-  verbose(param?: U): T {
+  verbose(param: U): T {
     return this.appendNode(LogLevel.verbose, param)
   }
 
-  info(param?: U): T {
+  info(param: U): T {
     return this.appendNode(LogLevel.info, param)
   }
 
-  warn(param?: U): T {
+  warn(param: U): T {
     return this.appendNode(LogLevel.warn, param)
   }
 
-  error(param?: U): T {
+  error(param: U): T {
     return this.appendNode(LogLevel.error, param)
   }
 

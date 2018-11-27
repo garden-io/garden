@@ -35,7 +35,7 @@ describe("CreateModuleCommand", () => {
   it("should add a module config to the current directory", async () => {
     replaceAddConfigForModule()
     const garden = await makeTestGarden(projectRoot)
-    const log = garden.log.info()
+    const log = garden.log
 
     const { result } = await cmd.action({
       garden,
@@ -54,7 +54,7 @@ describe("CreateModuleCommand", () => {
   it("should add a module config to new-module directory", async () => {
     replaceAddConfigForModule()
     const garden = await makeTestGarden(projectRoot)
-    const log = garden.log.info()
+    const log = garden.log
 
     const { result } = await cmd.action({
       garden,
@@ -72,7 +72,7 @@ describe("CreateModuleCommand", () => {
   it("should optionally name the module my-module", async () => {
     replaceAddConfigForModule()
     const garden = await makeTestGarden(projectRoot)
-    const log = garden.log.info()
+    const log = garden.log
 
     const { result } = await cmd.action({
       garden,
@@ -89,7 +89,7 @@ describe("CreateModuleCommand", () => {
   // garden create module --type=google-cloud-function
   it("should optionally create a module of a specific type (without prompting)", async () => {
     const garden = await makeTestGarden(projectRoot)
-    const log = garden.log.info()
+    const log = garden.log
 
     const { result } = await cmd.action({
       garden,
@@ -107,7 +107,7 @@ describe("CreateModuleCommand", () => {
   it("should throw if module name is invalid when inherited from current directory", async () => {
     replaceAddConfigForModule()
     const garden = await makeTestGarden(projectRoot)
-    const log = garden.log.info()
+    const log = garden.log
 
     await expectError(
       async () => await cmd.action({
@@ -123,7 +123,7 @@ describe("CreateModuleCommand", () => {
   it("should throw if module name is invalid when explicitly specified", async () => {
     replaceAddConfigForModule()
     const garden = await makeTestGarden(projectRoot)
-    const log = garden.log.info()
+    const log = garden.log
 
     await expectError(
       async () => await cmd.action({
@@ -139,7 +139,7 @@ describe("CreateModuleCommand", () => {
   it("should throw if invalid type provided", async () => {
     replaceAddConfigForModule()
     const garden = await makeTestGarden(projectRoot)
-    const log = garden.log.info()
+    const log = garden.log
 
     await expectError(
       async () => await cmd.action({

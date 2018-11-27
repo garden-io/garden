@@ -147,12 +147,10 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
     // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
     await api.core.deleteNamespace(namespace, <any>{})
   } catch (err) {
-    entry && entry.setError(err.message)
+    entry.setError(err.message)
     const availableNamespaces = await getAllGardenNamespaces(api)
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
-
-  entry && entry.setSuccess()
 
   await logout({ ctx, log })
 
@@ -163,6 +161,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
 
     const nsNames = await getAllGardenNamespaces(api)
     if (!nsNames.includes(namespace)) {
+      entry.setSuccess()
       break
     }
 

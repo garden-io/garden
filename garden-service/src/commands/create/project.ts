@@ -117,7 +117,7 @@ export class CreateProjectCommand extends Command<Args, Opts> {
     log.info(`Initializing new Garden project ${projectName}`)
     log.info("---------")
     // Stop logger while prompting
-    log.stop()
+    log.stopAll()
 
     if (moduleParentDirs.length > 0) {
       // If module-dirs option provided we scan for modules in the parent dir(s) and add them one by one

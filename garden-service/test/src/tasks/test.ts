@@ -12,7 +12,7 @@ describe("TestTask", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
-    log = garden.log.info()
+    log = garden.log
   })
 
   it("should correctly resolve version for tests with dependencies", async () => {

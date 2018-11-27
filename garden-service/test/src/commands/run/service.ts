@@ -19,7 +19,7 @@ describe("RunServiceCommand", () => {
   beforeEach(async () => {
     td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
     garden = await makeTestGardenA()
-    log = garden.log.info()
+    log = garden.log
   })
 
   it("should run a service", async () => {

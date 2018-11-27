@@ -85,7 +85,7 @@ export class LogEntry extends LogNode {
     this.opts = { ...this.opts, ...nextOpts, msg }
   }
 
-  //  Update node and child nodes
+  // Update node and child nodes
   private deepSetState(opts: UpdateOpts): void {
     const wasActive = this.opts.status === "active"
 
@@ -101,17 +101,20 @@ export class LogEntry extends LogNode {
     }
   }
 
-  createNode(level: LogLevel, parent: LogNode, param?: CreateParam) {
-    // Empty entries inherit their parent's indentation level
-    let { indent } = this.opts
-    if (param) {
-      indent = (indent || 0) + 1
-    }
+  protected createNode(level: LogLevel, param: CreateParam) {
+    // A child entry must not have a higher level than its parent
+    const childLevel = this.level > level ? this.level : level
     const opts = {
-      indent,
+      indent: (this.opts.indent || 0) + 1,
       ...resolveParam(param),
     }
-    return new LogEntry({ level, opts, parent })
+    return new LogEntry({ level: childLevel, opts, parent: this })
+  }
+
+  placeholder(level: LogLevel = LogLevel.info): LogEntry {
+    // Ensure placeholder child entries align with parent context
+    const indent = Math.max((this.opts.indent || 0) - 1, - 1)
+    return this.appendNode(level, { indent })
   }
 
   // Preserves status
@@ -147,6 +150,10 @@ export class LogEntry extends LogNode {
 
   fromStdStream(): boolean {
     return !!this.opts.fromStdStream
+  }
+
+  stopAll() {
+    return this.root.stop()
   }
 
   stop() {

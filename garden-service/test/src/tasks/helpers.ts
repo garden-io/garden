@@ -6,6 +6,7 @@ import { Garden } from "../../../src/garden"
 import { makeTestGarden, dataDir } from "../../helpers"
 import { getTasksForModule } from "../../../src/tasks/helpers"
 import { BaseTask } from "../../../src/tasks/base"
+import { LogEntry } from "../../../src/logger/log-entry"
 
 async function sortedBaseKeysWithDependencies(tasks: BaseTask[]): Promise<string[]> {
   return sortedBaseKeys(flatten([tasks].concat(await Bluebird.map(tasks, t => t.getDependencies()))))
@@ -18,9 +19,11 @@ function sortedBaseKeys(tasks: BaseTask[]): string[] {
 describe("TaskHelpers", () => {
 
   let garden: Garden
+  let log: LogEntry
 
   before(async () => {
     garden = await makeTestGarden(resolve(dataDir, "test-project-dependants"))
+    log = garden.log
   })
 
   /**
@@ -32,7 +35,7 @@ describe("TaskHelpers", () => {
     it("returns the correct set of tasks for the changed module", async () => {
       const module = await garden.getModule("good-morning")
       const tasks = await getTasksForModule({
-        garden, module, hotReloadServiceNames: [], force: true, forceBuild: true,
+        garden, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
         fromWatch: false, includeDependants: false,
       })
 
@@ -154,7 +157,7 @@ describe("TaskHelpers", () => {
         it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
           const module = await garden.getModule(<string>moduleName)
           const tasks = await getTasksForModule({
-            garden, module, hotReloadServiceNames: [], force: true, forceBuild: true,
+            garden, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
             fromWatch: true, includeDependants: true,
           })
           expect(sortedBaseKeys(tasks)).to.eql(withoutDependencies)
@@ -212,7 +215,7 @@ describe("TaskHelpers", () => {
         it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
           const module = await garden.getModule(<string>moduleName)
           const tasks = await getTasksForModule({
-            garden, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
+            garden, log, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
             fromWatch: true, includeDependants: true,
           })
           expect(sortedBaseKeys(tasks)).to.eql(withoutDependencies)

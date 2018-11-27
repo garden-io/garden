@@ -123,7 +123,14 @@ export class ActionHelper implements TypeGuard {
     { pluginName, log }: ActionHelperParams<GetEnvironmentStatusParams>,
   ): Promise<EnvironmentStatusMap> {
     const handlers = this.garden.getActionHandlers("getEnvironmentStatus", pluginName)
-    return Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h, log) })))
+    const logEntry = log.debug({
+      msg: "Getting status...",
+      status: "active",
+      section: `${this.garden.environment.name} environment`,
+    })
+    const res = await Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h, logEntry) })))
+    logEntry.setSuccess("Ready")
+    return res
   }
 
   /**

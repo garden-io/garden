@@ -25,7 +25,7 @@ describe("UnlinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      log = garden.log.info()
+      log = garden.log
       stubExtSources(garden)
 
       await linkCmd.action({
@@ -93,7 +93,7 @@ describe("UnlinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      log = garden.log.info()
+      log = garden.log
 
       stubExtSources(garden)
 

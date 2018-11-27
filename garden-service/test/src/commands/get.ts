@@ -8,7 +8,7 @@ describe("GetSecretCommand", () => {
 
   it("should get a config variable", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new GetSecretCommand()
 
     await garden.actions.setSecret({
@@ -30,7 +30,7 @@ describe("GetSecretCommand", () => {
 
   it("should throw on missing key", async () => {
     const garden = await makeTestGardenA()
-    const log = garden.log.info()
+    const log = garden.log
     const command = new GetSecretCommand()
 
     await expectError(

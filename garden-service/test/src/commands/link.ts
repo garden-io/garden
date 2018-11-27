@@ -23,7 +23,7 @@ describe("LinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      log = garden.log.info()
+      log = garden.log
       stubExtSources(garden)
     })
 
@@ -91,7 +91,7 @@ describe("LinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
-      log = garden.log.info()
+      log = garden.log
       stubExtSources(garden)
     })
 
