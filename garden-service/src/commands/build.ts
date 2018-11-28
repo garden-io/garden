@@ -58,17 +58,17 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
   arguments = buildArguments
   options = buildOptions
 
+  async printHeader(log) {
+    logHeader({ log, emoji: "hammer", command: "Build" })
+  }
+
   async action(
     { args, opts, garden, log }: CommandParams<BuildArguments, BuildOptions>,
   ): Promise<CommandResult<TaskResults>> {
-
     await garden.clearBuilds()
-
     const modules = await garden.getModules(args.module)
     const dependencyGraph = await garden.getDependencyGraph()
     const moduleNames = modules.map(m => m.name)
-
-    logHeader({ log, emoji: "hammer", command: "Build" })
 
     const results = await processModules({
       garden,

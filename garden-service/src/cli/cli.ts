@@ -7,36 +7,26 @@
  */
 
 import * as sywac from "sywac"
-import { merge, intersection, range } from "lodash"
+import { intersection, merge, range } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
-import stringify = require("json-stringify-safe")
 
 import { DeepPrimitiveMap } from "../config/common"
-import {
-  getEnumKeys,
-  shutdown,
-  sleep,
-} from "../util/util"
+import { getEnumKeys, shutdown, sleep } from "../util/util"
 import {
   BooleanParameter,
-  Command,
   ChoicesParameter,
+  Command,
+  CommandResult,
+  EnvironmentOption,
   Parameter,
   StringParameter,
-  EnvironmentOption,
-  CommandResult,
 } from "../commands/base"
-import {
-  GardenError,
-  PluginError,
-  toGardenError,
-  InternalError,
-} from "../exceptions"
-import { Garden, ContextOpts } from "../garden"
+import { GardenError, InternalError, PluginError, toGardenError } from "../exceptions"
+import { ContextOpts, Garden } from "../garden"
 
-import { Logger, LoggerType, getLogger } from "../logger/logger"
+import { getLogger, Logger, LoggerType } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../logger/writers/fancy-terminal-writer"
@@ -44,20 +34,21 @@ import { FileWriter } from "../logger/writers/file-writer"
 import { Writer } from "../logger/writers/base"
 
 import {
-  falsifyConflictingParams,
+  envSupportsEmoji,
   failOnInvalidOptions,
+  falsifyConflictingParams,
+  filterByKeys,
   getArgSynopsis,
   getKeys,
   getOptionSynopsis,
-  filterByKeys,
   prepareArgConfig,
   prepareOptionConfig,
   styleConfig,
-  envSupportsEmoji,
 } from "./helpers"
 import { GardenConfig } from "../config/base"
 import { defaultEnvironments } from "../config/project"
 import { ERROR_LOG_FILENAME } from "../constants"
+import stringify = require("json-stringify-safe")
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -283,6 +274,8 @@ export class GardenCli {
       }
       let garden: Garden
       let result
+      await command.printHeader(log)
+
       do {
         garden = await Garden.factory(root, contextOpts)
 

@@ -272,6 +272,13 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     }
   }
 
+  /**
+   * Called by the CLI before the command's action is run, but is not called again
+   * if the command restarts. Useful for commands in watch mode.
+   */
+  async printHeader(_: LogEntry) {
+  }
+
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
