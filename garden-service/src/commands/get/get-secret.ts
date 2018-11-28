@@ -6,29 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as yaml from "js-yaml"
-import { NotFoundError } from "../exceptions"
-import { highlightYaml } from "../util/util"
+import { NotFoundError } from "../../exceptions"
 import {
   Command,
   CommandResult,
   CommandParams,
   StringParameter,
-} from "./base"
+} from "../base"
 import dedent = require("dedent")
-import { ContextStatus } from "../actions"
-
-export class GetCommand extends Command {
-  name = "get"
-  help = "Retrieve and output data and objects, e.g. secrets, status info etc."
-
-  subCommands = [
-    GetSecretCommand,
-    GetStatusCommand,
-  ]
-
-  async action() { return {} }
-}
 
 const getSecretArgs = {
   provider: new StringParameter({
@@ -75,20 +60,5 @@ export class GetSecretCommand extends Command<typeof getSecretArgs> {
     log.info(value)
 
     return { [key]: value }
-  }
-}
-
-export class GetStatusCommand extends Command {
-  name = "status"
-  help = "Outputs the status of your environment."
-
-  async action({ garden, log }: CommandParams): Promise<CommandResult<ContextStatus>> {
-    const status = await garden.actions.getStatus({ log })
-    const yamlStatus = yaml.safeDump(status, { noRefs: true, skipInvalid: true })
-
-    // TODO: do a nicer print of this by default and add --yaml/--json options (maybe globally) for exporting
-    log.info(highlightYaml(yamlStatus))
-
-    return { result: status }
   }
 }
