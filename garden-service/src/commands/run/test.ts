@@ -40,7 +40,9 @@ const runArgs = {
 const runOpts = {
   "interactive": new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result.",
-    defaultValue: true,
+    defaultValue: false,
+    cliDefault: true,
+    cliOnly: true,
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
 }

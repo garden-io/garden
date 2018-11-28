@@ -6,10 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  GardenError,
-  RuntimeError,
-} from "../exceptions"
+import Joi = require("joi")
+import { GardenError, RuntimeError, InternalError } from "../exceptions"
 import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
@@ -27,10 +25,15 @@ export interface ParameterConstructor<T> {
   valueName?: string,
   hints?: string,
   overrides?: string[],
+  cliDefault?: T,
+  cliOnly?: boolean,
 }
 
 export abstract class Parameter<T> {
   abstract type: string
+
+  // TODO: use this for validation in the CLI (currently just used in the service API)
+  abstract schema: Joi.Schema
 
   _valueType: T
 
@@ -42,7 +45,12 @@ export abstract class Parameter<T> {
   valueName: string
   overrides: string[]
 
-  constructor({ help, required, alias, defaultValue, valueName, overrides, hints }: ParameterConstructor<T>) {
+  readonly cliDefault: T | undefined  // Optionally specify a separate default for CLI invocation
+  readonly cliOnly: boolean           // If true, only expose in the CLI, and not in the HTTP/WS server.
+
+  constructor(
+    { help, required, alias, defaultValue, valueName, overrides, hints, cliDefault, cliOnly }: ParameterConstructor<T>,
+  ) {
     this.help = help
     this.required = required || false
     this.alias = alias
@@ -50,13 +58,15 @@ export abstract class Parameter<T> {
     this.defaultValue = defaultValue
     this.valueName = valueName || "_valueType"
     this.overrides = overrides || []
+    this.cliDefault = cliDefault
+    this.cliOnly = cliOnly || false
   }
 
   coerce(input: T): T | undefined {
     return input
   }
 
-  abstract validate(input: string): T
+  abstract parseString(input: string): T
 
   async autoComplete(): Promise<string[]> {
     return []
@@ -65,8 +75,9 @@ export abstract class Parameter<T> {
 
 export class StringParameter extends Parameter<string> {
   type = "string"
+  schema = Joi.string()
 
-  validate(input: string) {
+  parseString(input: string) {
     return input
   }
 }
@@ -75,14 +86,16 @@ export class StringParameter extends Parameter<string> {
 // FIXME: Maybe use a Required<Parameter> type to enforce presence, rather that an option flag?
 export class StringOption extends Parameter<string | undefined> {
   type = "string"
+  schema = Joi.string()
 
-  validate(input?: string) {
+  parseString(input?: string) {
     return input
   }
 }
 
 export class StringsParameter extends Parameter<string[] | undefined> {
   type = "array:string"
+  schema = Joi.array().items(Joi.string())
 
   // Sywac returns [undefined] if input is empty so we coerce that into undefined.
   // This only applies to optional parameters since Sywac would throw if input is empty for a required parameter.
@@ -94,35 +107,38 @@ export class StringsParameter extends Parameter<string[] | undefined> {
     return filtered
   }
 
-  validate(input: string) {
+  parseString(input: string) {
     return input.split(",")
   }
 }
 
 export class PathParameter extends Parameter<string> {
   type = "path"
+  schema = Joi.string().uri({ relativeOnly: true })
 
-  validate(input: string) {
+  parseString(input: string) {
     return input
   }
 }
 
 export class PathsParameter extends Parameter<string[]> {
   type = "array:path"
+  schema = Joi.array().items(Joi.string().uri({ relativeOnly: true }))
 
-  validate(input: string) {
+  parseString(input: string) {
     return input.split(",")
   }
 }
 
-export class NumberParameter extends Parameter<number> {
+export class IntegerParameter extends Parameter<number> {
   type = "number"
+  schema = Joi.number().integer()
 
-  validate(input: string) {
+  parseString(input: string) {
     try {
       return parseInt(input, 10)
     } catch {
-      throw new ValidationError(`Could not parse "${input}" as number`)
+      throw new ValidationError(`Could not parse "${input}" as integer`)
     }
   }
 }
@@ -134,14 +150,16 @@ export interface ChoicesConstructor extends ParameterConstructor<string> {
 export class ChoicesParameter extends Parameter<string> {
   type = "choice"
   choices: string[]
+  schema = Joi.string()
 
   constructor(args: ChoicesConstructor) {
     super(args)
 
     this.choices = args.choices
+    this.schema = Joi.string().only(args.choices)
   }
 
-  validate(input: string) {
+  parseString(input: string) {
     if (this.choices.includes(input)) {
       return input
     } else {
@@ -156,8 +174,9 @@ export class ChoicesParameter extends Parameter<string> {
 
 export class BooleanParameter extends Parameter<boolean> {
   type = "boolean"
+  schema = Joi.boolean()
 
-  validate(input: any) {
+  parseString(input: any) {
     return !!input
   }
 }
@@ -198,30 +217,56 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   abstract help: string
 
   description?: string
-
   alias?: string
   loggerType?: LoggerType
 
   arguments?: T
   options?: U
 
+  cliOnly: boolean = false
   noProject: boolean = false
+
   subCommands: CommandConstructor[] = []
 
-  constructor(private parent?: Command) { }
+  constructor(private parent?: Command) {
+    // Make sure arguments and options don't have overlapping key names.
+    if (this.arguments && this.options) {
+      for (const key of Object.keys(this.options)) {
+        if (key in this.arguments) {
+          const commandName = this.getFullName()
+
+          throw new InternalError(
+            `Key ${key} is defined in both options and arguments for command ${commandName}`,
+            { commandName, key },
+          )
+        }
+      }
+    }
+  }
+
+  getKey() {
+    return !!this.parent ? `${this.parent.getKey()}.${this.name}` : this.name
+  }
 
   getFullName() {
     return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
   }
 
+  getSubCommands(): Command[] {
+    return this.subCommands.map(cls => new cls(this))
+  }
+
   describe() {
-    const { name, help, description } = this
+    const { name, help, description, cliOnly } = this
+    const subCommands = this.subCommands.map(S => new S(this).describe())
 
     return {
       name,
       fullName: this.getFullName(),
       help,
       description,
+      cliOnly,
+      subCommands,
       arguments: describeParameters(this.arguments),
       options: describeParameters(this.options),
     }

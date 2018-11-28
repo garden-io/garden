@@ -29,7 +29,11 @@ const buildArguments = {
 
 const buildOptions = {
   force: new BooleanParameter({ help: "Force rebuild of module(s)." }),
-  watch: new BooleanParameter({ help: "Watch for changes in module(s) and auto-build.", alias: "w" }),
+  watch: new BooleanParameter({
+    help: "Watch for changes in module(s) and auto-build.",
+    alias: "w",
+    cliOnly: true,
+  }),
 }
 
 type BuildArguments = typeof buildArguments

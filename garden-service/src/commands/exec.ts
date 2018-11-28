@@ -16,6 +16,7 @@ import {
   CommandParams,
   StringParameter,
   StringsParameter,
+  BooleanParameter,
 } from "./base"
 import dedent = require("dedent")
 
@@ -31,13 +32,16 @@ const runArgs = {
 }
 
 const runOpts = {
-  // interactive: new BooleanParameter({
-  //   help: "Set to false to skip interactive mode and just output the command result",
-  //   defaultValue: true,
-  // }),
+  interactive: new BooleanParameter({
+    help: "Set to false to skip interactive mode and just output the command result",
+    defaultValue: false,
+    cliDefault: true,
+    cliOnly: true,
+  }),
 }
 
 type Args = typeof runArgs
+type Opts = typeof runOpts
 
 export class ExecCommand extends Command<Args> {
   name = "exec"
@@ -58,7 +62,7 @@ export class ExecCommand extends Command<Args> {
   options = runOpts
   loggerType = LoggerType.basic
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<ExecInServiceResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
     const command = args.command || []
 
@@ -69,7 +73,7 @@ export class ExecCommand extends Command<Args> {
     })
 
     const service = await garden.getService(serviceName)
-    const result = await garden.actions.execInService({ log, service, command, interactive: true })
+    const result = await garden.actions.execInService({ log, service, command, interactive: opts.interactive })
 
     return { result }
   }

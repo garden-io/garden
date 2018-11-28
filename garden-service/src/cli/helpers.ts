@@ -130,12 +130,14 @@ export interface SywacOptionConfig {
 export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
   const {
     coerce,
-    defaultValue,
     help: desc,
     hints,
     required,
     type,
   } = param
+
+  const defaultValue = param.cliDefault === undefined ? param.defaultValue : param.cliDefault
+
   if (!VALID_PARAMETER_TYPES.includes(type)) {
     throw new InternalError(`Invalid parameter type for cli: ${type}`, {
       type,

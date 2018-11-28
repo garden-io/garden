@@ -127,7 +127,7 @@ export const GLOBAL_OPTIONS = {
   output: new ChoicesParameter({
     alias: "o",
     choices: Object.keys(OUTPUT_RENDERERS),
-    help: "Output command result in specified format (note: disables progress logging).",
+    help: "Output command result in specified format (note: disables progress logging and interactive functionality).",
   }),
   emoji: new BooleanParameter({
     help: "Enable emoji in output (defaults to true if the environment supports it).",
@@ -247,7 +247,6 @@ export class GardenCli {
       arguments: args = {},
       loggerType = DEFAULT_CLI_LOGGER_TYPE,
       options = {},
-      subCommands,
     } = command
 
     const argKeys = getKeys(args)
@@ -306,7 +305,9 @@ export class GardenCli {
 
     // Command specific positional args and options are set inside the builder function
     const setup = parser => {
-      subCommands.forEach(subCommandCls => this.addCommand(new subCommandCls(command), parser))
+      const subCommands = command.getSubCommands()
+      subCommands.forEach(subCommand => this.addCommand(subCommand, parser))
+
       argKeys.forEach(key => parser.positional(getArgSynopsis(key, args[key]), prepareArgConfig(args[key])))
       optKeys.forEach(key => parser.option(getOptionSynopsis(key, options[key]), prepareOptionConfig(options[key])))
 

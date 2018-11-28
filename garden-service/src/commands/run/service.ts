@@ -39,6 +39,9 @@ export class RunServiceCommand extends Command<Args, Opts> {
   name = "service"
   help = "Run an ad-hoc instance of the specified service."
 
+  // Makes no sense to run a service (which is expected to stay running) except when attaching in the CLI
+  cliOnly = true
+
   description = dedent`
     This can be useful for debugging or ad-hoc experimentation with services.
 

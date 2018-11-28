@@ -29,7 +29,11 @@ const logsArgs = {
 }
 
 const logsOpts = {
-  tail: new BooleanParameter({ help: "Continuously stream new logs from the service(s).", alias: "t" }),
+  tail: new BooleanParameter({
+    help: "Continuously stream new logs from the service(s).",
+    alias: "t",
+    cliOnly: true,
+  }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
 }
@@ -62,7 +66,6 @@ export class LogsCommand extends Command<Args, Opts> {
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()
 
-    // TODO: use basic logger (no need for fancy stuff here, just causes flickering)
     void stream.forEach((entry) => {
       // TODO: color each service differently for easier visual parsing
       let timestamp = "                        "

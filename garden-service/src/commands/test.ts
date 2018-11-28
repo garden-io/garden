@@ -39,7 +39,11 @@ const testOpts = {
   }),
   "force": new BooleanParameter({ help: "Force re-test of module(s).", alias: "f" }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
-  "watch": new BooleanParameter({ help: "Watch for changes in module(s) and auto-test.", alias: "w" }),
+  "watch": new BooleanParameter({
+    help: "Watch for changes in module(s) and auto-test.",
+    alias: "w",
+    cliOnly: true,
+  }),
 }
 
 type Args = typeof testArgs
