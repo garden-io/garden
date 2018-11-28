@@ -43,7 +43,7 @@ import {
   pluginModuleSchema,
   pluginSchema,
 } from "./types/plugin/plugin"
-import { Environment, SourceConfig, defaultProvider } from "./config/project"
+import { Environment, SourceConfig, defaultProvider, Provider } from "./config/project"
 import {
   findByName,
   getIgnorer,
@@ -82,7 +82,7 @@ import {
   GardenPlugin,
   ModuleActions,
 } from "./types/plugin/plugin"
-import { joiIdentifier, validate } from "./config/common"
+import { joiIdentifier, validate, PrimitiveMap } from "./config/common"
 import { Service } from "./types/service"
 import { Task } from "./types/task"
 import { resolveTemplateStrings } from "./template-string"
@@ -154,6 +154,7 @@ export class Garden {
   private readonly hotReloadScheduler: HotReloadScheduler
   private readonly taskGraph: TaskGraph
 
+  public readonly environment: Environment
   public readonly localConfigStore: LocalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
@@ -162,7 +163,8 @@ export class Garden {
   constructor(
     public readonly projectRoot: string,
     public readonly projectName: string,
-    public readonly environment: Environment,
+    environmentName: string,
+    variables: PrimitiveMap,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
     log?: LogEntry,
@@ -185,6 +187,13 @@ export class Garden {
     this.vcs = new GitHandler(this.projectRoot)
     this.localConfigStore = new LocalConfigStore(this.projectRoot)
     this.cache = new TreeCache()
+
+    this.environment = {
+      name: environmentName,
+      // The providers are populated when adding plugins in the factory.
+      providers: [],
+      variables,
+    }
 
     this.moduleConfigs = {}
     this.serviceNameIndex = {}
@@ -269,25 +278,21 @@ export class Garden {
 
     const fixedProviders = fixedPlugins.map(name => ({ name }))
 
-    const mergedProviders = merge(
+    const mergedProviderConfigs = merge(
       fixedProviders,
       keyBy(environmentDefaults.providers, "name"),
       keyBy(environmentConfig.providers, "name"),
     )
 
-    // Resolve the project configuration based on selected environment
-    const environment: Environment = {
-      name: environmentConfig.name,
-      providers: Object.values(mergedProviders),
-      variables: merge({}, environmentDefaults.variables, environmentConfig.variables),
-    }
+    const variables = merge({}, environmentDefaults.variables, environmentConfig.variables)
 
     const buildDir = await BuildDir.factory(projectRoot)
 
     const garden = new Garden(
       projectRoot,
       projectName,
-      environment,
+      environmentName,
+      variables,
       projectSources,
       buildDir,
       log,
@@ -300,7 +305,7 @@ export class Garden {
 
     // Load configured plugins
     // Validate configuration
-    for (const provider of environment.providers) {
+    for (const provider of Object.values(mergedProviderConfigs)) {
       await garden.loadPlugin(provider.name, provider)
     }
 
@@ -423,7 +428,12 @@ export class Garden {
     if (providerConfig) {
       extend(providerConfig, plugin.config, config)
     } else {
-      this.environment.providers.push(extend({ name: pluginName }, plugin.config, config))
+      const provider: Provider = {
+        name: pluginName,
+        dashboardPages: plugin.dashboardPages,
+        config: extend({ name: pluginName }, plugin.config, config),
+      }
+      this.environment.providers.push(provider)
     }
 
     for (const modulePath of plugin.modules || []) {

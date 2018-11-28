@@ -7,7 +7,7 @@
  */
 
 import { Garden } from "./garden"
-import { mapValues, keyBy, cloneDeep } from "lodash"
+import { keyBy, cloneDeep } from "lodash"
 import * as Joi from "joi"
 import {
   Provider,
@@ -19,6 +19,7 @@ import {
 import { joiIdentifier, joiIdentifierMap } from "./config/common"
 import { PluginError } from "./exceptions"
 import { defaultProvider } from "./config/project"
+import { dashboardPagesSchema } from "./config/dashboard"
 
 type WrappedFromGarden = Pick<Garden,
   "projectName" |
@@ -34,6 +35,7 @@ const providerSchema = Joi.object()
   .keys({
     name: joiIdentifier()
       .description("The name of the provider (plugin)."),
+    dashboardPages: dashboardPagesSchema,
     config: providerConfigBaseSchema,
   })
 
@@ -63,8 +65,7 @@ export const pluginContextSchema = Joi.object()
 
 export function createPluginContext(garden: Garden, providerName: string): PluginContext {
   const projectConfig = cloneDeep(garden.environment)
-  const providerConfigs = keyBy(projectConfig.providers, "name")
-  const providers = mapValues(providerConfigs, (config, name) => ({ name, config }))
+  const providers = keyBy(projectConfig.providers, "name")
   let provider = providers[providerName]
 
   if (providerName === "_default") {

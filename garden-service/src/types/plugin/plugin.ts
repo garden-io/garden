@@ -19,6 +19,7 @@ import { serviceStatusSchema } from "../service"
 import { serviceOutputsSchema } from "../../config/service"
 import { LogNode } from "../../logger/log-node"
 import { Provider } from "../../config/project"
+import { dashboardPagesSchema, DashboardPage } from "../../config/dashboard"
 import {
   ModuleActionParams,
   PluginActionParams,
@@ -413,6 +414,9 @@ export interface GardenPlugin {
 
   modules?: string[]
 
+  // TODO: move this to the configureProvider output, once that's implemented
+  dashboardPages?: DashboardPage[]
+
   actions?: Partial<PluginActions>
   moduleActions?: { [moduleType: string]: Partial<ModuleAndRuntimeActions> }
 }
@@ -439,6 +443,7 @@ export const pluginSchema = Joi.object()
         "Plugins may use this key to override or augment their configuration " +
         "(as specified in the garden.yml provider configuration.",
       ),
+    dashboardPages: dashboardPagesSchema,
     modules: joiArray(Joi.string())
       .description(
         "Plugins may optionally provide paths to Garden modules that are loaded as part of the plugin. " +
