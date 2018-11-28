@@ -13,9 +13,11 @@ import { PublishResult } from "../types/plugin/outputs"
 import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../dependency-graph"
+import { LogEntry } from "../logger/log-entry"
 
 export interface PublishTaskParams {
   garden: Garden
+  log: LogEntry
   module: Module
   forceBuild: boolean
 }
@@ -27,8 +29,8 @@ export class PublishTask extends BaseTask {
   private module: Module
   private forceBuild: boolean
 
-  constructor({ garden, module, forceBuild }: PublishTaskParams) {
-    super({ garden, version: module.version })
+  constructor({ garden, log, module, forceBuild }: PublishTaskParams) {
+    super({ garden, log, version: module.version })
     this.module = module
     this.forceBuild = forceBuild
   }
@@ -39,6 +41,7 @@ export class PublishTask extends BaseTask {
     }
     return [new BuildTask({
       garden: this.garden,
+      log: this.log,
       module: this.module,
       force: this.forceBuild,
     })]
@@ -54,7 +57,7 @@ export class PublishTask extends BaseTask {
 
   async process(): Promise<PublishResult> {
     if (!this.module.allowPublish) {
-      this.garden.log.info({
+      this.log.info({
         section: this.module.name,
         msg: "Publishing disabled",
         status: "active",
@@ -62,7 +65,7 @@ export class PublishTask extends BaseTask {
       return { published: false }
     }
 
-    const logEntry = this.garden.log.info({
+    const log = this.log.info({
       section: this.module.name,
       msg: "Publishing",
       status: "active",
@@ -70,16 +73,16 @@ export class PublishTask extends BaseTask {
 
     let result: PublishResult
     try {
-      result = await this.garden.actions.publishModule({ module: this.module, logEntry })
+      result = await this.garden.actions.publishModule({ module: this.module, log })
     } catch (err) {
-      logEntry.setError()
+      log.setError()
       throw err
     }
 
     if (result.published) {
-      logEntry.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
+      log.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
     } else {
-      logEntry.setWarn({ msg: result.message, append: true })
+      log.setWarn({ msg: result.message, append: true })
     }
 
     return result

@@ -334,18 +334,18 @@ interface WaitParams {
   provider: KubernetesProvider,
   service: Service,
   objects: KubernetesObject[],
-  logEntry?: LogEntry,
+  log: LogEntry,
 }
 
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
  */
-export async function waitForObjects({ ctx, provider, service, objects, logEntry }: WaitParams) {
+export async function waitForObjects({ ctx, provider, service, objects, log }: WaitParams) {
   let loops = 0
   let lastMessage
   const startTime = new Date().getTime()
 
-  logEntry && logEntry.verbose({
+  log.verbose({
     symbol: "info",
     section: service.name,
     msg: `Waiting for service to be ready...`,
@@ -379,7 +379,7 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
 
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
-        logEntry && logEntry.verbose({
+        log.verbose({
           symbol: "info",
           section: service.name,
           msg: status.lastMessage,
@@ -400,7 +400,7 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
     }
   }
 
-  logEntry && logEntry.verbose({ symbol: "info", section: service.name, msg: `Service deployed` })
+  log.verbose({ symbol: "info", section: service.name, msg: `Service deployed` })
 }
 
 /**
@@ -410,7 +410,7 @@ export async function waitForObjects({ ctx, provider, service, objects, logEntry
  * TODO: This function is repetitive of waitForObjects above.
  */
 export async function waitForServices(
-  ctx: PluginContext, runtimeContext: RuntimeContext, services: Service[], buildDependencies,
+  ctx: PluginContext, log: LogEntry, runtimeContext: RuntimeContext, services: Service[], buildDependencies,
 ): Promise<boolean> {
   let ready
   const startTime = new Date().getTime()
@@ -419,7 +419,7 @@ export async function waitForServices(
 
     ready = (await Bluebird.map(services, async (service) => {
       const state = (await getContainerServiceStatus({
-        ctx, buildDependencies, service, runtimeContext, module: service.module,
+        ctx, log, buildDependencies, service, runtimeContext, module: service.module,
       })).state
       return state === "ready" || state === "outdated"
     })).every(serviceReady => serviceReady)

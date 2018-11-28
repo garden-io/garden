@@ -63,6 +63,8 @@ describe("BuildDir", () => {
 
   it("should sync dependency products to their specified destinations", async () => {
     const garden = await makeGarden()
+    const log = garden.log
+
     try {
       await garden.clearBuilds()
       const modules = await garden.getModules()
@@ -70,6 +72,7 @@ describe("BuildDir", () => {
       await Bluebird.map(modules, async (module) => {
         return garden.addTask(new BuildTask({
           garden,
+          log,
           module,
           force: true,
         }))

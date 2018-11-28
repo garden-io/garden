@@ -150,10 +150,11 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
         async deployService() { return {} },
 
         async runService(
-          { ctx, service, interactive, runtimeContext, timeout, buildDependencies }: RunServiceParams,
+          { ctx, service, interactive, runtimeContext, timeout, log, buildDependencies }: RunServiceParams,
         ) {
           return runModule({
             ctx,
+            log,
             module: service.module,
             command: [service.name],
             interactive,
@@ -164,13 +165,13 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
         },
 
         async runTask(
-          { ctx, task, interactive, runtimeContext, logEntry, buildDependencies }: RunTaskParams,
+          { ctx, task, interactive, runtimeContext, log, buildDependencies }: RunTaskParams,
         ) {
           const result = await runModule({
             ctx,
             buildDependencies,
             interactive,
-            logEntry,
+            log,
             runtimeContext,
             module: task.module,
             command: task.spec.command || [],

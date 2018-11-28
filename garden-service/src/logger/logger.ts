@@ -8,8 +8,8 @@
 
 import chalk from "chalk"
 
-import { RootLogNode, LogNode } from "./log-node"
-import { LogEntry, CreateOpts, resolveParam, EmojiName } from "./log-entry"
+import { RootLogNode } from "./log-node"
+import { LogEntry, CreateOpts, resolveParam } from "./log-entry"
 import { getChildEntries } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
@@ -60,7 +60,7 @@ export class Logger extends RootLogNode<LogEntry> {
     return Logger.instance
   }
 
-  static initialize(config: LoggerConfig) {
+  static initialize(config: LoggerConfig): Logger {
     if (Logger.instance) {
       throw new InternalError("Logger already initialized", {})
     }
@@ -94,8 +94,13 @@ export class Logger extends RootLogNode<LogEntry> {
     this.useEmoji = config.useEmoji === false ? false : true
   }
 
-  createNode(level: LogLevel, _parent: LogNode, opts: CreateOpts) {
+  protected createNode(level: LogLevel, opts: CreateOpts): LogEntry {
     return new LogEntry({ level, parent: this, opts: resolveParam(opts) })
+  }
+
+  placeholder(level: LogLevel = LogLevel.info): LogEntry {
+    // Ensure placeholder child entries align with parent context
+    return this.appendNode(level, { indent: - 1 })
   }
 
   onGraphChange(entry: LogEntry) {
@@ -110,18 +115,7 @@ export class Logger extends RootLogNode<LogEntry> {
     return getChildEntries(this).filter(entry => entry.opts.section === section)
   }
 
-  header(
-    { command, emoji, level = LogLevel.info }: { command: string, emoji?: EmojiName, level?: LogLevel },
-  ): LogEntry {
-    const msg = combine([
-      [chalk.bold.magenta(command)],
-      [emoji && this.useEmoji ? " " + printEmoji(emoji) : ""],
-      ["\n"],
-    ])
-    const lvlStr = LogLevel[level]
-    return this[lvlStr](msg)
-  }
-
+  // FIXME: This isn't currently used anywhere, we should find this another place and purpose.
   finish(
     { showDuration = true, level = LogLevel.info }: { showDuration?: boolean, level?: LogLevel } = {},
   ): LogEntry {

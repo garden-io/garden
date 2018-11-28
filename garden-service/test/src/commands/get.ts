@@ -8,21 +8,38 @@ describe("GetSecretCommand", () => {
 
   it("should get a config variable", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log
     const command = new GetSecretCommand()
 
-    await garden.actions.setSecret({ pluginName, key: "project.mykey", value: "myvalue" })
+    await garden.actions.setSecret({
+      log,
+      pluginName,
+      key: "project.mykey",
+      value: "myvalue",
+    })
 
-    const res = await command.action({ garden, args: { provider, key: "project.mykey" }, opts: {} })
+    const res = await command.action({
+      garden,
+      log,
+      args: { provider, key: "project.mykey" },
+      opts: {},
+    })
 
     expect(res).to.eql({ "project.mykey": "myvalue" })
   })
 
   it("should throw on missing key", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log
     const command = new GetSecretCommand()
 
     await expectError(
-      async () => await command.action({ garden, args: { provider, key: "project.mykey" }, opts: {} }),
+      async () => await command.action({
+        garden,
+        log,
+        args: { provider, key: "project.mykey" },
+        opts: {},
+      }),
       "not-found",
     )
   })

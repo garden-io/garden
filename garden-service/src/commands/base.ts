@@ -14,6 +14,8 @@ import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
 import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
+import { logHeader } from "../logger/util"
 
 export class ValidationError extends Error { }
 
@@ -188,6 +190,7 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
   args: ParameterValues<T>
   opts: ParameterValues<U>
   garden: Garden
+  log: LogEntry
 }
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
@@ -232,7 +235,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 }
 
 export async function handleTaskResults(
-  garden: Garden, taskType: string, results: ProcessResults,
+  log: LogEntry, taskType: string, results: ProcessResults,
 ): Promise<CommandResult<TaskResults>> {
   const failed = Object.values(results.taskResults).filter(r => !!r.error).length
 
@@ -243,9 +246,9 @@ export async function handleTaskResults(
     return { errors: [error] }
   }
 
-  garden.log.info("")
+  log.info("")
   if (!results.restartRequired) {
-    garden.log.header({ emoji: "heavy_check_mark", command: `Done!` })
+    logHeader({ log, emoji: "heavy_check_mark", command: `Done!` })
   }
   return {
     result: results.taskResults,

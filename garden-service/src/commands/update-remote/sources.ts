@@ -19,6 +19,7 @@ import {
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { SourceConfig } from "../../config/project"
+import { logHeader } from "../../logger/util"
 
 const updateRemoteSourcesArguments = {
   source: new StringsParameter({
@@ -43,9 +44,9 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   `
 
   async action(
-    { garden, args }: CommandParams<Args>,
+    { garden, log, args }: CommandParams<Args>,
   ): Promise<CommandResult<SourceConfig[]>> {
-    garden.log.header({ emoji: "hammer_and_wrench", command: "update-remote sources" })
+    logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote sources" })
 
     const { source } = args
 
@@ -69,7 +70,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
     // TODO Update remotes in parallel. Currently not possible since updating might
     // trigger a username and password prompt from git.
     for (const { name, repositoryUrl } of projectSources) {
-      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", logEntry: garden.log })
+      await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", log })
     }
 
     await pruneRemoteSources({ projectRoot: garden.projectRoot, type: "project", sources: projectSources })

@@ -25,7 +25,7 @@ export interface PluginActionContextParams {
 }
 
 export interface PluginActionParamsBase extends PluginActionContextParams {
-  logEntry?: LogEntry
+  log: LogEntry
 }
 
 // Note: not specifying this further because we will later remove it from the API
@@ -36,7 +36,7 @@ const actionParamsSchema = Joi.object()
   .keys({
     ctx: pluginContextSchema
       .required(),
-    logEntry: logEntrySchema,
+    log: logEntrySchema,
   })
 
 export interface PluginModuleActionParamsBase<T extends Module = Module> extends PluginActionParamsBase {
@@ -78,14 +78,14 @@ export const describeModuleTypeParamsSchema = Joi.object()
 
 export interface ValidateModuleParams<T extends Module = Module> {
   ctx: PluginContext
-  logEntry?: LogEntry
+  log?: LogEntry
   moduleConfig: T["_ConfigType"]
 }
 export const validateModuleParamsSchema = Joi.object()
   .keys({
     ctx: pluginContextSchema
       .required(),
-    logEntry: logEntrySchema,
+    log: logEntrySchema,
     moduleConfig: moduleConfigSchema
       .required(),
   })

@@ -16,6 +16,7 @@ import {
   CommandParams,
 } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
+import { logHeader } from "../../logger/util"
 import {
   localConfigKeys,
   LinkedSource,
@@ -53,8 +54,8 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
         garden unlink module --all      # unlink all modules
   `
 
-  async action({ garden, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
-    garden.log.header({ emoji: "chains", command: "unlink module" })
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
+    logHeader({ log, emoji: "chains", command: "unlink module" })
 
     const sourceType = "module"
 
@@ -62,13 +63,13 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
 
     if (opts.all) {
       await garden.localConfigStore.set([localConfigKeys.linkedModuleSources], [])
-      garden.log.info("Unlinked all modules")
+      log.info("Unlinked all modules")
       return { result: [] }
     }
 
     const linkedModuleSources = await removeLinkedSources({ garden, sourceType, names: module })
 
-    garden.log.info(`Unlinked module(s) ${module}`)
+    log.info(`Unlinked module(s) ${module}`)
 
     return { result: linkedModuleSources }
   }

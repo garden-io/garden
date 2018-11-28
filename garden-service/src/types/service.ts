@@ -16,6 +16,7 @@ import dedent = require("dedent")
 import { format } from "url"
 import { moduleVersionSchema } from "../vcs/base"
 import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
 import normalizeUrl = require("normalize-url")
 
 export interface Service<M extends Module = Module> {
@@ -177,7 +178,7 @@ export const runtimeContextSchema = Joi.object()
   })
 
 export async function prepareRuntimeContext(
-  garden: Garden, module: Module, serviceDependencies: Service[],
+  garden: Garden, log: LogEntry, module: Module, serviceDependencies: Service[],
 ): Promise<RuntimeContext> {
   const buildDepKeys = module.build.dependencies.map(dep => getModuleKey(dep.name, dep.plugin))
   const buildDependencies: Module[] = await garden.getModules(buildDepKeys)
@@ -209,7 +210,13 @@ export async function prepareRuntimeContext(
     }
     const depContext = deps[dep.name]
 
-    const outputs = { ...await garden.actions.getServiceOutputs({ service: dep }), ...dep.config.outputs }
+    const outputs = {
+      ...await garden.actions.getServiceOutputs({
+        log,
+        service: dep,
+      }),
+      ...dep.config.outputs,
+    }
     const serviceEnvName = getEnvVarName(dep.name)
 
     validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })

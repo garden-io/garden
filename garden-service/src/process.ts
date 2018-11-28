@@ -8,6 +8,8 @@
 
 import Bluebird = require("bluebird")
 import chalk from "chalk"
+import { padEnd } from "lodash"
+
 import { Module } from "./types/module"
 import { Service } from "./types/service"
 import { BaseTask } from "./tasks/base"
@@ -16,11 +18,13 @@ import { FSWatcher } from "./watch"
 import { registerCleanupFunction } from "./util/util"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
+import { LogEntry } from "./logger/log-entry"
 
 export type ProcessHandler = (module: Module) => Promise<BaseTask[]>
 
 interface ProcessParams {
-  garden: Garden,
+  garden: Garden
+  log: LogEntry
   watch: boolean
   handler: ProcessHandler
   // use this if the behavior should be different on watcher changes than on initial processing
@@ -41,7 +45,7 @@ export interface ProcessResults {
 }
 
 export async function processServices(
-  { garden, services, watch, handler, changeHandler }: ProcessServicesParams,
+  { garden, log, services, watch, handler, changeHandler }: ProcessServicesParams,
 ): Promise<ProcessResults> {
 
   const modules = Array.from(new Set(services.map(s => s.module)))
@@ -49,6 +53,7 @@ export async function processServices(
   return processModules({
     modules,
     garden,
+    log,
     watch,
     handler,
     changeHandler,
@@ -56,15 +61,23 @@ export async function processServices(
 }
 
 export async function processModules(
-  { garden, modules, watch, handler, changeHandler }: ProcessModulesParams,
+  { garden, log, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
+  // Let the user know if any modules are linked to a local path
+  const linkedModulesMsg = modules
+    .filter(m => isModuleLinked(m, garden))
+    .map(m => `${chalk.cyan(m.name)} linked to path ${chalk.white(m.path)}`)
+    .map(msg => "  " + msg) // indent list
+
+  if (linkedModulesMsg.length > 0) {
+    const divider = padEnd("", 80, "—")
+    log.info(divider)
+    log.info(chalk.gray(`Following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
+    log.info(divider)
+  }
+
   for (const module of modules) {
     const tasks = await handler(module)
-    if (isModuleLinked(module, garden)) {
-      garden.log.info(
-        chalk.gray(`Reading module ${chalk.cyan(module.name)} from linked local path ${chalk.white(module.path)}`),
-      )
-    }
     await Bluebird.map(tasks, t => garden.addTask(t))
   }
 
@@ -87,13 +100,13 @@ export async function processModules(
     await watcher.watchModules(modules,
       async (changedModule: Module | null, configChanged: boolean) => {
         if (configChanged) {
-          garden.log.debug({ msg: `Config changed, reloading.` })
+          log.debug({ msg: `Config changed, reloading.` })
           resolve()
           return
         }
 
         if (changedModule) {
-          garden.log.debug({ msg: `Files changed for module ${changedModule.name}` })
+          log.debug({ msg: `Files changed for module ${changedModule.name}` })
 
           await Bluebird.map(changeHandler!(changedModule), (task) => garden.addTask(task))
         }

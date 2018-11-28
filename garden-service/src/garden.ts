@@ -56,7 +56,6 @@ import {
 import {
   DEFAULT_NAMESPACE,
   MODULE_CONFIG_FILENAME,
-  ERROR_LOG_FILENAME,
 } from "./constants"
 import {
   ConfigurationError,
@@ -75,7 +74,6 @@ import {
 } from "./task-graph"
 import {
   getLogger,
-  Logger,
 } from "./logger/logger"
 import {
   pluginActionNames,
@@ -103,13 +101,12 @@ import {
 } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ProjectConfigContext, ModuleConfigContext } from "./config/config-context"
-import { FileWriter } from "./logger/writers/file-writer"
-import { LogLevel } from "./logger/log-node"
 import { ActionHelper } from "./actions"
 import { createPluginContext } from "./plugin-context"
 import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform } from "./constants"
 import { platform, arch } from "os"
+import { LogEntry } from "./logger/log-entry"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -136,20 +133,14 @@ export type ModuleActionMap = {
 export interface ContextOpts {
   config?: GardenConfig,
   env?: string,
-  logger?: Logger,
+  log?: LogEntry,
   plugins?: Plugins,
 }
 
 const scanLock = new AsyncLock()
 
-const fileWriterConfigs = [
-  { filename: "development.log" },
-  { filename: ERROR_LOG_FILENAME, level: LogLevel.error },
-  { filename: ERROR_LOG_FILENAME, level: LogLevel.error, path: ".", truncatePrevious: true },
-]
-
 export class Garden {
-  public readonly log: Logger
+  public readonly log: LogEntry
   public readonly actionHandlers: PluginActionMap
   public readonly moduleActionHandlers: ModuleActionMap
   public dependencyGraph: DependencyGraph
@@ -174,7 +165,7 @@ export class Garden {
     public readonly environment: Environment,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
-    logger?: Logger,
+    log?: LogEntry,
   ) {
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -189,7 +180,7 @@ export class Garden {
     }
 
     this.modulesScanned = false
-    this.log = logger || getLogger()
+    this.log = log || getLogger().placeholder()
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this.projectRoot)
     this.localConfigStore = new LocalConfigStore(this.projectRoot)
@@ -203,12 +194,12 @@ export class Garden {
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
     this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
 
-    this.taskGraph = new TaskGraph(this)
+    this.taskGraph = new TaskGraph(this.log)
     this.actions = new ActionHelper(this)
     this.hotReloadScheduler = new HotReloadScheduler()
   }
 
-  static async factory(currentDirectory: string, { env, config, logger, plugins = {} }: ContextOpts = {}) {
+  static async factory(currentDirectory: string, { env, config, log, plugins = {} }: ContextOpts = {}) {
     let parsedConfig: GardenConfig
 
     if (config) {
@@ -293,26 +284,13 @@ export class Garden {
 
     const buildDir = await BuildDir.factory(projectRoot)
 
-    // Register log writers
-    if (logger) {
-      for (const writerConfig of fileWriterConfigs) {
-        logger.writers.push(
-          await FileWriter.factory({
-            level: logger.level,
-            root: projectRoot,
-            ...writerConfig,
-          }),
-        )
-      }
-    }
-
     const garden = new Garden(
       projectRoot,
       projectName,
       environment,
       projectSources,
       buildDir,
-      logger,
+      log,
     )
 
     // Register plugins
@@ -427,7 +405,7 @@ export class Garden {
       plugin = await factory({
         projectName: this.projectName,
         config,
-        logEntry: this.log,
+        log: this.log,
       })
     } catch (error) {
       throw new PluginError(`Unexpected error when loading plugin "${pluginName}": ${error}`, {
@@ -822,7 +800,7 @@ export class Garden {
       await this.detectCircularDependencies()
 
       const moduleConfigContext = new ModuleConfigContext(
-        this, this.environment, Object.values(this.moduleConfigs),
+        this, this.log, this.environment, Object.values(this.moduleConfigs),
       )
       this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
     })
@@ -987,7 +965,7 @@ export class Garden {
       return linked.path
     }
 
-    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, logEntry: this.log })
+    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, log: this.log })
 
     return path
   }

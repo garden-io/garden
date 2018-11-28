@@ -49,12 +49,12 @@ export class CallCommand extends Command<Args> {
 
   arguments = callArgs
 
-  async action({ garden, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist
     const service = await garden.getService(serviceName)
-    const status = await garden.actions.getServiceStatus({ service })
+    const status = await garden.actions.getServiceStatus({ service, log })
 
     if (!includes(["ready", "outdated"], status.state)) {
       throw new RuntimeError(`Service ${service.name} is not running`, {
@@ -119,7 +119,7 @@ export class CallCommand extends Command<Args> {
     // TODO: support POST requests with request body
     const method = "get"
 
-    const entry = garden.log.info({
+    const entry = log.info({
       msg: chalk.cyan(`Sending ${matchedIngress.protocol.toUpperCase()} GET request to `) + url + "\n",
       status: "active",
     })
@@ -141,18 +141,18 @@ export class CallCommand extends Command<Args> {
     try {
       res = await req
       entry.setSuccess()
-      garden.log.info(chalk.green(`${res.status} ${res.statusText}\n`))
+      log.info(chalk.green(`${res.status} ${res.statusText}\n`))
     } catch (err) {
       res = err.response
       entry.setError()
       const error = res ? `${res.status} ${res.statusText}` : err.message
-      garden.log.info(chalk.red(error + "\n"))
+      log.info(chalk.red(error + "\n"))
       return {}
     }
 
     const resStr = isObject(res.data) ? JSON.stringify(res.data, null, 2) : res.data
 
-    res.data && garden.log.info(chalk.white(resStr) + "\n")
+    res.data && log.info(chalk.white(resStr) + "\n")
 
     return {
       result: {

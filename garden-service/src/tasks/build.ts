@@ -14,9 +14,11 @@ import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../dependency-graph"
 import { getHotReloadModuleNames } from "./helpers"
+import { LogEntry } from "../logger/log-entry"
 
 export interface BuildTaskParams {
   garden: Garden
+  log: LogEntry
   module: Module
   force: boolean
   fromWatch?: boolean
@@ -31,8 +33,8 @@ export class BuildTask extends BaseTask {
   private fromWatch: boolean
   private hotReloadServiceNames: string[]
 
-  constructor({ garden, module, force, fromWatch = false, hotReloadServiceNames = [] }: BuildTaskParams) {
-    super({ garden, force, version: module.version })
+  constructor({ garden, log, module, force, fromWatch = false, hotReloadServiceNames = [] }: BuildTaskParams) {
+    super({ garden, log, force, version: module.version })
     this.module = module
     this.fromWatch = fromWatch
     this.hotReloadServiceNames = hotReloadServiceNames
@@ -49,6 +51,7 @@ export class BuildTask extends BaseTask {
     return Bluebird.map(deps, async (m: Module) => {
       return new BuildTask({
         garden: this.garden,
+        log: this.log,
         module: m,
         force: this.force,
         fromWatch: this.fromWatch,
@@ -68,13 +71,13 @@ export class BuildTask extends BaseTask {
   async process(): Promise<BuildResult> {
     const module = this.module
 
-    if (!this.force && (await this.garden.actions.getBuildStatus({ module })).ready) {
+    if (!this.force && (await this.garden.actions.getBuildStatus({ log: this.log, module })).ready) {
       // this is necessary in case other modules depend on files from this one
       await this.garden.buildDir.syncDependencyProducts(this.module)
       return { fresh: false }
     }
 
-    const logEntry = this.garden.log.info({
+    const log = this.log.info({
       section: this.getName(),
       msg: "Building",
       status: "active",
@@ -84,14 +87,14 @@ export class BuildTask extends BaseTask {
     try {
       result = await this.garden.actions.build({
         module,
-        logEntry,
+        log,
       })
     } catch (err) {
-      logEntry.setError()
+      log.setError()
       throw err
     }
 
-    logEntry.setSuccess({ msg: chalk.green(`Done (took ${logEntry.getDuration(1)} sec)`), append: true })
+    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     return result
   }
 }

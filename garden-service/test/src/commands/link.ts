@@ -11,9 +11,11 @@ import {
 } from "../../helpers"
 import { LinkSourceCommand } from "../../../src/commands/link/source"
 import { Garden } from "../../../src/garden"
+import { LogEntry } from "../../../src/logger/log-entry"
 
 describe("LinkCommand", () => {
   let garden: Garden
+  let log: LogEntry
 
   describe("LinkModuleCommand", () => {
     const cmd = new LinkModuleCommand()
@@ -21,6 +23,7 @@ describe("LinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
+      log = garden.log
       stubExtSources(garden)
     })
 
@@ -31,6 +34,7 @@ describe("LinkCommand", () => {
     it("should link external modules", async () => {
       await cmd.action({
         garden,
+        log,
         args: {
           module: "module-a",
           path: join(projectRoot, "mock-local-path", "module-a"),
@@ -48,6 +52,7 @@ describe("LinkCommand", () => {
     it("should handle relative paths", async () => {
       await cmd.action({
         garden,
+        log,
         args: {
           module: "module-a",
           path: join("mock-local-path", "module-a"),
@@ -67,6 +72,7 @@ describe("LinkCommand", () => {
         async () => (
           await cmd.action({
             garden,
+            log,
             args: {
               module: "banana",
               path: "",
@@ -85,6 +91,7 @@ describe("LinkCommand", () => {
 
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
+      log = garden.log
       stubExtSources(garden)
     })
 
@@ -95,6 +102,7 @@ describe("LinkCommand", () => {
     it("should link external sources", async () => {
       await cmd.action({
         garden,
+        log,
         args: {
           source: "source-a",
           path: join(projectRoot, "mock-local-path", "source-a"),
@@ -112,6 +120,7 @@ describe("LinkCommand", () => {
     it("should handle relative paths", async () => {
       await cmd.action({
         garden,
+        log,
         args: {
           source: "source-a",
           path: join("mock-local-path", "source-a"),

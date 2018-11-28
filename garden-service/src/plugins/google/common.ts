@@ -61,7 +61,7 @@ export async function getEnvironmentStatus() {
   return output
 }
 
-export async function prepareEnvironment({ status, logEntry }: PrepareEnvironmentParams) {
+export async function prepareEnvironment({ status, log }: PrepareEnvironmentParams) {
   if (!status.detail.sdkInstalled) {
     throw new ConfigurationError(
       "Google Cloud SDK is not installed. " +
@@ -71,7 +71,7 @@ export async function prepareEnvironment({ status, logEntry }: PrepareEnvironmen
   }
 
   if (!status.detail.betaComponentsInstalled) {
-    logEntry && logEntry.info({
+    log.info({
       section: "google-cloud-functions",
       msg: `Installing gcloud SDK beta components...`,
     })
@@ -80,7 +80,7 @@ export async function prepareEnvironment({ status, logEntry }: PrepareEnvironmen
   }
 
   if (!status.detail.sdkInitialized) {
-    logEntry && logEntry.info({
+    log.info({
       section: "google-cloud-functions",
       msg: `Initializing SDK...`,
     })

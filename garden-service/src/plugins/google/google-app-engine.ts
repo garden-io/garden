@@ -55,8 +55,8 @@ export const gardenPlugin = (): GardenPlugin => ({
         return {}
       },
 
-      async deployService({ ctx, service, runtimeContext, logEntry }: DeployServiceParams<GoogleAppEngineModule>) {
-        logEntry && logEntry.info({
+      async deployService({ ctx, service, runtimeContext, log }: DeployServiceParams<GoogleAppEngineModule>) {
+        log.info({
           section: service.name,
           msg: `Deploying app...`,
         })
@@ -72,7 +72,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
         if (config.healthCheck) {
           if (config.healthCheck.tcpPort || config.healthCheck.command) {
-            logEntry && logEntry.warn({
+            log.warn({
               section: service.name,
               msg: "GAE only supports httpGet health checks",
             })
@@ -94,7 +94,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           "app", "deploy", "--quiet",
         ], { cwd: service.module.path })
 
-        logEntry && logEntry.info({ section: service.name, msg: `App deployed` })
+        log.info({ section: service.name, msg: `App deployed` })
 
         return {}
       },

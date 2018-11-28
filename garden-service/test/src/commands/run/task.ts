@@ -7,9 +7,11 @@ describe("RunTaskCommand", () => {
 
   it("should run a task", async () => {
     const garden = await makeTestGardenA()
+    const log = garden.log
     const cmd = new RunTaskCommand()
 
     const { result } = await cmd.action({
+      log,
       garden,
       args: { task: "task-a" },
       opts: { "force-build": false },

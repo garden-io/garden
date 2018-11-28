@@ -74,12 +74,12 @@ export async function validate(params: ValidateModuleParams<ContainerModule>) {
 }
 
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-  const { ctx, logEntry, service } = params
+  const { ctx, log, service } = params
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const provider = ctx.provider
 
   await deleteContainerService(
-    { provider, namespace, serviceName: service.name, logEntry })
+    { provider, namespace, serviceName: service.name, log })
 
   return getContainerServiceStatus(params)
 }
@@ -135,13 +135,13 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
 }
 
 export async function hotReload(
-  { ctx, runtimeContext, module, buildDependencies }: HotReloadParams<ContainerModule>,
+  { ctx, log, runtimeContext, module, buildDependencies }: HotReloadParams<ContainerModule>,
 ): Promise<HotReloadResult> {
   const hotReloadConfig = module.spec.hotReload!
 
   const services = module.services
 
-  if (!await waitForServices(ctx, runtimeContext, services, buildDependencies)) {
+  if (!await waitForServices(ctx, log, runtimeContext, services, buildDependencies)) {
     // Service deployment timed out, skip hot reload
     return {}
   }
@@ -222,7 +222,7 @@ export async function runModule(
 }
 
 export async function runService(
-  { ctx, service, interactive, runtimeContext, timeout, logEntry, buildDependencies }:
+  { ctx, service, interactive, runtimeContext, timeout, log, buildDependencies }:
     RunServiceParams<ContainerModule>,
 ) {
   return runModule({
@@ -232,20 +232,20 @@ export async function runService(
     interactive,
     runtimeContext,
     timeout,
-    logEntry,
+    log,
     buildDependencies,
   })
 }
 
 export async function runTask(
-  { ctx, task, interactive, runtimeContext, logEntry, buildDependencies }:
+  { ctx, task, interactive, runtimeContext, log, buildDependencies }:
     RunTaskParams<ContainerModule>,
 ) {
   const result = await runModule({
     ctx,
     buildDependencies,
     interactive,
-    logEntry,
+    log,
     runtimeContext,
     module: task.module,
     command: task.spec.command || [],
@@ -260,7 +260,7 @@ export async function runTask(
 }
 
 export async function testModule(
-  { ctx, interactive, module, runtimeContext, testConfig, logEntry, buildDependencies }:
+  { ctx, interactive, module, runtimeContext, testConfig, log, buildDependencies }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -275,7 +275,7 @@ export async function testModule(
     interactive,
     runtimeContext,
     timeout,
-    logEntry,
+    log,
     buildDependencies,
   })
 

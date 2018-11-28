@@ -88,7 +88,8 @@ export interface ContextStatus {
 }
 
 export interface DeployServicesParams {
-  serviceNames?: string[],
+  log: LogEntry
+  serviceNames?: string[]
   force?: boolean
   forceBuild?: boolean
 }
@@ -119,10 +120,17 @@ export class ActionHelper implements TypeGuard {
   //===========================================================================
 
   async getEnvironmentStatus(
-    { pluginName }: ActionHelperParams<GetEnvironmentStatusParams>,
+    { pluginName, log }: ActionHelperParams<GetEnvironmentStatusParams>,
   ): Promise<EnvironmentStatusMap> {
     const handlers = this.garden.getActionHandlers("getEnvironmentStatus", pluginName)
-    return Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h) })))
+    const logEntry = log.debug({
+      msg: "Getting status...",
+      status: "active",
+      section: `${this.garden.environment.name} environment`,
+    })
+    const res = await Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h, logEntry) })))
+    logEntry.setSuccess("Ready")
+    return res
   }
 
   /**
@@ -132,14 +140,14 @@ export class ActionHelper implements TypeGuard {
    * run `garden init`
    */
   async prepareEnvironment(
-    { force = false, pluginName, logEntry, allowUserInput = false }:
-      { force?: boolean, pluginName?: string, logEntry?: LogEntry, allowUserInput?: boolean },
+    { force = false, pluginName, log, allowUserInput = false }:
+      { force?: boolean, pluginName?: string, log: LogEntry, allowUserInput?: boolean },
   ) {
     const handlers = this.garden.getActionHandlers("prepareEnvironment", pluginName)
     // FIXME: We're calling getEnvironmentStatus before preparing the environment.
     // Results in 404 errors for unprepared/missing services.
     // See: https://github.com/garden-io/garden/issues/353
-    const statuses = await this.getEnvironmentStatus({ pluginName })
+    const statuses = await this.getEnvironmentStatus({ pluginName, log })
 
     const needUserInput = Object.entries(statuses)
       .map(([name, status]) => ({ ...status, name }))
@@ -167,13 +175,13 @@ export class ActionHelper implements TypeGuard {
         continue
       }
 
-      const envLogEntry = (logEntry || this.garden.log).info({
+      const envLogEntry = log.info({
         status: "active",
         section: name,
         msg: "Preparing environment...",
       })
 
-      await handler({ ...this.commonParams(handler), force, status, logEntry: envLogEntry })
+      await handler({ ...this.commonParams(handler, log), force, status, log: envLogEntry })
 
       envLogEntry.setSuccess("Configured")
 
@@ -184,11 +192,11 @@ export class ActionHelper implements TypeGuard {
   }
 
   async cleanupEnvironment(
-    { pluginName }: ActionHelperParams<CleanupEnvironmentParams>,
+    { pluginName, log }: ActionHelperParams<CleanupEnvironmentParams>,
   ): Promise<EnvironmentStatusMap> {
     const handlers = this.garden.getActionHandlers("cleanupEnvironment", pluginName)
-    await Bluebird.each(values(handlers), h => h({ ...this.commonParams(h) }))
-    return this.getEnvironmentStatus({ pluginName })
+    await Bluebird.each(values(handlers), h => h({ ...this.commonParams(h, log) }))
+    return this.getEnvironmentStatus({ pluginName, log })
   }
 
   async getSecret(params: RequirePluginName<ActionHelperParams<GetSecretParams>>): Promise<GetSecretResult> {
@@ -277,13 +285,13 @@ export class ActionHelper implements TypeGuard {
   }
 
   async deleteService(params: ServiceActionHelperParams<DeleteServiceParams>): Promise<ServiceStatus> {
-    const logEntry = this.garden.log.info({
+    const log = params.log.info({
       section: params.service.name,
       msg: "Deleting...",
       status: "active",
     })
     return this.callServiceHandler({
-      params: { ...params, logEntry },
+      params: { ...params, log },
       actionType: "deleteService",
       defaultHandler: dummyDeleteServiceHandler,
     })
@@ -330,14 +338,14 @@ export class ActionHelper implements TypeGuard {
     return keyBy(dependencies, "name")
   }
 
-  async getStatus(): Promise<ContextStatus> {
-    const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({})
+  async getStatus({ log }: { log: LogEntry }): Promise<ContextStatus> {
+    const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
     const services = keyBy(await this.garden.getServices(), "name")
 
     const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
       const serviceDependencies = await this.garden.getServices(service.config.dependencies)
-      const runtimeContext = await prepareRuntimeContext(this.garden, service.module, serviceDependencies)
-      return this.getServiceStatus({ service, runtimeContext })
+      const runtimeContext = await prepareRuntimeContext(this.garden, log, service.module, serviceDependencies)
+      return this.getServiceStatus({ log, service, runtimeContext })
     }))
 
     return {
@@ -347,16 +355,18 @@ export class ActionHelper implements TypeGuard {
   }
 
   async deployServices(
-    { serviceNames, force = false, forceBuild = false }: DeployServicesParams,
+    { serviceNames, force = false, forceBuild = false, log }: DeployServicesParams,
   ): Promise<ProcessResults> {
     const services = await this.garden.getServices(serviceNames)
 
     return processServices({
       services,
       garden: this.garden,
+      log,
       watch: false,
       handler: async (module) => getTasksForModule({
         garden: this.garden,
+        log,
         module,
         hotReloadServiceNames: [],
         force,
@@ -368,11 +378,11 @@ export class ActionHelper implements TypeGuard {
   //endregion
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
-  private commonParams(handler, logEntry?: LogEntry): PluginActionParamsBase {
+  private commonParams(handler, log: LogEntry): PluginActionParamsBase {
     return {
       ctx: createPluginContext(this.garden, handler["pluginName"]),
       // TODO: find a better way for handlers to log during execution
-      logEntry,
+      log,
     }
   }
 
@@ -391,7 +401,7 @@ export class ActionHelper implements TypeGuard {
       defaultHandler,
     })
     const handlerParams: PluginActionParams[T] = {
-      ...this.commonParams(handler),
+      ...this.commonParams(handler, <any>params.log),
       ...<object>params,
     }
     return (<Function>handler)(handlerParams)
@@ -413,7 +423,7 @@ export class ActionHelper implements TypeGuard {
     const buildDependencies = await this.getBuildDependencies(module)
 
     const handlerParams: any = {
-      ...this.commonParams(handler),
+      ...this.commonParams(handler, <any>params.log),
       ...<object>params,
       module: omit(module, ["_ConfigType"]),
       buildDependencies,
@@ -426,7 +436,7 @@ export class ActionHelper implements TypeGuard {
     { params, actionType, defaultHandler }:
       { params: ServiceActionHelperParams<ServiceActionParams[T]>, actionType: T, defaultHandler?: ServiceActions[T] },
   ): Promise<ServiceActionOutputs[T]> {
-    const { service } = <any>params
+    const { log, service } = <any>params
     const module = service.module
 
     const handler = await this.garden.getModuleActionHandler({
@@ -439,10 +449,10 @@ export class ActionHelper implements TypeGuard {
     // TODO: figure out why this doesn't compile without the casts
     const buildDependencies = await this.getBuildDependencies(module)
     const deps = await this.garden.getServices(service.config.dependencies)
-    const runtimeContext = ((<any>params).runtimeContext || await prepareRuntimeContext(this.garden, module, deps))
+    const runtimeContext = ((<any>params).runtimeContext || await prepareRuntimeContext(this.garden, log, module, deps))
 
     const handlerParams: any = {
-      ...this.commonParams(handler),
+      ...this.commonParams(handler, log),
       ...<object>params,
       module,
       runtimeContext,
@@ -473,7 +483,7 @@ export class ActionHelper implements TypeGuard {
     const buildDependencies = await this.getBuildDependencies(module)
 
     const handlerParams: any = {
-      ...this.commonParams(handler),
+      ...this.commonParams(handler, <any>params.log),
       ...<object>params,
       module,
       task,
@@ -484,8 +494,8 @@ export class ActionHelper implements TypeGuard {
   }
 }
 
-const dummyLogStreamer = async ({ service, logEntry }: GetServiceLogsParams) => {
-  logEntry && logEntry.warn({
+const dummyLogStreamer = async ({ service, log }: GetServiceLogsParams) => {
+  log.warn({
     section: service.name,
     msg: chalk.yellow(`No handler for log retrieval available for module type ${service.module.type}`),
   })
@@ -503,8 +513,8 @@ const dummyPublishHandler = async ({ module }) => {
   }
 }
 
-const dummyDeleteServiceHandler = async ({ module, logEntry }: DeleteServiceParams) => {
+const dummyDeleteServiceHandler = async ({ module, log }: DeleteServiceParams) => {
   const msg = `No delete service handler available for module type ${module.type}`
-  logEntry && logEntry.setError(msg)
+  log.setError(msg)
   return {}
 }

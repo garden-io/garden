@@ -93,10 +93,12 @@ describe("DeployCommand", () => {
 
   it("should build and deploy all modules in a project", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
+    const log = garden.log
     const command = new DeployCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: {
         service: undefined,
       },
@@ -126,10 +128,12 @@ describe("DeployCommand", () => {
 
   it("should optionally build and deploy single service and its dependencies", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
+    const log = garden.log
     const command = new DeployCommand()
 
     const { result } = await command.action({
       garden,
+      log,
       args: {
         service: ["service-b"],
       },

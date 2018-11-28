@@ -136,7 +136,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
   getServiceStatus,
 
   async deployService(
-    { ctx, module, service, logEntry, force }: DeployServiceParams<HelmModule>,
+    { ctx, module, service, log, force }: DeployServiceParams<HelmModule>,
   ): Promise<ServiceStatus> {
     const provider = ctx.provider
     const chartPath = await getChartPath(module)
@@ -144,7 +144,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
     const namespace = await getAppNamespace(ctx, ctx.provider)
     const releaseName = getReleaseName(namespace, service)
 
-    const releaseStatus = await getReleaseStatus(ctx.provider, releaseName, logEntry)
+    const releaseStatus = await getReleaseStatus(ctx.provider, releaseName, log)
 
     if (releaseStatus.state === "missing") {
       const installArgs = [
@@ -157,7 +157,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
       if (force) {
         installArgs.push("--replace")
       }
-      await helm(provider, logEntry, ...installArgs)
+      await helm(provider, log, ...installArgs)
     } else {
       const upgradeArgs = [
         "upgrade", releaseName, chartPath,
@@ -169,27 +169,27 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
       if (force) {
         upgradeArgs.push("--force")
       }
-      await helm(provider, logEntry, ...upgradeArgs)
+      await helm(provider, log, ...upgradeArgs)
     }
 
-    const objects = await getChartObjects(ctx, service, logEntry)
-    await waitForObjects({ ctx, provider, service, objects, logEntry })
+    const objects = await getChartObjects(ctx, service, log)
+    await waitForObjects({ ctx, provider, service, objects, log })
 
     return {}
   },
 
   async deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-    const { ctx, logEntry, service } = params
+    const { ctx, log, service } = params
     const namespace = await getAppNamespace(ctx, ctx.provider)
     const releaseName = getReleaseName(namespace, service)
-    await helm(ctx.provider, logEntry, "delete", "--purge", releaseName)
-    logEntry && logEntry.setSuccess("Service deleted")
+    await helm(ctx.provider, log, "delete", "--purge", releaseName)
+    log.setSuccess("Service deleted")
 
     return await getServiceStatus(params)
   },
 }
 
-async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
+async function build({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const buildPath = module.buildPath
   const config = module
 
@@ -205,14 +205,14 @@ async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): 
   if (config.spec.repo) {
     fetchArgs.push("--repo", config.spec.repo)
   }
-  logEntry && logEntry.setState("Fetching chart...")
-  await helm(ctx.provider, logEntry, ...fetchArgs)
+  await helm(ctx.provider, log, ...fetchArgs)
+  log.setState("Fetching chart...")
 
   const chartPath = await getChartPath(module)
 
   // create the values.yml file (merge the configured parameters into the default values)
-  logEntry && logEntry.setState("Preparing chart...")
-  const values = safeLoad(await helm(ctx.provider, logEntry, "inspect", "values", chartPath)) || {}
+  log.setState("Preparing chart...")
+  const values = safeLoad(await helm(ctx.provider, log, "inspect", "values", chartPath)) || {}
 
   Object.entries(flattenValues(config.spec.parameters))
     .map(([k, v]) => set(values, k, v))
@@ -261,9 +261,9 @@ const helmCmd = new BinaryCmd({
   },
 })
 
-export function helm(provider: KubernetesProvider, logEntry: LogEntry | undefined, ...args: string[]) {
+export function helm(provider: KubernetesProvider, log: LogEntry, ...args: string[]) {
   return helmCmd.stdout({
-    logEntry,
+    log,
     args: [
       "--kube-context", provider.config.context,
       ...args,
@@ -281,13 +281,13 @@ function getValuesPath(chartPath: string) {
   return join(chartPath, "garden-values.yml")
 }
 
-async function getChartObjects(ctx: PluginContext, service: Service, logEntry?: LogEntry) {
+async function getChartObjects(ctx: PluginContext, service: Service, log: LogEntry) {
   const chartPath = await getChartPath(service.module)
   const valuesPath = getValuesPath(chartPath)
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const releaseName = getReleaseName(namespace, service)
 
-  const objects = <KubernetesObject[]>safeLoadAll(await helm(ctx.provider, logEntry,
+  const objects = <KubernetesObject[]>safeLoadAll(await helm(ctx.provider, log,
     "template",
     "--name", releaseName,
     "--namespace", namespace,
@@ -304,16 +304,16 @@ async function getChartObjects(ctx: PluginContext, service: Service, logEntry?: 
 }
 
 async function getServiceStatus(
-  { ctx, service, module, logEntry, buildDependencies }: GetServiceStatusParams<HelmModule>,
+  { ctx, service, module, log, buildDependencies }: GetServiceStatusParams<HelmModule>,
 ): Promise<ServiceStatus> {
   // need to build to be able to check the status
-  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, logEntry, buildDependencies })
+  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, log, buildDependencies })
   if (!buildStatus.ready) {
-    await build({ ctx, module, logEntry, buildDependencies })
+    await build({ ctx, module, log, buildDependencies })
   }
 
   // first check if the installed objects on the cluster match the current code
-  const objects = await getChartObjects(ctx, service, logEntry)
+  const objects = await getChartObjects(ctx, service, log)
   let state = await compareDeployedObjects(ctx, objects)
 
   if (state !== "ready") {
@@ -337,10 +337,10 @@ function getReleaseName(namespace: string, service: Service) {
 }
 
 async function getReleaseStatus(
-  provider: KubernetesProvider, releaseName: string, logEntry?: LogEntry,
+  provider: KubernetesProvider, releaseName: string, log: LogEntry,
 ): Promise<ServiceStatus> {
   try {
-    const res = JSON.parse(await helm(provider, logEntry, "status", releaseName, "--output", "json"))
+    const res = JSON.parse(await helm(provider, log, "status", releaseName, "--output", "json"))
     const statusCode = res.info.status.code
     return {
       state: helmStatusCodeMap[statusCode],

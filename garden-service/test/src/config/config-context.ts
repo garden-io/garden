@@ -233,6 +233,7 @@ describe("ModuleConfigContext", () => {
     await garden.scanModules()
     c = new ModuleConfigContext(
       garden,
+      garden.log,
       garden.environment,
       Object.values((<any>garden).moduleConfigs),
     )

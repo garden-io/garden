@@ -107,7 +107,7 @@ export class GitHandler extends VcsHandler {
   }
 
   // TODO Better auth handling
-  async ensureRemoteSource({ url, name, logEntry, sourceType }: RemoteSourceParams): Promise<string> {
+  async ensureRemoteSource({ url, name, log, sourceType }: RemoteSourceParams): Promise<string> {
     const remoteSourcesPath = join(this.projectRoot, this.getRemoteSourcesDirname(sourceType))
     await ensureDir(remoteSourcesPath)
     const git = helpers.gitCli(remoteSourcesPath)
@@ -116,7 +116,7 @@ export class GitHandler extends VcsHandler {
     const isCloned = await pathExists(absPath)
 
     if (!isCloned) {
-      const entry = logEntry.info({ section: name, msg: `Fetching from ${url}`, status: "active" })
+      const entry = log.info({ section: name, msg: `Fetching from ${url}`, status: "active" })
       const { repositoryUrl, hash } = parseGitUrl(url)
 
       try {
@@ -135,14 +135,14 @@ export class GitHandler extends VcsHandler {
     return absPath
   }
 
-  async updateRemoteSource({ url, name, sourceType, logEntry }: RemoteSourceParams) {
+  async updateRemoteSource({ url, name, sourceType, log }: RemoteSourceParams) {
     const absPath = join(this.projectRoot, this.getRemoteSourcePath(name, url, sourceType))
     const git = helpers.gitCli(absPath)
     const { repositoryUrl, hash } = parseGitUrl(url)
 
-    await this.ensureRemoteSource({ url, name, sourceType, logEntry })
+    await this.ensureRemoteSource({ url, name, sourceType, log })
 
-    const entry = logEntry.info({ section: name, msg: "Getting remote state", status: "active" })
+    const entry = log.info({ section: name, msg: "Getting remote state", status: "active" })
     await git("remote", ["update"])
 
     const remoteCommitId = getCommitIdFromRefList(await git("ls-remote", [repositoryUrl, hash]))

@@ -16,6 +16,7 @@ import { Service } from "../types/service"
 import { resolveTemplateString } from "../template-string"
 import * as Joi from "joi"
 import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
 
 export type ContextKey = string[]
 
@@ -280,6 +281,7 @@ export class ModuleConfigContext extends ProjectConfigContext {
 
   constructor(
     garden: Garden,
+    log: LogEntry,
     environment: Environment,
     moduleConfigs: ModuleConfig[],
   ) {
@@ -303,7 +305,7 @@ export class ModuleConfigContext extends ProjectConfigContext {
         const service = await garden.getService(name)
         const outputs = {
           ...service.config.outputs,
-          ...await garden.actions.getServiceOutputs({ service }),
+          ...await garden.actions.getServiceOutputs({ log, service }),
         }
         return new ServiceContext(_this, service, outputs)
       }],
