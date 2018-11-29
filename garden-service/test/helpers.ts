@@ -12,9 +12,7 @@ import { remove, readdirSync, existsSync } from "fs-extra"
 import { containerModuleSpecSchema } from "../src/plugins/container"
 import { testGenericModule, buildGenericModule } from "../src/plugins/generic"
 import { TaskResults } from "../src/task-graph"
-import {
-  validate,
-} from "../src/config/common"
+import { validate, PrimitiveMap } from "../src/config/common"
 import {
   GardenPlugin,
   PluginActions,
@@ -34,13 +32,14 @@ import {
   RunTaskParams,
   SetSecretParams,
 } from "../src/types/plugin/params"
-import {
-  helpers,
-} from "../src/vcs/git"
-import {
-  ModuleVersion,
-} from "../src/vcs/base"
+import { helpers } from "../src/vcs/git"
+import { ModuleVersion } from "../src/vcs/base"
 import { GARDEN_DIR_NAME } from "../src/constants"
+import { EventBus, Events } from "../src/events"
+import { ValueOf } from "../src/util/util"
+import { SourceConfig } from "../src/config/project"
+import { BuildDir } from "../src/build-dir"
+import timekeeper = require("timekeeper")
 
 export const dataDir = resolve(__dirname, "data")
 export const examplesDir = resolve(__dirname, "..", "..", "examples")
@@ -230,7 +229,46 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
   return { ...defaultModuleConfig, ...params }
 }
 
-export const makeTestGarden = async (projectRoot: string, extraPlugins: Plugins = {}) => {
+interface EventLogEntry {
+  name: string
+  payload: ValueOf<Events>
+}
+
+/**
+ * Used for test Garden instances, to log emitted events.
+ */
+class TestEventBus extends EventBus {
+  log: EventLogEntry[]
+
+  constructor() {
+    super()
+    this.log = []
+  }
+
+  emit<T extends keyof Events>(name: T, payload: Events[T]) {
+    this.log.push({ name, payload })
+    return super.emit(name, payload)
+  }
+}
+
+export class TestGarden extends Garden {
+  events: TestEventBus
+
+  constructor(
+    public readonly projectRoot: string,
+    public readonly projectName: string,
+    environmentName: string,
+    variables: PrimitiveMap,
+    public readonly projectSources: SourceConfig[] = [],
+    public readonly buildDir: BuildDir,
+    log?,
+  ) {
+    super(projectRoot, projectName, environmentName, variables, projectSources, buildDir, log)
+    this.events = new TestEventBus()
+  }
+}
+
+export const makeTestGarden = async (projectRoot: string, extraPlugins: Plugins = {}): Promise<TestGarden> => {
   const testPlugins = {
     "test-plugin": testPlugin,
     "test-plugin-b": testPluginB,
@@ -238,7 +276,7 @@ export const makeTestGarden = async (projectRoot: string, extraPlugins: Plugins 
   }
   const plugins = { ...testPlugins, ...extraPlugins }
 
-  return Garden.factory(projectRoot, { plugins })
+  return TestGarden.factory(projectRoot, { plugins })
 }
 
 export const makeTestGardenA = async (extraPlugins: Plugins = {}) => {
@@ -318,4 +356,12 @@ export function stubExtSources(garden: Garden) {
 export function getExampleProjects() {
   const names = readdirSync(examplesDir).filter(n => existsSync(join(examplesDir, n, "garden.yml")))
   return fromPairs(names.map(n => [n, join(examplesDir, n)]))
+}
+
+export function freezeTime(date?: Date) {
+  if (!date) {
+    date = new Date()
+  }
+  timekeeper.freeze(date)
+  return date
 }

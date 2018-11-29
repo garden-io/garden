@@ -107,6 +107,7 @@ import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/p
 import { SUPPORTED_PLATFORMS, SupportedPlatform } from "./constants"
 import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
+import { EventBus } from "./events"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -159,6 +160,7 @@ export class Garden {
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
   public readonly actions: ActionHelper
+  public readonly events: EventBus
 
   constructor(
     public readonly projectRoot: string,
@@ -203,12 +205,15 @@ export class Garden {
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
     this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
 
-    this.taskGraph = new TaskGraph(this.log)
+    this.taskGraph = new TaskGraph(this, this.log)
     this.actions = new ActionHelper(this)
     this.hotReloadScheduler = new HotReloadScheduler()
+    this.events = new EventBus()
   }
 
-  static async factory(currentDirectory: string, { env, config, log, plugins = {} }: ContextOpts = {}) {
+  static async factory<T extends typeof Garden>(
+    this: T, currentDirectory: string, { env, config, log, plugins = {} }: ContextOpts = {},
+  ): Promise<InstanceType<T>> {
     let parsedConfig: GardenConfig
 
     if (config) {
@@ -288,7 +293,7 @@ export class Garden {
 
     const buildDir = await BuildDir.factory(projectRoot)
 
-    const garden = new Garden(
+    const garden = new this(
       projectRoot,
       projectName,
       environmentName,
@@ -296,17 +301,18 @@ export class Garden {
       projectSources,
       buildDir,
       log,
-    )
+    ) as InstanceType<T>
 
     // Register plugins
     for (const [name, pluginFactory] of Object.entries({ ...builtinPlugins, ...plugins })) {
-      garden.registerPlugin(name, pluginFactory)
+      // This cast is required for the linter to accept the instance type hackery.
+      (<Garden>garden).registerPlugin(name, pluginFactory)
     }
 
     // Load configured plugins
     // Validate configuration
     for (const provider of Object.values(mergedProviderConfigs)) {
-      await garden.loadPlugin(provider.name, provider)
+      await (<Garden>garden).loadPlugin(provider.name, provider)
     }
 
     return garden
