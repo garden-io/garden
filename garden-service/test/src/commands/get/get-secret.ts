@@ -1,6 +1,6 @@
 import { expect } from "chai"
-import { expectError, makeTestGardenA } from "../../helpers"
-import { GetSecretCommand } from "../../../src/commands/get"
+import { expectError, makeTestGardenA } from "../../../helpers"
+import { GetSecretCommand } from "../../../../src/commands/get/get-secret"
 
 describe("GetSecretCommand", () => {
   const pluginName = "test-plugin"

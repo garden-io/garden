@@ -15,6 +15,7 @@ import {
   Primitive,
   joiRepositoryUrl,
 } from "./common"
+import { DashboardPage } from "../config/dashboard"
 
 export interface ProviderConfig {
   name: string
@@ -32,6 +33,7 @@ export const providerConfigBaseSchema = Joi.object()
 
 export interface Provider<T extends ProviderConfig = any> {
   name: string
+  dashboardPages: DashboardPage[]
   config: T
 }
 
@@ -52,8 +54,12 @@ export const environmentConfigSchema = Joi.object()
       .description("A key/value map of variables that modules can reference when using this environment."),
   })
 
-export interface Environment extends CommonEnvironmentConfig {
+export interface EnvironmentConfig extends CommonEnvironmentConfig {
   name: string
+}
+
+export interface Environment extends EnvironmentConfig {
+  providers: Provider[]
 }
 
 export const environmentSchema = environmentConfigSchema
@@ -85,7 +91,7 @@ export interface ProjectConfig {
   name: string
   defaultEnvironment: string
   environmentDefaults: CommonEnvironmentConfig
-  environments: Environment[]
+  environments: EnvironmentConfig[]
   sources?: SourceConfig[]
 }
 
@@ -93,7 +99,7 @@ export const defaultProviders = [
   { name: "container" },
 ]
 
-export const defaultEnvironments: Environment[] = [
+export const defaultEnvironments: EnvironmentConfig[] = [
   {
     name: "local",
     providers: [
@@ -142,5 +148,6 @@ export const projectSchema = Joi.object()
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {
   name: "_default",
+  dashboardPages: [],
   config: {},
 }

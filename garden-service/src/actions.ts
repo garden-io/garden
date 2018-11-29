@@ -82,7 +82,7 @@ type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
 }
 
-export interface ContextStatus {
+export interface EnvironmentStatus {
   providers: EnvironmentStatusMap
   services: { [name: string]: ServiceStatus }
 }
@@ -338,7 +338,7 @@ export class ActionHelper implements TypeGuard {
     return keyBy(dependencies, "name")
   }
 
-  async getStatus({ log }: { log: LogEntry }): Promise<ContextStatus> {
+  async getStatus({ log }: { log: LogEntry }): Promise<EnvironmentStatus> {
     const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
     const services = keyBy(await this.garden.getServices(), "name")
 

@@ -286,6 +286,15 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result
 
+### garden get config
+
+Outputs the fully resolved configuration for this project and environment.
+
+
+##### Usage
+
+    garden get config 
+
 ### garden get secret
 
 Get a secret from the environment.
