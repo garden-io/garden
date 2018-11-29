@@ -45,7 +45,7 @@ To run tests for all modules:
 $ garden test
 ```
 
-And if you prefer an interactive terminal that watches your project for changes and re-builds, re-deploys, and re-tests automatically, try:
+And if you prefer an all-in-one command that watches your project for changes and re-builds, re-deploys, and re-tests automatically, try:
 
 ```sh
 $ garden dev
@@ -53,6 +53,6 @@ $ garden dev
 
 Go ahead, leave it running and change one of the files in the project, then watch it re-build.
 
-That's it for now. Check out our [Using Garden](../using-garden/README.md) section for other features like hot reload, remote clusters, integration tests, and lots more. 
+That's it for now. Check out our [Using Garden](../using-garden/README.md) section for other features like hot reload, remote clusters, integration tests, and lots more.
 
 To see how a Garden project is configured from scratch check, out the [Simple Project](../examples/simple-project.md) guide for a more in-depth presentation.

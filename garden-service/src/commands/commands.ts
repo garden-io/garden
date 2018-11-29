@@ -26,6 +26,7 @@ import { UnlinkCommand } from "./unlink/unlink"
 import { UpdateRemoteCommand } from "./update-remote/update-remote"
 import { ValidateCommand } from "./validate"
 import { ExecCommand } from "./exec"
+import { ServeCommand } from "./serve"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -42,6 +43,7 @@ export const coreCommands: Command[] = [
   new PublishCommand(),
   new RunCommand(),
   new ScanCommand(),
+  new ServeCommand(),
   new SetCommand(),
   new TestCommand(),
   new UnlinkCommand(),

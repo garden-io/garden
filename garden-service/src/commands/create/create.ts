@@ -14,6 +14,8 @@ export class CreateCommand extends Command {
   name = "create"
   help = "Create a new project or add a new module"
 
+  cliOnly = true
+
   subCommands = [
     CreateProjectCommand,
     CreateModuleCommand,

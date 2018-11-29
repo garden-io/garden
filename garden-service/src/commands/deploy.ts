@@ -33,7 +33,11 @@ const deployArgs = {
 const deployOpts = {
   "force": new BooleanParameter({ help: "Force redeploy of service(s)." }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
-  "watch": new BooleanParameter({ help: "Watch for changes in module(s) and auto-deploy.", alias: "w" }),
+  "watch": new BooleanParameter({
+    help: "Watch for changes in module(s) and auto-deploy.",
+    alias: "w",
+    cliOnly: true,
+  }),
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
       Use comma as a separator to specify multiple services. When this option is used,

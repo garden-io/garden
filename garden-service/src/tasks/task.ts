@@ -23,7 +23,6 @@ export interface TaskTaskParams {
   task: Task
   force: boolean
   forceBuild: boolean
-  logEntry?: LogEntry
 }
 
 export class TaskTask extends BaseTask { // ... to be renamed soon.

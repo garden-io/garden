@@ -25,6 +25,9 @@ export class InitCommand extends Command {
   name = "init"
   help = "Initialize system, environment or other runtime components."
 
+  // This command is generally only used when user input is needed, which will need to happen via the CLI
+  cliOnly = true
+
   description = dedent`
     This command needs to be run before first deploying a Garden project, and occasionally after updating Garden,
     plugins or project configuration.

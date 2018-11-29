@@ -19,6 +19,7 @@ import { registerCleanupFunction } from "./util/util"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
+import { startServer } from "./server"
 
 export type ProcessHandler = (module: Module) => Promise<BaseTask[]>
 
@@ -118,6 +119,11 @@ export async function processModules(
       watcher.close()
     })
   })
+
+  // Experimental HTTP API and dashboard server.
+  if (process.env.GARDEN_ENABLE_SERVER === "1") {
+    await startServer(garden)
+  }
 
   await restartPromise
   watcher.close()
