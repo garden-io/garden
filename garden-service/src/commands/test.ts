@@ -72,6 +72,14 @@ export class TestCommand extends Command<Args, Opts> {
   arguments = testArgs
   options = testOpts
 
+  async printHeader(log) {
+    logHeader({
+      log,
+      emoji: "thermometer",
+      command: `Running tests`,
+    })
+  }
+
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const dependencyGraph = await garden.getDependencyGraph()
     let modules: Module[]
@@ -81,12 +89,6 @@ export class TestCommand extends Command<Args, Opts> {
       // All modules are included in this case, so there's no need to compute dependants.
       modules = await garden.getModules()
     }
-
-    logHeader({
-      log,
-      emoji: "thermometer",
-      command: `Running tests`,
-    })
 
     await garden.actions.prepareEnvironment({ log })
 

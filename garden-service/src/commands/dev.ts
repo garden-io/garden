@@ -24,6 +24,7 @@ import {
   CommandResult,
   CommandParams,
   StringsParameter,
+  handleTaskResults,
 } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
@@ -65,13 +66,15 @@ export class DevCommand extends Command<Args, Opts> {
 
   options = devOpts
 
-  async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
+  async printHeader(log) {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
 
     log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
+  }
 
+  async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     await garden.actions.prepareEnvironment({ log })
 
     const modules = await garden.getModules()
@@ -127,7 +130,7 @@ export class DevCommand extends Command<Args, Opts> {
 
     }
 
-    await processModules({
+    const results = await processModules({
       garden,
       log,
       modules,
@@ -136,7 +139,8 @@ export class DevCommand extends Command<Args, Opts> {
       changeHandler: tasksForModule(true),
     })
 
-    return {}
+    return handleTaskResults(log, "dev", results)
+
   }
 }
 
