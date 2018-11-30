@@ -36,13 +36,13 @@ Examples:
 
 ##### Usage
 
-    garden build [module] [options]
+    garden build [modules] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | No | Specify module(s) to build. Use comma as a separator to specify multiple modules.
+  | `modules` | No | Specify module(s) to build. Use comma as a separator to specify multiple modules.
 
 ##### Options
 

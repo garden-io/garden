@@ -22,7 +22,7 @@ export function isSystemGarden(provider: KubernetesProvider): boolean {
 
 export async function getSystemGarden(provider: KubernetesProvider): Promise<Garden> {
   return Garden.factory(systemProjectPath, {
-    env: "default",
+    environmentName: "default",
     config: {
       version: "0",
       dirname: "system",

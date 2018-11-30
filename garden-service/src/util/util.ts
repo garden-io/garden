@@ -251,6 +251,38 @@ export function splitFirst(s: string, delimiter: string) {
 }
 
 /**
+ * Recursively process all values in the given input,
+ * walking through all object keys _and array items_.
+ */
+export function deepMap<T extends object, U extends object = T>(
+  value: T | Iterable<T>, fn: (value: any, key: string | number) => any,
+): U | Iterable<U> {
+  if (isArray(value)) {
+    return value.map(fn)
+  } else if (isPlainObject(value)) {
+    return <U>mapValues(value, v => deepMap(v, fn))
+  } else {
+    return <U>value
+  }
+}
+
+/**
+ * Recursively filter all keys and values in the given input,
+ * walking through all object keys _and array items_.
+ */
+export function deepFilter<T extends object, U extends object = T>(
+  value: T | Iterable<T>, fn: (value: any, key: string | number) => boolean,
+): U | Iterable<U> {
+  if (isArray(value)) {
+    return <Iterable<U>>value.filter(fn).map(v => deepFilter(v, fn))
+  } else if (isPlainObject(value)) {
+    return <U>mapValues(pickBy(<U>value, fn), v => deepFilter(v, fn))
+  } else {
+    return <U>value
+  }
+}
+
+/**
  * Recursively resolves all promises in the given input,
  * walking through all object keys and array items.
  */
@@ -290,6 +322,14 @@ export async function asyncDeepMap<T>(
 
 export function omitUndefined(o: object) {
   return pickBy(o, (v: any) => v !== undefined)
+}
+
+/**
+ * Recursively go through an object or array and strip all keys with undefined values, as well as undefined
+ * values from arrays. Note: Also iterates through arrays recursively.
+ */
+export function deepOmitUndefined(obj: object) {
+  return deepFilter(obj, v => v !== undefined)
 }
 
 export function serializeObject(o: any): string {

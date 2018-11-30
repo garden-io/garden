@@ -434,7 +434,7 @@ export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
   // TODO: allow passing variables/parameters here to be parsed as part of the garden.yml project config
   // (this would allow us to use a garden.yml for the project config, instead of speccing it here)
   return Garden.factory(systemProjectPath, {
-    env: "default",
+    environmentName: "default",
     config: {
       version: "0",
       dirname: "system",

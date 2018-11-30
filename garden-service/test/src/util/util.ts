@@ -1,7 +1,15 @@
 import { expect } from "chai"
 import { join } from "path"
 import { getDataDir } from "../../helpers"
-import { scanDirectory, getChildDirNames, toCygwinPath, pickKeys, getEnvVarName } from "../../../src/util/util"
+import {
+  scanDirectory,
+  getChildDirNames,
+  toCygwinPath,
+  pickKeys,
+  getEnvVarName,
+  deepOmitUndefined,
+  deepFilter,
+} from "../../../src/util/util"
 import { expectError } from "../../helpers"
 
 describe("util", () => {
@@ -81,6 +89,88 @@ describe("util", () => {
       await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), (err) => {
         expect(err.message).to.equal("Could not find banana(s): foo, bar")
       })
+    })
+  })
+
+  describe("deepFilter", () => {
+    const fn = v => v !== 99
+
+    it("should filter keys in a simple object", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: 99,
+      }
+      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2 })
+    })
+
+    it("should filter keys in a nested object", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: { d: 3, e: 99 },
+      }
+      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: { d: 3 } })
+    })
+
+    it("should filter values in lists", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: [3, 99],
+      }
+      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [3] })
+    })
+
+    it("should filter keys in objects in lists", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: [
+          { d: 3, e: 99 },
+        ],
+      }
+      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
+    })
+  })
+
+  describe("deepOmitUndefined", () => {
+    it("should omit keys with undefined values in a simple object", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: undefined,
+      }
+      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2 })
+    })
+
+    it("should omit keys with undefined values in a nested object", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: { d: 3, e: undefined },
+      }
+      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: { d: 3 } })
+    })
+
+    it("should omit undefined values in lists", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: [3, undefined],
+      }
+      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [3] })
+    })
+
+    it("should omit undefined values in objects in lists", () => {
+      const obj = {
+        a: 1,
+        b: 2,
+        c: [
+          { d: 3, e: undefined },
+        ],
+      }
+      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
     })
   })
 })
