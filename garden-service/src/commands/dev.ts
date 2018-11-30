@@ -15,7 +15,6 @@ import { flatten } from "lodash"
 import moment = require("moment")
 import { join } from "path"
 
-import { BuildTask } from "../tasks/build"
 import { BaseTask } from "../tasks/base"
 import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
 import { getTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
@@ -110,7 +109,7 @@ export class DevCommand extends Command<Args, Opts> {
         const testTasks: BaseTask[] = flatten(await Bluebird.map(
           testModules, m => getTestTasks({ garden, log, module: m })))
 
-        const tasks = testTasks.concat(await getTasksForModule({
+        return testTasks.concat(await getTasksForModule({
           garden,
           log,
           module,
@@ -120,12 +119,6 @@ export class DevCommand extends Command<Args, Opts> {
           forceBuild: watch,
           includeDependants: watch,
         }))
-
-        if (tasks.length === 0) {
-          return [new BuildTask({ garden, log, module, force: watch })]
-        } else {
-          return tasks
-        }
       }
 
     }
