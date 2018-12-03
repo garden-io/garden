@@ -40,6 +40,7 @@ mkdir windows-amd64
 # Name should match go release and other standards using full "windows" name
 mv garden-cli-win.exe windows-amd64/garden.exe
 cp -r ../tmp/dist/static windows-amd64
+echo "    -> zip"
 zip -q -r garden-${version}-windows-amd64.zip windows-amd64
 echo "    -> cleaning up tmp files"
 rm -rf windows-amd64
