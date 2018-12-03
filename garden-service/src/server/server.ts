@@ -6,16 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { resolve } from "path"
 import chalk from "chalk"
 import Koa = require("koa")
+import serve = require("koa-static")
 import Router = require("koa-router")
 import websockify = require("koa-websocket")
 import bodyParser = require("koa-bodyparser")
-import dedent = require("dedent")
 import getPort = require("get-port")
 import { Garden } from "../garden"
 import { addWebsocketEndpoint } from "./websocket"
 import { prepareCommands, resolveRequest } from "./commands"
+import { isPkg } from "../constants"
+
+export const DASHBOARD_BUILD_PATH = resolve(
+  isPkg ? process.execPath : __dirname, "..", "..", "..", "garden-dashboard", "build",
+)
 
 /**
  * Start an HTTP server that exposes commands and events for the given Garden instance.
@@ -71,31 +77,12 @@ export async function createApp(garden: Garden) {
     ctx.response.body = result
   })
 
-  /**
-   * Dashboard endpoint (GET /)
-   *
-   * TODO: flesh this out, just a placeholder
-   */
-  http.get("/", async (ctx) => {
-    const status = await resolveRequest(ctx, garden, commands, {
-      command: "get.status",
-    })
-
-    ctx.response.body = dedent`
-      <html>
-      <body>
-        <h2>Project status</h2>
-        <pre>
-      ${JSON.stringify(status.result, null, 4)}
-        </pre>
-      </body>
-      </html>
-    `
-  })
-
   app.use(bodyParser())
   app.use(http.routes())
   app.use(http.allowedMethods())
+
+  // TODO: Bundle the dashboard with the NPM / Zeit packages
+  app.use(serve(DASHBOARD_BUILD_PATH))
 
   addWebsocketEndpoint(app, garden, log, commands)
 

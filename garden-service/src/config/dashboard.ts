@@ -21,7 +21,7 @@ export interface DashboardPage {
 export const dashboardPageSchema = Joi.object()
   .keys({
     title: Joi.string()
-      .length(32)
+      .max(32)
       .required()
       .description("The link title to show in the menu bar (max length 32)."),
     description: Joi.string()
