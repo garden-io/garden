@@ -1,0 +1,18 @@
+module:
+  description: Frontend
+  name: front-end
+  type: container
+  hotReload:
+    sync:
+      - target: /app/src
+        source: src
+  services:
+    - name: front-end
+      command: [npm, run, serve]
+      hotReloadCommand: [npm, run, serve]
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /
+          port: http

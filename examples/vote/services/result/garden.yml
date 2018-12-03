@@ -1,0 +1,16 @@
+module:
+  description: Results presentation service
+  type: container
+  name: result
+  services:
+    - name: result
+      command: [nodemon, server.js]
+      dependencies:
+        - db-init
+      ingresses:
+        - path: /result
+          port: ui
+      ports:
+        - name: ui
+          protocol: TCP
+          containerPort: 80
