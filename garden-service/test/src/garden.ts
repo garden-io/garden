@@ -52,7 +52,7 @@ describe("Garden", () => {
       expect(garden.environment).to.eql({
         name: "local",
         providers: [
-          { name: "generic", config: { name: "generic" } },
+          { name: "exec", config: { name: "exec" } },
           { name: "container", config: { name: "container" } },
           { name: "test-plugin", config: { name: "test-plugin" } },
           { name: "test-plugin-b", config: { name: "test-plugin-b" } },
@@ -77,7 +77,7 @@ describe("Garden", () => {
       expect(garden.environment).to.eql({
         name: "local",
         providers: [
-          { name: "generic", config: { name: "generic" } },
+          { name: "exec", config: { name: "exec" } },
           { name: "container", config: { name: "container" } },
           { name: "test-plugin", config: { name: "test-plugin" } },
         ],
@@ -506,10 +506,10 @@ describe("Garden", () => {
     it("should return all handlers for a type", async () => {
       const garden = await makeTestGardenA()
 
-      const handlers = garden.getModuleActionHandlers({ actionType: "build", moduleType: "generic" })
+      const handlers = garden.getModuleActionHandlers({ actionType: "build", moduleType: "exec" })
 
       expect(Object.keys(handlers)).to.eql([
-        "generic",
+        "exec",
       ])
     })
   })

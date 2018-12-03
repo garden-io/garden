@@ -3,7 +3,7 @@ import { Garden } from "../../../src/garden"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
 import { validateContainerModule } from "../../../src/plugins/container"
-import { buildGenericModule } from "../../../src/plugins/generic"
+import { buildExecModule } from "../../../src/plugins/exec"
 import {
   PluginFactory,
 } from "../../../src/types/plugin/plugin"
@@ -75,7 +75,7 @@ const testProvider: PluginFactory = () => {
     moduleActions: {
       container: {
         validate: validateContainerModule,
-        build: buildGenericModule,
+        build: buildExecModule,
         deployService,
         getServiceStatus,
         runTask,

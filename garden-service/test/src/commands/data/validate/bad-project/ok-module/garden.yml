@@ -1,5 +1,5 @@
 module:
   name: module-a
-  type: generic
+  type: exec
   build:
     command: [echo, A]

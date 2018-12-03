@@ -42,7 +42,7 @@ import { GARDEN_BUILD_VERSION_FILENAME } from "../../constants"
 import { writeTreeVersionFile } from "../../vcs/base"
 import { ServiceState } from "../../types/service"
 import { compareDeployedObjects, waitForObjects, checkObjectStatus } from "./status"
-import { getGenericModuleBuildStatus } from "../generic"
+import { getExecModuleBuildStatus } from "../exec"
 import { ServiceSpec } from "../../config/service"
 import { KubeApi } from "./api"
 import { BinaryCmd } from "../../util/ext-tools"
@@ -131,7 +131,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
     return moduleConfig
   },
 
-  getBuildStatus: getGenericModuleBuildStatus,
+  getBuildStatus: getExecModuleBuildStatus,
   build,
   getServiceStatus,
 
@@ -307,7 +307,7 @@ async function getServiceStatus(
   { ctx, service, module, log, buildDependencies }: GetServiceStatusParams<HelmModule>,
 ): Promise<ServiceStatus> {
   // need to build to be able to check the status
-  const buildStatus = await getGenericModuleBuildStatus({ ctx, module, log, buildDependencies })
+  const buildStatus = await getExecModuleBuildStatus({ ctx, module, log, buildDependencies })
   if (!buildStatus.ready) {
     await build({ ctx, module, log, buildDependencies })
   }

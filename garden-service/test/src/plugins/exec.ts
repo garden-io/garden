@@ -4,7 +4,7 @@ import {
   resolve,
 } from "path"
 import { Garden } from "../../../src/garden"
-import { gardenPlugin } from "../../../src/plugins/generic"
+import { gardenPlugin } from "../../../src/plugins/exec"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../src/constants"
 import { LogEntry } from "../../../src/logger/log-entry"
 import {
@@ -16,15 +16,15 @@ import {
   makeTestGarden,
 } from "../../helpers"
 
-describe("generic plugin", () => {
-  const projectRoot = resolve(dataDir, "test-project-generic")
+describe("exec plugin", () => {
+  const projectRoot = resolve(dataDir, "test-project-exec")
   const moduleName = "module-a"
 
   let garden: Garden
   let log: LogEntry
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { generic: gardenPlugin })
+    garden = await makeTestGarden(projectRoot, { exec: gardenPlugin })
     log = garden.log
     await garden.clearBuilds()
   })

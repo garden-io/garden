@@ -8,7 +8,7 @@
 
 import { mapValues } from "lodash"
 
-const generic = require("./generic")
+const exec = require("./exec")
 const container = require("./container")
 const gcf = require("./google/google-cloud-functions")
 const localGcf = require("./local/local-google-cloud-functions")
@@ -20,7 +20,7 @@ const openfaas = require("./openfaas/openfaas")
 
 // These plugins are always registered
 export const builtinPlugins = mapValues({
-  generic,
+  exec,
   container,
   "google-cloud-functions": gcf,
   "local-google-cloud-functions": localGcf,
@@ -33,6 +33,6 @@ export const builtinPlugins = mapValues({
 
 // These plugins are always loaded
 export const fixedPlugins = [
-  "generic",
+  "exec",
   "container",
 ]

@@ -89,7 +89,7 @@ modules use the same name.
 
 A [module](../reference/glossary.md#module)'s `type` specifies what kind of module this is, which will control how the
 module's code gets built, tested, deployed, etc. The module types are implemented by _providers_. The built-in module types
-include `container` and `generic` (which basically provides a way to run commands locally).
+include `container` and `exec` (which basically provides a way to run commands locally).
 
 The example above is a `container` module, and the `hello-function` module is an `openfaas` module
 (which is one of many ways to run functions-as-a-service on Kubernetes).

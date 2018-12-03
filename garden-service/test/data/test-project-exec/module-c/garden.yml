@@ -1,10 +1,9 @@
 module:
-  name: module-b
-  type: generic
+  name: module-c
+  type: exec
   build:
-    command: [echo, B]
     dependencies:
-      - module-a
+      - module-b
   tests:
     - name: unit
       command: [echo, OK]

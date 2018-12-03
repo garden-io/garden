@@ -202,11 +202,11 @@ project:
 
 ## Built-in module types
 
-### generic
+### exec
 
 ```yaml
 
-# The module specification for a generic module.
+# The module specification for an exec module.
 #
 # Required.
 module: 
@@ -305,7 +305,7 @@ module:
   #
   # Optional.
   tests: 
-    # The test specification of a generic module.
+    # The test specification of an exec module.
     #
     # Optional.
     - # The name of the test.
@@ -646,7 +646,7 @@ module:
   #
   # Optional.
   tests: 
-    # The test specification of a generic module.
+    # The test specification of an exec module.
     #
     # Optional.
     - # The name of the test.

@@ -8,11 +8,11 @@
 
 import { GardenPlugin } from "../types/plugin/plugin"
 import {
-  genericPlugin,
-} from "./generic"
+  execPlugin,
+} from "./exec"
 
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
-    "npm-package": genericPlugin.moduleActions!.generic,
+    "npm-package": execPlugin.moduleActions!.exec,
   },
 })

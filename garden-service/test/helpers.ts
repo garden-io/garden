@@ -10,7 +10,7 @@ import * as td from "testdouble"
 import { resolve, join } from "path"
 import { remove, readdirSync, existsSync } from "fs-extra"
 import { containerModuleSpecSchema } from "../src/plugins/container"
-import { testGenericModule, buildGenericModule } from "../src/plugins/generic"
+import { testExecModule, buildExecModule } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
 import { validate, PrimitiveMap } from "../src/config/common"
 import {
@@ -108,7 +108,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
     },
     moduleActions: {
       test: {
-        testModule: testGenericModule,
+        testModule: testExecModule,
 
         async validate({ moduleConfig }: ValidateModuleParams) {
           moduleConfig.spec = validate(
@@ -142,7 +142,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           return moduleConfig
         },
 
-        build: buildGenericModule,
+        build: buildExecModule,
         runModule,
 
         async getServiceStatus() { return {} },

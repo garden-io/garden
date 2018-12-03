@@ -20,13 +20,13 @@ import {
   padEnd,
 } from "lodash"
 import { containerModuleSpecSchema } from "../plugins/container"
-import { genericModuleSpecSchema } from "../plugins/generic"
+import { execModuleSpecSchema } from "../plugins/exec"
 import { configSchema } from "../config/base"
 import { baseModuleSpecSchema } from "../config/module"
 
 const maxWidth = 100
 const builtInModuleTypes = [
-  { name: "generic", schema: genericModuleSpecSchema },
+  { name: "exec", schema: execModuleSpecSchema },
   { name: "container", schema: containerModuleSpecSchema },
 ]
 
