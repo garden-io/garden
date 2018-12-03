@@ -23,7 +23,7 @@ import {
 } from "../../config-store"
 
 const unlinkSourceArguments = {
-  source: new StringsParameter({
+  sources: new StringsParameter({
     help: "The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.",
   }),
 }
@@ -59,7 +59,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
 
     const sourceType = "project"
 
-    const { source = [] } = args
+    const { sources = [] } = args
 
     if (opts.all) {
       await garden.localConfigStore.set([localConfigKeys.linkedProjectSources], [])
@@ -67,9 +67,9 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
       return { result: [] }
     }
 
-    const linkedProjectSources = await removeLinkedSources({ garden, sourceType, names: source })
+    const linkedProjectSources = await removeLinkedSources({ garden, sourceType, names: sources })
 
-    log.info(`Unlinked source(s) ${source}`)
+    log.info(`Unlinked source(s) ${sources}`)
 
     return { result: linkedProjectSources }
   }

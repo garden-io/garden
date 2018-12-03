@@ -24,7 +24,7 @@ import { logHeader } from "../logger/util"
 import dedent = require("dedent")
 
 const publishArgs = {
-  module: new StringsParameter({
+  modules: new StringsParameter({
     help: "The name(s) of the module(s) to publish (skip to publish all modules). " +
       "Use comma as a separator to specify multiple modules.",
   }),
@@ -64,7 +64,7 @@ export class PublishCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     logHeader({ log, emoji: "rocket", command: "Publish modules" })
 
-    const modules = await garden.getModules(args.module)
+    const modules = await garden.getModules(args.modules)
 
     const results = await publishModules(garden, log, modules, !!opts["force-build"], !!opts["allow-dirty"])
 

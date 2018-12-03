@@ -8,43 +8,15 @@
 
 import * as yaml from "js-yaml"
 import { highlightYaml } from "../../util/util"
-import { Provider } from "../../config/project"
-import { PrimitiveMap } from "../../config/common"
-import { Module } from "../../types/module"
 import { Command, CommandResult, CommandParams } from "../base"
-
-interface ConfigOutput {
-  environmentName: string
-  providers: Provider[]
-  variables: PrimitiveMap
-  modules: Module[]
-}
+import { ConfigDump } from "../../garden"
 
 export class GetConfigCommand extends Command {
   name = "config"
   help = "Outputs the fully resolved configuration for this project and environment."
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<ConfigOutput>> {
-    const modules = await garden.getModules()
-
-    // Remove circular references and superfluous keys.
-    for (const module of modules) {
-      delete module._ConfigType
-
-      for (const service of module.services) {
-        delete service.module
-      }
-      for (const task of module.tasks) {
-        delete task.module
-      }
-    }
-
-    const config: ConfigOutput = {
-      environmentName: garden.environment.name,
-      providers: garden.environment.providers,
-      variables: garden.environment.variables,
-      modules,
-    }
+  async action({ garden, log }: CommandParams): Promise<CommandResult<ConfigDump>> {
+    const config = await garden.dumpConfig()
 
     const yamlConfig = yaml.safeDump(config, { noRefs: true, skipInvalid: true })
 

@@ -22,7 +22,7 @@ import { Module } from "../types/module"
 import { logHeader } from "../logger/util"
 
 const buildArguments = {
-  module: new StringsParameter({
+  modules: new StringsParameter({
     help: "Specify module(s) to build. Use comma as a separator to specify multiple modules.",
   }),
 }
@@ -66,7 +66,8 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
     { args, opts, garden, log }: CommandParams<BuildArguments, BuildOptions>,
   ): Promise<CommandResult<TaskResults>> {
     await garden.clearBuilds()
-    const modules = await garden.getModules(args.module)
+
+    const modules = await garden.getModules(args.modules)
     const dependencyGraph = await garden.getDependencyGraph()
     const moduleNames = modules.map(m => m.name)
 

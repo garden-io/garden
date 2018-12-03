@@ -24,7 +24,7 @@ import dedent = require("dedent")
 
 const callArgs = {
   serviceAndPath: new StringParameter({
-    help: "The name(s) of the service(s) to call followed by the ingress path (e.g. my-container/somepath).",
+    help: "The name of the service to call followed by the ingress path (e.g. my-container/somepath).",
     required: true,
   }),
 }

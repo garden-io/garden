@@ -58,7 +58,7 @@ describe("PublishCommand", () => {
       garden,
       log,
       args: {
-        module: undefined,
+        modules: undefined,
       },
       opts: {
         "allow-dirty": false,
@@ -84,7 +84,7 @@ describe("PublishCommand", () => {
       garden,
       log,
       args: {
-        module: undefined,
+        modules: undefined,
       },
       opts: {
         "allow-dirty": false,
@@ -110,7 +110,7 @@ describe("PublishCommand", () => {
       garden,
       log,
       args: {
-        module: ["module-a"],
+        modules: ["module-a"],
       },
       opts: {
         "allow-dirty": false,
@@ -133,7 +133,7 @@ describe("PublishCommand", () => {
       garden,
       log,
       args: {
-        module: ["module-c"],
+        modules: ["module-c"],
       },
       opts: {
         "allow-dirty": false,
@@ -157,7 +157,7 @@ describe("PublishCommand", () => {
       garden,
       log,
       args: {
-        module: ["module-a"],
+        modules: ["module-a"],
       },
       opts: {
         "allow-dirty": false,
@@ -200,7 +200,7 @@ describe("PublishCommand", () => {
         garden,
         log,
         args: {
-          module: ["module-a"],
+          modules: ["module-a"],
         },
         opts: {
           "allow-dirty": false,
@@ -216,7 +216,7 @@ describe("PublishCommand", () => {
         garden,
         log,
         args: {
-          module: ["module-a"],
+          modules: ["module-a"],
         },
         opts: {
           "allow-dirty": true,

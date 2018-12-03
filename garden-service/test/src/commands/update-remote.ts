@@ -34,7 +34,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        args: { source: undefined },
+        args: { sources: undefined },
         opts: {},
       })
       expect(result!.map(s => s.name).sort()).to.eql(["source-a", "source-b", "source-c"])
@@ -44,7 +44,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        args: { source: ["source-a"] },
+        args: { sources: ["source-a"] },
         opts: {},
       })
       expect(result!.map(s => s.name).sort()).to.eql(["source-a"])
@@ -56,7 +56,7 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        args: { source: undefined },
+        args: { sources: undefined },
         opts: {},
       })
       expect(await pathExists(stalePath)).to.be.false
@@ -68,7 +68,7 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            args: { source: ["banana"] },
+            args: { sources: ["banana"] },
             opts: {},
           })
         ),
@@ -94,7 +94,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        args: { module: undefined },
+        args: { modules: undefined },
         opts: {},
       })
       expect(result!.map(s => s.name).sort()).to.eql(["module-a", "module-b", "module-c"])
@@ -104,7 +104,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        args: { module: ["module-a"] },
+        args: { modules: ["module-a"] },
         opts: {},
       })
       expect(result!.map(s => s.name).sort()).to.eql(["module-a"])
@@ -116,7 +116,7 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        args: { module: undefined },
+        args: { modules: undefined },
         opts: {},
       })
       expect(await pathExists(stalePath)).to.be.false
@@ -128,7 +128,7 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            args: { module: ["banana"] },
+            args: { modules: ["banana"] },
             opts: {},
           })
         ),

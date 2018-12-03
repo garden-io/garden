@@ -22,7 +22,7 @@ import { LoggerType } from "../logger/logger"
 import dedent = require("dedent")
 
 const logsArgs = {
-  service: new StringsParameter({
+  services: new StringsParameter({
     help: "The name(s) of the service(s) to log (skip to log all services). " +
       "Use comma as a separator to specify multiple services.",
   }),
@@ -61,7 +61,7 @@ export class LogsCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const tail = opts.tail
-    const services = await garden.getServices(args.service)
+    const services = await garden.getServices(args.services)
 
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()

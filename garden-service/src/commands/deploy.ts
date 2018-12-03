@@ -24,7 +24,7 @@ import { processServices } from "../process"
 import { logHeader } from "../logger/util"
 
 const deployArgs = {
-  service: new StringsParameter({
+  services: new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy (skip to deploy all services).
       Use comma as a separator to specify multiple services.`,
   }),
@@ -64,6 +64,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
         garden deploy                         # deploy all modules in the project
         garden deploy my-service              # only deploy my-service
+        garden deploy service-a,service-b     # only deploy service-a and service-b
         garden deploy --force                 # force re-deploy of modules, even if they're already deployed
         garden deploy --watch                 # watch for changes to code
         garden deploy --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
@@ -78,7 +79,7 @@ export class DeployCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    const services = await garden.getServices(args.service)
+    const services = await garden.getServices(args.services)
 
     if (services.length === 0) {
       log.error({ msg: "No services found. Aborting." })

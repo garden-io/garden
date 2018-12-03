@@ -89,15 +89,15 @@ describe("Garden", () => {
     })
 
     it("should throw if the specified environment isn't configured", async () => {
-      await expectError(async () => Garden.factory(projectRootA, { env: "bla" }), "parameter")
+      await expectError(async () => Garden.factory(projectRootA, { environmentName: "bla" }), "parameter")
     })
 
     it("should throw if namespace starts with 'garden-'", async () => {
-      await expectError(async () => Garden.factory(projectRootA, { env: "garden-bla" }), "parameter")
+      await expectError(async () => Garden.factory(projectRootA, { environmentName: "garden-bla" }), "parameter")
     })
 
     it("should throw if no provider is configured for the environment", async () => {
-      await expectError(async () => Garden.factory(projectRootA, { env: "other" }), "configuration")
+      await expectError(async () => Garden.factory(projectRootA, { environmentName: "other" }), "configuration")
     })
 
     it("should throw if plugin module exports invalid name", async () => {

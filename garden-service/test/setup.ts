@@ -1,4 +1,5 @@
 import * as td from "testdouble"
+import * as timekeeper from "timekeeper"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
 import { makeTestGardenA } from "./helpers"
@@ -18,4 +19,7 @@ before(async function(this: any) {
 })
 
 beforeEach(() => { })
-afterEach(() => td.reset())
+afterEach(() => {
+  td.reset()
+  timekeeper.reset()
+})

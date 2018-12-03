@@ -107,6 +107,7 @@ import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/p
 import { SUPPORTED_PLATFORMS, SupportedPlatform } from "./constants"
 import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
+import { EventBus } from "./events"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -130,9 +131,9 @@ export type ModuleActionMap = {
   }
 }
 
-export interface ContextOpts {
+export interface GardenOpts {
   config?: GardenConfig,
-  env?: string,
+  environmentName?: string,
   log?: LogEntry,
   plugins?: Plugins,
 }
@@ -159,6 +160,7 @@ export class Garden {
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
   public readonly actions: ActionHelper
+  public readonly events: EventBus
 
   constructor(
     public readonly projectRoot: string,
@@ -167,7 +169,7 @@ export class Garden {
     variables: PrimitiveMap,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
-    log?: LogEntry,
+    public readonly opts: GardenOpts,
   ) {
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -182,7 +184,7 @@ export class Garden {
     }
 
     this.modulesScanned = false
-    this.log = log || getLogger().placeholder()
+    this.log = opts.log || getLogger().placeholder()
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this.projectRoot)
     this.localConfigStore = new LocalConfigStore(this.projectRoot)
@@ -203,13 +205,17 @@ export class Garden {
     this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
     this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
 
-    this.taskGraph = new TaskGraph(this.log)
+    this.taskGraph = new TaskGraph(this, this.log)
     this.actions = new ActionHelper(this)
     this.hotReloadScheduler = new HotReloadScheduler()
+    this.events = new EventBus()
   }
 
-  static async factory(currentDirectory: string, { env, config, log, plugins = {} }: ContextOpts = {}) {
+  static async factory<T extends typeof Garden>(
+    this: T, currentDirectory: string, opts: GardenOpts = {},
+  ): Promise<InstanceType<T>> {
     let parsedConfig: GardenConfig
+    let { environmentName, config, plugins = {} } = opts
 
     if (config) {
       parsedConfig = <GardenConfig>validate(config, configSchema, { context: "root configuration" })
@@ -243,12 +249,12 @@ export class Garden {
       sources: projectSources,
     } = parsedConfig.project!
 
-    if (!env) {
-      env = defaultEnvironment
+    if (!environmentName) {
+      environmentName = defaultEnvironment
     }
 
-    const parts = env.split(".")
-    const environmentName = parts[0]
+    const parts = environmentName.split(".")
+    environmentName = parts[0]
     const namespace = parts.slice(1).join(".") || DEFAULT_NAMESPACE
 
     const environmentConfig = findByName(environments, environmentName)
@@ -256,7 +262,7 @@ export class Garden {
     if (!environmentConfig) {
       throw new ParameterError(`Project ${projectName} does not specify environment ${environmentName}`, {
         projectName,
-        env,
+        environmentName,
         definedEnvironments: getNames(environments),
       })
     }
@@ -264,7 +270,7 @@ export class Garden {
     if (!environmentConfig.providers || environmentConfig.providers.length === 0) {
       throw new ConfigurationError(`Environment '${environmentName}' does not specify any providers`, {
         projectName,
-        env,
+        environmentName,
         environmentConfig,
       })
     }
@@ -288,25 +294,26 @@ export class Garden {
 
     const buildDir = await BuildDir.factory(projectRoot)
 
-    const garden = new Garden(
+    const garden = new this(
       projectRoot,
       projectName,
       environmentName,
       variables,
       projectSources,
       buildDir,
-      log,
-    )
+      opts,
+    ) as InstanceType<T>
 
     // Register plugins
     for (const [name, pluginFactory] of Object.entries({ ...builtinPlugins, ...plugins })) {
-      garden.registerPlugin(name, pluginFactory)
+      // This cast is required for the linter to accept the instance type hackery.
+      (<Garden>garden).registerPlugin(name, pluginFactory)
     }
 
     // Load configured plugins
     // Validate configuration
     for (const provider of Object.values(mergedProviderConfigs)) {
-      await garden.loadPlugin(provider.name, provider)
+      await (<Garden>garden).loadPlugin(provider.name, provider)
     }
 
     return garden
@@ -1082,5 +1089,35 @@ export class Garden {
     }
   }
 
+  public async dumpConfig(): Promise<ConfigDump> {
+    const modules = await this.getModules()
+
+    // Remove circular references and superfluous keys.
+    for (const module of modules) {
+      delete module._ConfigType
+
+      for (const service of module.services) {
+        delete service.module
+      }
+      for (const task of module.tasks) {
+        delete task.module
+      }
+    }
+
+    return {
+      environmentName: this.environment.name,
+      providers: this.environment.providers,
+      variables: this.environment.variables,
+      modules: sortBy(modules, "name"),
+    }
+  }
+
   //endregion
+}
+
+export interface ConfigDump {
+  environmentName: string
+  providers: Provider[]
+  variables: PrimitiveMap
+  modules: Module[]
 }

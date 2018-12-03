@@ -2,6 +2,7 @@ import { expect } from "chai"
 import { makeTestGardenA } from "../../../helpers"
 import { GetConfigCommand } from "../../../../src/commands/get/get-config"
 import { isSubset } from "../../../../src/util/is-subset"
+import { sortBy } from "lodash"
 
 describe("GetConfigCommand", () => {
   const pluginName = "test-plugin"
@@ -23,7 +24,7 @@ describe("GetConfigCommand", () => {
       environmentName: garden.environment.name,
       providers: garden.environment.providers,
       variables: garden.environment.variables,
-      modules: await garden.getModules(),
+      modules: sortBy(await garden.getModules(), "name"),
     }
 
     expect(isSubset(config, res.result)).to.be.true

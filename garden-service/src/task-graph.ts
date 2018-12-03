@@ -14,6 +14,7 @@ import { BaseTask, TaskDefinitionError } from "./tasks/base"
 
 import { LogEntry } from "./logger/log-entry"
 import { toGardenError } from "./exceptions"
+import { Garden } from "./garden"
 
 class TaskGraphError extends Error { }
 
@@ -45,7 +46,7 @@ export class TaskGraph {
   private resultCache: ResultCache
   private opQueue: PQueue
 
-  constructor(private log: LogEntry, private concurrency: number = DEFAULT_CONCURRENCY) {
+  constructor(private garden: Garden, private log: LogEntry, private concurrency: number = DEFAULT_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
@@ -87,6 +88,13 @@ export class TaskGraph {
     }
 
     this.index.addNode(node)
+
+    this.garden.events.emit("taskPending", {
+      addedAt: new Date(),
+      key: node.getKey(),
+      version: task.version,
+    })
+
     await this.addDependencies(node)
 
     if (node.getDependencies().length === 0) {
@@ -142,8 +150,10 @@ export class TaskGraph {
 
           try {
             result = await node.process(dependencyResults)
+            this.garden.events.emit("taskComplete", result)
           } catch (error) {
             result = { type, description, error }
+            this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
             this.cancelDependants(node)
           } finally {

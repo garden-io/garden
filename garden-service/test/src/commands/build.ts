@@ -12,7 +12,7 @@ describe("commands.build", () => {
     const { result } = await command.action({
       garden,
       log,
-      args: { module: undefined },
+      args: { modules: undefined },
       opts: { watch: false, force: true },
     })
 
@@ -31,7 +31,7 @@ describe("commands.build", () => {
     const { result } = await command.action({
       garden,
       log,
-      args: { module: ["module-b"] },
+      args: { modules: ["module-b"] },
       opts: { watch: false, force: true },
     })
 

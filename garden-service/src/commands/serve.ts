@@ -11,7 +11,7 @@ import { LoggerType } from "../logger/logger"
 import { IntegerParameter } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
 import { sleep } from "../util/util"
-import { startServer } from "../server"
+import { startServer } from "../server/server"
 
 const serveArgs = {}
 

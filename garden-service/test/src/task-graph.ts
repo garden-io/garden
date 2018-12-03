@@ -6,7 +6,7 @@ import {
   TaskResult,
   TaskResults,
 } from "../../src/task-graph"
-import { makeTestGarden } from "../helpers"
+import { makeTestGarden, freezeTime } from "../helpers"
 import { Garden } from "../../src/garden"
 import { DependencyGraphNodeType } from "../../src/dependency-graph"
 
@@ -16,6 +16,7 @@ type TestTaskCallback = (name: string, result: any) => Promise<void>
 
 interface TestTaskOptions {
   callback?: TestTaskCallback
+  dependencies?: BaseTask[],
   id?: string
   throwError?: boolean
 }
@@ -31,7 +32,6 @@ class TestTask extends BaseTask {
   constructor(
     garden: Garden,
     name: string,
-    dependencies?: BaseTask[],
     options?: TestTaskOptions,
   ) {
     super({
@@ -43,14 +43,16 @@ class TestTask extends BaseTask {
         dependencyVersions: {},
       },
     })
-    this.name = name
-    this.callback = (options && options.callback) || null
-    this.id = (options && options.id) || ""
-    this.throwError = !!(options && options.throwError)
 
-    if (dependencies) {
-      this.dependencies = dependencies
+    if (!options) {
+      options = {}
     }
+
+    this.name = name
+    this.callback = options.callback || null
+    this.id = options.id || ""
+    this.throwError = !!options.throwError
+    this.dependencies = options.dependencies || []
   }
 
   getName() {
@@ -93,7 +95,7 @@ describe("task-graph", () => {
 
     it("should successfully process a single task without dependencies", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden.log)
+      const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a")
 
       await graph.addTask(task)
@@ -114,9 +116,55 @@ describe("task-graph", () => {
       expect(results).to.eql(expected)
     })
 
+    it("should emit a taskPending event when adding a task", async () => {
+      const now = freezeTime()
+
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const task = new TestTask(garden, "a")
+
+      await graph.addTask(task)
+
+      expect(garden.events.log).to.eql([
+        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+      ])
+    })
+
+    it("should emit a taskComplete event when completing a task", async () => {
+      const now = freezeTime()
+
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const task = new TestTask(garden, "a")
+
+      await graph.addTask(task)
+      const result = await graph.processTasks()
+
+      expect(garden.events.log).to.eql([
+        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskComplete", payload: result["a"] },
+      ])
+    })
+
+    it("should emit a taskError event when failing a task", async () => {
+      const now = freezeTime()
+
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const task = new TestTask(garden, "a", { throwError: true })
+
+      await graph.addTask(task)
+      const result = await graph.processTasks()
+
+      expect(garden.events.log).to.eql([
+        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskError", payload: result["a"] },
+      ])
+    })
+
     it("should process multiple tasks in dependency order", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden.log)
+      const graph = new TaskGraph(garden, garden.log)
 
       const callbackResults = {}
       const resultOrder: string[] = []
@@ -128,10 +176,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask(garden, "a", [], opts)
-      const taskB = new TestTask(garden, "b", [taskA], opts)
-      const taskC = new TestTask(garden, "c", [taskB], opts)
-      const taskD = new TestTask(garden, "d", [taskB, taskC], opts)
+      const taskA = new TestTask(garden, "a", { ...opts })
+      const taskB = new TestTask(garden, "b", { ...opts, dependencies: [taskA] })
+      const taskC = new TestTask(garden, "c", { ...opts, dependencies: [taskB] })
+      const taskD = new TestTask(garden, "d", { ...opts, dependencies: [taskB, taskC] })
 
       // we should be able to add tasks multiple times and in any order
       await graph.addTask(taskC)
@@ -208,7 +256,7 @@ describe("task-graph", () => {
 
     it("should recursively cancel a task's dependants when it throws an error", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden.log)
+      const graph = new TaskGraph(garden, garden.log)
 
       const resultOrder: string[] = []
 
@@ -218,10 +266,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask(garden, "a", [], opts)
-      const taskB = new TestTask(garden, "b", [taskA], { callback, throwError: true })
-      const taskC = new TestTask(garden, "c", [taskB], opts)
-      const taskD = new TestTask(garden, "d", [taskB, taskC], opts)
+      const taskA = new TestTask(garden, "a", { ...opts })
+      const taskB = new TestTask(garden, "b", { callback, throwError: true, dependencies: [taskA] })
+      const taskC = new TestTask(garden, "c", { ...opts, dependencies: [taskB] })
+      const taskD = new TestTask(garden, "d", { ...opts, dependencies: [taskB, taskC] })
 
       await graph.addTask(taskA)
       await graph.addTask(taskB)
@@ -249,7 +297,7 @@ describe("task-graph", () => {
       "should process a task as an inheritor of an existing, in-progress task when they have the same base key",
       async () => {
         const garden = await getGarden()
-        const graph = new TaskGraph(garden.log)
+        const graph = new TaskGraph(garden, garden.log)
 
         let callbackResults = {}
         let resultOrder: string[] = []
@@ -287,19 +335,20 @@ describe("task-graph", () => {
           callbackResults[key] = result
         }
 
-        const dependencyA = new TestTask(garden, "dependencyA", [], { callback: defaultCallback })
-        const dependencyB = new TestTask(garden, "dependencyB", [], { callback: defaultCallback })
+        const dependencyA = new TestTask(garden, "dependencyA", { callback: defaultCallback })
+        const dependencyB = new TestTask(garden, "dependencyB", { callback: defaultCallback })
         const parentTask = new TestTask(
           garden,
           "sharedName",
-          [dependencyA, dependencyB],
-          { callback: parentCallback, id: "1" },
+          { callback: parentCallback, id: "1", dependencies: [dependencyA, dependencyB] },
         )
-        const dependantA = new TestTask(garden, "dependantA", [parentTask], { callback: defaultCallback })
-        const dependantB = new TestTask(garden, "dependantB", [parentTask], { callback: defaultCallback })
+        const dependantA = new TestTask(garden, "dependantA", { callback: defaultCallback, dependencies: [parentTask] })
+        const dependantB = new TestTask(garden, "dependantB", { callback: defaultCallback, dependencies: [parentTask] })
 
-        const inheritorTask = new TestTask(garden,
-          "sharedName", [dependencyA, dependencyB], { callback: defaultCallback, id: "2" },
+        const inheritorTask = new TestTask(
+          garden,
+          "sharedName",
+          { callback: defaultCallback, id: "2", dependencies: [dependencyA, dependencyB] },
         )
 
         await graph.addTask(dependencyA)

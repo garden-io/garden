@@ -19,7 +19,7 @@ import { registerCleanupFunction } from "./util/util"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
-import { startServer } from "./server"
+import { startServer } from "./server/server"
 
 export type ProcessHandler = (module: Module) => Promise<BaseTask[]>
 

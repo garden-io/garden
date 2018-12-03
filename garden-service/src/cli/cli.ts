@@ -11,7 +11,6 @@ import { intersection, merge, range } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
-
 import { DeepPrimitiveMap } from "../config/common"
 import { getEnumKeys, shutdown, sleep } from "../util/util"
 import {
@@ -24,8 +23,7 @@ import {
   StringParameter,
 } from "../commands/base"
 import { GardenError, InternalError, PluginError, toGardenError } from "../exceptions"
-import { ContextOpts, Garden } from "../garden"
-
+import { Garden, GardenOpts } from "../garden"
 import { getLogger, Logger, LoggerType } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
@@ -268,7 +266,7 @@ export class GardenCli {
       // entries (i.e. print new lines).
       const log = logger.placeholder()
 
-      const contextOpts: ContextOpts = { env, log }
+      const contextOpts: GardenOpts = { environmentName: env, log }
       if (command.noProject) {
         contextOpts.config = MOCK_CONFIG
       }

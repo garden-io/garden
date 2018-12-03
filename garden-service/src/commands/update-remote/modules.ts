@@ -23,7 +23,7 @@ import { hasRemoteSource } from "../../util/ext-source-util"
 import { logHeader } from "../../logger/util"
 
 const updateRemoteModulesArguments = {
-  module: new StringsParameter({
+  modules: new StringsParameter({
     help: "The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.",
   }),
 }
@@ -48,16 +48,16 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<SourceConfig[]>> {
     logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote modules" })
 
-    const { module } = args
-    const modules = await garden.getModules(module)
+    const { modules: moduleNames } = args
+    const modules = await garden.getModules(moduleNames)
 
     const moduleSources = <SourceConfig[]>modules
       .filter(hasRemoteSource)
-      .filter(src => module ? module.includes(src.name) : true)
+      .filter(src => moduleNames ? moduleNames.includes(src.name) : true)
 
     const names = moduleSources.map(src => src.name)
 
-    const diff = difference(module, names)
+    const diff = difference(moduleNames, names)
     if (diff.length > 0) {
       const modulesWithRemoteSource = (await garden.getModules()).filter(hasRemoteSource).sort()
 
@@ -65,7 +65,7 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
         `Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`,
         {
           modulesWithRemoteSource,
-          input: module ? module.sort() : undefined,
+          input: moduleNames ? moduleNames.sort() : undefined,
         },
       )
     }
