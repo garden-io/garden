@@ -7,6 +7,7 @@
  */
 
 import * as Bluebird from "bluebird"
+const toposort = require("toposort")
 import { flatten, fromPairs, pick, uniq } from "lodash"
 import { Garden } from "./garden"
 import { BuildDependencyConfig } from "./config/module"
@@ -36,6 +37,16 @@ type DependencyRelationNames = {
 }
 
 export type DependencyRelationFilterFn = (DependencyGraphNode) => boolean
+
+// Output types for rendering/logging
+
+export type RenderedGraph = { nodes: RenderedNode[], relationships: RenderedEdge[] }
+
+export type RenderedEdge = { dependant: RenderedNode, dependency: RenderedNode }
+
+export type RenderedNode = { type: RenderedNodeType, name: string }
+
+export type RenderedNodeType = "build" | "deploy" | "runTask" | "test" | "push" | "publish"
 
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
@@ -312,18 +323,52 @@ export class DependencyGraph {
     }
   }
 
-  // For testing/debugging.
-  renderGraph() {
+  render(): RenderedGraph {
     const nodes = Object.values(this.index)
-    const edges: string[][] = []
-    for (const node of nodes) {
-      for (const dep of node.dependencies) {
-        edges.push([nodeKey(node.type, node.name), nodeKey(dep.type, dep.name)])
+    let edges: { dependant: DependencyGraphNode, dependency: DependencyGraphNode }[] = []
+    let simpleEdges: string[][] = []
+    for (const dependant of nodes) {
+      for (const dependency of dependant.dependencies) {
+        edges.push({ dependant, dependency })
+        simpleEdges.push([
+          nodeKey(dependant.type, dependant.name),
+          nodeKey(dependency.type, dependency.name),
+        ])
       }
     }
-    return edges
+
+    const sortedNodeKeys = toposort(simpleEdges)
+
+    const edgeSortIndex = (e) => {
+      return sortedNodeKeys.findIndex(k => k === nodeKey(e.dependency.type, e.dependency.name))
+    }
+    edges = edges.sort((e1, e2) => edgeSortIndex(e2) - edgeSortIndex(e1))
+    const renderedEdges = edges.map(e => ({
+      dependant: e.dependant.render(),
+      dependency: e.dependency.render(),
+    }))
+
+    const nodeSortIndex = (n) => {
+      return sortedNodeKeys.findIndex(k => k === nodeKey(n.type, n.name))
+    }
+    const renderedNodes = nodes.sort((n1, n2) => nodeSortIndex(n2) - nodeSortIndex(n1))
+      .map(n => n.render())
+
+    return {
+      relationships: renderedEdges,
+      nodes: renderedNodes,
+    }
   }
 
+}
+
+const renderedNodeTypeMap = {
+  build: "build",
+  service: "deploy",
+  task: "runTask",
+  test: "test",
+  push: "push",
+  publish: "publish",
 }
 
 export class DependencyGraphNode {
@@ -340,6 +385,13 @@ export class DependencyGraphNode {
     this.moduleName = moduleName
     this.dependencies = []
     this.dependants = []
+  }
+
+  render(): RenderedNode {
+    return {
+      type: <RenderedNodeType>renderedNodeTypeMap[this.type],
+      name: this.name,
+    }
   }
 
   // Idempotent.

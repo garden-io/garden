@@ -287,6 +287,15 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result
 
+### garden get graph
+
+Outputs the dependency relationships specified in this project&#x27;s garden.yml files.
+
+
+##### Usage
+
+    garden get graph 
+
 ### garden get config
 
 Outputs the fully resolved configuration for this project and environment.

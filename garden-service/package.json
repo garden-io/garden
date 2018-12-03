@@ -75,6 +75,7 @@
     "sywac": "^1.2.1",
     "tar": "^4.4.6",
     "terminal-link": "^1.1.0",
+    "toposort": "^2.0.2",
     "ts-stream": "^1.0.1",
     "typescript-memoize": "^1.0.0-alpha.3",
     "uniqid": "^5.0.3",
