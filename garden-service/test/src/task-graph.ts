@@ -153,7 +153,7 @@ describe("task-graph", () => {
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
-      const task = new TestTask(garden, "a", { throwError: true })
+      const task = new TestTask(garden, "a", false, { throwError: true })
 
       await graph.addTask(task)
       const result = await graph.processTasks()
@@ -217,7 +217,8 @@ describe("task-graph", () => {
       const repeatTaskC = new TestTask(garden, "c", true, { ...repeatOpts, dependencies: [repeatTaskB], id: "c2" })
 
       const repeatTaskAforced = new TestTask(garden, "a", true, { ...repeatOpts, dependencies: [], id: "a2f" })
-      const repeatTaskBforced = new TestTask(garden, "b", true, { ...repeatOpts, dependencies: [repeatTaskA], id: "b2f" })
+      const repeatTaskBforced = new TestTask(garden, "b", true,
+        { ...repeatOpts, dependencies: [repeatTaskA], id: "b2f" })
 
       await graph.addTask(repeatTaskBforced)
       await graph.addTask(repeatTaskAforced)

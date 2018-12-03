@@ -13,13 +13,14 @@ import { Module } from "./types/module"
 import { getIgnorer, scanDirectory } from "./util/util"
 import { MODULE_CONFIG_FILENAME } from "./constants"
 import { Garden } from "./garden"
+import { LogEntry } from "./logger/log-entry"
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
 export class FSWatcher {
   private watcher
 
-  constructor(private garden: Garden) {
+  constructor(private garden: Garden, private log: LogEntry) {
   }
 
   async watchModules(modules: Module[], changeHandler: ChangeHandler) {
@@ -52,6 +53,8 @@ export class FSWatcher {
   private makeFileChangedHandler(modules: Module[], changeHandler: ChangeHandler) {
 
     return async (filePath: string) => {
+
+      this.log.debug("Start of changeHandler")
 
       const filename = basename(filePath)
       if (filename === "garden.yml" || filename === ".gitignore" || filename === ".gardenignore") {

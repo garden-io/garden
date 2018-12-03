@@ -68,8 +68,11 @@ export async function getTasksForModule(
   const taskTasks = tasks
     .map(task => new TaskTask({ garden, log, task, force, forceBuild }))
 
-  return [...buildTasks, ...deployTasks, ...taskTasks]
+  const outputTasks = [...buildTasks, ...deployTasks, ...taskTasks]
+  log.silly(`getTasksForModule called for module ${module.name}, returning the following tasks:`)
+  log.silly(`  ${outputTasks.map(t => t.getBaseKey()).join(", ")}`)
 
+  return outputTasks
 }
 
 export async function getHotReloadModuleNames(garden: Garden, hotReloadServiceNames: string[]): Promise<Set<string>> {

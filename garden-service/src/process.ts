@@ -64,6 +64,9 @@ export async function processServices(
 export async function processModules(
   { garden, log, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
+
+  log.debug("Starting processModules")
+
   // Let the user know if any modules are linked to a local path
   const linkedModulesMsg = modules
     .filter(m => isModuleLinked(m, garden))
@@ -95,7 +98,7 @@ export async function processModules(
     changeHandler = handler
   }
 
-  const watcher = new FSWatcher(garden)
+  const watcher = new FSWatcher(garden, log)
 
   const restartPromise = new Promise(async (resolve) => {
     await watcher.watchModules(modules,
@@ -107,7 +110,7 @@ export async function processModules(
         }
 
         if (changedModule) {
-          log.debug({ msg: `Files changed for module ${changedModule.name}` })
+          log.silly({ msg: `Files changed for module ${changedModule.name}` })
 
           await Bluebird.map(changeHandler!(changedModule), (task) => garden.addTask(task))
         }

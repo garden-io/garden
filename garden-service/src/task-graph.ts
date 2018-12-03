@@ -79,6 +79,10 @@ export class TaskGraph {
 
     // this.taskDependencyCache will already have been populated at this point (happens in addTaskInternal).
     for (const node of taskNodes) {
+      /**
+       * We set the list of dependency nodes to the intersection of the set of nodes in this.index with
+       * the node's task's dependencies (from configuration).
+       */
       node.clear()
       const taskDeps = this.taskDependencyCache[node.getKey()] || new Set()
       node.setDependencies(taskNodes.filter(n => taskDeps.has(n.getBaseKey())))

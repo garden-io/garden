@@ -71,6 +71,9 @@ describe("TaskHelpers", () => {
 
             "deploy.service-dependant",
             "task.dependant-task",
+
+            "deploy.service-dependant2",
+            "task.dependant-task2",
           ].sort(),
           withDependencies: [
             "build.build-dependency",
@@ -90,6 +93,11 @@ describe("TaskHelpers", () => {
             "push.service-dependant",
             "deploy.service-dependant",
             "task.dependant-task",
+
+            "build.service-dependant2",
+            "push.service-dependant2",
+            "deploy.service-dependant2",
+            "task.dependant-task2",
           ].sort(),
         },
         {
@@ -104,6 +112,9 @@ describe("TaskHelpers", () => {
 
             "deploy.service-dependant",
             "task.dependant-task",
+
+            "deploy.service-dependant2",
+            "task.dependant-task2",
           ].sort(),
           withDependencies: [
             "build.build-dependency",
@@ -121,6 +132,11 @@ describe("TaskHelpers", () => {
             "push.service-dependant",
             "deploy.service-dependant",
             "task.dependant-task",
+
+            "build.service-dependant2",
+            "push.service-dependant2",
+            "deploy.service-dependant2",
+            "task.dependant-task2",
           ].sort(),
         },
         {
@@ -181,12 +197,23 @@ describe("TaskHelpers", () => {
         },
         {
           moduleName: "good-morning",
-          withoutDependencies: ["deploy.service-dependant", "task.dependant-task"],
+          withoutDependencies: [
+            "deploy.service-dependant",
+            "task.dependant-task",
+
+            "deploy.service-dependant2",
+            "task.dependant-task2",
+          ].sort(),
           withDependencies: [
             "build.service-dependant",
             "push.service-dependant",
             "deploy.service-dependant",
             "task.dependant-task",
+
+            "build.service-dependant2",
+            "push.service-dependant2",
+            "deploy.service-dependant2",
+            "task.dependant-task2",
           ].sort(),
         },
         {
