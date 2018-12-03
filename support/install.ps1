@@ -122,9 +122,13 @@ md -Force $gardenBinPath | Out-Null
 md -Force $gardenTmpPath | Out-Null
 
 # Download and extract the archive to $gardenBinPath
-# TODO: change this to point to the latest stable instead of the hard-coded version
-$url = "https://github.com/garden-io/garden/releases/download/v0.8.0/garden-0.8.0-windows-amd64.zip"
-$zipPath = "$gardenTmpPath\garden-0.8.0-windows-amd64.zip"
+$latestRelease = Invoke-WebRequest "https://github.com/garden-io/releases/latest" -Headers @{"Accept"="application/json"}
+# The releases are returned in the format {"id":3622206,"tag_name":"hello-1.0.0.11",...}, we have to extract the tag_name.
+$json = $latestRelease.Content | ConvertFrom-Json
+$latestVersion = $json.tag_name
+
+$url = "https://github.com/garden-io/garden/releases/download/$latestVersion/garden-$latestVersion-windows-amd64.zip"
+$zipPath = "$gardenTmpPath\garden-$latestVersion-windows-amd64.zip"
 
 Write-Host "-> Downloading $url..."
 if (-not ([Net.ServicePointManager]::SecurityProtocol).ToString().Contains([Net.SecurityProtocolType]::Tls12)) {
