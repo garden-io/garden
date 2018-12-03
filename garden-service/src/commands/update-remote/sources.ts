@@ -22,7 +22,7 @@ import { SourceConfig } from "../../config/project"
 import { logHeader } from "../../logger/util"
 
 const updateRemoteSourcesArguments = {
-  source: new StringsParameter({
+  sources: new StringsParameter({
     help: "The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.",
   }),
 }
@@ -48,21 +48,21 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   ): Promise<CommandResult<SourceConfig[]>> {
     logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote sources" })
 
-    const { source } = args
+    const { sources } = args
 
     const projectSources = garden.projectSources
-      .filter(src => source ? source.includes(src.name) : true)
+      .filter(src => sources ? sources.includes(src.name) : true)
 
     const names = projectSources.map(src => src.name)
 
     // TODO: Make external modules a cli type to avoid validation repetition
-    const diff = difference(source, names)
+    const diff = difference(sources, names)
     if (diff.length > 0) {
       throw new ParameterError(
         `Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.`,
         {
           remoteSources: garden.projectSources.map(s => s.name).sort(),
-          input: source ? source.sort() : undefined,
+          input: sources ? sources.sort() : undefined,
         },
       )
     }

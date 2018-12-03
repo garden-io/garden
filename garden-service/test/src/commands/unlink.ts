@@ -65,7 +65,7 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        args: { module: ["module-a", "module-b"] },
+        args: { modules: ["module-a", "module-b"] },
         opts: { all: false },
       })
       const { linkedModuleSources } = await garden.localConfigStore.get()
@@ -78,7 +78,7 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        args: { module: undefined },
+        args: { modules: undefined },
         opts: { all: true },
       })
       const { linkedModuleSources } = await garden.localConfigStore.get()
@@ -134,7 +134,7 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        args: { source: ["source-a", "source-b"] },
+        args: { sources: ["source-a", "source-b"] },
         opts: { all: false },
       })
       const { linkedProjectSources } = await garden.localConfigStore.get()
@@ -147,7 +147,7 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        args: { source: undefined },
+        args: { sources: undefined },
         opts: { all: true },
       })
       const { linkedProjectSources } = await garden.localConfigStore.get()

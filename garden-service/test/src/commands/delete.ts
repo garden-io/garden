@@ -114,7 +114,7 @@ describe("DeleteServiceCommand", () => {
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
 
-    const { result } = await command.action({ garden, log, args: { service: ["service-a"] }, opts: {} })
+    const { result } = await command.action({ garden, log, args: { services: ["service-a"] }, opts: {} })
     expect(result).to.eql({
       "service-a": { state: "unknown", ingresses: [] },
     })
@@ -127,7 +127,7 @@ describe("DeleteServiceCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      args: { service: ["service-a", "service-b"] },
+      args: { services: ["service-a", "service-b"] },
       opts: {},
     })
     expect(result).to.eql({

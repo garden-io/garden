@@ -105,7 +105,7 @@ export class DeleteEnvironmentCommand extends Command {
 }
 
 const deleteServiceArgs = {
-  service: new StringsParameter({
+  services: new StringsParameter({
     help: "The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.",
     required: true,
   }),
@@ -114,7 +114,8 @@ type DeleteServiceArgs = typeof deleteServiceArgs
 
 export class DeleteServiceCommand extends Command {
   name = "service"
-  help = "Deletes a running service."
+  alias = "services"
+  help = "Deletes running services."
   arguments = deleteServiceArgs
 
   description = dedent`
@@ -128,7 +129,7 @@ export class DeleteServiceCommand extends Command {
   `
 
   async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const services = await garden.getServices(args.service)
+    const services = await garden.getServices(args.services)
 
     if (services.length === 0) {
       log.warn({ msg: "No services found. Aborting." })

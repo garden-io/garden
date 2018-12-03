@@ -73,7 +73,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `serviceAndPath` | Yes | The name(s) of the service(s) to call followed by the ingress path (e.g. my-container/somepath).
+  | `serviceAndPath` | Yes | The name of the service to call followed by the ingress path (e.g. my-container/somepath).
 
 ### garden create project
 
@@ -175,7 +175,7 @@ resources.
 
 ### garden delete service
 
-Deletes a running service.
+Deletes running services.
 
 Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any
 services depending on the deleted service, and might therefore leave the project in an unstable state.
@@ -187,13 +187,13 @@ Examples:
 
 ##### Usage
 
-    garden delete service <service> 
+    garden delete service <services> 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `service` | Yes | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
+  | `services` | Yes | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
 
 ### garden deploy
 
@@ -209,6 +209,7 @@ Examples:
 
     garden deploy                         # deploy all modules in the project
     garden deploy my-service              # only deploy my-service
+    garden deploy service-a,service-b     # only deploy service-a and service-b
     garden deploy --force                 # force re-deploy of modules, even if they're already deployed
     garden deploy --watch                 # watch for changes to code
     garden deploy --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
@@ -216,13 +217,13 @@ Examples:
 
 ##### Usage
 
-    garden deploy [service] [options]
+    garden deploy [services] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `service` | No | The name(s) of the service(s) to deploy (skip to deploy all services). Use comma as a separator to specify multiple services.
+  | `services` | No | The name(s) of the service(s) to deploy (skip to deploy all services). Use comma as a separator to specify multiple services.
 
 ##### Options
 
@@ -408,13 +409,13 @@ Examples:
 
 ##### Usage
 
-    garden logs [service] [options]
+    garden logs [services] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `service` | No | The name(s) of the service(s) to log (skip to log all services). Use comma as a separator to specify multiple services.
+  | `services` | No | The name(s) of the service(s) to log (skip to log all services). Use comma as a separator to specify multiple services.
 
 ##### Options
 
@@ -438,13 +439,13 @@ Examples:
 
 ##### Usage
 
-    garden publish [module] [options]
+    garden publish [modules] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | No | The name(s) of the module(s) to publish (skip to publish all modules). Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the module(s) to publish (skip to publish all modules). Use comma as a separator to specify multiple modules.
 
 ##### Options
 
@@ -638,13 +639,13 @@ Examples:
 
 ##### Usage
 
-    garden test [module] [options]
+    garden test [modules] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | No | The name(s) of the module(s) to test (skip to test all modules). Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the module(s) to test (skip to test all modules). Use comma as a separator to specify multiple modules.
 
 ##### Options
 
@@ -669,13 +670,13 @@ Examples:
 
 ##### Usage
 
-    garden unlink source [source] [options]
+    garden unlink source [sources] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `source` | No | The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.
 
 ##### Options
 
@@ -697,13 +698,13 @@ Examples:
 
 ##### Usage
 
-    garden unlink module [module] [options]
+    garden unlink module [modules] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | No | The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.
 
 ##### Options
 
@@ -724,13 +725,13 @@ Examples:
 
 ##### Usage
 
-    garden update-remote sources [source] 
+    garden update-remote sources [sources] 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `source` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
 
 ### garden update-remote modules
 
@@ -746,13 +747,13 @@ Examples:
 
 ##### Usage
 
-    garden update-remote modules [module] 
+    garden update-remote modules [modules] 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `module` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
 
 ### garden update-remote all
 

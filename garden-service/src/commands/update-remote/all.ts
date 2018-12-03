@@ -42,13 +42,13 @@ export class UpdateRemoteAllCommand extends Command {
     const { result: projectSources } = await sourcesCmd.action({
       garden,
       log,
-      args: { source: undefined },
+      args: { sources: undefined },
       opts: {},
     })
     const { result: moduleSources } = await modulesCmd.action({
       garden,
       log,
-      args: { module: undefined },
+      args: { modules: undefined },
       opts: {},
     })
 

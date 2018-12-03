@@ -23,7 +23,7 @@ import {
 } from "../../config-store"
 
 const unlinkModuleArguments = {
-  module: new StringsParameter({
+  modules: new StringsParameter({
     help: "The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.",
   }),
 }
@@ -59,7 +59,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
 
     const sourceType = "module"
 
-    const { module = [] } = args
+    const { modules = [] } = args
 
     if (opts.all) {
       await garden.localConfigStore.set([localConfigKeys.linkedModuleSources], [])
@@ -67,7 +67,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
       return { result: [] }
     }
 
-    const linkedModuleSources = await removeLinkedSources({ garden, sourceType, names: module })
+    const linkedModuleSources = await removeLinkedSources({ garden, sourceType, names: modules })
 
     log.info(`Unlinked module(s) ${module}`)
 

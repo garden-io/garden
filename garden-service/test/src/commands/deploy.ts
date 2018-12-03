@@ -100,7 +100,7 @@ describe("DeployCommand", () => {
       garden,
       log,
       args: {
-        service: undefined,
+        services: undefined,
       },
       opts: {
         "hot-reload": undefined,
@@ -135,7 +135,7 @@ describe("DeployCommand", () => {
       garden,
       log,
       args: {
-        service: ["service-b"],
+        services: ["service-b"],
       },
       opts: {
         "hot-reload": undefined,

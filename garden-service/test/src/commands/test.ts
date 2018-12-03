@@ -12,7 +12,7 @@ describe("commands.test", () => {
     const { result } = await command.action({
       garden,
       log,
-      args: { module: undefined },
+      args: { modules: undefined },
       opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
     })
 
@@ -49,7 +49,7 @@ describe("commands.test", () => {
     const { result } = await command.action({
       garden,
       log,
-      args: { module: ["module-a"] },
+      args: { modules: ["module-a"] },
       opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
     })
 

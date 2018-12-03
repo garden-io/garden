@@ -26,7 +26,7 @@ import { getTestTasks } from "../tasks/test"
 import { logHeader } from "../logger/util"
 
 const testArgs = {
-  module: new StringsParameter({
+  modules: new StringsParameter({
     help: "The name(s) of the module(s) to test (skip to test all modules). " +
       "Use comma as a separator to specify multiple modules.",
   }),
@@ -83,8 +83,8 @@ export class TestCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const dependencyGraph = await garden.getDependencyGraph()
     let modules: Module[]
-    if (args.module) {
-      modules = await dependencyGraph.withDependantModules(await garden.getModules(args.module))
+    if (args.modules) {
+      modules = await dependencyGraph.withDependantModules(await garden.getModules(args.modules))
     } else {
       // All modules are included in this case, so there's no need to compute dependants.
       modules = await garden.getModules()
