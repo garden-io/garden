@@ -8,15 +8,12 @@
 
 import * as Bluebird from "bluebird"
 import * as execa from "execa"
-import * as split from "split"
 import { includes } from "lodash"
-import moment = require("moment")
 
 import { DeploymentError, ConfigurationError } from "../../exceptions"
-import { GetServiceLogsResult, HotReloadResult, RunResult, TestResult } from "../../types/plugin/outputs"
+import { HotReloadResult, RunResult, TestResult } from "../../types/plugin/outputs"
 import {
   ExecInServiceParams,
-  GetServiceLogsParams,
   GetServiceOutputsParams,
   GetTestResultParams,
   HotReloadParams,
@@ -28,7 +25,7 @@ import {
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
 import { ContainerModule, helpers, validateContainerModule } from "../container"
-import { deserializeValues, serializeValues, splitFirst } from "../../util/util"
+import { deserializeValues, serializeValues } from "../../util/util"
 import { KubeApi } from "./api"
 import { getAppNamespace, getMetadataNamespace } from "./namespace"
 import { kubectl } from "./kubectl"

@@ -21,6 +21,7 @@ import {
   GetEnvironmentStatusParams,
   ValidateModuleParams,
   DeleteServiceParams,
+  GetServiceLogsParams,
 } from "../../types/plugin/params"
 import {
   ServiceStatus,
@@ -53,6 +54,7 @@ import { Provider, providerConfigBaseSchema } from "../../config/project"
 import { faasCli } from "./faas-cli"
 import { CleanupEnvironmentParams } from "../../types/plugin/params"
 import dedent = require("dedent")
+import { getKubernetesLogs } from "../kubernetes/logs"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 export const stackFilename = "stack.yml"
@@ -207,6 +209,15 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           return {
             endpoint: await getInternalServiceUrl(ctx, service),
           }
+        },
+
+        async getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
+          const { ctx, service } = params
+          const k8sProvider = getK8sProvider(ctx)
+          const context = k8sProvider.config.context
+          const namespace = await getAppNamespace(ctx, k8sProvider)
+          const selector = `faas_function=${service.name}`
+          return getKubernetesLogs({ ...params, context, namespace, selector })
         },
 
         async deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {

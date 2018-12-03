@@ -8,27 +8,35 @@
 
 import * as split from "split"
 import moment = require("moment")
-import Stream from "ts-stream"
 
-import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/outputs"
+import { GetServiceLogsResult } from "../../types/plugin/outputs"
 import { GetServiceLogsParams } from "../../types/plugin/params"
 import { ContainerModule } from "../container"
 import { getAppNamespace } from "./namespace"
 import { splitFirst } from "../../util/util"
 import { BinaryCmd } from "../../util/ext-tools"
 import { kubectl } from "./kubectl"
-import { ContainerService } from "../../../tmp/dist/build/plugins/container"
-import { LogEntry } from "../../logger/log-entry"
 
-export async function getServiceLogs(
-  { ctx, log, service, stream, tail }: GetServiceLogsParams<ContainerModule>,
-) {
+interface GetKubernetesLogsParams extends GetServiceLogsParams {
+  context: string
+  namespace: string
+  selector: string
+}
+
+export async function getServiceLogs(params: GetServiceLogsParams<ContainerModule>) {
+  const { ctx, service } = params
   const context = ctx.provider.config.context
   const namespace = await getAppNamespace(ctx, ctx.provider)
+  const selector = `service=${service.name}`
 
-  const proc = tail
-    ? await tailLogs(context, namespace, service, stream, log)
-    : await getLogs(context, namespace, service, stream)
+  return getKubernetesLogs({ ...params, context, namespace, selector })
+}
+
+export async function getKubernetesLogs(params: GetKubernetesLogsParams) {
+  // Currently Stern doesn't support just returning the logs and exiting, it can only follow
+  const proc = params.tail
+    ? await tailLogs(params)
+    : await getLogs(params)
 
   return new Promise<GetServiceLogsResult>((resolve, reject) => {
     proc.on("error", reject)
@@ -39,19 +47,15 @@ export async function getServiceLogs(
   })
 }
 
-async function tailLogs(
-  context: string, namespace: string, service: ContainerService, stream: Stream<ServiceLogEntry>, log: LogEntry,
-) {
+async function tailLogs({ context, namespace, service, selector, stream, log }: GetKubernetesLogsParams) {
   const args = [
     "--color", "never",
     "--context", context,
     "--namespace", namespace,
     "--output", "json",
-    "--selector", `service=${service.name}`,
+    "--selector", selector,
     "--timestamps",
   ]
-
-  console.log(args.join(" "))
 
   const proc = await stern.spawn({ args, log })
   let timestamp: Date | undefined
@@ -73,11 +77,13 @@ async function tailLogs(
   return proc
 }
 
-async function getLogs(
-  context: string, namespace: string, service: ContainerService, stream: Stream<ServiceLogEntry>,
-) {
-  const resourceType = service.spec.daemon ? "daemonset" : "deployment"
-  const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
+async function getLogs({ context, namespace, service, selector, stream }: GetKubernetesLogsParams) {
+  // TODO: do this via API instead of kubectl
+  const kubectlArgs = [
+    "logs",
+    "--selector", selector,
+    "--timestamps=true",
+  ]
 
   const proc = kubectl(context, namespace).spawn(kubectlArgs)
   let timestamp: Date
