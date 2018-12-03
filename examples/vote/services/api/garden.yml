@@ -1,0 +1,20 @@
+module:
+  description: The backend for the voting UI
+  type: container
+  name: api
+  services:
+    - name: api
+      command: [python, app.py]
+      ingresses:
+        - path: /
+          hostname: api.local.app.garden
+          port: interface
+      ports:
+        - name: interface
+          protocol: TCP
+          containerPort: 80
+      dependencies:
+        - redis
+  tests:
+    - name: unit
+      command: [echo, ok]
