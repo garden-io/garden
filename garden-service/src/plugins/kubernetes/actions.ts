@@ -333,44 +333,6 @@ export async function getTestResult(
   }
 }
 
-export async function getServiceLogs(
-  { ctx, service, stream, tail }: GetServiceLogsParams<ContainerModule>,
-) {
-  const context = ctx.provider.config.context
-  const resourceType = service.spec.daemon ? "daemonset" : "deployment"
-
-  const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
-
-  if (tail) {
-    kubectlArgs.push("--follow")
-  }
-
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  const proc = kubectl(context, namespace).spawn(kubectlArgs)
-  let timestamp: Date
-
-  proc.stdout
-    .pipe(split())
-    .on("data", (s) => {
-      if (!s) {
-        return
-      }
-      const [timestampStr, msg] = splitFirst(s, " ")
-      try {
-        timestamp = moment(timestampStr).toDate()
-      } catch { }
-      void stream.write({ serviceName: service.name, timestamp, msg })
-    })
-
-  return new Promise<GetServiceLogsResult>((resolve, reject) => {
-    proc.on("error", reject)
-
-    proc.on("exit", () => {
-      resolve({})
-    })
-  })
-}
-
 function getTestResultKey(module: ContainerModule, testName: string, version: ModuleVersion) {
   return `test-result--${module.name}--${testName}--${version.versionString}`
 }

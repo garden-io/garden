@@ -112,7 +112,7 @@ export class DeployTask extends BaseTask {
     })
 
     // TODO: get version from build task results
-    const { versionString } = await this.service.module.version
+    const { versionString } = this.version
     const hotReloadEnabled = includes(this.hotReloadServiceNames, this.service.name)
     const status = await this.garden.actions.getServiceStatus({
       service: this.service,
@@ -133,7 +133,7 @@ export class DeployTask extends BaseTask {
       return status
     }
 
-    log.setState("Deploying")
+    log.setState(`Deploying version ${versionString}...`)
 
     const dependencies = await this.garden.getServices(this.service.config.dependencies)
 

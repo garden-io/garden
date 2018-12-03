@@ -97,7 +97,7 @@ export const execInServiceResultSchema = Joi.object()
 
 export interface ServiceLogEntry {
   serviceName: string
-  timestamp: Date
+  timestamp?: Date
   msg: string
 }
 

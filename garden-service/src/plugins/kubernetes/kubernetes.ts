@@ -20,7 +20,6 @@ import { getGenericTaskStatus } from "../generic"
 import {
   deleteService,
   execInService,
-  getServiceLogs,
   getServiceOutputs,
   getTestResult,
   hotReload,
@@ -34,6 +33,7 @@ import { helmHandlers } from "./helm"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container"
 import { getRemoteEnvironmentStatus, prepareRemoteEnvironment, cleanupEnvironment } from "./init"
+import { getServiceLogs } from "./logs"
 
 export const name = "kubernetes"
 
