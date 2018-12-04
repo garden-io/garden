@@ -19,6 +19,7 @@ import { LogEntry } from "../logger/log-entry"
 import { Extract } from "unzipper"
 import { createHash } from "crypto"
 import * as uuid from "uuid"
+import * as spawn from "cross-spawn"
 
 const globalGardenPath = join(homedir(), ".garden")
 const toolsPath = join(globalGardenPath, "tools")
@@ -27,6 +28,7 @@ interface ExecParams {
   cwd?: string
   log: LogEntry
   args?: string[]
+  timeout?: number
 }
 
 abstract class Cmd {
@@ -110,8 +112,8 @@ export class BinaryCmd extends Cmd {
     const tmpPath = join(this.toolPath, this.versionDirname + "." + uuid.v4().substr(0, 8))
     const tmpExecutable = join(tmpPath, ...this.executableSubpath)
 
-    log.setState(`Fetching ${this.name}...`)
-    const debug = log.debug(`Downloading ${this.spec.url}...`)
+    const logEntry = log.verbose(`Fetching ${this.name}...`)
+    const debug = logEntry.debug(`Downloading ${this.spec.url}...`)
 
     await ensureDir(tmpPath)
 
@@ -136,17 +138,22 @@ export class BinaryCmd extends Cmd {
     }
 
     debug && debug.setSuccess("Done")
-    log.setSuccess(`Fetched ${this.name}`)
+    logEntry.setSuccess(`Fetched ${this.name}`)
   }
 
-  async exec({ cwd, args, log }: ExecParams) {
+  async exec({ cwd, args, log, timeout }: ExecParams) {
     await this.download(log)
-    return execa(this.executablePath, args || [], { cwd: cwd || this.defaultCwd })
+    return execa(this.executablePath, args || [], { cwd: cwd || this.defaultCwd, timeout })
   }
 
   async stdout(params: ExecParams) {
     const res = await this.exec(params)
     return res.stdout
+  }
+
+  async spawn({ cwd, args, log }: ExecParams) {
+    await this.download(log)
+    return spawn(this.executablePath, args || [], { cwd })
   }
 
   private async fetch(targetPath: string, log: LogEntry) {

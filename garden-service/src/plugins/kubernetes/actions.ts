@@ -8,15 +8,12 @@
 
 import * as Bluebird from "bluebird"
 import * as execa from "execa"
-import * as split from "split"
 import { includes } from "lodash"
-import moment = require("moment")
 
 import { DeploymentError, ConfigurationError } from "../../exceptions"
-import { GetServiceLogsResult, HotReloadResult, RunResult, TestResult } from "../../types/plugin/outputs"
+import { HotReloadResult, RunResult, TestResult } from "../../types/plugin/outputs"
 import {
   ExecInServiceParams,
-  GetServiceLogsParams,
   GetServiceOutputsParams,
   GetTestResultParams,
   HotReloadParams,
@@ -28,7 +25,7 @@ import {
 } from "../../types/plugin/params"
 import { ModuleVersion } from "../../vcs/base"
 import { ContainerModule, helpers, validateContainerModule } from "../container"
-import { deserializeValues, serializeValues, splitFirst } from "../../util/util"
+import { deserializeValues, serializeValues } from "../../util/util"
 import { KubeApi } from "./api"
 import { getAppNamespace, getMetadataNamespace } from "./namespace"
 import { kubectl } from "./kubectl"
@@ -331,44 +328,6 @@ export async function getTestResult(
       throw err
     }
   }
-}
-
-export async function getServiceLogs(
-  { ctx, service, stream, tail }: GetServiceLogsParams<ContainerModule>,
-) {
-  const context = ctx.provider.config.context
-  const resourceType = service.spec.daemon ? "daemonset" : "deployment"
-
-  const kubectlArgs = ["logs", `${resourceType}/${service.name}`, "--timestamps=true"]
-
-  if (tail) {
-    kubectlArgs.push("--follow")
-  }
-
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  const proc = kubectl(context, namespace).spawn(kubectlArgs)
-  let timestamp: Date
-
-  proc.stdout
-    .pipe(split())
-    .on("data", (s) => {
-      if (!s) {
-        return
-      }
-      const [timestampStr, msg] = splitFirst(s, " ")
-      try {
-        timestamp = moment(timestampStr).toDate()
-      } catch { }
-      void stream.write({ serviceName: service.name, timestamp, msg })
-    })
-
-  return new Promise<GetServiceLogsResult>((resolve, reject) => {
-    proc.on("error", reject)
-
-    proc.on("exit", () => {
-      resolve({})
-    })
-  })
 }
 
 function getTestResultKey(module: ContainerModule, testName: string, version: ModuleVersion) {
