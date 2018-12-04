@@ -814,23 +814,17 @@ export class Garden {
 
       this.modulesScanned = true
 
-      await this.detectCircularDependencies()
-
       const moduleConfigContext = new ModuleConfigContext(
         this, this.log, this.environment, Object.values(this.moduleConfigs),
       )
       this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
+
+      await this.detectCircularDependencies()
     })
   }
 
   private async detectCircularDependencies() {
-    const { modules, services, tasks } = await Bluebird.props({
-      modules: this.getModules(),
-      services: this.getServices(),
-      tasks: this.getTasks(),
-    })
-
-    return detectCircularDependencies(modules, services, tasks)
+    return detectCircularDependencies(Object.values(this.moduleConfigs))
   }
 
   /*

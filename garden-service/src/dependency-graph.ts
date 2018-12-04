@@ -62,12 +62,8 @@ export class DependencyGraph {
   private testConfigModuleMap: { [key: string]: Module }
 
   static async factory(garden: Garden) {
-    const { modules, services, tasks } = await Bluebird.props({
-      modules: garden.getModules(),
-      services: garden.getServices(),
-      tasks: garden.getTasks(),
-    })
-
+    const modules = await garden.getModules()
+    const { services, tasks } = await garden.getServicesAndTasks()
     return new DependencyGraph(garden, modules, services, tasks)
   }
 
