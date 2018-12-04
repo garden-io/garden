@@ -528,7 +528,7 @@ export async function deleteContainerService(
     namespace,
     labelKey: "service",
     labelValue: serviceName,
-    objectTypes: ["deployment", "service", "ingress"],
+    objectTypes: ["deployment", "replicaset", "pod", "service", "ingress", "daemonset"],
     includeUninitialized: false,
   })
 
