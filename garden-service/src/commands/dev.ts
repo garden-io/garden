@@ -116,7 +116,7 @@ export class DevCommand extends Command<Args, Opts> {
           fromWatch: watch,
           hotReloadServiceNames,
           force: watch,
-          forceBuild: watch,
+          forceBuild: false,
           includeDependants: watch,
         }))
       }

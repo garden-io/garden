@@ -9,7 +9,8 @@
 import * as Bluebird from "bluebird"
 import * as PQueue from "p-queue"
 import chalk from "chalk"
-import { merge, padEnd, pick } from "lodash"
+import * as yaml from "js-yaml"
+import { merge, padEnd, pick, flatten } from "lodash"
 import { BaseTask, TaskDefinitionError } from "./tasks/base"
 
 import { LogEntry } from "./logger/log-entry"
@@ -26,9 +27,9 @@ export interface TaskResult {
   error?: Error
 }
 
-/*
-  When multiple tasks with the same baseKey are completed during a call to processTasks,
-  the result from the last processed is used (hence only one key-value pair here per baseKey).
+/**
+ * When multiple tasks with the same baseKey are completed during a call to processTasks,
+ * the result from the last processed is used (hence only one key-value pair here per baseKey).
  */
 export interface TaskResults {
   [baseKey: string]: TaskResult
@@ -43,6 +44,12 @@ export class TaskGraph {
   private inProgress: TaskNodeMap
   private logEntryMap: LogEntryMap
 
+  /**
+   * A given task instance (uniquely identified by its key) should always return the same
+   * list of dependencies (by baseKey) from its getDependencies method.
+   */
+  private taskDependencyCache: { [key: string]: Set<string> } // sets of baseKeys
+
   private resultCache: ResultCache
   private opQueue: PQueue
 
@@ -50,6 +57,7 @@ export class TaskGraph {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
+    this.taskDependencyCache = {}
     this.resultCache = new ResultCache()
     this.opQueue = new PQueue({ concurrency: 1 })
     this.logEntryMap = {}
@@ -63,55 +71,68 @@ export class TaskGraph {
     return this.opQueue.add(() => this.processTasksInternal())
   }
 
-  private async addTaskInternal(task: BaseTask) {
-    const predecessor = this.getPredecessor(task)
-    let node = this.getNode(task)
+  /**
+   * Rebuilds the dependency relationships between the TaskNodes in this.index, and updates this.roots accordingly.
+   */
+  private async rebuild() {
+    const taskNodes = this.index.getNodes()
 
-    if (predecessor) {
-      /*
-        predecessor is already in the graph, having the same baseKey as task,
-        but a different key (see the getPredecessor method below).
-      */
-      if (this.inProgress.contains(predecessor)) {
-        this.index.addNode(node)
-        /*
-          We transition
-            [dependencies] > predecessor > [dependants]
-          to
-            [dependencies] > predecessor > node > [dependants]
-         */
-        this.inherit(predecessor, node)
-        return
-      } else {
-        node = predecessor // No need to add a new TaskNode.
-      }
+    // this.taskDependencyCache will already have been populated at this point (happens in addTaskInternal).
+    for (const node of taskNodes) {
+      /**
+       * We set the list of dependency nodes to the intersection of the set of nodes in this.index with
+       * the node's task's dependencies (from configuration).
+       */
+      node.clear()
+      const taskDeps = this.taskDependencyCache[node.getKey()] || new Set()
+      node.setDependencies(taskNodes.filter(n => taskDeps.has(n.getBaseKey())))
     }
 
-    this.index.addNode(node)
+    const newRootNodes = taskNodes.filter(n => n.getDependencies().length === 0)
+    this.roots.clear()
+    this.roots.setNodes(newRootNodes)
+  }
 
+  private async addTaskInternal(task: BaseTask) {
     this.garden.events.emit("taskPending", {
       addedAt: new Date(),
-      key: node.getKey(),
+      key: task.getKey(),
       version: task.version,
     })
+    await this.addNodeWithDependencies(task)
+    await this.rebuild()
+  }
 
-    await this.addDependencies(node)
+  private getNode(task: BaseTask): TaskNode | null {
+    const key = task.getKey()
+    const baseKey = task.getBaseKey()
+    const existing = this.index.getNodes()
+      .filter(n => n.getBaseKey() === baseKey && n.getKey() !== key)
+      .reverse()[0]
 
-    if (node.getDependencies().length === 0) {
-      this.roots.addNode(node)
+    if (existing) {
+      // A task with the same baseKey is already pending.
+      return existing
     } else {
-      await this.addDependants(node)
+      const cachedResultExists = !!this.resultCache.get(task.getBaseKey(), task.version.versionString)
+      if (cachedResultExists && !task.force) {
+        // No need to add task or its dependencies.
+        return null
+      } else {
+        return new TaskNode((task))
+      }
     }
   }
 
-  private getNode(task: BaseTask): TaskNode {
-    const existing = this.index.getNode(task)
-    return existing || new TaskNode(task)
-  }
-  /*
-    Process the graph until it's complete
+  /**
+   * Process the graph until it's complete.
    */
   private async processTasksInternal(): Promise<TaskResults> {
+    this.log.silly("")
+    this.log.silly("TaskGraph: this.index before processing")
+    this.log.silly("---------------------------------------")
+    this.log.silly(yaml.safeDump(this.index.inspect(), { noRefs: true, skipInvalid: true }))
+
     const _this = this
     const results: TaskResults = {}
 
@@ -127,6 +148,7 @@ export class TaskGraph {
         .slice(0, _this.concurrency - this.inProgress.length)
 
       batch.forEach(n => this.inProgress.addNode(n))
+      await this.rebuild()
 
       this.initLogging()
 
@@ -155,13 +177,13 @@ export class TaskGraph {
             result = { type, description, error }
             this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
-            this.cancelDependants(node)
+            await this.cancelDependants(node)
           } finally {
             results[baseKey] = result
             this.resultCache.put(baseKey, task.version.versionString, result)
           }
         } finally {
-          this.completeTask(node, !result.error)
+          await this.completeTask(node, !result.error)
         }
 
         return loop()
@@ -170,92 +192,59 @@ export class TaskGraph {
 
     await loop()
 
+    await this.rebuild()
+
     return results
   }
 
-  private completeTask(node: TaskNode, success: boolean) {
+  private addNode(task: BaseTask): TaskNode | null {
+    const node = this.getNode(task)
+    if (node) {
+      this.index.addNode(node)
+    }
+    return node
+  }
+
+  private async addNodeWithDependencies(task: BaseTask) {
+    const node = this.addNode(task)
+
+    if (node) {
+      const depTasks = await node.task.getDependencies()
+      this.taskDependencyCache[node.getKey()] = new Set(depTasks.map(d => d.getBaseKey()))
+      for (const dep of depTasks) {
+        await this.addNodeWithDependencies(dep)
+      }
+    }
+  }
+
+  private async completeTask(node: TaskNode, success: boolean) {
     if (node.getDependencies().length > 0) {
       throw new TaskGraphError(`Task ${node.getKey()} still has unprocessed dependencies`)
     }
 
-    for (let d of node.getDependants()) {
-      d.removeDependency(node)
-
-      if (d.getDependencies().length === 0) {
-        this.roots.addNode(d)
-      }
-    }
-
     this.remove(node)
     this.logTaskComplete(node, success)
+    await this.rebuild()
   }
 
-  private getPredecessor(task: BaseTask): TaskNode | null {
-    const key = task.getKey()
-    const baseKey = task.getBaseKey()
-    const predecessors = this.index.getNodes()
-      .filter(n => n.getBaseKey() === baseKey && n.getKey() !== key)
-      .reverse()
-    return predecessors[0] || null
-  }
-
-  private async addDependencies(node: TaskNode) {
-    const task = node.task
-    for (const d of await task.getDependencies()) {
-
-      if (!d.force && this.resultCache.get(d.getBaseKey(), d.version.versionString)) {
-        continue
-      }
-
-      const dependency = this.getPredecessor(d) || this.getNode(d)
-      this.index.addNode(dependency)
-      node.addDependency(dependency)
-
-    }
-  }
-
-  private async addDependants(node: TaskNode) {
-    const nodeDependencies = node.getDependencies()
-    for (const d of nodeDependencies) {
-      const dependant = this.getPredecessor(d.task) || d
-      await this.addTaskInternal(dependant.task)
-      dependant.addDependant(node)
-    }
-  }
-
-  private inherit(oldNode: TaskNode, newNode: TaskNode) {
-    oldNode.getDependants().forEach(node => {
-      newNode.addDependant(node)
-      oldNode.removeDependant(node)
-      node.removeDependency(oldNode)
-      node.addDependency(newNode)
-    })
-
-    newNode.addDependency(oldNode)
-    oldNode.addDependant(newNode)
-  }
-
-  // Should only be called when node is not a dependant for any task.
   private remove(node: TaskNode) {
-    this.roots.removeNode(node)
     this.index.removeNode(node)
     this.inProgress.removeNode(node)
   }
 
   // Recursively remove node's dependants, without removing node.
-  private cancelDependants(node: TaskNode) {
-    const remover = (n) => {
-      for (const dependant of n.getDependants()) {
-        this.logTaskComplete(n, false)
-        remover(dependant)
-      }
-      this.remove(n)
+  private async cancelDependants(node: TaskNode) {
+    for (const dependant of this.getDependants(node)) {
+      this.logTaskComplete(dependant, false)
+      this.remove(dependant)
     }
+    await this.rebuild()
+  }
 
-    for (const dependant of node.getDependants()) {
-      node.removeDependant(dependant)
-      remover(dependant)
-    }
+  private getDependants(node: TaskNode): TaskNode[] {
+    const dependants = this.index.getNodes().filter(n => n.getDependencies()
+      .find(d => d.getBaseKey() === node.getBaseKey()))
+    return dependants.concat(flatten(dependants.map(d => this.getDependants(d))))
   }
 
   // Logging
@@ -342,6 +331,12 @@ class TaskNodeMap {
     }
   }
 
+  setNodes(nodes: TaskNode[]): void {
+    for (const node of nodes) {
+      this.addNode(node)
+    }
+  }
+
   getNodes(): TaskNode[] {
     return Array.from(this.index.values())
   }
@@ -350,42 +345,43 @@ class TaskNodeMap {
     return this.index.has(node.getKey())
   }
 
+  clear() {
+    this.index.clear()
+    this.length = 0
+  }
+
+  // For testing/debugging purposes
+  inspect(): object {
+    const out = {}
+    this.index.forEach((node, key) => {
+      out[key] = node.inspect()
+    })
+    return out
+  }
+
 }
 
 class TaskNode {
   task: BaseTask
 
   private dependencies: TaskNodeMap
-  private dependants: TaskNodeMap
 
   constructor(task: BaseTask) {
     this.task = task
     this.dependencies = new TaskNodeMap()
-    this.dependants = new TaskNodeMap()
   }
 
-  addDependency(node: TaskNode) {
-    this.dependencies.addNode(node)
+  clear() {
+    this.dependencies.clear()
   }
 
-  addDependant(node: TaskNode) {
-    this.dependants.addNode(node)
+  setDependencies(nodes: TaskNode[]) {
+    for (const node of nodes) {
+      this.dependencies.addNode(node)
+    }
   }
-
-  removeDependency(node: TaskNode) {
-    this.dependencies.removeNode(node)
-  }
-
-  removeDependant(node: TaskNode) {
-    this.dependants.removeNode(node)
-  }
-
   getDependencies() {
     return this.dependencies.getNodes()
-  }
-
-  getDependants() {
-    return this.dependants.getNodes()
   }
 
   getBaseKey() {
@@ -408,8 +404,7 @@ class TaskNode {
   inspect(): object {
     return {
       key: this.getKey(),
-      dependencies: this.getDependencies().map(d => d.getKey()),
-      dependants: this.getDependants().map(d => d.getKey()),
+      dependencies: this.getDependencies().map(d => d.inspect()),
     }
   }
 
@@ -431,14 +426,14 @@ interface CachedResult {
 }
 
 class ResultCache {
-  /*
-    By design, at most one TaskResult (the most recently processed) is cached for a given baseKey.
-
-    Invariant: No concurrent calls are made to this class' instance methods, since they
-    only happen within TaskGraph's addTaskInternal and processTasksInternal methods,
-    which are never executed concurrently, since they are executed sequentially by the
-    operation queue.
-  */
+  /**
+   * By design, at most one TaskResult (the most recently processed) is cached for a given baseKey.
+   *
+   * Invariant: No concurrent calls are made to this class' instance methods, since they
+   * only happen within TaskGraph's addTaskInternal and processTasksInternal methods,
+   * which are never executed concurrently, since they are executed sequentially by the
+   * operation queue.
+   */
   private cache: { [key: string]: CachedResult }
 
   constructor() {

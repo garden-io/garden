@@ -151,14 +151,10 @@ export class DependencyGraph {
    * Returns all build and runtime dependants of module and its services & tasks (recursively).
    */
   async getDependantsForModule(module: Module, filterFn?: DependencyRelationFilterFn): Promise<DependencyRelations> {
-    const runtimeDependencies = uniq(module.serviceDependencyNames.concat(module.taskDependencyNames))
-    const serviceNames = runtimeDependencies.filter(d => this.serviceMap[d])
-    const taskNames = runtimeDependencies.filter(d => this.taskMap[d])
-
     return this.mergeRelations(... await Bluebird.all([
       this.getDependants("build", module.name, true, filterFn),
-      this.getDependantsForMany("service", serviceNames, true, filterFn),
-      this.getDependantsForMany("task", taskNames, true, filterFn),
+      this.getDependantsForMany("service", module.serviceNames, true, filterFn),
+      this.getDependantsForMany("task", module.taskNames, true, filterFn),
     ]))
   }
 

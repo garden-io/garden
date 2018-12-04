@@ -32,6 +32,7 @@ class TestTask extends BaseTask {
   constructor(
     garden: Garden,
     name: string,
+    force,
     options?: TestTaskOptions,
   ) {
     super({
@@ -42,6 +43,7 @@ class TestTask extends BaseTask {
         dirtyTimestamp: 6789,
         dependencyVersions: {},
       },
+      force,
     })
 
     if (!options) {
@@ -96,7 +98,7 @@ describe("task-graph", () => {
     it("should successfully process a single task without dependencies", async () => {
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
-      const task = new TestTask(garden, "a")
+      const task = new TestTask(garden, "a", false)
 
       await graph.addTask(task)
       const results = await graph.processTasks()
@@ -121,7 +123,7 @@ describe("task-graph", () => {
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
-      const task = new TestTask(garden, "a")
+      const task = new TestTask(garden, "a", false)
 
       await graph.addTask(task)
 
@@ -135,7 +137,7 @@ describe("task-graph", () => {
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
-      const task = new TestTask(garden, "a")
+      const task = new TestTask(garden, "a", false)
 
       await graph.addTask(task)
       const result = await graph.processTasks()
@@ -151,7 +153,7 @@ describe("task-graph", () => {
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
-      const task = new TestTask(garden, "a", { throwError: true })
+      const task = new TestTask(garden, "a", false, { throwError: true })
 
       await graph.addTask(task)
       const result = await graph.processTasks()
@@ -176,12 +178,16 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask(garden, "a", { ...opts })
-      const taskB = new TestTask(garden, "b", { ...opts, dependencies: [taskA] })
-      const taskC = new TestTask(garden, "c", { ...opts, dependencies: [taskB] })
-      const taskD = new TestTask(garden, "d", { ...opts, dependencies: [taskB, taskC] })
+      const taskA = new TestTask(garden, "a", false, { ...opts, dependencies: [], id: "a1" })
+      const taskB = new TestTask(garden, "b", false, { ...opts, dependencies: [taskA], id: "b1" })
+      const taskC = new TestTask(garden, "c", false, { ...opts, dependencies: [taskB], id: "c1" })
+      const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC], id: "d1" })
 
       // we should be able to add tasks multiple times and in any order
+
+      await graph.addTask(taskA)
+      await graph.addTask(taskB)
+      await graph.addTask(taskC)
       await graph.addTask(taskC)
       await graph.addTask(taskD)
       await graph.addTask(taskA)
@@ -194,29 +200,55 @@ describe("task-graph", () => {
 
       const results = await graph.processTasks()
 
+      // repeat
+
+      const repeatCallbackResults = {}
+      const repeatResultOrder: string[] = []
+
+      const repeatCallback = async (key: string, result: any) => {
+        repeatResultOrder.push(key)
+        repeatCallbackResults[key] = result
+      }
+
+      const repeatOpts = { callback: repeatCallback }
+
+      const repeatTaskA = new TestTask(garden, "a", false, { ...repeatOpts, dependencies: [], id: "a2" })
+      const repeatTaskB = new TestTask(garden, "b", false, { ...repeatOpts, dependencies: [repeatTaskA], id: "b2" })
+      const repeatTaskC = new TestTask(garden, "c", true, { ...repeatOpts, dependencies: [repeatTaskB], id: "c2" })
+
+      const repeatTaskAforced = new TestTask(garden, "a", true, { ...repeatOpts, dependencies: [], id: "a2f" })
+      const repeatTaskBforced = new TestTask(garden, "b", true,
+        { ...repeatOpts, dependencies: [repeatTaskA], id: "b2f" })
+
+      await graph.addTask(repeatTaskBforced)
+      await graph.addTask(repeatTaskAforced)
+      await graph.addTask(repeatTaskC)
+
+      await graph.processTasks()
+
       const resultA: TaskResult = {
         type: "test",
-        description: "a",
+        description: "a.a1",
         output: {
-          result: "result-a",
+          result: "result-a.a1",
           dependencyResults: {},
         },
         dependencyResults: {},
       }
       const resultB: TaskResult = {
         type: "test",
-        description: "b",
+        description: "b.b1",
         output: {
-          result: "result-b",
+          result: "result-b.b1",
           dependencyResults: { a: resultA },
         },
         dependencyResults: { a: resultA },
       }
       const resultC: TaskResult = {
         type: "test",
-        description: "c",
+        description: "c.c1",
         output: {
-          result: "result-c",
+          result: "result-c.c1",
           dependencyResults: { b: resultB },
         },
         dependencyResults: { b: resultB },
@@ -228,9 +260,9 @@ describe("task-graph", () => {
         c: resultC,
         d: {
           type: "test",
-          description: "d",
+          description: "d.d1",
           output: {
-            result: "result-d",
+            result: "result-d.d1",
             dependencyResults: {
               b: resultB,
               c: resultC,
@@ -243,15 +275,24 @@ describe("task-graph", () => {
         },
       }
 
-      expect(results).to.eql(expected)
-      expect(resultOrder).to.eql(["a", "b", "c", "d"])
+      expect(results).to.eql(expected, "Wrong results after initial add and process")
+      expect(resultOrder).to.eql(["a.a1", "b.b1", "c.c1", "d.d1"], "Wrong result order after initial add and process")
 
       expect(callbackResults).to.eql({
-        a: "result-a",
-        b: "result-b",
-        c: "result-c",
-        d: "result-d",
-      })
+        "a.a1": "result-a.a1",
+        "b.b1": "result-b.b1",
+        "c.c1": "result-c.c1",
+        "d.d1": "result-d.d1",
+      }, "Wrong callbackResults after initial add and process")
+
+      expect(repeatResultOrder).to.eql(["a.a2f", "b.b2f", "c.c2"], "Wrong result order after repeat add & process")
+
+      expect(repeatCallbackResults).to.eql({
+        "a.a2f": "result-a.a2f",
+        "b.b2f": "result-b.b2f",
+        "c.c2": "result-c.c2",
+      }, "Wrong callbackResults after repeat add & process")
+
     })
 
     it("should recursively cancel a task's dependants when it throws an error", async () => {
@@ -266,10 +307,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask(garden, "a", { ...opts })
-      const taskB = new TestTask(garden, "b", { callback, throwError: true, dependencies: [taskA] })
-      const taskC = new TestTask(garden, "c", { ...opts, dependencies: [taskB] })
-      const taskD = new TestTask(garden, "d", { ...opts, dependencies: [taskB, taskC] })
+      const taskA = new TestTask(garden, "a", false, { ...opts })
+      const taskB = new TestTask(garden, "b", false, { callback, throwError: true, dependencies: [taskA] })
+      const taskC = new TestTask(garden, "c", false, { ...opts, dependencies: [taskB] })
+      const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC] })
 
       await graph.addTask(taskA)
       await graph.addTask(taskB)
@@ -293,118 +334,5 @@ describe("task-graph", () => {
       expect(resultOrder).to.eql(["a", "b"])
     })
 
-    it.skip(
-      "should process a task as an inheritor of an existing, in-progress task when they have the same base key",
-      async () => {
-        const garden = await getGarden()
-        const graph = new TaskGraph(garden, garden.log)
-
-        let callbackResults = {}
-        let resultOrder: string[] = []
-
-        let parentTaskStarted = false
-        let inheritorAdded = false
-
-        const intervalMs = 10
-
-        const inheritorAddedPromise = new Promise(resolve => {
-          setInterval(() => {
-            if (inheritorAdded) {
-              resolve()
-            }
-          }, intervalMs)
-        })
-
-        const parentTaskStartedPromise = new Promise(resolve => {
-          setInterval(() => {
-            if (parentTaskStarted) {
-              resolve()
-            }
-          }, intervalMs)
-        })
-
-        const defaultCallback = async (key: string, result: any) => {
-          resultOrder.push(key)
-          callbackResults[key] = result
-        }
-
-        const parentCallback = async (key: string, result: any) => {
-          parentTaskStarted = true
-          await inheritorAddedPromise
-          resultOrder.push(key)
-          callbackResults[key] = result
-        }
-
-        const dependencyA = new TestTask(garden, "dependencyA", { callback: defaultCallback })
-        const dependencyB = new TestTask(garden, "dependencyB", { callback: defaultCallback })
-        const parentTask = new TestTask(
-          garden,
-          "sharedName",
-          { callback: parentCallback, id: "1", dependencies: [dependencyA, dependencyB] },
-        )
-        const dependantA = new TestTask(garden, "dependantA", { callback: defaultCallback, dependencies: [parentTask] })
-        const dependantB = new TestTask(garden, "dependantB", { callback: defaultCallback, dependencies: [parentTask] })
-
-        const inheritorTask = new TestTask(
-          garden,
-          "sharedName",
-          { callback: defaultCallback, id: "2", dependencies: [dependencyA, dependencyB] },
-        )
-
-        await graph.addTask(dependencyA)
-        await graph.addTask(dependencyB)
-        await graph.addTask(parentTask)
-        await graph.addTask(dependantA)
-        await graph.addTask(dependantB)
-
-        const resultsPromise = graph.processTasks()
-        await parentTaskStartedPromise
-        await graph.addTask(inheritorTask)
-        inheritorAdded = true
-        const results = await resultsPromise
-
-        expect(resultOrder).to.eql([
-          "dependencyA",
-          "dependencyB",
-          "sharedName.1",
-          "sharedName.2",
-          "dependantA",
-          "dependantB",
-        ])
-
-        const resultDependencyA = {
-          output: "result-dependencyA",
-          dependencyResults: {},
-        }
-
-        const resultDependencyB = {
-          output: "result-dependencyB",
-          dependencyResults: {},
-        }
-
-        const resultSharedName = {
-          output: "result-sharedName.2",
-          dependencyResults: { dependencyA: resultDependencyA, dependencyB: resultDependencyB },
-        }
-
-        expect(results).to.eql({
-          dependencyA: { output: "result-dependencyA", dependencyResults: {} },
-          dependencyB: { output: "result-dependencyB", dependencyResults: {} },
-          sharedName: {
-            output: "result-sharedName.2",
-            dependencyResults: { dependencyA: resultDependencyA, dependencyB: resultDependencyB },
-          },
-          dependantA:
-          {
-            result: "result-dependantA",
-            dependencyResults: { sharedName: resultSharedName },
-          },
-          dependantB:
-          {
-            result: "result-dependantB",
-            dependencyResults: { sharedName: resultSharedName },
-          },
-        })
-      })
   })
 })
