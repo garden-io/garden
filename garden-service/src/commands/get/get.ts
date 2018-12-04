@@ -7,6 +7,7 @@
  */
 
 import { Command } from "../base"
+import { GetGraphCommand } from "./get-graph"
 import { GetConfigCommand } from "./get-config"
 import { GetSecretCommand } from "./get-secret"
 import { GetStatusCommand } from "./get-status"
@@ -16,6 +17,7 @@ export class GetCommand extends Command {
   help = "Retrieve and output data and objects, e.g. secrets, status info etc."
 
   subCommands = [
+    GetGraphCommand,
     GetConfigCommand,
     GetSecretCommand,
     GetStatusCommand,
