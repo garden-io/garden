@@ -5,7 +5,7 @@ garden_service_root=$(cd `dirname $0` && cd .. && pwd)
 cd ${garden_service_root}
 
 commit_hash=$(git rev-parse --short HEAD)
-version=$(cat package.json | jq -r .version)
+version="v$(cat package.json | jq -r .version)"
 
 echo "Packaging version ${version}-${commit_hash}"
 
@@ -29,8 +29,9 @@ rm -rf linux-amd64
 mkdir linux-amd64
 mv garden-cli-linux linux-amd64/garden
 cp -r ../tmp/dist/static linux-amd64
-tar -czf garden-pkg-${version}-linux-amd64.tar.gz linux-amd64
-echo "  -> cleaning up tmp files"
+echo "    -> tar"
+tar -czf garden-${version}-linux-amd64.tar.gz linux-amd64
+echo "    -> cleaning up tmp files"
 rm -rf linux-amd64
 
 echo "  -> windows-amd64"
@@ -39,6 +40,7 @@ mkdir windows-amd64
 # Name should match go release and other standards using full "windows" name
 mv garden-cli-win.exe windows-amd64/garden.exe
 cp -r ../tmp/dist/static windows-amd64
-zip -q -r garden-pkg-${version}-windows-amd64.zip windows-amd64
-echo "  -> cleaning up tmp files"
+echo "    -> zip"
+zip -q -r garden-${version}-windows-amd64.zip windows-amd64
+echo "    -> cleaning up tmp files"
 rm -rf windows-amd64

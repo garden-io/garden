@@ -84,8 +84,8 @@ To install Docker, please follow the instructions in the [official documentation
 
 #### Step 2: Local Kubernetes
 
-For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minikube). Please see our
-[Minikube Instructions](#minikube-instructions).
+For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minikube). Please see the
+[Minikube](#minikube) section below for details.
 
 #### Step 3: Install other dependencies
 
@@ -93,21 +93,15 @@ Use your preferred method or package manager to install `git` and `rsync`.
 
 #### Step 4: Install `garden-cli`
 
-Once you have the dependencies set up, install the Garden CLI via `npm`:
+Once you have the dependencies set up, download the Garden CLI for your platform from our [latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH.
 
-```sh
-npm install -g garden-cli
-```
-
-To later upgrade to the newest version, run `npm install -g -U garden-cli`.
-
-# Minikube Instructions
+## Minikube
 
 Garden can be used with [Minikube](https://github.com/kubernetes/minikube) on supported platforms.
 
 _NOTE: We highly recommend using Docker for Mac and Docker for Windows, on macOS and Windows respectively._
 
-## Installation
+### Installing Minikube
 
 For Minikube installation instructions, please see the [official guide](https://github.com/kubernetes/minikube#installation).
 
@@ -127,7 +121,7 @@ minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
 You'll also need to have Docker (for macOS, we recommend [Docker for Mac](https://docs.docker.com/engine/installation/))
 and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed.
 
-## Usage
+### Usage
 
 The `local-kubernetes` plugin attempts to automatically detect if it is installed and set the appropriate context
 for connecting to the local Kubernetes instance. In most cases you should not have to update your `garden.yml`,
@@ -149,13 +143,13 @@ is set as the current context, Docker for Mac is preferred by default.
 
 (If you're not yet familiar with Garden configuration files, see: [Configuration files](../using-garden/configuration-files.md))
 
-## Hostname
+### Hostname
 
 Garden needs the Kubernetes instance to have a hostname. By default Garden will use `<minikube-ip>.nip.io`. If you'd
 like to use a custom hostname, you can specify it via the `ingressHostname` in the `local-kubernetes` provider config
 (see above).
 
-## Anything else?
+### Anything else?
 
 Once the above is set up, the `local-kubernetes` plugin will automatically configure everything else Garden needs to
 work. The built-in nginx ingress controller will be automatically enabled and used to route requests to services.
