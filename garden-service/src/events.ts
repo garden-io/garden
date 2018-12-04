@@ -56,6 +56,12 @@ export interface Events {
   },
   taskComplete: TaskResult,
   taskError: TaskResult,
+  taskGraphProcessing: {
+    startedAt: Date,
+  },
+  taskGraphComplete: {
+    completedAt: Date,
+  },
 }
 
 export type EventName = keyof Events

@@ -266,6 +266,10 @@ export class GardenCli {
       // entries (i.e. print new lines).
       const log = logger.placeholder()
 
+      // We pass a separate placeholder to the action method, so that commands can easily have a footer
+      // section in their log output.
+      const logFooter = logger.placeholder()
+
       const contextOpts: GardenOpts = { environmentName: env, log }
       if (command.noProject) {
         contextOpts.config = MOCK_CONFIG
@@ -285,6 +289,7 @@ export class GardenCli {
         result = await command.action({
           garden,
           log,
+          logFooter,
           args: parsedArgs,
           opts: parsedOpts,
         })

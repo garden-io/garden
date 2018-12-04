@@ -18,6 +18,7 @@ import { Garden } from "../garden"
 import { addWebsocketEndpoint } from "./websocket"
 import { prepareCommands, resolveRequest } from "./commands"
 import { isPkg } from "../constants"
+import { LogEntry } from "../logger/log-entry"
 
 export const DASHBOARD_BUILD_PATH = resolve(
   isPkg ? process.execPath : __dirname, "..", "..", "..", "garden-dashboard", "build",
@@ -32,8 +33,10 @@ export const DASHBOARD_BUILD_PATH = resolve(
  * If `port` is not specified, a random free port is chosen. This is done so that a process can always create its
  * own server, but we won't need that functionality once we run a shared service across commands.
  */
-export async function startServer(garden: Garden, port?: number) {
-  const app = await createApp(garden)
+export async function startServer(garden: Garden, log: LogEntry, port?: number) {
+  log = log.placeholder()
+
+  const app = await createApp(garden, log)
 
   // TODO: remove this once we stop running a server per CLI command
   if (!port) {
@@ -45,7 +48,7 @@ export async function startServer(garden: Garden, port?: number) {
 
   const url = `http://localhost:${port}`
 
-  garden.log.info({
+  log.info({
     emoji: "sunflower",
     msg: chalk.cyan("Garden dashboard and API server running on ") + url,
   })
@@ -53,9 +56,7 @@ export async function startServer(garden: Garden, port?: number) {
   return server
 }
 
-export async function createApp(garden: Garden) {
-  const log = garden.log.placeholder()
-
+export async function createApp(garden: Garden, log: LogEntry) {
   // prepare request-command map
   const commands = await prepareCommands()
 
@@ -71,7 +72,7 @@ export async function createApp(garden: Garden) {
    */
   http.post("/api", async (ctx) => {
     // TODO: set response code when errors are in result object?
-    const result = await resolveRequest(ctx, garden, commands, ctx.request.body)
+    const result = await resolveRequest(ctx, garden, log, commands, ctx.request.body)
 
     ctx.status = 200
     ctx.response.body = result

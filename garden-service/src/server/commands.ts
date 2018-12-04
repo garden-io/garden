@@ -14,6 +14,7 @@ import { coreCommands } from "../commands/commands"
 import { mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
 import { LogLevel } from "../logger/log-node"
+import { LogEntry } from "../logger/log-entry"
 
 export interface CommandMap {
   [key: string]: {
@@ -40,7 +41,7 @@ const baseRequestSchema = Joi.object()
  * Validate and map a request body to a Command, execute its action, and return its result.
  */
 export async function resolveRequest(
-  ctx: Koa.Context, garden: Garden, commands: CommandMap, request: any,
+  ctx: Koa.Context, garden: Garden, log: LogEntry, commands: CommandMap, request: any,
 ) {
   // Perform basic validation and find command.
   try {
@@ -70,12 +71,18 @@ export async function resolveRequest(
   const cmdGarden = await Garden.factory(garden.projectRoot, garden.opts)
 
   // We generally don't want actions to log anything in the server.
-  const cmdLog = garden.log.placeholder(LogLevel.silly)
+  const cmdLog = log.placeholder(LogLevel.silly)
 
   const cmdArgs = mapParams(ctx, request.parameters, command.arguments)
   const cmdOpts = mapParams(ctx, request.parameters, command.options)
 
-  return command.action({ garden: cmdGarden, log: cmdLog, args: cmdArgs, opts: cmdOpts })
+  return command.action({
+    garden: cmdGarden,
+    log: cmdLog,
+    logFooter: cmdLog,
+    args: cmdArgs,
+    opts: cmdOpts,
+  })
   // TODO: validate result schema
 }
 

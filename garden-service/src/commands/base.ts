@@ -210,6 +210,7 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
   opts: ParameterValues<U>
   garden: Garden
   log: LogEntry
+  logFooter?: LogEntry
 }
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {

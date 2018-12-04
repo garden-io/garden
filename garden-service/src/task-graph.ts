@@ -136,10 +136,13 @@ export class TaskGraph {
     const _this = this
     const results: TaskResults = {}
 
+    this.garden.events.emit("taskGraphProcessing", { startedAt: new Date() })
+
     const loop = async () => {
       if (_this.index.length === 0) {
         // done!
         this.logEntryMap.counter && this.logEntryMap.counter.setDone({ symbol: "info" })
+        this.garden.events.emit("taskGraphComplete", { completedAt: new Date() })
         return
       }
 

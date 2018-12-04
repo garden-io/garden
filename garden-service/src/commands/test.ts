@@ -80,7 +80,7 @@ export class TestCommand extends Command<Args, Opts> {
     })
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const dependencyGraph = await garden.getDependencyGraph()
     let modules: Module[]
     if (args.modules) {
@@ -99,6 +99,7 @@ export class TestCommand extends Command<Args, Opts> {
     const results = await processModules({
       garden,
       log,
+      logFooter,
       modules,
       watch: opts.watch,
       handler: async (module) => getTestTasks({ garden, log, module, name, force, forceBuild }),

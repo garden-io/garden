@@ -132,7 +132,7 @@ describe("task-graph", () => {
       ])
     })
 
-    it("should emit a taskComplete event when completing a task", async () => {
+    it("should emit events when processing and completing a task", async () => {
       const now = freezeTime()
 
       const garden = await getGarden()
@@ -144,7 +144,9 @@ describe("task-graph", () => {
 
       expect(garden.events.log).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskComplete", payload: result["a"] },
+        { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
 
@@ -160,7 +162,9 @@ describe("task-graph", () => {
 
       expect(garden.events.log).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskError", payload: result["a"] },
+        { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
 
