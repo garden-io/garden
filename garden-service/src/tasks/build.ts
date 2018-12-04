@@ -79,7 +79,7 @@ export class BuildTask extends BaseTask {
 
     const log = this.log.info({
       section: this.getName(),
-      msg: "Building",
+      msg: `Building version ${module.version}`,
       status: "active",
     })
 
