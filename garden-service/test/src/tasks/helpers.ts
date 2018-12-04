@@ -9,7 +9,9 @@ import { BaseTask } from "../../../src/tasks/base"
 import { LogEntry } from "../../../src/logger/log-entry"
 
 async function sortedBaseKeysWithDependencies(tasks: BaseTask[]): Promise<string[]> {
-  return sortedBaseKeys(flatten([tasks].concat(await Bluebird.map(tasks, t => t.getDependencies()))))
+  const dependencies = await Bluebird.map(tasks, async (t) => t.getDependencies(), { concurrency: 1 })
+  const tasksWithDependencies = flatten([tasks].concat(dependencies))
+  return sortedBaseKeys(tasksWithDependencies)
 }
 
 function sortedBaseKeys(tasks: BaseTask[]): string[] {
@@ -17,7 +19,6 @@ function sortedBaseKeys(tasks: BaseTask[]): string[] {
 }
 
 describe("TaskHelpers", () => {
-
   let garden: Garden
   let log: LogEntry
 
@@ -34,6 +35,8 @@ describe("TaskHelpers", () => {
 
     it("returns the correct set of tasks for the changed module", async () => {
       const module = await garden.getModule("good-morning")
+      await garden.getDependencyGraph()
+
       const tasks = await getTasksForModule({
         garden, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
         fromWatch: false, includeDependants: false,

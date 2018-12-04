@@ -8,12 +8,11 @@
 
 import dedent = require("dedent")
 import { get, isEqual, join, set, uniqWith } from "lodash"
-import { Module, getModuleKey } from "../types/module"
-import {
-  ConfigurationError,
-} from "../exceptions"
-import { Service } from "../types/service"
-import { Task } from "../types/task"
+import { getModuleKey } from "../types/module"
+import { ConfigurationError } from "../exceptions"
+import { ServiceConfig } from "../config/service"
+import { TaskConfig } from "../config/task"
+import { ModuleConfig } from "../config/module"
 
 export type Cycle = string[]
 
@@ -24,16 +23,18 @@ export type Cycle = string[]
 
   Throws an error if cycles were found.
 */
-export async function detectCircularDependencies(modules: Module[], services: Service[], tasks: Task[]) {
+export async function detectCircularDependencies(moduleConfigs: ModuleConfig[]) {
   // Sparse matrices
   const buildGraph = {}
   const runtimeGraph = {}
+  const services: ServiceConfig[] = []
+  const tasks: TaskConfig[] = []
 
   /*
     There's no need to account for test dependencies here, since any circularities there
     are accounted for via service dependencies.
     */
-  for (const module of modules) {
+  for (const module of moduleConfigs) {
     // Build dependencies
     for (const buildDep of module.build.dependencies) {
       const depName = getModuleKey(buildDep.name, buildDep.plugin)
@@ -42,12 +43,14 @@ export async function detectCircularDependencies(modules: Module[], services: Se
 
     // Runtime (service & task) dependencies
     for (const service of module.serviceConfigs || []) {
+      services.push(service)
       for (const depName of service.dependencies) {
         set(runtimeGraph, [service.name, depName], { distance: 1, next: depName })
       }
     }
 
     for (const task of module.taskConfigs || []) {
+      tasks.push(task)
       for (const depName of task.dependencies) {
         set(runtimeGraph, [task.name, depName], { distance: 1, next: depName })
       }
@@ -56,7 +59,7 @@ export async function detectCircularDependencies(modules: Module[], services: Se
 
   const serviceNames = services.map(s => s.name)
   const taskNames = tasks.map(w => w.name)
-  const buildCycles = detectCycles(buildGraph, modules.map(m => m.name))
+  const buildCycles = detectCycles(buildGraph, moduleConfigs.map(m => m.name))
   const runtimeCycles = detectCycles(runtimeGraph, serviceNames.concat(taskNames))
 
   if (buildCycles.length > 0 || runtimeCycles.length > 0) {
