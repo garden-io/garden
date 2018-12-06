@@ -59,5 +59,5 @@ kubectl create secret -n default tls garden-tls --key local.app.garden+1-key.pem
 ## Running
 
 ```sh
-garden-local dev --hot-reload=front-end
+garden dev --hot-reload=front-end
 ```

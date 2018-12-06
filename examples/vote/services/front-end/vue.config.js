@@ -1,6 +1,6 @@
 module.exports = {
   devServer: {
     disableHostCheck: true,
-    public: 'https://vote.local.app.garden:443'
+    public: 'http://front-end.local.app.garden'
   }
 }

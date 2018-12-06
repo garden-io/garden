@@ -4,9 +4,4 @@ project:
     - name: local
       providers:
         - name: local-kubernetes
-          defaultHostname: vote.local.app.garden
-          tlsCertificates:
-            - name: dev
-              secretRef:
-                name: garden-tls
-                namespace: default
+#          defaultHostname: vote.local.app.garden

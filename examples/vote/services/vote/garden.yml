@@ -6,7 +6,9 @@ module:
     - name: vote
       command: [python, app.py]
       ingresses:
-        - path: /vote/
+        - path: /
+          hostname: vote.local.app.garden
+#        - path: /vote/
           port: interface
       ports:
         - name: interface

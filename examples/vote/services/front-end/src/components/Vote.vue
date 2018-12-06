@@ -10,7 +10,7 @@
         </div>
         <div id="tip">
             <p v-if="voteResult">The button above has been clicked {{ counter }} times.</p>
-          (Tip: you can change your vote)adsf
+          (Tip: you can change your vote)
         </div>
       </div>
     </div>
@@ -41,14 +41,13 @@ export default {
           'Content-Type': 'application/x-www-form-urlencoded'
       }
       var self = this;
-			axios.post('/vote/', "vote=" + this.voteResult,{ headers }).then(function(result){
+			axios.post('http://vote.local.app.garden/', "vote=" + this.voteResult,{ headers }).then(function(result){
         console.log(result);
         self.counter++;
       });
     }
   }
 };
-//adfadsf
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

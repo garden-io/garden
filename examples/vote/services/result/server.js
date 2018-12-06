@@ -1,5 +1,6 @@
 var express = require('express'),
     async = require('async'),
+    path = require("path")
     pg = require("pg"),
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
@@ -7,6 +8,7 @@ var express = require('express'),
     app = express(),
     server = require('http').Server(app),
     io = require('socket.io')(server);
+    // io = require('socket.io')(server, { path: "/result/views/socket.io" });
 
 io.set('transports', ['polling']);
 
@@ -73,8 +75,12 @@ app.use(function(req, res, next) {
   next();
 });
 
-app.use(express.static(__dirname + '/views'));
+app.use(express.static('views'));
+// app.use(express.static(__dirname + '/result/views'));
 
+// app.use('/result', express.static(__dirname + '/views'));
+
+// app.get('/result', function (req, res) {
 app.get('/', function (req, res) {
   res.sendFile(path.resolve(__dirname + '/views/index.html'));
 });

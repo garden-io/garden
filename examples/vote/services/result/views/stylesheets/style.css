@@ -16,7 +16,7 @@ body{
 
 .divider{
   height: 150px;
-  width:2px;
+  width: 1px;
   background-color: #C0C9CE;
   position: relative;
   top: 50%;
@@ -76,7 +76,7 @@ body{
 }
 
 #choice .choice{
-  width: 49%;
+  width: calc(50% - 1px);
   position: relative;
   top: 50%;
   transform: translateY(-50%);

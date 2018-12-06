@@ -8,8 +8,9 @@ module:
       dependencies:
         - db-init
       ingresses:
-        - path: /result
+        - path: /
           port: ui
+          hostname: results.local.app.garden
       ports:
         - name: ui
           protocol: TCP

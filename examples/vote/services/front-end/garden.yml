@@ -16,3 +16,4 @@ module:
       ingresses:
         - path: /
           port: http
+          hostname: front-end.local.app.garden
