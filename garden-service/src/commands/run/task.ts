@@ -76,9 +76,9 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
     printRuntimeContext(log, runtimeContext)
 
-    garden.log.info("")
-    garden.log.info(chalk.white(result.output.output))
-    garden.log.info("")
+    log.info("")
+    log.info(chalk.white(result.output.output))
+    log.info("")
     logHeader({ log, emoji: "heavy_check_mark", command: `Done!` })
 
     return { result }

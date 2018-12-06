@@ -49,26 +49,26 @@ export async function validateHotReloadOpt(
 }
 
 export async function hotReloadAndLog(garden: Garden, log: LogEntry, module: Module) {
-  log.info({
+  const logEntry = log.info({
     section: module.name,
-    msg: "Hot reloading",
+    msg: "Hot reloading...",
     status: "active",
   })
 
   const serviceDependencyNames = uniq(flatten(module.services.map(s => s.config.dependencies)))
   const runtimeContext = await prepareRuntimeContext(
-    garden, log, module, await garden.getServices(serviceDependencyNames),
+    garden, logEntry, module, await garden.getServices(serviceDependencyNames),
   )
 
   try {
-    await garden.actions.hotReload({ log, module, runtimeContext })
+    await garden.actions.hotReload({ log: logEntry, module, runtimeContext })
   } catch (err) {
     log.setError()
     throw err
   }
 
-  const msec = log.getDuration(5) * 1000
-  log.setSuccess({
+  const msec = logEntry.getDuration(5) * 1000
+  logEntry.setSuccess({
     msg: chalk.green(`Done (took ${msec} ms)`),
     append: true,
   })

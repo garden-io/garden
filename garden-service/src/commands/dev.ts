@@ -73,12 +73,13 @@ export class DevCommand extends Command<Args, Opts> {
     log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
   }
 
-  async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
+  async action({ garden, log, logFooter, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     await garden.actions.prepareEnvironment({ log })
 
     const modules = await garden.getModules()
 
     if (modules.length === 0) {
+      logFooter && logFooter.setState({ msg: "" })
       log.info({ msg: "No modules found in project." })
       log.info({ msg: "Aborting..." })
       return {}
@@ -120,12 +121,12 @@ export class DevCommand extends Command<Args, Opts> {
           includeDependants: watch,
         }))
       }
-
     }
 
     const results = await processModules({
       garden,
       log,
+      logFooter,
       modules,
       watch: true,
       handler: tasksForModule(false),
@@ -133,7 +134,6 @@ export class DevCommand extends Command<Args, Opts> {
     })
 
     return handleTaskResults(log, "dev", results)
-
   }
 }
 

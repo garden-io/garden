@@ -33,7 +33,7 @@ export class UpdateRemoteAllCommand extends Command {
         garden update-remote all # update all remote sources and modules in the project
   `
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
+  async action({ garden, log, logFooter }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
     logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote all" })
 
     const sourcesCmd = new UpdateRemoteSourcesCommand()
@@ -42,12 +42,14 @@ export class UpdateRemoteAllCommand extends Command {
     const { result: projectSources } = await sourcesCmd.action({
       garden,
       log,
+      logFooter,
       args: { sources: undefined },
       opts: {},
     })
     const { result: moduleSources } = await modulesCmd.action({
       garden,
       log,
+      logFooter,
       args: { modules: undefined },
       opts: {},
     })

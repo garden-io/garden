@@ -72,7 +72,7 @@ export function addWebsocketEndpoint(app: websockify.App, garden: Garden, log: L
       }
 
       if (request.type === "command") {
-        resolveRequest(ctx, garden, commands, omit(request, ["id", "type"]))
+        resolveRequest(ctx, garden, log, commands, omit(request, ["id", "type"]))
           .then(result => {
             send("commandResult", { requestId, result: result.result, errors: result.errors })
           })

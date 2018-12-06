@@ -78,7 +78,7 @@ export class DeployCommand extends Command<Args, Opts> {
     logHeader({ log, emoji: "rocket", command: "Deploy" })
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     const services = await garden.getServices(args.services)
 
     if (services.length === 0) {
@@ -105,6 +105,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const results = await processServices({
       garden,
       log,
+      logFooter,
       services,
       watch,
       handler: async (module) => getTasksForModule({

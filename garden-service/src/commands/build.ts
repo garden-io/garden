@@ -63,7 +63,7 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
   }
 
   async action(
-    { args, opts, garden, log }: CommandParams<BuildArguments, BuildOptions>,
+    { args, opts, garden, log, logFooter }: CommandParams<BuildArguments, BuildOptions>,
   ): Promise<CommandResult<TaskResults>> {
     await garden.clearBuilds()
 
@@ -74,6 +74,7 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
     const results = await processModules({
       garden,
       log,
+      logFooter,
       modules,
       watch: opts.watch,
       handler: async (module) => [new BuildTask({ garden, log, module, force: opts.force })],

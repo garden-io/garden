@@ -26,6 +26,7 @@ export type ProcessHandler = (module: Module) => Promise<BaseTask[]>
 interface ProcessParams {
   garden: Garden
   log: LogEntry
+  logFooter?: LogEntry
   watch: boolean
   handler: ProcessHandler
   // use this if the behavior should be different on watcher changes than on initial processing
@@ -46,7 +47,7 @@ export interface ProcessResults {
 }
 
 export async function processServices(
-  { garden, log, services, watch, handler, changeHandler }: ProcessServicesParams,
+  { garden, log, logFooter, services, watch, handler, changeHandler }: ProcessServicesParams,
 ): Promise<ProcessResults> {
 
   const modules = Array.from(new Set(services.map(s => s.module)))
@@ -55,6 +56,7 @@ export async function processServices(
     modules,
     garden,
     log,
+    logFooter,
     watch,
     handler,
     changeHandler,
@@ -62,7 +64,7 @@ export async function processServices(
 }
 
 export async function processModules(
-  { garden, log, modules, watch, handler, changeHandler }: ProcessModulesParams,
+  { garden, log, logFooter, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
 
   log.debug("Starting processModules")
@@ -85,6 +87,19 @@ export async function processModules(
     await Bluebird.map(tasks, t => garden.addTask(t))
   }
 
+  if (watch && !!logFooter) {
+    logFooter.info("")
+    const statusLine = logFooter.placeholder()
+
+    garden.events.on("taskGraphProcessing", () => {
+      statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
+    })
+
+    garden.events.on("taskGraphComplete", () => {
+      statusLine.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes") })
+    })
+  }
+
   const results = await garden.processTasks()
 
   if (!watch) {
@@ -104,7 +119,11 @@ export async function processModules(
     await watcher.watchModules(modules,
       async (changedModule: Module | null, configChanged: boolean) => {
         if (configChanged) {
-          log.debug({ msg: `Config changed, reloading.` })
+          if (changedModule) {
+            log.info({ emoji: "gear", section: changedModule.name, msg: `Module configuration changed, reloading...` })
+          } else {
+            log.info({ emoji: "gear", msg: `Project configuration changed, reloading...` })
+          }
           resolve()
           return
         }
@@ -125,7 +144,7 @@ export async function processModules(
 
   // Experimental HTTP API and dashboard server.
   if (process.env.GARDEN_ENABLE_SERVER === "1") {
-    await startServer(garden)
+    await startServer(garden, log)
   }
 
   await restartPromise

@@ -53,16 +53,15 @@ export class FSWatcher {
   private makeFileChangedHandler(modules: Module[], changeHandler: ChangeHandler) {
 
     return async (filePath: string) => {
-
       this.log.debug("Start of changeHandler")
 
       const filename = basename(filePath)
+      const changedModule = modules.find(m => filePath.startsWith(m.path)) || null
+
       if (filename === "garden.yml" || filename === ".gitignore" || filename === ".gardenignore") {
         await this.invalidateCachedForAll()
-        return changeHandler(null, true)
+        return changeHandler(changedModule, true)
       }
-
-      const changedModule = modules.find(m => filePath.startsWith(m.path)) || null
 
       if (changedModule) {
         this.invalidateCached(changedModule)

@@ -41,8 +41,8 @@ export class ServeCommand extends Command<Args, Opts> {
   arguments = serveArgs
   options = serveOpts
 
-  async action({ garden, opts }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    await startServer(garden, opts.port)
+  async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+    await startServer(garden, log, opts.port)
 
     // The server doesn't block, so we need to loop indefinitely here.
     while (true) {

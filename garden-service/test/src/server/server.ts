@@ -25,7 +25,7 @@ describe("startServer", () => {
   before(async () => {
     port = await getPort()
     garden = await makeTestGardenA()
-    server = await startServer(garden, port)
+    server = await startServer(garden, garden.log, port)
   })
 
   after(async () => {

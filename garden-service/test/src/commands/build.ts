@@ -7,11 +7,13 @@ describe("commands.build", () => {
   it("should build all modules in a project", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
+    const logFooter = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({
       garden,
       log,
+      logFooter,
       args: { modules: undefined },
       opts: { watch: false, force: true },
     })
@@ -26,11 +28,13 @@ describe("commands.build", () => {
   it("should optionally build single module and its dependencies", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
+    const logFooter = garden.log
     const command = new BuildCommand()
 
     const { result } = await command.action({
       garden,
       log,
+      logFooter,
       args: { modules: ["module-b"] },
       opts: { watch: false, force: true },
     })
