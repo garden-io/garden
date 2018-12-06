@@ -9,11 +9,11 @@
 // Proxy requests from the development server to the correct port on the garden-service server.
 // See: https://facebook.github.io/create-react-app/docs/proxying-api-requests-in-development#configuring-the-proxy-manually
 
-// NOTE: This file must be named "src/setupProxy.js".
+// NOTE: This file must be named "src/setupProxy.js" and only supports Node's Javascript syntax.
 
 const proxy = require("http-proxy-middleware")
 
-const { GARDEN_SERVICE_DEFAULT_PORT } = require("constants")
+const { GARDEN_SERVICE_DEFAULT_PORT } = require("./constants")
 
 module.exports = function(app) {
   const port = process.env.GARDEN_SERVICE_PORT || GARDEN_SERVICE_DEFAULT_PORT
