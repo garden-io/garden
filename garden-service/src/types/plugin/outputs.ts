@@ -87,11 +87,14 @@ export const execInServiceResultSchema = Joi.object()
       .required()
       .description("The exit code of the command executed in the service container."),
     output: Joi.string()
+      .allow("")
       .required()
       .description("The output of the executed command."),
     stdout: Joi.string()
+      .allow("")
       .description("The stdout output of the executed command (if available)."),
     stderr: Joi.string()
+      .allow("")
       .description("The stderr output of the executed command (if available)."),
   })
 

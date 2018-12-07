@@ -32,9 +32,9 @@ export class Kubectl {
   }
 
   async call(args: string[], opts: SpawnOpts = {}) {
-    const { data, ignoreError = false, timeout = KUBECTL_DEFAULT_TIMEOUT } = opts
-    const preparedArgs = this.prepareArgs(args, opts)
-    return spawn("kubectl", preparedArgs, { ignoreError, data, timeout })
+    const { data, ignoreError = false, timeout = KUBECTL_DEFAULT_TIMEOUT, tty } = opts
+    const preparedArgs = this.prepareArgs(args)
+    return spawn("kubectl", preparedArgs, { ignoreError, data, timeout, tty })
   }
 
   async json(args: string[], opts: SpawnOpts = {}): Promise<any> {
@@ -48,10 +48,10 @@ export class Kubectl {
   }
 
   spawn(args: string[]): ChildProcess {
-    return _spawn("kubectl", this.prepareArgs(args, {}))
+    return _spawn("kubectl", this.prepareArgs(args))
   }
 
-  private prepareArgs(args: string[], { tty }: SpawnOpts) {
+  private prepareArgs(args: string[]) {
     const opts: string[] = []
 
     if (this.namespace) {
@@ -64,10 +64,6 @@ export class Kubectl {
 
     if (this.configPath) {
       opts.push(`--kubeconfig=${this.configPath}`)
-    }
-
-    if (tty) {
-      opts.push("--tty")
     }
 
     return opts.concat(args)
