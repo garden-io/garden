@@ -107,7 +107,7 @@ export class DeployTask extends BaseTask {
   async process(): Promise<ServiceStatus> {
     const log = this.log.info({
       section: this.service.name,
-      msg: "Checking status",
+      msg: "Checking status...",
       status: "active",
     })
 
@@ -151,7 +151,7 @@ export class DeployTask extends BaseTask {
       throw err
     }
 
-    log.setSuccess({ msg: chalk.green(`Ready`), append: true })
+    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     return result
   }
 }
