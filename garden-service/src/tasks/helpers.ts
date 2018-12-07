@@ -14,6 +14,7 @@ import { Module } from "../types/module"
 import { Service } from "../types/service"
 import { DependencyGraphNode } from "../dependency-graph"
 import { LogEntry } from "../logger/log-entry"
+import { BaseTask } from "./base"
 
 export async function getDependantTasksForModule(
   { garden, log, module, hotReloadServiceNames, force = false, forceBuild = false,
@@ -22,7 +23,7 @@ export async function getDependantTasksForModule(
       garden: Garden, log: LogEntry, module: Module, hotReloadServiceNames: string[], force?: boolean,
       forceBuild?: boolean, fromWatch?: boolean, includeDependants?: boolean,
     },
-) {
+): Promise<BaseTask[]> {
 
   let buildTasks: BuildTask[] = []
   let dependantBuildModules: Module[] = []

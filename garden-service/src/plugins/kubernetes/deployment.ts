@@ -19,7 +19,8 @@ import { DeployServiceParams, GetServiceStatusParams, PushModuleParams } from ".
 import { RuntimeContext, Service, ServiceStatus } from "../../types/service"
 import { helpers, ContainerModule, ContainerService, SyncSpec } from "../container"
 import { createIngresses, getIngresses } from "./ingress"
-import { createServices, RSYNC_PORT, RSYNC_PORT_NAME } from "./service"
+import { RSYNC_PORT, RSYNC_PORT_NAME } from "./hot-reload"
+import { createServices } from "./service"
 import { waitForObjects, compareDeployedObjects } from "./status"
 import { applyMany, deleteObjectsByLabel } from "./kubectl"
 import { getAppNamespace } from "./namespace"
@@ -113,7 +114,7 @@ export async function createContainerObjects(
   const api = new KubeApi(ctx.provider)
   const ingresses = await createIngresses(api, namespace, service)
   const deployment = await createDeployment(ctx.provider, service, runtimeContext, namespace, enableHotReload)
-  const kubeservices = await createServices(service, namespace, enableHotReload)
+  const kubeservices = await createServices(service, namespace)
 
   const objects = [deployment, ...kubeservices, ...ingresses]
 
@@ -446,6 +447,11 @@ function configureHotReload(deployment, container, serviceSpec, moduleSpec, env,
     name: "garden-rsync",
     image: "eugenmayer/rsync",
     imagePullPolicy: "IfNotPresent",
+    env: [
+      // This makes sure the server is accessible on any IP address, because CIDRs can be different across clusters.
+      // K8s can be trusted to secure the port. - JE
+      { name: "ALLOW", value: "0.0.0.0/0" },
+    ],
     volumeMounts: [{
       name: syncVolumeName,
       /**

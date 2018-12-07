@@ -8,10 +8,7 @@
 
 import { ContainerService } from "../container"
 
-export const RSYNC_PORT = 873
-export const RSYNC_PORT_NAME = "garden-rsync"
-
-export async function createServices(service: ContainerService, namespace: string, enableHotReload: boolean) {
+export async function createServices(service: ContainerService, namespace: string) {
   const services: any = []
 
   const addService = (name: string, type: string, servicePorts: any[]) => {
@@ -34,43 +31,29 @@ export async function createServices(service: ContainerService, namespace: strin
   }
 
   // first add internally exposed (ClusterIP) service
-  const internalPorts: any = []
   const ports = service.spec.ports
 
-  for (const portSpec of ports) {
-    internalPorts.push({
+  if (ports.length) {
+    addService(service.name, "ClusterIP", ports.map(portSpec => ({
       name: portSpec.name,
       protocol: portSpec.protocol,
       targetPort: portSpec.containerPort,
       port: portSpec.servicePort,
-    })
-  }
-
-  if (internalPorts.length) {
-    addService(service.name, "ClusterIP", internalPorts)
+    })))
   }
 
   // optionally add a NodePort service for externally open ports, if applicable
   // TODO: explore nicer ways to do this
-  const exposedPorts: any[] = ports.filter(portSpec => portSpec.nodePort)
+  const exposedPorts = ports.filter(portSpec => portSpec.nodePort)
 
-  if (exposedPorts.length > 0 || enableHotReload) {
-
-    const nodePorts: any[] = exposedPorts.map(portSpec => ({
+  if (exposedPorts.length > 0) {
+    const nodePorts = exposedPorts.map(portSpec => ({
       // TODO: do the parsing and defaults when loading the yaml
       name: portSpec.name,
       protocol: portSpec.protocol,
       port: portSpec.containerPort,
       nodePort: portSpec.nodePort,
     }))
-
-    if (enableHotReload) {
-      nodePorts.push({
-        name: rsyncPortName(service.name),
-        protocol: "TCP",
-        port: RSYNC_PORT,
-      })
-    }
 
     addService(service.name + "-nodeport", "NodePort", nodePorts)
   }

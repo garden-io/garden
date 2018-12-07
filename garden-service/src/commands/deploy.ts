@@ -17,11 +17,13 @@ import {
   handleTaskResults,
   StringsParameter,
 } from "./base"
-import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
+import { validateHotReloadOpt } from "./helpers"
 import { getDependantTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 import { logHeader } from "../logger/util"
+import { HotReloadTask } from "../tasks/hot-reload"
+import { BaseTask } from "../tasks/base"
 
 const deployArgs = {
   services: new StringsParameter({
@@ -118,13 +120,14 @@ export class DeployCommand extends Command<Args, Opts> {
         forceBuild: opts["force-build"],
       }),
       changeHandler: async (module) => {
-        if (hotReloadModuleNames.has(module.name)) {
-          await hotReloadAndLog(garden, log, module)
-        }
-        return getDependantTasksForModule({
+        const tasks: BaseTask[] = await getDependantTasksForModule({
           garden, log, module, hotReloadServiceNames, force: true, forceBuild: opts["force-build"],
           fromWatch: true, includeDependants: true,
         })
+        if (hotReloadModuleNames.has(module.name)) {
+          tasks.push(new HotReloadTask({ garden, log, module, force: true }))
+        }
+        return tasks
       },
     })
 

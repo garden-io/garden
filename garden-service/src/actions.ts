@@ -251,9 +251,7 @@ export class ActionHelper implements TypeGuard {
 
   async hotReload<T extends Module>(params: ModuleActionHelperParams<HotReloadParams<T>>)
     : Promise<HotReloadResult> {
-    return this.garden.hotReload(params.module.name, async () => {
-      return this.callModuleHandler(({ params, actionType: "hotReload" }))
-    })
+    return this.callModuleHandler(({ params, actionType: "hotReload" }))
   }
 
   async testModule<T extends Module>(params: ModuleActionHelperParams<TestModuleParams<T>>): Promise<TestResult> {

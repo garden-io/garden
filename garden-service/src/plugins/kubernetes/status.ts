@@ -411,25 +411,30 @@ export async function waitForObjects({ ctx, provider, service, objects, log }: W
  */
 export async function waitForServices(
   ctx: PluginContext, log: LogEntry, runtimeContext: RuntimeContext, services: Service[], buildDependencies,
-): Promise<boolean> {
-  let ready
+) {
   const startTime = new Date().getTime()
 
   while (true) {
+    const states = await Bluebird.map(services, async (service) => {
+      return {
+        service,
+        ...await getContainerServiceStatus({
+          ctx, log, buildDependencies, service, runtimeContext, module: service.module,
+        }),
+      }
+    })
 
-    ready = (await Bluebird.map(services, async (service) => {
-      const state = (await getContainerServiceStatus({
-        ctx, log, buildDependencies, service, runtimeContext, module: service.module,
-      })).state
-      return state === "ready" || state === "outdated"
-    })).every(serviceReady => serviceReady)
+    const notReady = states.filter(s => s.state !== "ready" && s.state !== "outdated")
 
-    if (ready) {
-      return true
+    if (notReady.length === 0) {
+      return
     }
 
+    const notReadyNames = notReady.map(s => s.service.name).join(", ")
+    log.silly(`Waiting for services ${notReadyNames}`)
+
     if (new Date().getTime() - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      return false
+      throw new DeploymentError(`Timed out waiting for services ${notReadyNames} to deploy`, { states })
     }
 
     await sleep(2000)

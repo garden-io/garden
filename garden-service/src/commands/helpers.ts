@@ -6,12 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import dedent = require("dedent")
-import { uniq, flatten } from "lodash"
 import { Garden } from "../garden"
-import { Module } from "../types/module"
-import { prepareRuntimeContext, Service } from "../types/service"
+import { Service } from "../types/service"
 import { LogEntry } from "../logger/log-entry"
 
 // Returns true if validation succeeded, false otherwise.
@@ -45,32 +42,5 @@ export async function validateHotReloadOpt(
     log.error({ msg: errMsg })
     return false
   }
-
-}
-
-export async function hotReloadAndLog(garden: Garden, log: LogEntry, module: Module) {
-  const logEntry = log.info({
-    section: module.name,
-    msg: "Hot reloading...",
-    status: "active",
-  })
-
-  const serviceDependencyNames = uniq(flatten(module.services.map(s => s.config.dependencies)))
-  const runtimeContext = await prepareRuntimeContext(
-    garden, logEntry, module, await garden.getServices(serviceDependencyNames),
-  )
-
-  try {
-    await garden.actions.hotReload({ log: logEntry, module, runtimeContext })
-  } catch (err) {
-    log.setError()
-    throw err
-  }
-
-  const msec = logEntry.getDuration(5) * 1000
-  logEntry.setSuccess({
-    msg: chalk.green(`Done (took ${msec} ms)`),
-    append: true,
-  })
 
 }
