@@ -2,7 +2,7 @@ import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { DeployCommand } from "../../../src/commands/deploy"
 import { expect } from "chai"
-import { validateContainerModule } from "../../../src/plugins/container"
+import { validateContainerModule } from "../../../src/plugins/container/container"
 import { buildExecModule } from "../../../src/plugins/exec"
 import {
   PluginFactory,

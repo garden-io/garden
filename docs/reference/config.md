@@ -763,3 +763,370 @@ module:
         -
 ```
 
+### helm
+
+```yaml
+
+# Configure a module whose sources are located in this directory.
+#
+# Required.
+module: 
+  # The type of this module.
+  #
+  # Example: "container"
+  #
+  # Required.
+  type:
+
+  # The name of this module.
+  #
+  # Example: "my-sweet-module"
+  #
+  # Required.
+  name:
+
+  description:
+
+  # A remote repository URL. Currently only supports git servers. Must contain a hash suffix
+  # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+  #
+  # Garden will import the repository source code into this module, but read the module's
+  # config from the local garden.yml file.
+  #
+  # Example: "git+https://github.com/org/repo.git#v2.0"
+  #
+  # Optional.
+  repositoryUrl:
+
+  # Variables that this module can reference and expose as environment variables.
+  #
+  # Example:
+  #   my-variable: some-value
+  #
+  # Optional.
+  variables: 
+    {}
+
+  # When false, disables pushing this module to remote registries.
+  #
+  # Optional.
+  allowPublish: true
+
+  # Specify how to build the module. Note that plugins may define additional keys on this object.
+  #
+  # Optional.
+  build: 
+    # The command to run inside the module's directory to perform the build.
+    #
+    # Example:
+    #   - npm
+    #   - run
+    #   - build
+    #
+    # Optional.
+    command: 
+      -
+
+    # A list of modules that must be built before this module is built.
+    #
+    # Example:
+    #   - name: some-other-module-name
+    #
+    # Optional.
+    dependencies: 
+      - # Module name to build ahead of this module.
+        #
+        # Required.
+        name:
+
+        # Specify one or more files or directories to copy from the built dependency to this
+        # module.
+        #
+        # Optional.
+        copy: 
+          - # POSIX-style path or filename of the directory or file(s) to copy to the target.
+            #
+            # Required.
+            source:
+
+            # POSIX-style path or filename to copy the directory or file(s) to (defaults to same
+            # as source path).
+            #
+            # Optional.
+            target:
+
+  # A valid Helm chart name or URI. Required if the module doesn't contain the Helm chart itself.
+  #
+  # Example: "stable/nginx-ingress"
+  #
+  # Optional.
+  chart:
+
+  # The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file
+  # is, if any).
+  #
+  # Optional.
+  chartPath: .
+
+  # List of names of services that should be deployed before this chart.
+  #
+  # Optional.
+  dependencies: 
+    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
+    # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
+    # dashes, or be longer than 63 characters.
+    #
+    # Optional.
+    -
+
+  # The repository URL to fetch the chart from.
+  #
+  # Optional.
+  repo:
+
+  # The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in
+  # this module (not to be confused with Kubernetes Service resources). Because a Helm chart can
+  # contain any number of Kubernetes resources, this needs to be specified for certain Garden
+  # features and commands to work, such as hot-reloading.
+  # We currently map a Helm chart to a single Garden service, because all the resources in a Helm
+  # chart are deployed at once.
+  #
+  # Optional.
+  serviceResource: 
+    # The type of Kubernetes resource to sync files to.
+    #
+    # Required.
+    # Allowed values: "Deployment", "DaemonSet", "StatefulSet"
+    kind: Deployment
+
+    # The name of the resource to sync to. If the chart contains a single resource of the
+    # specified Kind, this can be omitted.
+    # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This
+    # allows you to easily match the dynamic names given by Helm. In most cases you should copy
+    # this directly from the template in question in order to match it. Note that you may need to
+    # add single quotes around the string for the YAML to be parsed correctly.
+    #
+    # Optional.
+    name:
+
+    # The name of a container in the target. Specify this if the target contains more than one
+    # container and the main container is not the first container in the spec.
+    #
+    # Optional.
+    containerName:
+
+    # The Garden module that contains the sources for the container. This needs to be specified
+    # under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary
+    # for tasks and tests.
+    # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload`
+    # field on the container module.
+    # Note: If you specify a module here, you don't need to specify it additionally under
+    # `build.dependencies`
+    #
+    # Example: "my-container-module"
+    #
+    # Optional.
+    containerModule:
+
+    # If specified, overrides the arguments for the main container when running in hot-reload
+    # mode.
+    #
+    # Example:
+    #   - nodemon
+    #   - my-server.js
+    #
+    # Optional.
+    hotReloadArgs: 
+      -
+
+  # The task definitions for this module.
+  #
+  # Optional.
+  tasks: 
+    # Required configuration for module tests.
+    #
+    # Optional.
+    - # The name of the test.
+      #
+      # Required.
+      name:
+
+      # The names of any services that must be running, and the names of any tasks that must be
+      # executed, before the test is run.
+      #
+      # Optional.
+      dependencies: 
+        -
+
+      # Maximum duration (in seconds) of the test run.
+      #
+      # Optional.
+      timeout: null
+
+      # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If
+      # not specified, the `serviceResource` configured on the module will be used. If neither is
+      # specified, an error will be thrown.
+      #
+      # Optional.
+      resource: 
+        # The type of Kubernetes resource to sync files to.
+        #
+        # Required.
+        # Allowed values: "Deployment", "DaemonSet", "StatefulSet"
+        kind: Deployment
+
+        # The name of the resource to sync to. If the chart contains a single resource of the
+        # specified Kind, this can be omitted.
+        # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+        # This allows you to easily match the dynamic names given by Helm. In most cases you
+        # should copy this directly from the template in question in order to match it. Note that
+        # you may need to add single quotes around the string for the YAML to be parsed correctly.
+        #
+        # Optional.
+        name:
+
+        # The name of a container in the target. Specify this if the target contains more than one
+        # container and the main container is not the first container in the spec.
+        #
+        # Optional.
+        containerName:
+
+        # The Garden module that contains the sources for the container. This needs to be
+        # specified under `serviceResource` in order to enable hot-reloading for the chart, but is
+        # not necessary for tasks and tests.
+        # Must be a `container` module, and for hot-reloading to work you must specify the
+        # `hotReload` field on the container module.
+        # Note: If you specify a module here, you don't need to specify it additionally under
+        # `build.dependencies`
+        #
+        # Example: "my-container-module"
+        #
+        # Optional.
+        containerModule:
+
+        # If specified, overrides the arguments for the main container when running in hot-reload
+        # mode.
+        #
+        # Example:
+        #   - nodemon
+        #   - my-server.js
+        #
+        # Optional.
+        hotReloadArgs: 
+          -
+
+      # The arguments to pass to the pod used for execution.
+      #
+      # Optional.
+      args: 
+        -
+
+      # Key/value map of environment variables. Keys must be valid POSIX environment variable
+      # names (must not start with `GARDEN`) and values must be primitives.
+      #
+      # Optional.
+      env: 
+        {}
+
+  # The test suite definitions for this module.
+  #
+  # Optional.
+  tests: 
+    # Required configuration for module tests.
+    #
+    # Optional.
+    - # The name of the test.
+      #
+      # Required.
+      name:
+
+      # The names of any services that must be running, and the names of any tasks that must be
+      # executed, before the test is run.
+      #
+      # Optional.
+      dependencies: 
+        -
+
+      # Maximum duration (in seconds) of the test run.
+      #
+      # Optional.
+      timeout: null
+
+      # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test
+      # suite. If not specified, the `serviceResource` configured on the module will be used. If
+      # neither is specified, an error will be thrown.
+      #
+      # Optional.
+      resource: 
+        # The type of Kubernetes resource to sync files to.
+        #
+        # Required.
+        # Allowed values: "Deployment", "DaemonSet", "StatefulSet"
+        kind: Deployment
+
+        # The name of the resource to sync to. If the chart contains a single resource of the
+        # specified Kind, this can be omitted.
+        # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+        # This allows you to easily match the dynamic names given by Helm. In most cases you
+        # should copy this directly from the template in question in order to match it. Note that
+        # you may need to add single quotes around the string for the YAML to be parsed correctly.
+        #
+        # Optional.
+        name:
+
+        # The name of a container in the target. Specify this if the target contains more than one
+        # container and the main container is not the first container in the spec.
+        #
+        # Optional.
+        containerName:
+
+        # The Garden module that contains the sources for the container. This needs to be
+        # specified under `serviceResource` in order to enable hot-reloading for the chart, but is
+        # not necessary for tasks and tests.
+        # Must be a `container` module, and for hot-reloading to work you must specify the
+        # `hotReload` field on the container module.
+        # Note: If you specify a module here, you don't need to specify it additionally under
+        # `build.dependencies`
+        #
+        # Example: "my-container-module"
+        #
+        # Optional.
+        containerModule:
+
+        # If specified, overrides the arguments for the main container when running in hot-reload
+        # mode.
+        #
+        # Example:
+        #   - nodemon
+        #   - my-server.js
+        #
+        # Optional.
+        hotReloadArgs: 
+          -
+
+      # The arguments to pass to the pod used for testing.
+      #
+      # Optional.
+      args: 
+        -
+
+      # Key/value map of environment variables. Keys must be valid POSIX environment variable
+      # names (must not start with `GARDEN`) and values must be primitives.
+      #
+      # Optional.
+      env: 
+        {}
+
+  # The chart version to deploy.
+  #
+  # Optional.
+  version:
+
+  # Map of values to pass to Helm when rendering the templates. May include arrays and nested
+  # objects.
+  #
+  # Optional.
+  values: 
+    {}
+```
+

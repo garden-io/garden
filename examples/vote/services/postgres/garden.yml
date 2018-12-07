@@ -12,13 +12,27 @@ module:
         - name: db
           containerPort: 5432
       healthCheck:
-        command: [psql, -w, -U, postgres, -d, postgres, -c, "SELECT 1"]
+        command: [
+          psql,
+          -w,
+          -U, postgres,
+          -d, postgres,
+          -c, "SELECT 1",
+        ]
   tasks:
     - name: db-init
-      command: [psql, -w, -U, postgres, --host=db, --port 5432, -d, postgres, "-c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"]
+      command: [
+        psql,
+        -w,
+        -U, postgres,
+        --host=db,
+        --port=5432,
+        -d, postgres,
+        -c, "'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
+      ]
       dependencies:
         - db
-    # - name: db-clear
-    #   command: [psql, -w, -U, postgres, --host=db, --port 5432, -d, postgres, "-c 'TRUNCATE votes'"]
-    #   dependencies:
-    #     - db
+    - name: db-clear
+      command: [psql, -w, -U, postgres, --host=db, --port 5432, -d, postgres, "-c 'TRUNCATE votes'"]
+      dependencies:
+        - db

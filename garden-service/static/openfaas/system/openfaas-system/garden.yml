@@ -5,7 +5,7 @@ module:
   repo: https://openfaas.github.io/faas-netes/
   chart: openfaas
   version: 1.2.3
-  parameters:
+  values:
     exposeServices: false
     functionNamespace: ${variables.function-namespace}
     ingress:

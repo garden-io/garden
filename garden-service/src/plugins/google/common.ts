@@ -13,12 +13,12 @@ import { ConfigurationError } from "../../exceptions"
 import { ExecTestSpec } from "../exec"
 import { GCloud } from "./gcloud"
 import { ModuleSpec } from "../../config/module"
-import { BaseServiceSpec } from "../../config/service"
+import { CommonServiceSpec } from "../../config/service"
 import { Provider } from "../../config/project"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
-export interface GoogleCloudServiceSpec extends BaseServiceSpec {
+export interface GoogleCloudServiceSpec extends CommonServiceSpec {
   project?: string,
 }
 

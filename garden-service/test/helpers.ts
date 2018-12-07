@@ -9,7 +9,7 @@
 import * as td from "testdouble"
 import { resolve, join } from "path"
 import { remove, readdirSync, existsSync } from "fs-extra"
-import { containerModuleSpecSchema } from "../src/plugins/container"
+import { containerModuleSpecSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
 import { validate, PrimitiveMap } from "../src/config/common"
@@ -122,6 +122,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             name: spec.name,
             dependencies: spec.dependencies,
             outputs: spec.outputs,
+            sourceModuleName: spec.sourceModuleName,
             spec,
           }))
 
@@ -205,7 +206,7 @@ export const testPluginC: PluginFactory = async (params) => {
   return plugin
 }
 
-export const defaultModuleConfig: ModuleConfig = {
+const defaultModuleConfig: ModuleConfig = {
   type: "test",
   name: "test",
   path: "bla",
@@ -220,7 +221,14 @@ export const defaultModuleConfig: ModuleConfig = {
       },
     ],
   },
-  serviceConfigs: [],
+  serviceConfigs: [
+    {
+      name: "test-service",
+      dependencies: [],
+      outputs: {},
+      spec: {},
+    },
+  ],
   testConfigs: [],
   taskConfigs: [],
 }

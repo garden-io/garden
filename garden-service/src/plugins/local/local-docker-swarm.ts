@@ -19,16 +19,11 @@ import {
   GetServiceOutputsParams,
   GetServiceStatusParams,
 } from "../../types/plugin/params"
-import {
-  helpers,
-  ContainerModule,
-} from "../container"
-import {
-  map,
-  sortBy,
-} from "lodash"
+import { ContainerModule } from "../container/config"
+import { map, sortBy } from "lodash"
 import { sleep } from "../../util/util"
 import { ServiceState, ServiceStatus } from "../../types/service"
+import { containerHelpers } from "../container/helpers"
 
 // should this be configurable and/or global across providers?
 const DEPLOY_TIMEOUT = 30
@@ -52,7 +47,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
         log.info({ section: service.name, msg: `Deploying version ${versionString}` })
 
-        const identifier = await helpers.getLocalImageId(module)
+        const identifier = await containerHelpers.getLocalImageId(module)
         const ports = service.spec.ports.map(p => {
           const port: any = {
             Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
@@ -123,6 +118,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           runtimeContext,
           log,
           buildDependencies,
+          hotReload: false,
         })
         let swarmServiceStatus
         let serviceId
@@ -179,7 +175,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           msg: `Ready`,
         })
 
-        return getServiceStatus({ ctx, module, service, runtimeContext, log, buildDependencies })
+        return getServiceStatus({ ctx, module, service, runtimeContext, log, buildDependencies, hotReload: false })
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<ContainerModule>) {
@@ -198,6 +194,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           runtimeContext,
           log,
           buildDependencies,
+          hotReload: false,
         })
 
         if (!status.state || status.state !== "ready") {

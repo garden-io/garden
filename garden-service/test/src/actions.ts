@@ -23,7 +23,7 @@ import {
   getServiceStatusParamsSchema,
   deployServiceParamsSchema,
   deleteServiceParamsSchema,
-  hotReloadParamsSchema,
+  hotReloadServiceParamsSchema,
   getServiceOutputsParamsSchema,
   execInServiceParamsSchema,
   getServiceLogsParamsSchema,
@@ -160,11 +160,11 @@ describe("ActionHelper", () => {
       })
     })
 
-    describe("hotReload", () => {
+    describe("hotReloadService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.hotReload({
+        const result = await actions.hotReloadService({
           log,
-          module,
+          service,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: {},
@@ -255,14 +255,14 @@ describe("ActionHelper", () => {
   describe("service actions", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getServiceStatus({ log, service })
+        const result = await actions.getServiceStatus({ log, service, hotReload: false })
         expect(result).to.eql({ state: "ready" })
       })
     })
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deployService({ log, service, force: true })
+        const result = await actions.deployService({ log, service, force: true, hotReload: false })
         expect(result).to.eql({ state: "ready" })
       })
     })
@@ -432,8 +432,8 @@ const testPlugin: PluginFactory = async () => ({
         return { pushed: true }
       },
 
-      hotReload: async (params) => {
-        validate(params, hotReloadParamsSchema)
+      hotReloadService: async (params) => {
+        validate(params, hotReloadServiceParamsSchema)
         return {}
       },
 

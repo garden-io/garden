@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { validate } from "../../../src/config/common"
-import { portSchema } from "../../../src/plugins/container"
+import { portSchema } from "../../../src/plugins/container/config"
 
 describe("portSchema", () => {
   it("should default servicePort to containerPorts value", async () => {

@@ -8,13 +8,13 @@
 
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import { RuntimeContext, Service, ServiceState } from "../../types/service"
+import { ServiceState, combineStates } from "../../types/service"
 import { sleep } from "../../util/util"
 import { KubeApi } from "./api"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { getAppNamespace } from "./namespace"
 import * as Bluebird from "bluebird"
-import { KubernetesObject } from "./helm"
+import { KubernetesResource } from "./types"
 import {
   V1Pod,
   V1Deployment,
@@ -29,13 +29,12 @@ import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
 import { KubernetesProvider } from "./kubernetes"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
-import { getContainerServiceStatus } from "./deployment"
 import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
 import dedent = require("dedent")
 
 export interface RolloutStatus {
   state: ServiceState
-  obj: KubernetesObject
+  obj: KubernetesResource
   lastMessage?: string
   lastError?: string
   resourceVersion?: number
@@ -43,7 +42,7 @@ export interface RolloutStatus {
 }
 
 interface ObjHandler {
-  (api: KubeApi, namespace: string, obj: KubernetesObject, resourceVersion?: number): Promise<RolloutStatus>
+  (api: KubeApi, namespace: string, obj: KubernetesResource, resourceVersion?: number): Promise<RolloutStatus>
 }
 
 const podLogLines = 20
@@ -93,7 +92,7 @@ const objHandlers: { [kind: string]: ObjHandler } = {
   },
 }
 
-async function checkPodStatus(obj: KubernetesObject, pods: V1Pod[]): Promise<RolloutStatus> {
+async function checkPodStatus(obj: KubernetesResource, pods: V1Pod[]): Promise<RolloutStatus> {
   for (const pod of pods) {
     // TODO: detect unhealthy state (currently we just time out)
     const ready = some(pod.status.conditions.map(c => c.type === "ready"))
@@ -112,7 +111,7 @@ async function checkPodStatus(obj: KubernetesObject, pods: V1Pod[]): Promise<Rol
  * didn't pan out, since it doesn't look for events and just times out when errors occur during rollout.
  */
 export async function checkDeploymentStatus(
-  api: KubeApi, namespace: string, obj: KubernetesObject, resourceVersion?: number,
+  api: KubeApi, namespace: string, obj: KubernetesResource, resourceVersion?: number,
 ): Promise<RolloutStatus> {
   const out: RolloutStatus = {
     state: "unhealthy",
@@ -292,12 +291,10 @@ export async function checkDeploymentStatus(
 /**
  * Check if the specified Kubernetes objects are deployed and fully rolled out
  */
-export async function checkObjectStatus(
-  api: KubeApi, namespace: string, objects: KubernetesObject[], prevStatuses?: RolloutStatus[],
-) {
-  let ready = true
-
-  const statuses: RolloutStatus[] = await Bluebird.map(objects, async (obj, i) => {
+export async function checkResourceStatuses(
+  api: KubeApi, namespace: string, resources: KubernetesResource[], prevStatuses?: RolloutStatus[],
+): Promise<RolloutStatus[]> {
+  return Bluebird.map(resources, async (obj, i) => {
     const handler = objHandlers[obj.kind]
     const prevStatus = prevStatuses && prevStatuses[i]
     let status: RolloutStatus
@@ -306,8 +303,6 @@ export async function checkObjectStatus(
         status = await handler(api, namespace, obj, prevStatus && prevStatus.resourceVersion)
       } catch (err) {
         // We handle 404s specifically since this might be invoked before some objects are deployed
-        // See: https://github.com/garden-io/garden/issues/353
-        // TODO: Figure out whether we'll need this check after issue #353 above has been resolved
         if (err.code === 404) {
           status = { state: "missing", obj }
         } else {
@@ -319,35 +314,29 @@ export async function checkObjectStatus(
       status = { state: "ready", obj }
     }
 
-    if (status.state !== "ready") {
-      ready = false
-    }
-
     return status
   })
-
-  return { ready, statuses }
 }
 
 interface WaitParams {
   ctx: PluginContext,
   provider: KubernetesProvider,
-  service: Service,
-  objects: KubernetesObject[],
+  serviceName: string,
+  resources: KubernetesResource[],
   log: LogEntry,
 }
 
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
  */
-export async function waitForObjects({ ctx, provider, service, objects, log }: WaitParams) {
+export async function waitForResources({ ctx, provider, serviceName, resources: objects, log }: WaitParams) {
   let loops = 0
   let lastMessage
   const startTime = new Date().getTime()
 
   log.verbose({
     symbol: "info",
-    section: service.name,
+    section: serviceName,
     msg: `Waiting for service to be ready...`,
   })
 
@@ -360,19 +349,20 @@ export async function waitForObjects({ ctx, provider, service, objects, log }: W
 
   while (true) {
     await sleep(2000 + 1000 * loops)
+    loops += 1
 
-    const { ready, statuses } = await checkObjectStatus(api, namespace, objects, prevStatuses)
+    const statuses = await checkResourceStatuses(api, namespace, objects, prevStatuses)
 
     for (const status of statuses) {
       if (status.lastError) {
-        let msg = `Error deploying ${service.name}: ${status.lastError}`
+        let msg = `Error deploying ${serviceName}: ${status.lastError}`
 
         if (status.logs !== undefined) {
           msg += "\n\nLogs:\n\n" + status.logs
         }
 
         throw new DeploymentError(msg, {
-          serviceName: service.name,
+          serviceName,
           status,
         })
       }
@@ -381,7 +371,7 @@ export async function waitForObjects({ ctx, provider, service, objects, log }: W
         lastMessage = status.lastMessage
         log.verbose({
           symbol: "info",
-          section: service.name,
+          section: serviceName,
           msg: status.lastMessage,
         })
       }
@@ -389,69 +379,30 @@ export async function waitForObjects({ ctx, provider, service, objects, log }: W
 
     prevStatuses = statuses
 
-    if (ready) {
+    if (combineStates(statuses.map(s => s.state)) === "ready") {
       break
     }
 
     const now = new Date().getTime()
 
     if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new DeploymentError(`Timed out waiting for ${service.name} to deploy`, { statuses })
+      throw new DeploymentError(`Timed out waiting for ${serviceName} to deploy`, { statuses })
     }
   }
 
-  log.verbose({ symbol: "info", section: service.name, msg: `Service deployed` })
-}
-
-/**
- * Resolves to true if the requested services were ready, or became ready within a timeout limit.
- * Resolves to false otherwise.
- *
- * TODO: This function is repetitive of waitForObjects above.
- */
-export async function waitForServices(
-  ctx: PluginContext, log: LogEntry, runtimeContext: RuntimeContext, services: Service[], buildDependencies,
-) {
-  const startTime = new Date().getTime()
-
-  while (true) {
-    const states = await Bluebird.map(services, async (service) => {
-      return {
-        service,
-        ...await getContainerServiceStatus({
-          ctx, log, buildDependencies, service, runtimeContext, module: service.module,
-        }),
-      }
-    })
-
-    const notReady = states.filter(s => s.state !== "ready" && s.state !== "outdated")
-
-    if (notReady.length === 0) {
-      return
-    }
-
-    const notReadyNames = notReady.map(s => s.service.name).join(", ")
-    log.silly(`Waiting for services ${notReadyNames}`)
-
-    if (new Date().getTime() - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new DeploymentError(`Timed out waiting for services ${notReadyNames} to deploy`, { states })
-    }
-
-    await sleep(2000)
-  }
-
+  log.verbose({ symbol: "info", section: serviceName, msg: `Service deployed` })
 }
 
 interface ComparisonResult {
   state: ServiceState
-  remoteObjects: KubernetesObject[]
+  remoteObjects: KubernetesResource[]
 }
 
 /**
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
 export async function compareDeployedObjects(
-  ctx: PluginContext, objects: KubernetesObject[],
+  ctx: PluginContext, objects: KubernetesResource[], log: LogEntry,
 ): Promise<ComparisonResult> {
   const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, ctx.provider, obj))
 
@@ -459,19 +410,23 @@ export async function compareDeployedObjects(
 
   const result: ComparisonResult = {
     state: "ready",
-    remoteObjects: <KubernetesObject[]>existingObjects.filter(o => o !== null),
+    remoteObjects: <KubernetesResource[]>existingObjects.filter(o => o !== null),
   }
 
-  for (let [obj, existingSpec] of zip(objects, existingObjects)) {
-    if (existingSpec && obj) {
+  for (let [newSpec, existingSpec] of zip(objects, existingObjects)) {
+    if (newSpec && !existingSpec) {
+      log.silly(`Resource ${newSpec.kind}/${newSpec.metadata.name} missing from cluster`)
+    }
+
+    if (existingSpec && newSpec) {
       missing = false
 
       // the API version may implicitly change when deploying
-      existingSpec.apiVersion = obj.apiVersion
+      existingSpec.apiVersion = newSpec.apiVersion
 
       // the namespace property is silently dropped when added to non-namespaced
-      if (obj.metadata.namespace && existingSpec.metadata.namespace === undefined) {
-        delete obj.metadata.namespace
+      if (newSpec.metadata.namespace && existingSpec.metadata.namespace === undefined) {
+        delete newSpec.metadata.namespace
       }
 
       if (!existingSpec.metadata.annotations) {
@@ -479,28 +434,36 @@ export async function compareDeployedObjects(
       }
 
       // handle auto-filled properties (this is a bit of a design issue in the K8s API)
-      if (obj.kind === "Service" && obj.spec.clusterIP === "") {
-        delete obj.spec.clusterIP
+      if (newSpec.kind === "Service" && newSpec.spec.clusterIP === "") {
+        delete newSpec.spec.clusterIP
       }
 
       // handle properties that are omitted in the response because they have the default value
       // (another design issue in the K8s API)
       // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
       //       `kubectl diff` is ready, or server-side apply/diff is ready
-      if (obj.kind === "DaemonSet") {
-        if (obj.spec.minReadySeconds === 0) {
-          delete obj.spec.minReadySeconds
+      if (newSpec.kind === "DaemonSet") {
+        if (newSpec.spec.minReadySeconds === 0) {
+          delete newSpec.spec.minReadySeconds
         }
-        if (obj.spec.template.spec.hostNetwork === false) {
-          delete obj.spec.template.spec.hostNetwork
+        if (newSpec.spec.template.spec.hostNetwork === false) {
+          delete newSpec.spec.template.spec.hostNetwork
         }
       }
 
       // clean null values
-      obj = <KubernetesObject>removeNull(obj)
+      newSpec = <KubernetesResource>removeNull(newSpec)
     }
 
-    if (existingSpec && !isSubset(existingSpec, obj)) {
+    if (existingSpec && !isSubset(existingSpec, newSpec)) {
+      if (newSpec) {
+        log.silly(`Resource ${newSpec.metadata.name} is not a superset of deployed resource`)
+        log.silly("----------------- Expected: -----------------------")
+        log.silly(JSON.stringify(newSpec, null, 4))
+        log.silly("------------------Deployed: -----------------------")
+        log.silly(JSON.stringify(existingSpec, null, 4))
+        log.silly("---------------------------------------------------")
+      }
       // console.log(JSON.stringify(obj, null, 4))
       // console.log(JSON.stringify(existingSpec, null, 4))
       // console.log("----------------------------------------------------")
@@ -518,8 +481,8 @@ export async function compareDeployedObjects(
 }
 
 async function getDeployedObject(
-  ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesObject,
-): Promise<KubernetesObject | null> {
+  ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesResource,
+): Promise<KubernetesResource | null> {
   const api = new KubeApi(provider)
   const namespace = obj.metadata.namespace || await getAppNamespace(ctx, provider)
 

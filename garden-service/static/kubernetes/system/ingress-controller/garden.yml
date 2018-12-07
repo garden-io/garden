@@ -6,7 +6,7 @@ module:
   dependencies:
     - default-backend
   version: 0.25.1
-  parameters:
+  values:
     name: ingress-controller
     controller:
       defaultBackendService: garden-system/default-backend

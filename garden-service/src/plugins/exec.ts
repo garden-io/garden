@@ -22,7 +22,8 @@ import {
   BuildResult,
   BuildStatus,
   ValidateModuleResult,
-  TestResult, TaskStatus, RunTaskResult,
+  TestResult,
+  RunTaskResult,
 } from "../types/plugin/outputs"
 import {
   BuildModuleParams,
@@ -30,7 +31,7 @@ import {
   ValidateModuleParams,
   TestModuleParams, RunTaskParams,
 } from "../types/plugin/params"
-import { BaseServiceSpec } from "../config/service"
+import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
 import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/base"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
@@ -81,7 +82,7 @@ export const execModuleSpecSchema = Joi.object()
   .unknown(false)
   .description("The module specification for an exec module.")
 
-export interface ExecModule extends Module<ExecModuleSpec, BaseServiceSpec, ExecTestSpec> { }
+export interface ExecModule extends Module<ExecModuleSpec, CommonServiceSpec, ExecTestSpec> { }
 
 export async function parseExecModule(
   { ctx, moduleConfig }: ValidateModuleParams<ExecModule>,
@@ -219,10 +220,6 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
     startedAt,
     completedAt,
   }
-}
-
-export async function getExecTaskStatus(): Promise<TaskStatus> {
-  return { done: false }
 }
 
 export const execPlugin: GardenPlugin = {

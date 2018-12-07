@@ -17,13 +17,14 @@ import {
   Policy_v1beta1Api,
 } from "@kubernetes/client-node"
 import { join } from "path"
-import { readFileSync } from "fs"
+import { readFileSync, pathExistsSync } from "fs-extra"
 import { safeLoad } from "js-yaml"
 import { zip, omitBy, isObject } from "lodash"
 import { GardenBaseError, ConfigurationError } from "../../exceptions"
-import { KubernetesObject } from "./helm"
 import { homedir } from "os"
 import { KubernetesProvider } from "./kubernetes"
+import { KubernetesResource } from "./types"
+import * as dedent from "dedent"
 
 let kubeConfigStr: string
 let kubeConfig: any
@@ -81,7 +82,7 @@ export class KubeApi {
 
   constructor(public provider: KubernetesProvider) {
     this.context = provider.config.context
-    const config = getSecret(this.context)
+    const config = getConfig(this.context)
 
     for (const [name, cls] of Object.entries(apiTypes)) {
       const api = new cls(config.getCurrentCluster()!.server)
@@ -89,7 +90,7 @@ export class KubeApi {
     }
   }
 
-  async readBySpec(namespace: string, spec: KubernetesObject) {
+  async readBySpec(namespace: string, spec: KubernetesResource) {
     // this is just awful, sorry. any better ideas? - JE
     const name = spec.metadata.name
 
@@ -146,8 +147,8 @@ export class KubeApi {
   }
 
   async upsert<K extends keyof CrudMapType>(
-    kind: K, namespace: string, obj: KubernetesObject,
-  ): Promise<KubernetesObject> {
+    kind: K, namespace: string, obj: KubernetesResource,
+  ): Promise<KubernetesResource> {
     const api = this[crudMap[kind].group]
 
     try {
@@ -207,12 +208,23 @@ export class KubeApi {
   }
 }
 
-function getSecret(context: string): KubeConfig {
-  if (!kubeConfigStr) {
-    const kubeConfigPath = process.env.KUBECONFIG || join(homedir(), ".kube", "config")
+function getConfig(context: string): KubeConfig {
+  const kubeConfigPath = process.env.KUBECONFIG || join(homedir(), ".kube", "config")
+
+  if (pathExistsSync(kubeConfigPath)) {
     kubeConfigStr = readFileSync(kubeConfigPath).toString()
-    kubeConfig = safeLoad(kubeConfigStr)
+  } else {
+    // Fall back to a blank kubeconfig if none is found
+    kubeConfigStr = dedent`
+      apiVersion: v1
+      kind: Config
+      clusters: []
+      contexts: []
+      preferences: {}
+      users: []
+    `
   }
+  kubeConfig = safeLoad(kubeConfigStr)
 
   if (!configs[context]) {
     const kc = new KubeConfig()

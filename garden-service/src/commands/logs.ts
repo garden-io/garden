@@ -20,6 +20,7 @@ import { Service } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType } from "../logger/logger"
 import dedent = require("dedent")
+import { LogLevel } from "../logger/log-node"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -88,7 +89,9 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     await Bluebird.map(services, async (service: Service<any>) => {
-      const status = await garden.actions.getServiceStatus({ log, service })
+      const voidLog = log.placeholder(LogLevel.silly)
+      const status = await garden.actions.getServiceStatus({ log: voidLog, service, hotReload: false })
+
       if (status.state === "ready" || status.state === "outdated") {
         await garden.actions.getServiceLogs({ log, service, stream, tail })
       } else {

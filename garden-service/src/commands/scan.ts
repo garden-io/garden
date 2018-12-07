@@ -23,7 +23,10 @@ export class ScanCommand extends Command {
   async action({ garden, log }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
     const modules = (await garden.getModules())
       .map(m => {
-        m.services.forEach(s => delete s.module)
+        m.services.forEach(s => {
+          delete s.module
+          delete s.sourceModule
+        })
         m.tasks.forEach(w => delete w.module)
         return omit(m, [
           "_ConfigType", "cacheContext", "serviceConfigs", "serviceNames", "taskConfigs", "taskNames",

@@ -212,7 +212,7 @@ Examples:
     garden deploy service-a,service-b     # only deploy service-a and service-b
     garden deploy --force                 # force re-deploy of modules, even if they're already deployed
     garden deploy --watch                 # watch for changes to code
-    garden deploy --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
+    garden deploy --watch --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
     garden deploy --env stage             # deploy your services to an environment called stage
 
 ##### Usage

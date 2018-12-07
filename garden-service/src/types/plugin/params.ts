@@ -50,9 +50,10 @@ const moduleActionParamsSchema = actionParamsSchema
       .description("All build dependencies of this module, keyed by name."),
   })
 
-export interface PluginServiceActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+export interface PluginServiceActionParamsBase<M extends Module = Module, S extends Module = Module>
+  extends PluginModuleActionParamsBase<M> {
   runtimeContext?: RuntimeContext
-  service: Service<T>
+  service: Service<M, S>
 }
 const serviceActionParamsSchema = moduleActionParamsSchema
   .keys({
@@ -157,12 +158,6 @@ export const pushModuleParamsSchema = moduleActionParamsSchema
 export interface PublishModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
 export const publishModuleParamsSchema = moduleActionParamsSchema
 
-export interface HotReloadParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
-  runtimeContext: RuntimeContext
-}
-export const hotReloadParamsSchema = moduleActionParamsSchema
-  .keys({ runtimeContext: runtimeContextSchema })
-
 export interface RunModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   command: string[]
   interactive: boolean
@@ -216,19 +211,24 @@ export const getTestResultParamsSchema = moduleActionParamsSchema
 
 export type hotReloadStatus = "enabled" | "disabled"
 
-export interface GetServiceStatusParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+export interface GetServiceStatusParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> {
+  hotReload: boolean,
   runtimeContext: RuntimeContext
-  verifyHotReloadStatus?: hotReloadStatus
 }
 
 export const getServiceStatusParamsSchema = serviceActionParamsSchema
   .keys({
     runtimeContext: runtimeContextSchema,
+    hotReload: Joi.boolean()
+      .default(false)
+      .description("Whether the service should be configured for hot-reloading."),
   })
 
-export interface DeployServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+export interface DeployServiceParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> {
   force: boolean,
-  hotReload?: boolean,
+  hotReload: boolean,
   runtimeContext: RuntimeContext
 }
 export const deployServiceParamsSchema = serviceActionParamsSchema
@@ -236,9 +236,20 @@ export const deployServiceParamsSchema = serviceActionParamsSchema
     force: Joi.boolean()
       .description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema,
+    hotReload: Joi.boolean()
+      .default(false)
+      .description("Whether to configure the service for hot-reloading."),
   })
 
-export interface DeleteServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+export interface HotReloadServiceParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> {
+  runtimeContext: RuntimeContext
+}
+export const hotReloadServiceParamsSchema = serviceActionParamsSchema
+  .keys({ runtimeContext: runtimeContextSchema })
+
+export interface DeleteServiceParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> {
   runtimeContext: RuntimeContext
 }
 export const deleteServiceParamsSchema = serviceActionParamsSchema
@@ -246,10 +257,12 @@ export const deleteServiceParamsSchema = serviceActionParamsSchema
     runtimeContext: runtimeContextSchema,
   })
 
-export interface GetServiceOutputsParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> { }
+export interface GetServiceOutputsParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> { }
 export const getServiceOutputsParamsSchema = serviceActionParamsSchema
 
-export interface ExecInServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+export interface ExecInServiceParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> {
   command: string[]
   runtimeContext: RuntimeContext
   interactive: boolean
@@ -262,7 +275,8 @@ export const execInServiceParamsSchema = serviceActionParamsSchema
     interactive: Joi.boolean(),
   })
 
-export interface GetServiceLogsParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+export interface GetServiceLogsParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> {
   runtimeContext: RuntimeContext
   stream: Stream<ServiceLogEntry>
   tail: boolean
@@ -280,7 +294,8 @@ export const getServiceLogsParamsSchema = serviceActionParamsSchema
       .description("If set, only return logs that are as new or newer than this date."),
   })
 
-export interface RunServiceParams<T extends Module = Module> extends PluginServiceActionParamsBase<T> {
+export interface RunServiceParams<M extends Module = Module, S extends Module = Module>
+  extends PluginServiceActionParamsBase<M, S> {
   interactive: boolean
   runtimeContext: RuntimeContext
   timeout?: number
@@ -305,6 +320,7 @@ export const runTaskParamsSchema = taskActionParamsSchema
 export interface ServiceActionParams<T extends Module = Module> {
   getServiceStatus: GetServiceStatusParams<T>
   deployService: DeployServiceParams<T>
+  hotReloadService: HotReloadServiceParams<T>
   deleteService: DeleteServiceParams<T>
   getServiceOutputs: GetServiceOutputsParams<T>
   execInService: ExecInServiceParams<T>
@@ -323,7 +339,6 @@ export interface ModuleActionParams<T extends Module = Module> {
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
   pushModule: PushModuleParams<T>
-  hotReload: HotReloadParams<T>
   publishModule: PublishModuleParams<T>
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>

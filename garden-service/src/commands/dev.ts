@@ -16,8 +16,7 @@ import moment = require("moment")
 import { join } from "path"
 
 import { BaseTask } from "../tasks/base"
-import { validateHotReloadOpt } from "./helpers"
-import { getDependantTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
+import { getDependantTasksForModule } from "../tasks/helpers"
 import {
   Command,
   CommandResult,
@@ -87,22 +86,19 @@ export class DevCommand extends Command<Args, Opts> {
     }
 
     const hotReloadServiceNames = opts["hot-reload"] || []
-    const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
-
-    if (opts["hot-reload"] && !validateHotReloadOpt(garden, log, hotReloadServiceNames)) {
-      return {}
-    }
-
+    const hotReloadServices = await garden.getServices(hotReloadServiceNames)
     const dependencyGraph = await garden.getDependencyGraph()
 
     const tasksForModule = (watch: boolean) => {
       return async (module: Module) => {
         const tasks: BaseTask[] = []
 
-        const hotReload = hotReloadModuleNames.has(module.name)
+        if (watch) {
+          const hotReloadTasks = hotReloadServices
+            .filter(service => service.module.name === module.name || service.sourceModule.name === module.name)
+            .map(service => new HotReloadTask({ garden, log, service, force: true }))
 
-        if (watch && hotReload) {
-          tasks.push(new HotReloadTask({ garden, log, module, force: true }))
+          tasks.push(...hotReloadTasks)
         }
 
         const testModules: Module[] = watch

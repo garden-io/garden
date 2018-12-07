@@ -174,8 +174,8 @@ export const buildModuleResultSchema = Joi.object()
       .description("Additional information, specific to the provider."),
   })
 
-export interface HotReloadResult { }
-export const hotReloadResultSchema = Joi.object()
+export interface HotReloadServiceResult { }
+export const hotReloadServiceResultSchema = Joi.object()
 
 export interface PushResult {
   pushed: boolean
@@ -320,6 +320,7 @@ export interface PluginActionOutputs {
 export interface ServiceActionOutputs {
   getServiceStatus: Promise<ServiceStatus>
   deployService: Promise<ServiceStatus>
+  hotReloadService: Promise<HotReloadServiceResult>
   deleteService: Promise<ServiceStatus>
   getServiceOutputs: Promise<PrimitiveMap>
   execInService: Promise<ExecInServiceResult>
@@ -337,7 +338,6 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   validate: Promise<ValidateModuleResult>
   getBuildStatus: Promise<BuildStatus>
   build: Promise<BuildResult>
-  hotReload: Promise<HotReloadResult>
   pushModule: Promise<PushResult>
   publishModule: Promise<PublishResult>
   runModule: Promise<RunResult>

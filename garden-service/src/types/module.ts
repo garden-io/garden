@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, uniq } from "lodash"
+import { flatten, uniq, cloneDeep } from "lodash"
 import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
@@ -19,8 +19,9 @@ import { Garden } from "../garden"
 import { serviceFromConfig, Service, serviceSchema } from "./service"
 import * as Joi from "joi"
 import { joiArray, joiIdentifier } from "../config/common"
+import * as Bluebird from "bluebird"
 
-export interface BuildCopySpec {
+export interface FileCopySpec {
   source: string
   target: string
 }
@@ -83,7 +84,7 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
 
 export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Promise<Module> {
   const module: Module = {
-    ...config,
+    ...cloneDeep(config),
 
     buildPath: await garden.buildDir.buildPath(config.name),
     version: await garden.resolveVersion(config.name, config.build.dependencies),
@@ -103,7 +104,10 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
     _ConfigType: config,
   }
 
-  module.services = config.serviceConfigs.map(serviceConfig => serviceFromConfig(module, serviceConfig))
+  module.services = await Bluebird.map(
+    config.serviceConfigs,
+    serviceConfig => serviceFromConfig(garden, module, serviceConfig),
+  )
 
   module.tasks = config.taskConfigs.map(taskConfig => taskFromConfig(module, taskConfig))
 

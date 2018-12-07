@@ -13,7 +13,6 @@ import { BuildResult } from "../types/plugin/outputs"
 import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../dependency-graph"
-import { getHotReloadModuleNames } from "./helpers"
 import { LogEntry } from "../logger/log-entry"
 
 export interface BuildTaskParams {
@@ -42,11 +41,7 @@ export class BuildTask extends BaseTask {
 
   async getDependencies(): Promise<BuildTask[]> {
     const dg = await this.garden.getDependencyGraph()
-    const hotReloadModuleNames = await getHotReloadModuleNames(this.garden, this.hotReloadServiceNames)
-
-    // We ignore build dependencies on modules with services deployed with hot reloading
     const deps = (await dg.getDependencies(this.depType, this.getName(), false)).build
-      .filter(module => !hotReloadModuleNames.has(module.name))
 
     return Bluebird.map(deps, async (m: Module) => {
       return new BuildTask({
@@ -71,10 +66,14 @@ export class BuildTask extends BaseTask {
   async process(): Promise<BuildResult> {
     const module = this.module
 
-    if (!this.force && (await this.garden.actions.getBuildStatus({ log: this.log, module })).ready) {
-      // this is necessary in case other modules depend on files from this one
-      await this.garden.buildDir.syncDependencyProducts(this.module)
-      return { fresh: false }
+    if (!this.force) {
+      const status = await this.garden.actions.getBuildStatus({ log: this.log, module })
+
+      if (status.ready) {
+        // this is necessary in case other modules depend on files from this one
+        await this.garden.buildDir.syncDependencyProducts(this.module)
+        return { fresh: false }
+      }
     }
 
     const log = this.log.info({

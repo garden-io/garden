@@ -438,6 +438,39 @@ describe("Garden", () => {
       const services = await garden.getServices(undefined, true)
       expect(getNames(services)).to.eql(["test-service"])
     })
+
+    it("should automatically add service source modules as build dependencies", async () => {
+      const garden = await makeTestGardenA()
+
+      const testModule = makeTestModule()
+      await garden.addModule(testModule)
+
+      const testModuleB = makeTestModule({
+        name: "test-b",
+        spec: {
+          services: [
+            {
+              name: "test-service-b",
+              dependencies: [],
+              sourceModuleName: "test",
+            },
+          ],
+        },
+        serviceConfigs: [
+          {
+            name: "test-service-b",
+            dependencies: [],
+            outputs: {},
+            sourceModuleName: "test",
+            spec: {},
+          },
+        ],
+      })
+      await garden.addModule(testModuleB)
+
+      const module = await garden.getModule("test-b")
+      expect(module.build.dependencies).to.eql([{ name: "test", copy: [] }])
+    })
   })
 
   describe("resolveModule", () => {
@@ -702,6 +735,5 @@ describe("Garden", () => {
 
       expect(path).to.equal(join(projectRoot, "mock-local-path", "module-a"))
     })
-
   })
 })

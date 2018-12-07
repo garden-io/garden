@@ -31,8 +31,8 @@ import { name as providerName } from "./kubernetes"
 import { isSystemGarden, getSystemGarden } from "./system"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
-import { helm } from "./helm"
 import { DashboardPage } from "../../config/dashboard"
+import { checkTillerStatus, installTiller } from "./helm/tiller"
 
 const MAX_STORED_USERNAMES = 5
 
@@ -77,10 +77,11 @@ export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentSta
   }
 
   await prepareNamespaces({ ctx, log })
-  await helm(ctx.provider, log, "init", "--client-only")
+
+  const ready = (await checkTillerStatus(ctx, ctx.provider, log)) === "ready"
 
   return {
-    ready: true,
+    ready,
     needUserInput: false,
   }
 }
@@ -91,14 +92,11 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
   const dashboardPages: DashboardPage[] = []
 
   await prepareNamespaces({ ctx, log })
-  await helm(ctx.provider, log, "init", "--client-only")
 
-  // TODO: check if mkcert has been installed
-  // TODO: check if all certs have been generated
-
-  // check if system services are deployed
   if (!isSystemGarden(ctx.provider)) {
+    // Check if system services are deployed
     const sysGarden = await getSystemGarden(ctx.provider)
+    const sysCtx = await sysGarden.getPluginContext(ctx.provider.name)
     const sysStatus = await sysGarden.actions.getStatus({ log })
 
     const serviceStatuses = ctx.provider.config._systemServices
@@ -113,13 +111,22 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
       ready = false
     }
 
+    // Check Tiller status
+    if (await checkTillerStatus(ctx, ctx.provider, log) !== "ready") {
+      ready = false
+    }
+
+    if (await checkTillerStatus(sysCtx, sysCtx.provider, log) !== "ready") {
+      ready = false
+    }
+
     // Add the Kubernetes dashboard to the Garden dashboard
     const namespace = await getAppNamespace(ctx, ctx.provider)
     const defaultHostname = ctx.provider.config.defaultHostname
 
     const dashboardStatus = sysStatus.services["kubernetes-dashboard"]
     const dashboardServiceResource = find(
-      dashboardStatus.detail.remoteObjects,
+      (dashboardStatus.detail || {}).remoteObjects,
       o => o.kind === "Service",
     )
 
@@ -151,6 +158,8 @@ export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentP
     await login({ ctx, log })
   }
 
+  await installTiller(ctx, ctx.provider, log)
+
   return {}
 }
 
@@ -158,9 +167,9 @@ export async function prepareLocalEnvironment({ ctx, force, log }: PrepareEnviro
   // make sure system services are deployed
   if (!isSystemGarden(ctx.provider)) {
     await configureSystemServices({ ctx, force, log })
+    await installTiller(ctx, ctx.provider, log)
   }
 
-  // TODO: make sure all certs have been generated
   return {}
 }
 
@@ -306,17 +315,12 @@ async function configureSystemServices(
   const sysGarden = await getSystemGarden(provider)
   const sysCtx = sysGarden.getPluginContext(provider.name)
 
-  // TODO: need to add logic here to wait for tiller to be ready
-  await helm(sysCtx.provider, log,
-    "init", "--wait",
-    "--service-account", "default",
-    "--upgrade",
-  )
-
   const sysStatus = await getLocalEnvironmentStatus({
     ctx: sysCtx,
     log,
   })
+
+  await installTiller(sysCtx, sysCtx.provider, log)
 
   await prepareLocalEnvironment({
     ctx: sysCtx,

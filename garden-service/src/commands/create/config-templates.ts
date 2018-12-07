@@ -9,7 +9,7 @@
 import { capitalize, camelCase, uniq } from "lodash"
 
 import { DeepPartial } from "../../util/util"
-import { ContainerModuleSpec } from "../../plugins/container"
+import { ContainerModuleSpec } from "../../plugins/container/config"
 import { GcfModuleSpec } from "../../plugins/google/google-cloud-functions"
 import { ProjectConfig } from "../../config/project"
 import { ModuleConfig } from "../../config/module"
