@@ -121,7 +121,13 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   }
 
   // exec in the pod via kubectl
-  const kubecmd = ["exec", "-i", pod.metadata.name, "--", ...command]
+  const opts: string[] = []
+
+  if (interactive) {
+    opts.push("-it")
+  }
+
+  const kubecmd = ["exec", ...opts, pod.metadata.name, "--", ...command]
   const res = await kubectl(api.context, namespace).call(kubecmd, {
     ignoreError: true,
     timeout: 999999,
@@ -185,9 +191,12 @@ export async function runModule(
     "--restart=Never",
     "--command",
     "--rm",
-    "-i",
     "--quiet",
   ]
+
+  if (interactive) {
+    opts.push("-it")
+  }
 
   const kubecmd = [
     "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
