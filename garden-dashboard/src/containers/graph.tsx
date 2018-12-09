@@ -9,20 +9,27 @@
 import React from "react"
 
 import { ConfigConsumer } from "../context/config"
-import Overview from "../components/overview"
 import FetchContainer from "./fetch-container"
-import { fetchStatus } from "../api"
+
+import { fetchGraph } from "../api"
 // tslint:disable-next-line:no-unused (https://github.com/palantir/tslint/issues/4022)
-import { FetchStatusResponse } from "../api/types"
+import { FetchGraphResponse } from "../api/types"
+
+import Graph from "../components/graph"
 import PageError from "../components/page-error"
+import { EventConsumer } from "../context/events"
 
 export default () => (
-  <FetchContainer<FetchStatusResponse> ErrorComponent={PageError} fetchFn={fetchStatus}>
-    {({ data: status }) => (
+  <FetchContainer<FetchGraphResponse> ErrorComponent={PageError} fetchFn={fetchGraph}>
+    {({ data: graph }) => (
       <ConfigConsumer>
-        {({ config }) => {
-          return <Overview config={config} status={status} />
-        }}
+        {({ config }) => (
+          <EventConsumer>
+            {({ message }) => (
+              <Graph message={message} config={config} graph={graph} />
+            )}
+          </EventConsumer>
+        )}
       </ConfigConsumer>
     )}
   </FetchContainer>

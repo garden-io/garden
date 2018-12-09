@@ -10,7 +10,7 @@ import { flatten, max } from "lodash"
 import React, { Component } from "react"
 
 import Terminal from "./terminal"
-import { FetchConfigResponse, FetchLogResponse } from "../api"
+import { FetchConfigResponse, FetchLogResponse } from "../api/types"
 
 interface Props {
   config: FetchConfigResponse

@@ -9,9 +9,9 @@
 import { flatten, kebabCase } from "lodash"
 import React from "react"
 
-import { ConfigProvider, ConfigConsumer } from "../context/config"
+import { ConfigConsumer } from "../context/config"
 import Sidebar from "../components/sidebar"
-import { DashboardPage } from "../api"
+import { DashboardPage } from "../api/types"
 
 export interface Page extends DashboardPage {
   path: string
@@ -26,6 +26,13 @@ const builtinPages: Page[] = [
     url: "",
   },
   {
+    title: "Service Graph",
+    description: "Service Graph",
+    path: "/graph",
+    newWindow: false,
+    url: "",
+  },
+  {
     title: "Logs",
     description: "Logs",
     path: "/logs",
@@ -35,16 +42,13 @@ const builtinPages: Page[] = [
 ]
 
 export default () => (
-  <ConfigProvider>
-    <ConfigConsumer>
-      {({ config }) => {
-        // FIXME typecast
-        const pages = flatten(config.providers.map(p => p.dashboardPages)).map(p => {
-          p["path"] = `/provider/${kebabCase(p.title)}`
-          return p as Page
-        })
-        return <Sidebar pages={[...builtinPages, ...pages]} />
-      }}
-    </ConfigConsumer>
-  </ConfigProvider>
+  <ConfigConsumer>
+    {({ config }) => {
+      const pages = flatten(config.providers.map(p => p.dashboardPages)).map((p: Page) => {
+        p.path = `/provider/${kebabCase(p.title)}`
+        return p
+      })
+      return <Sidebar pages={[...builtinPages, ...pages]} />
+    }}
+  </ConfigConsumer>
 )

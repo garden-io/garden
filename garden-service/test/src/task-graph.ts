@@ -331,7 +331,7 @@ describe("task-graph", () => {
       const resultA: TaskResult = {
         type: "test",
         description: "a",
-        key: "a.a1",
+        key: "a",
         output: {
           result: "result-a",
           dependencyResults: {},

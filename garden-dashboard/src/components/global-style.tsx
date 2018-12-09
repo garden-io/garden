@@ -39,6 +39,7 @@ const styles = css`
 
   body {
     ${fontFamily};
+    height: 100%;
     margin: 0;
 
     &.hidden {

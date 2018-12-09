@@ -13,7 +13,7 @@ import { colors } from "../styles/variables"
 // From https://projects.lukehaas.me/css-loaders/
 export default styled.div`
   color: ${colors.gardenPink};
-  font-size: 35px;
+  font-size: ${props => props.fontSize || 35}px;
   text-indent: -9999em;
   overflow: hidden;
   width: 1em;

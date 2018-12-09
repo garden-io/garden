@@ -1,0 +1,30 @@
+#chart {
+  g.taskPending > rect {
+    stroke: #f17fcd;
+    stroke-dasharray: 8;
+  }
+
+  g.taskComplete > rect {
+    stroke: #02f2b4;
+  }
+
+  g.taskError > rect {
+    stroke: red;
+  }
+
+  text {
+    font-weight: 700;
+    font-size: 1em;
+  }
+
+  .node rect {
+    fill: #fff;
+    stroke: #02f2b4;
+    stroke-width: 2.5px;
+  }
+
+  .edgePath path {
+    stroke: rgba(0,0,0,0.32);
+    stroke-width: 1.5px;
+  }
+}

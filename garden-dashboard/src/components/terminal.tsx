@@ -12,7 +12,7 @@ import React from "react"
 
 import Card from "./card"
 import { colors } from "../styles/variables"
-import { ServiceLogEntry } from "../api"
+import { ServiceLogEntry } from "../api/types"
 
 interface Props {
   entries: ServiceLogEntry[]
@@ -24,7 +24,7 @@ interface Props {
 const Term = styled.div`
   background-color: ${colors.lightBlack};
   border-radius: 2px;
-  max-height: 30rem;
+  max-height: 25rem;
   overflow-y: auto;
 `
 

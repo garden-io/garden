@@ -10,21 +10,19 @@ import React from "react"
 import FetchContainer from "../containers/fetch-container"
 
 // TODO Add types to return components
-export function makeProvider<T>(fetchFn) {
-  type TypedFetchContainer = new () => FetchContainer<T>
-  const TypedFetchContainer = FetchContainer as TypedFetchContainer
+export function makeProvider<T>(fetchFn, ErrorComponent: React.SFC<any> | React.ComponentClass<any>) {
 
   type Ctx = { data: T }
   const Ctx = React.createContext<Ctx | null>(null)
 
   const Provider = ({ children }) => (
-    <TypedFetchContainer fetchFn={fetchFn}>
+    <FetchContainer<T> ErrorComponent={ErrorComponent} fetchFn={fetchFn}>
       {({ data }) => (
         <Ctx.Provider value={{ data }}>
           {children}
         </Ctx.Provider>
       )}
-    </TypedFetchContainer>
+    </FetchContainer>
   )
 
   return { Provider, Consumer: Ctx.Consumer }

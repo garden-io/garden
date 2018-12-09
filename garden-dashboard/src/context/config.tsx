@@ -8,7 +8,8 @@
 
 import React from "react"
 
-import { fetchConfig, FetchConfigResponse } from "../api"
+import { fetchConfig } from "../api"
+import { FetchConfigResponse } from "../api/types"
 import FetchContainer from "../containers/fetch-container"
 
 type Context = { config: FetchConfigResponse }
