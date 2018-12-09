@@ -117,9 +117,9 @@ export async function processModules(
       async (changedModule: Module | null, configChanged: boolean) => {
         if (configChanged) {
           if (changedModule) {
-            log.info({ emoji: "gear", section: changedModule.name, msg: `Module configuration changed, reloading...` })
+            log.info({ section: changedModule.name, msg: `Module configuration changed, reloading...`, symbol: "info" })
           } else {
-            log.info({ emoji: "gear", msg: `Project configuration changed, reloading...` })
+            log.info({ symbol: "info", msg: `Project configuration changed, reloading...` })
           }
           resolve()
           return

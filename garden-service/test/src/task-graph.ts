@@ -107,6 +107,7 @@ describe("task-graph", () => {
         a: {
           type: "test",
           description: "a",
+          key: "a",
           output: {
             result: "result-a",
             dependencyResults: {},
@@ -233,6 +234,7 @@ describe("task-graph", () => {
       const resultA: TaskResult = {
         type: "test",
         description: "a.a1",
+        key: "a.a1",
         output: {
           result: "result-a.a1",
           dependencyResults: {},
@@ -241,6 +243,7 @@ describe("task-graph", () => {
       }
       const resultB: TaskResult = {
         type: "test",
+        key: "b.b1",
         description: "b.b1",
         output: {
           result: "result-b.b1",
@@ -251,6 +254,7 @@ describe("task-graph", () => {
       const resultC: TaskResult = {
         type: "test",
         description: "c.c1",
+        key: "c.c1",
         output: {
           result: "result-c.c1",
           dependencyResults: { b: resultB },
@@ -265,6 +269,7 @@ describe("task-graph", () => {
         d: {
           type: "test",
           description: "d.d1",
+          key: "d.d1",
           output: {
             result: "result-d.d1",
             dependencyResults: {
@@ -326,6 +331,7 @@ describe("task-graph", () => {
       const resultA: TaskResult = {
         type: "test",
         description: "a",
+        key: "a.a1",
         output: {
           result: "result-a",
           dependencyResults: {},
