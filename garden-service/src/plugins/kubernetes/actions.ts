@@ -191,10 +191,13 @@ export async function runModule(
     "--restart=Never",
     "--command",
     "--quiet",
+    "--rm",
+    // Need to attach to get the log output and exit code.
+    "-i",
   ]
 
   if (interactive) {
-    opts.push("--rm", "-it")
+    opts.push("--tty")
   }
 
   const kubecmd = [
