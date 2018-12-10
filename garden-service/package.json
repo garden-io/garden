@@ -22,7 +22,7 @@
     "static"
   ],
   "dependencies": {
-    "@drubin/client-node": "0.7.1-rc1",
+    "@kubernetes/client-node": "0.7.2",
     "@types/koa-static": "^4.0.0",
     "ansi-escapes": "^3.1.0",
     "async-exit-hook": "^2.0.1",
@@ -127,7 +127,6 @@
     "@types/unzip": "^0.1.1",
     "@types/unzipper": "^0.9.1",
     "@types/wrap-ansi": "^3.0.0",
-    "@types/ws": "^6.0.1",
     "chai": "^4.2.0",
     "gulp": "^4.0.0",
     "gulp-cached": "^1.1.1",

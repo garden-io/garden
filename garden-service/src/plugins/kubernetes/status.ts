@@ -24,13 +24,13 @@ import {
   V1StatefulSet,
   V1StatefulSetSpec,
   V1DeploymentStatus,
-} from "@drubin/client-node"
+} from "@kubernetes/client-node"
 import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
 import { KubernetesProvider } from "./kubernetes"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
 import { getContainerServiceStatus } from "./deployment"
-import { V1ReplicationController, V1ReplicaSet } from "@drubin/client-node"
+import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
 import dedent = require("dedent")
 
 export interface RolloutStatus {
