@@ -17,7 +17,7 @@ import { join } from "path"
 
 import { BaseTask } from "../tasks/base"
 import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
-import { getTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
+import { getDependantTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
 import {
   Command,
   CommandResult,
@@ -110,7 +110,7 @@ export class DevCommand extends Command<Args, Opts> {
         const testTasks: BaseTask[] = flatten(await Bluebird.map(
           testModules, m => getTestTasks({ garden, log, module: m })))
 
-        return testTasks.concat(await getTasksForModule({
+        return testTasks.concat(await getDependantTasksForModule({
           garden,
           log,
           module,

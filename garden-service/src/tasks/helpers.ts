@@ -9,15 +9,13 @@
 import { flatten, intersection } from "lodash"
 import { DeployTask } from "./deploy"
 import { BuildTask } from "./build"
-import { TaskTask } from "./task"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
 import { Service } from "../types/service"
-import { Task } from "../types/task"
 import { DependencyGraphNode } from "../dependency-graph"
 import { LogEntry } from "../logger/log-entry"
 
-export async function getTasksForModule(
+export async function getDependantTasksForModule(
   { garden, log, module, hotReloadServiceNames, force = false, forceBuild = false,
     fromWatch = false, includeDependants = false }:
     {
@@ -29,12 +27,10 @@ export async function getTasksForModule(
   let buildTasks: BuildTask[] = []
   let dependantBuildModules: Module[] = []
   let services: Service[] = []
-  let tasks: Task[] = []
 
   if (!includeDependants) {
     buildTasks.push(new BuildTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
     services = module.services
-    tasks = module.tasks
   } else {
     const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
     const dg = await garden.getDependencyGraph()
@@ -49,13 +45,12 @@ export async function getTasksForModule(
 
       dependantBuildModules = serviceDeps.build
       services = serviceDeps.service
-      tasks = serviceDeps.task
     } else {
       const dependants = await dg.getDependantsForModule(module, dependantFilterFn)
+
       buildTasks.push(new BuildTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
       dependantBuildModules = dependants.build
       services = module.services.concat(dependants.service)
-      tasks = module.tasks.concat(dependants.task)
     }
   }
 
@@ -65,11 +60,8 @@ export async function getTasksForModule(
   const deployTasks = services
     .map(service => new DeployTask({ garden, log, service, force, forceBuild, fromWatch, hotReloadServiceNames }))
 
-  const taskTasks = tasks
-    .map(task => new TaskTask({ garden, log, task, force, forceBuild }))
-
-  const outputTasks = [...buildTasks, ...deployTasks, ...taskTasks]
-  log.silly(`getTasksForModule called for module ${module.name}, returning the following tasks:`)
+  const outputTasks = [...buildTasks, ...deployTasks]
+  log.silly(`getDependantTasksForModule called for module ${module.name}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map(t => t.getBaseKey()).join(", ")}`)
 
   return outputTasks
