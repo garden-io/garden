@@ -96,7 +96,7 @@ describe("DeployCommand", () => {
     const log = garden.log
     const command = new DeployCommand()
 
-    const { result } = await command.action({
+    const { result, errors } = await command.action({
       garden,
       log,
       args: {
@@ -109,6 +109,10 @@ describe("DeployCommand", () => {
         "force-build": true,
       },
     })
+
+    if (errors) {
+      throw errors[0]
+    }
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
@@ -131,7 +135,7 @@ describe("DeployCommand", () => {
     const log = garden.log
     const command = new DeployCommand()
 
-    const { result } = await command.action({
+    const { result, errors } = await command.action({
       garden,
       log,
       args: {
@@ -144,6 +148,10 @@ describe("DeployCommand", () => {
         "force-build": true,
       },
     })
+
+    if (errors) {
+      throw errors[0]
+    }
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },

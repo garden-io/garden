@@ -72,7 +72,7 @@ import { mapValues, values, keyBy, omit } from "lodash"
 import { Omit } from "./util/util"
 import { RuntimeContext } from "./types/service"
 import { processServices, ProcessResults } from "./process"
-import { getTasksForModule } from "./tasks/helpers"
+import { getDependantTasksForModule } from "./tasks/helpers"
 import { LogEntry } from "./logger/log-entry"
 import { createPluginContext } from "./plugin-context"
 import { CleanupEnvironmentParams } from "./types/plugin/params"
@@ -364,7 +364,7 @@ export class ActionHelper implements TypeGuard {
       garden: this.garden,
       log,
       watch: false,
-      handler: async (module) => getTasksForModule({
+      handler: async (module) => getDependantTasksForModule({
         garden: this.garden,
         log,
         module,

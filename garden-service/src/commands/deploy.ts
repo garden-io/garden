@@ -18,7 +18,7 @@ import {
   StringsParameter,
 } from "./base"
 import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
-import { getTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
+import { getDependantTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 import { logHeader } from "../logger/util"
@@ -108,7 +108,7 @@ export class DeployCommand extends Command<Args, Opts> {
       logFooter,
       services,
       watch,
-      handler: async (module) => getTasksForModule({
+      handler: async (module) => getDependantTasksForModule({
         garden,
         log,
         module,
@@ -121,7 +121,7 @@ export class DeployCommand extends Command<Args, Opts> {
         if (hotReloadModuleNames.has(module.name)) {
           await hotReloadAndLog(garden, log, module)
         }
-        return getTasksForModule({
+        return getDependantTasksForModule({
           garden, log, module, hotReloadServiceNames, force: true, forceBuild: opts["force-build"],
           fromWatch: true, includeDependants: true,
         })
