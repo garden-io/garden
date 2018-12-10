@@ -88,15 +88,12 @@ export async function processModules(
   }
 
   if (watch && !!logFooter) {
-    logFooter.info("")
-    const statusLine = logFooter.placeholder()
-
     garden.events.on("taskGraphProcessing", () => {
-      statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
+      logFooter.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
     })
 
     garden.events.on("taskGraphComplete", () => {
-      statusLine.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes") })
+      logFooter.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes") })
     })
   }
 

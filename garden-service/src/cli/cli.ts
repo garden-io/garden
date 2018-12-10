@@ -268,6 +268,7 @@ export class GardenCli {
 
       // We pass a separate placeholder to the action method, so that commands can easily have a footer
       // section in their log output.
+      logger.info("")   // Put one line between the body and the footer
       const logFooter = logger.placeholder()
 
       const contextOpts: GardenOpts = { environmentName: env, log }
