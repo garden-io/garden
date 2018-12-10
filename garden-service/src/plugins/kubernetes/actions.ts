@@ -190,12 +190,11 @@ export async function runModule(
     `--image=${image}`,
     "--restart=Never",
     "--command",
-    "--rm",
     "--quiet",
   ]
 
   if (interactive) {
-    opts.push("-it")
+    opts.push("--rm", "-it")
   }
 
   const kubecmd = [
