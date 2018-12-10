@@ -7,7 +7,7 @@
 
 Garden is an open-source development engine for Kubernetes, containers and serverless backends, designed to make it easy to test and develop multi-service systems.
 
-- **Focus on what matters:** Garden continuously builds, tests and deploys your changes into your own persistent development environment as you code. Easily define and continuously run tests in the background and focus on writing code.
+- **Focus on what matters:** Garden continuously builds, tests and deploys your changes into your own persistent development environment as you code. Easily define and continuously run tests in the background, and focus on writing code.
 
 - **Codify your workflow:** Make your workflow reproducible and portable. Define your stack using simple, intuitive declarations and get your environment up and running with a single command, without changing any code.
 
@@ -38,7 +38,7 @@ Overview:
 - Garden keeps track of all interdependencies between your services.
 - It can automatically re-build, re-deploy, and re-test your services as you code.
 - Due to Garden's dependency graph, you get really fast feedback loops: It makes sure only what's needed gets re-built, re-deployed, and/or re-tested.
-- Hot reload lets you near-instantaneously update code and static files on containers as they run, on services that support in-place reloading.
+- Hot reload lets you near-instantaneously update code and static files in containers as they run, on services that support in-place reloading.
 - Remote sources support allows your project to pull code from various different repositories.
 - Your services can be anything that runs in a Docker container—or OpenFaaS functions.
 - And an extensible plug-in system ensures you can add anything that's not on this list :)
