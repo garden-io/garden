@@ -144,7 +144,9 @@ export async function processModules(
 
   // Experimental HTTP API and dashboard server.
   if (process.env.GARDEN_ENABLE_SERVER === "1") {
-    await startServer(garden, log)
+    // allow overriding automatic port picking
+    const port = Number(process.env.GARDEN_SERVER_PORT) || undefined
+    await startServer(garden, log, port)
   }
 
   await restartPromise

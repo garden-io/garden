@@ -24,6 +24,8 @@ export const DASHBOARD_BUILD_PATH = resolve(
   isPkg ? process.execPath : __dirname, "..", "..", "..", "garden-dashboard", "build",
 )
 
+export const DEFAULT_PORT = 9777
+
 /**
  * Start an HTTP server that exposes commands and events for the given Garden instance.
  *
