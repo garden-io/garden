@@ -10,6 +10,7 @@ import * as Bluebird from "bluebird"
 import * as PQueue from "p-queue"
 import chalk from "chalk"
 import * as yaml from "js-yaml"
+import hasAnsi = require("has-ansi")
 import { merge, padEnd, pick, flatten } from "lodash"
 import { BaseTask, TaskDefinitionError } from "./tasks/base"
 
@@ -288,7 +289,13 @@ export class TaskGraph {
   private logTaskError(node: TaskNode, err) {
     const divider = padEnd("", 80, "—")
     const error = toGardenError(err)
-    const msg = `\nFailed ${node.getDescription()}. Here is the output:\n${divider}\n${error.message}\n${divider}\n`
+    const errorMessage = error.message.trim()
+
+    const msg =
+      chalk.red(`\nFailed ${node.getDescription()}. Here is the output:\n${divider}\n`) +
+      (hasAnsi(errorMessage) ? errorMessage : chalk.red(errorMessage)) +
+      chalk.red(`\n${divider}\n`)
+
     this.log.error({ msg, error })
   }
 }
