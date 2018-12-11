@@ -4,6 +4,7 @@
 BREW_DEPS="jq cmake git kubectl kubernetes-helm stern rsync icu4c pkg-config faas-cli dep git-chglog"
 
 brew update
+brew tap git-chglog/git-chglog
 brew install ${BREW_DEPS}
 brew upgrade ${BREW_DEPS}
 
