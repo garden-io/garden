@@ -52,10 +52,10 @@ describe("Garden", () => {
       expect(garden.environment).to.eql({
         name: "local",
         providers: [
-          { name: "generic", dashboardPages: [], config: { name: "generic" } },
-          { name: "container", dashboardPages: [], config: { name: "container" } },
-          { name: "test-plugin", dashboardPages: [], config: { name: "test-plugin" } },
-          { name: "test-plugin-b", dashboardPages: [], config: { name: "test-plugin-b" } },
+          { name: "generic", config: { name: "generic" } },
+          { name: "container", config: { name: "container" } },
+          { name: "test-plugin", config: { name: "test-plugin" } },
+          { name: "test-plugin-b", config: { name: "test-plugin-b" } },
         ],
         variables: {
           some: "variable",
@@ -77,9 +77,9 @@ describe("Garden", () => {
       expect(garden.environment).to.eql({
         name: "local",
         providers: [
-          { name: "generic", dashboardPages: [], config: { name: "generic" } },
-          { name: "container", dashboardPages: [], config: { name: "container" } },
-          { name: "test-plugin", dashboardPages: [], config: { name: "test-plugin" } },
+          { name: "generic", config: { name: "generic" } },
+          { name: "container", config: { name: "container" } },
+          { name: "test-plugin", config: { name: "test-plugin" } },
         ],
         variables: {
           "some": "banana",

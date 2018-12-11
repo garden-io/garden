@@ -19,7 +19,6 @@ import {
 import { joiIdentifier, joiIdentifierMap } from "./config/common"
 import { PluginError } from "./exceptions"
 import { defaultProvider } from "./config/project"
-import { dashboardPagesSchema } from "./config/dashboard"
 
 type WrappedFromGarden = Pick<Garden,
   "projectName" |
@@ -35,7 +34,6 @@ const providerSchema = Joi.object()
   .keys({
     name: joiIdentifier()
       .description("The name of the provider (plugin)."),
-    dashboardPages: dashboardPagesSchema,
     config: providerConfigBaseSchema,
   })
 

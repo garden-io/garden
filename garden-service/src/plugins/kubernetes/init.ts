@@ -9,7 +9,7 @@
 import * as Bluebird from "bluebird"
 import * as inquirer from "inquirer"
 import * as Joi from "joi"
-import { uniq, every, values } from "lodash"
+import { uniq, every, values, pick, find } from "lodash"
 
 import { DeploymentError, NotFoundError, TimeoutError, PluginError } from "../../exceptions"
 import {
@@ -32,6 +32,7 @@ import { isSystemGarden, getSystemGarden } from "./system"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { helm } from "./helm"
+import { DashboardPage } from "../../config/dashboard"
 
 const MAX_STORED_USERNAMES = 5
 
@@ -87,6 +88,7 @@ export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentSta
 export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {
   let ready = true
   let needUserInput = false
+  const dashboardPages: DashboardPage[] = []
 
   await prepareNamespaces({ ctx, log })
   await helm(ctx.provider, log, "init", "--client-only")
@@ -99,17 +101,46 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
     const sysGarden = await getSystemGarden(ctx.provider)
     const sysStatus = await sysGarden.actions.getStatus({ log })
 
-    const systemReady = sysStatus.providers[ctx.provider.config.name].ready &&
-      every(values(sysStatus.services).map(s => s.state === "ready"))
+    const serviceStatuses = ctx.provider.config._systemServices
+      ? pick(sysStatus.services, ctx.provider.config._systemServices)
+      : sysStatus.services
+
+    const servicesReady = every(values(serviceStatuses).map(s => s.state === "ready"))
+
+    const systemReady = sysStatus.providers[ctx.provider.config.name].ready && servicesReady
 
     if (!systemReady) {
       ready = false
+    }
+
+    // Add the Kubernetes dashboard to the Garden dashboard
+    const namespace = await getAppNamespace(ctx, ctx.provider)
+    const defaultHostname = ctx.provider.config.defaultHostname
+
+    const dashboardStatus = sysStatus.services["kubernetes-dashboard"]
+    const dashboardServiceResource = find(
+      dashboardStatus.detail.remoteObjects,
+      o => o.kind === "Service",
+    )
+
+    if (!!dashboardServiceResource) {
+      const dashboardPort = dashboardServiceResource.spec.ports[0].nodePort
+
+      if (!!dashboardPort) {
+        dashboardPages.push({
+          title: "Kubernetes",
+          description: "The standard Kubernetes dashboard for this project",
+          url: `https://${defaultHostname}:${dashboardPort}/#!/workload?namespace=${namespace}`,
+          newWindow: true,
+        })
+      }
     }
   }
 
   return {
     ready,
     needUserInput,
+    dashboardPages,
   }
 }
 
@@ -299,6 +330,7 @@ async function configureSystemServices(
     const results = await sysGarden.actions.deployServices({
       log,
       serviceNames: provider.config._systemServices,
+      force,
     })
 
     const failed = values(results.taskResults).filter(r => !!r.error).length

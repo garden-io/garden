@@ -43,7 +43,6 @@ const basicConfig: KubernetesConfig = {
 const basicProvider: KubernetesProvider = {
   name: "kubernetes",
   config: basicConfig,
-  dashboardPages: [],
 }
 
 const singleTlsConfig: KubernetesConfig = {
@@ -61,7 +60,6 @@ const singleTlsConfig: KubernetesConfig = {
 const singleTlsProvider: KubernetesProvider = {
   name: "kubernetes",
   config: singleTlsConfig,
-  dashboardPages: [],
 }
 
 const multiTlsConfig: KubernetesConfig = {
@@ -95,7 +93,6 @@ const multiTlsConfig: KubernetesConfig = {
 const multiTlsProvider: KubernetesProvider = {
   name: "kubernetes",
   config: multiTlsConfig,
-  dashboardPages: [],
 }
 
 // generated with `openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out certificate.pem`

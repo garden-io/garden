@@ -118,7 +118,7 @@ export async function gardenPlugin({ projectName, config, log }): Promise<Garden
       setMinikubeDockerEnv(),
     ])
 
-    systemServices = []
+    systemServices = ["kubernetes-dashboard"]
   } else {
     if (!defaultHostname) {
       defaultHostname = `${projectName}.local.app.garden`
@@ -140,7 +140,6 @@ export async function gardenPlugin({ projectName, config, log }): Promise<Garden
     ingressHttpsPort: 443,
     ingressClass: "nginx",
     tlsCertificates: config.tlsCertificates,
-    // TODO: support SSL on local deployments
     _system: config._system,
     _systemServices: systemServices,
   }

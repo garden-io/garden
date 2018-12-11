@@ -17,7 +17,7 @@ const ConfigContext = React.createContext<Context | null>(null)
 
 const ConfigConsumer = ConfigContext.Consumer
 
-const Error = () => <p>Error loading sidebar</p>
+const Error = () => <p>Error loading project configuration. Please try refreshing the page.</p>
 
 const ConfigProvider = ({ children }) => (
   <FetchContainer<FetchConfigResponse> ErrorComponent={Error} skipSpinner fetchFn={fetchConfig}>

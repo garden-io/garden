@@ -20,7 +20,6 @@ export interface DashboardPage {
 
 export interface Provider {
   name: string
-  dashboardPages: DashboardPage[]
 }
 
 export interface Service {
@@ -70,6 +69,7 @@ export interface ServiceStatus {
 export interface EnvironmentStatus {
   ready: boolean
   needUserInput?: boolean
+  dashboardPages?: DashboardPage[]
   detail?: any
 }
 

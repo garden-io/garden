@@ -119,7 +119,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
         return {
           ready: envReady && servicesReady,
-          detail: status,
+          detail: status.services,
         }
       },
 

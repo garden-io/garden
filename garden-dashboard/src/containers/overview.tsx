@@ -10,20 +10,14 @@ import React from "react"
 
 import { ConfigConsumer } from "../context/config"
 import Overview from "../components/overview"
-import FetchContainer from "./fetch-container"
-import { fetchStatus } from "../api"
-// tslint:disable-next-line:no-unused (https://github.com/palantir/tslint/issues/4022)
-import { FetchStatusResponse } from "../api/types"
-import PageError from "../components/page-error"
+import { StatusConsumer } from "../context/status"
 
 export default () => (
-  <FetchContainer<FetchStatusResponse> ErrorComponent={PageError} fetchFn={fetchStatus}>
-    {({ data: status }) => (
+  <StatusConsumer>
+    {({ status }) => (
       <ConfigConsumer>
-        {({ config }) => {
-          return <Overview config={config} status={status} />
-        }}
+        {({ config }) => <Overview config={config} status={status} />}
       </ConfigConsumer>
     )}
-  </FetchContainer>
+  </StatusConsumer>
 )

@@ -437,12 +437,25 @@ export async function waitForServices(
 
 }
 
+interface ComparisonResult {
+  state: ServiceState
+  remoteObjects: KubernetesObject[]
+}
+
 /**
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
-export async function compareDeployedObjects(ctx: PluginContext, objects: KubernetesObject[]): Promise<ServiceState> {
+export async function compareDeployedObjects(
+  ctx: PluginContext, objects: KubernetesObject[],
+): Promise<ComparisonResult> {
   const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, ctx.provider, obj))
+
   let missing = true
+
+  const result: ComparisonResult = {
+    state: "ready",
+    remoteObjects: <KubernetesObject[]>existingObjects.filter(o => o !== null),
+  }
 
   for (let [obj, existingSpec] of zip(objects, existingObjects)) {
     if (existingSpec && obj) {
@@ -487,11 +500,16 @@ export async function compareDeployedObjects(ctx: PluginContext, objects: Kubern
       // console.log(JSON.stringify(existingSpec, null, 4))
       // console.log("----------------------------------------------------")
       // throw new Error("bla")
-      return "outdated"
+      result.state = "outdated"
+      return result
     }
   }
 
-  return missing ? "missing" : "ready"
+  if (missing) {
+    result.state = "missing"
+  }
+
+  return result
 }
 
 async function getDeployedObject(

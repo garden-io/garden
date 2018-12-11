@@ -67,6 +67,7 @@ module.exports = (gulp) => {
       "--declaration",
       "-p", tsConfigPath,
       "--outDir", destDir,
+      "--rootDir", resolve(__dirname, "src"),
       "--preserveWatchOutput",
     ],
     ),

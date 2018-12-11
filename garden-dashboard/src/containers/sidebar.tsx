@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, kebabCase } from "lodash"
+import { kebabCase, flatten, entries } from "lodash"
 import React from "react"
 
-import { ConfigConsumer } from "../context/config"
 import Sidebar from "../components/sidebar"
 import { DashboardPage } from "../api/types"
+import { StatusConsumer } from "../context/status"
 
 export interface Page extends DashboardPage {
   path: string
@@ -42,13 +42,17 @@ const builtinPages: Page[] = [
 ]
 
 export default () => (
-  <ConfigConsumer>
-    {({ config }) => {
-      const pages = flatten(config.providers.map(p => p.dashboardPages)).map((p: Page) => {
-        p.path = `/provider/${kebabCase(p.title)}`
-        return p
-      })
+  <StatusConsumer>
+    {({ status }) => {
+      const pages: Page[] = flatten(entries(status.providers).map(([providerName, providerStatus]) => {
+        return providerStatus.dashboardPages.map(p => ({
+          ...p,
+          path: `/provider/${providerName}/${kebabCase(p.title)}`,
+          description: p.description + ` (from provider ${providerName})`,
+        }))
+      }))
+
       return <Sidebar pages={[...builtinPages, ...pages]} />
     }}
-  </ConfigConsumer>
+  </StatusConsumer>
 )
