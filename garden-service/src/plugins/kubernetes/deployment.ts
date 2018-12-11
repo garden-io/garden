@@ -232,8 +232,9 @@ export async function createDeployment(
     deployment.spec.strategy = {
       type: "RollingUpdate",
       rollingUpdate: {
-        maxUnavailable: "34%",
-        maxSurge: "34%",
+        // This is optimized for fast re-deployment.
+        maxUnavailable: 1,
+        maxSurge: 1,
       },
     }
     deployment.spec.revisionHistoryLimit = 3
@@ -297,7 +298,7 @@ function deploymentConfig(
           containers: [],
           // TODO: make restartPolicy configurable
           restartPolicy: "Always",
-          terminationGracePeriodSeconds: 10,
+          terminationGracePeriodSeconds: 5,
           dnsPolicy: "ClusterFirst",
           // TODO: support private registries
           // imagePullSecrets: [
