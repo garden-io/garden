@@ -12,10 +12,12 @@ export const big = 1680
 
 export const MOBILE_SECTIONS_MARGIN = "48px"
 // TODO Find proper fonts and set weights
-export const fontFamily = `font-family: Arial, Helvetica, sans-serif`
-export const fontBold = `${fontFamily};font-weight: bold;`
-export const fontRegular = `${fontFamily};font-weight: normal;`
-export const fontMedium = `${fontFamily};font-weight: normal;`
+
+export const fontFamily = `font-family: Raleway, Arial, Helvetica, sans-serif`
+export const fontBold = `${fontFamily};font-weight: 700;`
+export const fontRegular = `${fontFamily};font-weight: 400;`
+export const fontMedium = `${fontFamily};font-weight: 500;`
+export const fontItalic = `${fontFamily};font-style: italic;`
 
 export const colors = {
   azure: "#00aeef",

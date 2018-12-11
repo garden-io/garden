@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGardenA } from "../../helpers"
+import { makeTestGardenA, taskResultOutputs } from "../../helpers"
 import { startServer } from "../../../src/server/server"
 import { Server } from "http"
 import { Garden } from "../../../src/garden"
@@ -64,15 +64,10 @@ describe("startServer", () => {
         },
       }).expect(200)
 
-      expect(res.body.result).to.eql({
+      expect(taskResultOutputs(res.body.result)).to.eql({
         "build.module-a": {
-          dependencyResults: {},
-          description: "building module-a",
-          output: {
-            buildLog: "A",
-            fresh: true,
-          },
-          type: "build",
+          buildLog: "A",
+          fresh: true,
         },
       })
     })
@@ -167,18 +162,18 @@ describe("startServer", () => {
     it("should correctly map arguments and options to commands", (done) => {
       const id = uuid.v4()
       onMessage((req) => {
-        expect(req).to.eql({
+        const taskResult = taskResultOutputs((<any>req).result)
+        const result = {
+          ...req,
+          result: taskResult,
+        }
+        expect(result).to.eql({
           type: "commandResult",
           requestId: id,
           result: {
             "build.module-a": {
-              dependencyResults: {},
-              description: "building module-a",
-              output: {
-                buildLog: "A",
-                fresh: true,
-              },
-              type: "build",
+              buildLog: "A",
+              fresh: true,
             },
           },
         })

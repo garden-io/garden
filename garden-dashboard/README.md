@@ -33,10 +33,10 @@ to start the dashboard development server. The `start` command returns a link to
 To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `garden-service` server, defaulting to port `9777`. If the `garden-service` server is running on a different port, use:
 
 ```sh
-GARDEN_SERVICE_PORT=PORT npm start
+REACT_APP_GARDEN_SERVICE_PORT=PORT npm start
 ```
 
-See also `src/setupProxy.js`.
+See also `src/setupProxy.js` and [Adding Custom Environment Variables](https://facebook.github.io/create-react-app/docs/adding-custom-environment-variables).
 
 ## Build
 

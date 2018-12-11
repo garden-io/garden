@@ -9,11 +9,11 @@
 import styled from "@emotion/styled/macro"
 import React, { Component } from "react"
 
-import { H2 } from "./text"
-import NavLink from "./nav-link"
+import { NavLink } from "./links"
 import { Page } from "../containers/sidebar"
 
-import { colors } from "../styles/variables"
+import { colors, fontMedium } from "../styles/variables"
+import logo from "../assets/logo.png"
 
 interface Props {
   pages: Page[]
@@ -24,22 +24,30 @@ interface State {
 }
 
 const Button = styled.li`
+  ${fontMedium}
   border-radius: 2px;
   cursor: pointer;
   width: 100%;
   transition: all 0.3s ease;
   &: hover {
-    background-color: rgba(255, 228, 194, 0.2);
-    color: rgb(224, 224, 224);
-    border-color: rgb(0, 94, 153);
+    background-color: ${colors.brightTealAccent};
+    color: ${colors.white};
+    border-color: ${colors.brightTealAccent};
   }
 `
 
 const Link = styled(NavLink)`
   display: inline-block;
-  margin-left: 1rem;
+  font-size: 1.025rem;
+  margin-left: 1.5rem;
   padding: 0.5em 0.5em 0.5em 0;
   width: 100%;
+`
+
+// Style and align properly
+const Logo = styled.img`
+  height: auto;
+  width: 80%;
 `
 
 class Sidebar extends Component<Props, State> {
@@ -60,14 +68,14 @@ class Sidebar extends Component<Props, State> {
 
   render() {
     return (
-      <div className="pt-1 pb-1">
-        <div className="ml-1">
+      <div className="pb-1">
+        <div className={"ml-1"}>
           <NavLink to="/">
-            <H2 color={colors.white}>Garden</H2>
+            <Logo src={logo} alt="Home" />
           </NavLink>
         </div>
         <nav>
-          <ul>
+          <ul className="pt-2">
             {this.props.pages.map(page => (
               <Button tabName={name} onClick={this.handleClick} key={page.title}>
                 <Link

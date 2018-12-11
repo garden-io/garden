@@ -9,11 +9,11 @@
 import styled from "@emotion/styled/macro"
 import React from "react"
 
-import { colors, fontRegular } from "../styles/variables"
+import { colors, fontMedium } from "../styles/variables"
 
 interface CardProps {
   children: JSX.Element
-  title: string
+  title?: string
 }
 
 const Wrapper = styled.div`
@@ -23,18 +23,25 @@ const Wrapper = styled.div`
 `
 
 const Title = styled.h3`
-  ${fontRegular};
+  ${fontMedium};
   font-size: 1.3rem;
   margin: 0;
 `
 
-const Card: React.SFC<CardProps> = ({ children, title }) => (
-  <Wrapper className="pt-1">
-    <div className="pl-1 pr-1 mb-1">
-      <Title>{title}</Title>
-    </div>
-    {children}
-  </Wrapper>
-)
+const Card: React.SFC<CardProps> = ({ children, title }) => {
+  const titleEl = title
+    ? (
+      <div className="pl-1 pr-1 pb-1">
+        <Title>{title}</Title>
+      </div>
+    )
+    : null
+  return (
+    <Wrapper className="pt-1 mt-2">
+      {titleEl}
+      {children}
+    </Wrapper>
+  )
+}
 
 export default Card

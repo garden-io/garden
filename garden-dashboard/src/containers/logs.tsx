@@ -8,11 +8,12 @@
 
 import React from "react"
 
-import { ConfigProvider, ConfigConsumer } from "../context/config"
+import { ConfigConsumer } from "../context/config"
 import FetchContainer from "./fetch-container"
 
+import { fetchLogs } from "../api"
 // tslint:disable-next-line:no-unused (https://github.com/palantir/tslint/issues/4022)
-import { fetchLogs, FetchLogResponse } from "../api"
+import { FetchLogResponse } from "../api/types"
 
 import Logs from "../components/logs"
 import PageError from "../components/page-error"
@@ -20,13 +21,11 @@ import PageError from "../components/page-error"
 export default () => (
   <FetchContainer<FetchLogResponse> ErrorComponent={PageError} fetchFn={fetchLogs}>
     {({ data: logs }) => (
-      <ConfigProvider>
-        <ConfigConsumer>
-          {({ config }) => (
-            <Logs config={config} logs={logs} />
-          )}
-        </ConfigConsumer>
-      </ConfigProvider>
+      <ConfigConsumer>
+        {({ config }) => (
+          <Logs config={config} logs={logs} />
+        )}
+      </ConfigConsumer>
     )}
   </FetchContainer>
 )

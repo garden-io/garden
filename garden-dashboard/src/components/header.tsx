@@ -20,8 +20,10 @@ const Title = styled(H2)`
   margin-bottom: 0;
 `
 
-export default () => (
-  <Wrapper className="pl-2 pt-1 pb-1">
-    <Title>Dashboard</Title>
-  </Wrapper>
-)
+export default () => {
+  return (
+    <Wrapper className="pl-2 pt-1 pb-1">
+      <Title>Dashboard</Title>
+    </Wrapper>
+  )
+}

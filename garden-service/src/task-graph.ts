@@ -23,6 +23,7 @@ class TaskGraphError extends Error { }
 export interface TaskResult {
   type: string
   description: string
+  key: string
   output?: any
   dependencyResults?: TaskResults
   error?: Error
@@ -161,7 +162,8 @@ export class TaskGraph {
         const type = node.getType()
         const baseKey = node.getBaseKey()
         const description = node.getDescription()
-        let result
+
+        let result: TaskResult = { type, description, key: task.getKey() }
 
         try {
           this.logTask(node)
@@ -178,7 +180,7 @@ export class TaskGraph {
             result = await node.process(dependencyResults)
             this.garden.events.emit("taskComplete", result)
           } catch (error) {
-            result = { type, description, error }
+            result.error = error
             this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
             await this.cancelDependants(node)
@@ -423,6 +425,7 @@ class TaskNode {
 
     return {
       type: this.getType(),
+      key: this.getKey(),
       description: this.getDescription(),
       output,
       dependencyResults,

@@ -9,10 +9,10 @@
 import { RouteComponentProps } from "react-router-dom"
 import * as H from "history"
 
-import { DashboardPage } from "../api"
+import { Page } from "../containers/sidebar"
 
 interface RoutePropsWithState extends RouteComponentProps {
-  location: H.Location<DashboardPage>
+  location: H.Location<Page>
 }
 
 const Provider: React.SFC<RoutePropsWithState> = props => {

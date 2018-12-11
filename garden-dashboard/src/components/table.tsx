@@ -11,29 +11,36 @@ import React from "react"
 
 import Card from "./card"
 
-import { colors } from "../styles/variables"
+import { colors, fontMedium } from "../styles/variables"
+
+export type ColEl = string | React.ReactElement<any>
 
 interface Props {
   title: string
   rowHeaders: string[]
-  rows: string[][]
+  rows: ColEl[][]
 }
 
+// Note: Padding intentionally uses rem units for left/right and em units for top/bottom
 const colStyle = `
-  padding: 1em 0.75em;
+  padding: 1rem 0.75em;
   border-top: 1px solid ${colors.border};
 `
 
 const Td = styled.td`
   ${colStyle}
+  font-size: 0.9rem;
 `
 
 const THead = styled.thead`
+  color: ${colors.gardenGrey};
   text-align: left;
 `
 
 const Th = styled.th`
+  ${fontMedium}
   ${colStyle}
+  color: grey;
 `
 
 const TableEl = styled.table`
@@ -54,9 +61,11 @@ const Table: React.SFC<Props> = props => (
       <tbody>
         {props.rows.map((row, idx) => (
           <tr key={idx}>
-            {row.map((col, cidx) => (
-              <Td key={cidx}>{col}</Td>
-            ))}
+            {row.map((col, cidx) => {
+              return (
+                <Td key={cidx}>{col}</Td>
+              )
+            })}
           </tr>
         ))}
       </tbody>
