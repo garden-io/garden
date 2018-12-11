@@ -1,70 +1,162 @@
 
-<a name="v0.8.0"></a>
-## [v0.8.0](https://github.com/garden-io/garden/compare/v0.7.0...v0.8.0) (2018-11-21)
+<a name="v0.8.1"></a>
+## [v0.8.1](https://github.com/garden-io/garden/compare/v0.8.1-rc1...v0.8.1) (2018-12-10)
 
 ### Bug Fixes
 
-* handle missing services gracefully in logs command ([3fcb73f](https://github.com/garden-io/garden/commit/3fcb73f))
+* **dashboard:** fix contants import in setupProxy.js ([e2c5bbd](https://github.com/garden-io/garden/commit/e2c5bbd))
+* **k8s:** revert removal of `-i` flag on kubectl run commands ([663deea](https://github.com/garden-io/garden/commit/663deea))
+* **k8s:** incorrect flags sent to `kubectl run` when not interactive ([260b976](https://github.com/garden-io/garden/commit/260b976))
+* **log:** log footer line was duplicated after config reload ([a8b50b1](https://github.com/garden-io/garden/commit/a8b50b1))
+* **tasks:** task errors had lost their color ([66390e1](https://github.com/garden-io/garden/commit/66390e1))
+
+### Code Refactoring
+
+* **task-graph:** add task key to TaskResult interface ([3ce6633](https://github.com/garden-io/garden/commit/3ce6633))
+
+
+<a name="v0.8.1-rc1"></a>
+## [v0.8.1-rc1](https://github.com/garden-io/garden/compare/v0.8.0...v0.8.1-rc1) (2018-12-10)
+
+### Bug Fixes
+
+* do not run dependant tasks unless updated services depend on them ([1ae0284](https://github.com/garden-io/garden/commit/1ae0284))
+* minor logging issue ([61e4428](https://github.com/garden-io/garden/commit/61e4428))
+* stale version in some tasks triggered by watch handler ([da134b4](https://github.com/garden-io/garden/commit/da134b4))
+* performance regression on startup ([b856e36](https://github.com/garden-io/garden/commit/b856e36))
+* fixed another dependency calculation bug ([99df5d9](https://github.com/garden-io/garden/commit/99df5d9))
+* fixed dependency bug & simplified TaskGraph ([4a8428c](https://github.com/garden-io/garden/commit/4a8428c))
+* make dev cmd consistent with deploy cmd ([85f31f9](https://github.com/garden-io/garden/commit/85f31f9))
+* fix dev command terminating on config change ([261e974](https://github.com/garden-io/garden/commit/261e974))
+* **k8s:** exec and run commands didn't work properly in interactive mode ([420953d](https://github.com/garden-io/garden/commit/420953d))
+* **k8s:** log tailing now returns logs for new pods at runtime ([432e6dc](https://github.com/garden-io/garden/commit/432e6dc))
+* **k8s:** remove replicasets and daemonsets when deleting services ([6c63314](https://github.com/garden-io/garden/commit/6c63314))
+
+### Code Refactoring
+
+* nicer logging when watching for changes / hot reloading ([069a9d0](https://github.com/garden-io/garden/commit/069a9d0))
+* rename plural command parameters ([f010e37](https://github.com/garden-io/garden/commit/f010e37))
+* add placeholder method to logger + fix rendering issues ([fa8d81e](https://github.com/garden-io/garden/commit/fa8d81e))
+* rename logEntry to log and require for tests, cmds and actions ([13cf263](https://github.com/garden-io/garden/commit/13cf263))
+* **formatting:** improve quoting style of objects to consistent-as-needed ([687c6f3](https://github.com/garden-io/garden/commit/687c6f3))
+
+### Features
+
+* add `get config` command ([39ab7b1](https://github.com/garden-io/garden/commit/39ab7b1))
+* added get graph command ([010353e](https://github.com/garden-io/garden/commit/010353e))
+* experimental HTTP API ([5302802](https://github.com/garden-io/garden/commit/5302802))
+* add websocket endpoint to API server ([e6fcc8b](https://github.com/garden-io/garden/commit/e6fcc8b))
+* add event bus + a few events emitted from TaskGraph ([3c19e36](https://github.com/garden-io/garden/commit/3c19e36))
+* allow plugins to specify dashboard pages ([c67b7be](https://github.com/garden-io/garden/commit/c67b7be))
+* **api:** allow explicitly port for api server in dev cmd ([919e6b8](https://github.com/garden-io/garden/commit/919e6b8))
+* **dashboard:** add basic scaffolding with overview and logs section ([3781fb3](https://github.com/garden-io/garden/commit/3781fb3))
+* **openfaas:** add log streaming to openfaas plugin ([53131b5](https://github.com/garden-io/garden/commit/53131b5))
+
+
+<a name="v0.8.0"></a>
+## [v0.8.0](https://github.com/garden-io/garden/compare/v0.8.0-rc4...v0.8.0) (2018-11-21)
+
+
+<a name="v0.8.0-rc4"></a>
+## [v0.8.0-rc4](https://github.com/garden-io/garden/compare/v0.8.0-rc3...v0.8.0-rc4) (2018-11-21)
+
+
+<a name="v0.8.0-rc3"></a>
+## [v0.8.0-rc3](https://github.com/garden-io/garden/compare/v0.8.0-rc2...v0.8.0-rc3) (2018-11-21)
+
+### Bug Fixes
+
+* docs, comments & various fixes ([2d081a0](https://github.com/garden-io/garden/commit/2d081a0))
 * use plugin-prefixed module names in dep calcs ([7f65c9a](https://github.com/garden-io/garden/commit/7f65c9a))
-* use faas-cli to delete OpenFAAS services ([b38113e](https://github.com/garden-io/garden/commit/b38113e))
+* fix broken doc links ([4a96f4c](https://github.com/garden-io/garden/commit/4a96f4c))
 * allow env variables to be lower case ([b79609c](https://github.com/garden-io/garden/commit/b79609c))
 * fixes to hot reload source/target handling ([271917b](https://github.com/garden-io/garden/commit/271917b))
 * recursive bug copying .garden into .garden ([7855982](https://github.com/garden-io/garden/commit/7855982))
 * skip build task during hot-reloading ([5e24716](https://github.com/garden-io/garden/commit/5e24716))
 * set log state to success after deleting env ([19ef038](https://github.com/garden-io/garden/commit/19ef038))
-* fix broken doc links ([4a96f4c](https://github.com/garden-io/garden/commit/4a96f4c))
-* handle all promises and add no-floating-promises linting rule ([f0b4104](https://github.com/garden-io/garden/commit/f0b4104))
-* replace node-pty with node-pty-prebuilt to avoid install issues ([775c98f](https://github.com/garden-io/garden/commit/775c98f))
-* include provided deps in module cache keys ([b6652d0](https://github.com/garden-io/garden/commit/b6652d0))
-* prevent multiple prefixing in getModuleKey ([2421223](https://github.com/garden-io/garden/commit/2421223))
-* incomplete downloads in ext-tool helper ([30a6eb0](https://github.com/garden-io/garden/commit/30a6eb0))
-* ignore paths relative to parent dir when scanning modules ([65ba584](https://github.com/garden-io/garden/commit/65ba584))
-* add missing parenthesis to windows install script ([850f2d4](https://github.com/garden-io/garden/commit/850f2d4))
-* issues with ext tool helper ([641a07c](https://github.com/garden-io/garden/commit/641a07c))
-* docs, comments & various fixes ([2d081a0](https://github.com/garden-io/garden/commit/2d081a0))
-* incl. ingresses & services in delete command. ([8d3f366](https://github.com/garden-io/garden/commit/8d3f366))
-* **cli:** change magenta to cyan in cli help text ([#281](https://github.com/garden-io/garden/issues/281)) ([1580d1b](https://github.com/garden-io/garden/commit/1580d1b))
 * **create-command:** add project key to generated config and fix tests ([63cca8f](https://github.com/garden-io/garden/commit/63cca8f))
-* **docs:** tweaks to config file reference docs ([de5e4a5](https://github.com/garden-io/garden/commit/de5e4a5))
-* **examples:** remove local npm dependency in hello-world example ([d91327e](https://github.com/garden-io/garden/commit/d91327e))
-* **ext-tools:** handle end of stream event ([1a36b72](https://github.com/garden-io/garden/commit/1a36b72))
-* **git:** error when running before first commit is made in repo ([#324](https://github.com/garden-io/garden/issues/324)) ([7dd77ae](https://github.com/garden-io/garden/commit/7dd77ae))
-* **k8s:** fix status check for our K8s deployments ([35187d3](https://github.com/garden-io/garden/commit/35187d3))
-* **k8s:** make sure Helm client is initialized on startup ([f1bf4bd](https://github.com/garden-io/garden/commit/f1bf4bd))
-* **k8s:** attempt to fix issues with helm release upgrades ([4ec63b7](https://github.com/garden-io/garden/commit/4ec63b7))
-* **k8s:** don't throw if api returns 404 when checking object status ([23dc935](https://github.com/garden-io/garden/commit/23dc935))
-* **logger:** only print emoji if env supports it ([3e541e1](https://github.com/garden-io/garden/commit/3e541e1))
-* **logger:** let empty entries inherit parent indentation level ([9c428cd](https://github.com/garden-io/garden/commit/9c428cd))
-* **logger:** appended error messages now rendered properly ([f964b3b](https://github.com/garden-io/garden/commit/f964b3b))
-* **logger:** render non-empty entries even though msg is missing ([20f2830](https://github.com/garden-io/garden/commit/20f2830))
-* **openfaas:** fix issues with openfaas builds ([f62db2f](https://github.com/garden-io/garden/commit/f62db2f))
-* **openfaas:** avoid length issue for helm release name ([ad0e708](https://github.com/garden-io/garden/commit/ad0e708))
-* **openfaas:** fix cleanupEnvironment handler ([b080d55](https://github.com/garden-io/garden/commit/b080d55))
-* **openfaas:** builder now works on all platforms ([529f63c](https://github.com/garden-io/garden/commit/529f63c))
-* **scripts:** Add jq dependancy ([29da4e2](https://github.com/garden-io/garden/commit/29da4e2))
-* **windows:** use cross-spawn module to avoid path issues on Windows ([082964c](https://github.com/garden-io/garden/commit/082964c))
 
 ### Code Refactoring
 
 * rename "workflow" to "task" ([4c7230a](https://github.com/garden-io/garden/commit/4c7230a))
 * rename Task to BaseTask ([9b40291](https://github.com/garden-io/garden/commit/9b40291))
-* a few changes to facilitate packaging/bundling ([d0e4035](https://github.com/garden-io/garden/commit/d0e4035))
-* remove explicit helm and stern installation dependencies ([a160b31](https://github.com/garden-io/garden/commit/a160b31))
-* add buildDependencies key to plugin module action params ([b24c6a9](https://github.com/garden-io/garden/commit/b24c6a9))
-* remove node-pty dependency ([5082196](https://github.com/garden-io/garden/commit/5082196))
-* rename `init env` cmd to `init` and remove login cmd ([2998bc4](https://github.com/garden-io/garden/commit/2998bc4))
 * **build:** remove dependancy on git submodule for k8s ([d284494](https://github.com/garden-io/garden/commit/d284494))
-* **cli:** remove single char command aliases ([d562fe2](https://github.com/garden-io/garden/commit/d562fe2))
-* **docs:** improve cli commands help and description text ([d04e97b](https://github.com/garden-io/garden/commit/d04e97b))
-* **docs:** re-name auto generated reference files ([cc47d64](https://github.com/garden-io/garden/commit/cc47d64))
 * **error-messages:** improve error message for check-docs ([5c4fb3a](https://github.com/garden-io/garden/commit/5c4fb3a))
-* **go-cli:** install bin deps where Garden expects them ([13fa57c](https://github.com/garden-io/garden/commit/13fa57c))
 * **go-cli:** use docker sdk and keep containers running ([85dfd13](https://github.com/garden-io/garden/commit/85dfd13))
-* **multi-repo:** require tag or branch in repository URLs ([be9b116](https://github.com/garden-io/garden/commit/be9b116))
+* **go-cli:** install bin deps where Garden expects them ([13fa57c](https://github.com/garden-io/garden/commit/13fa57c))
 
 ### Features
 
 * tasks/workflows implemented ([de9275b](https://github.com/garden-io/garden/commit/de9275b))
+
+
+<a name="v0.8.0-rc2"></a>
+## [v0.8.0-rc2](https://github.com/garden-io/garden/compare/v0.8.0-rc1...v0.8.0-rc2) (2018-11-01)
+
+### Bug Fixes
+
+* **docs:** tweaks to config file reference docs ([de5e4a5](https://github.com/garden-io/garden/commit/de5e4a5))
+* **ext-tools:** handle end of stream event ([1a36b72](https://github.com/garden-io/garden/commit/1a36b72))
+* **k8s:** don't throw if api returns 404 when checking object status ([23dc935](https://github.com/garden-io/garden/commit/23dc935))
+* **scripts:** Add jq dependancy ([29da4e2](https://github.com/garden-io/garden/commit/29da4e2))
+
+### Code Refactoring
+
+* **cli:** remove single char command aliases ([d562fe2](https://github.com/garden-io/garden/commit/d562fe2))
+* **docs:** improve cli commands help and description text ([d04e97b](https://github.com/garden-io/garden/commit/d04e97b))
+* **docs:** re-name auto generated reference files ([cc47d64](https://github.com/garden-io/garden/commit/cc47d64))
+
+
+<a name="v0.8.0-rc1"></a>
+## [v0.8.0-rc1](https://github.com/garden-io/garden/compare/v0.8.0-rc0...v0.8.0-rc1) (2018-10-28)
+
+### Bug Fixes
+
+* **cli:** change magenta to cyan in cli help text ([#281](https://github.com/garden-io/garden/issues/281)) ([1580d1b](https://github.com/garden-io/garden/commit/1580d1b))
+* **k8s:** make sure Helm client is initialized on startup ([f1bf4bd](https://github.com/garden-io/garden/commit/f1bf4bd))
+
+
+<a name="v0.8.0-rc0"></a>
+## [v0.8.0-rc0](https://github.com/garden-io/garden/compare/v0.7.0...v0.8.0-rc0) (2018-10-28)
+
+### Bug Fixes
+
+* add missing parenthesis to windows install script ([850f2d4](https://github.com/garden-io/garden/commit/850f2d4))
+* issues with ext tool helper ([641a07c](https://github.com/garden-io/garden/commit/641a07c))
+* use faas-cli to delete OpenFAAS services ([b38113e](https://github.com/garden-io/garden/commit/b38113e))
+* handle all promises and add no-floating-promises linting rule ([f0b4104](https://github.com/garden-io/garden/commit/f0b4104))
+* handle missing services gracefully in logs command ([3fcb73f](https://github.com/garden-io/garden/commit/3fcb73f))
+* replace node-pty with node-pty-prebuilt to avoid install issues ([775c98f](https://github.com/garden-io/garden/commit/775c98f))
+* include provided deps in module cache keys ([b6652d0](https://github.com/garden-io/garden/commit/b6652d0))
+* prevent multiple prefixing in getModuleKey ([2421223](https://github.com/garden-io/garden/commit/2421223))
+* incomplete downloads in ext-tool helper ([30a6eb0](https://github.com/garden-io/garden/commit/30a6eb0))
+* ignore paths relative to parent dir when scanning modules ([65ba584](https://github.com/garden-io/garden/commit/65ba584))
+* incl. ingresses & services in delete command. ([8d3f366](https://github.com/garden-io/garden/commit/8d3f366))
+* **examples:** remove local npm dependency in hello-world example ([d91327e](https://github.com/garden-io/garden/commit/d91327e))
+* **git:** error when running before first commit is made in repo ([#324](https://github.com/garden-io/garden/issues/324)) ([7dd77ae](https://github.com/garden-io/garden/commit/7dd77ae))
+* **k8s:** fix status check for our K8s deployments ([35187d3](https://github.com/garden-io/garden/commit/35187d3))
+* **k8s:** attempt to fix issues with helm release upgrades ([4ec63b7](https://github.com/garden-io/garden/commit/4ec63b7))
+* **logger:** render non-empty entries even though msg is missing ([20f2830](https://github.com/garden-io/garden/commit/20f2830))
+* **logger:** let empty entries inherit parent indentation level ([9c428cd](https://github.com/garden-io/garden/commit/9c428cd))
+* **logger:** appended error messages now rendered properly ([f964b3b](https://github.com/garden-io/garden/commit/f964b3b))
+* **logger:** only print emoji if env supports it ([3e541e1](https://github.com/garden-io/garden/commit/3e541e1))
+* **openfaas:** fix issues with openfaas builds ([f62db2f](https://github.com/garden-io/garden/commit/f62db2f))
+* **openfaas:** fix cleanupEnvironment handler ([b080d55](https://github.com/garden-io/garden/commit/b080d55))
+* **openfaas:** avoid length issue for helm release name ([ad0e708](https://github.com/garden-io/garden/commit/ad0e708))
+* **openfaas:** builder now works on all platforms ([529f63c](https://github.com/garden-io/garden/commit/529f63c))
+* **windows:** use cross-spawn module to avoid path issues on Windows ([082964c](https://github.com/garden-io/garden/commit/082964c))
+
+### Code Refactoring
+
+* remove node-pty dependency ([5082196](https://github.com/garden-io/garden/commit/5082196))
+* add buildDependencies key to plugin module action params ([b24c6a9](https://github.com/garden-io/garden/commit/b24c6a9))
+* remove explicit helm and stern installation dependencies ([a160b31](https://github.com/garden-io/garden/commit/a160b31))
+* a few changes to facilitate packaging/bundling ([d0e4035](https://github.com/garden-io/garden/commit/d0e4035))
+* rename `init env` cmd to `init` and remove login cmd ([2998bc4](https://github.com/garden-io/garden/commit/2998bc4))
+* **multi-repo:** require tag or branch in repository URLs ([be9b116](https://github.com/garden-io/garden/commit/be9b116))
+
+### Features
+
 * experimental single-binary build via zeit/pkg ([9f8d7bf](https://github.com/garden-io/garden/commit/9f8d7bf))
 * allow custom dockerfile path for container modules ([5ecaead](https://github.com/garden-io/garden/commit/5ecaead))
 * added --hot-reload flag to dev & deploy ([c779618](https://github.com/garden-io/garden/commit/c779618))
@@ -108,15 +200,7 @@ confused by the changes.
 
 
 <a name="v0.6.0"></a>
-## [v0.6.0](https://github.com/garden-io/garden/compare/v0.5.1...v0.6.0) (2018-09-17)
-
-### Bug Fixes
-
-* **publish-script:** set remote in git push command ([aa03557](https://github.com/garden-io/garden/commit/aa03557))
-
-
-<a name="v0.5.1"></a>
-## [v0.5.1](https://github.com/garden-io/garden/compare/v0.5.0...v0.5.1) (2018-09-13)
+## [v0.6.0](https://github.com/garden-io/garden/compare/v0.5.0...v0.6.0) (2018-09-17)
 
 ### Bug Fixes
 
@@ -126,15 +210,12 @@ confused by the changes.
 * **call-command:** print correct protocol ([d973058](https://github.com/garden-io/garden/commit/d973058))
 * **config:** remove name field from service endpoint spec ([9f6f9f0](https://github.com/garden-io/garden/commit/9f6f9f0))
 * **examples:** unused import in go-service ([25509cf](https://github.com/garden-io/garden/commit/25509cf))
-* **examples-projects:** fix integration test ([1d85a9d](https://github.com/garden-io/garden/commit/1d85a9d))
 * **openfaas:** external endpoints had incorrect path ([64de898](https://github.com/garden-io/garden/commit/64de898))
+* **publish-script:** set remote in git push command ([aa03557](https://github.com/garden-io/garden/commit/aa03557))
 
 ### Code Refactoring
 
-* rename endpoints to ingresses ([dde932f](https://github.com/garden-io/garden/commit/dde932f))
-* tighten plugin context API considerably ([af2af06](https://github.com/garden-io/garden/commit/af2af06))
 * get rid of native OpenSSL dependency ([64e962a](https://github.com/garden-io/garden/commit/64e962a))
-* **logger:** clean up code + enable empty log entries ([a83117a](https://github.com/garden-io/garden/commit/a83117a))
 
 ### BREAKING CHANGE
 
