@@ -1,63 +1,75 @@
 [![CircleCI](https://circleci.com/gh/garden-io/garden/tree/master.svg?style=svg&circle-token=ac1ec9984d093f91e594e5a0a03b34cec2c2a093)](https://circleci.com/gh/garden-io/garden/tree/master)
 
-
-![](docs/garden-banner-logotype-left-2.png)
-
-*Welcome! Garden is a full-featured development framework for containers and serverless backends, designed to make
-it easy to develop and test distributed systems.*
-<br><br>
-
-### Status
-
-The project is in _early alpha_ (or developer preview, if you prefer). This means APIs may well change (not drastically,
-but still), overall stability will improve and platform support is still limited.
-
-All that said, Garden can already be highly useful if the following applies to you:
-
-* **You're deploying to (or transitioning to) Kubernetes.**
-* **You work mostly with containers** _**today**_ _\(but perhaps plan on adopting serverless platforms in the future\)._
-* **You really don't want to spend your precious hours building your own developer tooling!**
-
-If that sounds right for you, please give it a go and don't hesitate to report issues.
+<p align="center">
+<img src="docs/logo.png" width="66%">
+</center>
 
 
-## Features
+Garden is an open-source development engine for Kubernetes, containers and serverless backends, designed to make it easy to test and develop multi-service systems.
 
-With Garden, you can...
+- **Focus on what matters:** Garden continuously builds, tests and deploys your changes into your own persistent development environment as you code. Easily define and continuously run tests in the background, and focus on writing code.
 
-* Configure and deploy a fleet of services to a local Kubernetes cluster using simple declarations.
-* Use an integrated framework for building, testing and deploying services.
-* Easily run end-to-end tests across multiple services without waiting for a slow CI pipeline.
-* Automatically build, deploy and/or test when your code changes, using the `--watch` flag or the `garden dev` command.
-* Manage build and runtime dependencies across all your services.
-* Leverage a suite of commands and helpers to facilitate developing and running your stack.
-* _Write code the way you want, and run your production system however suits you! Garden does not impose any new libraries or languages aside from the config files._
+- **Codify your workflow:** Make your workflow reproducible and portable. Define your stack using simple, intuitive declarations and get your environment up and running with a single command, without changing any code.
 
-Garden is also designed to be pluggable and modular, with Kubernetes being just one plugin (albeit an important one).
-Over time we will add native support for a variety of platforms, including AWS (Lambda, ECS, Fargate and more),
-GCP, Heroku, OpenFaaS... and the list will continue growing.
+![](docs/loop.gif)
 
-Please read the [Motivation](https://docs.garden.io/home#motivation) section in our documentation
-for a brief discussion on why we're building Garden.
+The project is in _alpha stage_. APIs may change, and platform stability and support is still limited. To understand the motivation behind Garden, [click here](https://docs.garden.io/home#motivation).
 
-
-## Usage
+## Quick start
 
 Head over to the [Basics](https://docs.garden.io/basics) section in our documentation for details
 on how to set up and use Garden, or look through our [Simple Project](https://docs.garden.io/examples/simple-project)
 guide to get a quick sense of how it works.
 
-[![asciicast](https://asciinema.org/a/SKI7qe7DFVVHxvoaIVrLPb6Es.png)](https://asciinema.org/a/SKI7qe7DFVVHxvoaIVrLPb6Es?speed=2)
 
-## Contributing
+## Documentation
 
-We welcome any and all contributions to Garden! What we're trying to achieve is a big task, and
-developers have a lot of diverse needs, so we need and appreciate your input, whether it's through
-code, docs, issues or developing plugins for your needs.
+You can find the Garden documentation at [https://docs.garden.io](https://docs.garden.io/).
 
-For more detailed guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Overview:
+- [Basics](https://docs.garden.io/basics), for installation instructions, our quick start guide, and an overview of the main  concepts around Garden.
+- [Using Garden](https://docs.garden.io/using-garden), for features and usage, Garden configuration files, usage with remote clusters, and setting up hot reload.
+- [Example Projects](https://docs.garden.io/examples) contains guides based on some of the [examples](https://github.com/garden-io/garden/tree/master/examples).
+- [Reference](https://docs.garden.io/reference), for the glossary, commands reference, configuration files reference, and template strings reference.
+- [FAQs](https://docs.garden.io/faqs).
 
+## Features
+
+- Garden keeps track of all interdependencies between your services.
+- It can automatically re-build, re-deploy, and re-test your services as you code.
+- Due to Garden's dependency graph, you get really fast feedback loops: It makes sure only what's needed gets re-built, re-deployed, and/or re-tested.
+- Hot reload lets you near-instantaneously update code and static files in containers as they run, on services that support in-place reloading.
+- Remote sources support allows your project to pull code from various different repositories.
+- Your services can be anything that runs in a Docker container—or OpenFaaS functions.
+- And an extensible plug-in system ensures you can add anything that's not on this list :)
+
+## Examples
+
+There are many examples of how to use Garden in a myriad of different ways on the [examples](https://github.com/garden-io/garden/tree/master/examples) folder of our repository.
+
+For written guides based on some of these examples, check out the [examples section](https://docs.garden.io/examples) of our documentation.
+
+For a simple example of how Garden configuration files look, see below:
+
+```yaml
+module:
+  name: go-service
+  description: Go service container
+  type: container
+  services:
+    - name: go-service
+      ports:
+        - name: http
+          containerPort: 80
+      ingresses:
+        - path: /hello-go
+          port: http
+```
+
+## Support
+
+Please join the Garden [Slack workspace](http://chat.garden.io) to ask questions, discuss how Garden might fit into your workflow, or even just chat about all things DevOps.
 
 ## License
 
-[Mozilla Public License 2.0 (MPL-2.0)](LICENSE.md)
+Garden is licensed according to [Mozilla Public License 2.0 (MPL-2.0)](LICENSE.md).
