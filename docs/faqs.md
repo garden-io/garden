@@ -20,19 +20,21 @@ In addition, Garden isn't *only* for Kubernetes. It's designed to be pluggable i
 
 This will help users more easily migrate across platforms when their needs (almost inevitably) change or new technology emerges.
 
-If I am an architect trying to keep up with development, can I then use garden to get an overview of what is going on? 
+### Which languages does Garden work with?
 
-### Which languages does Garden work with? C#, Python, etc? 
-
-**Garden works with any language you can run in a Docker container. That includes C# and Python.**
+**Garden works with any language you can run in a Docker container.**
 
 However, some *stacks* are better suited than others for Garden. Interpreted languages like Python and NodeJS tend to work very well.
 
-Some languages, on the other hand, might be less suited for Garden. This could be because of long compile times, or because they're resource heavy and running many of them on a local machine will slow things down (e.g. Java). 
+Languages like Go tend to work well, with the caveat that outside a container Go can leverage incremental builds, and inside a container everything starts with a clear slate—meaning it's slightly slower.
+
+Some languages, on the other hand, might currently be less suited for Garden. This could be because of long compile times, or because they're resource heavy and running many of them on a local machine will slow things down (e.g. Java). 
 
 That's why we are working on supporting remote development, in which case the services run in a remote cluster and not on the user's machine.
 
-Furthermore, for some stacks it might take a long time to re-build and re-deploy services. If those services are frequently changed during development, running them with Garden might be undesirable.  Garden can however work well if the services being worked on can re-build and re-deploy in a reasonable time and/or support hot reloading, and they merely depend on the slower services.
+Furthermore, for some stacks it might take a long time to re-build and re-deploy certain services. If those services are frequently changed during development, you might want to limit your scope to the things you're working on directly—for example, with `garden deploy [module] --watch` to work on a single module—or manually run your deploys and builds. It should still be useful if you need to track dependencies across modules.
+
+In addition, Garden can work well if the services being worked on can re-build and re-deploy in a reasonable time and/or support hot reloading, and they merely depend on the slower services.
 
 See also the question about running Java/SpringBoot services.
 
@@ -60,7 +62,7 @@ CI, on the other hand, runs remotely, after you commit your code, and it's bette
 
 ### Is it possible to tag end-to-end tests so we don't have to re-run all tests every time?
 
-You can split them up and run tests by their names with the garden test command.The YAML could look like this:
+You can split them up and run tests by their names with the `garden test` command. The YAML could look like this:
 
 ```yaml
 tests:
@@ -72,13 +74,13 @@ tests:
 
 And you'd run them with `garden test front-end --name=light`, assuming the service is called front-end.
 
-In `garden dev` mode, all tests for a given service are run when a file watch event is triggered. To disable these you'd have to comment them out from the `garden.yml` file.
+In `garden dev` mode, all tests for a given service are run when a file watch event is triggered. If the system you're working on is very large, you might want to use more specific commands.
 
-More fine grained control over when and how tests run could be a feature for the future.
+More fine grained control over when and how tests run [has been proposed](https://github.com/garden-io/garden/issues/438) as a potential feature.
 
 ### How about Docker Swarm?
 
-**Garden doesn't have a Docker Swarm plugin** and can't deploy to a Swarm cluster. Rather, at the moment, it deploys services to a Kubernetes cluster.
+We currently have a rough version of a Docker Swarm plug-in for Garden. We might make a stable version of it if enough users show interest in us doing so.
 
 ### How does Garden compare to a multi-language build tool like Bazel? 
 
