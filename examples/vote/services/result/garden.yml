@@ -1,0 +1,22 @@
+module:
+  description: Results UI service
+  type: container
+  name: result
+  services:
+    - name: result
+      command: [nodemon, server.js]
+      dependencies:
+        - db-init
+      ingresses:
+        - path: /
+          port: ui
+          hostname: result.local.app.garden
+      ports:
+        - name: ui
+          protocol: TCP
+          containerPort: 80
+  tests:
+    - name: integ
+      command: [echo, ok]
+      dependencies:
+        - db-init

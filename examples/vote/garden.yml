@@ -1,0 +1,6 @@
+project:
+  name: vote
+  environments:
+    - name: local
+      providers:
+        - name: local-kubernetes
