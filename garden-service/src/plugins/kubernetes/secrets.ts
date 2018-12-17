@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1Secret } from "@drubin/client-node"
+import { V1Secret } from "@kubernetes/client-node"
 
 import { KubeApi } from "./api"
 import { SecretRef } from "./kubernetes"
