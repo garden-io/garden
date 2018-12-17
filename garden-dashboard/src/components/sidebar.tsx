@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { css } from "emotion/macro"
 import styled from "@emotion/styled/macro"
 import React, { Component } from "react"
 
@@ -36,13 +37,16 @@ const Button = styled.li`
   }
 `
 
-const Link = styled(NavLink)`
+const linkStyle = `
   display: inline-block;
   font-size: 1.025rem;
   margin-left: 1.5rem;
   padding: 0.5em 0.5em 0.5em 0;
   width: 100%;
 `
+
+const A = styled.a(linkStyle)
+const Link = styled(NavLink)(linkStyle)
 
 // Style and align properly
 const Logo = styled.img`
@@ -59,11 +63,6 @@ class Sidebar extends Component<Props, State> {
     this.state = {
       selectedTab: this.props.pages[0].path,
     }
-    this.handleClick = this.handleClick.bind(this)
-  }
-
-  handleClick(event) {
-    this.setState({ selectedTab: event.target.path })
   }
 
   render() {
@@ -76,16 +75,25 @@ class Sidebar extends Component<Props, State> {
         </div>
         <nav>
           <ul className="pt-2">
-            {this.props.pages.map(page => (
-              <Button tabName={name} onClick={this.handleClick} key={page.title}>
-                <Link
+            {this.props.pages.map(page => {
+              const link = page.url
+                ? <A href={page.url} target="_blank" title={page.description}>
+                  {page.title}
+                  <i className={`${css("color: #ccc; margin-left: 0.5em;")} fas fa-external-link-alt`}></i>
+                </A>
+                : <Link
                   exact
                   to={{ pathname: page.path, state: page }}
-                  title={page.description}>{page.title}
+                  title={page.description}>
+                  {page.title}
                 </Link>
-              </Button>
-            ),
-            )}
+
+              return (
+                <Button tabName={name} key={page.title}>
+                  {link}
+                </Button>
+              )
+            })}
           </ul>
         </nav>
       </div>

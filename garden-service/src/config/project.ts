@@ -15,7 +15,6 @@ import {
   Primitive,
   joiRepositoryUrl,
 } from "./common"
-import { DashboardPage } from "../config/dashboard"
 
 export interface ProviderConfig {
   name: string
@@ -33,7 +32,6 @@ export const providerConfigBaseSchema = Joi.object()
 
 export interface Provider<T extends ProviderConfig = any> {
   name: string
-  dashboardPages: DashboardPage[]
   config: T
 }
 
@@ -148,6 +146,5 @@ export const projectSchema = Joi.object()
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {
   name: "_default",
-  dashboardPages: [],
   config: {},
 }

@@ -12,10 +12,12 @@ import { PrimitiveMap } from "../../config/common"
 import { Module } from "../module"
 import { ServiceStatus } from "../service"
 import { moduleConfigSchema, ModuleConfig } from "../../config/module"
+import { DashboardPage, dashboardPagesSchema } from "../../config/dashboard"
 
 export interface EnvironmentStatus {
   ready: boolean
   needUserInput?: boolean
+  dashboardPages?: DashboardPage[]
   detail?: any
 }
 
@@ -29,6 +31,7 @@ export const environmentStatusSchema = Joi.object()
         "Set to true if the environment needs user input to be initialized, " +
         "and thus needs to be initialized via `garden init`.",
       ),
+    dashboardPages: dashboardPagesSchema,
     detail: Joi.object()
       .meta({ extendable: true })
       .description("Use this to include additional information that is specific to the provider."),

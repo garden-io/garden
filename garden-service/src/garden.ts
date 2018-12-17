@@ -437,7 +437,6 @@ export class Garden {
     } else {
       const provider: Provider = {
         name: pluginName,
-        dashboardPages: plugin.dashboardPages,
         config: extend({ name: pluginName }, plugin.config, config),
       }
       this.environment.providers.push(provider)

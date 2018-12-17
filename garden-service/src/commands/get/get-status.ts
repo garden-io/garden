@@ -7,7 +7,7 @@
  */
 
 import * as yaml from "js-yaml"
-import { highlightYaml } from "../../util/util"
+import { highlightYaml, deepFilter } from "../../util/util"
 import {
   Command,
   CommandResult,
@@ -21,7 +21,11 @@ export class GetStatusCommand extends Command {
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<EnvironmentStatus>> {
     const status = await garden.actions.getStatus({ log })
-    const yamlStatus = yaml.safeDump(status, { noRefs: true, skipInvalid: true })
+
+    // TODO: we should change the status format because this will remove services called "detail"
+    const withoutDetail = deepFilter(status, (_, key) => key !== "detail")
+
+    const yamlStatus = yaml.safeDump(withoutDetail, { noRefs: true, skipInvalid: true })
 
     // TODO: do a nicer print of this by default and use --yaml/--json options for exporting
     log.info(highlightYaml(yamlStatus))

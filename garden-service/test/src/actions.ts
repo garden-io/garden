@@ -65,15 +65,15 @@ describe("ActionHelper", () => {
       it("should return a map of statuses for providers that have a getEnvironmentStatus handler", async () => {
         const result = await actions.getEnvironmentStatus({ log })
         expect(result).to.eql({
-          "test-plugin": { ready: false },
-          "test-plugin-b": { ready: false },
+          "test-plugin": { ready: false, dashboardPages: [] },
+          "test-plugin-b": { ready: false, dashboardPages: [] },
         })
       })
 
       it("should optionally filter to single plugin", async () => {
         const result = await actions.getEnvironmentStatus({ log, pluginName: "test-plugin" })
         expect(result).to.eql({
-          "test-plugin": { ready: false },
+          "test-plugin": { ready: false, dashboardPages: [] },
         })
       })
     })
@@ -99,15 +99,15 @@ describe("ActionHelper", () => {
       it("should clean up environment for each configured provider", async () => {
         const result = await actions.cleanupEnvironment({ log })
         expect(result).to.eql({
-          "test-plugin": { ready: false },
-          "test-plugin-b": { ready: false },
+          "test-plugin": { ready: false, dashboardPages: [] },
+          "test-plugin-b": { ready: false, dashboardPages: [] },
         })
       })
 
       it("should optionally filter to single plugin", async () => {
         const result = await actions.cleanupEnvironment({ log, pluginName: "test-plugin" })
         expect(result).to.eql({
-          "test-plugin": { ready: false },
+          "test-plugin": { ready: false, dashboardPages: [] },
         })
       })
     })

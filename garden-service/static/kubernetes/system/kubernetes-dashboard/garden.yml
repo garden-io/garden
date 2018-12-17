@@ -3,6 +3,7 @@ module:
   name: kubernetes-dashboard
   type: helm
   chart: stable/kubernetes-dashboard
+  version: 0.9.0
   parameters:
-    ingress.enabled: true
-    ingress.hosts: [dashboard.local.sys.garden]
+    # The dashboard currently needs to be exposed directly, because it does its own SSL termination.
+    service.type: NodePort

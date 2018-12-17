@@ -24,6 +24,7 @@ import "flexboxgrid/dist/flexboxgrid.min.css"
 import "./styles/padding-margin-mixin.scss"
 import { EventProvider } from "./context/events"
 import { ConfigProvider } from "./context/config"
+import { StatusProvider } from "./context/status"
 
 const SidebarWrapper = styled.div`
   border-right: 1px solid ${colors.border};
@@ -35,36 +36,38 @@ const SidebarWrapper = styled.div`
 
 const App = () => (
   <div>
-    <ConfigProvider>
-      <EventProvider>
-        <div className={css`
-          display: flex;
-          height: 100vh;
-          max-height: 100vh;
-          overflow-y: hidden;
-        `}>
-          <SidebarWrapper>
-            <Sidebar />
-          </SidebarWrapper>
+    <StatusProvider>
+      <ConfigProvider>
+        <EventProvider>
           <div className={css`
             display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            overflow-y: auto;
+            height: 100vh;
+            max-height: 100vh;
+            overflow-y: hidden;
           `}>
-            <div className={cls(css`
-              background-color: ${colors.lightGray};
+            <SidebarWrapper>
+              <Sidebar />
+            </SidebarWrapper>
+            <div className={css`
+              display: flex;
+              flex-direction: column;
               flex-grow: 1;
-            `, "p-2")}>
-              <Route exact path="/" component={Overview} />
-              <Route path="/logs/" component={Logs} />
-              <Route path="/graph/" component={Graph} />
-              <Route path="/providers/:id" component={Provider} />
+              overflow-y: auto;
+            `}>
+              <div className={cls(css`
+                background-color: ${colors.lightGray};
+                flex-grow: 1;
+              `, "p-2")}>
+                <Route exact path="/" component={Overview} />
+                <Route path="/logs/" component={Logs} />
+                <Route path="/graph/" component={Graph} />
+                <Route path="/providers/:id" component={Provider} />
+              </div>
             </div>
           </div>
-        </div>
-      </EventProvider>
-    </ConfigProvider>
+        </EventProvider>
+      </ConfigProvider>
+    </StatusProvider>
   </div>
 )
 

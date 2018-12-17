@@ -75,13 +75,14 @@ export async function getContainerServiceStatus(
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const objects = await createContainerObjects(ctx, service, runtimeContext, enableHotReload)
-  const state = await compareDeployedObjects(ctx, objects)
+  const { state, remoteObjects } = await compareDeployedObjects(ctx, objects)
   const ingresses = await getIngresses(service, api)
 
   return {
     ingresses,
     state,
     version: state === "ready" ? version.versionString : undefined,
+    detail: { remoteObjects },
   }
 }
 
