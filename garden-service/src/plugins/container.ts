@@ -40,11 +40,11 @@ import { DEFAULT_PORT_PROTOCOL } from "../constants"
 import { splitFirst } from "../util/util"
 import { keyBy } from "lodash"
 import {
-  genericTestSchema,
-  GenericTestSpec,
-  GenericTaskSpec,
-  genericTaskSpecSchema,
-} from "./generic"
+  execTestSchema,
+  ExecTestSpec,
+  ExecTaskSpec,
+  execTaskSpecSchema,
+} from "./exec"
 import { ModuleSpec, ModuleConfig } from "../config/module"
 import { BaseServiceSpec, ServiceConfig, baseServiceSchema } from "../config/service"
 
@@ -256,15 +256,15 @@ export const containerRegistryConfigSchema = Joi.object()
 
 export interface ContainerService extends Service<ContainerModule> { }
 
-export interface ContainerTestSpec extends GenericTestSpec { }
+export interface ContainerTestSpec extends ExecTestSpec { }
 
-export const containerTestSchema = genericTestSchema
+export const containerTestSchema = execTestSchema
 
-export interface ContainerTaskSpec extends GenericTaskSpec {
+export interface ContainerTaskSpec extends ExecTaskSpec {
   command: string[],
 }
 
-export const containerTaskSchema = genericTaskSpecSchema
+export const containerTaskSchema = execTaskSpecSchema
   .keys({
     command: Joi.array().items(Joi.string())
       .description("The command that the task should run inside the container."),

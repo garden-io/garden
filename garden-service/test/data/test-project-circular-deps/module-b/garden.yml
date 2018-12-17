@@ -1,6 +1,6 @@
 module:
   name: module-b
-  type: generic
+  type: exec
   services:
     - name: service-b
       ingresses:

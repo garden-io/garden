@@ -1,5 +1,5 @@
 module:
   description: OpenFaaS templates for building functions
   name: templates
-  type: generic
+  type: exec
   repositoryUrl: https://github.com/openfaas/templates.git#master

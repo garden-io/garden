@@ -16,7 +16,7 @@ import {
 } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
-import { getGenericTaskStatus } from "../generic"
+import { getExecTaskStatus } from "../exec"
 import {
   deleteService,
   execInService,
@@ -173,7 +173,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
       container: {
         getServiceStatus: getContainerServiceStatus,
         deployService: deployContainerService,
-        getTaskStatus: getGenericTaskStatus,
+        getTaskStatus: getExecTaskStatus,
         deleteService,
         getServiceOutputs,
         execInService,

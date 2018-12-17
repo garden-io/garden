@@ -1,6 +1,6 @@
 module:
   name: module-c
-  type: generic
+  type: exec
   allowPublish: false
   services:
     - name: service-c

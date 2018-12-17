@@ -10,7 +10,7 @@ import { Module } from "../../types/module"
 import { PrepareEnvironmentParams } from "../../types/plugin/params"
 import { Service } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
-import { GenericTestSpec } from "../generic"
+import { ExecTestSpec } from "../exec"
 import { GCloud } from "./gcloud"
 import { ModuleSpec } from "../../config/module"
 import { BaseServiceSpec } from "../../config/service"
@@ -25,7 +25,7 @@ export interface GoogleCloudServiceSpec extends BaseServiceSpec {
 export interface GoogleCloudModule<
   M extends ModuleSpec = ModuleSpec,
   S extends GoogleCloudServiceSpec = GoogleCloudServiceSpec,
-  T extends GenericTestSpec = GenericTestSpec,
+  T extends ExecTestSpec = ExecTestSpec,
   > extends Module<M, S, T> { }
 
 export async function getEnvironmentStatus() {

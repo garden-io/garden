@@ -38,52 +38,52 @@ import { ModuleSpec, ModuleConfig } from "../config/module"
 import execa = require("execa")
 import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
 
-export const name = "generic"
+export const name = "exec"
 
-export interface GenericTestSpec extends BaseTestSpec {
+export interface ExecTestSpec extends BaseTestSpec {
   command: string[],
   env: { [key: string]: string },
 }
 
-export const genericTestSchema = baseTestSpecSchema
+export const execTestSchema = baseTestSpecSchema
   .keys({
     command: Joi.array().items(Joi.string())
       .description("The command to run in the module build context in order to test it."),
     env: joiEnvVars(),
   })
-  .description("The test specification of a generic module.")
+  .description("The test specification of an exec module.")
 
-export interface GenericTaskSpec extends BaseTaskSpec {
+export interface ExecTaskSpec extends BaseTaskSpec {
   command: string[],
 }
 
-export const genericTaskSpecSchema = baseTaskSpecSchema
+export const execTaskSpecSchema = baseTaskSpecSchema
   .keys({
     command: Joi.array().items(Joi.string())
       .description("The command to run in the module build context."),
   })
   .description("A task that can be run in this module.")
 
-export interface GenericModuleSpec extends ModuleSpec {
+export interface ExecModuleSpec extends ModuleSpec {
   env: { [key: string]: string },
-  tests: GenericTestSpec[],
+  tests: ExecTestSpec[],
 }
 
-export const genericModuleSpecSchema = Joi.object()
+export const execModuleSpecSchema = Joi.object()
   .keys({
     env: joiEnvVars(),
-    tests: joiArray(genericTestSchema)
+    tests: joiArray(execTestSchema)
       .description("A list of tests to run in the module."),
   })
   .unknown(false)
-  .description("The module specification for a generic module.")
+  .description("The module specification for an exec module.")
 
-export interface GenericModule extends Module<GenericModuleSpec, BaseServiceSpec, GenericTestSpec> { }
+export interface ExecModule extends Module<ExecModuleSpec, BaseServiceSpec, ExecTestSpec> { }
 
-export async function parseGenericModule(
-  { moduleConfig }: ValidateModuleParams<GenericModule>,
+export async function parseExecModule(
+  { moduleConfig }: ValidateModuleParams<ExecModule>,
 ): Promise<ValidateModuleResult> {
-  moduleConfig.spec = validate(moduleConfig.spec, genericModuleSpecSchema, { context: `module ${moduleConfig.name}` })
+  moduleConfig.spec = validate(moduleConfig.spec, execModuleSpecSchema, { context: `module ${moduleConfig.name}` })
 
   moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
     name: t.name,
@@ -95,7 +95,7 @@ export async function parseGenericModule(
   return moduleConfig
 }
 
-export async function getGenericModuleBuildStatus({ module }: GetBuildStatusParams): Promise<BuildStatus> {
+export async function getExecModuleBuildStatus({ module }: GetBuildStatusParams): Promise<BuildStatus> {
   const buildVersionFilePath = join(module.buildPath, GARDEN_BUILD_VERSION_FILENAME)
   let builtVersion: ModuleVersion | null = null
 
@@ -112,7 +112,7 @@ export async function getGenericModuleBuildStatus({ module }: GetBuildStatusPara
   return { ready: false }
 }
 
-export async function buildGenericModule({ module }: BuildModuleParams<GenericModule>): Promise<BuildResult> {
+export async function buildExecModule({ module }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const config: ModuleConfig = module
   const output: BuildResult = {}
   const buildPath = module.buildPath
@@ -137,7 +137,7 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
   return output
 }
 
-export async function testGenericModule({ module, testConfig }: TestModuleParams<GenericModule>): Promise<TestResult> {
+export async function testExecModule({ module, testConfig }: TestModuleParams<ExecModule>): Promise<TestResult> {
   const startedAt = new Date()
   const command = testConfig.spec.command
 
@@ -167,7 +167,7 @@ export async function testGenericModule({ module, testConfig }: TestModuleParams
   }
 }
 
-export async function runGenericTask(params: RunTaskParams): Promise<RunTaskResult> {
+export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult> {
   const { task } = params
   const module = task.module
   const command = task.spec.command
@@ -204,20 +204,20 @@ export async function runGenericTask(params: RunTaskParams): Promise<RunTaskResu
   }
 }
 
-export async function getGenericTaskStatus(): Promise<TaskStatus> {
+export async function getExecTaskStatus(): Promise<TaskStatus> {
   return { done: false }
 }
 
-export const genericPlugin: GardenPlugin = {
+export const execPlugin: GardenPlugin = {
   moduleActions: {
-    generic: {
-      validate: parseGenericModule,
-      getBuildStatus: getGenericModuleBuildStatus,
-      build: buildGenericModule,
-      runTask: runGenericTask,
-      testModule: testGenericModule,
+    exec: {
+      validate: parseExecModule,
+      getBuildStatus: getExecModuleBuildStatus,
+      build: buildExecModule,
+      runTask: runExecTask,
+      testModule: testExecModule,
     },
   },
 }
 
-export const gardenPlugin = () => genericPlugin
+export const gardenPlugin = () => execPlugin

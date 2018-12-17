@@ -24,7 +24,7 @@ import {
 } from "path"
 import * as Joi from "joi"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
-import { GenericTestSpec, genericTestSchema } from "../generic"
+import { ExecTestSpec, execTestSchema } from "../exec"
 import {
   prepareEnvironment,
   gcloud,
@@ -64,16 +64,16 @@ export const gcfServicesSchema = joiArray(gcfServiceSchema)
 
 export interface GcfModuleSpec extends ModuleSpec {
   functions: GcfServiceSpec[],
-  tests: GenericTestSpec[],
+  tests: ExecTestSpec[],
 }
 
 const gcfModuleSpecSchema = Joi.object()
   .keys({
     functions: gcfServicesSchema,
-    tests: joiArray(genericTestSchema),
+    tests: joiArray(execTestSchema),
   })
 
-export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, GenericTestSpec> { }
+export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> { }
 
 export async function parseGcfModule(
   { moduleConfig }: ValidateModuleParams<GcfModule>,

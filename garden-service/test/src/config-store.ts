@@ -3,15 +3,15 @@ import { ConfigStore } from "../../src/config-store"
 import { expect } from "chai"
 import { resolve } from "path"
 
-type GenericConfig = {}
+type ExecConfig = {}
 
-class GenericConfigStore extends ConfigStore<GenericConfig> {
+class ExecConfigStore extends ConfigStore<ExecConfig> {
 
   getConfigPath(projectPath): string {
     return resolve(projectPath, ".garden", "local-config.yml")
   }
 
-  validate(config): GenericConfig {
+  validate(config): ExecConfig {
     return config
   }
 }
@@ -22,7 +22,7 @@ describe("ConfigStore", () => {
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
-    config = new GenericConfigStore(tmpDir.path)
+    config = new ExecConfigStore(tmpDir.path)
   })
 
   after(async () => {

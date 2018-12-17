@@ -44,7 +44,7 @@ export async function setSecret({ ctx, key, value }: SetSecretParams) {
           "garden.io/generated": "true",
         },
       },
-      type: "generic",
+      type: "exec",
       stringData: { value },
     },
   }

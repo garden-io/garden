@@ -29,12 +29,12 @@ import {
   Service,
 } from "../../types/service"
 import {
-  GenericModuleSpec,
-  genericModuleSpecSchema,
-  GenericTestSpec,
-  testGenericModule,
-  getGenericModuleBuildStatus,
-} from "../generic"
+  ExecModuleSpec,
+  execModuleSpecSchema,
+  ExecTestSpec,
+  testExecModule,
+  getExecModuleBuildStatus,
+} from "../exec"
 import { KubernetesProvider } from "../kubernetes/kubernetes"
 import { getNamespace, getAppNamespace } from "../kubernetes/namespace"
 import {
@@ -59,13 +59,13 @@ import { getKubernetesLogs } from "../kubernetes/logs"
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 export const stackFilename = "stack.yml"
 
-export interface OpenFaasModuleSpec extends GenericModuleSpec {
+export interface OpenFaasModuleSpec extends ExecModuleSpec {
   handler: string
   image: string
   lang: string
 }
 
-export const openfaasModuleSpecSchame = genericModuleSpecSchema
+export const openfaasModuleSpecSchame = execModuleSpecSchema
   .keys({
     dependencies: joiArray(Joi.string())
       .description("The names of services/functions that this function depends on at runtime."),
@@ -82,7 +82,7 @@ export const openfaasModuleSpecSchame = genericModuleSpecSchema
   .unknown(false)
   .description("The module specification for an OpenFaaS module.")
 
-export interface OpenFaasModule extends Module<OpenFaasModuleSpec, BaseServiceSpec, GenericTestSpec> { }
+export interface OpenFaasModule extends Module<OpenFaasModuleSpec, BaseServiceSpec, ExecTestSpec> { }
 export interface OpenFaasService extends Service<OpenFaasModule> { }
 
 export interface OpenFaasConfig extends Provider {
@@ -186,7 +186,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           return moduleConfig
         },
 
-        getBuildStatus: getGenericModuleBuildStatus,
+        getBuildStatus: getExecModuleBuildStatus,
 
         async build({ ctx, log, module }: BuildModuleParams<OpenFaasModule>) {
           await writeStackFile(ctx, module, {})
@@ -201,7 +201,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         },
 
         // TODO: design and implement a proper test flow for openfaas functions
-        testModule: testGenericModule,
+        testModule: testExecModule,
 
         getServiceStatus,
 
