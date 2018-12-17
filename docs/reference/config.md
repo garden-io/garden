@@ -692,6 +692,11 @@ module:
       # Required.
       name:
 
+      # A description of the task.
+      #
+      # Optional.
+      description:
+
       # The names of any tasks that must be executed, and the names of any services that must be
       # running, before this task is executed.
       #

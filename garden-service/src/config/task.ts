@@ -18,6 +18,7 @@ export interface TaskSpec { }
 export interface BaseTaskSpec extends TaskSpec {
   name: string
   dependencies: string[]
+  description?: string
   timeout: number | null
 }
 
@@ -26,6 +27,8 @@ export const baseTaskSpecSchema = Joi.object()
     name: joiIdentifier()
       .required()
       .description("The name of the task."),
+    description: Joi.string().optional()
+      .description("A description of the task."),
     dependencies: joiArray(Joi.string())
       .description(deline`
         The names of any tasks that must be executed, and the names of any
@@ -57,6 +60,8 @@ export const taskSchema = Joi.object()
   .keys({
     name: joiIdentifier()
       .description("The name of the task."),
+    description: Joi.string().optional()
+      .description("A description of the task."),
     module: Joi.object().unknown(true),
     config: taskConfigSchema,
     spec: Joi.object()

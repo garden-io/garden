@@ -13,6 +13,7 @@ module:
   tasks:
     - name: ruby-migration
       command: [rake, db:migrate]
+      description: Populates the users table with a few records.
       dependencies:
         # node-migration creates the users table, which has to exist before we use
         # ruby-migration to insert records into it.

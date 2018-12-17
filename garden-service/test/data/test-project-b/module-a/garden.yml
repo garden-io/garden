@@ -15,6 +15,7 @@ module:
     command: [echo, A]
   tasks:
     - name: task-a
+      description: task-a-description
       command: [echo, A]
       dependencies:
         - task-c

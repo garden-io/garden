@@ -30,7 +30,7 @@ type GetArgs = typeof getSecretArgs
 
 // TODO: allow omitting key to return all configs
 
-export class GetSecretCommand extends Command<typeof getSecretArgs> {
+export class GetSecretCommand extends Command<GetArgs> {
   name = "secret"
   help = "Get a secret from the environment."
 

@@ -336,6 +336,21 @@ Outputs the status of your environment.
 
     garden get status 
 
+### garden get tasks
+
+Lists the tasks defined in your project&#x27;s modules.
+
+
+##### Usage
+
+    garden get tasks [tasks] 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `tasks` | No | Specify task(s) to list. Use comma as a separator to specify multiple tasks.
+
 ### garden init
 
 Initialize system, environment or other runtime components.
