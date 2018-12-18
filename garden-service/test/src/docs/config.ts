@@ -5,11 +5,11 @@ import dedent = require("dedent")
 
 describe("config", () => {
   const serivcePortSchema = Joi.number().default((context) => context.containerPort, "default value")
-  .example("8080")
-  .description("description")
+    .example("8080")
+    .description("description")
 
   const testDefaultSchema = Joi.number().default(() => "result", "default value")
-  .description("description")
+    .description("description")
 
   const portSchema = Joi.object()
     .keys({
@@ -22,8 +22,8 @@ describe("config", () => {
 
   describe("renderSchemaDescription", () => {
     it("should render correct markdown", () => {
-        const yaml = renderSchemaDescription(portSchema.describe(), { required: true })
-        expect(yaml).to.equal(dedent`\n# description
+      const yaml = renderSchemaDescription(portSchema.describe(), { required: true })
+      expect(yaml).to.equal(dedent`\n# description
         #
         # Required.
         containerPort:

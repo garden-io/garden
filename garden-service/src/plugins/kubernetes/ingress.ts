@@ -45,7 +45,7 @@ export async function createIngresses(api: KubeApi, namespace: string, service: 
           path: ingress.path,
           backend: {
             serviceName: service.name,
-            servicePort: findByName(service.spec.ports, ingress.spec.port)!.containerPort,
+            servicePort: findByName(service.spec.ports, ingress.spec.port)!.servicePort,
           },
         })),
       },

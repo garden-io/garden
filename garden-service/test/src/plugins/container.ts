@@ -224,6 +224,7 @@ describe("plugins.container", () => {
                 name: "http",
                 protocol: "TCP",
                 containerPort: 8080,
+                servicePort: 8080,
               }],
               outputs: {},
               volumes: [],
@@ -275,7 +276,7 @@ describe("plugins.container", () => {
                 },
                 healthCheck:
                   { httpGet: { path: "/health", port: "http", scheme: "HTTP" } },
-                ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 outputs: {},
                 volumes: [],
               }],
@@ -315,7 +316,7 @@ describe("plugins.container", () => {
                 },
                 healthCheck:
                   { httpGet: { path: "/health", port: "http", scheme: "HTTP" } },
-                ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 outputs: {},
                 volumes: [],
               },

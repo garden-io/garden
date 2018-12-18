@@ -60,7 +60,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           }
 
           if (p.hostPort) {
-            port.PublishedPort = p.hostPort
+            port.PublishedPort = p.servicePort
           }
         })
 

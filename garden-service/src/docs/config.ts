@@ -87,10 +87,10 @@ export function getDefaultValue(description: Joi.Description) {
   if (defaultSpec === undefined) {
     return
   } else if (defaultSpec && defaultSpec.function) {
-    const value =  defaultSpec.function({})
-    if (value === undefined){
+    const value = defaultSpec.function({})
+    if (value === undefined) {
       return defaultSpec.description
-    }else {
+    } else {
       return value
     }
   } else {

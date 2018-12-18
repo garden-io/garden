@@ -13,5 +13,5 @@ func main() {
 	http.HandleFunc("/hello-go", handler)
 	fmt.Println("Server running...")
 
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":8080", nil)
 }
