@@ -206,10 +206,10 @@ const serviceSchema = baseServiceSchema
       .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
     ingresses: joiArray(ingressSchema)
       .description("List of ingress endpoints that the service exposes.")
-      .example([{
-        path: "/api",
-        port: "http",
-      }]),
+      .example([
+        [{ path: "/api", port: "http" }],
+        {},
+      ]),
     env: joiEnvVars(),
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),

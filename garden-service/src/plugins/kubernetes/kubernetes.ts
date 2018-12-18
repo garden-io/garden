@@ -106,7 +106,7 @@ const tlsCertificateSchema = Joi.object()
         "A list of hostnames that this certificate should be used for. " +
         "If you don't specify these, they will be automatically read from the certificate.",
       )
-      .example(["www.mydomain.com"]),
+      .example([["www.mydomain.com"], {}]),
     secretRef: secretRef
       .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
       .example({ name: "my-tls-secret", namespace: "default" }),

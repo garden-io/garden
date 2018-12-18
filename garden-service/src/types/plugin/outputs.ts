@@ -144,10 +144,10 @@ export const moduleTypeDescriptionSchema = Joi.object()
 
 export type ValidateModuleResult<T extends Module = Module> =
   ModuleConfig<
-  T["spec"],
-  T["serviceConfigs"][0]["spec"],
-  T["testConfigs"][0]["spec"],
-  T["taskConfigs"][0]["spec"]
+    T["spec"],
+    T["serviceConfigs"][0]["spec"],
+    T["testConfigs"][0]["spec"],
+    T["taskConfigs"][0]["spec"]
   >
 
 export const validateModuleResultSchema = moduleConfigSchema

@@ -27,7 +27,7 @@ type WrappedFromGarden = Pick<Garden,
   // TODO: remove this from the interface
   "localConfigStore" |
   "environment"
-  >
+>
 
 const providerSchema = Joi.object()
   .options({ presence: "required" })
