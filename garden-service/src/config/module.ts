@@ -99,10 +99,13 @@ export const baseModuleSpecSchema = Joi.object()
       // TODO: move this out of base spec
       command: joiArray(Joi.string())
         .description("The command to run inside the module's directory to perform the build.")
-        .example(["npm", "run", "build"]),
+        .example([["npm", "run", "build"], {}]),
       dependencies: joiArray(buildDependencySchema)
         .description("A list of modules that must be built before this module is built.")
-        .example([{ name: "some-other-module-name" }]),
+        .example([
+          [{ name: "some-other-module-name" }],
+          {},
+        ]),
     })
       .default(() => ({ dependencies: [] }), "{}")
       .description("Specify how to build the module. Note that plugins may define additional keys on this object."),

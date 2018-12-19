@@ -44,7 +44,7 @@ function renderCommentDescription(description: Joi.Description, width: number, {
   }
 
   if (description.examples && description.examples.length) {
-    const example = description.examples[0]
+    const example = description.examples[0].value
 
     if (description.type === "object" || description.type === "array") {
       meta.push("Example:", ...indent(safeDump(example).trim().split("\n"), 1), "")

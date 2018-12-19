@@ -401,7 +401,7 @@ export class ActionHelper implements TypeGuard {
       defaultHandler,
     })
     const handlerParams: PluginActionParams[T] = {
-      ...this.commonParams(handler, <any>params.log),
+      ...this.commonParams(handler, (<any>params).log),
       ...<object>params,
     }
     return (<Function>handler)(handlerParams)
@@ -423,7 +423,7 @@ export class ActionHelper implements TypeGuard {
     const buildDependencies = await this.getBuildDependencies(module)
 
     const handlerParams: any = {
-      ...this.commonParams(handler, <any>params.log),
+      ...this.commonParams(handler, (<any>params).log),
       ...<object>params,
       module: omit(module, ["_ConfigType"]),
       buildDependencies,
@@ -483,7 +483,7 @@ export class ActionHelper implements TypeGuard {
     const buildDependencies = await this.getBuildDependencies(module)
 
     const handlerParams: any = {
-      ...this.commonParams(handler, <any>params.log),
+      ...this.commonParams(handler, (<any>params).log),
       ...<object>params,
       module,
       task,

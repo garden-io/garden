@@ -127,7 +127,7 @@ export const projectSchema = Joi.object()
       .description("The default environment to use when calling commands without the `--env` parameter."),
     environmentDefaults: environmentConfigSchema
       .default(() => environmentDefaults, safeDump(environmentDefaults))
-      .example(environmentDefaults)
+      .example([environmentDefaults, {}])
       .description(
         "Default environment settings. These are inherited (but can be overridden) by each configured environment.",
       ),
@@ -135,7 +135,7 @@ export const projectSchema = Joi.object()
       .unique("name")
       .default(() => ({ ...defaultEnvironments }), safeDump(defaultEnvironments))
       .description("A list of environments to configure for the project.")
-      .example(defaultEnvironments),
+      .example([defaultEnvironments, {}]),
     sources: projectSourcesSchema,
   })
   .required()

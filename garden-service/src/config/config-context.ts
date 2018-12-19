@@ -217,9 +217,9 @@ const exampleOutputs = { ingress: "http://my-service/path/to/endpoint" }
 class ServiceContext extends ConfigContext {
   @schema(
     joiIdentifierMap(joiPrimitive()
-      .description("The outputs defined by the service (see individual plugins for details).")
-      .example(exampleOutputs),
-    ))
+      .description("The outputs defined by the service (see individual plugins for details)."),
+    ).example(exampleOutputs),
+  )
   public outputs: PrimitiveMap
 
   @schema(Joi.string().description("The current version of the service.").example(exampleVersion))
