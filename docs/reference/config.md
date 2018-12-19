@@ -301,6 +301,41 @@ module:
   env: 
     {}
 
+  # A list of tasks that can be run in this module.
+  #
+  # Optional.
+  tasks: 
+    # A task that can be run in this module.
+    #
+    # Optional.
+    - # The name of the task.
+      #
+      # Required.
+      name:
+
+      # A description of the task.
+      #
+      # Optional.
+      description:
+
+      # The names of any tasks that must be executed, and the names of any services that must be
+      # running, before this task is executed.
+      #
+      # Optional.
+      dependencies: 
+        -
+
+      # Maximum duration (in seconds) of the task's execution.
+      #
+      # Optional.
+      timeout: null
+
+      # The command to run in the module build context.
+      #
+      # Optional.
+      command: 
+        -
+
   # A list of tests to run in the module.
   #
   # Optional.

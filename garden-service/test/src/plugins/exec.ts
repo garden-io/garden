@@ -1,12 +1,10 @@
 import { expect } from "chai"
-import {
-  join,
-  resolve,
-} from "path"
+import { join, resolve } from "path"
 import { Garden } from "../../../src/garden"
 import { gardenPlugin } from "../../../src/plugins/exec"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../src/constants"
 import { LogEntry } from "../../../src/logger/log-entry"
+import { keyBy } from "lodash"
 import {
   writeModuleVersionFile,
   readModuleVersionFile,
@@ -27,6 +25,103 @@ describe("exec plugin", () => {
     garden = await makeTestGarden(projectRoot, { exec: gardenPlugin })
     log = garden.log
     await garden.clearBuilds()
+  })
+
+  it("should correctly parse exec modules", async () => {
+    const modules = keyBy(await garden.getModules(), "name")
+    const {
+      "module-a": moduleA,
+      "module-b": moduleB,
+      "module-c": moduleC,
+    } = modules
+
+    expect(moduleA.build).to.eql({
+      command: ["echo", "A"],
+      dependencies: [],
+    })
+    expect(moduleA.serviceConfigs).to.eql([])
+    expect(moduleA.taskConfigs).to.eql([
+      {
+        name: "banana",
+        dependencies: ["orange"],
+        timeout: null,
+        spec: {
+          name: "banana",
+          command: ["echo", "BANANA"],
+          dependencies: ["orange"],
+          timeout: null,
+        },
+      },
+      {
+        name: "orange",
+        dependencies: [],
+        timeout: 999,
+        spec: {
+          name: "orange",
+          command: ["echo", "ORANGE"],
+          dependencies: [],
+          timeout: 999,
+        },
+      },
+    ])
+    expect(moduleA.testConfigs).to.eql([
+      {
+        name: "unit",
+        dependencies: [],
+        timeout: null,
+        spec: {
+          name: "unit",
+          dependencies: [],
+          command: ["echo", "OK"],
+          env: {
+            FOO: "boo",
+          },
+          timeout: null,
+        },
+      },
+    ])
+
+    expect(moduleB.build).to.eql({
+      command: ["echo", "B"],
+      dependencies: [{ name: "module-a", copy: [] }],
+    })
+    expect(moduleB.serviceConfigs).to.eql([])
+    expect(moduleB.taskConfigs).to.eql([])
+    expect(moduleB.testConfigs).to.eql([
+      {
+        name: "unit",
+        dependencies: [],
+        timeout: null,
+        spec: {
+          name: "unit",
+          dependencies: [],
+          command: ["echo", "OK"],
+          env: {},
+          timeout: null,
+        },
+      },
+    ])
+
+    expect(moduleC.build).to.eql({
+      command: [],
+      dependencies: [{ name: "module-b", copy: [] }],
+    })
+    expect(moduleC.serviceConfigs).to.eql([])
+    expect(moduleC.taskConfigs).to.eql([])
+    expect(moduleC.testConfigs).to.eql([
+      {
+        name: "unit",
+        dependencies: [],
+        timeout: null,
+        spec: {
+          name: "unit",
+          dependencies: [],
+          command: ["echo", "OK"],
+          env: {},
+          timeout: null,
+        },
+      },
+    ])
   })
 
   describe("getBuildStatus", () => {
