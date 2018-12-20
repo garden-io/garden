@@ -1,3 +1,56 @@
+<a name="v0.8.1"></a>
+## [v0.8.1](https://github.com/garden-io/garden/compare/v0.8.1-rc1...v0.8.1) (2018-12-10)
+
+### Bug Fixes
+
+* **dashboard:** fix contants import in setupProxy.js ([e2c5bbd](https://github.com/garden-io/garden/commit/e2c5bbd))
+* **k8s:** revert removal of `-i` flag on kubectl run commands ([663deea](https://github.com/garden-io/garden/commit/663deea))
+* **k8s:** incorrect flags sent to `kubectl run` when not interactive ([260b976](https://github.com/garden-io/garden/commit/260b976))
+* **log:** log footer line was duplicated after config reload ([a8b50b1](https://github.com/garden-io/garden/commit/a8b50b1))
+* **tasks:** task errors had lost their color ([66390e1](https://github.com/garden-io/garden/commit/66390e1))
+
+### Code Refactoring
+
+* **task-graph:** add task key to TaskResult interface ([3ce6633](https://github.com/garden-io/garden/commit/3ce6633))
+
+
+<a name="v0.8.1-rc1"></a>
+## [v0.8.1-rc1](https://github.com/garden-io/garden/compare/v0.8.0...v0.8.1-rc1) (2018-12-10)
+
+### Bug Fixes
+
+* do not run dependant tasks unless updated services depend on them ([1ae0284](https://github.com/garden-io/garden/commit/1ae0284))
+* minor logging issue ([61e4428](https://github.com/garden-io/garden/commit/61e4428))
+* stale version in some tasks triggered by watch handler ([da134b4](https://github.com/garden-io/garden/commit/da134b4))
+* performance regression on startup ([b856e36](https://github.com/garden-io/garden/commit/b856e36))
+* fixed another dependency calculation bug ([99df5d9](https://github.com/garden-io/garden/commit/99df5d9))
+* fixed dependency bug & simplified TaskGraph ([4a8428c](https://github.com/garden-io/garden/commit/4a8428c))
+* make dev cmd consistent with deploy cmd ([85f31f9](https://github.com/garden-io/garden/commit/85f31f9))
+* fix dev command terminating on config change ([261e974](https://github.com/garden-io/garden/commit/261e974))
+* **k8s:** exec and run commands didn't work properly in interactive mode ([420953d](https://github.com/garden-io/garden/commit/420953d))
+* **k8s:** log tailing now returns logs for new pods at runtime ([432e6dc](https://github.com/garden-io/garden/commit/432e6dc))
+* **k8s:** remove replicasets and daemonsets when deleting services ([6c63314](https://github.com/garden-io/garden/commit/6c63314))
+
+### Code Refactoring
+
+* nicer logging when watching for changes / hot reloading ([069a9d0](https://github.com/garden-io/garden/commit/069a9d0))
+* rename plural command parameters ([f010e37](https://github.com/garden-io/garden/commit/f010e37))
+* add placeholder method to logger + fix rendering issues ([fa8d81e](https://github.com/garden-io/garden/commit/fa8d81e))
+* rename logEntry to log and require for tests, cmds and actions ([13cf263](https://github.com/garden-io/garden/commit/13cf263))
+* **formatting:** improve quoting style of objects to consistent-as-needed ([687c6f3](https://github.com/garden-io/garden/commit/687c6f3))
+
+### Features
+
+* add `get config` command ([39ab7b1](https://github.com/garden-io/garden/commit/39ab7b1))
+* added get graph command ([010353e](https://github.com/garden-io/garden/commit/010353e))
+* experimental HTTP API ([5302802](https://github.com/garden-io/garden/commit/5302802))
+* add websocket endpoint to API server ([e6fcc8b](https://github.com/garden-io/garden/commit/e6fcc8b))
+* add event bus + a few events emitted from TaskGraph ([3c19e36](https://github.com/garden-io/garden/commit/3c19e36))
+* allow plugins to specify dashboard pages ([c67b7be](https://github.com/garden-io/garden/commit/c67b7be))
+* **api:** allow explicitly port for api server in dev cmd ([919e6b8](https://github.com/garden-io/garden/commit/919e6b8))
+* **dashboard:** add basic scaffolding with overview and logs section ([3781fb3](https://github.com/garden-io/garden/commit/3781fb3))
+* **openfaas:** add log streaming to openfaas plugin ([53131b5](https://github.com/garden-io/garden/commit/53131b5))
+
 
 <a name="v0.8.0"></a>
 ## [v0.8.0](https://github.com/garden-io/garden/compare/v0.7.0...v0.8.0) (2018-11-21)
