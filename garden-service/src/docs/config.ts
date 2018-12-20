@@ -81,13 +81,18 @@ function renderCommentDescription(description: Joi.Description, width: number, {
   return wrap(output.join("\n")).split("\n").map(line => "# " + line)
 }
 
-function getDefaultValue(description: Joi.Description) {
+export function getDefaultValue(description: Joi.Description) {
   const defaultSpec = get(description, "flags.default")
 
   if (defaultSpec === undefined) {
     return
   } else if (defaultSpec && defaultSpec.function) {
-    return defaultSpec.function()
+    const value =  defaultSpec.function({})
+    if (value === undefined){
+      return defaultSpec.description
+    }else {
+      return value
+    }
   } else {
     return defaultSpec
   }
