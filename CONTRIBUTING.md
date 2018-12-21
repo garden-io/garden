@@ -11,7 +11,20 @@ community productive and fun for everyone :)
 
 We follow and automatically validate
 [Angular-like formatting](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#commits) for our
-commit messages, for consistency and clarity.
+commit messages, for consistency and clarity. In particular, the **type** of the commit header must be one of the following:
+
+* **feat**: A new feature
+* **fix**: A bug fix
+* **docs**: Documentation only changes
+* **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing
+  semi-colons, etc)
+* **refactor**: A code change that neither fixes a bug nor adds a feature
+* **perf**: A code change that improves performance
+* **test**: Adding missing or correcting existing tests
+* **chore**: Changes to the build process or auxiliary tools and libraries such as documentation
+  generation
+
+When generating the changelog, we only include the following types: **feat**, **fix**, **refactor**, and **perf**. This means that any changes that the user should be aware of, should have one of these types.
 
 ## Setting up your development environment
 
@@ -74,22 +87,24 @@ Currently we maintain the following:
 * A [Homebrew](https://brew.sh/) package for macOS users.
 * An [NPM](https://www.npmjs.com/package/garden-cli) package that the Homebrew package depends on.
 
-To make a new release, set your current working directory to garden root and follow the steps below:
+To make a new release, set your current working directory to garden root and follow the steps below. The examples assume we're creating a release for `v0.8.0-rc2`:
 
 1. Checkout out to a new release branch, e.g. `git checkout -b release-0.8.0-rc2`.
 2. Update the `version` field in `./garden-service/package.json` to the new release name.
 3. Run `cd garden-service && npm install && cd ..` to update `package-lock.json`.
-4. Update the changelog with `git-chglog -o=CHANGELOG.md v0.1.0..<tag-name>`,
-   e.g. `git-chglog -o=CHANGELOG.md v0.1.0..v0.8.0-rc2`.
-5. Make a version bump commit (e.g. `chore(release): bump version to 0.8.0-rc2`)
-6. Create a new tag for the version: `git tag -a v0.8.0-rc2 -m 'chore(release): release v0.8.0-rc2'`
-7. Push the new tag: `git push origin v0.8.0-rc2 --no-verify`. This will trigger the dist build process in CircleCI.
-8. Open the [Garden project on CircleCI](https://circleci.com/gh/garden-io/garden).
-   Browse to the job marked `release-service-pkg`, open the _Artifacts_ tab and download the listed artifacts.
-9. Go to our Github [Releases tab](https://github.com/garden-io/garden/releases) and click the **Draft a new release** button.
-10. Fill in the **Tag version** and **Release title** fields with the new release version (same as you used for the tag).
-11. Upload the downloaded artifacts.
-12. Write release notes (not necessary for RCs). The notes should _at least_ contain the changelog.
-13. Click the **Publish release** button.
-14. Push the branch and make a pull request.
-15. If you're making an RC, you're done! Otherwise, you need to update Homebrew package: `gulp update-brew`
+4. Create a new tag for the version: `git tag -a v0.8.0-rc2 -m 'chore(release): release v0.8.0-rc2'`
+5. Get the changelog for the tag with: `git-chglog v0.8.0-rc2` and prepend the output to `CHANGELOG.md`. Alternatively you can generate the entire `CHANGELOG.md` file with `git-chglog -o=CHANGELOG.md v0.1.0..v0.8.0-rc2`, but make sure that older entries do not change (this can happen if you have local tags that do not match the remote release tags).
+6. Add the changelog and commit:
+   `git add CHANGELOG.md && git commit -m 'chore(release): bump version to 0.8.0-rc2'`
+7. Update the tag (this is so we can include the changelog in the same tag):
+   `git tag -f -a v0.8.0-rc2 -m 'chore(release): release v0.8.0-rc2'`
+8. Push the new tag: `git push origin v0.8.0-rc2 --no-verify`. This will trigger the dist build process in CircleCI.
+9. Open the [Garden project on CircleCI](https://circleci.com/gh/garden-io/garden). Once it appears,
+   browse to the job marked `release-service-pkg`, open the _Artifacts_ tab and download the listed artifacts.
+10. Go to our Github [Releases tab](https://github.com/garden-io/garden/releases) and click the **Draft a new release** button.
+11. Fill in the **Tag version** and **Release title** fields with the new release version (same as you used for the tag).
+12. Upload the downloaded artifacts.
+13. Write release notes (not necessary for RCs). The notes should _at least_ contain the changelog.
+14. Click the **Publish release** button.
+15. Push the branch and make a pull request.
+16. If you're making an RC, you're done! Otherwise, you need to update Homebrew package: `gulp update-brew`
