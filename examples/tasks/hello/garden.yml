@@ -19,5 +19,8 @@ module:
   tasks:
     - name: node-migration
       command: [knex, migrate:latest]
+      description: Creates the users table.
       dependencies:
         - postgres
+    - name: foo-task
+      command: [echo hello]

@@ -11,6 +11,7 @@ import { GetGraphCommand } from "./get-graph"
 import { GetConfigCommand } from "./get-config"
 import { GetSecretCommand } from "./get-secret"
 import { GetStatusCommand } from "./get-status"
+import { GetTasksCommand } from "./get-tasks"
 
 export class GetCommand extends Command {
   name = "get"
@@ -21,6 +22,7 @@ export class GetCommand extends Command {
     GetConfigCommand,
     GetSecretCommand,
     GetStatusCommand,
+    GetTasksCommand,
   ]
 
   async action() { return {} }

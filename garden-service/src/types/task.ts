@@ -11,6 +11,7 @@ import { TaskConfig } from "../config/task"
 
 export interface Task<M extends Module = Module> {
   name: string
+  description?: string
   module: M
   config: M["taskConfigs"][0]
   spec: M["taskConfigs"][0]["spec"]
