@@ -66,12 +66,15 @@ export const execTaskSpecSchema = baseTaskSpecSchema
 
 export interface ExecModuleSpec extends ModuleSpec {
   env: { [key: string]: string },
+  tasks: ExecTaskSpec[],
   tests: ExecTestSpec[],
 }
 
 export const execModuleSpecSchema = Joi.object()
   .keys({
     env: joiEnvVars(),
+    tasks: joiArray(execTaskSpecSchema)
+      .description("A list of tasks that can be run in this module."),
     tests: joiArray(execTestSchema)
       .description("A list of tests to run in the module."),
   })
@@ -84,6 +87,13 @@ export async function parseExecModule(
   { moduleConfig }: ValidateModuleParams<ExecModule>,
 ): Promise<ValidateModuleResult> {
   moduleConfig.spec = validate(moduleConfig.spec, execModuleSpecSchema, { context: `module ${moduleConfig.name}` })
+
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    timeout: t.timeout,
+    spec: t,
+  }))
 
   moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
     name: t.name,
