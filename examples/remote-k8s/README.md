@@ -3,7 +3,7 @@
 This project shows how you can configure Garden to work against a remote Kubernetes cluster, in addition to a local
 cluster.
 
-The example follows the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes.md). Please look
+The example follows the [Remote Kubernetes guide](https://docs.garden.io/using-garden/remote-clusters). Please look
 at the guide for more details on how to configure your own project.
 
 ## Setup
@@ -15,7 +15,7 @@ controller. If you haven't already, you'll need to configure a `kubectl` context
 Please refer to your cluster provider for how to do that.
 
 If you don't already have one, you also need to configure a private container registry. You could for example use
-[quay.io](https://quay.io), create a private registry on [Docker Hub](https://hub.docker.io), or use the registry
+[quay.io](https://quay.io), create a private registry on [Docker Hub](https://hub.docker.com), or use the registry
 provided by your cloud provider.
 
 ### Step 1 - Update the context and cluster hostname in your config
