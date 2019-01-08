@@ -1,0 +1,7 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "local.app.garden"
+    }
+  ]
+}

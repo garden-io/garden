@@ -1,7 +1,9 @@
 #!/bin/bash -e
 
-# linter before git check so we can lint docs even if they are 'dirty'
-find docs -name '*.md' -type f -exec ./node_modules/.bin/markdown-link-check  {} \;
-# Needs to generate clean docs before we can validate they are update to date
+# Linter before git check so we can lint docs even if they are 'dirty'
+# Using xargs to exit 1 if link is broken, see: https://github.com/tcort/markdown-link-check/issues/57
+find docs examples -name '*.md' -type f | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+
+# Needs to generate clean docs before we can validate they are up to date
 npm run generate-docs
 git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"npm run generate-docs\" and commit the changes\n' && exit 1)
