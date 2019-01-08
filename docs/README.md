@@ -1,6 +1,5 @@
 # Table of Contents
 
-* [Home](./home.md)
 * [Basics](./basics/README.md)
   * [Installation](./basics/installation.md)
   * [Quick Start](./basics/quick-start.md)
