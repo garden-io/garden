@@ -12,7 +12,7 @@ Garden is an open-source development engine for Kubernetes, containers and serve
 
 ![](docs/loop.gif)
 
-The project is in _alpha stage_. APIs may change, and platform stability and support is still limited. To understand the motivation behind Garden, [click here](https://docs.garden.io/home#motivation).
+The project is in _alpha stage_. APIs may change, and platform stability and support is still limited. To understand the motivation behind Garden, [click here](https://garden.io/#motivation).
 
 ## Quick start
 
