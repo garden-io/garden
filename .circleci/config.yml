@@ -248,6 +248,8 @@ jobs:
           name: test
           command: |
             npm run ci-test
+          environment:
+            CHOKIDAR_USEPOLLING: "1"
   release-service-npm:
     <<: *node-config
     steps:

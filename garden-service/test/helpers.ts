@@ -36,7 +36,7 @@ import { helpers } from "../src/vcs/git"
 import { ModuleVersion } from "../src/vcs/base"
 import { GARDEN_DIR_NAME } from "../src/constants"
 import { EventBus, Events } from "../src/events"
-import { ValueOf } from "../src/util/util"
+import { ValueOf, Ignorer } from "../src/util/util"
 import { SourceConfig } from "../src/config/project"
 import { BuildDir } from "../src/build-dir"
 import timekeeper = require("timekeeper")
@@ -249,6 +249,10 @@ class TestEventBus extends EventBus {
     this.log.push({ name, payload })
     return super.emit(name, payload)
   }
+
+  clearLog() {
+    this.log = []
+  }
 }
 
 export class TestGarden extends Garden {
@@ -261,9 +265,10 @@ export class TestGarden extends Garden {
     variables: PrimitiveMap,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
+    public readonly ignorer: Ignorer,
     log?,
   ) {
-    super(projectRoot, projectName, environmentName, variables, projectSources, buildDir, log)
+    super(projectRoot, projectName, environmentName, variables, projectSources, buildDir, ignorer, log)
     this.events = new TestEventBus()
   }
 }

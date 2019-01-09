@@ -296,6 +296,9 @@ export class GardenCli {
           args: parsedArgs,
           opts: parsedOpts,
         })
+
+        await garden.close()
+
       } while (result.restartRequired)
 
       // We attach the action result to cli context so that we can process it in the parse method
