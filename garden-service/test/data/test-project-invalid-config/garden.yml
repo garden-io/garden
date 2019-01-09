@@ -1,0 +1,6 @@
+project:
+  name: test-project-invalid-config
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin

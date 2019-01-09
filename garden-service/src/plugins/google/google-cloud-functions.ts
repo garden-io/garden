@@ -8,7 +8,7 @@
 
 import {
   joiArray,
-  validate,
+  validateWithPath,
 } from "../../config/common"
 import { Module } from "../../types/module"
 import { ValidateModuleResult } from "../../types/plugin/outputs"
@@ -76,12 +76,17 @@ const gcfModuleSpecSchema = Joi.object()
 export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> { }
 
 export async function parseGcfModule(
-  { moduleConfig }: ValidateModuleParams<GcfModule>,
+  { ctx, moduleConfig }: ValidateModuleParams<GcfModule>,
 ): Promise<ValidateModuleResult<GcfModule>> {
+
   // TODO: check that each function exists at the specified path
-  moduleConfig.spec = validate(
-    moduleConfig.spec, gcfModuleSpecSchema, { context: `module ${moduleConfig.name}` },
-  )
+  moduleConfig.spec = validateWithPath({
+    config: moduleConfig.spec,
+    schema: gcfModuleSpecSchema,
+    name: moduleConfig.name,
+    path: moduleConfig.path,
+    projectRoot: ctx.projectRoot,
+  })
 
   moduleConfig.serviceConfigs = moduleConfig.spec.functions.map(f => ({
     name: f.name,

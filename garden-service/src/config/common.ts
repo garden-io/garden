@@ -11,6 +11,7 @@ import * as Joi from "joi"
 import * as uuid from "uuid"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
+import { relative } from "path"
 
 export type Primitive = string | number | boolean
 
@@ -113,8 +114,39 @@ const joiOptions = {
 }
 
 export interface ValidateOptions {
-  context?: string
+  context?: string // Descriptive text to include in validation error messages, e.g. "module at some/local/path"
   ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+}
+
+export interface ValidateWithPathParams<T> {
+  config: T,
+  schema: Joi.Schema,
+  path: string, // Absolute path to the config file, including filename
+  projectRoot: string,
+  name?: string, // Name of the top-level entity that the config belongs to, e.g. "some-module" or "some-project"
+  configType?: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
+  ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+}
+
+/**
+ * Should be used whenever a path to the corresponding config file is available while validating config
+ * files.
+ *
+ * This is to ensure consistent error messages that include the relative path to the failing file.
+ */
+export function validateWithPath<T>(
+  { config, schema, path, projectRoot, name, configType = "module", ErrorClass }: ValidateWithPathParams<T>,
+) {
+
+  const validateOpts = {
+    context: `${configType} ${name ? name + " " : ""}in ${relative(projectRoot, path)}`,
+  }
+
+  if (ErrorClass) {
+    validateOpts["ErrorClass"] = ErrorClass
+  }
+
+  return validate(config, schema, validateOpts)
 }
 
 export function validate<T>(

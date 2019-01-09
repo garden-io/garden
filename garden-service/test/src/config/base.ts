@@ -1,14 +1,38 @@
 import { expect } from "chai"
 import { loadConfig } from "../../../src/config/base"
 import { resolve } from "path"
-import { dataDir } from "../../helpers"
+import { dataDir, expectError } from "../../helpers"
 
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
 
-describe("loadConfig", async () => {
+describe("loadConfig", () => {
 
-  // TODO: test more cases + error cases
+  it("should not throw an error if no file was found", async () => {
+    const parsed = await loadConfig(projectPathA, resolve(projectPathA, "non-existent-module"))
+
+    expect(parsed).to.eql(undefined)
+  })
+
+  it("should throw a config error if the file couldn't be parsed°", async () => {
+    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    await expectError(
+      async () => await loadConfig(projectPath, resolve(projectPath, "invalid-syntax-module")),
+      (err) => {
+        expect(err.message).to.match(/Could not parse/)
+      })
+  })
+
+  it("should include the module's relative path in the error message for invalid config", async () => {
+    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    await expectError(
+      async () => await loadConfig(projectPath, resolve(projectPath, "invalid-config-module")),
+      (err) => {
+        expect(err.message).to.match(/invalid-config-module\/garden.yml/)
+      })
+  })
+
+  // TODO: test more cases
   it("should load and parse a project config", async () => {
     const parsed = await loadConfig(projectPathA, projectPathA)
 
