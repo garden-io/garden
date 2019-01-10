@@ -48,7 +48,27 @@ export class EventBus extends EventEmitter2 {
  * The supported events and their interfaces.
  */
 export interface Events {
+  // Internal test/control events
+  _restart: string,
   _test: string,
+
+  // Watcher events
+  configAdded: {
+    path: string,
+  },
+  projectConfigChanged: {},
+  moduleConfigChanged: {
+    name: string,
+  },
+  moduleSourcesChanged: {
+    name: string,
+    pathChanged: string,
+  },
+  moduleRemoved: {
+    name: string,
+  },
+
+  // TaskGraph events
   taskPending: {
     addedAt: Date,
     key: string,

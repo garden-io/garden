@@ -52,6 +52,7 @@ import {
   pickKeys,
   throwOnMissingNames,
   uniqByName,
+  Ignorer,
 } from "./util/util"
 import {
   DEFAULT_NAMESPACE,
@@ -108,6 +109,7 @@ import { SUPPORTED_PLATFORMS, SupportedPlatform } from "./constants"
 import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
+import { Watcher } from "./watch"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -154,6 +156,7 @@ export class Garden {
   private readonly taskNameIndex: { [key: string]: string } // task name -> module name
   private readonly hotReloadScheduler: HotReloadScheduler
   private readonly taskGraph: TaskGraph
+  private readonly watcher: Watcher
 
   public readonly environment: Environment
   public readonly localConfigStore: LocalConfigStore
@@ -169,6 +172,7 @@ export class Garden {
     variables: PrimitiveMap,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
+    public readonly ignorer: Ignorer,
     public readonly opts: GardenOpts,
   ) {
     // make sure we're on a supported platform
@@ -209,6 +213,7 @@ export class Garden {
     this.actions = new ActionHelper(this)
     this.hotReloadScheduler = new HotReloadScheduler()
     this.events = new EventBus()
+    this.watcher = new Watcher(this, this.log)
   }
 
   static async factory<T extends typeof Garden>(
@@ -293,6 +298,7 @@ export class Garden {
     const variables = merge({}, environmentDefaults.variables, environmentConfig.variables)
 
     const buildDir = await BuildDir.factory(projectRoot)
+    const ignorer = await getIgnorer(projectRoot)
 
     const garden = new this(
       projectRoot,
@@ -301,6 +307,7 @@ export class Garden {
       variables,
       projectSources,
       buildDir,
+      ignorer,
       opts,
     ) as InstanceType<T>
 
@@ -317,6 +324,13 @@ export class Garden {
     }
 
     return garden
+  }
+
+  /**
+   * Clean up before shutting down.
+   */
+  async close() {
+    this.watcher.stop()
   }
 
   getPluginContext(providerName: string) {
@@ -337,6 +351,15 @@ export class Garden {
 
   async hotReload(moduleName: string, hotReloadHandler: HotReloadHandler) {
     return this.hotReloadScheduler.requestHotReload(moduleName, hotReloadHandler)
+  }
+
+  /**
+   * Enables the file watcher for the project.
+   * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
+   */
+  async startWatcher() {
+    const modules = await this.getModules()
+    this.watcher.start(modules)
   }
 
   private registerPlugin(name: string, moduleOrFactory: RegisterPluginParam) {

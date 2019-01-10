@@ -109,7 +109,11 @@ export async function getChildDirNames(parentDir: string): Promise<string[]> {
   return dirNames
 }
 
-export async function getIgnorer(rootPath: string) {
+export interface Ignorer {
+  ignores: (path: string) => boolean
+}
+
+export async function getIgnorer(rootPath: string): Promise<Ignorer> {
   // TODO: this doesn't handle nested .gitignore files, we should revisit
   const gitignorePath = join(rootPath, ".gitignore")
   const gardenignorePath = join(rootPath, ".gardenignore")

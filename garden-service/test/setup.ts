@@ -3,10 +3,15 @@ import * as timekeeper from "timekeeper"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
 import { makeTestGardenA } from "./helpers"
+// import { BasicTerminalWriter } from "../src/logger/writers/basic-terminal-writer"
 
 // make sure logger is initialized
 try {
-  Logger.initialize({ level: LogLevel.info })
+  Logger.initialize({
+    level: LogLevel.info,
+    // level: LogLevel.debug,
+    // writers: [new BasicTerminalWriter()],
+  })
 } catch (_) { }
 
 // Global hooks

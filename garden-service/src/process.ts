@@ -8,14 +8,12 @@
 
 import Bluebird = require("bluebird")
 import chalk from "chalk"
-import { padEnd } from "lodash"
+import { padEnd, keyBy } from "lodash"
 
 import { Module } from "./types/module"
 import { Service } from "./types/service"
 import { BaseTask } from "./tasks/base"
 import { TaskResults } from "./task-graph"
-import { FSWatcher } from "./watch"
-import { registerCleanupFunction } from "./util/util"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
@@ -110,32 +108,40 @@ export async function processModules(
     changeHandler = handler
   }
 
-  const watcher = new FSWatcher(garden, log)
+  const modulesByName = keyBy(modules, "name")
 
-  const restartPromise = new Promise(async (resolve) => {
-    await watcher.watchModules(modules,
-      async (changedModule: Module | null, configChanged: boolean) => {
-        if (configChanged) {
-          if (changedModule) {
-            log.info({ section: changedModule.name, msg: `Module configuration changed, reloading...`, symbol: "info" })
-          } else {
-            log.info({ symbol: "info", msg: `Project configuration changed, reloading...` })
-          }
-          resolve()
-          return
-        }
+  await garden.startWatcher()
 
-        if (changedModule) {
-          log.silly({ msg: `Files changed for module ${changedModule.name}` })
-          changedModule = await garden.getModule(changedModule.name)
-          await Bluebird.map(changeHandler!(changedModule), (task) => garden.addTask(task))
-        }
+  const restartPromise = new Promise((resolve) => {
+    garden.events.on("_restart", () => {
+      log.debug({ symbol: "info", msg: `Manual restart triggered` })
+      resolve()
+    })
 
-        await garden.processTasks()
-      })
+    garden.events.on("projectConfigChanged", () => {
+      log.info({ symbol: "info", msg: `Project configuration changed, reloading...` })
+      resolve()
+    })
 
-    registerCleanupFunction("clearAutoReloadWatches", () => {
-      watcher.close()
+    garden.events.on("configAdded", (event) => {
+      log.info({ symbol: "info", msg: `Garden config added at ${event.path}, reloading...` })
+      resolve()
+    })
+
+    garden.events.on("moduleConfigChanged", (event) => {
+      log.info({ symbol: "info", section: event.name, msg: `Module configuration changed, reloading...` })
+      resolve()
+    })
+
+    garden.events.on("moduleSourcesChanged", async (event) => {
+      const changedModule = modulesByName[event.name]
+
+      if (!changedModule) {
+        return
+      }
+
+      await Bluebird.map(changeHandler!(changedModule), (task) => garden.addTask(task))
+      await garden.processTasks()
     })
   })
 
@@ -147,7 +153,6 @@ export async function processModules(
   }
 
   await restartPromise
-  watcher.close()
 
   return {
     taskResults: {}, // TODO: Return latest results for each task baseKey processed between restarts?
