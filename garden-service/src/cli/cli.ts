@@ -42,6 +42,7 @@ import {
   prepareArgConfig,
   prepareOptionConfig,
   styleConfig,
+  getPackageVersion,
 } from "./helpers"
 import { GardenConfig } from "../config/base"
 import { defaultEnvironments } from "../config/project"
@@ -174,7 +175,7 @@ export class GardenCli {
   private fileWritersInitialized: boolean = false
 
   constructor() {
-    const version = require("../../package.json").version
+    const version = getPackageVersion()
     this.program = sywac
       .help("-h, --help", {
         group: GLOBAL_OPTIONS_GROUP_NAME,
@@ -183,6 +184,7 @@ export class GardenCli {
       .version("-v, --version", {
         version,
         group: GLOBAL_OPTIONS_GROUP_NAME,
+        description: "Show's the current cli version.",
         implicitCommand: false,
       })
       .showHelpByDefault()

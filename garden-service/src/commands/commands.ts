@@ -27,6 +27,7 @@ import { UpdateRemoteCommand } from "./update-remote/update-remote"
 import { ValidateCommand } from "./validate"
 import { ExecCommand } from "./exec"
 import { ServeCommand } from "./serve"
+import { VersionCommand } from "./version"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -49,4 +50,5 @@ export const coreCommands: Command[] = [
   new UnlinkCommand(),
   new UpdateRemoteCommand(),
   new ValidateCommand(),
+  new VersionCommand(),
 ]

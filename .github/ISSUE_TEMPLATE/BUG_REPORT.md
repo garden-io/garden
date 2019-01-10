@@ -31,7 +31,7 @@ about: Create a report to help make garden better
 <!-- PLEASE FILL THIS OUT -->
 
 <!-- Please run and copy and paste the results  -->
-`garden -v`
+`garden version`
 
 `kubectl version`
 
