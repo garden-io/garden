@@ -84,6 +84,7 @@ export interface ServiceHealthCheckSpec {
 
 export interface ContainerServiceSpec extends BaseServiceSpec {
   command: string[],
+  args: string[],
   daemon: boolean
   ingresses: ContainerIngressSpec[],
   env: PrimitiveMap,
@@ -213,7 +214,23 @@ const volumeSchema = Joi.object()
 const serviceSchema = baseServiceSchema
   .keys({
     command: Joi.array().items(Joi.string())
-      .description("The arguments to run the container with when starting the service."),
+      .example([
+        ["/bin/echo"],
+      ])
+      .description(dedent`The command to run the container with when starting the service.
+        Equivalent to
+        Docker's entrypoint
+        Kubernetes's command
+      `),
+    args: Joi.array().items(Joi.string())
+      .example([
+        ["hello", "world"],
+      ])
+      .description(dedent`The arguments to pass to the command run when starting the service.
+        Equivalent to
+        Docker's cmd
+        Kubernetes's args
+      `),
     daemon: Joi.boolean()
       .default(false)
       .description("Whether to run the service as a daemon (to ensure only one runs per node)."),

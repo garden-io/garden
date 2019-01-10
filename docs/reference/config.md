@@ -547,10 +547,29 @@ module:
       outputs: 
         {}
 
-      # The arguments to run the container with when starting the service.
+      # The command to run the container with when starting the service.
+      # Equivalent to
+      # Docker's entrypoint
+      # Kubernetes's command
+      #
+      # Example:
+      #   - /bin/echo
       #
       # Optional.
       command: 
+        -
+
+      # The arguments to pass to the command run when starting the service.
+      # Equivalent to
+      # Docker's cmd
+      # Kubernetes's args
+      #
+      # Example:
+      #   - hello
+      #   - world
+      #
+      # Optional.
+      args: 
         -
 
       # Whether to run the service as a daemon (to ensure only one runs per node).

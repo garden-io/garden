@@ -180,7 +180,10 @@ export async function createDeployment(
   }
 
   if (service.spec.command && service.spec.command.length > 0) {
-    container.args = service.spec.command
+    container.command = service.spec.command
+  }
+  if (service.spec.args && service.spec.args.length > 0) {
+    container.args = service.spec.args
   }
 
   // if (config.entrypoint) {
