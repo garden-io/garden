@@ -128,7 +128,7 @@ module.exports = (gulp) => {
     "build-container",
   ))
 
-  gulp.task("ci-build", gulp.parallel(
+  gulp.task("build-ci", gulp.parallel(
     "add-version-files", "generate-docs", "pegjs", "tsc",
   ))
 

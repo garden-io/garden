@@ -17,7 +17,7 @@ version: 2.1
       - image: circleci/node:10
 
   # Attach's the current saved workspace
-  attach-node-workspace: &attach-node-workspace
+  attach-workspace: &attach-workspace
     attach_workspace:
           at: ./
 
@@ -44,7 +44,7 @@ version: 2.1
 commands:
   npm_install:
     description: |
-      Installs npm packages for root and garden-service and loads and saves the caches as appropriate
+      Installs npm packages for root, garden-service, and garden-dashboard and loads and saved the caches as appropriate
     steps:
       - restore_cache:
           keys:
@@ -52,6 +52,9 @@ commands:
       - restore_cache:
           keys:
           - garden-service-{{ checksum "garden-service/package-lock.json" }}
+      - restore_cache:
+          keys:
+          - garden-dashboard-{{ checksum "garden-dashboard/package-lock.json" }}
       # only install if node_modules wasn't cached
       - run: if [ ! -d "node_modules" ]; then npm ci; fi
       - save_cache:
@@ -62,6 +65,11 @@ commands:
       - save_cache:
           paths: [garden-service/node_modules]
           key: garden-service-{{ checksum "garden-service/package-lock.json" }}
+
+      - run: if [ ! -d "garden-dashboard/node_modules" ]; then cd garden-dashboard && npm ci; fi
+      - save_cache:
+          paths: [garden-dashboard/node_modules]
+          key: garden-dashboard-{{ checksum "garden-dashboard/package-lock.json" }}
 
   go_install_deps:
     description: |
@@ -100,6 +108,16 @@ commands:
           command: |
             # Just build it with the approprate tag
             docker build -t << parameters.context >> << parameters.context >>
+
+  # Depends on attach_workspace
+  include_dashboard:
+    description: Copies the dashboard build directory into the garden service static directory
+    steps:
+      - run:
+          name: Copy dashboard build to static dir
+          command: |
+            mkdir ./garden-service/static/garden-dashboard
+            cp -r ./garden-dashboard/build ./garden-service/static/garden-dashboard
 
   docker_release:
     description: |
@@ -144,7 +162,7 @@ commands:
 # Jobs section
 #
 jobs:
-  test-go:
+  test-cli:
     <<: *go-config
     steps:
       - checkout
@@ -158,7 +176,7 @@ jobs:
           path: /tmp/report.xml
       - store_test_results:
           path: /tmp/
-  build-go:
+  build-cli:
     <<: *go-config
     steps:
       - checkout
@@ -178,7 +196,7 @@ jobs:
       - store_artifacts:
           path: garden-cli/dist/
           destination: /downloads
-  build-sync:
+  build-sync-docker:
     <<: *node-config
     steps:
       - checkout
@@ -191,24 +209,25 @@ jobs:
       - docker_release:
           context: garden-sync
           image: $DOCKER_ORG/garden-sync
-  build-service:
+  build-service-docker:
     <<: *node-config
     steps:
       - checkout
-      # This is to copy the pre-build build output from test-node (this should be a different step)
-      - *attach-node-workspace
+      # This is to copy the pre-build build output from test-service (this should be a different step)
+      - *attach-workspace
+      - include_dashboard
       - docker_build:
           context: garden-service
   release-service-docker:
     <<: *node-config
     steps:
       - checkout
-      # This is to copy the pre-build build output from test-node (this should be a different step)
-      - *attach-node-workspace
+      # This is to copy the pre-build build output from test-service (this should be a different step)
+      - *attach-workspace
       - docker_release:
           context: garden-service
           image: $DOCKER_ORG/garden-service
-  build-node:
+  build-service:
     <<: *node-config
     steps:
       - checkout
@@ -218,8 +237,8 @@ jobs:
       - npm_install
       - run:
           name: build
-          command: npm run ci-build
-      # Save the built output to be used for the docker image
+          command: npm run build-service-ci
+      # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
           # taken to be the root directory of the workspace.
@@ -229,7 +248,7 @@ jobs:
             # Save the built output for future
             - garden-service/build/
             - garden-service/static/
-  test-node:
+  test-service:
     <<: *node-config
     steps:
       - checkout
@@ -237,7 +256,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - npm_install
-      - *attach-node-workspace
+      - *attach-workspace
       - run:
           name: Make sure generated docs are up-to-date
           command: npm run check-docs
@@ -247,15 +266,35 @@ jobs:
       - run:
           name: test
           command: |
-            npm run ci-test
+            npm run test-service-ci
           environment:
             CHOKIDAR_USEPOLLING: "1"
+  build-dashboard:
+    <<: *node-config
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - npm_install
+      - run:
+          name: Build dashboard
+          command: npm run build-dashboard-ci
+      # Save the built output to be used for the docker image and for the release steps
+      - persist_to_workspace:
+          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
+          # taken to be the root directory of the workspace.
+          root: ./
+          # Must be relative path from root
+          paths:
+            # Save the built output for future
+            - garden-dashboard/build/
   release-service-npm:
     <<: *node-config
     steps:
       - checkout
       - npm_install
-      - *attach-node-workspace
+      - *attach-workspace
+      - include_dashboard
       - run:
           name: Authenticate with registry
           command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
@@ -284,7 +323,8 @@ jobs:
       - checkout
       - npm_install
       - run: sudo apt-get update && sudo apt-get -y install rsync
-      - *attach-node-workspace
+      - *attach-workspace
+      - include_dashboard
       - run: sudo npm install -g pkg
       - run:
           command: ./garden-service/bin/build-pkg.sh
@@ -296,24 +336,28 @@ workflows:
   version: 2
   commit:
     jobs:
-      - build-node
-      - test-go:
+      - build-service
+      - test-cli:
           requires:
-            - build-node
-      - test-node
-      - build-sync
-      - build-service:
+            - build-service
+      - test-service
+      - build-dashboard
+      - build-sync-docker
+      - build-service-docker:
           requires:
-            - build-node
+            - build-service
+            - build-dashboard
   master:
     jobs:
-      # Duplicated here so we can refernce steps that depends on it
-      - build-node:
+      # Duplicated here so we can reference steps that depends on it
+      - build-service:
           <<: *only-master
-      - test-node:
+      - test-service:
           <<: *only-master
           requires:
-            - build-node
+            - build-service
+      - build-dashboard:
+          <<: *only-master
       - release-sync:
           <<: *only-master
           context: docker
@@ -321,23 +365,27 @@ workflows:
           <<: *only-master
           context: docker
           requires:
-            - build-node
+            - build-service
+            - build-dashboard
       - release-service-pkg:
           <<: *only-master
           requires:
-            - build-node
-      - build-go:
+            - build-service
+            - build-dashboard
+      - build-cli:
           <<: *only-master
 
   tags:
     jobs:
-      # Duplicated here so we can refernce steps that depends on it
-      - build-node:
+      # Duplicated here so we can reference steps that depends on it
+      - build-service:
           <<: *only-tags
-      - test-node:
+      - test-service:
           <<: *only-tags
           requires:
-          - build-node
+          - build-service
+      - build-dashboard:
+          <<: *only-tags
       - release-sync:
           <<: *only-tags
           context: docker
@@ -345,15 +393,18 @@ workflows:
           <<: *only-tags
           context: docker
           requires:
-            - build-node
-      - build-go:
+            - build-service
+            - build-dashboard
+      - build-cli:
           <<: *only-tags
       - release-service-pkg:
           <<: *only-tags
           requires:
-            - build-node
+            - build-service
+            - build-dashboard
       - release-service-npm:
           <<: *only-tags
           context: npm
           requires:
-            - build-node
+            - build-service
+            - build-dashboard

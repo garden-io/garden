@@ -6,10 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { resolve } from "path"
+import { ensureDir, copy } from "fs-extra"
 import { spawn } from "../support/support-util"
 
 module.exports = (gulp) => {
-  gulp.task("build", () => spawn("npm", ["run", "build"], __dirname))
+  // We copy the dashboard build directory to the garden-service static directory for the development build.
+  // For production builds the copy step is executed in CI.
+  // TODO: Remove this and use env vars to detect if Garden is running in dev mode and serve the build
+  // from the garden-dashboard directory.
+  gulp.task("copy-to-static", async () => {
+    const buildDir = resolve(__dirname, "build")
+    const destDir = resolve(__dirname, "..", "garden-service", "static", "garden-dashboard", "build")
+    await ensureDir(destDir)
+    await copy(buildDir, destDir)
+  })
+  gulp.task("build-ci", () => spawn("./node_modules/.bin/react-scripts", ["build"], __dirname))
+  gulp.task("build", gulp.series("build-ci", "copy-to-static"))
 }
 
 if (process.cwd() === __dirname) {

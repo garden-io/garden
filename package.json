@@ -56,8 +56,10 @@
     "release": "./bin/publish",
     "release-canary": "./bin/publish-canary",
     "test": "gulp test",
-    "ci-build": "gulp garden-service:ci-build",
-    "ci-test": "gulp garden-service:mocha"
+    "build-service-ci": "gulp garden-service:build-ci",
+    "test-service-ci": "gulp garden-service:mocha",
+    "build-dashboard": "gulp garden-dashboard:build",
+    "build-dashboard-ci": "gulp garden-dashboard:build-ci"
   },
   "husky": {
     "hooks": {
