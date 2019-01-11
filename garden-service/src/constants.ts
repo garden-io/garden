@@ -13,6 +13,7 @@ export const isPkg = !!(<any>process).pkg
 export const MODULE_CONFIG_FILENAME = "garden.yml"
 export const LOCAL_CONFIG_FILENAME = "local-config.yml"
 export const STATIC_DIR = resolve(isPkg ? process.execPath : __dirname, "..", "static")
+export const DASHBOARD_BUILD_DIR = join(STATIC_DIR, "garden-dashboard", "build")
 export const GARDEN_DIR_NAME = ".garden"
 export const LOGS_DIR = join(GARDEN_DIR_NAME, "logs")
 export const ERROR_LOG_FILENAME = "error.log"
