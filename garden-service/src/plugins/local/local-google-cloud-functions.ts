@@ -61,6 +61,7 @@ export const gardenPlugin = (): GardenPlugin => ({
                 name: "http",
                 protocol: <ServicePortProtocol>"TCP",
                 containerPort: emulatorPort,
+                servicePort: emulatorPort,
               },
             ],
             volumes: [],

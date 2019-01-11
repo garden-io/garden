@@ -21,6 +21,7 @@ const ports = [{
   name: "http",
   protocol: <ServicePortProtocol>"http",
   containerPort: 123,
+  servicePort: 123,
 }]
 
 const basicConfig: KubernetesConfig = {

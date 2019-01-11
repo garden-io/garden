@@ -643,15 +643,27 @@ module:
           # Required.
           name:
 
-          # The protocol of the service container port.
+          # The protocol of the port.
           #
           # Optional.
           protocol: TCP
 
-          # The port number on the service container.
+          # The port exposed on the container by the running procces. This will also be the
+          # default value for `servicePort`.
+          # `servicePort:80 -> containerPort:8080 -> process:8080`
+          #
+          # Example: "8080"
           #
           # Required.
           containerPort:
+
+          # The port exposed on the service. Defaults to `containerPort` if not specified.
+          # `servicePort:80 -> containerPort:8080 -> process:8080`
+          #
+          # Example: "80"
+          #
+          # Optional.
+          servicePort: <containerPort>
 
           hostPort:
 

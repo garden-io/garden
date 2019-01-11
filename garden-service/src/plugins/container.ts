@@ -60,6 +60,8 @@ export interface ServicePortSpec {
   name: string
   protocol: ServicePortProtocol
   containerPort: number
+  // Defaults to containerPort
+  servicePort: number
   hostPort?: number
   nodePort?: number | null
 }
@@ -164,7 +166,7 @@ const healthCheckSchema = Joi.object()
       .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
   }).xor("httpGet", "command", "tcpPort")
 
-const portSchema = Joi.object()
+export const portSchema = Joi.object()
   .keys({
     name: joiIdentifier()
       .required()
@@ -172,10 +174,21 @@ const portSchema = Joi.object()
     protocol: Joi.string()
       .allow("TCP", "UDP")
       .default(DEFAULT_PORT_PROTOCOL)
-      .description("The protocol of the service container port."),
+      .description("The protocol of the port."),
     containerPort: Joi.number()
       .required()
-      .description("The port number on the service container."),
+      .example("8080")
+      .description(deline`
+        The port exposed on the container by the running procces. This will also be the default value
+        for \`servicePort\`.
+
+        \`servicePort:80 -> containerPort:8080 -> process:8080\``),
+    servicePort: Joi.number().default((context) => context.containerPort, "<containerPort>")
+      .example("80")
+      .description(deline`The port exposed on the service.
+        Defaults to \`containerPort\` if not specified.
+
+        \`servicePort:80 -> containerPort:8080 -> process:8080\``),
     hostPort: Joi.number()
       .meta({ deprecated: true }),
     nodePort: Joi.number()

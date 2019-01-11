@@ -204,6 +204,7 @@ export async function createDeployment(
 
   for (const port of ports) {
     container.ports.push({
+      name: port.name,
       protocol: port.protocol,
       containerPort: port.containerPort,
     })

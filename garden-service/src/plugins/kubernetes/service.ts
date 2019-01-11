@@ -42,7 +42,7 @@ export async function createServices(service: ContainerService, namespace: strin
       name: portSpec.name,
       protocol: portSpec.protocol,
       targetPort: portSpec.containerPort,
-      port: portSpec.containerPort,
+      port: portSpec.servicePort,
     })
   }
 
