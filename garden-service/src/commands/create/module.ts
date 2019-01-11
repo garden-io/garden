@@ -24,7 +24,7 @@ import {
   dumpConfig,
 } from "./helpers"
 import { prompts } from "./prompts"
-import { validate, joiIdentifier } from "../../config/common"
+import { validate, joiUserIdentifier } from "../../config/common"
 import { NewModuleOpts } from "./project"
 import { configSchema } from "../../config/base"
 
@@ -77,7 +77,7 @@ export class CreateModuleCommand extends Command<Args, Opts> {
     const moduleRoot = join(garden.projectRoot, (args["module-dir"] || "").trim())
     const moduleName = validate(
       opts.name || basename(moduleRoot),
-      joiIdentifier(),
+      joiUserIdentifier(),
       { context: "module name" },
     )
 

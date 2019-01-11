@@ -32,7 +32,7 @@ import {
   ProjectTemplate,
 } from "./config-templates"
 import { getChildDirNames } from "../../util/util"
-import { validate, joiIdentifier } from "../../config/common"
+import { validate, joiUserIdentifier } from "../../config/common"
 import { configSchema } from "../../config/base"
 
 const flatten = (acc, val) => acc.concat(val)
@@ -108,7 +108,7 @@ export class CreateProjectCommand extends Command<Args, Opts> {
     const moduleParentDirs = await Bluebird.map(opts["module-dirs"] || [], (dir: string) => resolve(projectRoot, dir))
     const projectName = validate(
       opts.name || basename(projectRoot),
-      joiIdentifier(),
+      joiUserIdentifier(),
       { context: "project name" },
     )
 

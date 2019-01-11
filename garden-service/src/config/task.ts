@@ -8,10 +8,7 @@
 
 import deline = require("deline")
 import * as Joi from "joi"
-import {
-  joiArray,
-  joiIdentifier,
-} from "./common"
+import { joiArray, joiUserIdentifier } from "./common"
 
 export interface TaskSpec { }
 
@@ -24,7 +21,7 @@ export interface BaseTaskSpec extends TaskSpec {
 
 export const baseTaskSpecSchema = Joi.object()
   .keys({
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .required()
       .description("The name of the task."),
     description: Joi.string().optional()
@@ -58,7 +55,7 @@ export const taskConfigSchema = baseTaskSpecSchema
 export const taskSchema = Joi.object()
   .options({ presence: "required" })
   .keys({
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .description("The name of the task."),
     description: Joi.string().optional()
       .description("A description of the task."),

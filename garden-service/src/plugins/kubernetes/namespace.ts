@@ -47,9 +47,11 @@ export async function getNamespace(
 ): Promise<string> {
   let namespace
 
-  if (provider.config.namespace) {
+  if (provider.config.namespace !== undefined) {
     namespace = provider.config.namespace
   } else {
+    // Note: The local-kubernetes always defines a namespace name, so this logic only applies to the kubernetes provider
+    // TODO: Move this logic out to the kubernetes plugin init/validation
     const localConfig = await ctx.localConfigStore.get()
     const k8sConfig = localConfig.kubernetes || {}
     let { username, ["previous-usernames"]: previousUsernames } = k8sConfig
@@ -66,7 +68,7 @@ export async function getNamespace(
       )
     }
 
-    namespace = `garden--${username}--${ctx.projectName}`
+    namespace = `${username}--${ctx.projectName}`
   }
 
   if (suffix) {
@@ -89,9 +91,8 @@ export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesPro
   return getNamespace({ ctx, provider, suffix: "metadata" })
 }
 
-export async function getAllGardenNamespaces(api: KubeApi): Promise<string[]> {
+export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
   const allNamespaces = await api.core.listNamespace()
   return allNamespaces.body.items
     .map(n => n.metadata.name)
-    .filter(n => n.startsWith("garden--"))
 }

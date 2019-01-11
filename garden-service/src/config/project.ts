@@ -14,6 +14,7 @@ import {
   joiVariables,
   Primitive,
   joiRepositoryUrl,
+  joiUserIdentifier,
 } from "./common"
 
 export interface ProviderConfig {
@@ -74,7 +75,7 @@ export interface SourceConfig {
 
 export const projectSourceSchema = Joi.object()
   .keys({
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .required()
       .description("The name of the source to import"),
     repositoryUrl: joiRepositoryUrl()
@@ -131,7 +132,7 @@ export const projectSchema = Joi.object()
       .description(
         "Default environment settings. These are inherited (but can be overridden) by each configured environment.",
       ),
-    environments: joiArray(environmentConfigSchema.keys({ name: joiIdentifier().required() }))
+    environments: joiArray(environmentConfigSchema.keys({ name: joiUserIdentifier().required() }))
       .unique("name")
       .default(() => ({ ...defaultEnvironments }), safeDump(defaultEnvironments))
       .description("A list of environments to configure for the project.")

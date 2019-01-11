@@ -15,7 +15,6 @@ import { Module } from "../types/module"
 import {
   absolutePathRegex,
   joiEnvVars,
-  joiIdentifier,
   joiUserIdentifier,
   joiArray,
   validate,
@@ -168,7 +167,7 @@ const healthCheckSchema = Joi.object()
 
 export const portSchema = Joi.object()
   .keys({
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .required()
       .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
     protocol: Joi.string()

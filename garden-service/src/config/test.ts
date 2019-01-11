@@ -10,7 +10,7 @@ import deline = require("deline")
 import * as Joi from "joi"
 import {
   joiArray,
-  joiIdentifier,
+  joiUserIdentifier,
 } from "./common"
 
 export interface TestSpec { }
@@ -23,7 +23,7 @@ export interface BaseTestSpec extends TestSpec {
 
 export const baseTestSpecSchema = Joi.object()
   .keys({
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .required()
       .description("The name of the test."),
     dependencies: joiArray(Joi.string())
