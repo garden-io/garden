@@ -4,7 +4,7 @@
   <img src="docs/logo.png" width="66%">
 </p>
 
-Garden is an open-source development engine for Kubernetes, containers and serverless backends, designed to make it easy to test and develop multi-service systems.
+Garden is an open-source development engine for Kubernetes, containers and serverless backends designed to make it easy to test and develop multi-service systems.
 
 - **Focus on what matters:** Garden continuously builds, tests and deploys your changes into your own persistent development environment as you code. Easily define and continuously run tests in the background, and focus on writing code.
 
@@ -44,7 +44,7 @@ Overview:
 
 ## Examples
 
-There are many examples of how to use Garden in a myriad of different ways on the [examples](https://github.com/garden-io/garden/tree/master/examples) folder of our repository.
+There are many examples of how to use Garden in a myriad of different ways in the [examples](https://github.com/garden-io/garden/tree/master/examples) folder of our repository.
 
 For written guides based on some of these examples, check out the [examples section](https://docs.garden.io/examples) of our documentation.
 
