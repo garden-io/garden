@@ -58,8 +58,8 @@
     "test": "gulp test",
     "build-service-ci": "gulp garden-service:build-ci",
     "test-service-ci": "gulp garden-service:mocha",
-    "build-dashboard": "gulp garden-dashboard:build",
-    "build-dashboard-ci": "gulp garden-dashboard:build-ci"
+    "build-dashboard": "gulp dashboard:build",
+    "build-dashboard-ci": "gulp dashboard:build-ci"
   },
   "husky": {
     "hooks": {

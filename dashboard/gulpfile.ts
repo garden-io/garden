@@ -14,10 +14,10 @@ module.exports = (gulp) => {
   // We copy the dashboard build directory to the garden-service static directory for the development build.
   // For production builds the copy step is executed in CI.
   // TODO: Remove this and use env vars to detect if Garden is running in dev mode and serve the build
-  // from the garden-dashboard directory.
+  // from the dashboard directory.
   gulp.task("copy-to-static", async () => {
     const buildDir = resolve(__dirname, "build")
-    const destDir = resolve(__dirname, "..", "garden-service", "static", "garden-dashboard", "build")
+    const destDir = resolve(__dirname, "..", "garden-service", "static", "dashboard")
     await ensureDir(destDir)
     await copy(buildDir, destDir)
   })

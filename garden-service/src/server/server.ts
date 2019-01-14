@@ -16,7 +16,7 @@ import getPort = require("get-port")
 import { Garden } from "../garden"
 import { addWebsocketEndpoint } from "./websocket"
 import { prepareCommands, resolveRequest } from "./commands"
-import { DASHBOARD_BUILD_DIR } from "../constants"
+import { DASHBOARD_STATIC_DIR } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 
 export const DEFAULT_PORT = 9777
@@ -80,7 +80,7 @@ export async function createApp(garden: Garden, log: LogEntry) {
   app.use(http.allowedMethods())
 
   // TODO: Bundle the dashboard with the NPM / Zeit packages
-  app.use(serve(DASHBOARD_BUILD_DIR))
+  app.use(serve(DASHBOARD_STATIC_DIR))
 
   addWebsocketEndpoint(app, garden, log, commands)
 

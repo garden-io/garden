@@ -26,3 +26,4 @@ gulpfile.js
 *.map
 *.tgz
 build/
+garden-service/static/dashboard/

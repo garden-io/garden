@@ -16,10 +16,10 @@ import { isString, clone, extend } from "lodash"
 const gulp = require("gulp")
 const checkLicense = require("gulp-license-check")
 
-const tsSources = ["garden-service/src/**/*.ts", "garden-dashboard/src/**/*.ts*"]
+const tsSources = ["garden-service/src/**/*.ts", "dashboard/src/**/*.ts*"]
 const pegjsSources = "garden-service/src/*.pegjs"
 const licenseHeaderPath = "support/license-header.txt"
-const modulePaths = ["garden-cli", "garden-service", "garden-sync", "garden-dashboard"]
+const modulePaths = ["garden-cli", "garden-service", "garden-sync", "dashboard"]
 const tmpDir = resolve(__dirname, "tmp")
 
 process.env.FORCE_COLOR = "true"
@@ -48,7 +48,7 @@ gulp.task("build", gulp.parallel(
   "garden-cli:build",
   "garden-service:build",
   "garden-sync:build-container",
-  "garden-dashboard:build",
+  "dashboard:build",
 ))
 gulp.task("generate-docs", gulp.parallel("garden-service:generate-docs"))
 gulp.task("test", gulp.parallel("garden-service:test"))
