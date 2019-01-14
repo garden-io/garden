@@ -9,11 +9,7 @@
 import * as Joi from "joi"
 import dedent = require("dedent")
 
-import {
-  joiArray,
-  joiIdentifier,
-  validate,
-} from "../../config/common"
+import { joiArray, joiIdentifier, validate } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
 import { getExecTaskStatus } from "../exec"
@@ -22,7 +18,6 @@ import {
   execInService,
   getServiceOutputs,
   getTestResult,
-  hotReload,
   testModule,
   runModule,
   runService,
@@ -34,6 +29,7 @@ import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container"
 import { getRemoteEnvironmentStatus, prepareRemoteEnvironment, cleanupEnvironment } from "./init"
 import { getServiceLogs } from "./logs"
+import { hotReload } from "./hot-reload"
 
 export const name = "kubernetes"
 

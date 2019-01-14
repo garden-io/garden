@@ -16,7 +16,7 @@ import moment = require("moment")
 import { join } from "path"
 
 import { BaseTask } from "../tasks/base"
-import { hotReloadAndLog, validateHotReloadOpt } from "./helpers"
+import { validateHotReloadOpt } from "./helpers"
 import { getDependantTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
 import {
   Command,
@@ -29,6 +29,7 @@ import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
+import { HotReloadTask } from "../tasks/hot-reload"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -96,21 +97,23 @@ export class DevCommand extends Command<Args, Opts> {
 
     const tasksForModule = (watch: boolean) => {
       return async (module: Module) => {
+        const tasks: BaseTask[] = []
 
         const hotReload = hotReloadModuleNames.has(module.name)
 
         if (watch && hotReload) {
-          await hotReloadAndLog(garden, log, module)
+          tasks.push(new HotReloadTask({ garden, log, module, force: true }))
         }
 
         const testModules: Module[] = watch
           ? (await dependencyGraph.withDependantModules([module]))
           : [module]
 
-        const testTasks: BaseTask[] = flatten(await Bluebird.map(
-          testModules, m => getTestTasks({ garden, log, module: m })))
+        tasks.push(...flatten(
+          await Bluebird.map(testModules, m => getTestTasks({ garden, log, module: m })),
+        ))
 
-        return testTasks.concat(await getDependantTasksForModule({
+        tasks.push(...await getDependantTasksForModule({
           garden,
           log,
           module,
@@ -120,6 +123,8 @@ export class DevCommand extends Command<Args, Opts> {
           forceBuild: false,
           includeDependants: watch,
         }))
+
+        return tasks
       }
     }
 
