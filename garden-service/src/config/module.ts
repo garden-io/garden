@@ -15,6 +15,7 @@ import {
   joiVariables,
   PrimitiveMap,
   joiRepositoryUrl,
+  joiUserIdentifier,
 } from "./common"
 import { TestConfig, TestSpec } from "./test"
 import { TaskConfig, TaskSpec } from "./task"
@@ -77,7 +78,7 @@ export const baseModuleSpecSchema = Joi.object()
       .required()
       .description("The type of this module.")
       .example("container"),
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .required()
       .description("The name of this module.")
       .example("my-sweet-module"),

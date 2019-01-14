@@ -8,7 +8,7 @@
 
 import deline = require("deline")
 import * as Joi from "joi"
-import { PrimitiveMap, joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray } from "./common"
+import { PrimitiveMap, joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray, joiUserIdentifier } from "./common"
 
 export interface ServiceSpec { }
 
@@ -22,7 +22,7 @@ export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
 
 export const baseServiceSchema = Joi.object()
   .keys({
-    name: joiIdentifier().required(),
+    name: joiUserIdentifier().required(),
     dependencies: joiArray(joiIdentifier())
       .description(deline`
         The names of any services that this service depends on at runtime, and the names of any

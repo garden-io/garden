@@ -19,12 +19,12 @@ import {
   PluginActionParamsBase,
 } from "../../types/plugin/params"
 import { sleep } from "../../util/util"
-import { joiIdentifier } from "../../config/common"
+import { joiUserIdentifier } from "../../config/common"
 import { KubeApi } from "./api"
 import {
   getAppNamespace,
   getMetadataNamespace,
-  getAllGardenNamespaces,
+  getAllNamespaces,
 } from "./namespace"
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { name as providerName } from "./kubernetes"
@@ -179,7 +179,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
     await api.core.deleteNamespace(namespace, <any>{})
   } catch (err) {
     entry.setError(err.message)
-    const availableNamespaces = await getAllGardenNamespaces(api)
+    const availableNamespaces = await getAllNamespaces(api)
     throw new NotFoundError(err, { namespace, availableNamespaces })
   }
 
@@ -190,7 +190,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   while (true) {
     await sleep(2000)
 
-    const nsNames = await getAllGardenNamespaces(api)
+    const nsNames = await getAllNamespaces(api)
     if (!nsNames.includes(namespace)) {
       entry.setSuccess()
       break
@@ -249,7 +249,7 @@ async function login({ ctx, log }: PluginActionParamsBase) {
       message: "Enter username",
       validate: input => {
         try {
-          Joi.attempt(input.trim(), joiIdentifier())
+          Joi.attempt(input.trim(), joiUserIdentifier())
         } catch (err) {
           return `Invalid username, please try again\nError: ${err.message}`
         }

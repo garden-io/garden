@@ -8,7 +8,7 @@
 
 import * as Joi from "joi"
 import { getEnvVarName } from "../util/util"
-import { PrimitiveMap, joiIdentifier, joiEnvVars, joiIdentifierMap, joiPrimitive } from "../config/common"
+import { PrimitiveMap, joiEnvVars, joiIdentifierMap, joiPrimitive, joiUserIdentifier } from "../config/common"
 import { Module, getModuleKey } from "./module"
 import { serviceOutputsSchema, ServiceConfig, serviceConfigSchema } from "../config/service"
 import { validate } from "../config/common"
@@ -29,7 +29,7 @@ export interface Service<M extends Module = Module> {
 export const serviceSchema = Joi.object()
   .options({ presence: "required" })
   .keys({
-    name: joiIdentifier()
+    name: joiUserIdentifier()
       .description("The name of the service."),
     module: Joi.object().unknown(true),   // This causes a stack overflow: Joi.lazy(() => moduleSchema),
     config: serviceConfigSchema,

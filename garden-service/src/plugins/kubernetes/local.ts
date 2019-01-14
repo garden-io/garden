@@ -58,6 +58,12 @@ export interface LocalKubernetesConfig extends KubernetesBaseConfig {
 
 const configSchema = kubernetesConfigBase
   .keys({
+    namespace: Joi.string()
+      .default(undefined, "<project name>")
+      .description(
+        "Specify which namespace to deploy services to (defaults to the project name). " +
+        "Note that the framework generates other namespaces as well with this name as a prefix.",
+      ),
     ingressHostname: Joi.string()
       .description("The hostname of the cluster's ingress controller."),
     _system: Joi.any().meta({ internal: true }),
@@ -129,7 +135,6 @@ export async function gardenPlugin({ projectName, config, log }): Promise<Garden
     name: config.name,
     context,
     defaultHostname,
-    defaultUsername: "default",
     deploymentRegistry: {
       hostname: "foo.garden",   // this is not used by this plugin, but required by the base plugin
       namespace: "_",
@@ -139,6 +144,7 @@ export async function gardenPlugin({ projectName, config, log }): Promise<Garden
     ingressHttpPort: 80,
     ingressHttpsPort: 443,
     ingressClass: "nginx",
+    namespace: config.namespace || projectName,
     tlsCertificates: config.tlsCertificates,
     _system: config._system,
     _systemServices: systemServices,

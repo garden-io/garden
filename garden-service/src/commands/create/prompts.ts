@@ -10,7 +10,7 @@ import * as inquirer from "inquirer"
 import * as Joi from "joi"
 import chalk from "chalk"
 
-import { joiIdentifier } from "../../config/common"
+import { joiUserIdentifier } from "../../config/common"
 import { ModuleType } from "./config-templates"
 
 export interface ModuleTypeChoice extends inquirer.objects.ChoiceOption {
@@ -88,7 +88,7 @@ async function addModule(addModuleMessage: string): Promise<ModuleTypeAndName> {
       type: "input",
       validate: input => {
         try {
-          Joi.attempt(input.trim(), joiIdentifier())
+          Joi.attempt(input.trim(), joiUserIdentifier())
         } catch (err) {
           return `Invalid module name, please try again\nError: ${err.message}`
         }

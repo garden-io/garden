@@ -12,7 +12,7 @@ import { resolve } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
-import { joiIdentifier, Primitive, validate, joiArray } from "./config/common"
+import { Primitive, validate, joiArray, joiUserIdentifier } from "./config/common"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
 import { GARDEN_DIR_NAME, LOCAL_CONFIG_FILENAME } from "./constants"
@@ -175,14 +175,14 @@ export interface LocalConfig {
 
 const kubernetesLocalConfigSchema = Joi.object()
   .keys({
-    "username": joiIdentifier().allow("").optional(),
-    "previous-usernames": Joi.array().items(joiIdentifier()).optional(),
+    "username": joiUserIdentifier().allow("").optional(),
+    "previous-usernames": Joi.array().items(joiUserIdentifier()).optional(),
   })
   .meta({ internal: true })
 
 const linkedSourceSchema = Joi.object()
   .keys({
-    name: joiIdentifier(),
+    name: joiUserIdentifier(),
     path: Joi.string(),
   })
   .meta({ internal: true })
