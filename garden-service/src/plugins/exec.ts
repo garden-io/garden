@@ -12,7 +12,7 @@ import { join } from "path"
 import {
   joiArray,
   joiEnvVars,
-  validate,
+  validateWithPath,
 } from "../config/common"
 import {
   GardenPlugin,
@@ -84,9 +84,16 @@ export const execModuleSpecSchema = Joi.object()
 export interface ExecModule extends Module<ExecModuleSpec, BaseServiceSpec, ExecTestSpec> { }
 
 export async function parseExecModule(
-  { moduleConfig }: ValidateModuleParams<ExecModule>,
+  { ctx, moduleConfig }: ValidateModuleParams<ExecModule>,
 ): Promise<ValidateModuleResult> {
-  moduleConfig.spec = validate(moduleConfig.spec, execModuleSpecSchema, { context: `module ${moduleConfig.name}` })
+
+  moduleConfig.spec = validateWithPath({
+    config: moduleConfig.spec,
+    schema: execModuleSpecSchema,
+    name: moduleConfig.name,
+    path: moduleConfig.path,
+    projectRoot: ctx.projectRoot,
+  })
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
     name: t.name,

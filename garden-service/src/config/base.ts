@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, relative, basename, sep, resolve } from "path"
+import { join, basename, sep, resolve } from "path"
 import {
   findByName,
   getNames,
 } from "../util/util"
 import { baseModuleSpecSchema, ModuleConfig } from "./module"
-import { validate } from "./common"
+import { validateWithPath } from "./common"
 import { ConfigurationError } from "../exceptions"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
@@ -54,7 +54,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   let fileData
   let spec: any
 
-  // loadConfig returns null if config file is not found in the given directory
+  // loadConfig returns undefined if config file is not found in the given directory
   try {
     fileData = await readFile(absPath)
   } catch (err) {
@@ -81,7 +81,13 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     }
   }
 
-  const parsed = <GardenConfig>validate(spec, configSchema, { context: relative(projectRoot, absPath) })
+  const parsed = <GardenConfig>validateWithPath({
+    config: spec,
+    schema: configSchema,
+    configType: "config",
+    path: absPath,
+    projectRoot,
+  })
 
   const dirname = basename(path)
   const project = parsed.project

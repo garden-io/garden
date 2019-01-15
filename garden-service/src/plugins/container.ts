@@ -17,9 +17,9 @@ import {
   joiEnvVars,
   joiUserIdentifier,
   joiArray,
-  validate,
   PrimitiveMap,
   joiPrimitive,
+  validateWithPath,
 } from "../config/common"
 import { pathExists } from "fs-extra"
 import { join } from "path"
@@ -479,8 +479,15 @@ export const helpers = {
 
 }
 
-export async function validateContainerModule({ moduleConfig }: ValidateModuleParams<ContainerModule>) {
-  moduleConfig.spec = validate(moduleConfig.spec, containerModuleSpecSchema, { context: `module ${moduleConfig.name}` })
+export async function validateContainerModule({ ctx, moduleConfig }: ValidateModuleParams<ContainerModule>) {
+
+  moduleConfig.spec = validateWithPath({
+    config: moduleConfig.spec,
+    schema: containerModuleSpecSchema,
+    name: moduleConfig.name,
+    path: moduleConfig.path,
+    projectRoot: ctx.projectRoot,
+  })
 
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => {

@@ -19,7 +19,7 @@ import {
   joiIdentifier,
   joiPrimitive,
   Primitive,
-  validate,
+  validateWithPath,
 } from "../../config/common"
 import { Module } from "../../types/module"
 import { ModuleAndRuntimeActions } from "../../types/plugin/plugin"
@@ -111,12 +111,15 @@ const helmStatusCodeMap: { [code: number]: ServiceState } = {
 }
 
 export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
-  async validate({ moduleConfig }: ValidateModuleParams): Promise<ValidateModuleResult> {
-    moduleConfig.spec = validate(
-      moduleConfig.spec,
-      helmModuleSpecSchema,
-      { context: `helm module ${moduleConfig.name}` },
-    )
+  async validate({ ctx, moduleConfig }: ValidateModuleParams): Promise<ValidateModuleResult> {
+
+    moduleConfig.spec = validateWithPath({
+      config: moduleConfig.spec,
+      schema: helmModuleSpecSchema,
+      name: moduleConfig.name,
+      path: moduleConfig.path,
+      projectRoot: ctx.projectRoot,
+    })
 
     const { chart, version, parameters, dependencies } = moduleConfig.spec
 
