@@ -93,7 +93,11 @@ export class GetTasksCommand extends Command<GetTasksArguments> {
       })
     }
 
-    log.info(logStr.trim())
+    if (taskListing.length > 0) {
+      log.info(logStr.trim())
+    } else {
+      log.info(`No tasks defined for project ${garden.projectName}`)
+    }
 
     return { result: taskListing }
 
