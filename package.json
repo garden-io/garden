@@ -67,8 +67,5 @@
       "pre-push": "npm run check-package-lock && npm run lint && npm test && npm run integ"
     }
   },
-  "snyk": true,
-  "dependencies": {
-    "indent-string": "^3.2.0"
-  }
+  "snyk": true
 }

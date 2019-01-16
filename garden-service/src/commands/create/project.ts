@@ -10,7 +10,7 @@ import { resolve, join, basename } from "path"
 import { ensureDir } from "fs-extra"
 import Bluebird = require("bluebird")
 import dedent = require("dedent")
-import terminalLink = require("terminal-link")
+import terminalLink from "terminal-link"
 
 import {
   Command,
