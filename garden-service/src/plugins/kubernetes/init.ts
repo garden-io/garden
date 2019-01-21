@@ -27,7 +27,7 @@ import {
   getAllNamespaces,
 } from "./namespace"
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
-import { name as providerName } from "./kubernetes"
+import { name as providerName, KubernetesProvider } from "./kubernetes"
 import { isSystemGarden, getSystemGarden } from "./system"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
@@ -99,12 +99,9 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
     const sysCtx = await sysGarden.getPluginContext(ctx.provider.name)
     const sysStatus = await sysGarden.actions.getStatus({ log })
 
-    const serviceStatuses = ctx.provider.config._systemServices
-      ? pick(sysStatus.services, ctx.provider.config._systemServices)
-      : sysStatus.services
+    const serviceStatuses = pick(sysStatus.services, getSystemServices(ctx.provider))
 
     const servicesReady = every(values(serviceStatuses).map(s => s.state === "ready"))
-
     const systemReady = sysStatus.providers[ctx.provider.config.name].ready && servicesReady
 
     if (!systemReady) {
@@ -329,11 +326,13 @@ async function configureSystemServices(
     log,
   })
 
-  // only deploy services if configured to do so (minikube bundles the required services as addons)
-  if (!provider.config._systemServices || provider.config._systemServices.length > 0) {
+  // only deploy services if configured to do so (e.g. minikube bundles some required services as addons)
+  const systemServices = getSystemServices(ctx.provider)
+
+  if (systemServices.length > 0) {
     const results = await sysGarden.actions.deployServices({
       log,
-      serviceNames: provider.config._systemServices,
+      serviceNames: systemServices,
       force,
     })
 
@@ -345,4 +344,14 @@ async function configureSystemServices(
       })
     }
   }
+}
+
+function getSystemServices(provider: KubernetesProvider) {
+  const names = ["kubernetes-dashboard"]
+
+  if (provider.config.setupIngressController === "nginx") {
+    names.push("ingress-controller", "default-backend")
+  }
+
+  return names
 }

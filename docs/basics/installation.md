@@ -143,12 +143,6 @@ is set as the current context, Docker for Mac is preferred by default.
 
 (If you're not yet familiar with Garden configuration files, see: [Configuration files](../using-garden/configuration-files.md))
 
-### Hostname
-
-Garden needs the Kubernetes instance to have a hostname. By default Garden will use `<minikube-ip>.nip.io`. If you'd
-like to use a custom hostname, you can specify it via the `ingressHostname` in the `local-kubernetes` provider config
-(see above).
-
 ### Anything else?
 
 Once the above is set up, the `local-kubernetes` plugin will automatically configure everything else Garden needs to
