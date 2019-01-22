@@ -1,0 +1,30 @@
+{{#each keys}}
+### `{{{title}}}`
+{{#if breadCrumbs}}
+{{{breadCrumbs}}}
+{{/if}}
+
+{{{description}}}
+
+{{#if allowedValues}}
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `{{{formattedType}}}` | {{#if required}}Yes{{else}}No{{/if}} | {{{allowedValues}}}
+{{else}}
+| Type | Required |
+| ---- | -------- |
+| `{{{formattedType}}}` | {{#if required}}Yes{{else}}No{{/if}}
+{{/if}}
+{{#if formattedExample}}
+
+Example:
+```yaml
+{{{formattedExample}}}
+```
+{{/if}}
+{{/each}}
+
+## Complete schema
+```yaml
+{{{yaml}}}
+```

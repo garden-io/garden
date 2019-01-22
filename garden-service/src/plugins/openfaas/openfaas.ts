@@ -66,7 +66,7 @@ export interface OpenFaasModuleSpec extends ExecModuleSpec {
   lang: string
 }
 
-export const openfaasModuleSpecSchame = execModuleSpecSchema
+export const openfaasModuleSpecSchema = execModuleSpecSchema
   .keys({
     dependencies: joiArray(Joi.string())
       .description("The names of services/functions that this function depends on at runtime."),
@@ -90,7 +90,7 @@ export interface OpenFaasConfig extends Provider {
   hostname: string
 }
 
-const configSchema = providerConfigBaseSchema
+export const configSchema = providerConfigBaseSchema
   .keys({
     hostname: Joi.string()
       .hostname()
@@ -164,7 +164,7 @@ export function gardenPlugin(): GardenPlugin {
         async configure({ moduleConfig }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
           moduleConfig.spec = validate(
             moduleConfig.spec,
-            openfaasModuleSpecSchame,
+            openfaasModuleSpecSchema,
             { context: `module ${moduleConfig.name}` },
           )
 

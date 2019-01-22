@@ -114,7 +114,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema
       .description("One or more certificates to use for ingress."),
   })
 
-const configSchema = kubernetesConfigBase
+export const configSchema = kubernetesConfigBase
   .keys({
     context: k8sContextSchema
       .required(),

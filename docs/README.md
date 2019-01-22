@@ -16,6 +16,8 @@
   * [TLS project](./examples/tls-project.md)
   * [Remote sources project](./examples/remote-sources.md)
 * [Reference](./reference/README.md)
+  * [Module Types](./reference/module-types/README.md)
+  * [Providers](./reference/providers/README.md)
   * [Glossary](./reference/glossary.md)
   * [Commands Reference](./reference/commands.md)
   * [Config Files Reference](./reference/config.md)

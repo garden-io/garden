@@ -7,16 +7,21 @@
  */
 
 import { resolve } from "path"
-import { generateCommandReferenceDocs } from "./commands"
-import { generateConfigReferenceDocs } from "./config"
+import { writeCommandReferenceDocs } from "./commands"
+import { writeConfigReferenceDocs } from "./config"
 import { argv } from "process"
-import { generateTemplateStringReferenceDocs } from "./template-strings"
+import { writeTemplateStringReferenceDocs } from "./template-strings"
 
 export function generateDocs(targetDir: string) {
+  const write = false
   const docsRoot = resolve(process.cwd(), targetDir)
-  generateCommandReferenceDocs(docsRoot)
-  generateConfigReferenceDocs(docsRoot)
-  generateTemplateStringReferenceDocs(docsRoot)
+  if (write) {
+    writeCommandReferenceDocs(docsRoot)
+    writeConfigReferenceDocs(docsRoot)
+    writeTemplateStringReferenceDocs(docsRoot)
+  } else {
+    writeConfigReferenceDocs(docsRoot)
+  }
 }
 
 if (require.main === module) {

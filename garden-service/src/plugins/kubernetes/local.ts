@@ -54,7 +54,7 @@ export interface LocalKubernetesConfig extends KubernetesBaseConfig {
   _system?: Symbol
 }
 
-const configSchema = kubernetesConfigBase
+export const configSchema = kubernetesConfigBase
   .keys({
     namespace: Joi.string()
       .default(undefined, "<project name>")
