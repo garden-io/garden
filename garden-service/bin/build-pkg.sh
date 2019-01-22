@@ -20,7 +20,7 @@ rsync -r --exclude=.garden --exclude=.git static tmp/dist
 echo "-> Building executables..."
 cd dist
 # note: using the npm package is still preferred on macOS, because it needs the native fsevents library
-pkg --target node10-linux-x64,node10-win-x64 ../tmp/dist
+pkg --target node10-macos-x64,node10-linux-x64,node10-win-x64 ../tmp/dist
 
 echo "-> Preparing packages..."
 
@@ -33,6 +33,18 @@ echo "    -> tar"
 tar -czf garden-${version}-linux-amd64.tar.gz linux-amd64
 echo "    -> cleaning up tmp files"
 rm -rf linux-amd64
+
+echo "  -> macos-amd64"
+rm -rf macos-amd64
+mkdir macos-amd64
+mv garden-cli-macos macos-amd64/garden
+cp -r ../tmp/dist/static macos-amd64
+# need to include the .node binary for fsevents
+cp ../lib/fsevents/node-v64-darwin-x64/fse.node macos-amd64
+echo "    -> tar"
+tar -czf garden-${version}-macos-amd64.tar.gz macos-amd64
+echo "    -> cleaning up tmp files"
+rm -rf macos-amd64
 
 echo "  -> windows-amd64"
 rm -rf windows-amd64

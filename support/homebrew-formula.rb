@@ -1,20 +1,19 @@
-require "language/node"
-
 class GardenCli < Formula
   desc "{{description}}"
   homepage "{{{homepage}}}"
   url "{{{tarballUrl}}}"
+  version "{{version}}"
   sha256 "{{sha256}}"
 
-  depends_on "node"
   depends_on "rsync"
 
   def install
-    system "npm", "install", *Language::Node.std_npm_install_args(libexec)
-    bin.install_symlink Dir["#{libexec}/bin/*"]
+    libexec.install "garden", "fse.node", "static"
+    bin.install_symlink libexec/"garden"
   end
 
   test do
-    # add a meaningful test here
+    # just make sure the command works
+    system bin/"garden", "--help"
   end
 end
