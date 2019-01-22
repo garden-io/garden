@@ -17,7 +17,7 @@ import { coreCommands } from "../commands/commands"
 import { flatten } from "lodash"
 import { describeParameters } from "../commands/base"
 
-export function generateCommandReferenceDocs(docsRoot: string) {
+export function writeCommandReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "commands.md")
 

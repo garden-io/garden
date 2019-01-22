@@ -42,6 +42,10 @@ export const joiIdentifier = () => Joi.string()
     "and cannot end with a dash) and must not be longer than 63 characters.",
   )
 
+export const joiProviderName = (name: string) => joiIdentifier().required()
+  .description("The name of the provider plugin to use.")
+  .example(name)
+
 export const joiStringMap = (valueSchema: JoiObject) => Joi
   .object().pattern(/.+/, valueSchema)
 

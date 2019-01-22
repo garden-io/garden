@@ -13,7 +13,7 @@ import { STATIC_DIR } from "../../constants"
 import { PluginError, ConfigurationError } from "../../exceptions"
 import { Garden } from "../../garden"
 import { PluginContext } from "../../plugin-context"
-import { joiArray, validate, PrimitiveMap } from "../../config/common"
+import { joiArray, validate, PrimitiveMap, joiProviderName } from "../../config/common"
 import { Module } from "../../types/module"
 import { ConfigureModuleResult } from "../../types/plugin/outputs"
 import {
@@ -66,7 +66,7 @@ export interface OpenFaasModuleSpec extends ExecModuleSpec {
   lang: string
 }
 
-export const openfaasModuleSpecSchame = execModuleSpecSchema
+export const openfaasModuleSpecSchema = execModuleSpecSchema
   .keys({
     dependencies: joiArray(Joi.string())
       .description("The names of services/functions that this function depends on at runtime."),
@@ -90,8 +90,9 @@ export interface OpenFaasConfig extends Provider {
   hostname: string
 }
 
-const configSchema = providerConfigBaseSchema
+export const configSchema = providerConfigBaseSchema
   .keys({
+    name: joiProviderName("openfaas"),
     hostname: Joi.string()
       .hostname()
       .description(dedent`
@@ -164,7 +165,7 @@ export function gardenPlugin(): GardenPlugin {
         async configure({ moduleConfig }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
           moduleConfig.spec = validate(
             moduleConfig.spec,
-            openfaasModuleSpecSchame,
+            openfaasModuleSpecSchema,
             { context: `module ${moduleConfig.name}` },
           )
 

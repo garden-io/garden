@@ -7,17 +7,19 @@
  */
 
 import { resolve } from "path"
-import { renderSchemaDescription } from "./config"
+import { renderSchemaDescriptionYaml, normalizeDescriptions } from "./config"
 import { ProjectConfigContext, ModuleConfigContext } from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
 import * as handlebars from "handlebars"
 
-export function generateTemplateStringReferenceDocs(docsRoot: string) {
+export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "template-strings.md")
 
-  const projectContext = renderSchemaDescription(ProjectConfigContext.getSchema().describe(), { required: false })
-  const moduleContext = renderSchemaDescription(ModuleConfigContext.getSchema().describe(), { required: false })
+  const projectDescriptions = normalizeDescriptions(ProjectConfigContext.getSchema().describe())
+  const projectContext = renderSchemaDescriptionYaml(projectDescriptions, { showRequired: false })
+  const moduleDescriptions = normalizeDescriptions(ModuleConfigContext.getSchema().describe())
+  const moduleContext = renderSchemaDescriptionYaml(moduleDescriptions, { showRequired: false })
 
   const templatePath = resolve(__dirname, "templates", "template-strings.hbs")
   const template = handlebars.compile(readFileSync(templatePath).toString())
@@ -27,5 +29,5 @@ export function generateTemplateStringReferenceDocs(docsRoot: string) {
 }
 
 if (require.main === module) {
-  generateTemplateStringReferenceDocs(resolve(__dirname, "..", "..", "..", "docs"))
+  writeTemplateStringReferenceDocs(resolve(__dirname, "..", "..", "..", "docs"))
 }

@@ -10,74 +10,174 @@ import {
   readFileSync,
   writeFileSync,
 } from "fs"
-import * as handlebars from "handlebars"
 import { safeDump } from "js-yaml"
 import * as linewrap from "linewrap"
 import * as Joi from "joi"
 import { resolve } from "path"
-import { get, padEnd } from "lodash"
+import {
+  get,
+  flatten,
+  padEnd,
+} from "lodash"
 import { containerModuleSpecSchema } from "../plugins/container/config"
 import { execModuleSpecSchema } from "../plugins/exec"
-import { configSchema } from "../config/base"
+import { projectSchema } from "../config/project"
 import { baseModuleSpecSchema } from "../config/module"
+import handlebars = require("handlebars")
+import { configSchema as localK8sConfigSchema } from "../plugins/kubernetes/local"
+import { configSchema as k8sConfigSchema } from "../plugins/kubernetes/kubernetes"
+import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/openfaas"
+import { openfaasModuleSpecSchema } from "../plugins/openfaas/openfaas"
 import { helmModuleSpecSchema } from "../plugins/kubernetes/helm/config"
+import { joiArray } from "../config/common"
+
+const baseProjectSchema = Joi.object().keys({
+  project: projectSchema,
+})
+const baseModuleSchema = Joi.object().keys({
+  module: baseModuleSpecSchema,
+})
+
+const populateModuleSchema = (schema: Joi.Schema) => Joi.object().keys({ module: schema })
+const populateProviderSchema = (schema: Joi.Schema) => (
+  Joi.object({
+    project: Joi.object({
+      environments: joiArray(Joi.object().keys({
+        providers: joiArray(schema),
+      })),
+    }),
+  })
+)
 
 const maxWidth = 100
-const builtInModuleTypes = [
-  { name: "exec", schema: execModuleSpecSchema },
-  { name: "container", schema: containerModuleSpecSchema },
-  { name: "helm", schema: helmModuleSpecSchema },
+const moduleTypes = [
+  { name: "exec", schema: populateModuleSchema(execModuleSpecSchema) },
+  { name: "container", schema: populateModuleSchema(containerModuleSpecSchema) },
+  { name: "openfaas", schema: populateModuleSchema(openfaasModuleSpecSchema) },
+  { name: "helm", schema: populateModuleSchema(helmModuleSpecSchema) },
+]
+
+const providers = [
+  { name: "local-kubernetes", schema: populateProviderSchema(localK8sConfigSchema) },
+  { name: "kubernetes", schema: populateProviderSchema(k8sConfigSchema) },
+  { name: "openfaas", schema: populateProviderSchema(openfaasConfigSchema) },
 ]
 
 interface RenderOpts {
   level?: number
-  required?: boolean
+  showRequired?: boolean
+  showComment?: boolean
+  showEllipsisBetweenKeys?: boolean
+  useExampleForValue?: boolean
 }
 
-function renderCommentDescription(description: Joi.Description, width: number, { required }: RenderOpts) {
-  const output: string[] = []
-  const meta: string[] = []
+interface Description extends Joi.Description {
+  name: string
+  level: number
+  parent?: NormalizedDescription
+}
 
-  if (description.description) {
-    output.push(description.description)
+export interface NormalizedDescription extends Description {
+  required: boolean
+  defaultValue?: string
+  hasChildren: boolean
+  allowedValues?: string
+  formattedExample?: string
+  formattedName: string
+  formattedType: string
+}
+
+// Maps a Joi schema description into an array of descriptions and normalizes each entry.
+// Filters out internal descriptions.
+export function normalizeDescriptions(joiDescription: Joi.Description): NormalizedDescription[] {
+  const normalize = (
+    joiDesc: Joi.Description,
+    {
+      level = 0,
+      name,
+      parent,
+    }: { level?: number, name?: string, parent?: NormalizedDescription } = {},
+  ) => {
+    let description: NormalizedDescription | undefined
+    let childDescriptions: NormalizedDescription[] = []
+
+    // Skip descriptions without names since they merely point to the keys we're interested in.
+    // This means that we implicitly skip the first key of the schema.
+    if (name) {
+      description = normalizeKeyDescription({ ...joiDesc, name, level, parent })
+    }
+
+    if (joiDesc.type === "object") {
+      const children = Object.entries(joiDesc.children || {}) || []
+      const nextLevel = name ? level + 1 : level
+      const nextParent = name ? description : parent
+      childDescriptions = flatten(children.map(([childName, childDescription]) => (
+        normalize(childDescription, { level: nextLevel, parent: nextParent, name: childName })
+      )))
+    } else if (joiDesc.type === "array") {
+      // We only use the first array item
+      const item = joiDesc.items[0]
+      childDescriptions = item ? normalize(item, { level: level + 2, parent: description }) : []
+    }
+
+    if (!description) {
+      return childDescriptions
+    }
+    return [description, ...childDescriptions]
   }
 
+  return normalize(joiDescription).filter(key => !get(key, "meta[0].internal"))
+}
+
+// Normalizes the key description
+function normalizeKeyDescription(description: Description): NormalizedDescription {
+  const defaultValue = getDefaultValue(description)
+
+  let allowedValues: string | undefined = undefined
+  const allowOnly = get(description, "flags.allowOnly") === true
+  if (allowOnly) {
+    allowedValues = description.valids!.map(v => JSON.stringify(v)).join(", ")
+  }
+
+  const presenceRequired = get(description, "flags.presence") === "required"
+  const required = presenceRequired || allowOnly
+
+  let hasChildren: boolean = false
+  let arrayType: string | undefined
+  const { type } = description
+  const children = type === "object" && Object.entries(description.children || {})
+  const items = type === "array" && description.items
+  if (children && children.length > 0) {
+    hasChildren = true
+  } else if (items && items.length > 0) {
+    // We don't consider an array of primitives as children
+    arrayType = items[0].type
+    hasChildren = arrayType === "array" || arrayType === "object"
+  }
+
+  let formattedExample: string | undefined
   if (description.examples && description.examples.length) {
     const example = description.examples[0].value
-
     if (description.type === "object" || description.type === "array") {
-      meta.push("Example:", ...indent(safeDump(example).trim().split("\n"), 1), "")
+      formattedExample = safeDump(example).trim()
     } else {
-      meta.push("Example: " + JSON.stringify(example), "")
+      formattedExample = JSON.stringify(example)
     }
   }
 
-  const allowOnly = get(description, "flags.allowOnly") === true
+  const formattedName = type === "array" ? `${description.name}[]` : description.name
+  const formattedType = (type === "array" && arrayType ? `array[${arrayType}]` : type) || ""
 
-  if (required) {
-    const presenceRequired = get(description, "flags.presence") === "required"
-
-    if (presenceRequired || allowOnly) {
-      meta.push("Required.")
-    } else if (output.length) {
-      meta.push("Optional.")
-    }
+  return {
+    ...description,
+    formattedName,
+    formattedType,
+    defaultValue,
+    required,
+    allowedValues,
+    formattedExample,
+    hasChildren,
   }
-
-  if (allowOnly) {
-    meta.push("Allowed values: " + description.valids!.map(v => JSON.stringify(v)).join(", "))
-  }
-
-  if (meta.length > 0) {
-    output.push("", ...meta)
-  }
-
-  if (output.length === 0) {
-    return output
-  }
-
-  const wrap = linewrap(width - 2, { whitespace: "line" })
-  return wrap(output.join("\n")).split("\n").map(line => "# " + line)
 }
 
 export function getDefaultValue(description: Joi.Description) {
@@ -102,93 +202,231 @@ function indent(lines: string[], level: number) {
   return lines.map(line => prefix + line)
 }
 
-function indentFromSecondLine(lines: string[], level: number) {
-  return [...lines.slice(0, 1), ...indent(lines.slice(1), level)]
+function getParentDescriptions(
+  description: NormalizedDescription,
+  descriptions: NormalizedDescription[] = [],
+): NormalizedDescription[] {
+  if (description.parent) {
+    return getParentDescriptions(description.parent, [description.parent, ...descriptions])
+  }
+  return descriptions
 }
 
-export function renderSchemaDescription(description: Joi.Description, opts: RenderOpts) {
-  const { level = 0 } = opts
-  const indentSpaces = level * 2
-  const descriptionWidth = maxWidth - indentSpaces - 2
+function renderMarkdownTitle(description: NormalizedDescription) {
+  const parentDescriptions = getParentDescriptions(description)
+  return parentDescriptions.length > 0
+    ? `${parentDescriptions.map(d => d.formattedName).join(".")}.${description.formattedName}`
+    : description.name
+}
 
-  const output: string[] = []
-  const defaultValue = getDefaultValue(description)
+function renderMarkdownLink(description: NormalizedDescription) {
+  const path = renderMarkdownTitle(description).replace(/\s+/g, "-").toLowerCase()
+  return `[${description.name}](#${path})`
+}
 
-  switch (description.type) {
-    case "object":
-      const children = Object.entries(description.children || {})
+function makeMarkdownDescription(description: NormalizedDescription) {
+  const parentDescriptions = getParentDescriptions(description)
+  const title = renderMarkdownTitle(description)
+  const breadCrumbs = parentDescriptions.length > 0
+    ? parentDescriptions
+      .map(renderMarkdownLink)
+      .concat(description.name)
+      .join(" > ")
+    : null
 
-      if (!children.length) {
-        if (defaultValue) {
-          output.push("", ...safeDump(defaultValue).trim().split("\n"))
-        } else {
-          output.push("{}")
-        }
-        break
-      }
-
-      output.push("")
-
-      for (const [key, keyDescription] of children) {
-        if (get(keyDescription, "meta[0].internal")) {
-          continue
-        }
-
-        output.push(
-          ...renderCommentDescription(keyDescription, descriptionWidth, opts),
-          `${key}: ${renderSchemaDescription(keyDescription, { ...opts, level: level + 1 })}`,
-          "",
-        )
-      }
-
-      output.pop()
-
-      break
-
-    case "array":
-      if (!description.items.length) {
-        output.push("[]")
-      }
-
-      const itemDescription = description.items[0]
-
-      output.push(
-        "",
-        ...renderCommentDescription(itemDescription, descriptionWidth, opts),
-        "- " + renderSchemaDescription(itemDescription, { ...opts, level: level + 1 }).trim(),
-        "",
-      )
-
-      break
-
-    default:
-      output.push(defaultValue === undefined ? "" : defaultValue + "")
+  let formattedExample: string | undefined
+  if (description.formattedExample) {
+    formattedExample = renderSchemaDescriptionYaml(
+      [...parentDescriptions, description],
+      { showComment: false, useExampleForValue: true, showEllipsisBetweenKeys: true },
+    ).replace(/\n$/, "") // strip trailing new line
   }
 
-  // we don't indent the first line
-  return indentFromSecondLine(output, level)
-    .map(line => line.trimRight())
-    .join("\n")
+  return {
+    ...description,
+    breadCrumbs,
+    formattedExample,
+    title,
+  }
 }
 
-export function generateConfigReferenceDocs(docsRoot: string) {
-  const referenceDir = resolve(docsRoot, "reference")
-  const outputPath = resolve(referenceDir, "config.md")
+export function renderSchemaDescriptionYaml(
+  descriptions: NormalizedDescription[],
+  {
+    showComment = true,
+    showRequired = true,
+    showEllipsisBetweenKeys = false,
+    useExampleForValue = false,
+  }: RenderOpts,
+) {
+  let prevDesc: NormalizedDescription
 
-  const yaml = renderSchemaDescription(configSchema.describe(), { required: true })
-  const moduleTypes = builtInModuleTypes.map(({ name, schema }) => {
-    schema = Joi.object().keys({
-      module: baseModuleSpecSchema.concat(schema),
-    })
-    return {
+  const output = descriptions.map(desc => {
+    const {
+      description,
+      formattedExample: example,
+      formattedType,
+      hasChildren,
+      allowedValues,
+      required,
       name,
-      yaml: renderSchemaDescription(schema.describe(), { required: true }),
+      level,
+      defaultValue,
+      type,
+      parent,
+    } = desc
+    const indentSpaces = level * 2
+    const width = maxWidth - indentSpaces - 2
+    const comment: string[] = []
+    const out: string[] = []
+    const isFirstChild = parent && parent.name === prevDesc.name
+    const isArrayItem = parent && parent.type === "array"
+    const isFirstArrayItem = isArrayItem && isFirstChild
+    const isPrimitive = type !== "array" && type !== "object"
+    const stringifiedDefaultVal = JSON.stringify(defaultValue)
+    const exceptionallyTreatAsPrimitive = !hasChildren && !example
+      && stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}"
+
+    // Prepend new line if applicable (easier then appending). We skip the new line if comments not shown.
+    if (prevDesc && showComment) {
+      // Print new line between keys unless the next key is the first child of the parent key or an array item
+      if (!isFirstChild && (!isArrayItem || isFirstArrayItem)) {
+        out.push("")
+      }
     }
+
+    // Print "..." between keys. Only used when rendering markdown for examples.
+    if (showEllipsisBetweenKeys && parent && parent.hasChildren && !isArrayItem) {
+      out.push("...")
+    }
+
+    // Render comment
+    if (showComment) {
+      description && comment.push(description, "")
+      comment.push(`Type: ${formattedType}`, "")
+      if (example && !useExampleForValue) {
+        if (isPrimitive) {
+          // Render example inline
+          comment.push(`Example: ${example}`, "")
+        } else {
+          // Render example in a separate line
+          comment.push("Example:", ...indent(example.split("\n"), 1), "")
+        }
+      }
+      showRequired && comment.push(required ? "Required." : "Optional.")
+      allowedValues && comment.push(`Allowed values: ${allowedValues}`, "")
+
+      const wrap = linewrap(width - 2, { whitespace: "line" })
+      const formattedComment = wrap(comment.join("\n")).split("\n").map(line => "# " + line)
+      out.push(...formattedComment)
+    }
+
+    // Render key name and value
+    const formattedName = isFirstArrayItem ? "- " + name : name
+    let value: string | string[] | undefined
+
+    if (example && useExampleForValue) {
+      value = isPrimitive ? example : indent(example.split("\n"), 1)
+    } else {
+      // Non-primitive values get rendered in the line below, indented by one
+      value = isPrimitive || exceptionallyTreatAsPrimitive
+        ? defaultValue === undefined ? "" : safeDump(defaultValue)
+        : defaultValue === undefined ? "" : indent(safeDump(defaultValue).trim().split("\n"), 1)
+    }
+
+    if (isPrimitive || exceptionallyTreatAsPrimitive) {
+      // For primitives we render the value or example inline
+      out.push(`${formattedName}: ${value}`)
+    } else if (!hasChildren || (example && useExampleForValue)) {
+      // For arrays or objects without children, or non-primitive examples, we render the value in the line below
+      out.push(`${formattedName}:`, ...value)
+    } else {
+      // For arrays or objects with children we only print the key, the value is the next key in the descriptions array.
+      out.push(`${formattedName}:`)
+    }
+
+    prevDesc = desc
+
+    // Dedent first array item to account for the "-" sign
+    const lvl = isFirstArrayItem ? level - 1 : level
+    return indent(out, lvl)
+      .map(line => line.trimRight())
+      .join("\n")
   })
 
-  const templatePath = resolve(__dirname, "templates", "config.hbs")
-  const template = handlebars.compile(readFileSync(templatePath).toString())
-  const markdown = template({ yaml, moduleTypes })
+  return output.join("\n")
+}
 
-  writeFileSync(outputPath, markdown)
+/**
+ * Generates the config reference from the config-partial.hbs template.
+ * The config reference contains a list of keys and their description in Markdown
+ * and a YAML schema.
+ */
+export function renderConfigReference(configSchema: Joi.ObjectSchema) {
+  const partialTemplatePath = resolve(__dirname, "../../src/docs", "templates", "config-partial.hbs")
+  const normalizedDescriptions = normalizeDescriptions(configSchema.describe())
+
+  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { showComment: false })
+  const keys = normalizedDescriptions.map(makeMarkdownDescription)
+
+  const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
+  return { markdownReference: template({ keys }), yaml }
+}
+
+/**
+ * Generates the provider reference from the provider.hbs template.
+ * The reference includes the rendered output from the config-partial.hbs template.
+ */
+function renderProviderReference(schema: Joi.ObjectSchema, name: string) {
+  const providerTemplatePath = resolve(__dirname, "templates", "provider.hbs")
+  const { markdownReference, yaml } = renderConfigReference(schema)
+  const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
+  return template({ name, markdownReference, yaml })
+}
+
+/**
+ * Generates the module types reference from the module-type.hbs template.
+ * The reference includes the rendered output from the config-partial.hbs template.
+ */
+function renderModuleTypeReference(schema: Joi.ObjectSchema, name: string) {
+  const moduleTemplatePath = resolve(__dirname, "templates", "module-type.hbs")
+  const { markdownReference, yaml } = renderConfigReference(schema)
+  const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
+  return template({ name, markdownReference, yaml })
+}
+
+/**
+ * Generates the base project and module level config references from the base-config.hbs template.
+ * The reference includes the rendered output from the config-partial.hbs template for
+ * the base project and base module schemas.
+ */
+function renderBaseConfigReference() {
+  const baseTemplatePath = resolve(__dirname, "templates", "base-config.hbs")
+  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(baseProjectSchema)
+  const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSchema)
+
+  const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
+  return template({ projectMarkdownReference, projectYaml, moduleMarkdownReference, moduleYaml })
+}
+
+export function writeConfigReferenceDocs(docsRoot: string) {
+  const referenceDir = resolve(docsRoot, "reference")
+  const configPath = resolve(referenceDir, "config.md")
+
+  // Render provider docs
+  const providerDir = resolve(referenceDir, "providers")
+  for (const { name, schema } of providers) {
+    const path = resolve(providerDir, `${name}.md`)
+    writeFileSync(path, renderProviderReference(schema, name))
+  }
+
+  // Render module type docs
+  const moduleTypeDir = resolve(referenceDir, "module-types")
+  for (const { name, schema } of moduleTypes) {
+    const path = resolve(moduleTypeDir, `${name}.md`)
+    writeFileSync(path, renderModuleTypeReference(schema, name))
+  }
+
+  // Render base config docs
+  writeFileSync(configPath, renderBaseConfigReference())
 }
