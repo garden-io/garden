@@ -2,6 +2,6 @@
 --watch-dirs test/,src/
 --watch-extensions ts,json,pegjs,yml
 --reporter spec
---timeout 10000
+--timeout 20000
 test/setup.ts
 test/**/*.ts

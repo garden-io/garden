@@ -222,7 +222,10 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
-        _reject(new RuntimeError(`${cmd} exited with code ${code}`, { cmd, args, opts }))
+        _reject(new RuntimeError(
+          `${cmd} exited with code ${code}. Here is the output:\n\n ${result.output}`,
+          { cmd, args, opts },
+        ))
       }
     })
   })
@@ -236,7 +239,7 @@ export async function dumpYaml(yamlPath, data) {
  * Encode multiple objects as one multi-doc YAML file
  */
 export function encodeYamlMulti(objects: object[]) {
-  return objects.map(s => safeDump(s) + "---\n").join("")
+  return objects.map(s => safeDump(s, { noRefs: true }) + "---\n").join("")
 }
 
 /**

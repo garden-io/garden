@@ -25,7 +25,7 @@ import {
   ContainerModule,
   ContainerModuleSpec,
   ContainerServiceSpec,
-} from "../container"
+} from "../container/config"
 import { dumpYaml } from "../../util/util"
 import {
   GardenPlugin,

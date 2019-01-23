@@ -12,24 +12,11 @@ import dedent = require("dedent")
 import { joiArray, joiIdentifier, validate } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
-import { getExecTaskStatus } from "../exec"
-import {
-  deleteService,
-  execInService,
-  getServiceOutputs,
-  getTestResult,
-  testModule,
-  runModule,
-  runService,
-  runTask,
-} from "./actions"
-import { deployContainerService, getContainerServiceStatus, pushModule } from "./deployment"
-import { helmHandlers } from "./helm"
+import { helmHandlers } from "./helm/handlers"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
-import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container"
+import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { getRemoteEnvironmentStatus, prepareRemoteEnvironment, cleanupEnvironment } from "./init"
-import { getServiceLogs } from "./logs"
-import { hotReload } from "./hot-reload"
+import { containerHandlers } from "./container/handlers"
 
 export const name = "kubernetes"
 
@@ -167,22 +154,7 @@ export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPl
       deleteSecret,
     },
     moduleActions: {
-      container: {
-        getServiceStatus: getContainerServiceStatus,
-        deployService: deployContainerService,
-        getTaskStatus: getExecTaskStatus,
-        deleteService,
-        getServiceOutputs,
-        execInService,
-        pushModule,
-        runModule,
-        hotReload,
-        testModule,
-        runService,
-        runTask,
-        getTestResult,
-        getServiceLogs,
-      },
+      container: containerHandlers,
       helm: helmHandlers,
     },
   }

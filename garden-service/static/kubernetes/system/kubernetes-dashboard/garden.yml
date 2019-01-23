@@ -4,6 +4,6 @@ module:
   type: helm
   chart: stable/kubernetes-dashboard
   version: 0.9.0
-  parameters:
+  values:
     # The dashboard currently needs to be exposed directly, because it does its own SSL termination.
     service.type: NodePort

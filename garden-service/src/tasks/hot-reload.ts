@@ -7,18 +7,16 @@
  */
 
 import chalk from "chalk"
-import { uniq, flatten } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import { prepareRuntimeContext } from "../types/service"
+import { Service } from "../types/service"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../dependency-graph"
-import { Module } from "../types/module"
 
-export interface DeployTaskParams {
+interface Params {
   garden: Garden
   force: boolean
-  module: Module
+  service: Service
   log: LogEntry
 }
 
@@ -26,38 +24,32 @@ export class HotReloadTask extends BaseTask {
   type = "hot-reload"
   depType: DependencyGraphNodeType = "service"
 
-  private module: Module
+  private service: Service
 
   constructor(
-    { garden, log, module, force }: DeployTaskParams,
+    { garden, log, service, force }: Params,
   ) {
-    super({ garden, log, force, version: module.version })
-    this.module = module
+    super({ garden, log, force, version: service.module.version })
+    this.service = service
   }
 
   protected getName() {
-    return this.module.name
+    return this.service.name
   }
 
   getDescription() {
-    return `hot-reloading module ${this.module.name}`
+    return `hot-reloading service ${this.service.name}`
   }
 
   async process(): Promise<{}> {
-    const module = this.module
     const log = this.log.info({
-      section: module.name,
+      section: this.service.name,
       msg: "Hot reloading...",
       status: "active",
     })
 
-    const serviceDependencyNames = uniq(flatten(module.services.map(s => s.config.dependencies)))
-    const runtimeContext = await prepareRuntimeContext(
-      this.garden, log, module, await this.garden.getServices(serviceDependencyNames),
-    )
-
     try {
-      await this.garden.actions.hotReload({ log, module, runtimeContext })
+      await this.garden.actions.hotReloadService({ log, service: this.service })
     } catch (err) {
       log.setError()
       throw err

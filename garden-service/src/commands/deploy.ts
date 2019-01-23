@@ -17,13 +17,13 @@ import {
   handleTaskResults,
   StringsParameter,
 } from "./base"
-import { validateHotReloadOpt } from "./helpers"
-import { getDependantTasksForModule, getHotReloadModuleNames } from "../tasks/helpers"
+import { getDependantTasksForModule } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
 import { logHeader } from "../logger/util"
 import { HotReloadTask } from "../tasks/hot-reload"
 import { BaseTask } from "../tasks/base"
+import { ParameterError } from "../exceptions"
 
 const deployArgs = {
   services: new StringsParameter({
@@ -69,7 +69,7 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy service-a,service-b     # only deploy service-a and service-b
         garden deploy --force                 # force re-deploy of modules, even if they're already deployed
         garden deploy --watch                 # watch for changes to code
-        garden deploy --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
+        garden deploy --watch --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
         garden deploy --env stage             # deploy your services to an environment called stage
   `
 
@@ -88,18 +88,14 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: {} }
     }
 
-    let watch
+    const watch = opts.watch
     const hotReloadServiceNames = opts["hot-reload"] || []
-    const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
 
-    if (opts["hot-reload"]) {
-      if (!validateHotReloadOpt(garden, log, hotReloadServiceNames)) {
-        return { result: {} }
-      }
-      watch = true
-    } else {
-      watch = opts.watch
+    if (hotReloadServiceNames.length > 0 && !watch) {
+      throw new ParameterError(`Must specify --watch flag when requesting hot-reloading`, { opts })
     }
+
+    const hotReloadServices = await garden.getServices(hotReloadServiceNames)
 
     // TODO: make this a task
     await garden.actions.prepareEnvironment({ log })
@@ -124,9 +120,13 @@ export class DeployCommand extends Command<Args, Opts> {
           garden, log, module, hotReloadServiceNames, force: true, forceBuild: opts["force-build"],
           fromWatch: true, includeDependants: true,
         })
-        if (hotReloadModuleNames.has(module.name)) {
-          tasks.push(new HotReloadTask({ garden, log, module, force: true }))
-        }
+
+        const hotReloadTasks = hotReloadServices
+          .filter(service => service.module.name === module.name || service.sourceModule.name === module.name)
+          .map(service => new HotReloadTask({ garden, log, service, force: true }))
+
+        tasks.push(...hotReloadTasks)
+
         return tasks
       },
     })

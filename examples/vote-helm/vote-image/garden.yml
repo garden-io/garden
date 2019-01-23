@@ -1,0 +1,11 @@
+module:
+  description: The voting UI container image
+  name: vote-image
+  type: container
+  hotReload:
+    sync:
+      - target: /app/src
+        source: src
+  tests:
+    - name: unit
+      command: [npm, run, test:unit]

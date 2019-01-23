@@ -5,12 +5,7 @@ import * as td from "testdouble"
 
 import { Garden } from "../../../src/garden"
 import { PluginContext } from "../../../src/plugin-context"
-import {
-  ContainerModuleConfig,
-  gardenPlugin,
-  helpers,
-  ContainerModuleSpec,
-} from "../../../src/plugins/container"
+import { gardenPlugin } from "../../../src/plugins/container/container"
 import {
   dataDir,
   expectError,
@@ -19,6 +14,8 @@ import {
 import { moduleFromConfig } from "../../../src/types/module"
 import { ModuleConfig } from "../../../src/config/module"
 import { LogEntry } from "../../../src/logger/log-entry"
+import { ContainerModuleSpec, ContainerModuleConfig } from "../../../src/plugins/container/config"
+import { containerHelpers } from "../../../src/plugins/container/helpers"
 
 describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -77,110 +74,108 @@ describe("plugins.container", () => {
     return moduleFromConfig(garden, parsed)
   }
 
-  describe("helpers", () => {
-    describe("getLocalImageId", () => {
-      it("should create identifier with commit hash version if module has a Dockerfile", async () => {
-        const config = cloneDeep(baseConfig)
-        config.spec.image = "some/image:1.1"
-        const module = await getTestModule(config)
+  describe("getLocalImageId", () => {
+    it("should create identifier with commit hash version if module has a Dockerfile", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image:1.1"
+      const module = await getTestModule(config)
 
-        td.replace(helpers, "hasDockerfile", async () => true)
+      td.replace(containerHelpers, "hasDockerfile", async () => true)
 
-        expect(await helpers.getLocalImageId(module)).to.equal("test:1234")
-      })
-
-      it("should create identifier with image name if module has no Dockerfile", async () => {
-        const config = cloneDeep(baseConfig)
-        config.spec.image = "some/image:1.1"
-        const module = await getTestModule(config)
-
-        td.replace(helpers, "hasDockerfile", async () => false)
-
-        expect(await helpers.getLocalImageId(module)).to.equal("some/image:1.1")
-      })
+      expect(await containerHelpers.getLocalImageId(module)).to.equal("test:1234")
     })
 
-    describe("getPublicImageId", () => {
-      it("should use image name including version if specified", async () => {
-        const config = cloneDeep(baseConfig)
-        config.spec.image = "some/image:1.1"
-        const module = await getTestModule(config)
+    it("should create identifier with image name if module has no Dockerfile", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image:1.1"
+      const module = await getTestModule(config)
 
-        expect(await helpers.getPublicImageId(module)).to.equal("some/image:1.1")
-      })
+      td.replace(containerHelpers, "hasDockerfile", async () => false)
 
-      it("should use image name if specified with commit hash if no version is set", async () => {
-        const module = await getTestModule({
-          allowPublish: false,
-          build: {
-            command: [],
-            dependencies: [],
-          },
-          name: "test",
-          path: modulePath,
-          type: "container",
-          variables: {},
+      expect(await containerHelpers.getLocalImageId(module)).to.equal("some/image:1.1")
+    })
+  })
 
-          spec: {
-            buildArgs: {},
-            image: "some/image",
-            services: [],
-            tasks: [],
-            tests: [],
-          },
+  describe("getDockerfilePathFromModule", () => {
+    it("should return the absolute default Dockerfile path", async () => {
+      const module = await getTestModule(baseConfig)
 
-          serviceConfigs: [],
-          taskConfigs: [],
-          testConfigs: [],
-        })
+      td.replace(containerHelpers, "hasDockerfile", async () => true)
 
-        expect(await helpers.getPublicImageId(module)).to.equal("some/image:1234")
-      })
-
-      it("should use local id if no image name is set", async () => {
-        const module = await getTestModule(baseConfig)
-
-        td.replace(helpers, "getLocalImageId", async () => "test:1234")
-
-        expect(await helpers.getPublicImageId(module)).to.equal("test:1234")
-      })
+      const path = await containerHelpers.getDockerfilePathFromModule(module)
+      expect(path).to.equal(join(module.buildPath, "Dockerfile"))
     })
 
-    describe("getDockerfilePathFromModule", () => {
-      it("should return the absolute default Dockerfile path", async () => {
-        const module = await getTestModule(baseConfig)
+    it("should return the absolute user specified Dockerfile path", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.dockerfile = relDockerfilePath
+      const module = await getTestModule(config)
 
-        td.replace(helpers, "hasDockerfile", async () => true)
+      td.replace(containerHelpers, "hasDockerfile", async () => true)
 
-        const path = await helpers.getDockerfilePathFromModule(module)
-        expect(path).to.equal(join(module.buildPath, "Dockerfile"))
-      })
+      const path = await containerHelpers.getDockerfilePathFromModule(module)
+      expect(path).to.equal(join(module.buildPath, relDockerfilePath))
+    })
+  })
 
-      it("should return the absolute user specified Dockerfile path", async () => {
-        const config = cloneDeep(baseConfig)
-        config.spec.dockerfile = relDockerfilePath
-        const module = await getTestModule(config)
+  describe("getPublicImageId", () => {
+    it("should use image name including version if specified", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image:1.1"
+      const module = await getTestModule(config)
 
-        td.replace(helpers, "hasDockerfile", async () => true)
-
-        const path = await helpers.getDockerfilePathFromModule(module)
-        expect(path).to.equal(join(module.buildPath, relDockerfilePath))
-      })
+      expect(await containerHelpers.getPublicImageId(module)).to.equal("some/image:1.1")
     })
 
-    describe("getDockerfilePathFromConfig", () => {
-      it("should return the absolute default Dockerfile path", async () => {
-        const path = await helpers.getDockerfilePathFromConfig(baseConfig)
-        expect(path).to.equal(join(baseConfig.path, "Dockerfile"))
+    it("should use image name if specified with commit hash if no version is set", async () => {
+      const module = await getTestModule({
+        allowPublish: false,
+        build: {
+          command: [],
+          dependencies: [],
+        },
+        name: "test",
+        path: modulePath,
+        type: "container",
+        variables: {},
+
+        spec: {
+          buildArgs: {},
+          image: "some/image",
+          services: [],
+          tasks: [],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
       })
 
-      it("should return the absolute user specified Dockerfile path", async () => {
-        const config = cloneDeep(baseConfig)
-        config.spec.dockerfile = relDockerfilePath
+      expect(await containerHelpers.getPublicImageId(module)).to.equal("some/image:1234")
+    })
 
-        const path = await helpers.getDockerfilePathFromConfig(config)
-        expect(path).to.equal(join(config.path, relDockerfilePath))
-      })
+    it("should use local id if no image name is set", async () => {
+      const module = await getTestModule(baseConfig)
+
+      td.replace(containerHelpers, "getLocalImageId", async () => "test:1234")
+
+      expect(await containerHelpers.getPublicImageId(module)).to.equal("test:1234")
+    })
+  })
+
+  describe("getDockerfilePathFromConfig", () => {
+    it("should return the absolute default Dockerfile path", async () => {
+      const path = await containerHelpers.getDockerfilePathFromConfig(baseConfig)
+      expect(path).to.equal(join(baseConfig.path, "Dockerfile"))
+    })
+
+    it("should return the absolute user specified Dockerfile path", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.dockerfile = relDockerfilePath
+
+      const path = await containerHelpers.getDockerfilePathFromConfig(config)
+      expect(path).to.equal(join(config.path, relDockerfilePath))
     })
   })
 
@@ -523,7 +518,7 @@ describe("plugins.container", () => {
       it("should return ready:true if build exists locally", async () => {
         const module = td.object(await getTestModule(baseConfig))
 
-        td.replace(helpers, "imageExistsLocally", async () => true)
+        td.replace(containerHelpers, "imageExistsLocally", async () => true)
 
         const result = await getBuildStatus({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ ready: true })
@@ -532,7 +527,7 @@ describe("plugins.container", () => {
       it("should return ready:false if build does not exist locally", async () => {
         const module = td.object(await getTestModule(baseConfig))
 
-        td.replace(helpers, "imageExistsLocally", async () => false)
+        td.replace(containerHelpers, "imageExistsLocally", async () => false)
 
         const result = await getBuildStatus({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ ready: false })
@@ -545,9 +540,9 @@ describe("plugins.container", () => {
         config.spec.image = "some/image"
         const module = td.object(await getTestModule(config))
 
-        td.replace(helpers, "hasDockerfile", async () => false)
-        td.replace(helpers, "pullImage", async () => null)
-        td.replace(helpers, "imageExistsLocally", async () => false)
+        td.replace(containerHelpers, "hasDockerfile", async () => false)
+        td.replace(containerHelpers, "pullImage", async () => null)
+        td.replace(containerHelpers, "imageExistsLocally", async () => false)
 
         const result = await build({ ctx, log, module, buildDependencies: {} })
 
@@ -559,11 +554,11 @@ describe("plugins.container", () => {
         config.spec.image = "some/image"
         const module = td.object(await getTestModule(config))
 
-        td.replace(helpers, "hasDockerfile", async () => true)
-        td.replace(helpers, "imageExistsLocally", async () => false)
-        td.replace(helpers, "getLocalImageId", async () => "some/image")
+        td.replace(containerHelpers, "hasDockerfile", async () => true)
+        td.replace(containerHelpers, "imageExistsLocally", async () => false)
+        td.replace(containerHelpers, "getLocalImageId", async () => "some/image")
 
-        const dockerCli = td.replace(helpers, "dockerCli")
+        const dockerCli = td.replace(containerHelpers, "dockerCli")
 
         const result = await build({ ctx, log, module, buildDependencies: {} })
 
@@ -579,14 +574,14 @@ describe("plugins.container", () => {
         const config = cloneDeep(baseConfig)
         config.spec.dockerfile = relDockerfilePath
 
-        td.replace(helpers, "hasDockerfile", async () => true)
+        td.replace(containerHelpers, "hasDockerfile", async () => true)
 
         const module = td.object(await getTestModule(config))
 
-        td.replace(helpers, "imageExistsLocally", async () => false)
-        td.replace(helpers, "getLocalImageId", async () => "some/image")
+        td.replace(containerHelpers, "imageExistsLocally", async () => false)
+        td.replace(containerHelpers, "getLocalImageId", async () => "some/image")
 
-        const dockerCli = td.replace(helpers, "dockerCli")
+        const dockerCli = td.replace(containerHelpers, "dockerCli")
 
         const result = await build({ ctx, log, module, buildDependencies: {} })
 
@@ -613,7 +608,7 @@ describe("plugins.container", () => {
         config.spec.image = "some/image"
         const module = td.object(await getTestModule(config))
 
-        td.replace(helpers, "hasDockerfile", async () => false)
+        td.replace(containerHelpers, "hasDockerfile", async () => false)
 
         const result = await publishModule({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ published: false })
@@ -624,11 +619,11 @@ describe("plugins.container", () => {
         config.spec.image = "some/image:1.1"
         const module = td.object(await getTestModule(config))
 
-        td.replace(helpers, "hasDockerfile", async () => true)
-        td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
-        td.replace(helpers, "getPublicImageId", async () => "some/image:12345")
+        td.replace(containerHelpers, "hasDockerfile", async () => true)
+        td.replace(containerHelpers, "getLocalImageId", async () => "some/image:12345")
+        td.replace(containerHelpers, "getPublicImageId", async () => "some/image:12345")
 
-        const dockerCli = td.replace(helpers, "dockerCli")
+        const dockerCli = td.replace(containerHelpers, "dockerCli")
 
         const result = await publishModule({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ message: "Published some/image:12345", published: true })
@@ -642,11 +637,11 @@ describe("plugins.container", () => {
         config.spec.image = "some/image:1.1"
         const module = td.object(await getTestModule(config))
 
-        td.replace(helpers, "hasDockerfile", async () => true)
-        td.replace(helpers, "getLocalImageId", () => "some/image:12345")
-        td.replace(helpers, "getPublicImageId", () => "some/image:1.1")
+        td.replace(containerHelpers, "hasDockerfile", async () => true)
+        td.replace(containerHelpers, "getLocalImageId", () => "some/image:12345")
+        td.replace(containerHelpers, "getPublicImageId", () => "some/image:1.1")
 
-        const dockerCli = td.replace(helpers, "dockerCli")
+        const dockerCli = td.replace(containerHelpers, "dockerCli")
 
         const result = await publishModule({ ctx, log, module, buildDependencies: {} })
         expect(result).to.eql({ message: "Published some/image:1.1", published: true })

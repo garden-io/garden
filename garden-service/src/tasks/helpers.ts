@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, intersection } from "lodash"
+import { intersection, uniq } from "lodash"
 import { DeployTask } from "./deploy"
 import { BuildTask } from "./build"
 import { Garden } from "../garden"
@@ -30,15 +30,14 @@ export async function getDependantTasksForModule(
   let services: Service[] = []
 
   if (!includeDependants) {
-    buildTasks.push(new BuildTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
+    buildTasks.push(new BuildTask({ garden, log, module, force: forceBuild, fromWatch, hotReloadServiceNames }))
     services = module.services
   } else {
-    const hotReloadModuleNames = await getHotReloadModuleNames(garden, hotReloadServiceNames)
+    const hotReloadModuleNames = await getModuleNames(garden, hotReloadServiceNames)
     const dg = await garden.getDependencyGraph()
 
-    const dependantFilterFn = (dependantNode: DependencyGraphNode) => {
-      return !hotReloadModuleNames.has(dependantNode.moduleName)
-    }
+    const dependantFilterFn = (dependantNode: DependencyGraphNode) =>
+      !hotReloadModuleNames.includes(dependantNode.moduleName)
 
     if (intersection(module.serviceNames, hotReloadServiceNames).length) {
       // Hot reloading is enabled for one or more of module's services.
@@ -68,7 +67,7 @@ export async function getDependantTasksForModule(
   return outputTasks
 }
 
-export async function getHotReloadModuleNames(garden: Garden, hotReloadServiceNames: string[]): Promise<Set<string>> {
-  return new Set(flatten((await garden.getServices(hotReloadServiceNames || []))
-    .map(s => s.module.name)))
+async function getModuleNames(garden: Garden, hotReloadServiceNames: string[]) {
+  const services = await garden.getServices(hotReloadServiceNames)
+  return uniq(services.map(s => s.module.name))
 }

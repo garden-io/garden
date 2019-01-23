@@ -42,7 +42,7 @@ import {
   getBuildStatusParamsSchema,
   buildModuleParamsSchema,
   pushModuleParamsSchema,
-  hotReloadParamsSchema,
+  hotReloadServiceParamsSchema,
   runModuleParamsSchema,
   testModuleParamsSchema,
   getTestResultParamsSchema,
@@ -65,7 +65,7 @@ import {
   moduleTypeDescriptionSchema,
   PluginActionOutputs,
   pushModuleResultSchema,
-  hotReloadResultSchema,
+  hotReloadServiceResultSchema,
   runResultSchema,
   ServiceActionOutputs,
   TaskActionOutputs,
@@ -200,6 +200,13 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
     paramsSchema: deployServiceParamsSchema,
     resultSchema: serviceStatusSchema,
   },
+  hotReloadService: {
+    description: dedent`
+      Synchronize changes directly into a running service, instead of doing a full redeploy.
+    `,
+    paramsSchema: hotReloadServiceParamsSchema,
+    resultSchema: hotReloadServiceResultSchema,
+  },
   deleteService: {
     description: dedent`
       Terminate a deployed service. This should wait until the service is no longer running.
@@ -246,6 +253,7 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
 }
 
 export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescription } = {
+  // TODO: see if this is actually necessary or useful
   getTaskStatus: {
     description: dedent`
       Check and return the execution status of a task, i.e. whether the task has been successfully
@@ -257,8 +265,7 @@ export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescri
   runTask: {
     description: dedent`
       Runs a task within the context of its module. This should wait until execution completes, and
-      should ideally attach it to the terminal (i.e. pipe the output from the task to the console,
-      as well as pipe input from the console to the running task).
+      return its output.
     `,
     paramsSchema: runTaskParamsSchema,
     resultSchema: runTaskResultSchema,
@@ -347,14 +354,6 @@ export const moduleActionDescriptions:
     `,
     paramsSchema: publishModuleParamsSchema,
     resultSchema: publishModuleResultSchema,
-  },
-
-  hotReload: {
-    description: dedent`
-      Reload a module's running services without redeploying them when the module's sources change.
-    `,
-    paramsSchema: hotReloadParamsSchema,
-    resultSchema: hotReloadResultSchema,
   },
 
   runModule: {

@@ -9,7 +9,7 @@
 import { mapValues } from "lodash"
 
 const exec = require("./exec")
-const container = require("./container")
+const container = require("./container/container")
 const gcf = require("./google/google-cloud-functions")
 const localGcf = require("./local/local-google-cloud-functions")
 const kubernetes = require("./kubernetes/kubernetes")

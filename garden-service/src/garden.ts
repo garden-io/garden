@@ -27,6 +27,7 @@ import {
   pickBy,
   sortBy,
   difference,
+  find,
 } from "lodash"
 const AsyncLock = require("async-lock")
 
@@ -83,7 +84,7 @@ import {
   ModuleActions,
 } from "./types/plugin/plugin"
 import { joiIdentifier, validate, PrimitiveMap } from "./config/common"
-import { Service } from "./types/service"
+import { Service, serviceFromConfig } from "./types/service"
 import { Task } from "./types/task"
 import { resolveTemplateStrings } from "./template-string"
 import {
@@ -741,20 +742,13 @@ export class Garden {
     }
 
     return Bluebird.props({
-
       services: Bluebird.map(Object.entries(pickedServices), async ([serviceName, moduleName]):
         Promise<Service> => {
 
         const module = await this.getModule(moduleName)
         const config = findByName(module.serviceConfigs, serviceName)!
 
-        return {
-          name: serviceName,
-          config,
-          module,
-          spec: config.spec,
-        }
-
+        return serviceFromConfig(this, module, config)
       }),
 
       tasks: Bluebird.map(Object.entries(pickedTasks), async ([taskName, moduleName]):
@@ -769,11 +763,8 @@ export class Garden {
           module,
           spec: config.spec,
         }
-
       }),
-
     })
-
   }
 
   /*
@@ -864,6 +855,15 @@ export class Garden {
         `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
         { pathA, pathB },
       )
+    }
+
+    // Make sure service source modules are added as build dependencies for the module
+    for (const serviceConfig of config.serviceConfigs) {
+      const { sourceModuleName } = serviceConfig
+
+      if (sourceModuleName && !find(config.build.dependencies, ["name", sourceModuleName])) {
+        config.build.dependencies.push({ name: sourceModuleName, copy: [] })
+      }
     }
 
     this.moduleConfigs[config.name] = config
@@ -1107,6 +1107,7 @@ export class Garden {
 
       for (const service of module.services) {
         delete service.module
+        delete service.sourceModule
       }
       for (const task of module.tasks) {
         delete task.module

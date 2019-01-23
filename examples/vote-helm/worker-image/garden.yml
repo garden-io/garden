@@ -1,0 +1,4 @@
+module:
+  description: The worker that collects votes and stores results in a postgres table
+  type: container
+  name: worker-image

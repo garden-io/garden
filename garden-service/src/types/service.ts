@@ -17,12 +17,14 @@ import { format } from "url"
 import { moduleVersionSchema } from "../vcs/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
+import { uniq } from "lodash"
 import normalizeUrl = require("normalize-url")
 
-export interface Service<M extends Module = Module> {
+export interface Service<M extends Module = Module, S extends Module = Module> {
   name: string
   module: M
   config: M["serviceConfigs"][0]
+  sourceModule: S
   spec: M["serviceConfigs"][0]["spec"]
 }
 
@@ -32,21 +34,51 @@ export const serviceSchema = Joi.object()
     name: joiUserIdentifier()
       .description("The name of the service."),
     module: Joi.object().unknown(true),   // This causes a stack overflow: Joi.lazy(() => moduleSchema),
+    sourceModule: Joi.object().unknown(true),   // This causes a stack overflow: Joi.lazy(() => moduleSchema),
     config: serviceConfigSchema,
     spec: Joi.object()
       .description("The raw configuration of the service (specific to each plugin)."),
   })
 
-export function serviceFromConfig<M extends Module = Module>(module: M, config: ServiceConfig): Service<M> {
+export async function serviceFromConfig<M extends Module = Module>
+  (garden: Garden, module: M, config: ServiceConfig): Promise<Service<M>> {
+
+  const sourceModule = config.sourceModuleName ? await garden.getModule(config.sourceModuleName) : module
+
   return {
     name: config.name,
     module,
     config,
+    sourceModule,
     spec: config.spec,
   }
 }
 
 export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "unknown" | "outdated" | "missing"
+export const serviceStates: ServiceState[] = [
+  "ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing",
+]
+
+/**
+ * Given a list of states, return a single state representing the list.
+ */
+export function combineStates(states: ServiceState[]): ServiceState {
+  const unique = uniq(states)
+
+  if (unique.length === 1) {
+    return unique[0]
+  }
+
+  if (unique.includes("unhealthy")) {
+    return "unhealthy"
+  }
+
+  if (unique.includes("deploying")) {
+    return "deploying"
+  }
+
+  return "outdated"
+}
 
 // TODO: support TCP, UDP and gRPC
 export type ServiceProtocol = "http" | "https"  // | "tcp" | "udp"

@@ -30,7 +30,7 @@ import {
   PublishResult,
   RunTaskResult,
   TaskActionOutputs,
-  HotReloadResult,
+  HotReloadServiceResult,
 } from "./types/plugin/outputs"
 import {
   BuildModuleParams,
@@ -50,7 +50,7 @@ import {
   PluginActionParamsBase,
   PluginServiceActionParamsBase,
   PushModuleParams,
-  HotReloadParams,
+  HotReloadServiceParams,
   RunModuleParams,
   RunServiceParams,
   ServiceActionParams,
@@ -249,11 +249,6 @@ export class ActionHelper implements TypeGuard {
     return this.callModuleHandler({ params, actionType: "runModule" })
   }
 
-  async hotReload<T extends Module>(params: ModuleActionHelperParams<HotReloadParams<T>>)
-    : Promise<HotReloadResult> {
-    return this.callModuleHandler(({ params, actionType: "hotReload" }))
-  }
-
   async testModule<T extends Module>(params: ModuleActionHelperParams<TestModuleParams<T>>): Promise<TestResult> {
     return this.callModuleHandler({ params, actionType: "testModule" })
   }
@@ -280,6 +275,11 @@ export class ActionHelper implements TypeGuard {
 
   async deployService(params: ServiceActionHelperParams<DeployServiceParams>): Promise<ServiceStatus> {
     return this.callServiceHandler({ params, actionType: "deployService" })
+  }
+
+  async hotReloadService(params: ServiceActionHelperParams<HotReloadServiceParams>)
+    : Promise<HotReloadServiceResult> {
+    return this.callServiceHandler(({ params, actionType: "hotReloadService" }))
   }
 
   async deleteService(params: ServiceActionHelperParams<DeleteServiceParams>): Promise<ServiceStatus> {
@@ -343,7 +343,9 @@ export class ActionHelper implements TypeGuard {
     const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
       const serviceDependencies = await this.garden.getServices(service.config.dependencies)
       const runtimeContext = await prepareRuntimeContext(this.garden, log, service.module, serviceDependencies)
-      return this.getServiceStatus({ log, service, runtimeContext })
+      // TODO: The status will be reported as "outdated" if the service was deployed with hot-reloading enabled.
+      //       Once hot-reloading is a toggle, as opposed to an API/CLI flag, we can resolve that issue.
+      return this.getServiceStatus({ log, service, runtimeContext, hotReload: false })
     }))
 
     return {

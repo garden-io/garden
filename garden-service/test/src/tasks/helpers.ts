@@ -195,6 +195,7 @@ describe("TaskHelpers", () => {
             "deploy.build-dependant",
           ],
           dependencyTasks: [
+            "build.good-morning",
             "push.build-dependant",
           ],
         },

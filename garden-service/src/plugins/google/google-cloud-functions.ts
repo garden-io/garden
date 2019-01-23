@@ -114,9 +114,9 @@ export const gardenPlugin = (): GardenPlugin => ({
     "google-cloud-function": {
       validate: parseGcfModule,
 
-      async deployService(
-        { ctx, module, service, runtimeContext, log, buildDependencies }: DeployServiceParams<GcfModule>,
-      ) {
+      async deployService(params: DeployServiceParams<GcfModule>) {
+        const { ctx, service } = params
+
         // TODO: provide env vars somehow to function
         const project = getProject(service, ctx.provider)
         const functionPath = resolve(service.module.path, service.spec.path)
@@ -131,7 +131,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           "--trigger-http",
         ])
 
-        return getServiceStatus({ ctx, module, service, runtimeContext, log, buildDependencies })
+        return getServiceStatus(params)
       },
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GcfModule>) {

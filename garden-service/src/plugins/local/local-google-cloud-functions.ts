@@ -20,7 +20,7 @@ import { ServiceConfig } from "../../config/service"
 import {
   ContainerServiceSpec,
   ServicePortProtocol,
-} from "../container"
+} from "../container/config"
 
 const pluginName = "local-google-cloud-functions"
 const emulatorModuleName = "local-gcf-container"

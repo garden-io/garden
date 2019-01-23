@@ -1,0 +1,22 @@
+module:
+  description: Helm chart for the voting UI
+  type: helm
+  name: result
+  serviceResource:
+    kind: Deployment
+    containerModule: result-image
+    hotReloadArgs: [nodemon, server.js]
+  dependencies:
+    - db-init
+  values:
+    image:
+      tag: ${modules.result-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      hosts: [result.local.app.garden]
+  tests:
+    - name: integ
+      args: [echo, ok]
+      dependencies:
+        - db-init

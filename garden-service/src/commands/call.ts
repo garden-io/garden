@@ -54,7 +54,7 @@ export class CallCommand extends Command<Args> {
 
     // TODO: better error when service doesn't exist
     const service = await garden.getService(serviceName)
-    const status = await garden.actions.getServiceStatus({ service, log })
+    const status = await garden.actions.getServiceStatus({ service, log, hotReload: false })
 
     if (!includes(["ready", "outdated"], status.state)) {
       throw new RuntimeError(`Service ${service.name} is not running`, {

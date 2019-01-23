@@ -46,15 +46,16 @@ import {
 import { every, values } from "lodash"
 import { dumpYaml, findByName } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
-import { waitForObjects, checkDeploymentStatus } from "../kubernetes/status"
+import { waitForResources, checkDeploymentStatus } from "../kubernetes/status"
 import { systemSymbol } from "../kubernetes/system"
-import { BaseServiceSpec } from "../../config/service"
+import { CommonServiceSpec } from "../../config/service"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema } from "../../config/project"
 import { faasCli } from "./faas-cli"
 import { CleanupEnvironmentParams } from "../../types/plugin/params"
 import dedent = require("dedent")
 import { getKubernetesLogs } from "../kubernetes/logs"
+import { installTiller, checkTillerStatus } from "../kubernetes/helm/tiller"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 export const stackFilename = "stack.yml"
@@ -82,7 +83,7 @@ export const openfaasModuleSpecSchame = execModuleSpecSchema
   .unknown(false)
   .description("The module specification for an OpenFaaS module.")
 
-export interface OpenFaasModule extends Module<OpenFaasModuleSpec, BaseServiceSpec, ExecTestSpec> { }
+export interface OpenFaasModule extends Module<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> { }
 export interface OpenFaasService extends Service<OpenFaasModule> { }
 
 export interface OpenFaasConfig extends Provider {
@@ -117,8 +118,14 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         const envReady = every(values(status.providers).map(s => s.ready))
         const servicesReady = every(values(status.services).map(s => s.state === "ready"))
 
+        // TODO: get rid of this convoluted nested Garden setup
+        const k8sProviderName = getK8sProvider(ctx).name
+        const ofCtx = await ofGarden.getPluginContext(k8sProviderName)
+        const ofK8sProvider = getK8sProvider(ofCtx)
+        const tillerState = await checkTillerStatus(ofCtx, ofK8sProvider, log)
+
         return {
-          ready: envReady && servicesReady,
+          ready: envReady && servicesReady && tillerState === "ready",
           detail: status.services,
         }
       },
@@ -128,6 +135,12 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         const ofGarden = await getOpenFaasGarden(ctx)
 
         await ofGarden.actions.prepareEnvironment({ force, log })
+
+        // TODO: avoid this coupling (requires work on plugin dependencies)
+        const k8sProviderName = getK8sProvider(ctx).name
+        const ofCtx = await ofGarden.getPluginContext(k8sProviderName)
+        const ofK8sProvider = getK8sProvider(ofCtx)
+        await installTiller(ctx, ofK8sProvider, log)
 
         const results = await ofGarden.actions.deployServices({ log, force })
         const failed = values(results.taskResults).filter(r => !!r.error).length
@@ -240,7 +253,13 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
           const deployment = (await api.apps.readNamespacedDeployment(service.name, namespace)).body
 
-          await waitForObjects({ ctx, provider: k8sProvider, service, log, objects: [deployment] })
+          await waitForResources({
+            ctx,
+            provider: k8sProvider,
+            serviceName: service.name,
+            log,
+            resources: [deployment],
+          })
 
           // TODO: avoid duplicate work here
           return getServiceStatus(params)
@@ -259,6 +278,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
               runtimeContext,
               buildDependencies,
               module: service.module,
+              hotReload: false,
             })
 
             found = !!status.state

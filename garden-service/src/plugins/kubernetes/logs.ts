@@ -11,8 +11,6 @@ import moment = require("moment")
 
 import { GetServiceLogsResult } from "../../types/plugin/outputs"
 import { GetServiceLogsParams } from "../../types/plugin/params"
-import { ContainerModule } from "../container"
-import { getAppNamespace } from "./namespace"
 import { splitFirst } from "../../util/util"
 import { BinaryCmd } from "../../util/ext-tools"
 import { kubectl } from "./kubectl"
@@ -21,15 +19,6 @@ interface GetKubernetesLogsParams extends GetServiceLogsParams {
   context: string
   namespace: string
   selector: string
-}
-
-export async function getServiceLogs(params: GetServiceLogsParams<ContainerModule>) {
-  const { ctx, service } = params
-  const context = ctx.provider.config.context
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  const selector = `service=${service.name}`
-
-  return getKubernetesLogs({ ...params, context, namespace, selector })
 }
 
 export async function getKubernetesLogs(params: GetKubernetesLogsParams) {

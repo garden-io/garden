@@ -1,0 +1,14 @@
+module:
+  description: The API backend for the voting UI
+  type: helm
+  name: api
+  serviceResource:
+    kind: Deployment
+    containerModule: api-image
+  values:
+    image:
+      tag: ${modules.api-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      hosts: [api.local.app.garden]

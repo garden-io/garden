@@ -21,7 +21,7 @@ import {
 import { GARDEN_DIR_NAME } from "./constants"
 import { ConfigurationError } from "./exceptions"
 import {
-  BuildCopySpec,
+  FileCopySpec,
   Module,
   getModuleKey,
 } from "./types/module"
@@ -64,7 +64,7 @@ export class BuildDir {
       const sourceBuildPath = await this.buildPath(getModuleKey(sourceModule.name, sourceModule.plugin))
 
       // Sync to the module's top-level dir by default.
-      await bluebirdMap(depConfig.copy, (copy: BuildCopySpec) => {
+      await bluebirdMap(depConfig.copy, (copy: FileCopySpec) => {
         if (isAbsolute(copy.source)) {
           throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
             copySpec: copy,

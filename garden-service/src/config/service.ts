@@ -12,7 +12,11 @@ import { PrimitiveMap, joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray, 
 
 export interface ServiceSpec { }
 
-export interface BaseServiceSpec extends ServiceSpec {
+/**
+ * This interface provides a common set of Service attributes, that are also required for the higher-level
+ * ServiceConfig. It is exported as a convenience for plugins.
+ */
+export interface CommonServiceSpec extends ServiceSpec {
   name: string
   dependencies: string[]
   outputs: PrimitiveMap
@@ -34,13 +38,21 @@ export const baseServiceSchema = Joi.object()
   .meta({ extendable: true })
   .description("The required attributes of a service. This is generally further defined by plugins.")
 
-export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends BaseServiceSpec {
+export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends CommonServiceSpec {
+  sourceModuleName?: string
   // Plugins can add custom fields that are kept here
   spec: T
 }
 
 export const serviceConfigSchema = baseServiceSchema
   .keys({
+    sourceModuleName: joiIdentifier()
+      .optional()
+      .description(deline`
+        The \`validate\` module action should populate this, if the service's code sources are contained in a
+        separate module from the parent module. For example, when the service belongs to a module that contains
+        manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
+      `),
     spec: Joi.object()
       .meta({ extendable: true })
       .description("The service's specification, as defined by its provider plugin."),

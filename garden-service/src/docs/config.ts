@@ -15,19 +15,18 @@ import { safeDump } from "js-yaml"
 import * as linewrap from "linewrap"
 import * as Joi from "joi"
 import { resolve } from "path"
-import {
-  get,
-  padEnd,
-} from "lodash"
-import { containerModuleSpecSchema } from "../plugins/container"
+import { get, padEnd } from "lodash"
+import { containerModuleSpecSchema } from "../plugins/container/config"
 import { execModuleSpecSchema } from "../plugins/exec"
 import { configSchema } from "../config/base"
 import { baseModuleSpecSchema } from "../config/module"
+import { helmModuleSpecSchema } from "../plugins/kubernetes/helm/config"
 
 const maxWidth = 100
 const builtInModuleTypes = [
   { name: "exec", schema: execModuleSpecSchema },
   { name: "container", schema: containerModuleSpecSchema },
+  { name: "helm", schema: helmModuleSpecSchema },
 ]
 
 interface RenderOpts {

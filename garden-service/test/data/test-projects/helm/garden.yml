@@ -1,0 +1,6 @@
+project:
+  name: helm-test
+  environments:
+    - name: local
+      providers:
+        - name: local-kubernetes
