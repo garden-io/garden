@@ -10,17 +10,17 @@ import {
   DeployServiceParams,
   GetServiceOutputsParams,
 } from "../../types/plugin/params"
-import { ServiceStatus } from "../../types/service"
+import { ServiceStatus, Service } from "../../types/service"
 import { join } from "path"
 import {
   gcloud,
-  getProject,
 } from "./common"
 import {
   getEnvironmentStatus,
   GOOGLE_CLOUD_DEFAULT_REGION,
   prepareEnvironment,
 } from "./common"
+import { Provider } from "../../config/project"
 import {
   ContainerModule,
   ContainerModuleSpec,
@@ -36,6 +36,10 @@ export interface GoogleAppEngineServiceSpec extends ContainerServiceSpec {
 }
 
 export interface GoogleAppEngineModule extends ContainerModule<ContainerModuleSpec, GoogleAppEngineServiceSpec> { }
+
+function getAppEngineProject<T extends GoogleAppEngineModule>(service: Service<T>, provider: Provider) {
+  return service.spec.project || provider.config["default-project"] || null
+}
 
 export const gardenPlugin = (): GardenPlugin => ({
   actions: {
@@ -88,7 +92,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         await dumpYaml(appYamlPath, appYaml)
 
         // deploy to GAE
-        const project = getProject(service, ctx.provider)
+        const project = getAppEngineProject(service, ctx.provider)
 
         await gcloud(project).call([
           "app", "deploy", "--quiet",
@@ -101,7 +105,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GoogleAppEngineModule>) {
         // TODO: we may want to pull this from the service status instead, along with other outputs
-        const project = getProject(service, ctx.provider)
+        const project = getAppEngineProject(service, ctx.provider)
 
         return {
           ingress: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,

@@ -1,7 +1,7 @@
 module:
   description: Good morning greeting service
   name: good-morning
-  type: container
+  type: test
   services:
     - name: good-morning
       ports:

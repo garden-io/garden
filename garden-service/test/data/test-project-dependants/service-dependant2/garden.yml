@@ -1,7 +1,7 @@
 module:
   description: Service dependant 2
   name: service-dependant2
-  type: container
+  type: test
   services:
     - name: service-dependant2
       ports:

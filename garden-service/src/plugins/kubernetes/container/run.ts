@@ -101,7 +101,7 @@ export async function runContainerService(
   return runContainerModule({
     ctx,
     module: service.module,
-    command: service.spec.command || [],
+    command: service.spec.args || [],
     interactive,
     runtimeContext,
     timeout,
@@ -120,7 +120,7 @@ export async function runContainerTask(
     log,
     runtimeContext,
     module: task.module,
-    command: task.spec.command || [],
+    command: task.spec.args || [],
     ignoreError: false,
     timeout: task.spec.timeout || 9999,
   })

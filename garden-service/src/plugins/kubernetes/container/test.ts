@@ -18,7 +18,7 @@ export async function testContainerModule(
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
-  const command = testConfig.spec.command
+  const command = testConfig.spec.args
   runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 

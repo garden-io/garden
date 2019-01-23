@@ -2,11 +2,11 @@ import { join } from "path"
 import { Garden } from "../../../src/garden"
 import { CallCommand } from "../../../src/commands/call"
 import { expect } from "chai"
-import { validateContainerModule } from "../../../src/plugins/container/container"
 import { PluginFactory } from "../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../src/types/plugin/params"
 import { ServiceStatus } from "../../../src/types/service"
 import nock = require("nock")
+import { validateTestModule } from "../../helpers"
 
 const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
@@ -39,7 +39,7 @@ const testProvider: PluginFactory = () => {
 
   return {
     moduleActions: {
-      container: { validate: validateContainerModule, getServiceStatus },
+      test: { validate: validateTestModule, getServiceStatus },
     },
   }
 }

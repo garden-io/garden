@@ -21,7 +21,7 @@ module:
         ]
   tasks:
     - name: db-init
-      command: [
+      args: [
         psql,
         -w,
         -U, postgres,
@@ -33,6 +33,6 @@ module:
       dependencies:
         - db
     - name: db-clear
-      command: [psql, -w, -U, postgres, --host=db, --port 5432, -d, postgres, "-c 'TRUNCATE votes'"]
+      args: [psql, -w, -U, postgres, --host=db, --port 5432, -d, postgres, "-c 'TRUNCATE votes'"]
       dependencies:
         - db

@@ -91,9 +91,9 @@ Tests should be specified the same way, and in the case of integration tests the
 ```yaml
 tests:
   - name: unit
-    command: [npm, test]
+    args: [npm, test]
   - name: integ
-    command: [npm, run, integ]
+    args: [npm, run, integ]
     dependencies:
       - go-service
 ```

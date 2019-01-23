@@ -1,6 +1,6 @@
 module:
   name: module-a
-  type: container
+  type: test
   services:
     - name: service-a
       ingresses:

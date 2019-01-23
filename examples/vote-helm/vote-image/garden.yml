@@ -8,4 +8,4 @@ module:
         source: src
   tests:
     - name: unit
-      command: [npm, run, test:unit]
+      args: [npm, run, test:unit]

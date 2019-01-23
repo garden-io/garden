@@ -119,8 +119,8 @@ export async function createDeployment(
     imagePullPolicy: "IfNotPresent",
   }
 
-  if (service.spec.command && service.spec.command.length > 0) {
-    container.args = service.spec.command
+  if (service.spec.args && service.spec.args.length > 0) {
+    container.args = service.spec.args
   }
 
   // if (config.entrypoint) {
@@ -205,7 +205,7 @@ export async function createDeployment(
     configureHotReload({
       target: deployment,
       hotReloadSpec,
-      hotReloadArgs: service.spec.hotReloadCommand,
+      hotReloadArgs: service.spec.hotReloadArgs,
     })
   }
 

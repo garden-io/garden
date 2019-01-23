@@ -321,7 +321,7 @@ describe("createIngresses", () => {
   async function getTestService(...ingresses: ContainerIngressSpec[]): Promise<ContainerService> {
     const spec: ContainerServiceSpec = {
       name: "my-service",
-      command: [],
+      args: [],
       daemon: false,
       dependencies: [],
       ingresses,

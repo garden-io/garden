@@ -2,7 +2,7 @@
 
 This example uses dependency-aware database migrations to demonstrate Garden's _tasks_ functionality.
 
-Tasks are defined under `tasks` in a module's `garden.yml`. They're currently only supported for `container` modules, and consist of a `name`, a `command` and `dependencies`.
+Tasks are defined under `tasks` in a module's `garden.yml`. They're currently only supported for `container` modules, and consist of a `name`, `args` and `dependencies`.
 
 In short, a task is a _command that is run inside an ad-hoc container instance of the module_.
 

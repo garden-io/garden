@@ -7,12 +7,13 @@
  */
 
 import * as td from "testdouble"
+import * as Joi from "joi"
 import { resolve, join } from "path"
 import { remove, readdirSync, existsSync } from "fs-extra"
-import { containerModuleSpecSchema } from "../src/plugins/container/config"
+import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
-import { validate, PrimitiveMap } from "../src/config/common"
+import { validate, PrimitiveMap, joiArray } from "../src/config/common"
 import {
   GardenPlugin,
   PluginActions,
@@ -79,6 +80,51 @@ async function runModule(params: RunModuleParams) {
 
 export const projectRootA = getDataDir("test-project-a")
 
+const testModuleTestSchema = containerTestSchema
+  .keys({ command: Joi.array().items(Joi.string()) })
+
+const testModuleTaskSchema = containerTaskSchema
+  .keys({ command: Joi.array().items(Joi.string()) })
+
+export const testModuleSpecSchema = containerModuleSpecSchema
+  .keys({
+    tests: joiArray(testModuleTestSchema),
+    tasks: joiArray(testModuleTaskSchema),
+  })
+
+export async function validateTestModule({ moduleConfig }: ValidateModuleParams) {
+  moduleConfig.spec = validate(
+    moduleConfig.spec,
+    testModuleSpecSchema,
+    { context: `test module ${moduleConfig.name}` },
+  )
+
+  // validate services
+  moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => ({
+    name: spec.name,
+    dependencies: spec.dependencies,
+    outputs: spec.outputs,
+    sourceModuleName: spec.sourceModuleName,
+    spec,
+  }))
+
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    spec: t,
+    timeout: t.timeout,
+  }))
+
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    spec: t,
+    timeout: t.timeout,
+  }))
+
+  return moduleConfig
+}
+
 export const testPlugin: PluginFactory = (): GardenPlugin => {
   const _config = {}
 
@@ -109,40 +155,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
     moduleActions: {
       test: {
         testModule: testExecModule,
-
-        async validate({ moduleConfig }: ValidateModuleParams) {
-          moduleConfig.spec = validate(
-            moduleConfig.spec,
-            containerModuleSpecSchema,
-            { context: `test module ${moduleConfig.name}` },
-          )
-
-          // validate services
-          moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => ({
-            name: spec.name,
-            dependencies: spec.dependencies,
-            outputs: spec.outputs,
-            sourceModuleName: spec.sourceModuleName,
-            spec,
-          }))
-
-          moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
-            name: t.name,
-            dependencies: t.dependencies,
-            spec: t,
-            timeout: t.timeout,
-          }))
-
-          moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
-            name: t.name,
-            dependencies: t.dependencies,
-            spec: t,
-            timeout: t.timeout,
-          }))
-
-          return moduleConfig
-        },
-
+        validate: validateTestModule,
         build: buildExecModule,
         runModule,
 

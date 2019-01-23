@@ -26,8 +26,8 @@ module:
     - target: /app/
   services:
     - name: test-service
-      command: [npm, start]             # runs `node main.js`
-      hotReloadCommand: [npm, run, dev] # runs `nodemon main.js`
+      args: [npm, start]             # runs `node main.js`
+      hotReloadArgs: [npm, run, dev] # runs `nodemon main.js`
 ```
 
 In the above, the `hotReload` field specifies the destination path inside the running container that the module's (top-level) directory (where its `garden.yml` resides) is synced to.
@@ -46,4 +46,4 @@ You can configure several such `source`/`target` pairs, but note that the `sourc
         target: /app/bar
 ```
 
-Lastly, `hotReloadCommand` determines which command should be run inside the container (when deployed with hot reloading enabled). If no `hotReloadCommand` is specified, `command` is also used in hot reload mode.
+Lastly, `hotReloadArgs` specifies the arguments to use to run the container (when deployed with hot reloading enabled). If no `hotReloadArgs` are specified, `args` is also used in hot reload mode.

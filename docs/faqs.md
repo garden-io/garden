@@ -67,9 +67,9 @@ You can split them up and run tests by their names with the `garden test` comman
 ```yaml
 tests:
   - name: light
-    command: [npm, run, e2e-light]
+    args: [npm, run, e2e-light]
   - name: full
-    command: [npm, run, e2e-full]
+    args: [npm, run, e2e-full]
 ```
 
 And you'd run them with `garden test front-end --name=light`, assuming the service is called front-end.

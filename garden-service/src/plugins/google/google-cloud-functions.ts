@@ -18,7 +18,7 @@ import {
   GetServiceStatusParams,
   ValidateModuleParams,
 } from "../../types/plugin/params"
-import { ServiceState, ServiceStatus, ingressHostnameSchema } from "../../types/service"
+import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
 import {
   resolve,
 } from "path"
@@ -29,13 +29,13 @@ import {
   prepareEnvironment,
   gcloud,
   getEnvironmentStatus,
-  getProject,
   GOOGLE_CLOUD_DEFAULT_REGION,
   GoogleCloudServiceSpec,
 } from "./common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { ModuleSpec } from "../../config/module"
 import { baseServiceSchema } from "../../config/service"
+import { Provider } from "../../config/project"
 
 export interface GcfServiceSpec extends GoogleCloudServiceSpec {
   entrypoint?: string,
@@ -74,6 +74,10 @@ const gcfModuleSpecSchema = Joi.object()
   })
 
 export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> { }
+
+function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provider) {
+  return service.spec.project || provider.config["default-project"] || null
+}
 
 export async function parseGcfModule(
   { ctx, moduleConfig }: ValidateModuleParams<GcfModule>,
@@ -118,7 +122,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const { ctx, service } = params
 
         // TODO: provide env vars somehow to function
-        const project = getProject(service, ctx.provider)
+        const project = getGcfProject(service, ctx.provider)
         const functionPath = resolve(service.module.path, service.spec.path)
         const entrypoint = service.spec.entrypoint || service.name
 
@@ -136,7 +140,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
       async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GcfModule>) {
         // TODO: we may want to pull this from the service status instead, along with other outputs
-        const project = getProject(service, ctx.provider)
+        const project = getGcfProject(service, ctx.provider)
 
         return {
           ingress: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,
@@ -149,7 +153,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 export async function getServiceStatus(
   { ctx, service }: GetServiceStatusParams<GcfModule>,
 ): Promise<ServiceStatus> {
-  const project = getProject(service, ctx.provider)
+  const project = getGcfProject(service, ctx.provider)
   const functions: any[] = await gcloud(project).json(["beta", "functions", "list"])
   const providerId = `projects/${project}/locations/${GOOGLE_CLOUD_DEFAULT_REGION}/functions/${service.name}`
 

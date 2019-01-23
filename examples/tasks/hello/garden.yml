@@ -4,7 +4,7 @@ module:
   type: container
   services:
     - name: hello
-      command: [npm, start]
+      args: [npm, start]
       ports:
         - name: http
           containerPort: 8080
@@ -15,12 +15,12 @@ module:
         - node-migration
   tests:
     - name: unit
-      command: [npm, test]
+      args: [npm, test]
   tasks:
     - name: node-migration
-      command: [knex, migrate:latest]
+      args: [knex, migrate:latest]
       description: Creates the users table.
       dependencies:
         - postgres
     - name: foo-task
-      command: [echo hello]
+      args: [echo, hello]

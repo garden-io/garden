@@ -4,7 +4,7 @@ module:
   type: container
   services:
     - name: node-service
-      command: [npm, start]
+      args: [npm, start]
       ports:
         - name: http
           containerPort: 8080
@@ -17,8 +17,8 @@ module:
         - go-service
   tests:
     - name: unit
-      command: [npm, test]
+      args: [npm, test]
     - name: integ
-      command: [npm, run, integ]
+      args: [npm, run, integ]
       dependencies:
         - go-service

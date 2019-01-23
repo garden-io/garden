@@ -36,7 +36,6 @@ export const baseTestSpecSchema = Joi.object()
       .default(null)
       .description("Maximum duration (in seconds) of the test run."),
   })
-  .description("Required configuration for module tests.")
 
 export interface TestConfig<T extends TestSpec = TestSpec> extends BaseTestSpec {
   // Plugins can add custom fields that are kept here
