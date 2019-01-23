@@ -11,8 +11,9 @@ import * as execa from "execa"
 import { writeFile, readFile, ensureDir, pathExists, remove } from "fs-extra"
 import { getUrlChecksum } from "./support/support-util"
 import * as handlebars from "handlebars"
-import { isString, clone, extend } from "lodash"
+import { isString, clone, extend, find } from "lodash"
 
+const Octokit = require("@octokit/rest")
 const gulp = require("gulp")
 const checkLicense = require("gulp-license-check")
 
@@ -69,8 +70,7 @@ gulp.task("check-licenses", () =>
  */
 gulp.task("update-brew", async () => {
   // clone the homebrew-garden tap repo
-  const packageJson = require(join(__dirname, "garden-service", "/package.json"))
-
+  console.log("Pulling the homebrew repo")
   await ensureDir(tmpDir)
   const brewRepoDir = resolve(tmpDir, "homebrew-garden")
   if (await pathExists(brewRepoDir)) {
@@ -79,41 +79,54 @@ gulp.task("update-brew", async () => {
   await execa("git", ["clone", "git@github.com:garden-io/homebrew-garden.git"], { cwd: tmpDir })
 
   // read the existing formula
+  console.log("Reading currently published formula")
   const formulaDir = resolve(brewRepoDir, "Formula")
   await ensureDir(formulaDir)
-  const formulaPath = resolve(formulaDir, "garden-cli.rb")
-  const existingFormula = await pathExists(formulaPath) ? (await readFile(formulaPath)).toString() : ""
 
   // compile the formula handlebars template
   const templatePath = resolve(__dirname, "support", "homebrew-formula.rb")
   const templateString = (await readFile(templatePath)).toString()
   const template = handlebars.compile(templateString)
 
-  // get the metadata from npm
-  const metadataJson = await execa.stdout("npm", ["view", "garden-cli", "--json"])
-  const metadata = JSON.parse(metadataJson)
-  const version = metadata["dist-tags"].latest
-  const tarballUrl = metadata.dist.tarball
-  const sha256 = metadata.dist.shasum.length === 64
-    ? metadata.dist.shasum
-    : await getUrlChecksum(tarballUrl, "sha256")
+  // get the metadata from GitHub
+  console.log("Preparing formula")
+  const octokit = new Octokit()
+  const repoName = "garden-io/garden"
+
+  // note: this excludes pre-releases
+  const latestRelease = await octokit.request(`GET /repos/${repoName}/releases/latest`)
+
+  const version = latestRelease.data.tag_name.slice(1)
+  const releaseId = latestRelease.data.id
+
+  const assets = await octokit.request(`GET /repos/${repoName}/releases/${releaseId}/assets`)
+
+  const tarballUrl = find(assets.data, a => a.name.includes("macos")).browser_download_url
+  const sha256 = await getUrlChecksum(tarballUrl, "sha256")
 
   const formula = template({
     version,
-    homepage: metadata.homepage || packageJson.homepage,
-    description: metadata.description,
+    homepage: "https://garden.io",
+    // using a hard-coded description here because Homebrew limits to 80 characters
+    description: "Development engine for Kubernetes",
     tarballUrl,
     sha256,
   })
 
+  const formulaPath = resolve(formulaDir, "garden-cli.rb")
+  const existingFormula = await pathExists(formulaPath) ? (await readFile(formulaPath)).toString() : ""
+
   if (formula === existingFormula) {
     console.log("No changes to formula")
   } else {
+    console.log("Writing new formula to " + formulaPath)
     await writeFile(formulaPath, formula)
 
     // check if the formula is OK
+    console.log("Auditing formula")
     await execa("brew", ["audit", formulaPath])
 
+    console.log("Pushing to git")
     for (const args of [
       ["add", formulaPath],
       ["commit", "-m", `update to ${version}`],

@@ -288,35 +288,6 @@ jobs:
           paths:
             # Save the built output for future
             - dashboard/build/
-  release-service-npm:
-    <<: *node-config
-    steps:
-      - checkout
-      - npm_install
-      - *attach-workspace
-      - include_dashboard
-      - run:
-          name: Authenticate with registry
-          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-      - run:
-          name: Publish package
-          command: |
-            cd garden-service
-            VERSION=$(cat package.json | jq -r .version)
-            VERSION_LOCK=$(cat package-lock.json | jq -r .version)
-            [ "$VERSION" == "$VERSION_LOCK" ] || (echo "package.json and package-lock.json contain different versions refusing to release"; exit 1)
-            # package.json contains 0.8 and our tagging convention is v0.8
-            [ "v$VERSION" == "$CIRCLE_TAG" ] || (echo "package.json and CIRCLE_TAG contain different versions refusing to release"; exit 1)
-
-            # If version number is a pre-release set npm tag to --tag=beta so it is not installed when you install latest
-            NPM_EXTRA=""
-            if [[ "$CIRCLE_TAG" == *"rc"* ]]; then
-              echo "$CIRCLE_TAG contains rc setting release to --tag=beta";
-              NPM_EXTRA="--tag=beta"
-            fi
-
-            npm publish $NPM_EXTRA
-
   release-service-pkg:
     <<: *node-config
     steps:
@@ -399,12 +370,6 @@ workflows:
           <<: *only-tags
       - release-service-pkg:
           <<: *only-tags
-          requires:
-            - build-service
-            - build-dashboard
-      - release-service-npm:
-          <<: *only-tags
-          context: npm
           requires:
             - build-service
             - build-dashboard
