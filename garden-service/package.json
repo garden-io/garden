@@ -52,6 +52,7 @@
     "get-port": "^4.0.0",
     "has-ansi": "^3.0.0",
     "ignore": "^5.0.4",
+    "indent-string": "^3.2.0",
     "inquirer": "^6.2.1",
     "joi": "^14.3.0",
     "js-yaml": "^3.12.0",
