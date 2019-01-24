@@ -15,17 +15,10 @@ import Table from "./table"
 import { ExternalLink } from "./links"
 
 import {
-  FetchStatusResponse,
   ServiceStatus,
-  FetchConfigResponse,
   Module,
   ServiceIngress,
 } from "../api/types"
-
-interface Props {
-  status: FetchStatusResponse
-  config: FetchConfigResponse
-}
 
 export function getIngressUrl(ingress: ServiceIngress) {
   return normalizeUrl(format({
@@ -34,15 +27,6 @@ export function getIngressUrl(ingress: ServiceIngress) {
     port: ingress.port,
     pathname: ingress.path,
   }))
-}
-
-const Overview: React.SFC<Props> = ({ config, status }) => {
-  return (
-    <div>
-      <Modules modules={config.modules} />
-      <Services modules={config.modules} services={status.services} />
-    </div>
-  )
 }
 
 interface ServicesProps {
@@ -54,7 +38,7 @@ interface ModulesProps {
   modules: Module[]
 }
 
-const Modules: React.SFC<ModulesProps> = ({ modules }) => {
+export const Modules: React.SFC<ModulesProps> = ({ modules }) => {
   const rowHeaders = ["Name", "Type", "Services"]
   const rows = modules.map(module => [
     module.name,
@@ -70,7 +54,7 @@ const Modules: React.SFC<ModulesProps> = ({ modules }) => {
   )
 }
 
-const Services: React.SFC<ServicesProps> = ({ modules, services }) => {
+export const Services: React.SFC<ServicesProps> = ({ modules, services }) => {
   const rowHeaders = ["Name", "Status", "Module", "Ingresses"]
   const rows = Object.keys(services).map(service => [
     service,
@@ -107,5 +91,3 @@ const Ingresses: React.SFC<IngressesProp> = ({ ingresses }) => {
     </div>
   )
 }
-
-export default Overview

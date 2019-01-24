@@ -6,26 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React from "react"
+import React, { useContext, useEffect } from "react"
 
-import { ConfigConsumer } from "../context/config"
-import FetchContainer from "./fetch-container"
-
-import { fetchLogs } from "../api"
-// tslint:disable-next-line:no-unused (https://github.com/palantir/tslint/issues/4022)
-import { FetchLogResponse } from "../api/types"
-
-import Logs from "../components/logs"
 import PageError from "../components/page-error"
+import Logs from "../components/logs"
+import LoadWrapper from "../components/load-wrapper"
+import { DataContext } from "../context/data"
 
-export default () => (
-  <FetchContainer<FetchLogResponse> ErrorComponent={PageError} fetchFn={fetchLogs}>
-    {({ data: logs }) => (
-      <ConfigConsumer>
-        {({ config }) => (
-          <Logs config={config} logs={logs} />
-        )}
-      </ConfigConsumer>
-    )}
-  </FetchContainer>
-)
+export default () => {
+  const {
+    actions: { loadLogs, loadConfig },
+    store: { config, logs },
+  } = useContext(DataContext)
+
+  useEffect(loadConfig, [])
+  useEffect(loadLogs, [])
+
+  const isLoading = !config.data || !logs.data || config.loading || logs.loading
+  const error = config.error || logs.error
+
+  return (
+    <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
+      <Logs config={config.data} logs={logs.data} />
+    </LoadWrapper>
+  )
+}

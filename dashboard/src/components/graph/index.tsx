@@ -224,8 +224,8 @@ class Chart extends Component<Props, State> {
   }
 
   componentDidUpdate(_prevProps: Props) {
-    const message = this.props.message
-    if (message.type === "event") {
+    const { message } = this.props
+    if (message && message.type === "event") {
       this.updateNodeClass(message)
     }
   }

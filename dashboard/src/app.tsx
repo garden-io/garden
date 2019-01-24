@@ -23,8 +23,7 @@ import { colors } from "./styles/variables"
 import "flexboxgrid/dist/flexboxgrid.min.css"
 import "./styles/padding-margin-mixin.scss"
 import { EventProvider } from "./context/events"
-import { ConfigProvider } from "./context/config"
-import { StatusProvider } from "./context/status"
+import { DataProvider } from "./context/data"
 
 const SidebarWrapper = styled.div`
   border-right: 1px solid ${colors.border};
@@ -36,38 +35,36 @@ const SidebarWrapper = styled.div`
 
 const App = () => (
   <div>
-    <StatusProvider>
-      <ConfigProvider>
-        <EventProvider>
+    <DataProvider>
+      <EventProvider>
+        <div className={css`
+          display: flex;
+          height: 100vh;
+          max-height: 100vh;
+          overflow-y: hidden;
+        `}>
+          <SidebarWrapper>
+            <Sidebar />
+          </SidebarWrapper>
           <div className={css`
             display: flex;
-            height: 100vh;
-            max-height: 100vh;
-            overflow-y: hidden;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow-y: auto;
           `}>
-            <SidebarWrapper>
-              <Sidebar />
-            </SidebarWrapper>
-            <div className={css`
-              display: flex;
-              flex-direction: column;
+            <div className={cls(css`
+              background-color: ${colors.lightGray};
               flex-grow: 1;
-              overflow-y: auto;
-            `}>
-              <div className={cls(css`
-                background-color: ${colors.lightGray};
-                flex-grow: 1;
-              `, "p-2")}>
-                <Route exact path="/" component={Overview} />
-                <Route path="/logs/" component={Logs} />
-                <Route path="/graph/" component={Graph} />
-                <Route path="/providers/:id" component={Provider} />
-              </div>
+            `, "p-2")}>
+              <Route exact path="/" component={Overview} />
+              <Route path="/logs/" component={Logs} />
+              <Route path="/graph/" component={Graph} />
+              <Route path="/providers/:id" component={Provider} />
             </div>
           </div>
-        </EventProvider>
-      </ConfigProvider>
-    </StatusProvider>
+        </div>
+      </EventProvider>
+    </DataProvider>
   </div>
 )
 
