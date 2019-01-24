@@ -2,7 +2,7 @@ import { expect } from "chai"
 import * as td from "testdouble"
 import { join, resolve } from "path"
 import { Garden } from "../../src/garden"
-import { detectCycles } from "../../src/util/detectCycles"
+import { detectCycles } from "../../src/util/validate-dependencies"
 import {
   dataDir,
   expectError,
@@ -328,6 +328,24 @@ describe("Garden", () => {
 
       const modules = await garden.getModules(undefined, true)
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
+    })
+
+    describe("detectMissingDependencies", () => {
+      it("should throw an error when a build dependency is missing", async () => {
+        const projectRoot = join(__dirname, "..", "data", "test-projects", "missing-deps", "missing-build-dep")
+        const garden = await makeTestGarden(projectRoot)
+        await expectError(
+          async () => await garden.scanModules(),
+          "configuration")
+      })
+
+      it("should throw an error when a runtime dependency is missing", async () => {
+        const projectRoot = join(__dirname, "..", "data", "test-projects", "missing-deps", "missing-runtime-dep")
+        const garden = await makeTestGarden(projectRoot)
+        await expectError(
+          async () => await garden.scanModules(),
+          "configuration")
+      })
     })
 
     describe("detectCircularDependencies", () => {

@@ -96,7 +96,7 @@ import {
 } from "./config/base"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore } from "./config-store"
-import { detectCircularDependencies } from "./util/detectCycles"
+import { validateDependencies } from "./util/validate-dependencies"
 import {
   getLinkedSources,
   ExternalSourceType,
@@ -837,14 +837,18 @@ export class Garden {
       const moduleConfigContext = new ModuleConfigContext(
         this, this.log, this.environment, Object.values(this.moduleConfigs),
       )
-      this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
 
-      await this.detectCircularDependencies()
+      this.validateDependencies()
+
+      this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
     })
   }
 
-  private async detectCircularDependencies() {
-    return detectCircularDependencies(Object.values(this.moduleConfigs))
+  private validateDependencies() {
+    validateDependencies(
+      Object.values(this.moduleConfigs),
+      Object.keys(this.serviceNameIndex),
+      Object.keys(this.taskNameIndex))
   }
 
   /*
@@ -937,7 +941,7 @@ export class Garden {
 
     if (this.modulesScanned) {
       // need to re-run this if adding modules after initial scan
-      await this.detectCircularDependencies()
+      await this.validateDependencies()
     }
   }
 
