@@ -131,6 +131,7 @@ export async function getIgnorer(rootPath: string): Promise<Ignorer> {
   ig.add([
     "node_modules",
     ".git",
+    "*.log",
     GARDEN_DIR_NAME,
   ])
 
