@@ -8,13 +8,11 @@
 
 import { Module } from "../../types/module"
 import { PrepareEnvironmentParams } from "../../types/plugin/params"
-import { Service } from "../../types/service"
 import { ConfigurationError } from "../../exceptions"
 import { ExecTestSpec } from "../exec"
 import { GCloud } from "./gcloud"
 import { ModuleSpec } from "../../config/module"
 import { CommonServiceSpec } from "../../config/service"
-import { Provider } from "../../config/project"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
@@ -92,8 +90,4 @@ export async function prepareEnvironment({ status, log }: PrepareEnvironmentPara
 
 export function gcloud(project?: string, account?: string) {
   return new GCloud({ project, account })
-}
-
-export function getProject<T extends GoogleCloudModule>(service: Service<T>, provider: Provider) {
-  return service.spec.project || provider.config["default-project"] || null
 }

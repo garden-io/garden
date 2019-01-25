@@ -86,7 +86,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           TaskTemplate: {
             ContainerSpec: {
               Image: identifier,
-              Command: service.spec.command,
+              Command: service.spec.args,
               Env: envVars,
               Mounts: volumeMounts,
             },

@@ -1,7 +1,7 @@
 module:
   description: Build dependency
   name: build-dependency
-  type: container
+  type: test
   services:
     - name: build-dependency
       ports:

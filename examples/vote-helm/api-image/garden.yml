@@ -4,4 +4,4 @@ module:
   name: api-image
   tests:
     - name: unit
-      command: [echo, ok]
+      args: [echo, ok]

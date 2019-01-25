@@ -136,7 +136,7 @@ module:
   type: container
   services:
     - name: hello-container
-      command: [npm, start]
+      args: [npm, start]
       ports:
         - name: http
           containerPort: 8080
@@ -153,8 +153,8 @@ module:
 ```
 
 Here the `services` field defines the services exposed by the module. We only have one service in this example,
-but you may add another service, for example a background worker, that is started using a different
-`command`.
+but you may add another service, for example a background worker, that is started using different
+`args`.
 
 For more details on how to configure services in a `container` module, please refer to the
 [Config Files Reference](../reference/config.md).
@@ -174,15 +174,15 @@ module:
   ...
   tests:
     - name: unit
-      command: [npm, test]
+      args: [npm, test]
     - name: integ
-      command: [npm, run, integ]
+      args: [npm, run, integ]
       dependencies:
         - hello-function
 ```
 
 Here we define two types of tests. First are unit tests, which can be run on their own without any dependencies. The
-framework only needs to know which command to run, and the rest is handled by the module's code itself.
+framework only needs to know which args to run the container with, and the rest is handled by the module's code itself.
 
 The other test suite, `integ`, leverages the Garden framework's ability to manage runtime dependencies for tests. In
 this case, the integ test suite needs the `hello-function` service to be running for the tests to execute.

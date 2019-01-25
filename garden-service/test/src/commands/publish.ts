@@ -4,10 +4,9 @@ import { join } from "path"
 import { expect } from "chai"
 import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
-import { validateContainerModule } from "../../../src/plugins/container/container"
 import { PluginFactory } from "../../../src/types/plugin/plugin"
 import { PublishCommand } from "../../../src/commands/publish"
-import { makeTestGardenA } from "../../helpers"
+import { makeTestGardenA, validateTestModule } from "../../helpers"
 import { expectError, taskResultOutputs } from "../../helpers"
 import { ModuleVersion } from "../../../src/vcs/base"
 import { LogEntry } from "../../../src/logger/log-entry"
@@ -29,8 +28,8 @@ const publishModule = async () => {
 const testProvider: PluginFactory = () => {
   return {
     moduleActions: {
-      container: {
-        validate: validateContainerModule,
+      test: {
+        validate: validateTestModule,
         getBuildStatus,
         build,
         publishModule,

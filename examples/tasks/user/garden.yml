@@ -4,7 +4,7 @@ module:
   type: container
   services:
     - name: user
-      command: [ruby, app.rb]
+      args: [ruby, app.rb]
       ports:
         - name: http
           containerPort: 8084
@@ -12,7 +12,7 @@ module:
         - ruby-migration
   tasks:
     - name: ruby-migration
-      command: [rake, db:migrate]
+      args: [rake, db:migrate]
       description: Populates the users table with a few records.
       dependencies:
         # node-migration creates the users table, which has to exist before we use

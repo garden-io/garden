@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import * as dedent from "dedent"
 import * as indentString from "indent-string"
 import { sortBy, omit, uniq } from "lodash"
 import {
@@ -28,10 +27,13 @@ const getTasksArgs = {
 type GetTasksArguments = typeof getTasksArgs
 
 export function prettyPrintTask(task: Task): string {
-  let out = dedent`
-  ${chalk.cyan.bold(task.name)}
-    ${printField("command", (task.spec.command || []).join(" "))}
-  `
+  let out = `${chalk.cyan.bold(task.name)}`
+
+  if (task.spec.args || task.spec.args === null) {
+    out += "\n" + indentString(printField("args", task.spec.args), 2)
+  } else {
+    out += "\n" + indentString(printField("command", task.spec.command), 2)
+  }
 
   if (task.spec.description) {
     out += "\n" + indentString(printField("description", task.spec.description), 2)
@@ -40,6 +42,8 @@ export function prettyPrintTask(task: Task): string {
   if (task.config.dependencies.length) {
     out += "\n" + indentString(`${chalk.gray("dependencies")}:`, 2) + "\n"
     out += indentString(task.config.dependencies.map(depName => `• ${depName}`).join("\n"), 4)
+    out += "\n"
+  } else {
     out += "\n"
   }
 

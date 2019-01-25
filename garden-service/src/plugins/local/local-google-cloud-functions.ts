@@ -46,7 +46,7 @@ export const gardenPlugin = (): GardenPlugin => ({
             outputs: {
               ingress: `http://${s.name}:${emulatorPort}/local/local/${functionEntrypoint}`,
             },
-            command: ["/app/start.sh", functionEntrypoint],
+            args: ["/app/start.sh", functionEntrypoint],
             daemon: false,
             ingresses: [{
               name: "default",

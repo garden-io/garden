@@ -4,7 +4,7 @@ module:
   name: api
   services:
     - name: api
-      command: [python, app.py]
+      args: [python, app.py]
       ingresses:
         - path: /
           hostname: api.local.app.garden
@@ -17,4 +17,4 @@ module:
         - redis
   tests:
     - name: unit
-      command: [echo, ok]
+      args: [echo, ok]

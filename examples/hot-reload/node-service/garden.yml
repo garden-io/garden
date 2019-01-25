@@ -7,7 +7,7 @@ module:
       - target: /app/
   services:
     - name: node-service
-      command: [npm, start]
+      args: [npm, start]
       hotReloadCommand: [npm, run, dev]
       ports:
         - name: http

@@ -480,11 +480,9 @@ module:
   # Optional.
   image:
 
-  # When this field is used, the files or directories specified within are automatically synced
-  # into the running container when they're modified. Additionally, any of this module's services
-  # that define a `hotReloadCommand` will be run with that command instead of the one specified in
-  # their `command` field. Services are only deployed with hot reloading enabled when their names
-  # are passed to the `--hot-reload` option in a call to the `deploy` or `dev` command.
+  # Specifies which files or directories to sync to which paths inside the running containers of
+  # hot reload-enabled services when those files or directories are modified. Applies to this
+  # module's services, and to services with this module as their `sourceModule`.
   #
   # Optional.
   hotReload: 
@@ -550,7 +548,7 @@ module:
       # The arguments to run the container with when starting the service.
       #
       # Optional.
-      command: 
+      args: 
         -
 
       # Whether to run the service as a daemon (to ensure only one runs per node).
@@ -625,10 +623,10 @@ module:
         tcpPort:
 
       # If this module uses the `hotReload` field, the container will be run with these arguments
-      # instead of those in `command` when the service is deployed with hot reloading enabled.
+      # instead of those in `args` when the service is deployed with hot reloading enabled.
       #
       # Optional.
-      hotReloadCommand: 
+      hotReloadArgs: 
         -
 
       # List of ports that the service container exposes.
@@ -693,9 +691,6 @@ module:
   #
   # Optional.
   tests: 
-    # The test specification of an exec module.
-    #
-    # Optional.
     - # The name of the test.
       #
       # Required.
@@ -713,10 +708,14 @@ module:
       # Optional.
       timeout: null
 
-      # The command to run in the module build context in order to test it.
+      # The arguments used to run the test inside the container.
+      #
+      # Example:
+      #   - npm
+      #   - test
       #
       # Optional.
-      command: 
+      args: 
         -
 
       # Key/value map of environment variables. Keys must be valid POSIX environment variable
@@ -731,7 +730,7 @@ module:
   #
   # Optional.
   tasks: 
-    # A task that can be run in this module.
+    # A task that can be run in the container.
     #
     # Optional.
     - # The name of the task.
@@ -756,10 +755,14 @@ module:
       # Optional.
       timeout: null
 
-      # The command that the task should run inside the container.
+      # The arguments used to run the task inside the container.
+      #
+      # Example:
+      #   - rake
+      #   - 'db:migrate'
       #
       # Optional.
-      command: 
+      args: 
         -
 ```
 
@@ -943,9 +946,6 @@ module:
   #
   # Optional.
   tasks: 
-    # Required configuration for module tests.
-    #
-    # Optional.
     - # The name of the test.
       #
       # Required.
@@ -1032,9 +1032,6 @@ module:
   #
   # Optional.
   tests: 
-    # Required configuration for module tests.
-    #
-    # Optional.
     - # The name of the test.
       #
       # Required.

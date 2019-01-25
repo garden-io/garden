@@ -20,14 +20,10 @@ import {
 } from "../../config/common"
 import { Service, ingressHostnameSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import {
-  execTestSchema,
-  ExecTestSpec,
-  ExecTaskSpec,
-  execTaskSpecSchema,
-} from "../exec"
 import { ModuleSpec, ModuleConfig } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSchema } from "../../config/service"
+import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
+import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 
 export interface ContainerIngressSpec {
   hostname?: string
@@ -64,12 +60,12 @@ export interface ServiceHealthCheckSpec {
 }
 
 export interface ContainerServiceSpec extends CommonServiceSpec {
-  command: string[],
+  args: string[],
   daemon: boolean
   ingresses: ContainerIngressSpec[],
   env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
-  hotReloadCommand?: string[],
+  hotReloadArgs?: string[],
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
 }
@@ -104,11 +100,10 @@ const hotReloadConfigSchema = Joi.object()
       ),
   })
   .description(deline`
-    When this field is used, the files or directories specified within are automatically synced into the
-    running container when they're modified. Additionally, any of this module's services that define a
-    \`hotReloadCommand\` will be run with that command instead of the one specified in their \`command\` field.
-    Services are only deployed with hot reloading enabled when their names are passed to the \`--hot-reload\` option
-    in a call to the \`deploy\` or \`dev\` command.`)
+    Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
+    services when those files or directories are modified. Applies to this module's services, and to services
+    with this module as their \`sourceModule\`.
+  `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
@@ -189,7 +184,7 @@ const volumeSchema = Joi.object()
 
 const serviceSchema = baseServiceSchema
   .keys({
-    command: Joi.array().items(Joi.string())
+    args: Joi.array().items(Joi.string())
       .description("The arguments to run the container with when starting the service."),
     daemon: Joi.boolean()
       .default(false)
@@ -203,10 +198,10 @@ const serviceSchema = baseServiceSchema
     env: joiEnvVars(),
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),
-    hotReloadCommand: Joi.array().items(Joi.string())
+    hotReloadArgs: Joi.array().items(Joi.string())
       .description(deline`
         If this module uses the \`hotReload\` field, the container will be run with
-        these arguments instead of those in \`command\` when the service is deployed
+        these arguments instead of those in \`args\` when the service is deployed
         with hot reloading enabled.`,
       ),
     ports: joiArray(portSchema)
@@ -246,19 +241,30 @@ export const containerRegistryConfigSchema = Joi.object()
 
 export interface ContainerService extends Service<ContainerModule> { }
 
-export interface ContainerTestSpec extends ExecTestSpec { }
-
-export const containerTestSchema = execTestSchema
-
-export interface ContainerTaskSpec extends ExecTaskSpec {
-  command: string[],
+export interface ContainerTestSpec extends BaseTestSpec {
+  args: string[],
+  env: { [key: string]: string },
 }
 
-export const containerTaskSchema = execTaskSpecSchema
+export const containerTestSchema = baseTestSpecSchema
   .keys({
-    command: Joi.array().items(Joi.string())
-      .description("The command that the task should run inside the container."),
+    args: Joi.array().items(Joi.string())
+      .description("The arguments used to run the test inside the container.")
+      .example([["npm", "test"], {}]),
+    env: joiEnvVars(),
   })
+
+export interface ContainerTaskSpec extends BaseTaskSpec {
+  args: string[],
+}
+
+export const containerTaskSchema = baseTaskSpecSchema
+  .keys({
+    args: Joi.array().items(Joi.string())
+      .description("The arguments used to run the task inside the container.")
+      .example([["rake", "db:migrate"], {}]),
+  })
+  .description("A task that can be run in the container.")
 
 export interface ContainerModuleSpec extends ModuleSpec {
   buildArgs: PrimitiveMap,

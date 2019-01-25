@@ -108,7 +108,7 @@ module:
   type: container
   services:
     - name: node-service
-      command: [npm, start]
+      args: [npm, start]
       ports:
         - name: http
           containerPort: 8080

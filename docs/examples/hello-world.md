@@ -123,9 +123,9 @@ Here's what it looks like in practice:
 ```yml
   tests:
     - name: unit
-      command: [npm, test]
+      args: [npm, test]
     - name: integ
-      command: [npm, run, integ]
+      args: [npm, run, integ]
       dependencies:
         - hello-function
 ```

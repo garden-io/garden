@@ -197,7 +197,7 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
-              command: ["echo"],
+              args: ["echo"],
               dependencies: [],
               daemon: false,
               ingresses: [
@@ -226,13 +226,13 @@ describe("plugins.container", () => {
             }],
             tasks: [{
               name: "task-a",
-              command: ["echo", "OK"],
+              args: ["echo", "OK"],
               dependencies: [],
               timeout: null,
             }],
             tests: [{
               name: "unit",
-              command: ["echo", "OK"],
+              args: ["echo", "OK"],
               dependencies: [],
               env: {},
               timeout: null,
@@ -259,7 +259,7 @@ describe("plugins.container", () => {
             services:
               [{
                 name: "service-a",
-                command: ["echo"],
+                args: ["echo"],
                 dependencies: [],
                 daemon: false,
                 ingresses: [{
@@ -278,14 +278,14 @@ describe("plugins.container", () => {
             tasks:
               [{
                 name: "task-a",
-                command: ["echo", "OK"],
+                args: ["echo", "OK"],
                 dependencies: [],
                 timeout: null,
               }],
             tests:
               [{
                 name: "unit",
-                command: ["echo", "OK"],
+                args: ["echo", "OK"],
                 dependencies: [],
                 env: {},
                 timeout: null,
@@ -299,7 +299,7 @@ describe("plugins.container", () => {
               spec:
               {
                 name: "service-a",
-                command: ["echo"],
+                args: ["echo"],
                 dependencies: [],
                 daemon: false,
                 ingresses: [{
@@ -321,7 +321,7 @@ describe("plugins.container", () => {
               dependencies: [],
               name: "task-a",
               spec: {
-                command: [
+                args: [
                   "echo",
                   "OK",
                 ],
@@ -338,7 +338,7 @@ describe("plugins.container", () => {
               spec:
               {
                 name: "unit",
-                command: ["echo", "OK"],
+                args: ["echo", "OK"],
                 dependencies: [],
                 env: {},
                 timeout: null,
@@ -374,7 +374,7 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
-              command: ["echo"],
+              args: ["echo"],
               dependencies: [],
               daemon: false,
               ingresses: [
@@ -390,13 +390,13 @@ describe("plugins.container", () => {
             }],
             tasks: [{
               name: "task-a",
-              command: ["echo"],
+              args: ["echo"],
               dependencies: [],
               timeout: null,
             }],
             tests: [{
               name: "unit",
-              command: ["echo", "OK"],
+              args: ["echo", "OK"],
               dependencies: [],
               env: {},
               timeout: null,
@@ -430,7 +430,7 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
-              command: ["echo"],
+              args: ["echo"],
               dependencies: [],
               daemon: false,
               ingresses: [],
@@ -447,7 +447,7 @@ describe("plugins.container", () => {
             }],
             tasks: [{
               name: "task-a",
-              command: ["echo"],
+              args: ["echo"],
               dependencies: [],
               timeout: null,
             }],
@@ -481,7 +481,7 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
-              command: ["echo"],
+              args: ["echo"],
               dependencies: [],
               daemon: false,
               ingresses: [],
@@ -495,7 +495,7 @@ describe("plugins.container", () => {
             }],
             tasks: [{
               name: "task-a",
-              command: ["echo"],
+              args: ["echo"],
               dependencies: [],
               timeout: null,
             }],

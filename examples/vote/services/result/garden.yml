@@ -4,7 +4,7 @@ module:
   name: result
   services:
     - name: result
-      command: [nodemon, server.js]
+      args: [nodemon, server.js]
       dependencies:
         - db-init
       ingresses:
@@ -17,6 +17,6 @@ module:
           containerPort: 80
   tests:
     - name: integ
-      command: [echo, ok]
+      args: [echo, ok]
       dependencies:
         - db-init

@@ -9,7 +9,7 @@ module:
         source: src
   services:
     - name: vote
-      command: [npm, run, serve]
+      args: [npm, run, serve]
       hotReloadCommand: [npm, run, serve]
       ports:
         - name: http
@@ -22,8 +22,8 @@ module:
         - api
   tests:
     - name: unit
-      command: [npm, run, test:unit]
+      args: [npm, run, test:unit]
     - name: integ
-      command: [npm, run, test:integ]
+      args: [npm, run, test:integ]
       dependencies:
         - api

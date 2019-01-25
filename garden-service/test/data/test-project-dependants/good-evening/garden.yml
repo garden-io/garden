@@ -1,7 +1,7 @@
 module:
   description: Good evening greeting service
   name: good-evening
-  type: container
+  type: test
   services:
     - name: good-evening
       ports:

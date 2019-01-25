@@ -15,7 +15,7 @@ module:
         source: src
   services:
     - name: website
-      command: [npm, run, dev]
+      args: [npm, run, dev]
       hotReloadCommand: [npm, run, dev]
       env:
         GATSBY_WEBPACK_PUBLICPATH: /
