@@ -8,6 +8,7 @@
   * [Features and usage](./using-garden/features-and-usage.md)
   * [Configuration files](./using-garden/configuration-files.md)
   * [Remote Clusters](./using-garden/remote-clusters.md)
+  * [Using Helm charts](./using-garden/using-helm-charts.md)
   * [Hot Reload](./using-garden/hot-reload.md)
 * [Example projects](./examples/README.md)
   * [Hello world](./examples/hello-world.md)

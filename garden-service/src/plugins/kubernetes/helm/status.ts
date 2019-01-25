@@ -35,12 +35,12 @@ const helmStatusCodeMap: { [code: number]: ServiceState } = {
 }
 
 export async function getServiceStatus(
-  { ctx, module, service, log, buildDependencies, hotReload }: GetServiceStatusParams<HelmModule>,
+  { ctx, module, service, log, hotReload }: GetServiceStatusParams<HelmModule>,
 ): Promise<ServiceStatus> {
   // need to build to be able to check the status
-  const buildStatus = await getExecModuleBuildStatus({ ctx, module, log, buildDependencies })
+  const buildStatus = await getExecModuleBuildStatus({ ctx, module, log })
   if (!buildStatus.ready) {
-    await buildHelmModule({ ctx, module, log, buildDependencies })
+    await buildHelmModule({ ctx, module, log })
   }
 
   // first check if the installed objects on the cluster match the current code

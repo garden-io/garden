@@ -12,7 +12,14 @@ import { getAppNamespace } from "../namespace"
 import { waitForResources } from "../status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
-import { getChartPath, getValuesPath, getReleaseName, getChartResources, findServiceResource } from "./common"
+import {
+  getChartPath,
+  getValuesPath,
+  getReleaseName,
+  getChartResources,
+  findServiceResource,
+  getServiceResourceSpec,
+} from "./common"
 import { getReleaseStatus, getServiceStatus } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
 import { apply } from "../kubectl"
@@ -74,7 +81,7 @@ export async function deployService(
   if (hotReload && hotReloadSpec && hotReloadTarget) {
     // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
     // installing/upgrading via Helm, we need to separately update the target here.
-    const resourceSpec = module.spec.serviceResource
+    const resourceSpec = getServiceResourceSpec(module)
 
     configureHotReload({
       target: hotReloadTarget,

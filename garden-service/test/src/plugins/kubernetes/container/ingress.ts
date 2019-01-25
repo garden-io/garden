@@ -339,7 +339,6 @@ describe("createIngresses", () => {
       name: "test",
       path: "/tmp",
       type: "container",
-      variables: {},
 
       spec: {
         buildArgs: {},

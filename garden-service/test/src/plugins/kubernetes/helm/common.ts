@@ -11,6 +11,7 @@ import {
   getValuesPath,
   findServiceResource,
   getResourceContainer,
+  getBaseModule,
 } from "../../../../../src/plugins/kubernetes/helm/common"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../src/logger/log-entry"
@@ -18,6 +19,7 @@ import { BuildTask } from "../../../../../src/tasks/build"
 import { find } from "lodash"
 import { deline } from "../../../../../src/util/string"
 import { HotReloadableResource } from "../../../../../src/plugins/kubernetes/hot-reload"
+import { getServiceResourceSpec } from "../../../../../src/plugins/kubernetes/helm/common"
 
 describe("Helm common functions", () => {
   let garden: TestGarden
@@ -430,6 +432,56 @@ describe("Helm common functions", () => {
     })
   })
 
+  describe("getBaseModule", () => {
+    it("should return undefined if no base module is specified", async () => {
+      const module = await garden.getModule("api")
+
+      expect(await getBaseModule(module)).to.be.undefined
+    })
+
+    it("should return the resolved base module if specified", async () => {
+      const module = await garden.getModule("api")
+      const baseModule = await garden.getModule("postgres")
+
+      module.spec.base = baseModule.name
+      module.buildDependencies = { postgres: baseModule }
+
+      expect(await getBaseModule(module)).to.equal(baseModule)
+    })
+
+    it("should throw if the base module isn't in the build dependency map", async () => {
+      const module = await garden.getModule("api")
+
+      module.spec.base = "postgres"
+
+      await expectError(
+        () => getBaseModule(module),
+        err => expect(err.message).to.equal(
+          deline`Helm module 'api' references base module 'postgres'
+          but it is missing from the module's build dependencies.`,
+        ),
+      )
+    })
+
+    it("should throw if the base module isn't a Helm module", async () => {
+      const module = await garden.getModule("api")
+      const baseModule = await garden.getModule("postgres")
+
+      baseModule.type = "foo"
+
+      module.spec.base = baseModule.name
+      module.buildDependencies = { postgres: baseModule }
+
+      await expectError(
+        () => getBaseModule(module),
+        err => expect(err.message).to.equal(
+          deline`Helm module 'api' references base module 'postgres' which is a 'foo' module,
+          but should be a helm module.`,
+        ),
+      )
+    })
+  })
+
   describe("getChartPath", () => {
     context("module has chart sources", () => {
       it("should return the chart path in the build directory", async () => {
@@ -463,6 +515,64 @@ describe("Helm common functions", () => {
     })
   })
 
+  describe("getServiceResourceSpec", () => {
+    it("should return the spec on the given module if it has no base module", async () => {
+      const module = await garden.getModule("api")
+      expect(await getServiceResourceSpec(module)).to.eql(module.spec.serviceResource)
+    })
+
+    it("should return the spec on the base module if there is none on the module", async () => {
+      const module = await garden.getModule("api")
+      const baseModule = await garden.getModule("postgres")
+      module.spec.base = "postgres"
+      delete module.spec.serviceResource
+      module.buildDependencies = { postgres: baseModule }
+      expect(await getServiceResourceSpec(module)).to.eql(baseModule.spec.serviceResource)
+    })
+
+    it("should merge the specs if both module and base have specs", async () => {
+      const module = await garden.getModule("api")
+      const baseModule = await garden.getModule("postgres")
+      module.spec.base = "postgres"
+      module.buildDependencies = { postgres: baseModule }
+      expect(await getServiceResourceSpec(module)).to.eql({
+        containerModule: "api-image",
+        kind: "Deployment",
+        name: "postgres",
+      })
+    })
+
+    it("should throw if there is no base module and the module has no serviceResource spec", async () => {
+      const module = await garden.getModule("api")
+      delete module.spec.serviceResource
+      await expectError(
+        () => getServiceResourceSpec(module),
+        err => expect(err.message).to.equal(
+          deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
+          You must specify a resource in the module config in order to use certain Garden features,
+          such as hot reloading.`,
+        ),
+      )
+    })
+
+    it("should throw if there is a base module but neither module has a spec", async () => {
+      const module = await garden.getModule("api")
+      const baseModule = await garden.getModule("postgres")
+      module.spec.base = "postgres"
+      module.buildDependencies = { postgres: baseModule }
+      delete module.spec.serviceResource
+      delete baseModule.spec.serviceResource
+      await expectError(
+        () => getServiceResourceSpec(module),
+        err => expect(err.message).to.equal(
+          deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
+          You must specify a resource in the module config in order to use certain Garden features,
+          such as hot reloading.`,
+        ),
+      )
+    })
+  })
+
   describe("findServiceResource", () => {
     it("should return the resource specified by serviceResource", async () => {
       const module = await garden.getModule("api")
@@ -478,9 +588,10 @@ describe("Helm common functions", () => {
       delete module.spec.serviceResource
       await expectError(
         () => findServiceResource({ ctx, log, module, chartResources }),
-        err => expect(err.message).to.equal(deline`
-          Module 'api' doesn't specify a \`serviceResource\` in its configuration.
-          You must specify it in the module config in order to use certain Garden features, such as hot reloading.`,
+        err => expect(err.message).to.equal(
+          deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
+          You must specify a resource in the module config in order to use certain Garden features,
+          such as hot reloading.`,
         ),
       )
     })
@@ -494,7 +605,7 @@ describe("Helm common functions", () => {
       }
       await expectError(
         () => findServiceResource({ ctx, log, module, chartResources, resourceSpec }),
-        err => expect(err.message).to.equal("Module 'api' contains no DaemonSets."),
+        err => expect(err.message).to.equal("Helm module 'api' contains no DaemonSets."),
       )
     })
 
@@ -507,7 +618,7 @@ describe("Helm common functions", () => {
       }
       await expectError(
         () => findServiceResource({ ctx, log, module, chartResources, resourceSpec }),
-        err => expect(err.message).to.equal("Module 'api' does not contain specified Deployment 'foo'"),
+        err => expect(err.message).to.equal("Helm module 'api' does not contain specified Deployment 'foo'"),
       )
     })
 
@@ -519,8 +630,9 @@ describe("Helm common functions", () => {
       await expectError(
         () => findServiceResource({ ctx, log, module, chartResources }),
         err => expect(err.message).to.equal(deline`
-          Module 'api' contains multiple Deployments.
-          You must specify \`serviceResource.name\` in the module config in order to identify the correct Deployment.`,
+          Helm module 'api' contains multiple Deployments.
+          You must specify \`serviceResource.name\` in the module config in order to
+          identify the correct Deployment to use.`,
         ),
       )
     })

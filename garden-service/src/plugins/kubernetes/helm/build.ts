@@ -9,31 +9,32 @@
 import { BuildModuleParams } from "../../../types/plugin/params"
 import { HelmModule } from "./config"
 import { BuildResult } from "../../../types/plugin/outputs"
-import { containsSource, getChartPath, getValuesPath } from "./common"
+import { containsSource, getChartPath, getValuesPath, getBaseModule } from "./common"
 import { helm } from "./helm-cli"
 import { safeLoad } from "js-yaml"
-import { set } from "lodash"
 import { dumpYaml } from "../../../util/util"
 import { join } from "path"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../constants"
 import { writeModuleVersionFile } from "../../../vcs/base"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
+import { apply as jsonMerge } from "json-merge-patch"
 
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const buildPath = module.buildPath
   const namespace = await getNamespace({ ctx, provider: ctx.provider, skipCreate: true })
   const context = ctx.provider.config.context
+  const baseModule = getBaseModule(module)
 
-  if (!(await containsSource(module))) {
-    log.setState("Fetching chart...")
+  if (!baseModule && !(await containsSource(module))) {
+    log.debug("Fetching chart...")
     try {
       await fetchChart(namespace, context, log, module)
     } catch {
       // update the local helm repo and retry
-      log.setState("Updating Helm repo...")
+      log.debug("Updating Helm repo...")
       await helm(namespace, context, log, ...["repo", "update"])
-      log.setState("Fetching chart (after updating)...")
+      log.debug("Fetching chart (after updating)...")
       await fetchChart(namespace, context, log, module)
     }
   }
@@ -41,14 +42,16 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
   const chartPath = await getChartPath(module)
 
   // create the values.yml file (merge the configured parameters into the default values)
-  log.setState("Preparing chart...")
-  const values = safeLoad(await helm(namespace, context, log, "inspect", "values", chartPath)) || {}
+  log.debug("Preparing chart...")
+  const chartValues = safeLoad(await helm(namespace, context, log, "inspect", "values", chartPath)) || {}
 
-  Object.entries(flattenValues(module.spec.values))
-    .map(([k, v]) => set(values, k, v))
+  // Merge with the base module's values, if applicable
+  const specValues = baseModule ? jsonMerge(baseModule.spec.values, module.spec.values) : module.spec.values
+
+  const mergedValues = jsonMerge(chartValues, specValues)
 
   const valuesPath = getValuesPath(chartPath)
-  await dumpYaml(valuesPath, values)
+  await dumpYaml(valuesPath, mergedValues)
 
   // keep track of which version has been built
   const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
@@ -75,15 +78,4 @@ async function fetchChart(namespace: string, context: string, log: LogEntry, mod
     fetchArgs.push("--repo", module.spec.repo)
   }
   await helm(namespace, context, log, ...fetchArgs)
-}
-
-// adapted from https://gist.github.com/penguinboy/762197
-function flattenValues(object, prefix = "") {
-  return Object.keys(object).reduce(
-    (prev, element) =>
-      object[element] && typeof object[element] === "object" && !Array.isArray(object[element])
-        ? { ...prev, ...flattenValues(object[element], `${prefix}${element}.`) }
-        : { ...prev, ...{ [`${prefix}${element}`]: object[element] } },
-    {},
-  )
 }

@@ -13,7 +13,7 @@ import { storeTestResult } from "../test"
 import { HelmModule } from "./config"
 import { getAppNamespace } from "../namespace"
 import { runPod } from "../run"
-import { findServiceResource, getChartResources, getResourceContainer } from "./common"
+import { findServiceResource, getChartResources, getResourceContainer, getServiceResourceSpec } from "./common"
 
 export async function testHelmModule(
   { ctx, log, interactive, module, runtimeContext, testConfig }:
@@ -28,7 +28,7 @@ export async function testHelmModule(
   const namespace = await getAppNamespace(ctx, ctx.provider)
 
   const chartResources = await getChartResources(ctx, module, log)
-  const resourceSpec = testConfig.spec.resource || module.spec.serviceResource
+  const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module)
   const target = await findServiceResource({ ctx, log, chartResources, module, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
   const image = container.image

@@ -1098,12 +1098,16 @@ export class Garden {
     }
   }
 
+  /**
+   * This dumps the full project configuration including all modules.
+   */
   public async dumpConfig(): Promise<ConfigDump> {
     const modules = await this.getModules()
 
     // Remove circular references and superfluous keys.
     for (const module of modules) {
       delete module._ConfigType
+      delete module.buildDependencies
 
       for (const service of module.services) {
         delete service.module

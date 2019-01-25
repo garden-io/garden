@@ -1,15 +1,17 @@
 module:
-  description: Helm chart for the voting UI
+  description: Helm chart for the results UI
   type: helm
   name: result
+  base: base-chart
   serviceResource:
-    kind: Deployment
     containerModule: result-image
     hotReloadArgs: [nodemon, server.js]
   dependencies:
     - db-init
   values:
+    name: result
     image:
+      repository: result-image
       tag: ${modules.result-image.version}
     ingress:
       enabled: true

@@ -12,8 +12,6 @@ import { ServiceConfig, ServiceSpec } from "./service"
 import {
   joiArray,
   joiIdentifier,
-  joiVariables,
-  PrimitiveMap,
   joiRepositoryUrl,
   joiUserIdentifier,
 } from "./common"
@@ -68,7 +66,6 @@ export interface BaseModuleSpec {
   name: string
   path: string
   type: string
-  variables: PrimitiveMap
   repositoryUrl?: string
 }
 
@@ -90,9 +87,6 @@ export const baseModuleSpecSchema = Joi.object()
         Garden will import the repository source code into this module, but read the module's
         config from the local garden.yml file.`,
       ),
-    variables: joiVariables()
-      .description("Variables that this module can reference and expose as environment variables.")
-      .example({ "my-variable": "some-value" }),
     allowPublish: Joi.boolean()
       .default(true)
       .description("When false, disables pushing this module to remote registries."),

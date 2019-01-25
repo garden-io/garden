@@ -1,0 +1,7 @@
+module:
+  description: Base Helm chart for services
+  type: helm
+  name: base-chart
+  serviceResource:
+    kind: Deployment
+  skipDeploy: true

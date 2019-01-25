@@ -151,3 +151,100 @@ module:
 For hot-reloading to work you must specify `serviceResource.containerModule`, so that Garden knows which module contains the sources to use for hot-reloading. You can then optionally add `serviceResource.hotReloadArgs` to, for example, start the container with automatic reloading or in development mode.
 
 For the above example, you could then run `garden deploy -w --hot-reload=vote` or `garden dev --hot-reload=vote` to start the `vote` service in hot-reloading mode. When you then change the sources in the _vote-image_ module, Garden syncs the changes to the running container from the Helm chart.
+
+## Re-using charts
+
+Often you'll want to re-use the same Helm charts for multiple modules. For example, you might have a generic template
+for all your backend services that configures auto-scaling, secrets/keys, sidecars, routing and so forth, and you don't
+want to repeat those configurations all over the place.
+
+You can achieve this by using the `base` field on the `helm` module type. Staying with our `vote-helm` example project,
+let's look at the `base-chart` and `api` modules:
+
+```yaml
+# base-chart
+module:
+  description: Base Helm chart for services
+  type: helm
+  name: base-chart
+  serviceResource:
+    kind: Deployment
+  skipDeploy: true
+```
+
+```yaml
+# api
+module:
+  description: The API backend for the voting UI
+  type: helm
+  name: api
+  base: base-chart
+  serviceResource:
+    containerModule: api-image
+  dependencies:
+    - redis
+  values:
+    name: api
+    image:
+      repository: api-image
+      tag: ${modules.api-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      hosts: [api.local.app.garden]
+```
+
+Here, the `base-chart` module contains the actual Helm chart and templates. Note the `skipDeploy` flag, which we set
+because the module should only be used as a base chart in this case.
+
+The `api` module only contains the `garden.yml` file, but configures the base chart using the `values` field, and also
+sets its own dependencies (those are not inherited) and specifies its `serviceResource.containerModule`.
+
+In our base chart, we make certain values like `name`, `image.repository` and `image.tag` required (using the
+[required](https://github.com/helm/helm/blob/master/docs/charts_tips_and_tricks.md#using-the-required-function)
+helper function) in order to enforce correct usage. We recommend enforcing constraints like that, so that mistakes
+can be caught quickly.
+
+The `result` module also uses the same base chart, but sets different values and metadata:
+
+```yaml
+module:
+  description: Helm chart for the results UI
+  type: helm
+  name: result
+  base: base-chart
+  serviceResource:
+    containerModule: result-image
+    hotReloadArgs: [nodemon, server.js]
+  dependencies:
+    - db-init
+  values:
+    name: result
+    image:
+      repository: result-image
+      tag: ${modules.result-image.version}
+    ingress:
+      enabled: true
+      paths: [/]
+      hosts: [result.local.app.garden]
+  tests:
+    - name: integ
+      args: [echo, ok]
+      dependencies:
+        - db-init
+```
+
+This pattern can be quite powerful, and can be used to share common templates across your organization. You could
+even have an organization-wide repository of base charts for different purposes, and link it in your project config
+with something like this:
+
+```yaml
+project:
+  sources:
+    - name: base-charts
+      repositoryUrl: https://github.com/my-org/helm-base-charts.git#v0.1.0
+  ...
+```
+
+The base chart can also be any `helm` module (not just "base" charts specifically made for that purpose), so you have
+a lot of flexibility in how you organize your charts.

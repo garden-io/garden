@@ -1,20 +1,18 @@
-# Default values for result.
+# Default values for base-chart.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
-  repository: result-image
-  tag: stable
-  pullPolicy: IfNotPresent
+  repository:
+  tag:
 
-nameOverride: ""
 fullnameOverride: ""
 
-service:
-  type: ClusterIP
-  port: 80
+args: []
+
+servicePort: 80
 
 ingress:
   enabled: false
@@ -40,9 +38,3 @@ resources: {}
   # requests:
   #  cpu: 100m
   #  memory: 128Mi
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}

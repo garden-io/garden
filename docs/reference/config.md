@@ -46,15 +46,6 @@ module:
   # Optional.
   repositoryUrl:
 
-  # Variables that this module can reference and expose as environment variables.
-  #
-  # Example:
-  #   my-variable: some-value
-  #
-  # Optional.
-  variables: 
-    {}
-
   # When false, disables pushing this module to remote registries.
   #
   # Optional.
@@ -237,15 +228,6 @@ module:
   # Optional.
   repositoryUrl:
 
-  # Variables that this module can reference and expose as environment variables.
-  #
-  # Example:
-  #   my-variable: some-value
-  #
-  # Optional.
-  variables: 
-    {}
-
   # When false, disables pushing this module to remote registries.
   #
   # Optional.
@@ -408,15 +390,6 @@ module:
   #
   # Optional.
   repositoryUrl:
-
-  # Variables that this module can reference and expose as environment variables.
-  #
-  # Example:
-  #   my-variable: some-value
-  #
-  # Optional.
-  variables: 
-    {}
 
   # When false, disables pushing this module to remote registries.
   #
@@ -801,15 +774,6 @@ module:
   # Optional.
   repositoryUrl:
 
-  # Variables that this module can reference and expose as environment variables.
-  #
-  # Example:
-  #   my-variable: some-value
-  #
-  # Optional.
-  variables: 
-    {}
-
   # When false, disables pushing this module to remote registries.
   #
   # Optional.
@@ -858,7 +822,21 @@ module:
             # Optional.
             target:
 
-  # A valid Helm chart name or URI. Required if the module doesn't contain the Helm chart itself.
+  # The name of another `helm` module to use as a base for this one. Use this to re-use a Helm
+  # chart across multiple services. For example, you might have an organization-wide base chart
+  # for certain types of services.
+  # If set, this module will by default inherit the following properties from the base module:
+  # `serviceResource`, `values`
+  # Each of those can be overridden in this module. They will be merged with a JSON Merge Patch
+  # (RFC 7396).
+  #
+  # Example: "my-base-chart"
+  #
+  # Optional.
+  base:
+
+  # A valid Helm chart name or URI (same as you'd input to `helm install`). Required if the module
+  # doesn't contain the Helm chart itself.
   #
   # Example: "stable/nginx-ingress"
   #
@@ -866,7 +844,7 @@ module:
   chart:
 
   # The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file
-  # is, if any).
+  # is, if any). Not used when `base` is specified.
   #
   # Optional.
   chartPath: .
@@ -941,6 +919,12 @@ module:
     # Optional.
     hotReloadArgs: 
       -
+
+  # Set this to true if the chart should only be built, but not deployed as a service. Use this,
+  # for example, if the chart should only be used as a base for other modules.
+  #
+  # Optional.
+  skipDeploy: false
 
   # The task definitions for this module.
   #

@@ -1,10 +1,10 @@
 import { resolve } from "path"
 import { expect } from "chai"
+import { cloneDeep } from "lodash"
 
 import { TestGarden, dataDir, makeTestGarden, expectError } from "../../../../helpers"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { validateHelmModule } from "../../../../../src/plugins/kubernetes/helm/config"
-import { cloneDeep } from "lodash"
 import { deline } from "../../../../../src/util/string"
 
 describe("validateHelmModule", () => {
@@ -22,8 +22,16 @@ describe("validateHelmModule", () => {
     await garden.close()
   })
 
+  function getModuleConfig(name: string) {
+    const config = cloneDeep((<any>garden).moduleConfigs[name])
+    config.serviceConfigs = []
+    config.taskConfigs = []
+    config.testConfigs = []
+    return config
+  }
+
   it("should validate a Helm module", async () => {
-    const moduleConfig = (<any>garden).moduleConfigs["api"]
+    const moduleConfig = getModuleConfig("api")
     const config = await validateHelmModule({ ctx, moduleConfig })
     const imageModule = await garden.getModule("api-image")
     const { versionString } = imageModule.version
@@ -50,8 +58,15 @@ describe("validateHelmModule", () => {
           outputs: {},
           sourceModuleName: "api-image",
           spec: {
-            chart: undefined,
             chartPath: ".",
+            dependencies: [],
+            serviceResource: {
+              kind: "Deployment",
+              containerModule: "api-image",
+            },
+            skipDeploy: false,
+            tasks: [],
+            tests: [],
             values: {
               image: {
                 tag: versionString,
@@ -66,18 +81,19 @@ describe("validateHelmModule", () => {
                 ],
               },
             },
-            dependencies: [],
-            tasks: [],
-            tests: [],
-            version: undefined,
           },
         },
       ],
       spec: {
+        chartPath: ".",
+        dependencies: [],
         serviceResource: {
           kind: "Deployment",
           containerModule: "api-image",
         },
+        skipDeploy: false,
+        tasks: [],
+        tests: [],
         values: {
           image: {
             tag: versionString,
@@ -92,59 +108,88 @@ describe("validateHelmModule", () => {
             ],
           },
         },
-        chartPath: ".",
-        dependencies: [],
-        tasks: [],
-        tests: [],
       },
       testConfigs: [],
       type: "helm",
-      variables: {},
       taskConfigs: [],
     })
   })
 
-  it("should throw if chart contains no sources and doesn't specify chart name", async () => {
-    const moduleConfig = cloneDeep((<any>garden).moduleConfigs["postgres"])
+  it("should not return a serviceConfig if skipDeploy=true", async () => {
+    const moduleConfig = getModuleConfig("api")
+    moduleConfig.spec.skipDeploy = true
+    const config = await validateHelmModule({ ctx, moduleConfig })
+
+    expect(config.serviceConfigs).to.eql([])
+  })
+
+  it("should add the module specified under 'base' as a build dependency", async () => {
+    const moduleConfig = getModuleConfig("postgres")
+    moduleConfig.spec.base = "foo"
+    const config = await validateHelmModule({ ctx, moduleConfig })
+
+    expect(config.build.dependencies).to.eql([
+      { name: "foo", copy: [{ source: "*", target: "." }] },
+    ])
+  })
+
+  it("should add copy spec to build dependency if it's already a dependency", async () => {
+    const moduleConfig = getModuleConfig("postgres")
+    moduleConfig.build.dependencies = [{ name: "foo", copy: [] }]
+    moduleConfig.spec.base = "foo"
+    const config = await validateHelmModule({ ctx, moduleConfig })
+
+    expect(config.build.dependencies).to.eql([
+      { name: "foo", copy: [{ source: "*", target: "." }] },
+    ])
+  })
+
+  it("should add module specified under tasks[].resource.containerModule as a build dependency", async () => {
+    const moduleConfig = getModuleConfig("api")
+    moduleConfig.spec.tasks = [
+      { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
+    ]
+    const config = await validateHelmModule({ ctx, moduleConfig })
+
+    expect(config.build.dependencies).to.eql([
+      { name: "api-image", copy: [] },
+      { name: "foo", copy: [] },
+    ])
+  })
+
+  it("should add module specified under tests[].resource.containerModule as a build dependency", async () => {
+    const moduleConfig = getModuleConfig("api")
+    moduleConfig.spec.tests = [
+      { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
+    ]
+    const config = await validateHelmModule({ ctx, moduleConfig })
+
+    expect(config.build.dependencies).to.eql([
+      { name: "api-image", copy: [] },
+      { name: "foo", copy: [] },
+    ])
+  })
+
+  it("should throw if chart both contains sources and specifies base", async () => {
+    const moduleConfig = getModuleConfig("api")
+    moduleConfig.spec.base = "foo"
+    await expectError(
+      () => validateHelmModule({ ctx, moduleConfig }),
+      err => expect(err.message).to.equal(deline`
+        Helm module 'api' both contains sources and specifies a base module.
+        Since Helm charts cannot currently be merged, please either remove the sources or
+        the \`base\` reference in your module config.
+      `),
+    )
+  })
+
+  it("should throw if chart contains no sources and doesn't specify chart name nor base", async () => {
+    const moduleConfig = getModuleConfig("postgres")
     delete moduleConfig.spec.chart
     await expectError(
       () => validateHelmModule({ ctx, moduleConfig }),
       err => expect(err.message).to.equal(deline`
-        Chart neither specifies a chart name, nor contains chart sources at \`chartPath\`.
-      `),
-    )
-  })
-
-  it("should throw if a task doesn't specify resource and no serviceResource is specified", async () => {
-    const moduleConfig = cloneDeep((<any>garden).moduleConfigs["api"])
-    delete moduleConfig.spec.serviceResource
-    moduleConfig.spec.tasks = [{
-      name: "foo",
-      args: ["foo"],
-    }]
-    await expectError(
-      () => validateHelmModule({ ctx, moduleConfig }),
-      err => expect(err.message).to.equal(deline`
-        Task 'foo' in Helm module 'api' does not specify a target resource, and the module does not specify a
-        \`serviceResource\` (which would be used by default).
-        Please configure either of those for the configuration to be valid.
-      `),
-    )
-  })
-
-  it("should throw if a test doesn't specify resource and no serviceResource is specified", async () => {
-    const moduleConfig = cloneDeep((<any>garden).moduleConfigs["api"])
-    delete moduleConfig.spec.serviceResource
-    moduleConfig.spec.tests = [{
-      name: "foo",
-      args: ["foo"],
-    }]
-    await expectError(
-      () => validateHelmModule({ ctx, moduleConfig }),
-      err => expect(err.message).to.equal(deline`
-        Test suite 'foo' in Helm module 'api' does not specify a target resource, and the module does not specify a
-        \`serviceResource\` (which would be used by default).
-        Please configure either of those for the configuration to be valid.
+        Chart neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
       `),
     )
   })

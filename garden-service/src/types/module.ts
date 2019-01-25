@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, uniq, cloneDeep } from "lodash"
+import { flatten, uniq, cloneDeep, keyBy } from "lodash"
 import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
@@ -18,7 +18,7 @@ import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import { serviceFromConfig, Service, serviceSchema } from "./service"
 import * as Joi from "joi"
-import { joiArray, joiIdentifier } from "../config/common"
+import { joiArray, joiIdentifier, joiIdentifierMap } from "../config/common"
 import * as Bluebird from "bluebird"
 
 export interface FileCopySpec {
@@ -34,6 +34,8 @@ export interface Module<
   > extends ModuleConfig<M, S, T, W> {
   buildPath: string
   version: ModuleVersion
+
+  buildDependencies: ModuleMap
 
   services: Service<Module<M, S, T, W>>[]
   serviceNames: string[]
@@ -54,6 +56,9 @@ export const moduleSchema = moduleConfigSchema
       .description("The path to the build staging directory for the module."),
     version: moduleVersionSchema
       .required(),
+    buildDependencies: joiIdentifierMap(Joi.lazy(() => moduleSchema))
+      .required()
+      .description("A map of all modules referenced under \`build.dependencies\`."),
     services: joiArray(Joi.lazy(() => serviceSchema))
       .required()
       .description("A list of all the services that the module provides."),
@@ -89,6 +94,8 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
     buildPath: await garden.buildDir.buildPath(config.name),
     version: await garden.resolveVersion(config.name, config.build.dependencies),
 
+    buildDependencies: {},
+
     services: [],
     serviceNames: getNames(config.serviceConfigs),
     serviceDependencyNames: uniq(flatten(config.serviceConfigs
@@ -103,6 +110,11 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
 
     _ConfigType: config,
   }
+
+  const buildDependencyModules = await Bluebird.map(
+    module.build.dependencies, d => garden.getModule(getModuleKey(d.name, d.plugin)),
+  )
+  module.buildDependencies = keyBy(buildDependencyModules, "name")
 
   module.services = await Bluebird.map(
     config.serviceConfigs,

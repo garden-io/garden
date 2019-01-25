@@ -14,7 +14,7 @@ import { runContainerModule } from "./run"
 import { storeTestResult } from "../test"
 
 export async function testContainerModule(
-  { ctx, interactive, module, runtimeContext, testConfig, log, buildDependencies }:
+  { ctx, interactive, module, runtimeContext, testConfig, log }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -30,7 +30,6 @@ export async function testContainerModule(
     runtimeContext,
     timeout,
     log,
-    buildDependencies,
   })
 
   return storeTestResult({ ctx, module, testName, result })

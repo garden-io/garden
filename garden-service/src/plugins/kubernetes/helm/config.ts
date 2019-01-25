@@ -10,8 +10,16 @@ import Joi = require("joi")
 import { find } from "lodash"
 
 import { ServiceSpec } from "../../../config/service"
-import { Primitive, joiPrimitive, joiArray, joiIdentifier, joiEnvVars, validateWithPath } from "../../../config/common"
-import { Module } from "../../../types/module"
+import {
+  Primitive,
+  joiPrimitive,
+  joiArray,
+  joiIdentifier,
+  joiEnvVars,
+  validateWithPath,
+  joiUserIdentifier,
+} from "../../../config/common"
+import { Module, FileCopySpec } from "../../../types/module"
 import { ValidateModuleParams } from "../../../types/plugin/params"
 import { ValidateModuleResult } from "../../../types/plugin/outputs"
 import { containsSource } from "./common"
@@ -117,13 +125,15 @@ export const execTestSchema = baseTestSpecSchema
   })
 
 export interface HelmServiceSpec extends ServiceSpec {
+  base?: string
   chart?: string
   chartPath: string
   dependencies: string[]
   repo?: string
-  serviceResource?: HelmResourceSpec,
-  tasks: HelmTaskSpec[],
-  tests: HelmTestSpec[],
+  serviceResource?: HelmResourceSpec
+  skipDeploy: boolean
+  tasks: HelmTaskSpec[]
+  tests: HelmTestSpec[]
   version?: string
   values: { [key: string]: Primitive }
 }
@@ -137,13 +147,28 @@ const parameterValueSchema = Joi.alternatives(
 )
 
 export const helmModuleSpecSchema = Joi.object().keys({
+  base: joiUserIdentifier()
+    .description(
+      deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across
+      multiple services. For example, you might have an organization-wide base chart for certain types of services.
+
+      If set, this module will by default inherit the following properties from the base module:
+      \`serviceResource\`, \`values\`
+
+      Each of those can be overridden in this module. They will be merged with a JSON Merge Patch (RFC 7396).`,
+    )
+    .example("my-base-chart"),
   chart: Joi.string()
-    .description("A valid Helm chart name or URI. Required if the module doesn't contain the Helm chart itself.")
+    .description(
+      deline`A valid Helm chart name or URI (same as you'd input to \`helm install\`).
+      Required if the module doesn't contain the Helm chart itself.`,
+    )
     .example("stable/nginx-ingress"),
   chartPath: Joi.string()
     .uri({ relativeOnly: true })
     .description(
-      "The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any).",
+      deline`The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any).
+      Not used when \`base\` is specified.`,
     )
     .default("."),
   dependencies: joiArray(joiIdentifier())
@@ -159,6 +184,12 @@ export const helmModuleSpecSchema = Joi.object().keys({
 
       We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are
       deployed at once.`,
+    ),
+  skipDeploy: Joi.boolean()
+    .default(false)
+    .description(
+      deline`Set this to true if the chart should only be built, but not deployed as a service.
+      Use this, for example, if the chart should only be used as a base for other modules.`,
     ),
   tasks: joiArray(execTaskSchema)
     .description("The task definitions for this module."),
@@ -184,49 +215,62 @@ export async function validateHelmModule({ ctx, moduleConfig }: ValidateModulePa
     projectRoot: ctx.projectRoot,
   })
 
-  const { chart, chartPath, version, values, dependencies, serviceResource, tasks, tests } = moduleConfig.spec
+  const {
+    base, chart, dependencies, serviceResource, skipDeploy, tasks, tests,
+  } = moduleConfig.spec
 
   const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
 
-  moduleConfig.serviceConfigs = [{
-    name: moduleConfig.name,
-    dependencies,
-    outputs: {},
-    sourceModuleName,
-    spec: { chart, chartPath, version, values, dependencies, tasks, tests },
-  }]
+  if (!skipDeploy) {
+    moduleConfig.serviceConfigs = [{
+      name: moduleConfig.name,
+      dependencies,
+      outputs: {},
+      sourceModuleName,
+      spec: moduleConfig.spec,
+    }]
+  }
 
-  if (!chart && !(await containsSource(moduleConfig))) {
+  const containsSources = await containsSource(moduleConfig)
+
+  if (!chart && !base && !containsSources) {
     throw new ConfigurationError(
-      `Chart neither specifies a chart name, nor contains chart sources at \`chartPath\`.`,
+      `Chart neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.`,
       { moduleConfig },
     )
   }
 
-  // Make sure container modules specified in test+task service resources are included as build dependencies
+  // Make sure referenced modules are included as build dependencies
   // (This happens automatically for the service source module).
-  function checkResource(what: string, resource?: HelmResourceSpec) {
-    if (!resource && !serviceResource) {
-      throw new ConfigurationError(
-        deline`${what} in Helm module '${moduleConfig.name}' does not specify a target resource,
-        and the module does not specify a \`serviceResource\` (which would be used by default).
-        Please configure either of those for the configuration to be valid.`,
-        { moduleConfig },
-      )
+  function addBuildDependency(name: string, copy?: FileCopySpec[]) {
+    const existing = find(moduleConfig.build.dependencies, ["name", name])
+    if (!copy) {
+      copy = []
     }
-
-    if (
-      resource
-      && resource.containerModule
-      && !find(moduleConfig.build.dependencies, ["name", resource.containerModule])
-    ) {
-      moduleConfig.build.dependencies.push({ name: resource.containerModule, copy: [] })
+    if (existing) {
+      existing.copy.push(...copy)
+    } else {
+      moduleConfig.build.dependencies.push({ name, copy })
     }
   }
 
+  if (base) {
+    if (containsSources) {
+      throw new ConfigurationError(deline`
+        Helm module '${moduleConfig.name}' both contains sources and specifies a base module.
+        Since Helm charts cannot currently be merged, please either remove the sources or
+        the \`base\` reference in your module config.
+      `, { moduleConfig })
+    }
+
+    // We copy the chart on build
+    addBuildDependency(base, [{ source: "*", target: "." }])
+  }
+
   moduleConfig.taskConfigs = tasks.map(spec => {
-    // Make sure we have a resource to run the task in
-    checkResource(`Task '${spec.name}'`, spec.resource)
+    if (spec.resource && spec.resource.containerModule) {
+      addBuildDependency(spec.resource.containerModule)
+    }
 
     return {
       name: spec.name,
@@ -237,8 +281,9 @@ export async function validateHelmModule({ ctx, moduleConfig }: ValidateModulePa
   })
 
   moduleConfig.testConfigs = tests.map(spec => {
-    // Make sure we have a resource to run the test suite in
-    checkResource(`Test suite '${spec.name}'`, spec.resource)
+    if (spec.resource && spec.resource.containerModule) {
+      addBuildDependency(spec.resource.containerModule)
+    }
 
     return {
       name: spec.name,

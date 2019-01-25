@@ -11,7 +11,7 @@ import { HelmModule, HelmResourceSpec } from "./config"
 import { RunTaskResult, RunResult } from "../../../types/plugin/outputs"
 import { getAppNamespace } from "../namespace"
 import { runPod } from "../run"
-import { findServiceResource, getChartResources, getResourceContainer } from "./common"
+import { findServiceResource, getChartResources, getResourceContainer, getServiceResourceSpec } from "./common"
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { ConfigurationError } from "../../../exceptions"
@@ -23,8 +23,9 @@ export async function runHelmModule(
 ): Promise<RunResult> {
   const context = ctx.provider.config.context
   const namespace = await getAppNamespace(ctx, ctx.provider)
+  const serviceResourceSpec = getServiceResourceSpec(module)
 
-  if (!module.spec.serviceResource) {
+  if (!serviceResourceSpec) {
     throw new ConfigurationError(
       `Helm module ${module.name} does not specify a \`serviceResource\`. ` +
       `Please configure that in order to run the module ad-hoc.`,
@@ -32,7 +33,7 @@ export async function runHelmModule(
     )
   }
 
-  const image = await getImage(ctx, module, log, module.spec.serviceResource)
+  const image = await getImage(ctx, module, log, serviceResourceSpec)
 
   return runPod({
     context,
@@ -54,7 +55,7 @@ export async function runHelmTask(
   const namespace = await getAppNamespace(ctx, ctx.provider)
 
   const args = task.spec.args
-  const image = await getImage(ctx, module, log, task.spec.resource || module.spec.serviceResource)
+  const image = await getImage(ctx, module, log, task.spec.resource || getServiceResourceSpec(module))
 
   const res = await runPod({
     context,
