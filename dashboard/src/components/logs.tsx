@@ -6,20 +6,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import styled from "@emotion/styled/macro"
 import { flatten, max } from "lodash"
 import React, { Component } from "react"
 
 import Terminal from "./terminal"
-import { FetchConfigResponse, FetchLogResponse } from "../api/types"
+import { FetchConfigResponse, FetchLogsResponse } from "../api/types"
+import Card, { CardTitle } from "./card"
+import { colors } from "../styles/variables"
+import { LoadLogs } from "../context/data"
 
 interface Props {
   config: FetchConfigResponse
-  logs: FetchLogResponse
+  logs: FetchLogsResponse
+  loadLogs: LoadLogs
 }
 
 interface State {
   selectedService: string
 }
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+`
+
+const Icon = styled.i`
+  color: ${colors.gardenPink};
+  font-size: 1.5rem;
+  cursor: pointer;
+  :active {
+    color: ${colors.gardenPinkLighten(0.7)}
+  }
+`
 
 class Logs extends Component<Props, State> {
 
@@ -31,10 +50,16 @@ class Logs extends Component<Props, State> {
       selectedService: "all",
     }
     this.handleChange = this.handleChange.bind(this)
+    this.refresh = this.refresh.bind(this)
   }
 
   handleChange(event) {
     this.setState({ selectedService: event.target.value })
+  }
+
+  refresh() {
+    const serviceNames = flatten(this.props.config.modules.map(m => m.serviceNames))
+    this.props.loadLogs(serviceNames, true)
   }
 
   render() {
@@ -58,12 +83,20 @@ class Logs extends Component<Props, State> {
             ))}
           </select>
         </div>
-        <Terminal
-          entries={filteredLogs}
-          sectionPad={maxServiceName}
-          title={title}
-          showServiceName={selectedService === "all"}
-        />
+        <Card>
+          <div>
+            <Header className="pl-1 pr-1 pb-1">
+              <CardTitle>{title}</CardTitle>
+              <Icon className={"fas fa-sync-alt"} onClick={this.refresh} />
+            </Header>
+            <Terminal
+              entries={filteredLogs}
+              sectionPad={maxServiceName}
+              title={title}
+              showServiceName={selectedService === "all"}
+            />
+          </div>
+        </Card>
       </div>
     )
   }

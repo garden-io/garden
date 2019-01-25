@@ -11,10 +11,14 @@ import axios from "axios"
 import {
   FetchConfigResponse,
   FetchStatusResponse,
-  FetchLogResponse,
+  FetchLogsResponse,
   ApiRequest,
   FetchGraphResponse,
 } from "./types"
+
+export type FetchLogsParam = string[]
+
+const MAX_LOG_LINES = 5000
 
 export async function fetchConfig(): Promise<FetchConfigResponse> {
   return apiPost<FetchConfigResponse>("get.config")
@@ -28,9 +32,9 @@ export async function fetchStatus(): Promise<FetchStatusResponse> {
   return apiPost<FetchStatusResponse>("get.status")
 }
 
-export async function fetchLogs(services?: string[]): Promise<FetchLogResponse> {
-  const params = services ? { service: services } : {}
-  return apiPost<FetchLogResponse>("logs", params)
+export async function fetchLogs(services: FetchLogsParam): Promise<FetchLogsResponse> {
+  const tail = Math.floor(MAX_LOG_LINES / services.length)
+  return apiPost<FetchLogsResponse>("logs", { services, tail })
 }
 
 async function apiPost<T>(command: string, parameters: {} = {}): Promise<T> {

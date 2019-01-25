@@ -101,7 +101,7 @@ export interface ServiceLogEntry {
   msg: string
 }
 
-export type FetchLogResponse = ServiceLogEntry[]
+export type FetchLogsResponse = ServiceLogEntry[]
 
 export interface ApiRequest {
   command: string

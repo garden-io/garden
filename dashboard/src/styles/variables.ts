@@ -19,6 +19,10 @@ export const fontRegular = `${fontFamily};font-weight: 400;`
 export const fontMedium = `${fontFamily};font-weight: 500;`
 export const fontItalic = `${fontFamily};font-style: italic;`
 
+function gardenPinkLighten(pct: number) {
+  return `rgba(218, 69, 162, ${pct})`
+}
+
 export const colors = {
   azure: "#00aeef",
   lightWhite: "rgba(255, 255, 255, 0.15)",
@@ -31,6 +35,7 @@ export const colors = {
   gardenGrey: "#f8faff",
   gardenPink: "#da45a2",
   gardenPinkRgba: "rgba(218, 69, 162, 0)",
+  gardenPinkLighten,
   blueyGrey: "#98a6b6",
   iceCold: "#a5f1e6",
   darkGreen: "#277379",

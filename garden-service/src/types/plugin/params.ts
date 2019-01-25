@@ -276,7 +276,8 @@ export interface GetServiceLogsParams<M extends Module = Module, S extends Modul
   extends PluginServiceActionParamsBase<M, S> {
   runtimeContext: RuntimeContext
   stream: Stream<ServiceLogEntry>
-  tail: boolean
+  follow: boolean
+  tail: number
   startTime?: Date
 }
 export const getServiceLogsParamsSchema = serviceActionParamsSchema
@@ -284,8 +285,11 @@ export const getServiceLogsParamsSchema = serviceActionParamsSchema
     runtimeContext: runtimeContextSchema,
     stream: Joi.object()
       .description("A Stream object, to write the logs to."),
-    tail: Joi.boolean()
+    follow: Joi.boolean()
       .description("Whether to keep listening for logs until aborted."),
+    tail: Joi.number()
+      .description("Number of lines to get from end of log. Defaults to -1, showing all log lines.")
+      .default(-1),
     startTime: Joi.date()
       .optional()
       .description("If set, only return logs that are as new or newer than this date."),

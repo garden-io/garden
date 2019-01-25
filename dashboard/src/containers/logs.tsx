@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { flatten } from "lodash"
 import React, { useContext, useEffect } from "react"
 
 import PageError from "../components/page-error"
@@ -15,19 +16,38 @@ import { DataContext } from "../context/data"
 
 export default () => {
   const {
-    actions: { loadLogs, loadConfig },
-    store: { config, logs },
+    actions: { loadConfig },
+    store: { config },
   } = useContext(DataContext)
 
   useEffect(loadConfig, [])
-  useEffect(loadLogs, [])
 
-  const isLoading = !config.data || !logs.data || config.loading || logs.loading
-  const error = config.error || logs.error
+  const isLoading = !config.data || config.loading
 
   return (
-    <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
-      <Logs config={config.data} logs={logs.data} />
+    <LoadWrapper error={config.error} ErrorComponent={PageError} loading={isLoading}>
+      <LogsContainer />
     </LoadWrapper>
   )
+}
+
+const LogsContainer = () => {
+  const {
+    actions: { loadLogs },
+    store: { config, logs },
+  } = useContext(DataContext)
+
+  const serviceNames = flatten(config.data.modules.map(m => m.serviceNames))
+  useEffect(() => {
+    loadLogs(serviceNames)
+  }, [])
+
+  const isLoading = !logs.data
+
+  return (
+    <LoadWrapper error={logs.error} ErrorComponent={PageError} loading={isLoading}>
+      <Logs loadLogs={loadLogs} config={config.data} logs={logs.data} />
+    </LoadWrapper>
+  )
+
 }

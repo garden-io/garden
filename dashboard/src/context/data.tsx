@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { useState, EffectCallback } from "react"
+import { useState } from "react"
 import React from "react"
 
-import { fetchConfig, fetchLogs, fetchStatus, fetchGraph } from "../api"
+import { fetchConfig, fetchLogs, fetchStatus, fetchGraph, FetchLogsParam } from "../api"
 import {
   FetchConfigResponse,
   FetchStatusResponse,
   FetchGraphResponse,
-  FetchLogResponse,
+  FetchLogsResponse,
 } from "../api/types"
 
 interface StoreSlice {
@@ -25,7 +25,7 @@ interface StoreSlice {
 interface Config extends StoreSlice { data: FetchConfigResponse | null }
 interface Status extends StoreSlice { data: FetchStatusResponse | null }
 interface Graph extends StoreSlice { data: FetchGraphResponse | null }
-interface Logs extends StoreSlice { data: FetchLogResponse | null }
+interface Logs extends StoreSlice { data: FetchLogsResponse | null }
 
 // This is the global data store
 interface Store {
@@ -35,18 +35,21 @@ interface Store {
   logs: Logs,
 }
 
+export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
+type Loader = (force?: boolean) => void
+
 interface Actions {
-  loadLogs: EffectCallback
-  loadConfig: EffectCallback
-  loadStatus: EffectCallback
-  loadGraph: EffectCallback
+  loadLogs: LoadLogs
+  loadConfig: Loader
+  loadStatus: Loader
+  loadGraph: Loader
 }
 
 type KeyActionPair =
-  ["config", () => Promise<FetchConfigResponse>] |
-  ["logs", () => Promise<FetchLogResponse>] |
-  ["status", () => Promise<FetchStatusResponse>] |
-  ["graph", () => Promise<FetchGraphResponse>]
+  ["config", (arg0?: any) => Promise<FetchConfigResponse>] |
+  ["logs", (arg0?: any) => Promise<FetchLogsResponse>] |
+  ["status", (arg0?: any) => Promise<FetchStatusResponse>] |
+  ["graph", (arg0?: any) => Promise<FetchGraphResponse>]
 
 type Context = {
   store: Store,
@@ -81,11 +84,11 @@ function updateSlice(prevState: Store, key: SliceName, sliceState: Object): Stor
 function useApi() {
   const [store, setData] = useState<Store>(initialState)
 
-  const fetch = async ([key, fetchFn]: KeyActionPair) => {
+  const fetch = async ([key, fetchFn]: KeyActionPair, args?: any[]) => {
     setData(prevState => updateSlice(prevState, key, { loading: true }))
 
     try {
-      const res = await fetchFn()
+      const res = args ? await fetchFn(...args) : await fetchFn()
       setData(prevState => updateSlice(prevState, key, { data: res, error: null }))
     } catch (error) {
       setData(prevState => updateSlice(prevState, key, { error }))
@@ -94,19 +97,27 @@ function useApi() {
     setData(prevState => updateSlice(prevState, key, { loading: false }))
   }
 
-  const fetchOrReadFromStore = (keyActionPair: KeyActionPair, force: boolean) => {
+  const fetchOrReadFromStore = (keyActionPair: KeyActionPair, force: boolean, args = []) => {
     const key = keyActionPair[0]
     const { data, loading } = store[key]
     if (!force && (data || loading)) {
       return
     }
-    fetch(keyActionPair).catch(error => setData(prevState => updateSlice(prevState, key, { error })))
+    fetch(keyActionPair, args).catch(error => setData(prevState => updateSlice(prevState, key, { error })))
   }
 
-  const loadLogs = (force: boolean = false) => fetchOrReadFromStore(["logs", fetchLogs], force)
-  const loadConfig = (force: boolean = false) => fetchOrReadFromStore(["config", fetchConfig], force)
-  const loadGraph = (force: boolean = false) => fetchOrReadFromStore(["graph", fetchGraph], force)
-  const loadStatus = (force: boolean = false) => fetchOrReadFromStore(["status", fetchStatus], force)
+  const loadLogs: LoadLogs = (args: FetchLogsParam, force: boolean = false) => (
+    fetchOrReadFromStore(["logs", fetchLogs], force, [args])
+  )
+  const loadConfig: Loader = (force: boolean = false) => (
+    fetchOrReadFromStore(["config", fetchConfig], force)
+  )
+  const loadGraph: Loader = (force: boolean = false) => (
+    fetchOrReadFromStore(["graph", fetchGraph], force)
+  )
+  const loadStatus: Loader = (force: boolean = false) => (
+    fetchOrReadFromStore(["status", fetchStatus], force)
+  )
 
   return {
     store,
