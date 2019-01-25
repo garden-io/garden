@@ -2,6 +2,13 @@
   g.taskPending > rect {
     stroke: #f17fcd;
     stroke-dasharray: 8;
+    animation: dash 15s linear infinite;
+  }
+
+  @keyframes dash {
+    to {
+      stroke-dashoffset: 1000;
+    }
   }
 
   g.taskComplete > rect {
@@ -27,4 +34,17 @@
     stroke: rgba(0,0,0,0.32);
     stroke-width: 1.5px;
   }
+
+  div.label-wrap {
+    text-align: center;
+
+    span.name {
+      font-weight: bold;
+    }
+    span.type {
+      display: inline-block;
+      margin-top: 0.5em
+    }
+  }
+
 }

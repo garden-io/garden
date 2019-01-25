@@ -14,7 +14,6 @@ import { NavLink } from "./links"
 import { Page } from "../containers/sidebar"
 
 import { colors, fontMedium } from "../styles/variables"
-import logo from "../assets/logo.png"
 
 interface Props {
   pages: Page[]
@@ -48,12 +47,6 @@ const linkStyle = `
 const A = styled.a(linkStyle)
 const Link = styled(NavLink)(linkStyle)
 
-// Style and align properly
-const Logo = styled.img`
-  height: auto;
-  width: 80%;
-`
-
 class Sidebar extends Component<Props, State> {
 
   constructor(props) {
@@ -68,11 +61,6 @@ class Sidebar extends Component<Props, State> {
   render() {
     return (
       <div className="pb-1">
-        <div className={"ml-1"}>
-          <NavLink to="/">
-            <Logo src={logo} alt="Home" />
-          </NavLink>
-        </div>
         <nav>
           <ul className="pt-2">
             {this.props.pages.map(page => {
