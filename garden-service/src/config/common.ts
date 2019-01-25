@@ -139,7 +139,7 @@ export function validateWithPath<T>(
 ) {
 
   const validateOpts = {
-    context: `${configType} ${name ? name + " " : ""}in ${relative(projectRoot, path)}`,
+    context: `${configType} ${name ? name + " " : ""}(${relative(projectRoot, path)}/garden.yml)`,
   }
 
   if (ErrorClass) {

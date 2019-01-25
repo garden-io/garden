@@ -1,19 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "result.fullname" . }}
+  name: {{ include "base-chart.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "result.name" . }}
-    helm.sh/chart: {{ include "result.chart" . }}
+    app.kubernetes.io/name: {{ include "base-chart.name" . }}
+    helm.sh/chart: {{ include "base-chart.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ .Values.servicePort }}
       targetPort: http
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: {{ include "result.name" . }}
+    app.kubernetes.io/name: {{ include "base-chart.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}

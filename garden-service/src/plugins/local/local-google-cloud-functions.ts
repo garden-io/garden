@@ -91,7 +91,6 @@ export const gardenPlugin = (): GardenPlugin => ({
           name: parsed.name,
           path: parsed.path,
           type: "container",
-          variables: parsed.variables,
 
           spec: {
             buildArgs: {

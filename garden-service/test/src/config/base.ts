@@ -73,7 +73,6 @@ describe("loadConfig", () => {
       allowPublish: true,
       build: { command: ["echo", "A"], dependencies: [] },
       path: modulePathA,
-      variables: {},
 
       spec: {
         services: [{ name: "service-a" }],

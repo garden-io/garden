@@ -10,7 +10,7 @@ import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { Garden } from "./garden"
 import { PrimitiveMap } from "./config/common"
-import { Module, ModuleMap } from "./types/module"
+import { Module } from "./types/module"
 import { ModuleActions, ServiceActions, PluginActions, TaskActions } from "./types/plugin/plugin"
 import {
   BuildResult,
@@ -99,15 +99,15 @@ type ActionHelperParams<T extends PluginActionParamsBase> =
   Omit<T, keyof PluginActionContextParams> & { pluginName?: string }
 
 type ModuleActionHelperParams<T extends PluginModuleActionParamsBase> =
-  Omit<T, "buildDependencies" | keyof PluginActionContextParams> & { pluginName?: string }
+  Omit<T, keyof PluginActionContextParams> & { pluginName?: string }
 // additionally make runtimeContext param optional
 
 type ServiceActionHelperParams<T extends PluginServiceActionParamsBase> =
-  Omit<T, "module" | "buildDependencies" | "runtimeContext" | keyof PluginActionContextParams>
+  Omit<T, "module" | "runtimeContext" | keyof PluginActionContextParams>
   & { runtimeContext?: RuntimeContext, pluginName?: string }
 
 type TaskActionHelperParams<T extends PluginTaskActionParamsBase> =
-  Omit<T, "module" | "buildDependencies" | keyof PluginActionContextParams>
+  Omit<T, "module" | keyof PluginActionContextParams>
   & { runtimeContext?: RuntimeContext, pluginName?: string }
 
 type RequirePluginName<T> = T & { pluginName: string }
@@ -331,11 +331,6 @@ export class ActionHelper implements TypeGuard {
   //region Helper Methods
   //===========================================================================
 
-  private async getBuildDependencies(module: Module): Promise<ModuleMap> {
-    const dependencies = await this.garden.resolveDependencyModules(module.build.dependencies, [])
-    return keyBy(dependencies, "name")
-  }
-
   async getStatus({ log }: { log: LogEntry }): Promise<EnvironmentStatus> {
     const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
     const services = keyBy(await this.garden.getServices(), "name")
@@ -420,13 +415,10 @@ export class ActionHelper implements TypeGuard {
       defaultHandler,
     })
 
-    const buildDependencies = await this.getBuildDependencies(module)
-
     const handlerParams: any = {
       ...this.commonParams(handler, (<any>params).log),
       ...<object>params,
       module: omit(module, ["_ConfigType"]),
-      buildDependencies,
     }
     // TODO: figure out why this doesn't compile without the function cast
     return (<Function>handler)(handlerParams)
@@ -447,7 +439,6 @@ export class ActionHelper implements TypeGuard {
     })
 
     // TODO: figure out why this doesn't compile without the casts
-    const buildDependencies = await this.getBuildDependencies(module)
     const deps = await this.garden.getServices(service.config.dependencies)
     const runtimeContext = ((<any>params).runtimeContext || await prepareRuntimeContext(this.garden, log, module, deps))
 
@@ -456,7 +447,6 @@ export class ActionHelper implements TypeGuard {
       ...<object>params,
       module,
       runtimeContext,
-      buildDependencies,
     }
 
     return (<Function>handler)(handlerParams)
@@ -480,14 +470,11 @@ export class ActionHelper implements TypeGuard {
       defaultHandler,
     })
 
-    const buildDependencies = await this.getBuildDependencies(module)
-
     const handlerParams: any = {
       ...this.commonParams(handler, (<any>params).log),
       ...<object>params,
       module,
       task,
-      buildDependencies,
     }
 
     return (<Function>handler)(handlerParams)

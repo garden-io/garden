@@ -12,7 +12,7 @@ import { deline } from "../../../util/string"
 import { HotReloadServiceParams } from "../../../types/plugin/params"
 import { ContainerModule } from "../../container/config"
 import { HotReloadServiceResult } from "../../../types/plugin/outputs"
-import { getChartResources, findServiceResource } from "./common"
+import { getChartResources, findServiceResource, getServiceResourceSpec } from "./common"
 import { syncToService, HotReloadableKind } from "../hot-reload"
 
 /**
@@ -41,7 +41,7 @@ export async function hotReloadHelmChart(
 
 export function getHotReloadSpec(service: HelmService) {
   const module = service.module
-  const resourceSpec = module.spec.serviceResource
+  const resourceSpec = getServiceResourceSpec(module)
 
   if (!resourceSpec || !resourceSpec.containerModule) {
     throw new ConfigurationError(

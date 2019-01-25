@@ -6,10 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find } from "lodash"
+import { find, isEmpty } from "lodash"
 import { join } from "path"
 import { pathExists, writeFile, remove } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
+import { apply as jsonMerge } from "json-merge-patch"
+
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
@@ -18,9 +20,10 @@ import { safeLoadAll } from "js-yaml"
 import { helm } from "./helm-cli"
 import { HelmModule, HelmModuleConfig, HelmResourceSpec } from "./config"
 import { HotReloadableResource } from "../hot-reload"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, PluginError } from "../../../exceptions"
 import { Module } from "../../../types/module"
 import { findByName } from "../../../util/util"
+import { deline } from "../../../util/string"
 
 /**
  * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
@@ -57,10 +60,44 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
 }
 
 /**
+ * Returns the base module of the specified Helm module, or undefined if none is specified.
+ * Throws an error if the referenced module is missing, or is not a Helm module.
+ */
+export function getBaseModule(module: HelmModule) {
+  if (!module.spec.base) {
+    return
+  }
+
+  const baseModule = module.buildDependencies[module.spec.base]
+
+  if (!baseModule) {
+    throw new PluginError(
+      deline`Helm module '${module.name}' references base module '${module.spec.base}'
+      but it is missing from the module's build dependencies.`,
+      { moduleName: module.name, baseModuleName: module.spec.base },
+    )
+  }
+
+  if (baseModule.type !== "helm") {
+    throw new ConfigurationError(
+      deline`Helm module '${module.name}' references base module '${module.spec.base}'
+      which is a '${baseModule.type}' module, but should be a helm module.`,
+      { moduleName: module.name, baseModuleName: module.spec.base, baseModuleType: baseModule.type },
+    )
+  }
+
+  return baseModule
+}
+
+/**
  * Get the full path to the chart, within the module build directory.
  */
 export async function getChartPath(module: HelmModule) {
-  if (await containsSource(module)) {
+  const baseModule = getBaseModule(module)
+
+  if (baseModule) {
+    return join(module.buildPath, baseModule.spec.chartPath)
+  } else if (await containsSource(module)) {
     return join(module.buildPath, module.spec.chartPath)
   } else {
     // This value is validated to exist in the validate module action
@@ -84,6 +121,32 @@ export function getReleaseName(module: HelmModule) {
   return module.name
 }
 
+/**
+ * Returns the `serviceResource` spec on the module. If the module has a base module, the two resource specs
+ * are merged using a JSON Merge Patch (RFC 7396).
+ *
+ * Throws error if no resource spec is configured, or it is empty.
+ */
+export function getServiceResourceSpec(module: HelmModule) {
+  const baseModule = getBaseModule(module)
+  let resourceSpec = module.spec.serviceResource || {}
+
+  if (baseModule) {
+    resourceSpec = jsonMerge(baseModule.spec.serviceResource || {}, resourceSpec)
+  }
+
+  if (isEmpty(resourceSpec)) {
+    throw new ConfigurationError(
+      deline`Helm module '${module.name}' doesn't specify a \`serviceResource\` in its configuration.
+      You must specify a resource in the module config in order to use certain Garden features,
+      such as hot reloading.`,
+      { resourceSpec },
+    )
+  }
+
+  return <HelmResourceSpec>resourceSpec
+}
+
 interface GetServiceResourceParams {
   ctx: PluginContext,
   log: LogEntry,
@@ -97,22 +160,17 @@ interface GetServiceResourceParams {
  * hot-reloading and other service-specific functionality.
  *
  * Optionally provide a `resourceSpec`, which is then used instead of the default `module.serviceResource` spec.
+ * This is used when individual tasks or tests specify a resource.
  *
  * Throws an error if no valid resource spec is given, or the resource spec doesn't match any of the given resources.
  */
 export async function findServiceResource(
   { ctx, log, chartResources, module, resourceSpec }: GetServiceResourceParams,
 ): Promise<HotReloadableResource> {
-  if (!resourceSpec) {
-    resourceSpec = module.spec.serviceResource
-  }
+  const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
 
   if (!resourceSpec) {
-    throw new ConfigurationError(
-      `Module '${module.name}' doesn't specify a \`serviceResource\` in its configuration. ` +
-      `You must specify it in the module config in order to use certain Garden features, such as hot reloading.`,
-      { resourceSpec },
-    )
+    resourceSpec = getServiceResourceSpec(module)
   }
 
   const targetKind = resourceSpec.kind
@@ -137,23 +195,23 @@ export async function findServiceResource(
 
     if (!target) {
       throw new ConfigurationError(
-        `Module '${module.name}' does not contain specified ${targetKind} '${targetName}'`,
+        `Helm module '${module.name}' does not contain specified ${targetKind} '${targetName}'`,
         { resourceSpec, chartResourceNames },
       )
     }
   } else {
     if (applicableChartResources.length === 0) {
       throw new ConfigurationError(
-        `Module '${module.name}' contains no ${targetKind}s.`,
+        `Helm module '${module.name}' contains no ${targetKind}s.`,
         { resourceSpec, chartResourceNames },
       )
     }
 
     if (applicableChartResources.length > 1) {
       throw new ConfigurationError(
-        `Module '${module.name}' contains multiple ${targetKind}s. ` +
-        `You must specify \`serviceResource.name\` in the module config in order to identify ` +
-        `the correct ${targetKind}.`,
+        deline`Helm module '${module.name}' contains multiple ${targetKind}s.
+        You must specify \`${resourceMsgName}.name\` in the module config in order to identify
+        the correct ${targetKind} to use.`,
         { resourceSpec, chartResourceNames },
       )
     }

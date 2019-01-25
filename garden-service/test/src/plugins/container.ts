@@ -37,7 +37,6 @@ describe("plugins.container", () => {
     name: "test",
     path: modulePath,
     type: "container",
-    variables: {},
 
     spec: {
       buildArgs: {},
@@ -137,7 +136,6 @@ describe("plugins.container", () => {
         name: "test",
         path: modulePath,
         type: "container",
-        variables: {},
 
         spec: {
           buildArgs: {},
@@ -191,7 +189,6 @@ describe("plugins.container", () => {
           name: "module-a",
           path: modulePath,
           type: "container",
-          variables: {},
 
           spec: {
             buildArgs: {},
@@ -252,7 +249,6 @@ describe("plugins.container", () => {
           name: "module-a",
           path: modulePath,
           type: "container",
-          variables: {},
           spec:
           {
             buildArgs: {},
@@ -368,7 +364,6 @@ describe("plugins.container", () => {
           name: "module-a",
           path: modulePath,
           type: "test",
-          variables: {},
 
           spec: {
             buildArgs: {},
@@ -424,7 +419,6 @@ describe("plugins.container", () => {
           name: "module-a",
           path: modulePath,
           type: "test",
-          variables: {},
 
           spec: {
             buildArgs: {},
@@ -475,7 +469,6 @@ describe("plugins.container", () => {
           name: "module-a",
           path: modulePath,
           type: "test",
-          variables: {},
 
           spec: {
             buildArgs: {},
@@ -520,7 +513,7 @@ describe("plugins.container", () => {
 
         td.replace(containerHelpers, "imageExistsLocally", async () => true)
 
-        const result = await getBuildStatus({ ctx, log, module, buildDependencies: {} })
+        const result = await getBuildStatus({ ctx, log, module })
         expect(result).to.eql({ ready: true })
       })
 
@@ -529,7 +522,7 @@ describe("plugins.container", () => {
 
         td.replace(containerHelpers, "imageExistsLocally", async () => false)
 
-        const result = await getBuildStatus({ ctx, log, module, buildDependencies: {} })
+        const result = await getBuildStatus({ ctx, log, module })
         expect(result).to.eql({ ready: false })
       })
     })
@@ -544,7 +537,7 @@ describe("plugins.container", () => {
         td.replace(containerHelpers, "pullImage", async () => null)
         td.replace(containerHelpers, "imageExistsLocally", async () => false)
 
-        const result = await build({ ctx, log, module, buildDependencies: {} })
+        const result = await build({ ctx, log, module })
 
         expect(result).to.eql({ fetched: true })
       })
@@ -560,7 +553,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(containerHelpers, "dockerCli")
 
-        const result = await build({ ctx, log, module, buildDependencies: {} })
+        const result = await build({ ctx, log, module })
 
         expect(result).to.eql({
           fresh: true,
@@ -583,7 +576,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(containerHelpers, "dockerCli")
 
-        const result = await build({ ctx, log, module, buildDependencies: {} })
+        const result = await build({ ctx, log, module })
 
         expect(result).to.eql({
           fresh: true,
@@ -610,7 +603,7 @@ describe("plugins.container", () => {
 
         td.replace(containerHelpers, "hasDockerfile", async () => false)
 
-        const result = await publishModule({ ctx, log, module, buildDependencies: {} })
+        const result = await publishModule({ ctx, log, module })
         expect(result).to.eql({ published: false })
       })
 
@@ -625,7 +618,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(containerHelpers, "dockerCli")
 
-        const result = await publishModule({ ctx, log, module, buildDependencies: {} })
+        const result = await publishModule({ ctx, log, module })
         expect(result).to.eql({ message: "Published some/image:12345", published: true })
 
         td.verify(dockerCli(module, ["tag", "some/image:12345", "some/image:12345"]), { times: 0 })
@@ -643,7 +636,7 @@ describe("plugins.container", () => {
 
         const dockerCli = td.replace(containerHelpers, "dockerCli")
 
-        const result = await publishModule({ ctx, log, module, buildDependencies: {} })
+        const result = await publishModule({ ctx, log, module })
         expect(result).to.eql({ message: "Published some/image:1.1", published: true })
 
         td.verify(dockerCli(module, ["tag", "some/image:12345", "some/image:1.1"]))

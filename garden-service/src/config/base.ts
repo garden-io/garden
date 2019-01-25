@@ -129,7 +129,6 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
       spec: omit(moduleConfig, baseModuleSchemaKeys),
       testConfigs: [],
       type: moduleConfig.type,
-      variables: moduleConfig.variables,
       taskConfigs: [],
     }
   }

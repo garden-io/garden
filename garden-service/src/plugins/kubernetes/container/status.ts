@@ -50,13 +50,12 @@ export async function waitForContainerService(
   runtimeContext: RuntimeContext,
   service: Service,
   hotReload: boolean,
-  buildDependencies,
 ) {
   const startTime = new Date().getTime()
 
   while (true) {
     const status = await getContainerServiceStatus({
-      ctx, log, buildDependencies, service, runtimeContext, module: service.module, hotReload,
+      ctx, log, service, runtimeContext, module: service.module, hotReload,
     })
 
     if (status.state === "ready" || status.state === "outdated") {

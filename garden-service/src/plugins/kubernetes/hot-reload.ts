@@ -158,7 +158,7 @@ export function configureHotReload({
  * The hot reload action handler for containers.
  */
 export async function hotReloadContainer(
-  { ctx, log, runtimeContext, service, module, buildDependencies }: HotReloadServiceParams<ContainerModule>,
+  { ctx, log, runtimeContext, service, module }: HotReloadServiceParams<ContainerModule>,
 ): Promise<HotReloadServiceResult> {
   const hotReloadConfig = module.spec.hotReload
 
@@ -169,7 +169,7 @@ export async function hotReloadContainer(
     )
   }
 
-  await waitForContainerService(ctx, log, runtimeContext, service, true, buildDependencies)
+  await waitForContainerService(ctx, log, runtimeContext, service, true)
   await syncToService(ctx, service, hotReloadConfig, "Deployment", service.name, log)
 
   return {}

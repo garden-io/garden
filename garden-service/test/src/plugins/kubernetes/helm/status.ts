@@ -13,7 +13,7 @@ describe("getServiceOutputs", () => {
     const service = await garden.getService("api")
     const module = service.module
 
-    const result = await getServiceOutputs({ ctx, module, service, buildDependencies: {}, log: garden.log })
+    const result = await getServiceOutputs({ ctx, module, service, log: garden.log })
 
     expect(result).to.eql({ "release-name": "api" })
   })

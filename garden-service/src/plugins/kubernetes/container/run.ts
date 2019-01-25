@@ -96,7 +96,7 @@ export async function runContainerModule(
 }
 
 export async function runContainerService(
-  { ctx, service, interactive, runtimeContext, timeout, log, buildDependencies }: RunServiceParams<ContainerModule>,
+  { ctx, service, interactive, runtimeContext, timeout, log }: RunServiceParams<ContainerModule>,
 ) {
   return runContainerModule({
     ctx,
@@ -106,16 +106,14 @@ export async function runContainerService(
     runtimeContext,
     timeout,
     log,
-    buildDependencies,
   })
 }
 
 export async function runContainerTask(
-  { ctx, task, interactive, runtimeContext, log, buildDependencies }: RunTaskParams<ContainerModule>,
+  { ctx, task, interactive, runtimeContext, log }: RunTaskParams<ContainerModule>,
 ) {
   const result = await runContainerModule({
     ctx,
-    buildDependencies,
     interactive,
     log,
     runtimeContext,

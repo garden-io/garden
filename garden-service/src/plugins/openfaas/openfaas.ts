@@ -266,7 +266,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         },
 
         async deleteService(params: DeleteServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-          const { ctx, log, service, runtimeContext, buildDependencies } = params
+          const { ctx, log, service, runtimeContext } = params
           let status
           let found = true
 
@@ -276,7 +276,6 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
               log,
               service,
               runtimeContext,
-              buildDependencies,
               module: service.module,
               hotReload: false,
             })
