@@ -30,6 +30,7 @@ export const colors = {
   gardenGreen: "#02f2b4",
   gardenGrey: "#f8faff",
   gardenPink: "#da45a2",
+  gardenPinkRgba: "rgba(218, 69, 162, 0)",
   blueyGrey: "#98a6b6",
   iceCold: "#a5f1e6",
   darkGreen: "#277379",

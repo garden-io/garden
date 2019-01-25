@@ -8,8 +8,9 @@
 
 import cls from "classnames"
 import { css } from "emotion/macro"
-import React, { Component } from "react"
+import React, { Component, ChangeEvent } from "react"
 import styled from "@emotion/styled/macro"
+import { capitalize, uniq } from "lodash"
 import * as d3 from "d3"
 import dagreD3 from "dagre-d3"
 
@@ -59,6 +60,7 @@ function drawChart(graph: Graph, width: number, height: number) {
       label: node.label,
       class: "",
       id: node.id,
+      labelType: "html",
     })
   }
 
@@ -129,6 +131,7 @@ interface Props {
 }
 
 interface State {
+  filters: { [key: string]: boolean }
   nodes: Node[]
   edges: Edge[]
 }
@@ -146,13 +149,15 @@ const getIdFromTaskKey = (key: string) => {
   return makeId(name, type)
 }
 
+// Renders as HTML
 const makeLabel = (name: string, type: string) => {
   const nameParts = name.split(".")
   // test names look like: name.test-name.type
   if (type === "test") {
     type += ` (${nameParts[1]})`
   }
-  return `${nameParts[0]}\n${type}`
+  return "<div class='label-wrap'><span class='name'>" +
+    nameParts[0] + "</span><br /><span class='type'>" + type + "</span></div>"
 }
 
 const Span = styled.span`
@@ -175,23 +180,46 @@ class Chart extends Component<Props, State> {
   _edges: Edge[]
   _chartRef: React.RefObject<any>
 
+  state = {
+    nodes: [],
+    edges: [],
+    filters: {},
+  }
+
   constructor(props) {
     super(props)
 
     this._chartRef = React.createRef()
+    this.onCheckboxChange = this.onCheckboxChange.bind(this)
+
+    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
+    const filters = taskTypes.reduce((acc, type) => {
+      acc[type] = false
+      return acc
+    }, {})
+    this.state = {
+      ...this.state,
+      filters,
+    }
   }
 
   componentDidMount() {
     this.drawChart()
 
     // Re-draw graph on **end** of window resize event (hence the timer)
-    let resizeTimer
+    let resizeTimer: NodeJS.Timeout
     window.onresize = () => {
       clearTimeout(resizeTimer)
       resizeTimer = setTimeout(() => {
         this.drawChart()
       }, 250)
     }
+  }
+
+  onCheckboxChange({ target }: ChangeEvent<HTMLInputElement>) {
+    this.setState({
+      filters: { ...this.state.filters, [target.name]: !target.checked },
+    })
   }
 
   drawChart() {
@@ -204,29 +232,37 @@ class Chart extends Component<Props, State> {
   }
 
   makeGraph() {
-    const nodes: Node[] = this.props.graph.nodes.map(n => {
-      return {
-        id: makeId(n.name, n.type),
-        name: n.name,
-        label: makeLabel(n.name, n.type),
-      }
-    })
-    const edges: Edge[] = this.props.graph.relationships.map(r => {
-      const source = r.dependency
-      const target = r.dependant
-      return {
-        source: makeId(source.name, source.type),
-        target: makeId(target.name, target.type),
-        type: source.type,
-      }
-    })
+    const { filters } = this.state
+    const nodes: Node[] = this.props.graph.nodes
+      .filter(n => !filters[n.type])
+      .map(n => {
+        return {
+          id: makeId(n.name, n.type),
+          name: n.name,
+          label: makeLabel(n.name, n.type),
+        }
+      })
+    const edges: Edge[] = this.props.graph.relationships
+      .filter(n => !filters[n.dependant.type] && !filters[n.dependency.type])
+      .map(r => {
+        const source = r.dependency
+        const target = r.dependant
+        return {
+          source: makeId(source.name, source.type),
+          target: makeId(target.name, target.type),
+          type: source.type,
+        }
+      })
     return { edges, nodes }
   }
 
-  componentDidUpdate(_prevProps: Props) {
-    const { message } = this.props
+  componentDidUpdate(_prevProps, prevState: State) {
+    const message = this.props.message
     if (message && message.type === "event") {
       this.updateNodeClass(message)
+    }
+    if (prevState.filters !== this.state.filters) {
+      this.drawChart()
     }
   }
 
@@ -256,13 +292,16 @@ class Chart extends Component<Props, State> {
 
   render() {
     const { message } = this.props
+    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
     const chartHeightEstimate = `100vh - 15rem`
+
     let spinner = null
     let status = "Ready"
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."
       spinner = <ProcessSpinner />
     }
+
     return (
       <Card>
         <div>
@@ -272,14 +311,27 @@ class Chart extends Component<Props, State> {
               <Span><span className={css`color: ${colors.gardenPink};`}>--  </span>Pending</Span>
               <Span><span className={css`color: red;`}>—  </span>Error</Span>
             </p>
+            <div>
+              {taskTypes.map(type => (
+                <label className="ml-1" key={type}>
+                  {capitalize(type)}
+                  <input
+                    type={"checkbox"}
+                    name={type}
+                    checked={!this.state.filters[type]}
+                    onChange={this.onCheckboxChange}
+                  />
+                </label>
+              ))}
+            </div>
           </div>
           <div className={css`
-          height: calc(${chartHeightEstimate});
-        `} ref={this._chartRef} id="chart">
+            height: calc(${chartHeightEstimate});
+          `} ref={this._chartRef} id="chart">
           </div>
           <div className={cls(css`
-          display: flex;
-        `, "ml-1 pb-1")}>
+            display: flex;
+          `, "ml-1 pb-1")}>
             <Status>{status}</Status>
             {spinner}
           </div>

@@ -24,6 +24,15 @@ import "flexboxgrid/dist/flexboxgrid.min.css"
 import "./styles/padding-margin-mixin.scss"
 import { EventProvider } from "./context/events"
 import { DataProvider } from "./context/data"
+import { NavLink } from "./components/links"
+
+import logo from "./assets/logo.png"
+
+// Style and align properly
+const Logo = styled.img`
+  height: auto;
+  width: 80%;
+`
 
 const SidebarWrapper = styled.div`
   border-right: 1px solid ${colors.border};
@@ -44,6 +53,11 @@ const App = () => (
           overflow-y: hidden;
         `}>
           <SidebarWrapper>
+            <div className={"ml-1"}>
+              <NavLink to="/">
+                <Logo src={logo} alt="Home" />
+              </NavLink>
+            </div>
             <Sidebar />
           </SidebarWrapper>
           <div className={css`
