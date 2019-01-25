@@ -69,7 +69,5 @@
     }
   },
   "snyk": true,
-  "dependencies": {
-    "indent-string": "^3.2.0"
-  }
+  "dependencies": {}
 }
