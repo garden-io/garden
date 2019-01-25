@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import cls from "classnames"
+import { css } from "emotion/macro"
 import { kebabCase, flatten, entries } from "lodash"
-import React from "react"
+import React, { useContext, useEffect } from "react"
 
 import Sidebar from "../components/sidebar"
 import { DashboardPage } from "../api/types"
-import { StatusConsumer } from "../context/status"
+import { DataContext } from "../context/data"
 
 export interface Page extends DashboardPage {
   path: string
@@ -26,8 +28,8 @@ const builtinPages: Page[] = [
     url: "",
   },
   {
-    title: "Service Graph",
-    description: "Service Graph",
+    title: "Task Graph",
+    description: "Task Graph",
     path: "/graph",
     newWindow: false,
     url: "",
@@ -41,18 +43,32 @@ const builtinPages: Page[] = [
   },
 ]
 
-export default () => (
-  <StatusConsumer>
-    {({ status }) => {
-      const pages: Page[] = flatten(entries(status.providers).map(([providerName, providerStatus]) => {
-        return providerStatus.dashboardPages.map(p => ({
-          ...p,
-          path: `/provider/${providerName}/${kebabCase(p.title)}`,
-          description: p.description + ` (from provider ${providerName})`,
-        }))
-      }))
+export default () => {
+  const {
+    actions: { loadStatus },
+    store: { status },
+  } = useContext(DataContext)
 
-      return <Sidebar pages={[...builtinPages, ...pages]} />
-    }}
-  </StatusConsumer>
-)
+  useEffect(loadStatus, [])
+
+  const isLoading = !status.data || status.loading
+  if (isLoading) {
+    return (
+      <div className={cls(css`
+      text-align: center;
+    `, "mt-2")}>
+        <p>Loading sidebar...</p>
+      </div>
+    )
+  }
+
+  const pages: Page[] = flatten(entries(status.data.providers).map(([providerName, providerStatus]) => {
+    return providerStatus.dashboardPages.map(p => ({
+      ...p,
+      path: `/provider/${providerName}/${kebabCase(p.title)}`,
+      description: p.description + ` (from provider ${providerName})`,
+    }))
+  }))
+
+  return <Sidebar pages={[...builtinPages, ...pages]} />
+}

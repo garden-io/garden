@@ -69,3 +69,5 @@ The app is structured into presentational components (`src/components`), contain
 **Provider/consumer components:** These are re-usable components that contain "global" data that needs to be accessible by many (presentational) components in the tree. The provider/consumer pattern is a part of the new [React context API](https://reactjs.org/docs/context.html).
 
 Maintaining this separation will make it easier to migrate to different state management patterns/tools as the app evolves.
+
+We also use the new [React Hooks API](https://reactjs.org/docs/hooks-intro.html) to manage data and state.

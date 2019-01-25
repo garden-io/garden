@@ -6,31 +6,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React from "react"
-
-import { ConfigConsumer } from "../context/config"
-import FetchContainer from "./fetch-container"
-
-import { fetchGraph } from "../api"
-// tslint:disable-next-line:no-unused (https://github.com/palantir/tslint/issues/4022)
-import { FetchGraphResponse } from "../api/types"
+import React, { useContext, useEffect } from "react"
 
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
-import { EventConsumer } from "../context/events"
+import { EventContext } from "../context/events"
+import LoadWrapper from "../components/load-wrapper"
+import { DataContext } from "../context/data"
 
-export default () => (
-  <FetchContainer<FetchGraphResponse> ErrorComponent={PageError} fetchFn={fetchGraph}>
-    {({ data: graph }) => (
-      <ConfigConsumer>
-        {({ config }) => (
-          <EventConsumer>
-            {({ message }) => (
-              <Graph message={message} config={config} graph={graph} />
-            )}
-          </EventConsumer>
-        )}
-      </ConfigConsumer>
-    )}
-  </FetchContainer>
-)
+export default () => {
+  const {
+    actions: { loadGraph, loadConfig },
+    store: { config, graph },
+  } = useContext(DataContext)
+  const { message } = useContext(EventContext)
+
+  useEffect(loadConfig, [])
+  useEffect(loadGraph, [])
+
+  const isLoading = !config.data || !graph.data || config.loading || graph.loading
+  const error = config.error || graph.error
+
+  return (
+    <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
+      <Graph message={message} config={config.data} graph={graph.data} />
+    </LoadWrapper>
+  )
+}

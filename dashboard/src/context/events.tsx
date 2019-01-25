@@ -8,22 +8,60 @@
 
 import React from "react"
 
+import { useEffect, useState } from "react"
+import getApiUrl from "../api/get-api-url"
 import { WsMessage } from "../api/types"
-import WsContainer from "../containers/ws-container"
 
 type Context = { message?: WsMessage }
-const EventContext = React.createContext<Context | null>(null)
 
-const EventConsumer = EventContext.Consumer
+export const EventContext = React.createContext<Context | null>(null)
 
-const EventProvider = ({ children }) => (
-  <WsContainer>
-    {({ message }) => (
-      <EventContext.Provider value={{ message }}>
-        {children}
-      </EventContext.Provider>
-    )}
-  </WsContainer>
-)
+interface WsOutput {
+  message: WsMessage | null
+}
+function useWs(): WsOutput {
+  const [data, setData] = useState<WsOutput | null>(null)
+  useEffect(() => {
+    const url = getApiUrl()
+    const ws = new WebSocket(`ws://${url}/ws`)
 
-export { EventProvider, EventConsumer }
+    ws.onopen = event => {
+      console.log("ws open", event)
+    }
+    ws.onclose = event => {
+      // TODO
+      console.log("ws close", event)
+    }
+    ws.onmessage = msg => {
+      const message = JSON.parse(msg.data) as WsMessage
+
+      // TOOD
+      if (message.type === "error") {
+        console.error(message)
+      }
+
+      if (message.type === "event") {
+        console.log(message)
+        setData({ message })
+      }
+    }
+    return function cleanUp() {
+      console.log("ws cleanup")
+      ws.close()
+    }
+  }, [])
+
+  const wsMessage = data ? data.message : null
+
+  return { message: wsMessage }
+}
+
+export const EventProvider: React.SFC = ({ children }) => {
+  const { message } = useWs()
+
+  return (
+    <EventContext.Provider value={{ message }}>
+      {children}
+    </EventContext.Provider>
+  )
+}
