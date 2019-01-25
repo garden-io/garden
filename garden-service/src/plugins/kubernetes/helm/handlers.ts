@@ -8,7 +8,7 @@
 
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
 import { getExecModuleBuildStatus } from "../../exec"
-import { HelmModule, validateHelmModule } from "./config"
+import { HelmModule, validateHelmModule as configureHelmModule } from "./config"
 import { buildHelmModule } from "./build"
 import { getServiceStatus, getServiceOutputs } from "./status"
 import { deployService, deleteService } from "./deployment"
@@ -20,6 +20,7 @@ import { testHelmModule } from "./test"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
   build: buildHelmModule,
+  configure: configureHelmModule,
   // TODO: add execInService handler
   deleteService,
   deployService,
@@ -33,5 +34,4 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
   runModule: runHelmModule,
   runTask: runHelmTask,
   testModule: testHelmModule,
-  validate: validateHelmModule,
 }

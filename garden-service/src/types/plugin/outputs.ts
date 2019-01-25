@@ -13,6 +13,13 @@ import { Module } from "../module"
 import { ServiceStatus } from "../service"
 import { moduleConfigSchema, ModuleConfig } from "../../config/module"
 import { DashboardPage, dashboardPagesSchema } from "../../config/dashboard"
+import { ProviderConfig, providerConfigBaseSchema, Provider } from "../../config/project"
+
+export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConfig> extends Provider<T> { }
+export const configureProviderResultSchema = Joi.object()
+  .keys({
+    config: providerConfigBaseSchema,
+  })
 
 export interface EnvironmentStatus {
   ready: boolean
@@ -142,7 +149,7 @@ export const moduleTypeDescriptionSchema = Joi.object()
       ),
   })
 
-export type ValidateModuleResult<T extends Module = Module> =
+export type ConfigureModuleResult<T extends Module = Module> =
   ModuleConfig<
     T["spec"],
     T["serviceConfigs"][0]["spec"],
@@ -150,7 +157,7 @@ export type ValidateModuleResult<T extends Module = Module> =
     T["taskConfigs"][0]["spec"]
   >
 
-export const validateModuleResultSchema = moduleConfigSchema
+export const configureModuleResultSchema = moduleConfigSchema
 
 export interface BuildResult {
   buildLog?: string
@@ -308,6 +315,8 @@ export const taskStatusSchema = Joi.object()
   })
 
 export interface PluginActionOutputs {
+  configureProvider: Promise<ConfigureProviderResult>
+
   getEnvironmentStatus: Promise<EnvironmentStatus>
   prepareEnvironment: Promise<PrepareEnvironmentResult>
   cleanupEnvironment: Promise<CleanupEnvironmentResult>
@@ -335,7 +344,7 @@ export interface TaskActionOutputs {
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {
   describeType: Promise<ModuleTypeDescription>
-  validate: Promise<ValidateModuleResult>
+  configure: Promise<ConfigureModuleResult>
   getBuildStatus: Promise<BuildStatus>
   build: Promise<BuildResult>
   pushModule: Promise<PushResult>

@@ -23,7 +23,7 @@ describe("plugins.container", () => {
   const relDockerfilePath = "docker-dir/Dockerfile"
 
   const handler = gardenPlugin()
-  const validate = handler.moduleActions!.container!.validate!
+  const configure = handler.moduleActions!.container!.configure!
   const build = handler.moduleActions!.container!.build!
   const publishModule = handler.moduleActions!.container!.publishModule!
   const getBuildStatus = handler.moduleActions!.container!.getBuildStatus!
@@ -69,7 +69,7 @@ describe("plugins.container", () => {
   })
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-    const parsed = await validate({ ctx, moduleConfig })
+    const parsed = await configure({ ctx, moduleConfig })
     return moduleFromConfig(garden, parsed)
   }
 
@@ -241,7 +241,7 @@ describe("plugins.container", () => {
           testConfigs: [],
         }
 
-        const result = await validate({ ctx, moduleConfig })
+        const result = await configure({ ctx, moduleConfig })
 
         expect(result).to.eql({
           allowPublish: false,
@@ -349,7 +349,7 @@ describe("plugins.container", () => {
         moduleConfig.spec.dockerfile = "path/to/non-existing/Dockerfile"
 
         await expectError(
-          () => validate({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig }),
           "configuration",
         )
       })
@@ -404,7 +404,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => validate({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig }),
           "configuration",
         )
       })
@@ -454,7 +454,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => validate({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig }),
           "configuration",
         )
       })
@@ -501,7 +501,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => validate({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig }),
           "configuration",
         )
       })

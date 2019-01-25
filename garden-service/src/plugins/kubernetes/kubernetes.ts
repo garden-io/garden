@@ -9,7 +9,7 @@
 import * as Joi from "joi"
 import dedent = require("dedent")
 
-import { joiArray, joiIdentifier, validate } from "../../config/common"
+import { joiArray, joiIdentifier } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
 import { helmHandlers } from "./helm/handlers"
@@ -139,11 +139,9 @@ const configSchema = kubernetesConfigBase
     _system: Joi.any().meta({ internal: true }),
   })
 
-export function gardenPlugin({ config }: { config: KubernetesConfig }): GardenPlugin {
-  config = validate(config, configSchema, { context: "kubernetes provider config" })
-
+export function gardenPlugin(): GardenPlugin {
   return {
-    config,
+    configSchema,
     actions: {
       getEnvironmentStatus: getRemoteEnvironmentStatus,
       prepareEnvironment: prepareRemoteEnvironment,

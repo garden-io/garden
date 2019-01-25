@@ -11,12 +11,12 @@ import {
   validateWithPath,
 } from "../../config/common"
 import { Module } from "../../types/module"
-import { ValidateModuleResult } from "../../types/plugin/outputs"
+import { ConfigureModuleResult } from "../../types/plugin/outputs"
 import {
   DeployServiceParams,
   GetServiceOutputsParams,
   GetServiceStatusParams,
-  ValidateModuleParams,
+  ConfigureModuleParams,
 } from "../../types/plugin/params"
 import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
 import {
@@ -79,9 +79,9 @@ function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provi
   return service.spec.project || provider.config["default-project"] || null
 }
 
-export async function parseGcfModule(
-  { ctx, moduleConfig }: ValidateModuleParams<GcfModule>,
-): Promise<ValidateModuleResult<GcfModule>> {
+export async function configureGcfModule(
+  { ctx, moduleConfig }: ConfigureModuleParams<GcfModule>,
+): Promise<ConfigureModuleResult<GcfModule>> {
 
   // TODO: check that each function exists at the specified path
   moduleConfig.spec = validateWithPath({
@@ -116,7 +116,7 @@ export const gardenPlugin = (): GardenPlugin => ({
   },
   moduleActions: {
     "google-cloud-function": {
-      validate: parseGcfModule,
+      configure: configureGcfModule,
 
       async deployService(params: DeployServiceParams<GcfModule>) {
         const { ctx, service } = params

@@ -21,15 +21,16 @@ import { Module } from "../types/module"
 import {
   BuildResult,
   BuildStatus,
-  ValidateModuleResult,
   TestResult,
   RunTaskResult,
+  ConfigureModuleResult,
 } from "../types/plugin/outputs"
 import {
   BuildModuleParams,
   GetBuildStatusParams,
-  ValidateModuleParams,
-  TestModuleParams, RunTaskParams,
+  TestModuleParams,
+  RunTaskParams,
+  ConfigureModuleParams,
 } from "../types/plugin/params"
 import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
@@ -84,9 +85,9 @@ export const execModuleSpecSchema = Joi.object()
 
 export interface ExecModule extends Module<ExecModuleSpec, CommonServiceSpec, ExecTestSpec> { }
 
-export async function parseExecModule(
-  { ctx, moduleConfig }: ValidateModuleParams<ExecModule>,
-): Promise<ValidateModuleResult> {
+export async function configureExecModule(
+  { ctx, moduleConfig }: ConfigureModuleParams<ExecModule>,
+): Promise<ConfigureModuleResult> {
 
   moduleConfig.spec = validateWithPath({
     config: moduleConfig.spec,
@@ -225,7 +226,7 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
 export const execPlugin: GardenPlugin = {
   moduleActions: {
     exec: {
-      validate: parseExecModule,
+      configure: configureExecModule,
       getBuildStatus: getExecModuleBuildStatus,
       build: buildExecModule,
       runTask: runExecTask,

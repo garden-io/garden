@@ -20,8 +20,8 @@ import {
   joiUserIdentifier,
 } from "../../../config/common"
 import { Module, FileCopySpec } from "../../../types/module"
-import { ValidateModuleParams } from "../../../types/plugin/params"
-import { ValidateModuleResult } from "../../../types/plugin/outputs"
+import { ConfigureModuleParams } from "../../../types/plugin/params"
+import { ConfigureModuleResult } from "../../../types/plugin/outputs"
 import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
@@ -205,8 +205,8 @@ export const helmModuleSpecSchema = Joi.object().keys({
     ),
 })
 
-export async function validateHelmModule({ ctx, moduleConfig }: ValidateModuleParams<HelmModule>)
-  : Promise<ValidateModuleResult<HelmModule>> {
+export async function validateHelmModule({ ctx, moduleConfig }: ConfigureModuleParams<HelmModule>)
+  : Promise<ConfigureModuleResult<HelmModule>> {
   moduleConfig.spec = validateWithPath({
     config: moduleConfig.spec,
     schema: helmModuleSpecSchema,

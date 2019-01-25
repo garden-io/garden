@@ -6,7 +6,7 @@ import {
 import { Garden } from "../../../src/garden"
 import { EnvironmentStatus } from "../../../src/types/plugin/outputs"
 import { PluginFactory } from "../../../src/types/plugin/plugin"
-import { expectError, makeTestGardenA, getDataDir, validateTestModule } from "../../helpers"
+import { expectError, makeTestGardenA, getDataDir, configureTestModule } from "../../helpers"
 import { expect } from "chai"
 import { ServiceStatus } from "../../../src/types/service"
 import { DeleteServiceParams } from "../../../src/types/plugin/params"
@@ -99,7 +99,7 @@ describe("DeleteServiceCommand", () => {
     return {
       moduleActions: {
         test: {
-          validate: validateTestModule,
+          configure: configureTestModule,
           deleteService,
         },
       },

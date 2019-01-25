@@ -6,7 +6,7 @@ import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
 import { PluginFactory } from "../../../src/types/plugin/plugin"
 import { PublishCommand } from "../../../src/commands/publish"
-import { makeTestGardenA, validateTestModule } from "../../helpers"
+import { makeTestGardenA, configureTestModule } from "../../helpers"
 import { expectError, taskResultOutputs } from "../../helpers"
 import { ModuleVersion } from "../../../src/vcs/base"
 import { LogEntry } from "../../../src/logger/log-entry"
@@ -29,7 +29,7 @@ const testProvider: PluginFactory = () => {
   return {
     moduleActions: {
       test: {
-        validate: validateTestModule,
+        configure: configureTestModule,
         getBuildStatus,
         build,
         publishModule,

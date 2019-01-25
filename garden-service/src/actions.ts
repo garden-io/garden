@@ -381,7 +381,7 @@ export class ActionHelper implements TypeGuard {
     }
   }
 
-  private async callActionHandler<T extends keyof PluginActions>(
+  private async callActionHandler<T extends keyof Omit<PluginActions, "configureProvider">>(
     { params, actionType, pluginName, defaultHandler }:
       {
         params: ActionHelperParams<PluginActionParams[T]>,
@@ -402,7 +402,7 @@ export class ActionHelper implements TypeGuard {
     return (<Function>handler)(handlerParams)
   }
 
-  private async callModuleHandler<T extends keyof Omit<ModuleActions, "describeType" | "validate">>(
+  private async callModuleHandler<T extends keyof Omit<ModuleActions, "describeType" | "configure">>(
     { params, actionType, defaultHandler }:
       { params: ModuleActionHelperParams<ModuleActionParams[T]>, actionType: T, defaultHandler?: ModuleActions[T] },
   ): Promise<ModuleActionOutputs[T]> {

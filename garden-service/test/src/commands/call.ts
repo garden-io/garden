@@ -6,7 +6,7 @@ import { PluginFactory } from "../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../src/types/plugin/params"
 import { ServiceStatus } from "../../../src/types/service"
 import nock = require("nock")
-import { validateTestModule } from "../../helpers"
+import { configureTestModule } from "../../helpers"
 
 const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
@@ -39,7 +39,7 @@ const testProvider: PluginFactory = () => {
 
   return {
     moduleActions: {
-      test: { validate: validateTestModule, getServiceStatus },
+      test: { configure: configureTestModule, getServiceStatus },
     },
   }
 }

@@ -15,7 +15,7 @@ import { GardenPlugin } from "../../types/plugin/plugin"
 import {
   BuildModuleParams,
   GetBuildStatusParams,
-  ValidateModuleParams,
+  ConfigureModuleParams,
   HotReloadServiceParams,
   PublishModuleParams,
 } from "../../types/plugin/params"
@@ -23,7 +23,7 @@ import { keyBy } from "lodash"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 
-export async function validateContainerModule({ ctx, moduleConfig }: ValidateModuleParams<ContainerModule>) {
+export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   moduleConfig.spec = validateWithPath({
     config: moduleConfig.spec,
     schema: containerModuleSpecSchema,
@@ -148,7 +148,7 @@ export async function validateContainerModule({ ctx, moduleConfig }: ValidateMod
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
     container: {
-      validate: validateContainerModule,
+      configure: configureContainerModule,
 
       async getBuildStatus({ module, log }: GetBuildStatusParams<ContainerModule>) {
         const identifier = await containerHelpers.imageExistsLocally(module)
