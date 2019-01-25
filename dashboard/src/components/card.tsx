@@ -22,7 +22,7 @@ const Wrapper = styled.div`
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
 `
 
-const Title = styled.h3`
+export const CardTitle = styled.h3`
   ${fontMedium};
   font-size: 1.3rem;
   margin: 0;
@@ -32,7 +32,7 @@ const Card: React.SFC<CardProps> = ({ children, title }) => {
   const titleEl = title
     ? (
       <div className="pl-1 pr-1 pb-1">
-        <Title>{title}</Title>
+        <CardTitle>{title}</CardTitle>
       </div>
     )
     : null

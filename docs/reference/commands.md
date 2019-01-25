@@ -445,7 +445,8 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--tail` | `-t` | boolean | Continuously stream new logs from the service(s).
+  | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
+  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to -1, showing all log lines.
 
 ### garden publish
 

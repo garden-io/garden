@@ -7,11 +7,12 @@
  */
 
 import {
-  BooleanParameter,
   Command,
   CommandResult,
   CommandParams,
   StringsParameter,
+  IntegerParameter,
+  BooleanParameter,
 } from "./base"
 import chalk from "chalk"
 import { ServiceLogEntry } from "../types/plugin/outputs"
@@ -30,10 +31,15 @@ const logsArgs = {
 }
 
 const logsOpts = {
-  tail: new BooleanParameter({
+  follow: new BooleanParameter({
     help: "Continuously stream new logs from the service(s).",
-    alias: "t",
+    alias: "f",
     cliOnly: true,
+  }),
+  tail: new IntegerParameter({
+    help: "Number of lines to show for each service. Defaults to -1, showing all log lines.",
+    alias: "t",
+    defaultValue: -1,
   }),
   // TODO
   // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
@@ -61,7 +67,7 @@ export class LogsCommand extends Command<Args, Opts> {
   loggerType = LoggerType.basic
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
-    const tail = opts.tail
+    const { follow, tail } = opts
     const services = await garden.getServices(args.services)
 
     const result: ServiceLogEntry[] = []
@@ -83,7 +89,7 @@ export class LogsCommand extends Command<Args, Opts> {
         msg: [timestamp, chalk.white(entry.msg)],
       })
 
-      if (!tail) {
+      if (!follow) {
         result.push(entry)
       }
     })
@@ -93,7 +99,7 @@ export class LogsCommand extends Command<Args, Opts> {
       const status = await garden.actions.getServiceStatus({ log: voidLog, service, hotReload: false })
 
       if (status.state === "ready" || status.state === "outdated") {
-        await garden.actions.getServiceLogs({ log, service, stream, tail })
+        await garden.actions.getServiceLogs({ log, service, stream, follow, tail })
       } else {
         await stream.write({
           serviceName: service.name,

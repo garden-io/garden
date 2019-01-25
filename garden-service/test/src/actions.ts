@@ -291,7 +291,7 @@ describe("ActionHelper", () => {
     describe("getServiceLogs", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const stream = new Stream<ServiceLogEntry>()
-        const result = await actions.getServiceLogs({ log, service, stream, tail: false })
+        const result = await actions.getServiceLogs({ log, service, stream, follow: false, tail: -1 })
         expect(result).to.eql({})
       })
     })

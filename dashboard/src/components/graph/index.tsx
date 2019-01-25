@@ -170,8 +170,7 @@ const Status = styled.p`
 `
 
 const ProcessSpinner = styled(Spinner)`
-  margin: 20px 0 0 20px;
-  font-size: 12px;
+  margin: 16px 0 0 20px;
 `
 
 class Chart extends Component<Props, State> {
@@ -296,34 +295,27 @@ class Chart extends Component<Props, State> {
     const chartHeightEstimate = `100vh - 15rem`
 
     let spinner = null
-    let status = "Ready"
+    let status = ""
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."
-      spinner = <ProcessSpinner />
+      spinner = <ProcessSpinner background={colors.white} fontSize="2px" />
     }
 
     return (
       <Card>
         <div>
           <div>
-            <p>
-              <Span><span className={css`color: ${colors.gardenGreen};`}>—  </span>Ready</Span>
-              <Span><span className={css`color: ${colors.gardenPink};`}>--  </span>Pending</Span>
-              <Span><span className={css`color: red;`}>—  </span>Error</Span>
-            </p>
-            <div>
-              {taskTypes.map(type => (
-                <label className="ml-1" key={type}>
-                  {capitalize(type)}
-                  <input
-                    type={"checkbox"}
-                    name={type}
-                    checked={!this.state.filters[type]}
-                    onChange={this.onCheckboxChange}
-                  />
-                </label>
-              ))}
-            </div>
+            {taskTypes.map(type => (
+              <label className="ml-1" key={type}>
+                {capitalize(type)}
+                <input
+                  type={"checkbox"}
+                  name={type}
+                  checked={!this.state.filters[type]}
+                  onChange={this.onCheckboxChange}
+                />
+              </label>
+            ))}
           </div>
           <div className={css`
             height: calc(${chartHeightEstimate});
@@ -331,9 +323,17 @@ class Chart extends Component<Props, State> {
           </div>
           <div className={cls(css`
             display: flex;
-          `, "ml-1 pb-1")}>
-            <Status>{status}</Status>
-            {spinner}
+            justify-content: space-between;
+          `, "ml-1 mr-1 pb-1")}>
+            <div>
+              <Status>{status}</Status>
+              {spinner}
+            </div>
+            <p>
+              <Span><span className={css`color: ${colors.gardenGreen};`}>—  </span>Ready</Span>
+              <Span><span className={css`color: ${colors.gardenPink};`}>--  </span>Pending</Span>
+              <Span><span className={css`color: red;`}>—  </span>Error</Span>
+            </p>
           </div>
         </div>
       </Card>

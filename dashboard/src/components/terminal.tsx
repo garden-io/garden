@@ -10,7 +10,6 @@ import styled from "@emotion/styled/macro"
 import { padEnd } from "lodash"
 import React from "react"
 
-import Card from "./card"
 import { colors } from "../styles/variables"
 import { ServiceLogEntry } from "../api/types"
 
@@ -24,7 +23,7 @@ interface Props {
 const Term = styled.div`
   background-color: ${colors.lightBlack};
   border-radius: 2px;
-  max-height: 25rem;
+  max-height: 45rem;
   overflow-y: auto;
 `
 
@@ -44,26 +43,24 @@ const Timestamp = styled.span`
 
 // FIXME Use whitespace instead of dots for the sectinon padding.
 // For some reason whitespace is not rendered inside spans.
-const Terminal: React.SFC<Props> = ({ entries, sectionPad, showServiceName, title }) => {
+const Terminal: React.SFC<Props> = ({ entries, sectionPad, showServiceName }) => {
   return (
-    <Card title={title}>
-      <Term className="p-1">
-        <code>
-          {entries.map((e, idx) => {
-            const service = showServiceName
-              ? <Service>{padEnd(e.serviceName, sectionPad + 3, ".")}</Service>
-              : ""
-            return (
-              <P key={idx}>
-                {service}
-                <Timestamp>[{e.timestamp}] </Timestamp>
-                {e.msg}
-              </P>
-            )
-          })}
-        </code>
-      </Term>
-    </Card>
+    <Term className="p-1">
+      <code>
+        {entries.map((e, idx) => {
+          const service = showServiceName
+            ? <Service>{padEnd(e.serviceName, sectionPad + 3, ".")}</Service>
+            : ""
+          return (
+            <P key={idx}>
+              {service}
+              <Timestamp>[{e.timestamp}] </Timestamp>
+              {e.msg}
+            </P>
+          )
+        })}
+      </code>
+    </Term>
   )
 }
 

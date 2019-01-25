@@ -23,8 +23,8 @@ interface GetKubernetesLogsParams extends GetServiceLogsParams {
 
 export async function getKubernetesLogs(params: GetKubernetesLogsParams) {
   // Currently Stern doesn't support just returning the logs and exiting, it can only follow
-  const proc = params.tail
-    ? await tailLogs(params)
+  const proc = params.follow
+    ? await followLogs(params)
     : await getLogs(params)
 
   return new Promise<GetServiceLogsResult>((resolve, reject) => {
@@ -36,13 +36,14 @@ export async function getKubernetesLogs(params: GetKubernetesLogsParams) {
   })
 }
 
-async function tailLogs({ context, namespace, service, selector, stream, log }: GetKubernetesLogsParams) {
+async function followLogs({ context, namespace, service, selector, stream, log, tail }: GetKubernetesLogsParams) {
   const args = [
     "--color", "never",
     "--context", context,
     "--namespace", namespace,
     "--output", "json",
     "--selector", selector,
+    "--tail", String(tail),
     "--timestamps",
   ]
 
@@ -66,11 +67,12 @@ async function tailLogs({ context, namespace, service, selector, stream, log }: 
   return proc
 }
 
-async function getLogs({ context, namespace, service, selector, stream }: GetKubernetesLogsParams) {
+async function getLogs({ context, namespace, service, selector, stream, tail }: GetKubernetesLogsParams) {
   // TODO: do this via API instead of kubectl
   const kubectlArgs = [
     "logs",
     "--selector", selector,
+    "--tail", String(tail),
     "--timestamps=true",
   ]
 
