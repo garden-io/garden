@@ -54,8 +54,11 @@ export async function createIngresses(api: KubeApi, namespace: string, service: 
     const cert = certIngresses[0].certificate
 
     const annotations = {
-      "kubernetes.io/ingress.class": api.provider.config.ingressClass,
       "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
+    }
+
+    if (api.provider.config.ingressClass) {
+      annotations["kubernetes.io/ingress.class"] = api.provider.config.ingressClass
     }
 
     const spec: any = { rules }

@@ -53,7 +53,6 @@ async function setMinikubeDockerEnv() {
 
 export interface LocalKubernetesConfig extends KubernetesBaseConfig {
   _system?: Symbol
-  _systemServices?: string[]
 }
 
 const configSchema = kubernetesConfigBase
@@ -64,12 +63,11 @@ const configSchema = kubernetesConfigBase
         "Specify which namespace to deploy services to (defaults to the project name). " +
         "Note that the framework generates other namespaces as well with this name as a prefix.",
       ),
-    ingressHostname: Joi.string()
-      .description("The hostname of the cluster's ingress controller."),
+    setupIngressController: Joi.string()
+      .allow("nginx", false, null)
+      .default("nginx")
+      .description("Set this to null or false to skip installing/enabling the `nginx` ingress controller."),
     _system: Joi.any().meta({ internal: true }),
-    _systemServices: Joi.array().items(Joi.string())
-      .meta({ internal: true })
-      .description("The system services which should be automatically deployed to the cluster."),
   })
   .description("The provider configuration for the local-kubernetes plugin.")
 
@@ -80,7 +78,6 @@ export async function gardenPlugin({ projectName, config, log }): Promise<Garden
 
   let context = config.context
   let defaultHostname = config.defaultHostname
-  let systemServices
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
@@ -123,8 +120,6 @@ export async function gardenPlugin({ projectName, config, log }): Promise<Garden
       execa("minikube", ["addons", "enable", "ingress"]),
       setMinikubeDockerEnv(),
     ])
-
-    systemServices = ["kubernetes-dashboard"]
   } else {
     if (!defaultHostname) {
       defaultHostname = `${projectName}.local.app.garden`
@@ -143,11 +138,10 @@ export async function gardenPlugin({ projectName, config, log }): Promise<Garden
     imagePullSecrets: config.imagePullSecrets,
     ingressHttpPort: 80,
     ingressHttpsPort: 443,
-    ingressClass: "nginx",
+    ingressClass: config.ingressClass,
     namespace: config.namespace || projectName,
     tlsCertificates: config.tlsCertificates,
     _system: config._system,
-    _systemServices: systemServices,
   }
 
   const plugin = k8sPlugin({ config: k8sConfig })

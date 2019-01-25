@@ -39,7 +39,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   imagePullSecrets: SecretRef[]
   ingressHttpPort: number
   ingressHttpsPort: number
-  ingressClass: string
+  ingressClass?: string
   namespace?: string
   tlsCertificates: IngressTlsCertificate[]
 }
@@ -120,10 +120,9 @@ const configSchema = kubernetesConfigBase
       .required(),
     deploymentRegistry: containerRegistryConfigSchema,
     ingressClass: Joi.string()
-      .default("nginx")
       .description(dedent`
-        The ingress class to use on configured Ingresses when deploying services. **Note that Garden
-        currently only supports the nginx ingress controller.**
+        The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
+        when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
       `),
     ingressHttpPort: Joi.number()
       .default(80)
