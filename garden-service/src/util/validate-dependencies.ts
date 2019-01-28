@@ -112,8 +112,9 @@ export function detectCircularDependencies(moduleConfigs: ModuleConfig[]): Confi
   const tasks: TaskConfig[] = []
 
   /**
-   * There's no need to account for test dependencies here, since any circularities there
-   * are accounted for via service dependencies.
+   * Since dependencies listed in test configs cannot introduce circularities (because
+   * builds/deployments/tasks/tests cannot currently depend on tests), we don't need to
+   * account for test dependencies here.
    */
   for (const module of moduleConfigs) {
     // Build dependencies

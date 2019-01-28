@@ -4,10 +4,10 @@ import {
   detectCycles,
   detectMissingDependencies,
   detectCircularDependencies,
-} from "../../src/util/validate-dependencies"
-import { makeTestGarden } from "../helpers"
-import { ModuleConfig } from "../../src/config/module"
-import { ConfigurationError } from "../../src/exceptions"
+} from "../../../src/util/validate-dependencies"
+import { makeTestGarden, dataDir } from "../../helpers"
+import { ModuleConfig } from "../../../src/config/module"
+import { ConfigurationError } from "../../../src/exceptions"
 
 /**
  * Here, we cast the garden arg to any in order to access the private moduleConfigs property.
@@ -32,7 +32,7 @@ async function scanAndGetConfigs(garden: any) {
 describe("validate-dependencies", () => {
   describe("detectMissingDependencies", () => {
     it("should return an error when a build dependency is missing", async () => {
-      const projectRoot = join(__dirname, "..", "data", "test-projects", "missing-deps", "missing-build-dep")
+      const projectRoot = join(dataDir, "test-projects", "missing-deps", "missing-build-dep")
       const garden = await makeTestGarden(projectRoot)
       const { moduleConfigs, serviceNames, taskNames } = await scanAndGetConfigs(garden)
       const err = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
@@ -40,7 +40,7 @@ describe("validate-dependencies", () => {
     })
 
     it("should return an error when a runtime dependency is missing", async () => {
-      const projectRoot = join(__dirname, "..", "data", "test-projects", "missing-deps", "missing-runtime-dep")
+      const projectRoot = join(dataDir, "test-projects", "missing-deps", "missing-runtime-dep")
       const garden = await makeTestGarden(projectRoot)
       const { moduleConfigs, serviceNames, taskNames } = await scanAndGetConfigs(garden)
       const err = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
@@ -48,7 +48,7 @@ describe("validate-dependencies", () => {
     })
 
     it("should return null when no dependencies are missing", async () => {
-      const projectRoot = join(__dirname, "..", "data", "test-project-b")
+      const projectRoot = join(dataDir, "test-project-b")
       const garden = await makeTestGarden(projectRoot)
       const { moduleConfigs, serviceNames, taskNames } = await scanAndGetConfigs(garden)
       const err = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
@@ -58,7 +58,7 @@ describe("validate-dependencies", () => {
 
   describe("detectCircularDependencies", () => {
     it("should return an error when circular dependencies are present", async () => {
-      const circularProjectRoot = join(__dirname, "..", "data", "test-project-circular-deps")
+      const circularProjectRoot = join(dataDir, "test-project-circular-deps")
       const garden = await makeTestGarden(circularProjectRoot)
       const { moduleConfigs } = await scanAndGetConfigs(garden)
       const err = detectCircularDependencies(moduleConfigs)
@@ -66,7 +66,7 @@ describe("validate-dependencies", () => {
     })
 
     it("should return null when no circular dependencies are present", async () => {
-      const nonCircularProjectRoot = join(__dirname, "..", "data", "test-project-b")
+      const nonCircularProjectRoot = join(dataDir, "test-project-b")
       const garden = await makeTestGarden(nonCircularProjectRoot)
       const { moduleConfigs } = await scanAndGetConfigs(garden)
       const err = detectCircularDependencies(moduleConfigs)
