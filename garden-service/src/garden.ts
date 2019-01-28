@@ -838,9 +838,8 @@ export class Garden {
         this, this.log, this.environment, Object.values(this.moduleConfigs),
       )
 
-      this.validateDependencies()
-
       this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
+      this.validateDependencies()
     })
   }
 
