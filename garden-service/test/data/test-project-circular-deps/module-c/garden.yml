@@ -1,12 +1,9 @@
 module:
   name: module-c
-  type: exec
+  type: test
   allowPublish: false
   services:
     - name: service-c
-      ingresses:
-        - path: /path-c
-          containerPort: 8080
       dependencies:
         - service-b
   build:

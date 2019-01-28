@@ -2,7 +2,6 @@ import { expect } from "chai"
 import * as td from "testdouble"
 import { join, resolve } from "path"
 import { Garden } from "../../src/garden"
-import { detectCycles } from "../../src/util/validate-dependencies"
 import {
   dataDir,
   expectError,
@@ -330,59 +329,6 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
-    describe("detectMissingDependencies", () => {
-      it("should throw an error when a build dependency is missing", async () => {
-        const projectRoot = join(__dirname, "..", "data", "test-projects", "missing-deps", "missing-build-dep")
-        const garden = await makeTestGarden(projectRoot)
-        await expectError(
-          async () => await garden.scanModules(),
-          "configuration")
-      })
-
-      it("should throw an error when a runtime dependency is missing", async () => {
-        const projectRoot = join(__dirname, "..", "data", "test-projects", "missing-deps", "missing-runtime-dep")
-        const garden = await makeTestGarden(projectRoot)
-        await expectError(
-          async () => await garden.scanModules(),
-          "configuration")
-      })
-    })
-
-    describe("detectCircularDependencies", () => {
-      it("should throw an exception when circular dependencies are present", async () => {
-        const circularProjectRoot = join(__dirname, "..", "data", "test-project-circular-deps")
-        const garden = await makeTestGarden(circularProjectRoot)
-        await expectError(
-          async () => await garden.scanModules(),
-          "configuration")
-      })
-
-      it("should not throw an exception when no circular dependencies are present", async () => {
-        const nonCircularProjectRoot = join(__dirname, "..", "data", "test-project-b")
-        const garden = await makeTestGarden(nonCircularProjectRoot)
-        expect(async () => { await garden.scanModules() }).to.not.throw()
-      })
-    })
-
-    describe("detectCycles", () => {
-      it("should detect self-to-self cycles", () => {
-        const cycles = detectCycles({
-          a: { a: { distance: 1, next: "a" } },
-        }, ["a"])
-
-        expect(cycles).to.deep.eq([["a"]])
-      })
-
-      it("should preserve dependency order when returning cycles", () => {
-        const cycles = detectCycles({
-          foo: { bar: { distance: 1, next: "bar" } },
-          bar: { baz: { distance: 1, next: "baz" } },
-          baz: { foo: { distance: 1, next: "foo" } },
-        }, ["foo", "bar", "baz"])
-
-        expect(cycles).to.deep.eq([["foo", "bar", "baz"]])
-      })
-    })
   })
 
   describe("addModule", () => {

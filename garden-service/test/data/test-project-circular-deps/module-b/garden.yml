@@ -1,11 +1,8 @@
 module:
   name: module-b
-  type: exec
+  type: test
   services:
     - name: service-b
-      ingresses:
-        - path: /path-b
-          containerPort: 8080
       dependencies:
         - service-a
         - service-c

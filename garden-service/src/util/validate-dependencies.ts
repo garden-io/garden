@@ -28,12 +28,12 @@ export function validateDependencies(
   let detail = {}
 
   if (missingDepsError) {
-    errMsg = errMsg + missingDepsError.message
+    errMsg += missingDepsError.message
     detail = merge(detail, missingDepsError.detail)
   }
 
   if (circularDepsError) {
-    errMsg = errMsg + "\n" + circularDepsError.message
+    errMsg += "\n" + circularDepsError.message
     detail = merge(detail, circularDepsError.detail)
   }
 
@@ -111,10 +111,10 @@ export function detectCircularDependencies(moduleConfigs: ModuleConfig[]): Confi
   const services: ServiceConfig[] = []
   const tasks: TaskConfig[] = []
 
-  /*
-    There's no need to account for test dependencies here, since any circularities there
-    are accounted for via service dependencies.
-    */
+  /**
+   * There's no need to account for test dependencies here, since any circularities there
+   * are accounted for via service dependencies.
+   */
   for (const module of moduleConfigs) {
     // Build dependencies
     for (const buildDep of module.build.dependencies) {
