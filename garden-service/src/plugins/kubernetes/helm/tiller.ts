@@ -19,10 +19,17 @@ import { applyMany } from "../kubectl"
 import { KubernetesProvider } from "../kubernetes"
 import chalk from "chalk"
 
+const serviceAccountName = "garden-tiller"
+
 export async function checkTillerStatus(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
-  const resources = await getTillerResources(ctx, provider, log)
   const api = new KubeApi(provider)
   const namespace = await getAppNamespace(ctx, provider)
+
+  const resources = [
+    ...getRoleResources(namespace),
+    ...await getTillerResources(ctx, provider, log),
+  ]
+
   const statuses = await checkResourceStatuses(api, namespace, resources)
 
   return combineStates(statuses.map(s => s.state))
@@ -35,13 +42,18 @@ export async function installTiller(ctx: PluginContext, provider: KubernetesProv
     status: "active",
   })
 
-  const resources = await getTillerResources(ctx, provider, log)
-  const pruneSelector = "app=helm,name=tiller"
   const namespace = await getAppNamespace(ctx, provider)
   const context = provider.config.context
 
-  await applyMany(context, resources, { namespace, pruneSelector })
-  await waitForResources({ ctx, provider, serviceName: "tiller", resources, log })
+  // Need to install the RBAC stuff ahead of Tiller
+  const roleResources = getRoleResources(namespace)
+  await applyMany(context, roleResources, { namespace })
+  await waitForResources({ ctx, provider, serviceName: "tiller", resources: roleResources, log })
+
+  const tillerResources = await getTillerResources(ctx, provider, log)
+  const pruneSelector = "app=helm,name=tiller"
+  await applyMany(context, tillerResources, { namespace, pruneSelector })
+  await waitForResources({ ctx, provider, serviceName: "tiller", resources: tillerResources, log })
 
   entry.setSuccess({ msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`), append: true })
 }
@@ -52,12 +64,60 @@ async function getTillerResources(
   const namespace = await getAppNamespace(ctx, provider)
   const context = provider.config.context
 
-  const manifests = await helm(namespace, context, log,
+  const tillerManifests = await helm(namespace, context, log,
     "init",
-    "--service-account", "default",
+    "--service-account", serviceAccountName,
     "--dry-run",
     "--debug",
   )
 
-  return safeLoadAll(manifests)
+  return safeLoadAll(tillerManifests)
+}
+
+function getRoleResources(namespace: string): KubernetesResource[] {
+  return [
+    {
+      apiVersion: "v1",
+      kind: "ServiceAccount",
+      metadata: {
+        name: serviceAccountName,
+        namespace,
+      },
+    },
+    {
+      apiVersion: "rbac.authorization.k8s.io/v1",
+      kind: "Role",
+      metadata: {
+        name: serviceAccountName,
+        namespace,
+      },
+      rules: [
+        {
+          apiGroups: ["*"],
+          resources: ["*"],
+          verbs: ["*"],
+        },
+      ],
+    },
+    {
+      apiVersion: "rbac.authorization.k8s.io/v1",
+      kind: "RoleBinding",
+      metadata: {
+        name: serviceAccountName,
+        namespace,
+      },
+      roleRef: {
+        kind: "Role",
+        name: "tiller",
+        apiGroup: "rbac.authorization.k8s.io",
+      },
+      subjects: [
+        {
+          kind: "ServiceAccount",
+          name: "tiller",
+          namespace,
+        },
+      ],
+    },
+  ]
 }
