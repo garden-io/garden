@@ -95,11 +95,11 @@ To make a new release, set your current working directory to garden root and fol
 4. Create a new tag for the version: `git tag -a v0.8.0-rc2 -m 'chore(release): release v0.8.0-rc2'`
 5. Get the changelog for the tag with: `git-chglog v0.8.0-rc2` and prepend the output to `CHANGELOG.md`. Alternatively you can generate the entire `CHANGELOG.md` file with `git-chglog -o=CHANGELOG.md v0.1.0..v0.8.0-rc2`, but make sure that older entries do not change (this can happen if you have local tags that do not match the remote release tags).
 6. Add the changelog and commit:
-   `git add CHANGELOG.md && git commit -m 'chore(release): bump version to 0.8.0-rc2'`
+   `git add . && git commit -m 'chore(release): bump version to 0.8.0-rc2'`
 7. Update the tag (this is so we can include the changelog in the same tag):
    `git tag -f -a v0.8.0-rc2 -m 'chore(release): release v0.8.0-rc2'`
 8. Push the new tag: `git push origin v0.8.0-rc2 --no-verify`. This will trigger the dist build process in CircleCI.
-9. Open the [Garden project on CircleCI](https://circleci.com/gh/garden-io/garden). Once it appears,
+9. Open the [Garden project on CircleCI](https://circleci.com/gh/garden-io/garden),
    browse to the job marked `release-service-pkg`, open the _Artifacts_ tab and download the listed artifacts.
 10. Go to our Github [Releases tab](https://github.com/garden-io/garden/releases) and click the **Draft a new release** button.
 11. Fill in the **Tag version** and **Release title** fields with the new release version (same as you used for the tag).
