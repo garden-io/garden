@@ -129,6 +129,7 @@ export interface HelmServiceSpec extends ServiceSpec {
   chart?: string
   chartPath: string
   dependencies: string[]
+  releaseName?: string
   repo?: string
   serviceResource?: HelmResourceSpec
   skipDeploy: boolean
@@ -173,6 +174,8 @@ export const helmModuleSpecSchema = Joi.object().keys({
     .default("."),
   dependencies: joiArray(joiIdentifier())
     .description("List of names of services that should be deployed before this chart."),
+  releaseName: joiIdentifier()
+    .description("Optionally override the release name used when installing (defaults to the module name)."),
   repo: Joi.string()
     .description("The repository URL to fetch the chart from."),
   serviceResource: resourceSchema

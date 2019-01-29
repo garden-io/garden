@@ -15,6 +15,6 @@ describe("getServiceOutputs", () => {
 
     const result = await getServiceOutputs({ ctx, module, service, log: garden.log })
 
-    expect(result).to.eql({ "release-name": "api" })
+    expect(result).to.eql({ "release-name": "api-release" })
   })
 })

@@ -60,6 +60,7 @@ describe("validateHelmModule", () => {
           spec: {
             chartPath: ".",
             dependencies: [],
+            releaseName: "api-release",
             serviceResource: {
               kind: "Deployment",
               containerModule: "api-image",
@@ -87,6 +88,7 @@ describe("validateHelmModule", () => {
       spec: {
         chartPath: ".",
         dependencies: [],
+        releaseName: "api-release",
         serviceResource: {
           kind: "Deployment",
           containerModule: "api-image",
