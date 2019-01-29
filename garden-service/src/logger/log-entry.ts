@@ -42,7 +42,8 @@ export type CreateParam = string | CreateOpts
 export interface LogEntryConstructor {
   level: LogLevel
   opts: CreateOpts
-  parent: LogNode
+  root: Logger
+  parent?: LogEntry
 }
 
 // TODO Fix any cast
@@ -54,9 +55,10 @@ export class LogEntry extends LogNode {
   public opts: UpdateOpts
   public root: Logger
 
-  constructor({ level, opts, parent }: LogEntryConstructor) {
+  constructor({ level, opts, root, parent }: LogEntryConstructor) {
     const { id, ...otherOpts } = opts
     super(level, parent, id)
+    this.root = root
     this.opts = otherOpts
     if (this.level === LogLevel.error) {
       this.opts.status = "error"
@@ -108,7 +110,16 @@ export class LogEntry extends LogNode {
       indent: (this.opts.indent || 0) + 1,
       ...resolveParam(param),
     }
-    return new LogEntry({ level: childLevel, opts, parent: this })
+    return new LogEntry({
+      opts,
+      level: childLevel,
+      root: this.root,
+      parent: this,
+    })
+  }
+
+  protected onGraphChange(node: LogEntry) {
+    this.root.onGraphChange(node)
   }
 
   placeholder(level: LogLevel = LogLevel.info): LogEntry {

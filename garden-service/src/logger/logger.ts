@@ -6,17 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-
-import { RootLogNode } from "./log-node"
+import { LogNode } from "./log-node"
 import { LogEntry, CreateOpts, resolveParam } from "./log-entry"
-import { getChildEntries } from "./util"
+import { getChildEntries, findLogNode } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
 import { LogLevel } from "./log-node"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
-import { combine, printEmoji } from "./renderers"
 
 export enum LoggerType {
   quiet = "quiet",
@@ -47,7 +44,7 @@ export interface LoggerConfig {
   useEmoji?: boolean
 }
 
-export class Logger extends RootLogNode<LogEntry> {
+export class Logger extends LogNode {
   public writers: Writer[]
   public useEmoji: boolean
 
@@ -65,7 +62,7 @@ export class Logger extends RootLogNode<LogEntry> {
       throw new InternalError("Logger already initialized", {})
     }
 
-    let instance
+    let instance: Logger
 
     // If GARDEN_LOGGER_TYPE env variable is set it takes precedence over the config param
     if (process.env.GARDEN_LOGGER_TYPE) {
@@ -95,7 +92,7 @@ export class Logger extends RootLogNode<LogEntry> {
   }
 
   protected createNode(level: LogLevel, opts: CreateOpts): LogEntry {
-    return new LogEntry({ level, parent: this, opts: resolveParam(opts) })
+    return new LogEntry({ level, root: this, opts: resolveParam(opts) })
   }
 
   placeholder(level: LogLevel = LogLevel.info): LogEntry {
@@ -115,17 +112,8 @@ export class Logger extends RootLogNode<LogEntry> {
     return getChildEntries(this).filter(entry => entry.opts.section === section)
   }
 
-  // FIXME: This isn't currently used anywhere, we should find this another place and purpose.
-  finish(
-    { showDuration = true, level = LogLevel.info }: { showDuration?: boolean, level?: LogLevel } = {},
-  ): LogEntry {
-    const msg = combine([
-      [this.useEmoji ? `\n${printEmoji("sparkles")} Finished` : "Finished"],
-      [showDuration ? ` in ${chalk.bold(this.getDuration() + "s")}` : "!"],
-      ["\n"],
-    ])
-    const lvlStr = LogLevel[level]
-    return this[lvlStr](msg)
+  findById(id: string): LogEntry | void {
+    return findLogNode(this, node => node.id === id)
   }
 
   stop(): void {

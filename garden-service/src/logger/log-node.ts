@@ -9,7 +9,6 @@
 import * as uniqid from "uniqid"
 import { round } from "lodash"
 
-import { findLogNode } from "./util"
 import { LogEntry, CreateParam } from "./log-entry"
 
 export enum LogLevel {
@@ -21,64 +20,58 @@ export enum LogLevel {
   silly = 5,
 }
 
-export abstract class LogNode<T = LogEntry, U = CreateParam> {
+export abstract class LogNode {
   public readonly timestamp: number
   public readonly key: string
-  public readonly children: T[]
-  public readonly root: RootLogNode<T>
+  public readonly children: LogEntry[]
 
   constructor(
     public readonly level: LogLevel,
-    public readonly parent?: LogNode<T>,
+    public readonly parent?: LogEntry,
     public readonly id?: string,
   ) {
-    if (this instanceof RootLogNode) {
-      this.root = this
-    } else {
-      // Non-root nodes have a parent
-      this.root = parent!.root
-    }
     this.key = uniqid()
     this.timestamp = Date.now()
     this.children = []
   }
 
-  protected abstract createNode(level: LogLevel, param: U): T
+  protected abstract createNode(level: LogLevel, param: CreateParam): LogEntry
+  protected abstract onGraphChange(node: LogEntry): void
 
   /**
    * A placeholder entry is an empty entry whose children should be aligned with the parent context.
    * Useful for setting a placeholder in the middle of the log that can later be populated.
    */
-  abstract placeholder(level: LogLevel): T
+  abstract placeholder(level: LogLevel): LogEntry
 
-  protected appendNode(level: LogLevel, param: U): T {
+  protected appendNode(level: LogLevel, param: CreateParam): LogEntry {
     const node = this.createNode(level, param)
     this.children.push(node)
-    this.root.onGraphChange(node)
+    this.onGraphChange(node)
     return node
   }
 
-  silly(param: U): T {
+  silly(param: CreateParam): LogEntry {
     return this.appendNode(LogLevel.silly, param)
   }
 
-  debug(param: U): T {
+  debug(param: CreateParam): LogEntry {
     return this.appendNode(LogLevel.debug, param)
   }
 
-  verbose(param: U): T {
+  verbose(param: CreateParam): LogEntry {
     return this.appendNode(LogLevel.verbose, param)
   }
 
-  info(param: U): T {
+  info(param: CreateParam): LogEntry {
     return this.appendNode(LogLevel.info, param)
   }
 
-  warn(param: U): T {
+  warn(param: CreateParam): LogEntry {
     return this.appendNode(LogLevel.warn, param)
   }
 
-  error(param: U): T {
+  error(param: CreateParam): LogEntry {
     return this.appendNode(LogLevel.error, param)
   }
 
@@ -87,15 +80,6 @@ export abstract class LogNode<T = LogEntry, U = CreateParam> {
    */
   getDuration(precision: number = 2): number {
     return round((Date.now() - this.timestamp) / 1000, precision)
-  }
-
-}
-
-export abstract class RootLogNode<T = LogEntry> extends LogNode<T> {
-  abstract onGraphChange(node: T): void
-
-  findById(id: string): T | void {
-    return findLogNode(this, node => node.id === id)
   }
 
 }
