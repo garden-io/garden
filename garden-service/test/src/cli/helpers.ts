@@ -7,13 +7,40 @@
  */
 
 import { expect } from "chai"
-import { getPackageVersion } from "../../../src/cli/helpers"
+import { getPackageVersion, parseLogLevel, getLogLevelChoices } from "../../../src/cli/helpers"
+import { expectError } from "../../helpers"
 
 describe("helpers", () => {
+  const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]
+
   describe("getPackageVersion", () => {
-    it("returns the version in package.json", async () => {
+    it("should return the version in package.json", async () => {
       const version = require("../../../package.json").version
       expect(getPackageVersion()).to.eq(version)
+    })
+  })
+
+  describe("getLogLevelChoices", () => {
+    it("should return all valid log levels as strings", async () => {
+      const choices = getLogLevelChoices().sort()
+      const sorted = [...validLogLevels].sort()
+      expect(choices).to.eql(sorted)
+    })
+  })
+
+  describe("parseLogLevel", () => {
+    it("should return a level integer if valid", async () => {
+      const parsed = validLogLevels.map(el => parseLogLevel(el))
+      expect(parsed).to.eql([0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5])
+    })
+    it("should throw if level is not valid", async () => {
+      await expectError(() => parseLogLevel("banana"), "internal")
+    })
+    it("should throw if level is not valid", async () => {
+      await expectError(() => parseLogLevel("-1"), "internal")
+    })
+    it("should throw if level is not valid", async () => {
+      await expectError(() => parseLogLevel(""), "internal")
     })
   })
 })

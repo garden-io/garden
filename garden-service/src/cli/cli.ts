@@ -7,12 +7,12 @@
  */
 
 import * as sywac from "sywac"
-import { intersection, merge, range } from "lodash"
+import { intersection, merge } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import { DeepPrimitiveMap } from "../config/common"
-import { getEnumKeys, shutdown, sleep } from "../util/util"
+import { shutdown, sleep } from "../util/util"
 import {
   BooleanParameter,
   ChoicesParameter,
@@ -22,7 +22,7 @@ import {
   Parameter,
   StringParameter,
 } from "../commands/base"
-import { GardenError, InternalError, PluginError, toGardenError } from "../exceptions"
+import { GardenError, PluginError, toGardenError } from "../exceptions"
 import { Garden, GardenOpts } from "../garden"
 import { getLogger, Logger, LoggerType } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
@@ -43,6 +43,8 @@ import {
   prepareOptionConfig,
   styleConfig,
   getPackageVersion,
+  getLogLevelChoices,
+  parseLogLevel,
 } from "./helpers"
 import { GardenConfig } from "../config/base"
 import { defaultEnvironments } from "../config/project"
@@ -87,11 +89,6 @@ export const MOCK_CONFIG: GardenConfig = {
   },
 }
 
-const getLogLevelNames = () => getEnumKeys(LogLevel)
-const getNumericLogLevels = () => range(getLogLevelNames().length)
-// Allow string or numeric log levels as CLI choices
-const getLogLevelChoices = () => [...getLogLevelNames(), ...getNumericLogLevels().map(String)]
-
 export const GLOBAL_OPTIONS = {
   root: new StringParameter({
     alias: "r",
@@ -123,23 +120,6 @@ export const GLOBAL_OPTIONS = {
     help: "Enable emoji in output (defaults to true if the environment supports it).",
     defaultValue: envSupportsEmoji(),
   }),
-}
-
-function parseLogLevel(level: string): LogLevel {
-  let lvl: LogLevel
-  const parsed = parseInt(level, 10)
-  if (parsed) {
-    lvl = parsed
-  } else {
-    lvl = LogLevel[level]
-  }
-  if (!getNumericLogLevels().includes(lvl)) {
-    throw new InternalError(
-      `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
-      {},
-    )
-  }
-  return lvl
 }
 
 function initLogger({ level, logEnabled, loggerType, emoji }: {
@@ -402,7 +382,7 @@ export class GardenCli {
 }
 
 export async function run(): Promise<void> {
-  let code
+  let code: number | undefined
   try {
     const cli = new GardenCli()
     const result = await cli.parse()
