@@ -95,7 +95,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     // combine all dependencies for all services in the module, to be sure we have all the context we need
     const dg = await this.garden.getDependencyGraph()
     const serviceDeps = (await dg.getDependencies(this.depType, this.getName(), false)).service
-    const runtimeContext = await prepareRuntimeContext(this.garden, log, module, serviceDeps)
+    const runtimeContext = await prepareRuntimeContext(this.garden, module, serviceDeps)
 
     let result: RunTaskResult
     try {

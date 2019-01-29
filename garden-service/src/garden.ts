@@ -13,6 +13,7 @@ import {
   relative,
   resolve,
   sep,
+  join,
 } from "path"
 import {
   extend,
@@ -827,18 +828,33 @@ export class Garden {
         return paths
       })).filter(Boolean)
 
+      const rawConfigs: ModuleConfig[] = []
+
       await Bluebird.map(modulePaths, async path => {
         const config = await this.resolveModule(path)
-        config && await this.addModule(config)
+        if (config) {
+          rawConfigs.push(config)
+        }
       })
 
       this.modulesScanned = true
 
+      // Resolve template strings
       const moduleConfigContext = new ModuleConfigContext(
-        this, this.log, this.environment, Object.values(this.moduleConfigs),
+        this,
+        this.environment,
+        [...Object.values(this.moduleConfigs), ...rawConfigs],
       )
+      const resolvedConfigs = await resolveTemplateStrings(rawConfigs, moduleConfigContext)
 
-      this.moduleConfigs = await resolveTemplateStrings(this.moduleConfigs, moduleConfigContext)
+      // Configure and validate the modules
+      await Bluebird.map(resolvedConfigs, async (config) => {
+        // Need this check here, because the module might have been added while resolving the template strings
+        if (!this.hasModule(config.name)) {
+          await this.addModule(config)
+        }
+      })
+
       this.validateDependencies()
     })
   }
@@ -850,26 +866,35 @@ export class Garden {
       Object.keys(this.taskNameIndex))
   }
 
+  /**
+   * Returns true if a module has been configured in this project with the specified name.
+   */
+  hasModule(name: string) {
+    return !!this.moduleConfigs[name]
+  }
+
   /*
-    Adds the specified module to the context
+    Adds the specified module config to the context
 
     @param force - add the module again, even if it's already registered
    */
-  async addModule(config: ModuleConfig, force = false) {
-    const validateHandler = await this.getModuleActionHandler({ actionType: "configure", moduleType: config.type })
-    const ctx = this.getPluginContext(validateHandler["pluginName"])
+  async addModule(config: ModuleConfig) {
+    const configureHandler = await this.getModuleActionHandler({ actionType: "configure", moduleType: config.type })
+    const ctx = this.getPluginContext(configureHandler["pluginName"])
 
-    config = await validateHandler({ ctx, moduleConfig: config })
+    config = await configureHandler({ ctx, moduleConfig: config })
 
     // FIXME: this is rather clumsy
     config.name = getModuleKey(config.name, config.plugin)
 
-    if (!force && this.moduleConfigs[config.name]) {
-      const pathA = relative(this.projectRoot, this.moduleConfigs[config.name].path)
-      const pathB = relative(this.projectRoot, config.path)
+    if (this.moduleConfigs[config.name]) {
+      const [pathA, pathB] = [
+        relative(this.projectRoot, join(this.moduleConfigs[config.name].path, MODULE_CONFIG_FILENAME)),
+        relative(this.projectRoot, join(config.path, MODULE_CONFIG_FILENAME)),
+      ].sort()
 
       throw new ConfigurationError(
-        `Module ${config.name} is declared multiple times ('${pathA}' and '${pathB}')`,
+        `Module ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
         { pathA, pathB },
       )
     }
@@ -883,20 +908,24 @@ export class Garden {
       }
     }
 
-    this.moduleConfigs[config.name] = config
-
     // Add to service-module map
     for (const serviceConfig of config.serviceConfigs) {
       const serviceName = serviceConfig.name
 
-      if (!force && this.serviceNameIndex[serviceName]) {
+      if (this.taskNameIndex[serviceName]) {
+        throw serviceTaskConflict(serviceName, this.taskNameIndex[serviceName], config.name)
+      }
+
+      if (this.serviceNameIndex[serviceName]) {
+        const [moduleA, moduleB] = [config.name, this.serviceNameIndex[serviceName]].sort()
+
         throw new ConfigurationError(deline`
-          Service names must be unique - the service name ${serviceName} is declared multiple times
-          (in '${this.serviceNameIndex[serviceName]}' and '${config.name}')`,
+          Service names must be unique - the service name '${serviceName}' is declared multiple times
+          (in modules '${moduleA}' and '${moduleB}')`,
           {
             serviceName,
-            moduleA: this.serviceNameIndex[serviceName],
-            moduleB: config.name,
+            moduleA,
+            moduleB,
           },
         )
       }
@@ -908,40 +937,29 @@ export class Garden {
     for (const taskConfig of config.taskConfigs) {
       const taskName = taskConfig.name
 
-      if (!force) {
+      if (this.serviceNameIndex[taskName]) {
+        throw serviceTaskConflict(taskName, config.name, this.serviceNameIndex[taskName])
+      }
 
-        if (this.serviceNameIndex[taskName]) {
-          throw new ConfigurationError(deline`
-            Service and task names must be mutually unique - the task name ${taskName} (declared in
-            '${config.name}') is also declared as a service name in '${this.serviceNameIndex[taskName]}'`,
-            {
-              conflictingName: taskName,
-              moduleA: config.name,
-              moduleB: this.serviceNameIndex[taskName],
-            })
-        }
+      if (this.taskNameIndex[taskName]) {
+        const [moduleA, moduleB] = [config.name, this.taskNameIndex[taskName]].sort()
 
-        if (this.taskNameIndex[taskName]) {
-          throw new ConfigurationError(deline`
-            Task names must be unique - the task name ${taskName} is declared multiple times (in
-            '${this.taskNameIndex[taskName]}' and '${config.name}')`,
-            {
-              taskName,
-              moduleA: config.name,
-              moduleB: this.serviceNameIndex[taskName],
-            })
-        }
-
+        throw new ConfigurationError(deline`
+          Task names must be unique - the task name '${taskName}' is declared multiple times (in modules
+          '${moduleA}' and '${moduleB}')`,
+          {
+            taskName,
+            moduleA,
+            moduleB,
+          })
       }
 
       this.taskNameIndex[taskName] = config.name
-
     }
 
-    if (this.modulesScanned) {
-      // need to re-run this if adding modules after initial scan
-      await this.validateDependencies()
-    }
+    this.moduleConfigs[config.name] = config
+
+    return config
   }
 
   /*
@@ -1151,4 +1169,16 @@ export interface ConfigDump {
   providers: Provider[]
   variables: PrimitiveMap
   modules: Module[]
+}
+
+function serviceTaskConflict(conflictingName: string, moduleWithTask: string, moduleWithService: string) {
+  return new ConfigurationError(deline`
+    Service and task names must be mutually unique - the name '${conflictingName}' is used for a task in
+    '${moduleWithTask}' and for a service in '${moduleWithService}'`,
+    {
+      conflictingName,
+      moduleWithTask,
+      moduleWithService,
+    })
+
 }

@@ -113,14 +113,6 @@ The names of any services that this service depends on at runtime, and the names
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.services[].outputs`
-[module](#module) > [services](#module.services[]) > outputs
-
-Key/value map. Keys must be valid identifiers.
-
-| Type | Required |
-| ---- | -------- |
-| `object` | No
 ### `module.services[].args[]`
 [module](#module) > [services](#module.services[]) > args
 
@@ -493,7 +485,6 @@ module:
   services:
     - name:
       dependencies: []
-      outputs: {}
       args:
       daemon: false
       ingresses:

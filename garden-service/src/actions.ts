@@ -9,7 +9,6 @@
 import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { Garden } from "./garden"
-import { PrimitiveMap } from "./config/common"
 import { Module } from "./types/module"
 import { ModuleActions, ServiceActions, PluginActions, TaskActions } from "./types/plugin/plugin"
 import {
@@ -41,7 +40,6 @@ import {
   GetSecretParams,
   GetBuildStatusParams,
   GetServiceLogsParams,
-  GetServiceOutputsParams,
   GetServiceStatusParams,
   GetTestResultParams,
   ModuleActionParams,
@@ -295,14 +293,6 @@ export class ActionHelper implements TypeGuard {
     })
   }
 
-  async getServiceOutputs(params: ServiceActionHelperParams<GetServiceOutputsParams>): Promise<PrimitiveMap> {
-    return this.callServiceHandler({
-      params,
-      actionType: "getServiceOutputs",
-      defaultHandler: async () => ({}),
-    })
-  }
-
   async execInService(params: ServiceActionHelperParams<ExecInServiceParams>): Promise<ExecInServiceResult> {
     return this.callServiceHandler({ params, actionType: "execInService" })
   }
@@ -337,7 +327,7 @@ export class ActionHelper implements TypeGuard {
 
     const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
       const serviceDependencies = await this.garden.getServices(service.config.dependencies)
-      const runtimeContext = await prepareRuntimeContext(this.garden, log, service.module, serviceDependencies)
+      const runtimeContext = await prepareRuntimeContext(this.garden, service.module, serviceDependencies)
       // TODO: The status will be reported as "outdated" if the service was deployed with hot-reloading enabled.
       //       Once hot-reloading is a toggle, as opposed to an API/CLI flag, we can resolve that issue.
       return this.getServiceStatus({ log, service, runtimeContext, hotReload: false })
@@ -440,7 +430,7 @@ export class ActionHelper implements TypeGuard {
 
     // TODO: figure out why this doesn't compile without the casts
     const deps = await this.garden.getServices(service.config.dependencies)
-    const runtimeContext = ((<any>params).runtimeContext || await prepareRuntimeContext(this.garden, log, module, deps))
+    const runtimeContext = ((<any>params).runtimeContext || await prepareRuntimeContext(this.garden, module, deps))
 
     const handlerParams: any = {
       ...this.commonParams(handler, log),

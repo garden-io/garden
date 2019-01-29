@@ -89,6 +89,7 @@ export const gardenPlugin = (): GardenPlugin => ({
             }]),
           },
           name: parsed.name,
+          outputs: {},
           path: parsed.path,
           type: "container",
 

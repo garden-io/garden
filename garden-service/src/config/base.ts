@@ -123,6 +123,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
       build: moduleConfig.build,
       description: moduleConfig.description,
       name: moduleConfig.name,
+      outputs: {},
       path,
       repositoryUrl: moduleConfig.repositoryUrl,
       serviceConfigs: [],

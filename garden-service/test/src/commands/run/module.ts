@@ -2,7 +2,6 @@ import { RunModuleCommand } from "../../../../src/commands/run/module"
 import { RunResult } from "../../../../src/types/plugin/outputs"
 import {
   makeTestGardenA,
-  makeTestModule,
   testModuleVersion,
   testNow,
 } from "../../../helpers"
@@ -22,21 +21,16 @@ describe("RunModuleCommand", () => {
   })
 
   it("should run a module without a command param", async () => {
-    await garden.addModule(makeTestModule({
-      name: "run-test",
-      path: garden.projectRoot,
-    }))
-
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
       log,
-      args: { module: "run-test", command: [] },
+      args: { module: "module-a", command: [] },
       opts: { "interactive": false, "force-build": false },
     })
 
     const expected: RunResult = {
-      moduleName: "run-test",
+      moduleName: "module-a",
       command: [],
       completedAt: testNow,
       output: "OK",
@@ -49,21 +43,16 @@ describe("RunModuleCommand", () => {
   })
 
   it("should run a module with a command param", async () => {
-    garden.addModule(makeTestModule({
-      name: "run-test",
-      path: garden.projectRoot,
-    }))
-
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
       log,
-      args: { module: "run-test", command: ["my", "command"] },
+      args: { module: "module-a", command: ["my", "command"] },
       opts: { "interactive": false, "force-build": false },
     })
 
     const expected: RunResult = {
-      moduleName: "run-test",
+      moduleName: "module-a",
       command: ["my", "command"],
       completedAt: testNow,
       output: "OK",

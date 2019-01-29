@@ -49,6 +49,9 @@ describe("validateHelmModule", () => {
       },
       description: "The API backend for the voting UI",
       name: "api",
+      outputs: {
+        "release-name": "api-release",
+      },
       path: resolve(ctx.projectRoot, "api"),
       repositoryUrl: undefined,
       serviceConfigs: [

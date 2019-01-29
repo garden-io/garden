@@ -35,6 +35,7 @@ describe("plugins.container", () => {
       dependencies: [],
     },
     name: "test",
+    outputs: {},
     path: modulePath,
     type: "container",
 
@@ -134,6 +135,7 @@ describe("plugins.container", () => {
           dependencies: [],
         },
         name: "test",
+        outputs: {},
         path: modulePath,
         type: "container",
 
@@ -187,6 +189,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "container",
 
@@ -247,6 +250,7 @@ describe("plugins.container", () => {
           allowPublish: false,
           build: { command: ["echo", "OK"], dependencies: [] },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "container",
           spec:
@@ -362,6 +366,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "test",
 
@@ -417,6 +422,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "test",
 
@@ -467,6 +473,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "test",
 

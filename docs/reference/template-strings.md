@@ -100,17 +100,6 @@ environment:
 modules: 
   {}
 
-# Retrieve information about services that are defined in the project.
-#
-# Example:
-#   my-service:
-#     outputs:
-#       ingress: 'http://my-service/path/to/endpoint'
-#     version: v17ad4cb3fd
-#
-services: 
-  {}
-
 # A map of all configured plugins/providers for this environment and their configuration.
 #
 # Example:

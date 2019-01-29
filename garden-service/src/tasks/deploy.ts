@@ -144,7 +144,7 @@ export class DeployTask extends BaseTask {
     try {
       result = await this.garden.actions.deployService({
         service: this.service,
-        runtimeContext: await prepareRuntimeContext(this.garden, log, this.service.module, dependencies),
+        runtimeContext: await prepareRuntimeContext(this.garden, this.service.module, dependencies),
         log,
         force: this.force,
         hotReload,

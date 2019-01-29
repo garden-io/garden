@@ -115,7 +115,7 @@ export class TestTask extends BaseTask {
     })
 
     const dependencies = await getTestDependencies(this.garden, this.testConfig)
-    const runtimeContext = await prepareRuntimeContext(this.garden, log, this.module, dependencies)
+    const runtimeContext = await prepareRuntimeContext(this.garden, this.module, dependencies)
 
     let result: TestResult
     try {

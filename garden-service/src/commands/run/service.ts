@@ -71,7 +71,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
     await garden.processTasks()
 
     const dependencies = await garden.getServices(module.serviceDependencyNames)
-    const runtimeContext = await prepareRuntimeContext(garden, log, module, dependencies)
+    const runtimeContext = await prepareRuntimeContext(garden, module, dependencies)
 
     printRuntimeContext(log, runtimeContext)
 

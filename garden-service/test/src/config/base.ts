@@ -72,6 +72,7 @@ describe("loadConfig", () => {
       repositoryUrl: undefined,
       allowPublish: true,
       build: { command: ["echo", "A"], dependencies: [] },
+      outputs: {},
       path: modulePathA,
 
       spec: {

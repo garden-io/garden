@@ -98,7 +98,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const depNames = uniq(flatten(module.serviceConfigs.map(s => s.dependencies)))
     const deps = await garden.getServices(depNames)
 
-    const runtimeContext = await prepareRuntimeContext(garden, log, module, deps)
+    const runtimeContext = await prepareRuntimeContext(garden, module, deps)
 
     printRuntimeContext(log, runtimeContext)
 

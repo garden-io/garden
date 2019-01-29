@@ -99,6 +99,8 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
     { context: `test module ${moduleConfig.name}` },
   )
 
+  moduleConfig.outputs = { foo: "bar" }
+
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => ({
     name: spec.name,
@@ -223,6 +225,7 @@ const defaultModuleConfig: ModuleConfig = {
   path: "bla",
   allowPublish: false,
   build: { command: [], dependencies: [] },
+  outputs: {},
   spec: {
     services: [
       {

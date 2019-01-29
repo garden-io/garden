@@ -24,7 +24,6 @@ import {
   deployServiceParamsSchema,
   deleteServiceParamsSchema,
   hotReloadServiceParamsSchema,
-  getServiceOutputsParamsSchema,
   execInServiceParamsSchema,
   getServiceLogsParamsSchema,
   runServiceParamsSchema,
@@ -274,13 +273,6 @@ describe("ActionHelper", () => {
       })
     })
 
-    describe("getServiceOutputs", () => {
-      it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getServiceOutputs({ log, service })
-        expect(result).to.eql({ foo: "bar" })
-      })
-    })
-
     describe("execInService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.execInService({ log, service, command: ["foo"], interactive: false })
@@ -491,11 +483,6 @@ const testPlugin: PluginFactory = async () => ({
       deleteService: async (params) => {
         validate(params, deleteServiceParamsSchema)
         return { state: "ready" }
-      },
-
-      getServiceOutputs: async (params) => {
-        validate(params, getServiceOutputsParamsSchema)
-        return { foo: "bar" }
       },
 
       execInService: async (params) => {

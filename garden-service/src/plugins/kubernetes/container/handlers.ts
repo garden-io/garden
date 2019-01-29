@@ -15,7 +15,7 @@ import { ConfigurationError } from "../../../exceptions"
 import { configureContainerModule } from "../../container/container"
 import { KubernetesProvider } from "../kubernetes"
 import { ConfigureModuleParams } from "../../../types/plugin/params"
-import { getContainerServiceStatus, getServiceOutputs } from "./status"
+import { getContainerServiceStatus } from "./status"
 import { getTestResult } from "../test"
 import { ContainerModule } from "../../container/config"
 
@@ -54,7 +54,6 @@ export const containerHandlers = {
   deleteService,
   execInService,
   getServiceLogs,
-  getServiceOutputs,
   getServiceStatus: getContainerServiceStatus,
   getTestResult,
   hotReloadService: hotReloadContainer,

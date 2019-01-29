@@ -8,7 +8,6 @@
 
 import * as Joi from "joi"
 import { ModuleVersion, moduleVersionSchema } from "../../vcs/base"
-import { PrimitiveMap } from "../../config/common"
 import { Module } from "../module"
 import { ServiceStatus } from "../service"
 import { moduleConfigSchema, ModuleConfig } from "../../config/module"
@@ -331,7 +330,6 @@ export interface ServiceActionOutputs {
   deployService: Promise<ServiceStatus>
   hotReloadService: Promise<HotReloadServiceResult>
   deleteService: Promise<ServiceStatus>
-  getServiceOutputs: Promise<PrimitiveMap>
   execInService: Promise<ExecInServiceResult>
   getServiceLogs: Promise<{}>
   runService: Promise<RunResult>

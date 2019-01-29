@@ -13,7 +13,7 @@ import { createContainerObjects } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
 import { sleep } from "../../../util/util"
-import { GetServiceOutputsParams, GetServiceStatusParams } from "../../../types/plugin/params"
+import { GetServiceStatusParams } from "../../../types/plugin/params"
 import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
 import { compareDeployedObjects } from "../status"
@@ -74,11 +74,5 @@ export async function waitForContainerService(
     }
 
     await sleep(1000)
-  }
-}
-
-export async function getServiceOutputs({ service }: GetServiceOutputsParams<ContainerModule>) {
-  return {
-    host: service.name,
   }
 }

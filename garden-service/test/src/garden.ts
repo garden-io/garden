@@ -7,7 +7,6 @@ import {
   expectError,
   makeTestGarden,
   makeTestGardenA,
-  makeTestModule,
   projectRootA,
   stubExtSources,
   getDataDir,
@@ -329,111 +328,58 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
-  })
+    it("should throw when two modules have the same name", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-module"))
 
-  describe("addModule", () => {
-    it("should add the given module and its services to the context", async () => {
-      const garden = await makeTestGardenA()
-
-      const testModule = makeTestModule()
-      await garden.addModule(testModule)
-
-      const modules = await garden.getModules(undefined, true)
-      expect(getNames(modules)).to.eql(["test"])
-
-      const services = await garden.getServices(undefined, true)
-      expect(getNames(services)).to.eql(["test-service"])
+      await expectError(
+        () => garden.scanModules(),
+        err => expect(err.message).to.equal(
+          "Module module-a is declared multiple times (in 'module-a/garden.yml' and 'module-b/garden.yml')",
+        ),
+      )
     })
 
-    it("should throw when adding module twice without force parameter", async () => {
-      const garden = await makeTestGardenA()
+    it("should throw when two services have the same name", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
 
-      const testModule = makeTestModule()
-      await garden.addModule(testModule)
-
-      try {
-        await garden.addModule(testModule)
-      } catch (err) {
-        expect(err.type).to.equal("configuration")
-        return
-      }
-
-      throw new Error("Expected error")
+      await expectError(
+        () => garden.scanModules(),
+        err => expect(err.message).to.equal(
+          "Service names must be unique - the service name 'dupe' is declared multiple times " +
+          "(in modules 'module-a' and 'module-b')",
+        ),
+      )
     })
 
-    it("should allow adding module multiple times with force parameter", async () => {
-      const garden = await makeTestGardenA()
+    it("should throw when two tasks have the same name", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
 
-      let testModule = makeTestModule()
-      await garden.addModule(testModule)
-
-      testModule = makeTestModule()
-      await garden.addModule(testModule, true)
-
-      const modules = await garden.getModules(undefined, true)
-      expect(getNames(modules)).to.eql(["test"])
+      await expectError(
+        () => garden.scanModules(),
+        err => expect(err.message).to.equal(
+          "Task names must be unique - the task name 'dupe' is declared multiple times " +
+          "(in modules 'module-a' and 'module-b')",
+        ),
+      )
     })
 
-    it("should throw if a service is added twice without force parameter", async () => {
-      const garden = await makeTestGardenA()
+    it("should throw when a service and a task have the same name", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
 
-      const testModule = makeTestModule()
-      const testModuleB = makeTestModule({ name: "test-b" })
-      await garden.addModule(testModule)
-
-      try {
-        await garden.addModule(testModuleB)
-      } catch (err) {
-        expect(err.type).to.equal("configuration")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-
-    it("should allow adding service multiple times with force parameter", async () => {
-      const garden = await makeTestGardenA()
-
-      const testModule = makeTestModule()
-      const testModuleB = makeTestModule({ name: "test-b" })
-      await garden.addModule(testModule)
-      await garden.addModule(testModuleB, true)
-
-      const services = await garden.getServices(undefined, true)
-      expect(getNames(services)).to.eql(["test-service"])
+      await expectError(
+        () => garden.scanModules(),
+        err => expect(err.message).to.equal(
+          "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
+          "in 'module-b' and for a service in 'module-a'",
+        ),
+      )
     })
 
     it("should automatically add service source modules as build dependencies", async () => {
-      const garden = await makeTestGardenA()
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "source-module"))
 
-      const testModule = makeTestModule()
-      await garden.addModule(testModule)
-
-      const testModuleB = makeTestModule({
-        name: "test-b",
-        spec: {
-          services: [
-            {
-              name: "test-service-b",
-              dependencies: [],
-              sourceModuleName: "test",
-            },
-          ],
-        },
-        serviceConfigs: [
-          {
-            name: "test-service-b",
-            dependencies: [],
-            outputs: {},
-            sourceModuleName: "test",
-            spec: {},
-          },
-        ],
-      })
-      await garden.addModule(testModuleB)
-
-      const module = await garden.getModule("test-b")
-      expect(module.build.dependencies).to.eql([{ name: "test", copy: [] }])
+      const module = await garden.getModule("module-b")
+      expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
     })
   })
 

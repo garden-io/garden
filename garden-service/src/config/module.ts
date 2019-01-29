@@ -14,6 +14,9 @@ import {
   joiIdentifier,
   joiRepositoryUrl,
   joiUserIdentifier,
+  PrimitiveMap,
+  joiIdentifierMap,
+  joiPrimitive,
 } from "./common"
 import { TestConfig, TestSpec } from "./test"
 import { TaskConfig, TaskSpec } from "./task"
@@ -35,6 +38,8 @@ const copySchema = Joi.object()
         "POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).",
       ),
   })
+
+export const moduleOutputsSchema = joiIdentifierMap(joiPrimitive())
 
 export interface BuildDependencyConfig {
   name: string
@@ -121,6 +126,7 @@ export interface ModuleConfig
 
   plugin?: string   // used to identify modules that are bundled as part of a plugin
 
+  outputs: PrimitiveMap
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]
   taskConfigs: TaskConfig<W>[]

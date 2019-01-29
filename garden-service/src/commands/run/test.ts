@@ -95,7 +95,7 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     const interactive = opts.interactive
     const deps = await garden.getServices(testConfig.dependencies)
-    const runtimeContext = await prepareRuntimeContext(garden, log, module, deps)
+    const runtimeContext = await prepareRuntimeContext(garden, module, deps)
 
     printRuntimeContext(log, runtimeContext)
 

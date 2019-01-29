@@ -337,6 +337,7 @@ describe("createIngresses", () => {
         dependencies: [],
       },
       name: "test",
+      outputs: {},
       path: "/tmp",
       type: "container",
 

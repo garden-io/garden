@@ -16,7 +16,6 @@ import {
 import {
   DeployServiceParams,
   ExecInServiceParams,
-  GetServiceOutputsParams,
   GetServiceStatusParams,
 } from "../../types/plugin/params"
 import { ContainerModule } from "../container/config"
@@ -175,12 +174,6 @@ export const gardenPlugin = (): GardenPlugin => ({
         })
 
         return getServiceStatus({ ctx, module, service, runtimeContext, log, hotReload: false })
-      },
-
-      async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<ContainerModule>) {
-        return {
-          host: getSwarmServiceName(ctx, service.name),
-        }
       },
 
       async execInService(

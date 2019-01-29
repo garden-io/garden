@@ -269,10 +269,6 @@ export const deleteServiceParamsSchema = serviceActionParamsSchema
     runtimeContext: runtimeContextSchema,
   })
 
-export interface GetServiceOutputsParams<M extends Module = Module, S extends Module = Module>
-  extends PluginServiceActionParamsBase<M, S> { }
-export const getServiceOutputsParamsSchema = serviceActionParamsSchema
-
 export interface ExecInServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
   command: string[]
@@ -338,7 +334,6 @@ export interface ServiceActionParams<T extends Module = Module> {
   deployService: DeployServiceParams<T>
   hotReloadService: HotReloadServiceParams<T>
   deleteService: DeleteServiceParams<T>
-  getServiceOutputs: GetServiceOutputsParams<T>
   execInService: ExecInServiceParams<T>
   getServiceLogs: GetServiceLogsParams<T>
   runService: RunServiceParams<T>

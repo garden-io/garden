@@ -7,7 +7,7 @@
  */
 
 import { ServiceStatus, ServiceState } from "../../../types/service"
-import { GetServiceStatusParams, GetServiceOutputsParams } from "../../../types/plugin/params"
+import { GetServiceStatusParams } from "../../../types/plugin/params"
 import { getExecModuleBuildStatus } from "../../exec"
 import { compareDeployedObjects } from "../status"
 import { KubeApi } from "../api"
@@ -15,11 +15,10 @@ import { getAppNamespace } from "../namespace"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
-import { getChartResources, findServiceResource, getReleaseName } from "./common"
+import { getChartResources, findServiceResource } from "./common"
 import { buildHelmModule } from "./build"
 import { configureHotReload } from "../hot-reload"
 import { getHotReloadSpec } from "./hot-reload"
-import { PrimitiveMap } from "../../../config/common"
 
 const helmStatusCodeMap: { [code: number]: ServiceState } = {
   // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto
@@ -68,12 +67,6 @@ export async function getServiceStatus(
     state,
     version: state === "ready" ? module.version.versionString : undefined,
     detail,
-  }
-}
-
-export async function getServiceOutputs({ module }: GetServiceOutputsParams): Promise<PrimitiveMap> {
-  return {
-    "release-name": await getReleaseName(module),
   }
 }
 

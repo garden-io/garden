@@ -48,11 +48,18 @@ module:
   name: hello-container
   services:
     ...
-      env:
-        FUNCTION_ENDPOINT: ${services.hello-function.outputs.endpoint}
       dependencies:
         - hello-function
+      env:
+        FUNCTION_ENDPOINT: ${modules.hello-function.outputs.endpoint}
 ```
+
+Note the added `dependencies` key, which specified `hello-function` as a runtime dependency for the `hello-container`
+service.
+
+Here we also reference the module outputs from the OpenFaaS module using a templated string, in order to inform the
+container service where the endpoint for the function is. Please refer to individual provider docs on which values
+are exposed under the `outputs` key on different module types.
 
 Test dependencies will be covered further ahead.
 

@@ -16,13 +16,9 @@ import { CommonServiceSpec } from "../../config/service"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
-export interface GoogleCloudServiceSpec extends CommonServiceSpec {
-  project?: string,
-}
-
 export interface GoogleCloudModule<
   M extends ModuleSpec = ModuleSpec,
-  S extends GoogleCloudServiceSpec = GoogleCloudServiceSpec,
+  S extends CommonServiceSpec = CommonServiceSpec,
   T extends ExecTestSpec = ExecTestSpec,
   > extends Module<M, S, T> { }
 

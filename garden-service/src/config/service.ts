@@ -32,7 +32,6 @@ export const baseServiceSchema = Joi.object()
         The names of any services that this service depends on at runtime, and the names of any
         tasks that should be executed before this service is deployed.
       `),
-    outputs: serviceOutputsSchema,
   })
   .unknown(true)
   .meta({ extendable: true })

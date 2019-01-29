@@ -117,8 +117,8 @@ export function getValuesPath(chartPath: string) {
 /**
  * Get the release name to use for the module/chart (the module name, unless overridden in config).
  */
-export function getReleaseName(module: HelmModule) {
-  return module.spec.releaseName || module.name
+export function getReleaseName(config: HelmModuleConfig) {
+  return config.spec.releaseName || config.name
 }
 
 /**

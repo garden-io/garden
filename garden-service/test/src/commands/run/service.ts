@@ -2,7 +2,6 @@ import { RunServiceCommand } from "../../../../src/commands/run/service"
 import { RunResult } from "../../../../src/types/plugin/outputs"
 import {
   makeTestGardenA,
-  makeTestModule,
   testModuleVersion,
   testNow,
 } from "../../../helpers"
@@ -23,22 +22,17 @@ describe("RunServiceCommand", () => {
   })
 
   it("should run a service", async () => {
-    garden.addModule(makeTestModule({
-      name: "run-test",
-      serviceConfigs: [{ name: "test-service", dependencies: [], outputs: {}, spec: {} }],
-    }))
-
     const cmd = new RunServiceCommand()
     const { result } = await cmd.action({
       garden,
       log,
-      args: { service: "test-service" },
+      args: { service: "service-a" },
       opts: { "force-build": false },
     })
 
     const expected: RunResult = {
-      moduleName: "run-test",
-      command: ["test-service"],
+      moduleName: "module-a",
+      command: ["service-a"],
       completedAt: testNow,
       output: "OK",
       version: testModuleVersion,
