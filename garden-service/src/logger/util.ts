@@ -44,6 +44,12 @@ export function getChildEntries(node: LogNode): LogEntry[] {
   return getChildNodes<LogNode, LogEntry>(node)
 }
 
+export function findParentEntry(entry: LogEntry, predicate: ProcessNode<LogEntry>): LogEntry | null {
+  return predicate(entry)
+    ? entry
+    : entry.parent ? findParentEntry(entry.parent, predicate) : null
+}
+
 export function findLogNode(node: LogNode, predicate: ProcessNode<LogNode>): LogEntry | void {
   let found: LogEntry | undefined
   traverseChildren<LogNode, LogEntry>(node, entry => {

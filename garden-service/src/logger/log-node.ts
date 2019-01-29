@@ -42,7 +42,7 @@ export abstract class LogNode {
    * A placeholder entry is an empty entry whose children should be aligned with the parent context.
    * Useful for setting a placeholder in the middle of the log that can later be populated.
    */
-  abstract placeholder(level: LogLevel): LogEntry
+  abstract placeholder(level: LogLevel, param?: CreateParam): LogEntry
 
   protected appendNode(level: LogLevel, param: CreateParam): LogEntry {
     const node = this.createNode(level, param)

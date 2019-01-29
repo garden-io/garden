@@ -11,7 +11,7 @@ import * as nodeEmoji from "node-emoji"
 import { flatten } from "lodash"
 
 import { LogNode, LogLevel } from "./log-node"
-import { getChildEntries } from "./util"
+import { getChildEntries, findParentEntry } from "./util"
 import { GardenError } from "../exceptions"
 import { Omit } from "../util/util"
 import { Logger } from "./logger"
@@ -31,6 +31,7 @@ export interface UpdateOpts {
   error?: GardenError
   status?: EntryStatus
   indent?: number
+  preserveLevel?: boolean
 }
 
 export interface CreateOpts extends UpdateOpts {
@@ -104,12 +105,16 @@ export class LogEntry extends LogNode {
   }
 
   protected createNode(level: LogLevel, param: CreateParam) {
-    // A child entry must not have a higher level than its parent
-    const childLevel = this.level > level ? this.level : level
     const opts = {
       indent: (this.opts.indent || 0) + 1,
       ...resolveParam(param),
     }
+
+    // If preserveLevel is set to true, all children must have a level geq the level
+    // of the parent entry that set the flag.
+    const parentWithPreserveFlag = findParentEntry(this, entry => !!entry.opts.preserveLevel)
+    const childLevel = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, level) : level
+
     return new LogEntry({
       opts,
       level: childLevel,
@@ -122,10 +127,10 @@ export class LogEntry extends LogNode {
     this.root.onGraphChange(node)
   }
 
-  placeholder(level: LogLevel = LogLevel.info): LogEntry {
+  placeholder(level: LogLevel = LogLevel.info, param? : CreateParam): LogEntry {
     // Ensure placeholder child entries align with parent context
     const indent = Math.max((this.opts.indent || 0) - 1, - 1)
-    return this.appendNode(level, { indent })
+    return this.appendNode(level, { ...resolveParam(param), indent })
   }
 
   // Preserves status
