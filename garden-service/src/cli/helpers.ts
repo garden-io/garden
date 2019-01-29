@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { difference, flatten, reduce } from "lodash"
+import { difference, flatten, range, reduce } from "lodash"
 import {
   ChoicesParameter,
   ParameterValues,
@@ -16,6 +16,8 @@ import {
 import {
   InternalError,
 } from "../exceptions"
+import { LogLevel } from "../logger/log-node"
+import { getEnumKeys } from "../util/util"
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
@@ -106,6 +108,30 @@ export function getOptionSynopsis(key: string, { alias }: Parameter<any>): strin
 
 export function getArgSynopsis(key: string, param: Parameter<any>) {
   return param.required ? `<${key}>` : `[${key}]`
+}
+
+const getLogLevelNames = () => getEnumKeys(LogLevel)
+const getNumericLogLevels = () => range(getLogLevelNames().length)
+// Allow string or numeric log levels as CLI choices
+export const getLogLevelChoices = () => [...getLogLevelNames(), ...getNumericLogLevels().map(String)]
+
+export function parseLogLevel(level: string): LogLevel {
+  let lvl: LogLevel
+  const parsed = parseInt(level, 10)
+  // Level is numeric
+  if (parsed || parsed === 0) {
+    lvl = parsed
+    // Level is a string
+  } else {
+    lvl = LogLevel[level]
+  }
+  if (!getNumericLogLevels().includes(lvl)) {
+    throw new InternalError(
+      `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
+      {},
+    )
+  }
+  return lvl
 }
 
 export function prepareArgConfig(param: Parameter<any>) {

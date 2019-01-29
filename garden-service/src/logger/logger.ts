@@ -14,6 +14,7 @@ import { InternalError, ParameterError } from "../exceptions"
 import { LogLevel } from "./log-node"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
+import { parseLogLevel } from "../cli/helpers"
 
 export enum LoggerType {
   quiet = "quiet",
@@ -64,7 +65,18 @@ export class Logger extends LogNode {
 
     let instance: Logger
 
-    // If GARDEN_LOGGER_TYPE env variable is set it takes precedence over the config param
+    // GARDEN_LOG_LEVEL env variable takes precedence over the config param
+    if (process.env.GARDEN_LOG_LEVEL) {
+      try {
+        config.level = parseLogLevel(process.env.GARDEN_LOG_LEVEL)
+      } catch (err) {
+        // Log warning if level invalid but continue process.
+        // Using console logger since Garden logger hasn't been intialised.
+        console.warn("Warning:", err.message)
+      }
+    }
+
+    // GARDEN_LOGGER_TYPE env variable takes precedence over the config param
     if (process.env.GARDEN_LOGGER_TYPE) {
       const loggerType = LoggerType[process.env.GARDEN_LOGGER_TYPE]
 

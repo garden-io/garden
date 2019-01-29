@@ -127,7 +127,7 @@ export class LogEntry extends LogNode {
     this.root.onGraphChange(node)
   }
 
-  placeholder(level: LogLevel = LogLevel.info, param? : CreateParam): LogEntry {
+  placeholder(level: LogLevel = LogLevel.info, param?: CreateParam): LogEntry {
     // Ensure placeholder child entries align with parent context
     const indent = Math.max((this.opts.indent || 0) - 1, - 1)
     return this.appendNode(level, { ...resolveParam(param), indent })
