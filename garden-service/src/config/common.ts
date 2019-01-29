@@ -30,16 +30,16 @@ export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.strin
   .description("Number, string or boolean")
 
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
-export const identifierRegex = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
-export const userIdentifierRegex = /^(?!garden)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
+// from https://stackoverflow.com/a/12311250/3290965
+export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
+export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_]*$/i
 
 export const joiIdentifier = () => Joi.string()
   .regex(identifierRegex)
-  .max(63)
   .description(
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
-    "and cannot end with a dash) and additionally cannot contain consecutive dashes, or be longer than 63 characters.",
+    "and cannot end with a dash) and must not be longer than 63 characters.",
   )
 
 export const joiStringMap = (valueSchema: JoiObject) => Joi
@@ -47,7 +47,6 @@ export const joiStringMap = (valueSchema: JoiObject) => Joi
 
 export const joiUserIdentifier = () => Joi.string()
   .regex(userIdentifierRegex)
-  .max(63)
   .description(
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
     "and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, " +

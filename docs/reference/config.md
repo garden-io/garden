@@ -506,8 +506,8 @@ module:
       # Optional.
       dependencies: 
         # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes,
-        # must start with a letter, and cannot end with a dash) and additionally cannot contain
-        # consecutive dashes, or be longer than 63 characters.
+        # must start with a letter, and cannot end with a dash) and must not be longer than 63
+        # characters.
         #
         # Optional.
         -
@@ -854,11 +854,15 @@ module:
   # Optional.
   dependencies: 
     # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must
-    # start with a letter, and cannot end with a dash) and additionally cannot contain consecutive
-    # dashes, or be longer than 63 characters.
+    # start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
     #
     # Optional.
     -
+
+  # Optionally override the release name used when installing (defaults to the module name).
+  #
+  # Optional.
+  releaseName:
 
   # The repository URL to fetch the chart from.
   #

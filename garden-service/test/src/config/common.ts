@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import * as Joi from "joi"
 const stripAnsi = require("strip-ansi")
-import { identifierRegex, validate, envVarRegex } from "../../../src/config/common"
+import { identifierRegex, validate, envVarRegex, userIdentifierRegex } from "../../../src/config/common"
 import { expectError } from "../../helpers"
 
 describe("envVarRegex", () => {
@@ -38,33 +38,73 @@ describe("envVarRegex", () => {
   })
 })
 
+const validIdentifiers = {
+  "myname": "a valid identifier",
+  "my-name": "a valid identifier with a dash",
+  "my9-9name": "numbers in the middle of a string",
+  "o12345670123456701234567012345670123456701234567012345670123456": "a 63 char identifier",
+  "a": "a single char identifier",
+}
+
+const invalidIdentifiers = {
+  "01010": "string with only numbers",
+  "-abc": "starting with a dash",
+  "abc-": "ending with a dash",
+  "": "an empty string",
+  "o123456701234567012345670123456701234567012345670123456701234567": "a 64 char identifier",
+  "UPPER": "an uppercase string",
+  "upPer": "a partially uppercase string",
+}
+
 describe("identifierRegex", () => {
-  it("should accept a valid identifier", () => {
-    expect(identifierRegex.test("my-name")).to.be.true
+  for (const [value, description] of Object.entries(validIdentifiers)) {
+    it("should allow " + description, () => {
+      expect(identifierRegex.test(value)).to.be.true
+    })
+  }
+
+  for (const [value, description] of Object.entries(invalidIdentifiers)) {
+    it("should disallow " + description, () => {
+      expect(identifierRegex.test(value)).to.be.false
+    })
+  }
+
+  it("should allow consecutive dashes", () => {
+    expect(identifierRegex.test("my--name")).to.be.true
   })
 
-  it("should allow numbers in middle of the string", () => {
-    expect(identifierRegex.test("my9-9name")).to.be.true
+  it("should allow starting with a number", () => {
+    expect(identifierRegex.test("9name")).to.be.true
   })
 
-  it("should disallow ending with a dash", () => {
-    expect(identifierRegex.test("my-name-")).to.be.false
+  it("should allow strings starting with 'garden'", () => {
+    expect(identifierRegex.test("garden-party")).to.be.true
   })
+})
 
-  it("should disallow uppercase characters", () => {
-    expect(identifierRegex.test("myName")).to.be.false
-  })
+describe("userIdentifierRegex", () => {
+  for (const [value, description] of Object.entries(validIdentifiers)) {
+    it("should allow " + description, () => {
+      expect(userIdentifierRegex.test(value)).to.be.true
+    })
+  }
 
-  it("should disallow starting with a dash", () => {
-    expect(identifierRegex.test("-my-name")).to.be.false
+  for (const [value, description] of Object.entries(invalidIdentifiers)) {
+    it("should disallow " + description, () => {
+      expect(userIdentifierRegex.test(value)).to.be.false
+    })
+  }
+
+  it("should allow consecutive dashes", () => {
+    expect(userIdentifierRegex.test("my--name")).to.be.false
   })
 
   it("should disallow starting with a number", () => {
-    expect(identifierRegex.test("9name")).to.be.false
+    expect(userIdentifierRegex.test("9name")).to.be.false
   })
 
-  it("should disallow consecutive dashes", () => {
-    expect(identifierRegex.test("my--name")).to.be.false
+  it("should allow strings starting with 'garden'", () => {
+    expect(userIdentifierRegex.test("garden-party")).to.be.false
   })
 })
 
