@@ -1,11 +1,14 @@
 module:
   name: module-c
   type: test
-  allowPublish: false
   services:
     - name: service-c
-      dependencies:
-        - service-b
   build:
     dependencies:
       - module-b
+  tests:
+    - name: unit
+      command: [echo, OK]
+  tasks:
+    - name: task-c
+      command: [echo, OK]

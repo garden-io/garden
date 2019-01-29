@@ -5,8 +5,13 @@ module:
     - name: service-b
       dependencies:
         - service-a
-        - service-c
   build:
     command: [echo, B]
     dependencies:
       - module-a
+  tests:
+    - name: unit
+      command: [echo, OK]
+  tasks:
+    - name: task-b
+      command: [echo, OK]
