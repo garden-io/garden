@@ -14,7 +14,10 @@ export interface KubernetesResource {
   metadata: Partial<V1ObjectMeta> & {
     name: string,
   }
+  roleRef?: any
+  rules?: any
   spec?: any
+  subjects?: any
 }
 
 export interface KubeEnvVar {
