@@ -75,11 +75,11 @@ describe("Helm common functions", () => {
           apiVersion: "v1",
           kind: "Service",
           metadata: {
-            name: "api",
+            name: "api-release",
             labels: {
               "app.kubernetes.io/name": "api",
               "helm.sh/chart": "api-0.1.0",
-              "app.kubernetes.io/instance": "api",
+              "app.kubernetes.io/instance": "api-release",
               "app.kubernetes.io/managed-by": "Tiller",
             },
             annotations: {},
@@ -96,7 +96,7 @@ describe("Helm common functions", () => {
             ],
             selector: {
               "app.kubernetes.io/name": "api",
-              "app.kubernetes.io/instance": "api",
+              "app.kubernetes.io/instance": "api-release",
             },
           },
         },
@@ -104,11 +104,11 @@ describe("Helm common functions", () => {
           apiVersion: "apps/v1",
           kind: "Deployment",
           metadata: {
-            name: "api",
+            name: "api-release",
             labels: {
               "app.kubernetes.io/name": "api",
               "helm.sh/chart": "api-0.1.0",
-              "app.kubernetes.io/instance": "api",
+              "app.kubernetes.io/instance": "api-release",
               "app.kubernetes.io/managed-by": "Tiller",
             },
             annotations: {},
@@ -118,14 +118,14 @@ describe("Helm common functions", () => {
             selector: {
               matchLabels: {
                 "app.kubernetes.io/name": "api",
-                "app.kubernetes.io/instance": "api",
+                "app.kubernetes.io/instance": "api-release",
               },
             },
             template: {
               metadata: {
                 labels: {
                   "app.kubernetes.io/name": "api",
-                  "app.kubernetes.io/instance": "api",
+                  "app.kubernetes.io/instance": "api-release",
                 },
               },
               spec: {
@@ -156,11 +156,11 @@ describe("Helm common functions", () => {
           apiVersion: "extensions/v1beta1",
           kind: "Ingress",
           metadata: {
-            name: "api",
+            name: "api-release",
             labels: {
               "app.kubernetes.io/name": "api",
               "helm.sh/chart": "api-0.1.0",
-              "app.kubernetes.io/instance": "api",
+              "app.kubernetes.io/instance": "api-release",
               "app.kubernetes.io/managed-by": "Tiller",
             },
             annotations: {},
@@ -174,7 +174,7 @@ describe("Helm common functions", () => {
                     {
                       path: "/",
                       backend: {
-                        serviceName: "api",
+                        serviceName: "api-release",
                         servicePort: "http",
                       },
                     },
@@ -509,9 +509,15 @@ describe("Helm common functions", () => {
   })
 
   describe("getReleaseName", () => {
-    it("should return the module name", async () => {
+    it("should return the module name if not overridden in config", async () => {
       const module = await garden.getModule("api")
+      delete module.spec.releaseName
       expect(getReleaseName(module)).to.equal("api")
+    })
+
+    it("should return the configured release name if any", async () => {
+      const module = await garden.getModule("api")
+      expect(getReleaseName(module)).to.equal("api-release")
     })
   })
 
@@ -671,7 +677,7 @@ describe("Helm common functions", () => {
       deployment.spec.template.spec.containers = []
       await expectError(
         () => getResourceContainer(deployment),
-        err => expect(err.message).to.equal("Deployment api has no containers configured."),
+        err => expect(err.message).to.equal("Deployment api-release has no containers configured."),
       )
     })
 
@@ -679,7 +685,7 @@ describe("Helm common functions", () => {
       const deployment = await getDeployment()
       await expectError(
         () => getResourceContainer(deployment, "foo"),
-        err => expect(err.message).to.equal("Could not find container 'foo' in Deployment 'api'"),
+        err => expect(err.message).to.equal("Could not find container 'foo' in Deployment 'api-release'"),
       )
     })
   })
