@@ -18,7 +18,7 @@ import { BaseTask, TaskParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
 
 class TestError extends Error {
   toString() {
@@ -29,6 +29,7 @@ class TestError extends Error {
 export interface TestTaskParams {
   garden: Garden
   log: LogEntry
+  graph: ConfigGraph
   module: Module
   testConfig: TestConfig
   force: boolean
@@ -40,20 +41,22 @@ export class TestTask extends BaseTask {
   depType: DependencyGraphNodeType = "test"
 
   private module: Module
+  private graph: ConfigGraph
   private testConfig: TestConfig
   private forceBuild: boolean
 
-  constructor({ garden, log, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
+  constructor({ garden, graph, log, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
     super({ garden, log, force, version })
     this.module = module
+    this.graph = graph
     this.testConfig = testConfig
     this.force = force
     this.forceBuild = forceBuild
   }
 
   static async factory(initArgs: TestTaskParams): Promise<TestTask> {
-    const { garden, module, testConfig } = initArgs
-    const version = await getTestVersion(garden, module, testConfig)
+    const { garden, graph, module, testConfig } = initArgs
+    const version = await getTestVersion(garden, graph, module, testConfig)
     return new TestTask({ ...initArgs, version })
   }
 
@@ -64,7 +67,7 @@ export class TestTask extends BaseTask {
       return []
     }
 
-    const dg = await this.garden.getDependencyGraph()
+    const dg = this.graph
     const services = (await dg.getDependencies(this.depType, this.getName(), false)).service
 
     const deps: BaseTask[] = [new BuildTask({
@@ -77,6 +80,7 @@ export class TestTask extends BaseTask {
     for (const service of services) {
       deps.push(new DeployTask({
         garden: this.garden,
+        graph: this.graph,
         log: this.log,
         service,
         force: false,
@@ -114,8 +118,8 @@ export class TestTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await getTestDependencies(this.garden, this.testConfig)
-    const runtimeContext = await prepareRuntimeContext(this.garden, this.module, dependencies)
+    const dependencies = await getTestDependencies(this.graph, this.testConfig)
+    const runtimeContext = await prepareRuntimeContext(this.garden, this.graph, this.module, dependencies)
 
     let result: TestResult
     try {
@@ -156,13 +160,22 @@ export class TestTask extends BaseTask {
 }
 
 export async function getTestTasks(
-  { garden, log, module, name, force = false, forceBuild = false }:
-    { garden: Garden, log: LogEntry, module: Module, name?: string, force?: boolean, forceBuild?: boolean },
+  { garden, log, graph, module, name, force = false, forceBuild = false }:
+    {
+      garden: Garden,
+      log: LogEntry,
+      graph: ConfigGraph,
+      module: Module,
+      name?: string,
+      force?: boolean,
+      forceBuild?: boolean,
+    },
 ) {
   const configs = module.testConfigs.filter(test => !name || test.name === name)
 
   return Bluebird.map(configs, test => TestTask.factory({
     garden,
+    graph,
     log,
     force,
     forceBuild,
@@ -171,14 +184,17 @@ export async function getTestTasks(
   }))
 }
 
-async function getTestDependencies(garden: Garden, testConfig: TestConfig) {
-  return garden.getServices(testConfig.dependencies)
+async function getTestDependencies(graph: ConfigGraph, testConfig: TestConfig) {
+  const deps = await graph.getDependencies("test", testConfig.name, false)
+  return deps.service
 }
 
 /**
  * Determine the version of the test run, based on the version of the module and each of its dependencies.
  */
-async function getTestVersion(garden: Garden, module: Module, testConfig: TestConfig): Promise<ModuleVersion> {
-  const moduleDeps = await garden.resolveDependencyModules(module.build.dependencies, testConfig.dependencies)
+async function getTestVersion(
+  garden: Garden, graph: ConfigGraph, module: Module, testConfig: TestConfig,
+): Promise<ModuleVersion> {
+  const moduleDeps = await graph.resolveDependencyModules(module.build.dependencies, testConfig.dependencies)
   return garden.resolveVersion(module.name, moduleDeps)
 }

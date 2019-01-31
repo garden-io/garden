@@ -18,7 +18,6 @@ import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 import { processModules } from "../process"
-import { Module } from "../types/module"
 import { logHeader } from "../logger/util"
 
 const buildArguments = {
@@ -67,19 +66,20 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
   ): Promise<CommandResult<TaskResults>> {
     await garden.clearBuilds()
 
-    const modules = await garden.getModules(args.modules)
-    const dependencyGraph = await garden.getDependencyGraph()
+    const graph = await garden.getConfigGraph()
+    const modules = await graph.getModules(args.modules)
     const moduleNames = modules.map(m => m.name)
 
     const results = await processModules({
       garden,
+      graph: await garden.getConfigGraph(),
       log,
       logFooter,
       modules,
       watch: opts.watch,
-      handler: async (module) => [new BuildTask({ garden, log, module, force: opts.force })],
-      changeHandler: async (module: Module) => {
-        const dependantModules = (await dependencyGraph.getDependants("build", module.name, true)).build
+      handler: async (_, module) => [new BuildTask({ garden, log, module, force: opts.force })],
+      changeHandler: async (_, module) => {
+        const dependantModules = (await graph.getDependants("build", module.name, true)).build
         return [module].concat(dependantModules)
           .filter(m => moduleNames.includes(m.name))
           .map(m => new BuildTask({ garden, log, module: m, force: true }))

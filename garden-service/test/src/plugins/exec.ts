@@ -5,6 +5,7 @@ import { gardenPlugin } from "../../../src/plugins/exec"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../src/constants"
 import { LogEntry } from "../../../src/logger/log-entry"
 import { keyBy } from "lodash"
+import { ConfigGraph } from "../../../src/config-graph"
 import {
   writeModuleVersionFile,
   readModuleVersionFile,
@@ -19,16 +20,18 @@ describe("exec plugin", () => {
   const moduleName = "module-a"
 
   let garden: Garden
+  let graph: ConfigGraph
   let log: LogEntry
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { exec: gardenPlugin })
     log = garden.log
+    graph = await garden.getConfigGraph()
     await garden.clearBuilds()
   })
 
   it("should correctly parse exec modules", async () => {
-    const modules = keyBy(await garden.getModules(), "name")
+    const modules = keyBy(await graph.getModules(), "name")
     const {
       "module-a": moduleA,
       "module-b": moduleB,
@@ -126,7 +129,7 @@ describe("exec plugin", () => {
 
   describe("getBuildStatus", () => {
     it("should read a build version file if it exists", async () => {
-      const module = await garden.getModule(moduleName)
+      const module = await graph.getModule(moduleName)
       const version = module.version
       const buildPath = module.buildPath
       const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
@@ -141,7 +144,7 @@ describe("exec plugin", () => {
 
   describe("build", () => {
     it("should write a build version file after building", async () => {
-      const module = await garden.getModule(moduleName)
+      const module = await graph.getModule(moduleName)
       const version = module.version
       const buildPath = module.buildPath
       const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)

@@ -44,7 +44,7 @@ describe("VcsHandler", () => {
 
   describe("resolveTreeVersion", () => {
     it("should return the version from a version file if it exists", async () => {
-      const module = await garden.getModule("module-a")
+      const module = await garden.resolveModuleConfig("module-a")
       const result = await handler.resolveTreeVersion(module.path)
 
       expect(result).to.eql({
@@ -54,7 +54,7 @@ describe("VcsHandler", () => {
     })
 
     it("should call getTreeVersion if there is no version file", async () => {
-      const module = await garden.getModule("module-b")
+      const module = await garden.resolveModuleConfig("module-b")
 
       const version = {
         latestCommit: "qwerty",
@@ -69,7 +69,7 @@ describe("VcsHandler", () => {
 
   describe("resolveVersion", () => {
     it("should return module version if there are no dependencies", async () => {
-      const module = await garden.getModule("module-a")
+      const module = await garden.resolveModuleConfig("module-a")
 
       const result = await handler.resolveVersion(module, [])
 
@@ -81,7 +81,7 @@ describe("VcsHandler", () => {
     })
 
     it("should return module version if there are no dependencies and properly handle a dirty timestamp", async () => {
-      const module = await garden.getModule("module-b")
+      const module = await garden.resolveModuleConfig("module-b")
       const latestCommit = "abcdef"
       const version = {
         latestCommit,
@@ -100,7 +100,7 @@ describe("VcsHandler", () => {
     })
 
     it("should return the dirty version if there is a single one", async () => {
-      const [moduleA, moduleB, moduleC] = await garden.getModules(["module-a", "module-b", "module-c"])
+      const [moduleA, moduleB, moduleC] = await garden.resolveModuleConfigs(["module-a", "module-b", "module-c"])
 
       const versionB = {
         latestCommit: "qwerty",
@@ -126,7 +126,7 @@ describe("VcsHandler", () => {
     })
 
     it("should return the latest dirty version if there are multiple", async () => {
-      const [moduleA, moduleB, moduleC] = await garden.getModules(["module-a", "module-b", "module-c"])
+      const [moduleA, moduleB, moduleC] = await garden.resolveModuleConfigs(["module-a", "module-b", "module-c"])
 
       const versionB = {
         latestCommit: "qwerty",
@@ -152,7 +152,7 @@ describe("VcsHandler", () => {
     })
 
     it("should hash together the version of the module and all dependencies if none are dirty", async () => {
-      const [moduleA, moduleB, moduleC] = await garden.getModules(["module-a", "module-b", "module-c"])
+      const [moduleA, moduleB, moduleC] = await garden.resolveModuleConfigs(["module-a", "module-b", "module-c"])
 
       const versionStringB = "qwerty"
       const versionB = {
@@ -182,7 +182,7 @@ describe("VcsHandler", () => {
       "should hash together the dirty versions and add the timestamp if there are multiple with same timestamp",
       async () => {
 
-        const [moduleA, moduleB, moduleC] = await garden.getModules(["module-a", "module-b", "module-c"])
+        const [moduleA, moduleB, moduleC] = await garden.resolveModuleConfigs(["module-a", "module-b", "module-c"])
 
         const versionStringB = "qwerty"
         const versionB = {

@@ -55,7 +55,8 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
-    const service = await garden.getService(serviceName)
+    const graph = await garden.getConfigGraph()
+    const service = await graph.getService(serviceName)
     const module = service.module
 
     logHeader({
@@ -70,8 +71,8 @@ export class RunServiceCommand extends Command<Args, Opts> {
     await garden.addTask(buildTask)
     await garden.processTasks()
 
-    const dependencies = await garden.getServices(module.serviceDependencyNames)
-    const runtimeContext = await prepareRuntimeContext(garden, module, dependencies)
+    const dependencies = await graph.getServices(module.serviceDependencyNames)
+    const runtimeContext = await prepareRuntimeContext(garden, graph, module, dependencies)
 
     printRuntimeContext(log, runtimeContext)
 

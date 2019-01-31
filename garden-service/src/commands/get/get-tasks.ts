@@ -65,9 +65,10 @@ export class GetTasksCommand extends Command<GetTasksArguments> {
   }
 
   async action({ args, garden, log }: CommandParams<GetTasksArguments>): Promise<CommandResult> {
-    const tasks = await garden.getTasks(args.tasks)
+    const graph = await garden.getConfigGraph()
+    const tasks = await graph.getTasks(args.tasks)
     const taskModuleNames = uniq(tasks.map(t => t.module.name))
-    const modules = sortBy(await garden.getModules(taskModuleNames), m => m.name)
+    const modules = sortBy(await graph.getModules(taskModuleNames), m => m.name)
 
     const taskListing: any[] = []
     let logStr = ""

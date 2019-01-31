@@ -29,6 +29,7 @@ import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { HotReloadTask } from "../tasks/hot-reload"
+import { ConfigGraph } from "../config-graph"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -76,7 +77,8 @@ export class DevCommand extends Command<Args, Opts> {
   async action({ garden, log, logFooter, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     await garden.actions.prepareEnvironment({ log })
 
-    const modules = await garden.getModules()
+    const graph = await garden.getConfigGraph()
+    const modules = await graph.getModules()
 
     if (modules.length === 0) {
       logFooter && logFooter.setState({ msg: "" })
@@ -86,32 +88,32 @@ export class DevCommand extends Command<Args, Opts> {
     }
 
     const hotReloadServiceNames = opts["hot-reload"] || []
-    const hotReloadServices = await garden.getServices(hotReloadServiceNames)
-    const dependencyGraph = await garden.getDependencyGraph()
 
     const tasksForModule = (watch: boolean) => {
-      return async (module: Module) => {
+      return async (updatedGraph: ConfigGraph, module: Module) => {
         const tasks: BaseTask[] = []
 
         if (watch) {
+          const hotReloadServices = await updatedGraph.getServices(hotReloadServiceNames)
           const hotReloadTasks = hotReloadServices
             .filter(service => service.module.name === module.name || service.sourceModule.name === module.name)
-            .map(service => new HotReloadTask({ garden, log, service, force: true }))
+            .map(service => new HotReloadTask({ garden, graph: updatedGraph, log, service, force: true }))
 
           tasks.push(...hotReloadTasks)
         }
 
         const testModules: Module[] = watch
-          ? (await dependencyGraph.withDependantModules([module]))
+          ? (await updatedGraph.withDependantModules([module]))
           : [module]
 
         tasks.push(...flatten(
-          await Bluebird.map(testModules, m => getTestTasks({ garden, log, module: m })),
+          await Bluebird.map(testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph })),
         ))
 
         tasks.push(...await getDependantTasksForModule({
           garden,
           log,
+          graph: updatedGraph,
           module,
           fromWatch: watch,
           hotReloadServiceNames,
@@ -126,6 +128,7 @@ export class DevCommand extends Command<Args, Opts> {
 
     const results = await processModules({
       garden,
+      graph,
       log,
       logFooter,
       modules,

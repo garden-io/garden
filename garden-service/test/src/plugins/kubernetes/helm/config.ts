@@ -15,7 +15,7 @@ describe("validateHelmModule", () => {
     const projectRoot = resolve(dataDir, "test-projects", "helm")
     garden = await makeTestGarden(projectRoot)
     ctx = garden.getPluginContext("local-kubernetes")
-    await garden.getModules()
+    await garden.resolveModuleConfigs()
   })
 
   after(async () => {
@@ -31,20 +31,15 @@ describe("validateHelmModule", () => {
   }
 
   it("should validate a Helm module", async () => {
-    const moduleConfig = getModuleConfig("api")
-    const config = await validateHelmModule({ ctx, moduleConfig })
-    const imageModule = await garden.getModule("api-image")
+    const config = await garden.resolveModuleConfig("api")
+    const graph = await garden.getConfigGraph()
+    const imageModule = await graph.getModule("api-image")
     const { versionString } = imageModule.version
 
     expect(config).to.eql({
       allowPublish: true,
       build: {
-        dependencies: [
-          {
-            name: "api-image",
-            copy: [],
-          },
-        ],
+        dependencies: [],
         command: [],
       },
       description: "The API backend for the voting UI",
@@ -157,7 +152,6 @@ describe("validateHelmModule", () => {
     const config = await validateHelmModule({ ctx, moduleConfig })
 
     expect(config.build.dependencies).to.eql([
-      { name: "api-image", copy: [] },
       { name: "foo", copy: [] },
     ])
   })
@@ -170,7 +164,6 @@ describe("validateHelmModule", () => {
     const config = await validateHelmModule({ ctx, moduleConfig })
 
     expect(config.build.dependencies).to.eql([
-      { name: "api-image", copy: [] },
       { name: "foo", copy: [] },
     ])
   })

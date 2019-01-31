@@ -17,6 +17,7 @@ import { format } from "url"
 import { moduleVersionSchema } from "../vcs/base"
 import { Garden } from "../garden"
 import { uniq } from "lodash"
+import { ConfigGraph } from "../config-graph"
 import normalizeUrl = require("normalize-url")
 
 export interface Service<M extends Module = Module, S extends Module = Module> {
@@ -40,9 +41,9 @@ export const serviceSchema = Joi.object()
   })
 
 export async function serviceFromConfig<M extends Module = Module>
-  (garden: Garden, module: M, config: ServiceConfig): Promise<Service<M>> {
+  (graph: ConfigGraph, module: M, config: ServiceConfig): Promise<Service<M>> {
 
-  const sourceModule = config.sourceModuleName ? await garden.getModule(config.sourceModuleName) : module
+  const sourceModule = config.sourceModuleName ? await graph.getModule(config.sourceModuleName) : module
 
   return {
     name: config.name,
@@ -209,10 +210,10 @@ export const runtimeContextSchema = Joi.object()
   })
 
 export async function prepareRuntimeContext(
-  garden: Garden, module: Module, serviceDependencies: Service[],
+  garden: Garden, graph: ConfigGraph, module: Module, serviceDependencies: Service[],
 ): Promise<RuntimeContext> {
   const buildDepKeys = module.build.dependencies.map(dep => getModuleKey(dep.name, dep.plugin))
-  const buildDependencies: Module[] = await garden.getModules(buildDepKeys)
+  const buildDependencies: Module[] = await graph.getModules(buildDepKeys)
   const { versionString } = module.version
   const envVars = {
     GARDEN_VERSION: versionString,
@@ -260,6 +261,11 @@ export async function prepareRuntimeContext(
     envVars,
     dependencies: deps,
   }
+}
+
+export async function getServiceRuntimeContext(garden: Garden, graph: ConfigGraph, service: Service) {
+  const deps = await graph.getDependencies("service", service.name, false)
+  return prepareRuntimeContext(garden, graph, service.module, deps.service)
 }
 
 export function getIngressUrl(ingress: ServiceIngress) {

@@ -64,7 +64,8 @@ export class PublishCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     logHeader({ log, emoji: "rocket", command: "Publish modules" })
 
-    const modules = await garden.getModules(args.modules)
+    const graph = await garden.getConfigGraph()
+    const modules = await graph.getModules(args.modules)
 
     const results = await publishModules(garden, log, modules, !!opts["force-build"], !!opts["allow-dirty"])
 

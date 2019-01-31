@@ -5,13 +5,16 @@ import * as td from "testdouble"
 import { Garden } from "../../../src/garden"
 import { dataDir, makeTestGarden } from "../../helpers"
 import { LogEntry } from "../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../src/config-graph"
 
 describe("TestTask", () => {
   let garden: Garden
+  let graph: ConfigGraph
   let log: LogEntry
 
   beforeEach(async () => {
     garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
+    graph = await garden.getConfigGraph()
     log = garden.log
   })
 
@@ -31,15 +34,16 @@ describe("TestTask", () => {
       },
     }
 
-    const moduleB = await garden.getModule("module-b")
+    const moduleB = await graph.getModule("module-b")
 
     td.when(resolveVersion("module-a", [moduleB])).thenResolve(version)
 
-    const moduleA = await garden.getModule("module-a")
+    const moduleA = await graph.getModule("module-a")
     const testConfig = moduleA.testConfigs[0]
 
     const task = await TestTask.factory({
       garden,
+      graph,
       log,
       module: moduleA,
       testConfig,

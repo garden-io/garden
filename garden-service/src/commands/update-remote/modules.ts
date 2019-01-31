@@ -49,7 +49,8 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
     logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote modules" })
 
     const { modules: moduleNames } = args
-    const modules = await garden.getModules(moduleNames)
+    const graph = await garden.getConfigGraph()
+    const modules = await graph.getModules(moduleNames)
 
     const moduleSources = <SourceConfig[]>modules
       .filter(hasRemoteSource)
@@ -59,7 +60,7 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
 
     const diff = difference(moduleNames, names)
     if (diff.length > 0) {
-      const modulesWithRemoteSource = (await garden.getModules()).filter(hasRemoteSource).sort()
+      const modulesWithRemoteSource = (await graph.getModules()).filter(hasRemoteSource).sort()
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`,

@@ -12,7 +12,7 @@ import { Module } from "../types/module"
 import { PushResult } from "../types/plugin/outputs"
 import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
 export interface PushTaskParams {
@@ -63,7 +63,7 @@ export class PushTask extends BaseTask {
   async process(): Promise<PushResult> {
     // avoid logging stuff if there is no push handler
     const defaultHandler = async () => ({ pushed: false })
-    const handler = await this.garden.getModuleActionHandler({
+    const handler = await this.garden.actions.getModuleActionHandler({
       moduleType: this.module.type,
       actionType: "pushModule",
       defaultHandler,

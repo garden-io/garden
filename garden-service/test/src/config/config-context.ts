@@ -258,7 +258,7 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the version of a module", async () => {
-    const { versionString } = (await garden.getModule("module-a")).version
+    const { versionString } = await garden.resolveVersion("module-a", [])
     expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [] })).to.equal(versionString)
   })
 
@@ -267,7 +267,7 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the version of a module", async () => {
-    const { versionString } = (await garden.getModule("module-a")).version
+    const { versionString } = await garden.resolveVersion("module-a", [])
     expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [] })).to.equal(versionString)
   })
 

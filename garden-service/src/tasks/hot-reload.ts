@@ -9,12 +9,13 @@
 import chalk from "chalk"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import { Service } from "../types/service"
+import { Service, getServiceRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
 
 interface Params {
   garden: Garden
+  graph: ConfigGraph
   force: boolean
   service: Service
   log: LogEntry
@@ -24,12 +25,14 @@ export class HotReloadTask extends BaseTask {
   type = "hot-reload"
   depType: DependencyGraphNodeType = "service"
 
+  private graph: ConfigGraph
   private service: Service
 
   constructor(
-    { garden, log, service, force }: Params,
+    { garden, graph, log, service, force }: Params,
   ) {
     super({ garden, log, force, version: service.module.version })
+    this.graph = graph
     this.service = service
   }
 
@@ -48,8 +51,10 @@ export class HotReloadTask extends BaseTask {
       status: "active",
     })
 
+    const runtimeContext = await getServiceRuntimeContext(this.garden, this.graph, this.service)
+
     try {
-      await this.garden.actions.hotReloadService({ log, service: this.service })
+      await this.garden.actions.hotReloadService({ log, service: this.service, runtimeContext })
     } catch (err) {
       log.setError()
       throw err

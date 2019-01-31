@@ -11,18 +11,15 @@ import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import {
-  Service,
-  ServiceStatus,
-  prepareRuntimeContext,
-} from "../types/service"
+import { Service, ServiceStatus, getServiceRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
 import { PushTask } from "./push"
 import { TaskTask } from "./task"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
 
 export interface DeployTaskParams {
   garden: Garden
+  graph: ConfigGraph
   service: Service
   force: boolean
   forceBuild: boolean
@@ -35,15 +32,17 @@ export class DeployTask extends BaseTask {
   type = "deploy"
   depType: DependencyGraphNodeType = "service"
 
+  private graph: ConfigGraph
   private service: Service
   private forceBuild: boolean
   private fromWatch: boolean
   private hotReloadServiceNames: string[]
 
   constructor(
-    { garden, log, service, force, forceBuild, fromWatch = false, hotReloadServiceNames = [] }: DeployTaskParams,
+    { garden, graph, log, service, force, forceBuild, fromWatch = false, hotReloadServiceNames = [] }: DeployTaskParams,
   ) {
     super({ garden, log, force, version: service.module.version })
+    this.graph = graph
     this.service = service
     this.forceBuild = forceBuild
     this.fromWatch = fromWatch
@@ -51,8 +50,7 @@ export class DeployTask extends BaseTask {
   }
 
   async getDependencies() {
-
-    const dg = await this.garden.getDependencyGraph()
+    const dg = this.graph
 
     // We filter out service dependencies on services configured for hot reloading (if any)
     const deps = await dg.getDependencies(this.depType, this.getName(), false,
@@ -61,6 +59,7 @@ export class DeployTask extends BaseTask {
     const deployTasks = await Bluebird.map(deps.service, async (service) => {
       return new DeployTask({
         garden: this.garden,
+        graph: this.graph,
         log: this.log,
         service,
         force: false,
@@ -78,6 +77,7 @@ export class DeployTask extends BaseTask {
           task,
           garden: this.garden,
           log: this.log,
+          graph: this.graph,
           force: false,
           forceBuild: this.forceBuild,
         })
@@ -115,10 +115,13 @@ export class DeployTask extends BaseTask {
     let version = this.version
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
+    const runtimeContext = await getServiceRuntimeContext(this.garden, this.graph, this.service)
+
     const status = await this.garden.actions.getServiceStatus({
       service: this.service,
       log,
       hotReload,
+      runtimeContext,
     })
 
     const { versionString } = version
@@ -138,13 +141,11 @@ export class DeployTask extends BaseTask {
 
     log.setState(`Deploying version ${versionString}...`)
 
-    const dependencies = await this.garden.getServices(this.service.config.dependencies)
-
     let result: ServiceStatus
     try {
       result = await this.garden.actions.deployService({
         service: this.service,
-        runtimeContext: await prepareRuntimeContext(this.garden, this.service.module, dependencies),
+        runtimeContext,
         log,
         force: this.force,
         hotReload,

@@ -7,7 +7,6 @@
  */
 
 import { isString } from "lodash"
-import { Module } from "../types/module"
 import { PrimitiveMap, isPrimitive, Primitive, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
 import { Provider, Environment, providerConfigBaseSchema } from "./project"
 import { ModuleConfig } from "./module"
@@ -15,6 +14,7 @@ import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
 import * as Joi from "joi"
 import { Garden } from "../garden"
+import { ModuleVersion } from "../vcs/base"
 
 export type ContextKey = string[]
 
@@ -130,6 +130,7 @@ export abstract class ConfigContext {
     }
 
     this._resolvedValues[path] = value
+
     return value
   }
 }
@@ -210,12 +211,12 @@ class ModuleContext extends ConfigContext {
   @schema(Joi.string().description("The current version of the module.").example(exampleVersion))
   public version: string
 
-  constructor(root: ConfigContext, module: Module) {
+  constructor(root: ConfigContext, moduleConfig: ModuleConfig, buildPath: string, version: ModuleVersion) {
     super(root)
-    this.buildPath = module.buildPath
-    this.outputs = module.outputs
-    this.path = module.path
-    this.version = module.version.versionString
+    this.buildPath = buildPath
+    this.outputs = moduleConfig.outputs
+    this.path = moduleConfig.path
+    this.version = version.versionString
   }
 }
 
@@ -265,29 +266,16 @@ export class ModuleConfigContext extends ProjectConfigContext {
     this.modules = new Map(moduleConfigs.map((config) =>
       <[string, () => Promise<ModuleContext>]>[config.name, async () => {
         // NOTE: This is a temporary hacky solution until we implement module resolution as a TaskGraph task
-        if (!garden.hasModule(config.name)) {
-          await garden.addModule(config)
-        }
-        const module = await garden.getModule(config.name)
-        return new ModuleContext(_this, module)
+        const resolvedConfig = await garden.resolveModuleConfig(config.name)
+        const version = await garden.resolveVersion(resolvedConfig.name, resolvedConfig.build.dependencies)
+        const buildPath = await garden.buildDir.buildPath(config.name)
+
+        return new ModuleContext(_this, resolvedConfig, buildPath, version)
       }],
     ))
 
     this.providers = new Map(environment.providers.map(p => <[string, Provider]>[p.name, p]))
 
-    // this.config = new SecretsContextNode(ctx)
-
     this.variables = environment.variables
   }
 }
-
-// class RemoteConfigContext extends ConfigContext {
-//   constructor(private ctx: PluginContext) {
-//     super()
-//   }
-
-//   async resolve({ key }: ResolveParams) {
-//     const { value } = await this.ctx.getSecret({ key })
-//     return value === null ? undefined : value
-//   }
-// }

@@ -74,7 +74,9 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
-    const module = await garden.getModule(moduleName)
+
+    const graph = await garden.getConfigGraph()
+    const module = await graph.getModule(moduleName)
 
     const msg = args.command
       ? `Running command ${chalk.white(args.command.join(" "))} in module ${chalk.white(moduleName)}`
@@ -96,9 +98,9 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     // combine all dependencies for all services in the module, to be sure we have all the context we need
     const depNames = uniq(flatten(module.serviceConfigs.map(s => s.dependencies)))
-    const deps = await garden.getServices(depNames)
+    const deps = await graph.getServices(depNames)
 
-    const runtimeContext = await prepareRuntimeContext(garden, module, deps)
+    const runtimeContext = await prepareRuntimeContext(garden, graph, module, deps)
 
     printRuntimeContext(log, runtimeContext)
 

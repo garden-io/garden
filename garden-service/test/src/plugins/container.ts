@@ -71,7 +71,8 @@ describe("plugins.container", () => {
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig })
-    return moduleFromConfig(garden, parsed)
+    const graph = await garden.getConfigGraph()
+    return moduleFromConfig(garden, graph, parsed)
   }
 
   describe("getLocalImageId", () => {

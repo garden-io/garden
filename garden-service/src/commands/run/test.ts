@@ -69,7 +69,9 @@ export class RunTestCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
     const testName = args.test
-    const module = await garden.getModule(moduleName)
+
+    const graph = await garden.getConfigGraph()
+    const module = await graph.getModule(moduleName)
 
     const testConfig = findByName(module.testConfigs, testName)
 
@@ -94,8 +96,8 @@ export class RunTestCommand extends Command<Args, Opts> {
     await garden.processTasks()
 
     const interactive = opts.interactive
-    const deps = await garden.getServices(testConfig.dependencies)
-    const runtimeContext = await prepareRuntimeContext(garden, module, deps)
+    const deps = await graph.getDependencies("test", testConfig.name, false)
+    const runtimeContext = await prepareRuntimeContext(garden, graph, module, deps.service)
 
     printRuntimeContext(log, runtimeContext)
 

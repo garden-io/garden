@@ -8,18 +8,23 @@
 
 import * as Bluebird from "bluebird"
 const toposort = require("toposort")
-import { flatten, fromPairs, pick, uniq } from "lodash"
+import { flatten, pick, uniq, find, sortBy } from "lodash"
 import { Garden } from "./garden"
-import { BuildDependencyConfig } from "./config/module"
-import { Module, getModuleKey } from "./types/module"
-import { Service } from "./types/service"
-import { Task } from "./types/task"
+import { BuildDependencyConfig, ModuleConfig } from "./config/module"
+import { Module, getModuleKey, moduleFromConfig } from "./types/module"
+import { Service, serviceFromConfig } from "./types/service"
+import { Task, taskFromConfig } from "./types/task"
 import { TestConfig } from "./config/test"
-import { uniqByName } from "./util/util"
+import { uniqByName, pickKeys } from "./util/util"
+import { ConfigurationError } from "./exceptions"
+import { deline } from "./util/string"
+import { validateDependencies } from "./util/validate-dependencies"
+import { ServiceConfig } from "./config/service"
+import { TaskConfig } from "./config/task"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 export type DependencyGraphNodeType = "build" | "service" | "task" | "test"
-  | "push" | "publish" // these two types are currently not represented in DependencyGraph
+  | "push" | "publish" // these two types are currently not represented in the graph
 
 // The primary output type (for dependencies and dependants).
 export type DependencyRelations = {
@@ -39,103 +44,215 @@ type DependencyRelationNames = {
 export type DependencyRelationFilterFn = (DependencyGraphNode) => boolean
 
 // Output types for rendering/logging
-
 export type RenderedGraph = { nodes: RenderedNode[], relationships: RenderedEdge[] }
-
 export type RenderedEdge = { dependant: RenderedNode, dependency: RenderedNode }
-
 export type RenderedNode = { type: RenderedNodeType, name: string }
-
 export type RenderedNodeType = "build" | "deploy" | "runTask" | "test" | "push" | "publish"
 
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
  * dependant relationships.
+ *
+ * This should be initialized with fully resolved and validated ModuleConfigs.
  */
-export class DependencyGraph {
+export class ConfigGraph {
+  private dependencyGraph: { [key: string]: DependencyGraphNode }
+  private moduleConfigs: { [key: string]: ModuleConfig }
 
-  index: { [key: string]: DependencyGraphNode }
-  private garden: Garden
-  private serviceMap: { [key: string]: Service }
-  private taskMap: { [key: string]: Task }
-  private testConfigMap: { [key: string]: TestConfig }
-  private testConfigModuleMap: { [key: string]: Module }
+  private serviceConfigs: { [key: string]: { moduleKey: string, config: ServiceConfig } }
+  private taskConfigs: { [key: string]: { moduleKey: string, config: TaskConfig } }
+  private testConfigs: { [key: string]: { moduleKey: string, config: TestConfig } }
 
-  static async factory(garden: Garden) {
-    const modules = await garden.getModules()
-    const { services, tasks } = await garden.getServicesAndTasks()
-    return new DependencyGraph(garden, modules, services, tasks)
-  }
-
-  constructor(garden: Garden, modules: Module[], services: Service[], tasks: Task[]) {
-
+  constructor(private garden: Garden, moduleConfigs: ModuleConfig[]) {
     this.garden = garden
-    this.index = {}
+    this.dependencyGraph = {}
+    this.moduleConfigs = {}
+    this.serviceConfigs = {}
+    this.taskConfigs = {}
+    this.testConfigs = {}
 
-    this.serviceMap = fromPairs(services.map(s => [s.name, s]))
-    this.taskMap = fromPairs(tasks.map(w => [w.name, w]))
-    this.testConfigMap = {}
-    this.testConfigModuleMap = {}
+    for (const moduleConfig of moduleConfigs) {
+      const moduleKey = this.keyForModule(moduleConfig)
+      this.moduleConfigs[moduleKey] = moduleConfig
 
-    for (const module of modules) {
+      // Add services
+      for (const serviceConfig of moduleConfig.serviceConfigs) {
+        const serviceName = serviceConfig.name
 
-      const moduleKey = this.keyForModule(module)
+        if (this.taskConfigs[serviceName]) {
+          throw serviceTaskConflict(serviceName, this.taskConfigs[serviceName].moduleKey, moduleKey)
+        }
+
+        if (this.serviceConfigs[serviceName]) {
+          const [moduleA, moduleB] = [moduleKey, this.serviceConfigs[serviceName].moduleKey].sort()
+
+          throw new ConfigurationError(deline`
+            Service names must be unique - the service name '${serviceName}' is declared multiple times
+            (in modules '${moduleA}' and '${moduleB}')`,
+            {
+              serviceName,
+              moduleA,
+              moduleB,
+            },
+          )
+        }
+
+        // Make sure service source modules are added as build dependencies for the module
+        const { sourceModuleName } = serviceConfig
+        if (sourceModuleName && !find(moduleConfig.build.dependencies, ["name", sourceModuleName])) {
+          moduleConfig.build.dependencies.push({ name: sourceModuleName, copy: [] })
+        }
+
+        this.serviceConfigs[serviceName] = { moduleKey, config: serviceConfig }
+      }
+
+      // Add tasks
+      for (const taskConfig of moduleConfig.taskConfigs) {
+        const taskName = taskConfig.name
+
+        if (this.serviceConfigs[taskName]) {
+          throw serviceTaskConflict(taskName, moduleKey, this.serviceConfigs[taskName].moduleKey)
+        }
+
+        if (this.taskConfigs[taskName]) {
+          const [moduleA, moduleB] = [moduleKey, this.taskConfigs[taskName].moduleKey].sort()
+
+          throw new ConfigurationError(deline`
+            Task names must be unique - the task name '${taskName}' is declared multiple times (in modules
+            '${moduleA}' and '${moduleB}')`,
+            {
+              taskName,
+              moduleA,
+              moduleB,
+            })
+        }
+
+        this.taskConfigs[taskName] = { moduleKey, config: taskConfig }
+      }
+    }
+
+    this.validateDependencies()
+
+    for (const moduleConfig of moduleConfigs) {
+      const moduleKey = this.keyForModule(moduleConfig)
+      this.moduleConfigs[moduleKey] = moduleConfig
 
       // Build dependencies
       const buildNode = this.getNode("build", moduleKey, moduleKey)
-      for (const buildDep of module.build.dependencies) {
+      for (const buildDep of moduleConfig.build.dependencies) {
         const buildDepKey = getModuleKey(buildDep.name, buildDep.plugin)
         this.addRelation(buildNode, "build", buildDepKey, buildDepKey)
       }
 
       // Service dependencies
-      for (const serviceConfig of module.serviceConfigs) {
+      for (const serviceConfig of moduleConfig.serviceConfigs) {
         const serviceNode = this.getNode("service", serviceConfig.name, moduleKey)
         this.addRelation(serviceNode, "build", moduleKey, moduleKey)
         for (const depName of serviceConfig.dependencies) {
-          if (this.serviceMap[depName]) {
-            this.addRelation(serviceNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
+          if (this.serviceConfigs[depName]) {
+            this.addRelation(serviceNode, "service", depName, this.serviceConfigs[depName].moduleKey)
           } else {
-            this.addRelation(serviceNode, "task", depName, this.keyForModule(this.taskMap[depName].module))
+            this.addRelation(serviceNode, "task", depName, this.taskConfigs[depName].moduleKey)
           }
         }
       }
 
       // Task dependencies
-      for (const taskConfig of module.taskConfigs) {
+      for (const taskConfig of moduleConfig.taskConfigs) {
         const taskNode = this.getNode("task", taskConfig.name, moduleKey)
         this.addRelation(taskNode, "build", moduleKey, moduleKey)
         for (const depName of taskConfig.dependencies) {
-          if (this.serviceMap[depName]) {
-            this.addRelation(taskNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
+          if (this.serviceConfigs[depName]) {
+            this.addRelation(taskNode, "service", depName, this.serviceConfigs[depName].moduleKey)
           } else {
-            this.addRelation(taskNode, "task", depName, this.keyForModule(this.taskMap[depName].module))
+            this.addRelation(taskNode, "task", depName, this.taskConfigs[depName].moduleKey)
           }
         }
       }
 
       // Test dependencies
-      for (const testConfig of module.testConfigs) {
-        const testConfigName = `${module.name}.${testConfig.name}`
-        this.testConfigMap[testConfigName] = testConfig
-        this.testConfigModuleMap[testConfigName] = module
+      for (const testConfig of moduleConfig.testConfigs) {
+        const testConfigName = `${moduleConfig.name}.${testConfig.name}`
+
+        this.testConfigs[testConfigName] = { moduleKey, config: testConfig }
+
         const testNode = this.getNode("test", testConfigName, moduleKey)
         this.addRelation(testNode, "build", moduleKey, moduleKey)
         for (const depName of testConfig.dependencies) {
-          if (this.serviceMap[depName]) {
-            this.addRelation(testNode, "service", depName, this.keyForModule(this.serviceMap[depName].module))
+          if (this.serviceConfigs[depName]) {
+            this.addRelation(testNode, "service", depName, this.serviceConfigs[depName].moduleKey)
           } else {
-            this.addRelation(testNode, "task", depName, this.keyForModule(this.taskMap[depName].module))
+            this.addRelation(testNode, "task", depName, this.taskConfigs[depName].moduleKey)
           }
         }
       }
-
     }
   }
 
   // Convenience method used in the constructor above.
-  keyForModule(module: Module | BuildDependencyConfig) {
-    return getModuleKey(module.name, module.plugin)
+  keyForModule(config: ModuleConfig | BuildDependencyConfig) {
+    return getModuleKey(config.name, config.plugin)
+  }
+
+  private validateDependencies() {
+    validateDependencies(
+      Object.values(this.moduleConfigs),
+      Object.keys(this.serviceConfigs),
+      Object.keys(this.taskConfigs))
+  }
+
+  /**
+   * Returns the Service with the specified name. Throws error if it doesn't exist.
+   */
+  async getModule(name: string): Promise<Module> {
+    return (await this.getModules([name]))[0]
+  }
+
+  /**
+   * Returns the Service with the specified name. Throws error if it doesn't exist.
+   */
+  async getService(name: string): Promise<Service> {
+    return (await this.getServices([name]))[0]
+  }
+
+  /**
+   * Returns the Task with the specified name. Throws error if it doesn't exist.
+   */
+  async getTask(name: string): Promise<Task> {
+    return (await this.getTasks([name]))[0]
+  }
+
+  /*
+    Returns all modules defined in this configuration graph, or the ones specified.
+   */
+  async getModules(names?: string[]): Promise<Module[]> {
+    const configs = Object.values(
+      names ? pickKeys(this.moduleConfigs, names, "module") : this.moduleConfigs,
+    )
+
+    return Bluebird.map(configs, config => moduleFromConfig(this.garden, this, config))
+  }
+
+  /*
+    Returns all services defined in this configuration graph, or the ones specified.
+   */
+  async getServices(names?: string[]): Promise<Service[]> {
+    const entries = Object.values(
+      names ? pickKeys(this.serviceConfigs, names, "service") : this.serviceConfigs,
+    )
+
+    return Bluebird.map(entries, async (e) => serviceFromConfig(this, await this.getModule(e.moduleKey), e.config))
+  }
+
+  /*
+    Returns all tasks defined in this configuration graph, or the ones specified.
+   */
+  async getTasks(names?: string[]): Promise<Task[]> {
+    const entries = Object.values(
+      names ? pickKeys(this.taskConfigs, names, "task") : this.taskConfigs,
+    )
+
+    return Bluebird.map(entries, async (e) => taskFromConfig(await this.getModule(e.moduleKey), e.config))
   }
 
   /*
@@ -151,7 +268,7 @@ export class DependencyGraph {
     // We call getModules to ensure that the returned modules have up-to-date versions.
     const dependantModules = await this.modulesForRelations(
       await this.mergeRelations(...dependants))
-    return this.garden.getModules(uniq(modules.concat(dependantModules).map(m => m.name)))
+    return this.getModules(uniq(modules.concat(dependantModules).map(m => m.name)))
   }
 
   /**
@@ -166,7 +283,7 @@ export class DependencyGraph {
   }
 
   /**
-   * Returns all dependencies of a node in DependencyGraph. As noted above, each DependencyGraphNodeType corresponds
+   * Returns all dependencies of a node in the graph. As noted above, each DependencyGraphNodeType corresponds
    * to a Task class (e.g. BuildTask, DeployTask, ...), and name corresponds to the value returned by its getName
    * instance method.
    *
@@ -179,7 +296,7 @@ export class DependencyGraph {
   }
 
   /**
-   * Returns all dependants of a node in DependencyGraph. As noted above, each DependencyGraphNodeType corresponds
+   * Returns all dependants of a node in the graph. As noted above, each DependencyGraphNodeType corresponds
    * to a Task class (e.g. BuildTask, DeployTask, ...), and name corresponds to the value returned by its getName
    * instance method.
    *
@@ -238,10 +355,33 @@ export class DependencyGraph {
       relations.build,
       relations.service.map(s => s.module),
       relations.task.map(w => w.module),
-      relations.test.map(t => this.testConfigModuleMap[t.name]),
+      await this.getModules(relations.test.map(t => this.testConfigs[t.name].moduleKey)),
     ]).map(m => m.name))
     // We call getModules to ensure that the returned modules have up-to-date versions.
-    return this.garden.getModules(moduleNames)
+    return this.getModules(moduleNames)
+  }
+
+  /**
+   * Given the provided lists of build and runtime (service/task) dependencies, return a list of all
+   * modules required to satisfy those dependencies.
+   */
+  async resolveDependencyModules(
+    buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[],
+  ): Promise<Module[]> {
+    const moduleNames = buildDependencies.map(d => getModuleKey(d.name, d.plugin))
+    const serviceNames = runtimeDependencies.filter(d => this.serviceConfigs[d])
+    const taskNames = runtimeDependencies.filter(d => this.taskConfigs[d])
+
+    const buildDeps = await this.getDependenciesForMany("build", moduleNames, true)
+    const serviceDeps = await this.getDependenciesForMany("service", serviceNames, true)
+    const taskDeps = await this.getDependenciesForMany("task", taskNames, true)
+
+    const modules = [
+      ...(await this.getModules(moduleNames)),
+      ...(await this.modulesForRelations(await this.mergeRelations(buildDeps, serviceDeps, taskDeps))),
+    ]
+
+    return sortBy(uniqByName(modules), "name")
   }
 
   private async toRelations(nodes): Promise<DependencyRelations> {
@@ -255,17 +395,17 @@ export class DependencyGraph {
 
   private async relationsFromNames(names: DependencyRelationNames): Promise<DependencyRelations> {
     return Bluebird.props({
-      build: this.garden.getModules(names.build),
-      service: this.garden.getServices(names.service),
-      task: this.garden.getTasks(names.task),
-      test: Object.values(pick(this.testConfigMap, names.test)),
+      build: this.getModules(names.build),
+      service: this.getServices(names.service),
+      task: this.getTasks(names.task),
+      test: Object.values(pick(this.testConfigs, names.test)).map(t => t.config),
     })
   }
 
   private getDependencyNodes(
     nodeType: DependencyGraphNodeType, name: string, recursive: boolean, filterFn?: DependencyRelationFilterFn,
   ): DependencyGraphNode[] {
-    const node = this.index[nodeKey(nodeType, name)]
+    const node = this.dependencyGraph[nodeKey(nodeType, name)]
     if (node) {
       if (recursive) {
         return node.recursiveDependencies(filterFn)
@@ -280,7 +420,7 @@ export class DependencyGraph {
   private getDependantNodes(
     nodeType: DependencyGraphNodeType, name: string, recursive: boolean, filterFn?: DependencyRelationFilterFn,
   ): DependencyGraphNode[] {
-    const node = this.index[nodeKey(nodeType, name)]
+    const node = this.dependencyGraph[nodeKey(nodeType, name)]
     if (node) {
       if (recursive) {
         return node.recursiveDependants(filterFn)
@@ -309,18 +449,18 @@ export class DependencyGraph {
   // Idempotent.
   private getNode(type: DependencyGraphNodeType, name: string, moduleName: string) {
     const key = nodeKey(type, name)
-    const existingNode = this.index[key]
+    const existingNode = this.dependencyGraph[key]
     if (existingNode) {
       return existingNode
     } else {
       const newNode = new DependencyGraphNode(type, name, moduleName)
-      this.index[key] = newNode
+      this.dependencyGraph[key] = newNode
       return newNode
     }
   }
 
   render(): RenderedGraph {
-    const nodes = Object.values(this.index)
+    const nodes = Object.values(this.dependencyGraph)
     let edges: { dependant: DependencyGraphNode, dependency: DependencyGraphNode }[] = []
     let simpleEdges: string[][] = []
     for (const dependant of nodes) {
@@ -434,4 +574,15 @@ export class DependencyGraphNode {
  */
 function nodeKey(type: DependencyGraphNodeType, name: string) {
   return `${type}.${name}`
+}
+
+function serviceTaskConflict(conflictingName: string, moduleWithTask: string, moduleWithService: string) {
+  return new ConfigurationError(deline`
+    Service and task names must be mutually unique - the name '${conflictingName}' is used for a task in
+    '${moduleWithTask}' and for a service in '${moduleWithService}'`,
+    {
+      conflictingName,
+      moduleWithTask,
+      moduleWithService,
+    })
 }

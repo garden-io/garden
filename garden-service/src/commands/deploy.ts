@@ -81,7 +81,8 @@ export class DeployCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    const services = await garden.getServices(args.services)
+    const initGraph = await garden.getConfigGraph()
+    const services = await initGraph.getServices(args.services)
 
     if (services.length === 0) {
       log.error({ msg: "No services found. Aborting." })
@@ -95,19 +96,19 @@ export class DeployCommand extends Command<Args, Opts> {
       throw new ParameterError(`Must specify --watch flag when requesting hot-reloading`, { opts })
     }
 
-    const hotReloadServices = await garden.getServices(hotReloadServiceNames)
-
     // TODO: make this a task
     await garden.actions.prepareEnvironment({ log })
 
     const results = await processServices({
       garden,
+      graph: initGraph,
       log,
       logFooter,
       services,
       watch,
-      handler: async (module) => getDependantTasksForModule({
+      handler: async (graph, module) => getDependantTasksForModule({
         garden,
+        graph,
         log,
         module,
         fromWatch: false,
@@ -115,15 +116,16 @@ export class DeployCommand extends Command<Args, Opts> {
         force: opts.force,
         forceBuild: opts["force-build"],
       }),
-      changeHandler: async (module) => {
+      changeHandler: async (graph, module) => {
         const tasks: BaseTask[] = await getDependantTasksForModule({
-          garden, log, module, hotReloadServiceNames, force: true, forceBuild: opts["force-build"],
+          garden, graph, log, module, hotReloadServiceNames, force: true, forceBuild: opts["force-build"],
           fromWatch: true, includeDependants: true,
         })
 
+        const hotReloadServices = await graph.getServices(hotReloadServiceNames)
         const hotReloadTasks = hotReloadServices
           .filter(service => service.module.name === module.name || service.sourceModule.name === module.name)
-          .map(service => new HotReloadTask({ garden, log, service, force: true }))
+          .map(service => new HotReloadTask({ garden, graph, log, service, force: true }))
 
         tasks.push(...hotReloadTasks)
 

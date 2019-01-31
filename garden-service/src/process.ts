@@ -18,11 +18,13 @@ import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { startServer } from "./server/server"
+import { ConfigGraph } from "./config-graph"
 
-export type ProcessHandler = (module: Module) => Promise<BaseTask[]>
+export type ProcessHandler = (graph: ConfigGraph, module: Module) => Promise<BaseTask[]>
 
 interface ProcessParams {
   garden: Garden
+  graph: ConfigGraph
   log: LogEntry
   logFooter?: LogEntry
   watch: boolean
@@ -45,7 +47,7 @@ export interface ProcessResults {
 }
 
 export async function processServices(
-  { garden, log, logFooter, services, watch, handler, changeHandler }: ProcessServicesParams,
+  { garden, graph, log, logFooter, services, watch, handler, changeHandler }: ProcessServicesParams,
 ): Promise<ProcessResults> {
 
   const modules = Array.from(new Set(services.map(s => s.module)))
@@ -53,6 +55,7 @@ export async function processServices(
   return processModules({
     modules,
     garden,
+    graph,
     log,
     logFooter,
     watch,
@@ -62,7 +65,7 @@ export async function processServices(
 }
 
 export async function processModules(
-  { garden, log, logFooter, modules, watch, handler, changeHandler }: ProcessModulesParams,
+  { garden, graph, log, logFooter, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
 
   log.debug("Starting processModules")
@@ -81,7 +84,7 @@ export async function processModules(
   }
 
   for (const module of modules) {
-    const tasks = await handler(module)
+    const tasks = await handler(graph, module)
     await Bluebird.map(tasks, t => garden.addTask(t))
   }
 
@@ -110,7 +113,7 @@ export async function processModules(
 
   const modulesByName = keyBy(modules, "name")
 
-  await garden.startWatcher()
+  await garden.startWatcher(graph)
 
   const restartPromise = new Promise((resolve) => {
     garden.events.on("_restart", () => {
@@ -140,7 +143,10 @@ export async function processModules(
         return
       }
 
-      await Bluebird.map(changeHandler!(changedModule), (task) => garden.addTask(task))
+      // Update the config graph
+      graph = await garden.getConfigGraph()
+
+      await Bluebird.map(changeHandler!(graph, changedModule), (task) => garden.addTask(task))
       await garden.processTasks()
     })
   })

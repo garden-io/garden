@@ -24,7 +24,7 @@ describe("GetConfigCommand", () => {
       environmentName: garden.environment.name,
       providers: garden.environment.providers,
       variables: garden.environment.variables,
-      modules: sortBy(await garden.getModules(), "name"),
+      modules: sortBy(await garden.resolveModuleConfigs(), "name"),
     }
 
     expect(isSubset(config, res.result)).to.be.true

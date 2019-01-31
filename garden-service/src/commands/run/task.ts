@@ -50,7 +50,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
   options = runOpts
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult>> {
-    const task = await garden.getTask(args.task)
+    const graph = await garden.getConfigGraph()
+    const task = await graph.getTask(args.task)
 
     const msg = `Running task ${chalk.white(task.name)}`
 
@@ -58,7 +59,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
     await garden.actions.prepareEnvironment({ log })
 
-    const taskTask = new TaskTask({ garden, task, log, force: true, forceBuild: opts["force-build"] })
+    const taskTask = new TaskTask({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
     await garden.addTask(taskTask)
 
     const result = (await garden.processTasks())[taskTask.getBaseKey()]

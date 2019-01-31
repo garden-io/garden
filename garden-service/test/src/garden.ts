@@ -34,8 +34,8 @@ describe("Garden", () => {
     it("should initialize and add the action handlers for a plugin", async () => {
       const garden = await makeTestGardenA()
 
-      expect(garden.actionHandlers.prepareEnvironment["test-plugin"]).to.be.ok
-      expect(garden.actionHandlers.prepareEnvironment["test-plugin-b"]).to.be.ok
+      expect((<any>garden).actions.actionHandlers.prepareEnvironment["test-plugin"]).to.be.ok
+      expect((<any>garden).actions.actionHandlers.prepareEnvironment["test-plugin-b"]).to.be.ok
     })
 
     it("should initialize with MOCK_CONFIG", async () => {
@@ -120,193 +120,13 @@ describe("Garden", () => {
     })
   })
 
-  describe("getModules", () => {
-    it("should scan and return all registered modules in the context", async () => {
-      const garden = await makeTestGardenA()
-      const modules = await garden.getModules()
-
-      expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
-    })
-
-    it("should optionally return specified modules in the context", async () => {
-      const garden = await makeTestGardenA()
-      const modules = await garden.getModules(["module-b", "module-c"])
-
-      expect(getNames(modules).sort()).to.eql(["module-b", "module-c"])
-    })
-
-    it("should throw if named module is missing", async () => {
-      const garden = await makeTestGardenA()
-
-      try {
-        await garden.getModules(["bla"])
-      } catch (err) {
-        expect(err.type).to.equal("parameter")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-  })
-
-  describe("getServicesAndTasks", () => {
-    it("should scan for modules and return all registered services and tasks in the context", async () => {
-      const garden = await makeTestGardenA()
-      const { services, tasks } = await garden.getServicesAndTasks()
-
-      expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
-      expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
-    })
-
-    it("should optionally return specified services and tasks in the context", async () => {
-      const garden = await makeTestGardenA()
-      const { services, tasks } = await garden.getServicesAndTasks(["service-b", "service-c", "task-a"])
-
-      expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
-      expect(getNames(tasks).sort()).to.eql(["task-a"])
-    })
-
-    it("should not throw if a named service or task is missing", async () => {
-      const garden = await makeTestGardenA()
-
-      await garden.getServicesAndTasks(["not", "real"])
-    })
-
-  })
-
-  describe("getServices", () => {
-    it("should scan for modules and return all registered services in the context", async () => {
-      const garden = await makeTestGardenA()
-      const services = await garden.getServices()
-
-      expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
-    })
-
-    it("should optionally return specified services in the context", async () => {
-      const garden = await makeTestGardenA()
-      const services = await garden.getServices(["service-b", "service-c"])
-
-      expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
-    })
-
-    it("should throw if named service is missing", async () => {
-      const garden = await makeTestGardenA()
-
-      try {
-        await garden.getServices(["bla"])
-      } catch (err) {
-        expect(err.type).to.equal("parameter")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-  })
-
-  describe("getService", () => {
-    it("should return the specified service", async () => {
-      const garden = await makeTestGardenA()
-      const service = await garden.getService("service-b")
-
-      expect(service.name).to.equal("service-b")
-    })
-
-    it("should throw if service is missing", async () => {
-      const garden = await makeTestGardenA()
-
-      try {
-        await garden.getServices(["bla"])
-      } catch (err) {
-        expect(err.type).to.equal("parameter")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-  })
-
-  describe("getTasks", () => {
-    it("should scan for modules and return all registered tasks in the context", async () => {
-      const garden = await makeTestGardenA()
-      const tasks = await garden.getTasks()
-
-      expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
-    })
-
-    it("should optionally return specified tasks in the context", async () => {
-      const garden = await makeTestGardenA()
-      const tasks = await garden.getTasks(["task-b", "task-c"])
-
-      expect(getNames(tasks).sort()).to.eql(["task-b", "task-c"])
-    })
-
-    it("should throw if named task is missing", async () => {
-      const garden = await makeTestGardenA()
-
-      try {
-        await garden.getTasks(["bla"])
-      } catch (err) {
-        expect(err.type).to.equal("parameter")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-  })
-
-  describe("getTask", () => {
-    it("should return the specified task", async () => {
-      const garden = await makeTestGardenA()
-      const task = await garden.getTask("task-b")
-
-      expect(task.name).to.equal("task-b")
-    })
-
-    it("should throw if task is missing", async () => {
-      const garden = await makeTestGardenA()
-
-      try {
-        await garden.getTasks(["bla"])
-      } catch (err) {
-        expect(err.type).to.equal("parameter")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-  })
-
-  describe("getServiceOrTask", () => {
-    it("should return the specified service or task", async () => {
-      const garden = await makeTestGardenA()
-      const service = await garden.getServiceOrTask("service-a")
-      const task = await garden.getServiceOrTask("task-a")
-
-      expect(service.name).to.equal("service-a")
-      expect(task.name).to.equal("task-a")
-    })
-
-    it("should throw if no matching service or task was found", async () => {
-      const garden = await makeTestGardenA()
-
-      try {
-        await garden.getServiceOrTask("bla")
-      } catch (err) {
-        expect(err.type).to.equal("parameter")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-  })
-
   describe("scanModules", () => {
     // TODO: assert that gitignore in project root is respected
     it("should scan the project root for modules and add to the context", async () => {
       const garden = await makeTestGardenA()
       await garden.scanModules()
 
-      const modules = await garden.getModules(undefined, true)
+      const modules = await garden.resolveModuleConfigs()
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
@@ -324,7 +144,7 @@ describe("Garden", () => {
 
       await garden.scanModules()
 
-      const modules = await garden.getModules(undefined, true)
+      const modules = await garden.resolveModuleConfigs()
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
@@ -338,85 +158,21 @@ describe("Garden", () => {
         ),
       )
     })
-
-    it("should throw when two services have the same name", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
-
-      await expectError(
-        () => garden.scanModules(),
-        err => expect(err.message).to.equal(
-          "Service names must be unique - the service name 'dupe' is declared multiple times " +
-          "(in modules 'module-a' and 'module-b')",
-        ),
-      )
-    })
-
-    it("should throw when two tasks have the same name", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
-
-      await expectError(
-        () => garden.scanModules(),
-        err => expect(err.message).to.equal(
-          "Task names must be unique - the task name 'dupe' is declared multiple times " +
-          "(in modules 'module-a' and 'module-b')",
-        ),
-      )
-    })
-
-    it("should throw when a service and a task have the same name", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
-
-      await expectError(
-        () => garden.scanModules(),
-        err => expect(err.message).to.equal(
-          "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
-          "in 'module-b' and for a service in 'module-a'",
-        ),
-      )
-    })
-
-    it("should automatically add service source modules as build dependencies", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "source-module"))
-
-      const module = await garden.getModule("module-b")
-      expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
-    })
   })
 
-  describe("resolveModule", () => {
-    it("should return named module", async () => {
-      const garden = await makeTestGardenA()
-      await garden.scanModules()
-
-      const module = await garden.resolveModule("module-a")
-      expect(module!.name).to.equal("module-a")
-    })
-
-    it("should throw if named module is requested and not available", async () => {
-      const garden = await makeTestGardenA()
-
-      try {
-        await garden.resolveModule("module-a")
-      } catch (err) {
-        expect(err.type).to.equal("configuration")
-        return
-      }
-
-      throw new Error("Expected error")
-    })
-
+  describe("loadModuleConfig", () => {
     it("should resolve module by absolute path", async () => {
       const garden = await makeTestGardenA()
       const path = join(projectRootA, "module-a")
 
-      const module = await garden.resolveModule(path)
+      const module = await (<any>garden).loadModuleConfig(path)
       expect(module!.name).to.equal("module-a")
     })
 
     it("should resolve module by relative path to project root", async () => {
       const garden = await makeTestGardenA()
 
-      const module = await garden.resolveModule("./module-a")
+      const module = await (<any>garden).loadModuleConfig("./module-a")
       expect(module!.name).to.equal("module-a")
     })
 
@@ -425,99 +181,10 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRoot)
       stubGitCli()
 
-      const module = await garden.resolveModule("./module-a")
+      const module = await (<any>garden).loadModuleConfig("./module-a")
       const repoUrlHash = hashRepoUrl(module!.repositoryUrl!)
 
       expect(module!.path).to.equal(join(projectRoot, ".garden", "sources", "module", `module-a--${repoUrlHash}`))
-    })
-  })
-
-  describe("getActionHandlers", () => {
-    it("should return all handlers for a type", async () => {
-      const garden = await makeTestGardenA()
-
-      const handlers = garden.getActionHandlers("prepareEnvironment")
-
-      expect(Object.keys(handlers)).to.eql([
-        "test-plugin",
-        "test-plugin-b",
-      ])
-    })
-  })
-
-  describe("getModuleActionHandlers", () => {
-    it("should return all handlers for a type", async () => {
-      const garden = await makeTestGardenA()
-
-      const handlers = garden.getModuleActionHandlers({ actionType: "build", moduleType: "exec" })
-
-      expect(Object.keys(handlers)).to.eql([
-        "exec",
-      ])
-    })
-  })
-
-  describe("getActionHandler", () => {
-    it("should return last configured handler for specified action type", async () => {
-      const garden = await makeTestGardenA()
-
-      const handler = garden.getActionHandler({ actionType: "prepareEnvironment" })
-
-      expect(handler["actionType"]).to.equal("prepareEnvironment")
-      expect(handler["pluginName"]).to.equal("test-plugin-b")
-    })
-
-    it("should optionally filter to only handlers for the specified module type", async () => {
-      const garden = await makeTestGardenA()
-
-      const handler = garden.getActionHandler({ actionType: "prepareEnvironment" })
-
-      expect(handler["actionType"]).to.equal("prepareEnvironment")
-      expect(handler["pluginName"]).to.equal("test-plugin-b")
-    })
-
-    it("should throw if no handler is available", async () => {
-      const garden = await makeTestGardenA()
-      await expectError(() => garden.getActionHandler({ actionType: "cleanupEnvironment" }), "parameter")
-    })
-  })
-
-  describe("getModuleActionHandler", () => {
-    it("should return last configured handler for specified module action type", async () => {
-      const garden = await makeTestGardenA()
-
-      const handler = garden.getModuleActionHandler({ actionType: "deployService", moduleType: "test" })
-
-      expect(handler["actionType"]).to.equal("deployService")
-      expect(handler["pluginName"]).to.equal("test-plugin-b")
-    })
-
-    it("should throw if no handler is available", async () => {
-      const garden = await makeTestGardenA()
-      await expectError(
-        () => garden.getModuleActionHandler({ actionType: "execInService", moduleType: "container" }),
-        "parameter",
-      )
-    })
-  })
-
-  describe("resolveModuleDependencies", () => {
-    it("should resolve build dependencies", async () => {
-      const garden = await makeTestGardenA()
-      const modules = await garden.resolveDependencyModules([{ name: "module-c", copy: [] }], [])
-      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
-    })
-
-    it("should resolve service dependencies", async () => {
-      const garden = await makeTestGardenA()
-      const modules = await garden.resolveDependencyModules([], ["service-b"])
-      expect(getNames(modules)).to.eql(["module-a", "module-b"])
-    })
-
-    it("should combine module and service dependencies", async () => {
-      const garden = await makeTestGardenA()
-      const modules = await garden.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
-      expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
   })
 
@@ -526,7 +193,7 @@ describe("Garden", () => {
 
     it("should return result from cache if available", async () => {
       const garden = await makeTestGardenA()
-      const module = await garden.getModule("module-a")
+      const module = await garden.resolveModuleConfig("module-a")
       const version: ModuleVersion = {
         versionString: "banana",
         dirtyTimestamp: 987654321,
@@ -561,7 +228,7 @@ describe("Garden", () => {
 
     it("should ignore cache if force=true", async () => {
       const garden = await makeTestGardenA()
-      const module = await garden.getModule("module-a")
+      const module = await garden.resolveModuleConfig("module-a")
       const version: ModuleVersion = {
         versionString: "banana",
         dirtyTimestamp: 987654321,

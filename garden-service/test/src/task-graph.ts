@@ -8,7 +8,7 @@ import {
 } from "../../src/task-graph"
 import { makeTestGarden, freezeTime } from "../helpers"
 import { Garden } from "../../src/garden"
-import { DependencyGraphNodeType } from "../../src/dependency-graph"
+import { DependencyGraphNodeType } from "../../src/config-graph"
 
 const projectRoot = join(__dirname, "..", "data", "test-project-empty")
 

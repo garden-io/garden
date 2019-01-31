@@ -17,7 +17,8 @@ async function addVersionFiles() {
   const staticPath = resolve(__dirname, "..", "static")
   const garden = await Garden.factory(staticPath)
 
-  const modules = await garden.getModules()
+  const graph = await garden.getConfigGraph()
+  const modules = await graph.getModules()
 
   return Bluebird.map(modules, async (module) => {
     const path = module.path
