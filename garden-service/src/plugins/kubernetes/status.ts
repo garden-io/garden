@@ -295,27 +295,32 @@ export async function checkResourceStatuses(
   api: KubeApi, namespace: string, resources: KubernetesResource[], prevStatuses?: RolloutStatus[],
 ): Promise<RolloutStatus[]> {
   return Bluebird.map(resources, async (obj, i) => {
-    const handler = objHandlers[obj.kind]
-    const prevStatus = prevStatuses && prevStatuses[i]
-    let status: RolloutStatus
-    if (handler) {
-      try {
-        status = await handler(api, namespace, obj, prevStatus && prevStatus.resourceVersion)
-      } catch (err) {
-        // We handle 404s specifically since this might be invoked before some objects are deployed
-        if (err.code === 404) {
-          status = { state: "missing", obj }
-        } else {
-          throw err
-        }
-      }
-    } else {
-      // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
-      status = { state: "ready", obj }
-    }
-
-    return status
+    return checkResourceStatus(api, namespace, obj, prevStatuses && prevStatuses[i])
   })
+}
+
+export async function checkResourceStatus(
+  api: KubeApi, namespace: string, resource: KubernetesResource, prevStatus?: RolloutStatus,
+) {
+  const handler = objHandlers[resource.kind]
+  let status: RolloutStatus
+  if (handler) {
+    try {
+      status = await handler(api, namespace, resource, prevStatus && prevStatus.resourceVersion)
+    } catch (err) {
+      // We handle 404s specifically since this might be invoked before some objects are deployed
+      if (err.code === 404) {
+        status = { state: "missing", obj: resource }
+      } else {
+        throw err
+      }
+    }
+  } else {
+    // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
+    status = { state: "ready", obj: resource }
+  }
+
+  return status
 }
 
 interface WaitParams {
@@ -402,60 +407,88 @@ interface ComparisonResult {
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
 export async function compareDeployedObjects(
-  ctx: PluginContext, objects: KubernetesResource[], log: LogEntry,
+  ctx: PluginContext, api: KubeApi, namespace: string, objects: KubernetesResource[], log: LogEntry,
 ): Promise<ComparisonResult> {
-  const existingObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, ctx.provider, obj))
 
-  let missing = true
+  const maybeDeployedObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, ctx.provider, obj))
+  const deployedObjects = <KubernetesResource[]>maybeDeployedObjects.filter(o => o !== null)
 
   const result: ComparisonResult = {
-    state: "ready",
-    remoteObjects: <KubernetesResource[]>existingObjects.filter(o => o !== null),
+    state: "unknown",
+    remoteObjects: <KubernetesResource[]>deployedObjects.filter(o => o !== null),
   }
 
-  for (let [newSpec, existingSpec] of zip(objects, existingObjects)) {
-    if (newSpec && !existingSpec) {
-      log.silly(`Resource ${newSpec.kind}/${newSpec.metadata.name} missing from cluster`)
+  const logDescription = (obj: KubernetesResource) => `${obj.kind}/${obj.metadata.name}`
+
+  const missingObjectNames = zip(objects, maybeDeployedObjects)
+    .filter(([_, deployed]) => !deployed)
+    .map(([obj, _]) => logDescription(obj!))
+
+  if (missingObjectNames.length > 0) {
+    // One or more objects is not deployed.
+    log.silly(`Resource(s) ${missingObjectNames.join(", ")} missing from cluster`)
+    result.state = "missing"
+    return result
+  }
+
+  const deployedObjectStatuses: RolloutStatus[] = await Bluebird.map(
+    deployedObjects,
+    async (obj) => checkResourceStatus(api, namespace, obj, undefined))
+
+  const deployedStates = deployedObjectStatuses.map(s => s.state)
+  if (deployedStates.find(s => s !== "ready")) {
+
+    const descriptions = zip(deployedObjects, deployedStates)
+      .filter(([_, s]) => s !== "ready")
+      .map(([o, s]) => `${logDescription(o!)}: "${s}"`).join("\n")
+
+    log.silly(dedent`
+    Resource(s) with non-ready status found in the cluster:
+
+    ${descriptions}` + "\n")
+
+    result.state = combineStates(deployedStates)
+    return result
+  }
+
+  // From here, the state can only be "ready" or "outdated", so we proceed to compare the old & new specs.
+
+  for (let [newSpec, existingSpec] of zip(objects, deployedObjects) as KubernetesResource[][]) {
+
+    // the API version may implicitly change when deploying
+    existingSpec.apiVersion = newSpec.apiVersion
+
+    // the namespace property is silently dropped when added to non-namespaced
+    if (newSpec.metadata.namespace && existingSpec.metadata.namespace === undefined) {
+      delete newSpec.metadata.namespace
     }
 
-    if (existingSpec && newSpec) {
-      missing = false
-
-      // the API version may implicitly change when deploying
-      existingSpec.apiVersion = newSpec.apiVersion
-
-      // the namespace property is silently dropped when added to non-namespaced
-      if (newSpec.metadata.namespace && existingSpec.metadata.namespace === undefined) {
-        delete newSpec.metadata.namespace
-      }
-
-      if (!existingSpec.metadata.annotations) {
-        existingSpec.metadata.annotations = {}
-      }
-
-      // handle auto-filled properties (this is a bit of a design issue in the K8s API)
-      if (newSpec.kind === "Service" && newSpec.spec.clusterIP === "") {
-        delete newSpec.spec.clusterIP
-      }
-
-      // handle properties that are omitted in the response because they have the default value
-      // (another design issue in the K8s API)
-      // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
-      //       `kubectl diff` is ready, or server-side apply/diff is ready
-      if (newSpec.kind === "DaemonSet") {
-        if (newSpec.spec.minReadySeconds === 0) {
-          delete newSpec.spec.minReadySeconds
-        }
-        if (newSpec.spec.template.spec.hostNetwork === false) {
-          delete newSpec.spec.template.spec.hostNetwork
-        }
-      }
-
-      // clean null values
-      newSpec = <KubernetesResource>removeNull(newSpec)
+    if (!existingSpec.metadata.annotations) {
+      existingSpec.metadata.annotations = {}
     }
 
-    if (existingSpec && !isSubset(existingSpec, newSpec)) {
+    // handle auto-filled properties (this is a bit of a design issue in the K8s API)
+    if (newSpec.kind === "Service" && newSpec.spec.clusterIP === "") {
+      delete newSpec.spec.clusterIP
+    }
+
+    // handle properties that are omitted in the response because they have the default value
+    // (another design issue in the K8s API)
+    // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
+    //       `kubectl diff` is ready, or server-side apply/diff is ready
+    if (newSpec.kind === "DaemonSet") {
+      if (newSpec.spec.minReadySeconds === 0) {
+        delete newSpec.spec.minReadySeconds
+      }
+      if (newSpec.spec.template.spec.hostNetwork === false) {
+        delete newSpec.spec.template.spec.hostNetwork
+      }
+    }
+
+    // clean null values
+    newSpec = <KubernetesResource>removeNull(newSpec)
+
+    if (!isSubset(existingSpec, newSpec)) {
       if (newSpec) {
         log.silly(`Resource ${newSpec.metadata.name} is not a superset of deployed resource`)
         log.silly("----------------- Expected: -----------------------")
@@ -473,10 +506,7 @@ export async function compareDeployedObjects(
     }
   }
 
-  if (missing) {
-    result.state = "missing"
-  }
-
+  result.state = "ready"
   return result
 }
 

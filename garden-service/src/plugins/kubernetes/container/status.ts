@@ -18,6 +18,7 @@ import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
 import { compareDeployedObjects } from "../status"
 import { getIngresses } from "./ingress"
+import { getAppNamespace } from "../namespace"
 
 export async function getContainerServiceStatus(
   { ctx, module, service, runtimeContext, log, hotReload }: GetServiceStatusParams<ContainerModule>,
@@ -26,10 +27,11 @@ export async function getContainerServiceStatus(
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const version = module.version
   const api = new KubeApi(ctx.provider)
+  const namespace = await getAppNamespace(ctx, ctx.provider)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const objects = await createContainerObjects(ctx, service, runtimeContext, hotReload)
-  const { state, remoteObjects } = await compareDeployedObjects(ctx, objects, log)
+  const { state, remoteObjects } = await compareDeployedObjects(ctx, api, namespace, objects, log)
   const ingresses = await getIngresses(service, api)
 
   return {

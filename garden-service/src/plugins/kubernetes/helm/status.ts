@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceStatus, ServiceState, combineStates } from "../../../types/service"
+import { ServiceStatus, ServiceState } from "../../../types/service"
 import { GetServiceStatusParams, GetServiceOutputsParams } from "../../../types/plugin/params"
 import { getExecModuleBuildStatus } from "../../exec"
-import { compareDeployedObjects, checkResourceStatuses } from "../status"
+import { compareDeployedObjects } from "../status"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import { LogEntry } from "../../../logger/log-entry"
@@ -59,24 +59,14 @@ export async function getServiceStatus(
     })
   }
 
-  let { state, remoteObjects } = await compareDeployedObjects(ctx, chartResources, log)
-  const detail = { remoteObjects }
-
-  if (state !== "ready") {
-    return { state }
-  }
-
-  // then check if the rollout is complete
-  const version = module.version
   const api = new KubeApi(ctx.provider)
   const namespace = await getAppNamespace(ctx, ctx.provider)
-  const statuses = await checkResourceStatuses(api, namespace, chartResources)
-
-  state = combineStates(statuses.map(s => s.state))
+  let { state, remoteObjects } = await compareDeployedObjects(ctx, api, namespace, chartResources, log)
+  const detail = { remoteObjects }
 
   return {
     state,
-    version: version.versionString,
+    version: state === "ready" ? module.version.versionString : undefined,
     detail,
   }
 }
