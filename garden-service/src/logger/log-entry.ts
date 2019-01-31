@@ -31,7 +31,7 @@ export interface UpdateOpts {
   error?: GardenError
   status?: EntryStatus
   indent?: number
-  preserveLevel?: boolean
+  childEntriesInheritLevel?: boolean
 }
 
 export interface CreateOpts extends UpdateOpts {
@@ -110,9 +110,9 @@ export class LogEntry extends LogNode {
       ...resolveParam(param),
     }
 
-    // If preserveLevel is set to true, all children must have a level geq the level
+    // If childEntriesInheritLevel is set to true, all children must have a level geq the level
     // of the parent entry that set the flag.
-    const parentWithPreserveFlag = findParentEntry(this, entry => !!entry.opts.preserveLevel)
+    const parentWithPreserveFlag = findParentEntry(this, entry => !!entry.opts.childEntriesInheritLevel)
     const childLevel = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, level) : level
 
     return new LogEntry({
