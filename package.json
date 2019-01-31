@@ -43,6 +43,7 @@
   },
   "scripts": {
     "build": "npm run clean && gulp build",
+    "bootstrap": "npm install && cd garden-service && npm install && cd .. && cd dashboard && npm install && cd ..",
     "check-docs": "./bin/check-docs",
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
