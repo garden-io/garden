@@ -8,7 +8,6 @@
 
 import { Command } from "./base"
 import { BuildCommand } from "./build"
-import { CreateCommand } from "./create/create"
 import { CallCommand } from "./call"
 import { InitCommand } from "./init"
 import { DeleteCommand } from "./delete"
@@ -32,7 +31,6 @@ import { VersionCommand } from "./version"
 export const coreCommands: Command[] = [
   new BuildCommand(),
   new CallCommand(),
-  new CreateCommand(),
   new DeleteCommand(),
   new DeployCommand(),
   new DevCommand(),

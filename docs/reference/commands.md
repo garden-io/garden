@@ -75,68 +75,6 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 | -------- | -------- | ----------- |
   | `serviceAndPath` | Yes | The name of the service to call followed by the ingress path (e.g. my-container/somepath).
 
-### garden create project
-
-Creates a new Garden project.
-
-Walks the user through setting up a new Garden project and
-generates scaffolding based on user input.
-
-Examples:
-
-    garden create project # creates a new Garden project in the current directory (project name defaults to
-    directory name)
-    garden create project my-project # creates a new Garden project in my-project directory
-    garden create project --module-dirs=path/to/modules-a,path/to/modules-b
-    # creates a new Garden project and looks for pre-existing modules in the modules-a and modules-b directories
-    garden create project --name my-project
-    # creates a new Garden project in the current directory and names it my-project
-
-##### Usage
-
-    garden create project [project-dir] [options]
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `project-dir` | No | Directory of the project (defaults to current directory).
-
-##### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--module-dirs` |  | array:path | Relative path to modules directory. Use comma as a separator to specify multiple directories.
-  | `--name` |  | string | Assigns a custom name to the project (defaults to name of the current directory).
-
-### garden create module
-
-Creates a new Garden module.
-
-Examples:
-
-    garden create module # creates a new module in the current directory (module name defaults to directory name)
-    garden create module my-module # creates a new module in my-module directory
-    garden create module --type=container # creates a new container module
-    garden create module --name=my-module # creates a new module in current directory and names it my-module
-
-##### Usage
-
-    garden create module [module-dir] [options]
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `module-dir` | No | Directory of the module (defaults to current directory).
-
-##### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--name` |  | string | Assigns a custom name to the module (defaults to name of the current directory)
-  | `--type` |  | `container` `google-cloud-function` `npm-package`  | Type of module.
-
 ### garden delete secret
 
 Delete a secret from the environment.
