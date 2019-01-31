@@ -75,23 +75,23 @@ commands:
     description: |
       Installs our go dependancies and deals with caching and loading the cache
     steps:
-      - restore_cache:
-          keys:
-            - pkg-cache-{{ checksum "Gopkg.lock" }}
+      # - restore_cache:
+      #     keys:
+      #       - pkg-cache-{{ checksum "Gopkg.lock" }}
       - run: go get -u github.com/jstemmer/go-junit-report
       - run:
           name: Install dep
           command: |
-            if [ ! -d /go/src/github.com/garden-io/garden/vendor ]; then
+            # if [ ! -d /go/src/github.com/garden-io/garden/vendor ]; then
                 # This needs to match the version installed locally
                 curl -L -s https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 -o /go/bin/dep
                 chmod +x /go/bin/dep
                 /go/bin/dep ensure
-            fi
-      - save_cache:
-          key: pkg-cache-{{ checksum "Gopkg.lock" }}
-          paths:
-            - "/go/src/github.com/garden-io/garden/vendor"
+            # fi
+      # - save_cache:
+      #     key: pkg-cache-{{ checksum "Gopkg.lock" }}
+      #     paths:
+      #       - "/go/src/github.com/garden-io/garden/vendor"
 
   docker_build:
     description: Builds and Tags a Docker Image
@@ -312,13 +312,13 @@ workflows:
       - test-cli:
           requires:
             - build-service
-      - test-service
-      - build-dashboard
-      - build-sync-docker
-      - build-service-docker:
-          requires:
-            - build-service
-            - build-dashboard
+      # - test-service
+      # - build-dashboard
+      # - build-sync-docker
+      # - build-service-docker:
+          # requires:
+            # - build-service
+            # - build-dashboard
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it

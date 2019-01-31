@@ -11,4 +11,4 @@ const ProjectPath = "/project"
 
 // Mutagen is the synchronization tool Garden uses for syncing files from
 // the host into the sync container. Expects the following version.
-const MutagenVersion = "0.7.0-beta2"
+const MutagenVersion = "0.7.0"
