@@ -71,7 +71,7 @@ export async function resolveRequest(
   const cmdGarden = await Garden.factory(garden.projectRoot, garden.opts)
 
   // We generally don't want actions to log anything in the server.
-  const cmdLog = log.placeholder(LogLevel.silly)
+  const cmdLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
 
   const cmdArgs = mapParams(ctx, request.parameters, command.arguments)
   const cmdOpts = mapParams(ctx, request.parameters, command.options)

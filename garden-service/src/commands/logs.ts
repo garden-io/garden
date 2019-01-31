@@ -95,7 +95,7 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     await Bluebird.map(services, async (service: Service<any>) => {
-      const voidLog = log.placeholder(LogLevel.silly, { preserveLevel: true })
+      const voidLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
       const status = await garden.actions.getServiceStatus({ log: voidLog, service, hotReload: false })
 
       if (status.state === "ready" || status.state === "outdated") {

@@ -41,9 +41,9 @@ describe("LogEntry", () => {
     ]
     expect(indents).to.eql([undefined, 1, 2, 3, 2, 3])
   })
-  context("preserveLevel is set to true", () => {
+  context("childEntriesInheritLevel is set to true", () => {
     it("should create a log entry whose children inherit the parent level", () => {
-      const verbose = logger.verbose({ preserveLevel: true })
+      const verbose = logger.verbose({ childEntriesInheritLevel: true })
       const error = verbose.error("")
       const silly = verbose.silly("")
       const deepError = error.error("")
