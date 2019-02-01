@@ -488,6 +488,9 @@ export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
             variables: {
               "function-namespace": functionNamespace,
               "gateway-hostname": hostname,
+              // Need to scope the release name, because the OpenFaaS Helm chart installs some cluster-wide resources
+              // that could conflict across projects/users.
+              "release-name": `${functionNamespace}--openfaas`,
             },
           },
         ],

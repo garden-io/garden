@@ -36,14 +36,14 @@ export async function checkTillerStatus(ctx: PluginContext, provider: Kubernetes
 }
 
 export async function installTiller(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
-  const entry = log.info({
-    section: "tiller",
-    msg: "Installing...",
-    status: "active",
-  })
-
   const namespace = await getAppNamespace(ctx, provider)
   const context = provider.config.context
+
+  const entry = log.info({
+    section: "tiller",
+    msg: `Installing to ${namespace}...`,
+    status: "active",
+  })
 
   // Need to install the RBAC stuff ahead of Tiller
   const roleResources = getRoleResources(namespace)

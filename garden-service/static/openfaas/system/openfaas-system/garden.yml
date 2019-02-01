@@ -4,7 +4,8 @@ module:
   type: helm
   repo: https://openfaas.github.io/faas-netes/
   chart: openfaas
-  version: 1.2.3
+  version: 1.7.0
+  releaseName: ${variables.release-name}
   values:
     exposeServices: false
     functionNamespace: ${variables.function-namespace}
