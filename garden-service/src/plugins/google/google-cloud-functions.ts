@@ -67,7 +67,7 @@ export interface GcfModuleSpec extends ModuleSpec {
   tests: ExecTestSpec[],
 }
 
-const gcfModuleSpecSchema = Joi.object()
+export const gcfModuleSpecSchema = Joi.object()
   .keys({
     functions: gcfServicesSchema,
     tests: joiArray(execTestSchema),

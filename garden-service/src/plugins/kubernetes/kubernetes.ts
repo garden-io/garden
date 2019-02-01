@@ -9,7 +9,7 @@
 import * as Joi from "joi"
 import dedent = require("dedent")
 
-import { joiArray, joiIdentifier } from "../../config/common"
+import { joiArray, joiIdentifier, joiProviderName } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
 import { helmHandlers } from "./helm/handlers"
@@ -114,8 +114,9 @@ export const kubernetesConfigBase = providerConfigBaseSchema
       .description("One or more certificates to use for ingress."),
   })
 
-const configSchema = kubernetesConfigBase
+export const configSchema = kubernetesConfigBase
   .keys({
+    name: joiProviderName("kubernetes"),
     context: k8sContextSchema
       .required(),
     deploymentRegistry: containerRegistryConfigSchema,
