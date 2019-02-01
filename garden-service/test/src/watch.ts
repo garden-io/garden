@@ -13,7 +13,7 @@ describe("Watcher", () => {
     garden = await makeTestGarden(resolve(dataDir, "test-project-watch"))
     modulePath = resolve(garden.projectRoot, "module-a")
     moduleContext = pathToCacheContext(modulePath)
-    await garden.startWatcher()
+    await garden.startWatcher(await garden.getConfigGraph())
   })
 
   beforeEach(async () => {

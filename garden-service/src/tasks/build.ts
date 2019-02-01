@@ -12,7 +12,7 @@ import { Module, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/outputs"
 import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
 export interface BuildTaskParams {
@@ -40,7 +40,7 @@ export class BuildTask extends BaseTask {
   }
 
   async getDependencies(): Promise<BuildTask[]> {
-    const dg = await this.garden.getDependencyGraph()
+    const dg = await this.garden.getConfigGraph()
     const deps = (await dg.getDependencies(this.depType, this.getName(), false)).build
 
     return Bluebird.map(deps, async (m: Module) => {

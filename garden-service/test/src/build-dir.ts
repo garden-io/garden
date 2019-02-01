@@ -40,14 +40,14 @@ describe("BuildDir", () => {
   it("should ensure that a module's build subdir exists before returning from buildPath", async () => {
     const garden = await makeGarden()
     await garden.buildDir.clear()
-    const moduleA = await garden.getModule("module-a")
+    const moduleA = await garden.resolveModuleConfig("module-a")
     const buildPath = await garden.buildDir.buildPath(moduleA.name)
     expect(await pathExists(buildPath)).to.eql(true)
   })
 
   it("should sync sources to the build dir", async () => {
     const garden = await makeGarden()
-    const moduleA = await garden.getModule("module-a")
+    const moduleA = await garden.resolveModuleConfig("module-a")
     await garden.buildDir.syncFromSrc(moduleA)
     const buildDirA = await garden.buildDir.buildPath(moduleA.name)
 
@@ -67,7 +67,8 @@ describe("BuildDir", () => {
 
     try {
       await garden.clearBuilds()
-      const modules = await garden.getModules()
+      const graph = await garden.getConfigGraph()
+      const modules = await graph.getModules()
 
       await Bluebird.map(modules, async (module) => {
         return garden.addTask(new BuildTask({

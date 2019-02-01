@@ -168,7 +168,6 @@ export const portSchema = Joi.object()
         Set this to expose the service on the specified port on the host node
         (may not be supported by all providers).`),
   })
-  .required()
 
 const volumeSchema = Joi.object()
   .keys({

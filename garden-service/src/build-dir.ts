@@ -29,6 +29,7 @@ import { zip } from "lodash"
 import * as execa from "execa"
 import { platform } from "os"
 import { toCygwinPath } from "./util/util"
+import { ModuleConfig } from "./config/module"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
@@ -43,7 +44,7 @@ export class BuildDir {
     return new BuildDir(projectRoot, buildDirPath)
   }
 
-  async syncFromSrc(module: Module) {
+  async syncFromSrc(module: ModuleConfig) {
     await this.sync(
       resolve(this.projectRoot, module.path) + sep,
       await this.buildPath(module.name),

@@ -233,7 +233,6 @@ describe("ModuleConfigContext", () => {
     await garden.scanModules()
     c = new ModuleConfigContext(
       garden,
-      garden.log,
       garden.environment,
       Object.values((<any>garden).moduleConfigs),
     )
@@ -259,13 +258,17 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the version of a module", async () => {
-    const { versionString } = (await garden.getModule("module-a")).version
+    const { versionString } = await garden.resolveVersion("module-a", [])
     expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [] })).to.equal(versionString)
   })
 
-  it("should should resolve the version of a service", async () => {
-    const { versionString } = (await garden.getModule("module-a")).version
-    expect(await c.resolve({ key: ["services", "service-a", "version"], nodePath: [] })).to.equal(versionString)
+  it("should should resolve the outputs of a module", async () => {
+    expect(await c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [] })).to.equal("bar")
+  })
+
+  it("should should resolve the version of a module", async () => {
+    const { versionString } = await garden.resolveVersion("module-a", [])
+    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [] })).to.equal(versionString)
   })
 
   it("should should resolve a project variable", async () => {

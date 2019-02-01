@@ -13,15 +13,11 @@ import { containsSource, getChartPath, getValuesPath, getBaseModule } from "./co
 import { helm } from "./helm-cli"
 import { safeLoad } from "js-yaml"
 import { dumpYaml } from "../../../util/util"
-import { join } from "path"
-import { GARDEN_BUILD_VERSION_FILENAME } from "../../../constants"
-import { writeModuleVersionFile } from "../../../vcs/base"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
 import { apply as jsonMerge } from "json-merge-patch"
 
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
-  const buildPath = module.buildPath
   const namespace = await getNamespace({ ctx, provider: ctx.provider, skipCreate: true })
   const context = ctx.provider.config.context
   const baseModule = getBaseModule(module)
@@ -51,12 +47,8 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
   const mergedValues = jsonMerge(chartValues, specValues)
 
   const valuesPath = getValuesPath(chartPath)
+  log.silly(`Writing chart values to ${valuesPath}`)
   await dumpYaml(valuesPath, mergedValues)
-
-  // keep track of which version has been built
-  const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
-  const version = module.version
-  await writeModuleVersionFile(buildVersionFilePath, version)
 
   return { fresh: true }
 }

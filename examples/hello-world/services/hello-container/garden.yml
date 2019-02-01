@@ -18,7 +18,7 @@ module:
       dependencies:
         - hello-function
       env:
-        FUNCTION_ENDPOINT: ${services.hello-function.outputs.endpoint}
+        FUNCTION_ENDPOINT: ${modules.hello-function.outputs.endpoint}
   build:
     dependencies:
       - name: hello-npm-package
@@ -31,6 +31,6 @@ module:
     - name: integ
       args: [npm, run, integ]
       env:
-        FUNCTION_ENDPOINT: ${services.hello-function.outputs.endpoint}
+        FUNCTION_ENDPOINT: ${modules.hello-function.outputs.endpoint}
       dependencies:
         - hello-function

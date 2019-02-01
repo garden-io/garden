@@ -41,7 +41,6 @@ import {
   DeployServiceParams,
   GetServiceStatusParams,
   BuildModuleParams,
-  GetServiceOutputsParams,
 } from "../../types/plugin/params"
 import { every, values } from "lodash"
 import { dumpYaml, findByName } from "../../util/util"
@@ -84,6 +83,7 @@ export const openfaasModuleSpecSchema = execModuleSpecSchema
   .description("The module specification for an OpenFaaS module.")
 
 export interface OpenFaasModule extends Module<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> { }
+export type OpenFaasModuleConfig = OpenFaasModule["_ConfigType"]
 export interface OpenFaasService extends Service<OpenFaasModule> { }
 
 export interface OpenFaasConfig extends Provider {
@@ -162,7 +162,7 @@ export function gardenPlugin(): GardenPlugin {
     },
     moduleActions: {
       openfaas: {
-        async configure({ moduleConfig }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
+        async configure({ ctx, moduleConfig }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
           moduleConfig.spec = validate(
             moduleConfig.spec,
             openfaasModuleSpecSchema,
@@ -196,6 +196,10 @@ export function gardenPlugin(): GardenPlugin {
             timeout: t.timeout,
           }))
 
+          moduleConfig.outputs = {
+            endpoint: await getInternalServiceUrl(ctx, moduleConfig),
+          }
+
           return moduleConfig
         },
 
@@ -217,12 +221,6 @@ export function gardenPlugin(): GardenPlugin {
         testModule: testExecModule,
 
         getServiceStatus,
-
-        async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<OpenFaasModule>) {
-          return {
-            endpoint: await getInternalServiceUrl(ctx, service),
-          }
-        },
 
         async getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
           const { ctx, service } = params
@@ -326,12 +324,12 @@ async function writeStackFile(
   })
 }
 
-async function getServiceStatus({ ctx, service }: GetServiceStatusParams<OpenFaasModule>) {
+async function getServiceStatus({ ctx, module, service }: GetServiceStatusParams<OpenFaasModule>) {
   const k8sProvider = getK8sProvider(ctx)
 
   const ingresses: ServiceIngress[] = [{
     hostname: getExternalGatewayHostname(ctx.provider, k8sProvider),
-    path: getServicePath(service),
+    path: getServicePath(module),
     port: k8sProvider.config.ingressHttpPort,
     protocol: "http",
   }]
@@ -412,8 +410,8 @@ function getK8sProvider(ctx: PluginContext): KubernetesProvider {
   return provider
 }
 
-function getServicePath(service: OpenFaasService) {
-  return join("/", "function", service.name)
+function getServicePath(config: OpenFaasModuleConfig) {
+  return join("/", "function", config.name)
 }
 
 async function getInternalGatewayUrl(ctx: PluginContext) {
@@ -444,8 +442,8 @@ function getExternalGatewayUrl(ctx: PluginContext) {
   return `http://${hostname}:${ingressPort}`
 }
 
-async function getInternalServiceUrl(ctx: PluginContext, service: OpenFaasService) {
-  return urlResolve(await getInternalGatewayUrl(ctx), getServicePath(service))
+async function getInternalServiceUrl(ctx: PluginContext, config: OpenFaasModuleConfig) {
+  return urlResolve(await getInternalGatewayUrl(ctx), getServicePath(config))
 }
 
 async function getOpenfaasNamespace(ctx: PluginContext, k8sProvider: KubernetesProvider, skipCreate?: boolean) {

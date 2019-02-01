@@ -337,6 +337,7 @@ describe("createIngresses", () => {
         dependencies: [],
       },
       name: "test",
+      outputs: {},
       path: "/tmp",
       type: "container",
 
@@ -355,7 +356,8 @@ describe("createIngresses", () => {
 
     const ctx = await garden.getPluginContext("container")
     const parsed = await configure({ ctx, moduleConfig })
-    const module = await moduleFromConfig(garden, parsed)
+    const graph = await garden.getConfigGraph()
+    const module = await moduleFromConfig(garden, graph, parsed)
 
     return {
       name: spec.name,

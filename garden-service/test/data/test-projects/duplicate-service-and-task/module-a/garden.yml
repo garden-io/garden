@@ -1,0 +1,5 @@
+module:
+  name: module-a
+  type: test
+  services:
+    - name: dupe

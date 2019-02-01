@@ -7,6 +7,7 @@ import { makeTestGarden, dataDir } from "../../helpers"
 import { getDependantTasksForModule } from "../../../src/tasks/helpers"
 import { BaseTask } from "../../../src/tasks/base"
 import { LogEntry } from "../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../src/config-graph"
 
 async function sortedBaseKeysdependencyTasks(tasks: BaseTask[]): Promise<string[]> {
   const dependencies = await Bluebird.map(tasks, async (t) => t.getDependencies(), { concurrency: 1 })
@@ -20,10 +21,12 @@ function sortedBaseKeys(tasks: BaseTask[]): string[] {
 
 describe("TaskHelpers", () => {
   let garden: Garden
+  let graph: ConfigGraph
   let log: LogEntry
 
   before(async () => {
     garden = await makeTestGarden(resolve(dataDir, "test-project-dependants"))
+    graph = await garden.getConfigGraph()
     log = garden.log
   })
 
@@ -34,11 +37,11 @@ describe("TaskHelpers", () => {
   describe("getDependantTasksForModule", () => {
 
     it("returns the correct set of tasks for the changed module", async () => {
-      const module = await garden.getModule("good-morning")
-      await garden.getDependencyGraph()
+      const module = await graph.getModule("good-morning")
+      await garden.getConfigGraph()
 
       const tasks = await getDependantTasksForModule({
-        garden, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
+        garden, graph, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
         fromWatch: false, includeDependants: false,
       })
 
@@ -142,9 +145,9 @@ describe("TaskHelpers", () => {
 
       for (const { moduleName, expected, dependencyTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
-          const module = await garden.getModule(<string>moduleName)
+          const module = await graph.getModule(<string>moduleName)
           const tasks = await getDependantTasksForModule({
-            garden, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
+            garden, graph, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
             fromWatch: true, includeDependants: true,
           })
           expect(sortedBaseKeys(tasks)).to.eql(expected.sort())
@@ -213,9 +216,9 @@ describe("TaskHelpers", () => {
 
       for (const { moduleName, expected, dependencyTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
-          const module = await garden.getModule(<string>moduleName)
+          const module = await graph.getModule(<string>moduleName)
           const tasks = await getDependantTasksForModule({
-            garden, log, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
+            garden, graph, log, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
             fromWatch: true, includeDependants: true,
           })
           expect(sortedBaseKeys(tasks)).to.eql(expected.sort())

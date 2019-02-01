@@ -4,14 +4,16 @@ import { expect } from "chai"
 import { dataDir, makeTestGarden, TestGarden, expectError } from "../../../../helpers"
 import { getHotReloadSpec } from "../../../../../src/plugins/kubernetes/helm/hot-reload"
 import { deline } from "../../../../../src/util/string"
+import { ConfigGraph } from "../../../../../src/config-graph"
 
 describe("getHotReloadSpec", () => {
   let garden: TestGarden
+  let graph: ConfigGraph
 
   before(async () => {
     const projectRoot = resolve(dataDir, "test-projects", "helm")
     garden = await makeTestGarden(projectRoot)
-    await garden.getModules()
+    graph = await garden.getConfigGraph()
   })
 
   after(async () => {
@@ -19,7 +21,7 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should retrieve the hot reload spec on the service's source module", async () => {
-    const service = await garden.getService("api")
+    const service = await graph.getService("api")
     expect(getHotReloadSpec(service)).to.eql({
       sync: [{
         source: "*",
@@ -29,7 +31,7 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should throw if the module doesn't specify serviceResource.containerModule", async () => {
-    const service = await garden.getService("api")
+    const service = await graph.getService("api")
     delete service.module.spec.serviceResource.containerModule
     await expectError(
       () => getHotReloadSpec(service),
@@ -40,8 +42,8 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should throw if the referenced module is not a container module", async () => {
-    const service = await garden.getService("api")
-    const otherModule = await garden.getModule("postgres")
+    const service = await graph.getService("api")
+    const otherModule = await graph.getModule("postgres")
     service.sourceModule = otherModule
     await expectError(
       () => getHotReloadSpec(service),
@@ -54,7 +56,7 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should throw if the referenced module is not configured for hot reloading", async () => {
-    const service = await garden.getService("api")
+    const service = await graph.getService("api")
     delete service.sourceModule.spec.hotReload
     await expectError(
       () => getHotReloadSpec(service),

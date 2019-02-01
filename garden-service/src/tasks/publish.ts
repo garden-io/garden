@@ -12,7 +12,7 @@ import { Module } from "../types/module"
 import { PublishResult } from "../types/plugin/outputs"
 import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
 export interface PublishTaskParams {

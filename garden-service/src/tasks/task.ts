@@ -15,11 +15,12 @@ import { DeployTask } from "./deploy"
 import { LogEntry } from "../logger/log-entry"
 import { RunTaskResult } from "../types/plugin/outputs"
 import { prepareRuntimeContext } from "../types/service"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
 
 export interface TaskTaskParams {
   garden: Garden
   log: LogEntry
+  graph: ConfigGraph
   task: Task
   force: boolean
   forceBuild: boolean
@@ -29,11 +30,13 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
   type = "task"
   depType: DependencyGraphNodeType = "task"
 
+  private graph: ConfigGraph
   private task: Task
   private forceBuild: boolean
 
-  constructor({ garden, log, task, force, forceBuild }: TaskTaskParams) {
+  constructor({ garden, log, graph, task, force, forceBuild }: TaskTaskParams) {
     super({ garden, log, force, version: task.module.version })
+    this.graph = graph
     this.task = task
     this.forceBuild = forceBuild
   }
@@ -47,7 +50,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
       force: this.forceBuild,
     })
 
-    const dg = await this.garden.getDependencyGraph()
+    const dg = await this.garden.getConfigGraph()
     const deps = await dg.getDependencies(this.depType, this.getName(), false)
 
     const deployTasks = deps.service.map(service => {
@@ -55,6 +58,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
         service,
         log: this.log,
         garden: this.garden,
+        graph: this.graph,
         force: false,
         forceBuild: false,
       })
@@ -65,6 +69,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
         task,
         log: this.log,
         garden: this.garden,
+        graph: this.graph,
         force: false,
         forceBuild: false,
       })
@@ -93,9 +98,8 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     })
 
     // combine all dependencies for all services in the module, to be sure we have all the context we need
-    const dg = await this.garden.getDependencyGraph()
-    const serviceDeps = (await dg.getDependencies(this.depType, this.getName(), false)).service
-    const runtimeContext = await prepareRuntimeContext(this.garden, log, module, serviceDeps)
+    const serviceDeps = (await this.graph.getDependencies(this.depType, this.getName(), false)).service
+    const runtimeContext = await prepareRuntimeContext(this.garden, this.graph, module, serviceDeps)
 
     let result: RunTaskResult
     try {

@@ -81,13 +81,13 @@ export class TestCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    const dependencyGraph = await garden.getDependencyGraph()
+    const graph = await garden.getConfigGraph()
     let modules: Module[]
     if (args.modules) {
-      modules = await dependencyGraph.withDependantModules(await garden.getModules(args.modules))
+      modules = await graph.withDependantModules(await graph.getModules(args.modules))
     } else {
       // All modules are included in this case, so there's no need to compute dependants.
-      modules = await garden.getModules()
+      modules = await graph.getModules()
     }
 
     await garden.actions.prepareEnvironment({ log })
@@ -98,16 +98,19 @@ export class TestCommand extends Command<Args, Opts> {
 
     const results = await processModules({
       garden,
+      graph,
       log,
       logFooter,
       modules,
       watch: opts.watch,
-      handler: async (module) => getTestTasks({ garden, log, module, name, force, forceBuild }),
-      changeHandler: async (module) => {
-        const modulesToProcess = await dependencyGraph.withDependantModules([module])
+      handler: async (updatedGraph, module) => getTestTasks({
+        garden, log, graph: updatedGraph, module, name, force, forceBuild,
+      }),
+      changeHandler: async (updatedGraph, module) => {
+        const modulesToProcess = await updatedGraph.withDependantModules([module])
         return flatten(await Bluebird.map(
           modulesToProcess,
-          m => getTestTasks({ garden, log, module: m, name, force, forceBuild })))
+          m => getTestTasks({ garden, log, graph: updatedGraph, module: m, name, force, forceBuild })))
       },
     })
 

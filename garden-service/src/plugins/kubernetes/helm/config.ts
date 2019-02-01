@@ -22,7 +22,7 @@ import {
 import { Module, FileCopySpec } from "../../../types/module"
 import { ConfigureModuleParams } from "../../../types/plugin/params"
 import { ConfigureModuleResult } from "../../../types/plugin/outputs"
-import { containsSource } from "./common"
+import { containsSource, getReleaseName } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
 import { HotReloadableKind, hotReloadableKinds } from "../hot-reload"
@@ -296,6 +296,10 @@ export async function validateHelmModule({ ctx, moduleConfig }: ConfigureModuleP
       spec,
     }
   })
+
+  moduleConfig.outputs = {
+    "release-name": await getReleaseName(moduleConfig),
+  }
 
   return moduleConfig
 }

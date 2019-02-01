@@ -1,12 +1,12 @@
 import { Garden } from "../../src/garden"
-import { makeTestGardenA } from "../helpers"
+import { makeTestGardenA, expectError } from "../helpers"
 import { PluginFactory, PluginActions, ModuleAndRuntimeActions } from "../../src/types/plugin/plugin"
 import { validate } from "../../src/config/common"
 import { ActionHelper } from "../../src/actions"
 import { expect } from "chai"
 import { omit } from "lodash"
 import { Module } from "../../src/types/module"
-import { Service } from "../../src/types/service"
+import { Service, RuntimeContext, getServiceRuntimeContext } from "../../src/types/service"
 import { Task } from "../../src/types/task"
 import Stream from "ts-stream"
 import { ServiceLogEntry } from "../../src/types/plugin/outputs"
@@ -24,7 +24,6 @@ import {
   deployServiceParamsSchema,
   deleteServiceParamsSchema,
   hotReloadServiceParamsSchema,
-  getServiceOutputsParamsSchema,
   execInServiceParamsSchema,
   getServiceLogsParamsSchema,
   runServiceParamsSchema,
@@ -47,6 +46,7 @@ describe("ActionHelper", () => {
   let actions: ActionHelper
   let module: Module
   let service: Service
+  let runtimeContext: RuntimeContext
   let task: Task
 
   before(async () => {
@@ -54,9 +54,11 @@ describe("ActionHelper", () => {
     garden = await makeTestGardenA(plugins)
     log = garden.log
     actions = garden.actions
-    module = await garden.getModule("module-a")
-    service = await garden.getService("service-a")
-    task = await garden.getTask("task-a")
+    const graph = await garden.getConfigGraph()
+    module = await graph.getModule("module-a")
+    service = await graph.getService("service-a")
+    runtimeContext = await getServiceRuntimeContext(garden, graph, service)
+    task = await graph.getTask("task-a")
   })
 
   // Note: The test plugins below implicitly validate input params for each of the tests
@@ -255,35 +257,34 @@ describe("ActionHelper", () => {
   describe("service actions", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getServiceStatus({ log, service, hotReload: false })
+        const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
         expect(result).to.eql({ state: "ready" })
       })
     })
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deployService({ log, service, force: true, hotReload: false })
+        const result = await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
         expect(result).to.eql({ state: "ready" })
       })
     })
 
     describe("deleteService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deleteService({ log, service })
+        const result = await actions.deleteService({ log, service, runtimeContext })
         expect(result).to.eql({ state: "ready" })
-      })
-    })
-
-    describe("getServiceOutputs", () => {
-      it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getServiceOutputs({ log, service })
-        expect(result).to.eql({ foo: "bar" })
       })
     })
 
     describe("execInService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.execInService({ log, service, command: ["foo"], interactive: false })
+        const result = await actions.execInService({
+          log,
+          service,
+          runtimeContext,
+          command: ["foo"],
+          interactive: false,
+        })
         expect(result).to.eql({ code: 0, output: "bla bla" })
       })
     })
@@ -291,7 +292,7 @@ describe("ActionHelper", () => {
     describe("getServiceLogs", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const stream = new Stream<ServiceLogEntry>()
-        const result = await actions.getServiceLogs({ log, service, stream, follow: false, tail: -1 })
+        const result = await actions.getServiceLogs({ log, service, runtimeContext, stream, follow: false, tail: -1 })
         expect(result).to.eql({})
       })
     })
@@ -341,6 +342,68 @@ describe("ActionHelper", () => {
         startedAt: now,
         version: task.module.version,
       })
+    })
+  })
+
+  describe("getActionHandlers", () => {
+    it("should return all handlers for a type", async () => {
+      const handlers = actions.getActionHandlers("prepareEnvironment")
+
+      expect(Object.keys(handlers)).to.eql([
+        "test-plugin",
+        "test-plugin-b",
+      ])
+    })
+  })
+
+  describe("getModuleActionHandlers", () => {
+    it("should return all handlers for a type", async () => {
+      const handlers = actions.getModuleActionHandlers({ actionType: "build", moduleType: "exec" })
+
+      expect(Object.keys(handlers)).to.eql([
+        "exec",
+      ])
+    })
+  })
+
+  describe("getActionHandler", () => {
+    it("should return last configured handler for specified action type", async () => {
+      const gardenA = await makeTestGardenA()
+      const handler = gardenA.actions.getActionHandler({ actionType: "prepareEnvironment" })
+
+      expect(handler["actionType"]).to.equal("prepareEnvironment")
+      expect(handler["pluginName"]).to.equal("test-plugin-b")
+    })
+
+    it("should optionally filter to only handlers for the specified module type", async () => {
+      const gardenA = await makeTestGardenA()
+      const handler = gardenA.actions.getActionHandler({ actionType: "prepareEnvironment" })
+
+      expect(handler["actionType"]).to.equal("prepareEnvironment")
+      expect(handler["pluginName"]).to.equal("test-plugin-b")
+    })
+
+    it("should throw if no handler is available", async () => {
+      const gardenA = await makeTestGardenA()
+      await expectError(() => gardenA.actions.getActionHandler({ actionType: "cleanupEnvironment" }), "parameter")
+    })
+  })
+
+  describe("getModuleActionHandler", () => {
+    it("should return last configured handler for specified module action type", async () => {
+      const gardenA = await makeTestGardenA()
+      const handler = gardenA.actions.getModuleActionHandler({ actionType: "deployService", moduleType: "test" })
+
+      expect(handler["actionType"]).to.equal("deployService")
+      expect(handler["pluginName"]).to.equal("test-plugin-b")
+    })
+
+    it("should throw if no handler is available", async () => {
+      const gardenA = await makeTestGardenA()
+      await expectError(
+        () => gardenA.actions.getModuleActionHandler({ actionType: "execInService", moduleType: "container" }),
+        "parameter",
+      )
     })
   })
 })
@@ -491,11 +554,6 @@ const testPlugin: PluginFactory = async () => ({
       deleteService: async (params) => {
         validate(params, deleteServiceParamsSchema)
         return { state: "ready" }
-      },
-
-      getServiceOutputs: async (params) => {
-        validate(params, getServiceOutputsParamsSchema)
-        return { foo: "bar" }
       },
 
       execInService: async (params) => {

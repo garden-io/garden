@@ -20,15 +20,18 @@ import { find } from "lodash"
 import { deline } from "../../../../../src/util/string"
 import { HotReloadableResource } from "../../../../../src/plugins/kubernetes/hot-reload"
 import { getServiceResourceSpec } from "../../../../../src/plugins/kubernetes/helm/common"
+import { ConfigGraph } from "../../../../../src/config-graph"
 
 describe("Helm common functions", () => {
   let garden: TestGarden
+  let graph: ConfigGraph
   let ctx: PluginContext
   let log: LogEntry
 
   before(async () => {
     const projectRoot = resolve(dataDir, "test-projects", "helm")
     garden = await makeTestGarden(projectRoot)
+    graph = await garden.getConfigGraph()
     ctx = garden.getPluginContext("local-kubernetes")
     log = garden.log
     await buildModules()
@@ -39,7 +42,7 @@ describe("Helm common functions", () => {
   })
 
   async function buildModules() {
-    const modules = await garden.getModules()
+    const modules = await graph.getModules()
     for (const module of modules) {
       await garden.addTask(new BuildTask({ garden, log, module, force: false }))
     }
@@ -54,20 +57,20 @@ describe("Helm common functions", () => {
 
   describe("containsSource", () => {
     it("should return true if the specified module contains chart sources", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       expect(await containsSource(module)).to.be.true
     })
 
     it("should return false if the specified module does not contain chart sources", async () => {
-      const module = await garden.getModule("postgres")
+      const module = await graph.getModule("postgres")
       expect(await containsSource(module)).to.be.false
     })
   })
 
   describe("getChartResources", () => {
     it("should render and return resources for a local template", async () => {
-      const module = await garden.getModule("api")
-      const imageModule = await garden.getModule("api-image")
+      const module = await graph.getModule("api")
+      const imageModule = await graph.getModule("api-image")
       const resources = await getChartResources(ctx, module, log)
 
       expect(resources).to.eql([
@@ -188,7 +191,7 @@ describe("Helm common functions", () => {
     })
 
     it("should render and return resources for a remote template", async () => {
-      const module = await garden.getModule("postgres")
+      const module = await graph.getModule("postgres")
       const resources = await getChartResources(ctx, module, log)
 
       expect(resources).to.eql([
@@ -434,14 +437,14 @@ describe("Helm common functions", () => {
 
   describe("getBaseModule", () => {
     it("should return undefined if no base module is specified", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
 
       expect(await getBaseModule(module)).to.be.undefined
     })
 
     it("should return the resolved base module if specified", async () => {
-      const module = await garden.getModule("api")
-      const baseModule = await garden.getModule("postgres")
+      const module = await graph.getModule("api")
+      const baseModule = await graph.getModule("postgres")
 
       module.spec.base = baseModule.name
       module.buildDependencies = { postgres: baseModule }
@@ -450,7 +453,7 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if the base module isn't in the build dependency map", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
 
       module.spec.base = "postgres"
 
@@ -464,8 +467,8 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if the base module isn't a Helm module", async () => {
-      const module = await garden.getModule("api")
-      const baseModule = await garden.getModule("postgres")
+      const module = await graph.getModule("api")
+      const baseModule = await graph.getModule("postgres")
 
       baseModule.type = "foo"
 
@@ -485,7 +488,7 @@ describe("Helm common functions", () => {
   describe("getChartPath", () => {
     context("module has chart sources", () => {
       it("should return the chart path in the build directory", async () => {
-        const module = await garden.getModule("api")
+        const module = await graph.getModule("api")
         expect(await getChartPath(module)).to.equal(
           resolve(ctx.projectRoot, ".garden", "build", "api"),
         )
@@ -494,7 +497,7 @@ describe("Helm common functions", () => {
 
     context("module references remote chart", () => {
       it("should construct the chart path based on the chart name", async () => {
-        const module = await garden.getModule("postgres")
+        const module = await graph.getModule("postgres")
         expect(await getChartPath(module)).to.equal(
           resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql"),
         )
@@ -510,26 +513,26 @@ describe("Helm common functions", () => {
 
   describe("getReleaseName", () => {
     it("should return the module name if not overridden in config", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       delete module.spec.releaseName
       expect(getReleaseName(module)).to.equal("api")
     })
 
     it("should return the configured release name if any", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       expect(getReleaseName(module)).to.equal("api-release")
     })
   })
 
   describe("getServiceResourceSpec", () => {
     it("should return the spec on the given module if it has no base module", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       expect(await getServiceResourceSpec(module)).to.eql(module.spec.serviceResource)
     })
 
     it("should return the spec on the base module if there is none on the module", async () => {
-      const module = await garden.getModule("api")
-      const baseModule = await garden.getModule("postgres")
+      const module = await graph.getModule("api")
+      const baseModule = await graph.getModule("postgres")
       module.spec.base = "postgres"
       delete module.spec.serviceResource
       module.buildDependencies = { postgres: baseModule }
@@ -537,8 +540,8 @@ describe("Helm common functions", () => {
     })
 
     it("should merge the specs if both module and base have specs", async () => {
-      const module = await garden.getModule("api")
-      const baseModule = await garden.getModule("postgres")
+      const module = await graph.getModule("api")
+      const baseModule = await graph.getModule("postgres")
       module.spec.base = "postgres"
       module.buildDependencies = { postgres: baseModule }
       expect(await getServiceResourceSpec(module)).to.eql({
@@ -549,7 +552,7 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if there is no base module and the module has no serviceResource spec", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       delete module.spec.serviceResource
       await expectError(
         () => getServiceResourceSpec(module),
@@ -562,8 +565,8 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if there is a base module but neither module has a spec", async () => {
-      const module = await garden.getModule("api")
-      const baseModule = await garden.getModule("postgres")
+      const module = await graph.getModule("api")
+      const baseModule = await graph.getModule("postgres")
       module.spec.base = "postgres"
       module.buildDependencies = { postgres: baseModule }
       delete module.spec.serviceResource
@@ -581,7 +584,7 @@ describe("Helm common functions", () => {
 
   describe("findServiceResource", () => {
     it("should return the resource specified by serviceResource", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
       const result = await findServiceResource({ ctx, log, module, chartResources })
       const expected = find(chartResources, r => r.kind === "Deployment")
@@ -589,7 +592,7 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if no resourceSpec or serviceResource is specified", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
       delete module.spec.serviceResource
       await expectError(
@@ -603,7 +606,7 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if no resource of the specified kind is in the chart", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
       const resourceSpec = {
         ...module.spec.serviceResource,
@@ -616,7 +619,7 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if matching resource is not found by name", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
       const resourceSpec = {
         ...module.spec.serviceResource,
@@ -629,7 +632,7 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if no name is specified and multiple resources are matched", async () => {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
       const deployment = find(chartResources, r => r.kind === "Deployment")
       chartResources.push(deployment!)
@@ -644,7 +647,7 @@ describe("Helm common functions", () => {
     })
 
     it("should resolve template string for resource name", async () => {
-      const module = await garden.getModule("postgres")
+      const module = await graph.getModule("postgres")
       const chartResources = await getChartResources(ctx, module, log)
       module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
       const result = await findServiceResource({ ctx, log, module, chartResources })
@@ -655,7 +658,7 @@ describe("Helm common functions", () => {
 
   describe("getResourceContainer", () => {
     async function getDeployment() {
-      const module = await garden.getModule("api")
+      const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
       return <HotReloadableResource>find(chartResources, r => r.kind === "Deployment")!
     }

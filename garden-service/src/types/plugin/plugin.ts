@@ -16,7 +16,6 @@ import {
 } from "../../config/common"
 import { Module } from "../module"
 import { serviceStatusSchema } from "../service"
-import { serviceOutputsSchema } from "../../config/service"
 import { LogNode } from "../../logger/log-node"
 import {
   ModuleActionParams,
@@ -32,7 +31,6 @@ import {
   getServiceStatusParamsSchema,
   deployServiceParamsSchema,
   deleteServiceParamsSchema,
-  getServiceOutputsParamsSchema,
   execInServiceParamsSchema,
   getServiceLogsParamsSchema,
   runServiceParamsSchema,
@@ -231,11 +229,6 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
     `,
     paramsSchema: deleteServiceParamsSchema,
     resultSchema: serviceStatusSchema,
-  },
-  getServiceOutputs: {
-    description: "DEPRECATED",
-    paramsSchema: getServiceOutputsParamsSchema,
-    resultSchema: serviceOutputsSchema,
   },
   execInService: {
     description: dedent`

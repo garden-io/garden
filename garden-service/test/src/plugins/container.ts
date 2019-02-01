@@ -35,6 +35,7 @@ describe("plugins.container", () => {
       dependencies: [],
     },
     name: "test",
+    outputs: {},
     path: modulePath,
     type: "container",
 
@@ -70,7 +71,8 @@ describe("plugins.container", () => {
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig })
-    return moduleFromConfig(garden, parsed)
+    const graph = await garden.getConfigGraph()
+    return moduleFromConfig(garden, graph, parsed)
   }
 
   describe("getLocalImageId", () => {
@@ -134,6 +136,7 @@ describe("plugins.container", () => {
           dependencies: [],
         },
         name: "test",
+        outputs: {},
         path: modulePath,
         type: "container",
 
@@ -187,6 +190,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "container",
 
@@ -247,6 +251,7 @@ describe("plugins.container", () => {
           allowPublish: false,
           build: { command: ["echo", "OK"], dependencies: [] },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "container",
           spec:
@@ -362,6 +367,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "test",
 
@@ -417,6 +423,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "test",
 
@@ -467,6 +474,7 @@ describe("plugins.container", () => {
             dependencies: [],
           },
           name: "module-a",
+          outputs: {},
           path: modulePath,
           type: "test",
 

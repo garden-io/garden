@@ -25,7 +25,8 @@ export class ValidateCommand extends Command {
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
     logHeader({ log, emoji: "heavy_check_mark", command: "validate" })
 
-    await garden.getModules()
+    const graph = await garden.getConfigGraph()
+    await graph.getModules()
 
     return {}
   }

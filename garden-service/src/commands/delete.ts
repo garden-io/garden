@@ -20,7 +20,7 @@ import {
 } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent = require("dedent")
-import { ServiceStatus } from "../types/service"
+import { ServiceStatus, getServiceRuntimeContext } from "../types/service"
 import { logHeader } from "../logger/util"
 
 export class DeleteCommand extends Command {
@@ -129,7 +129,8 @@ export class DeleteServiceCommand extends Command {
   `
 
   async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const services = await garden.getServices(args.services)
+    const graph = await garden.getConfigGraph()
+    const services = await graph.getServices(args.services)
 
     if (services.length === 0) {
       log.warn({ msg: "No services found. Aborting." })
@@ -141,7 +142,8 @@ export class DeleteServiceCommand extends Command {
     const result: { [key: string]: ServiceStatus } = {}
 
     await Bluebird.map(services, async service => {
-      result[service.name] = await garden.actions.deleteService({ log, service })
+      const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
+      result[service.name] = await garden.actions.deleteService({ log, service, runtimeContext })
     })
 
     return { result }

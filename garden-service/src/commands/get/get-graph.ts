@@ -7,7 +7,7 @@
  */
 
 import * as yaml from "js-yaml"
-import { RenderedEdge, RenderedNode } from "../../dependency-graph"
+import { RenderedEdge, RenderedNode } from "../../config-graph"
 import { highlightYaml } from "../../util/util"
 import {
   Command,
@@ -25,8 +25,8 @@ export class GetGraphCommand extends Command {
   help = "Outputs the dependency relationships specified in this project's garden.yml files."
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GraphOutput>> {
-    const dependencyGraph = await garden.getDependencyGraph()
-    const renderedGraph = dependencyGraph.render()
+    const graph = await garden.getConfigGraph()
+    const renderedGraph = graph.render()
     const output: GraphOutput = { nodes: renderedGraph.nodes, relationships: renderedGraph.relationships }
 
     const yamlGraph = yaml.safeDump(renderedGraph, { noRefs: true, skipInvalid: true })

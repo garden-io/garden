@@ -6,11 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  DeployServiceParams,
-  GetServiceOutputsParams,
-} from "../../types/plugin/params"
-import { ServiceStatus, Service } from "../../types/service"
+import { DeployServiceParams, ConfigureModuleParams } from "../../types/plugin/params"
+import { ServiceStatus } from "../../types/service"
 import { join } from "path"
 import {
   gcloud,
@@ -20,34 +17,42 @@ import {
   GOOGLE_CLOUD_DEFAULT_REGION,
   prepareEnvironment,
 } from "./common"
-import { Provider } from "../../config/project"
-import {
-  ContainerModule,
-  ContainerModuleSpec,
-  ContainerServiceSpec,
-} from "../container/config"
 import { dumpYaml } from "../../util/util"
-import {
-  GardenPlugin,
-} from "../../types/plugin/plugin"
+import { GardenPlugin } from "../../types/plugin/plugin"
+import { configureContainerModule } from "../container/container"
+import { ContainerModule } from "../container/config"
+import { providerConfigBaseSchema } from "../../config/project"
+import * as Joi from "joi"
 
-export interface GoogleAppEngineServiceSpec extends ContainerServiceSpec {
-  project?: string
-}
-
-export interface GoogleAppEngineModule extends ContainerModule<ContainerModuleSpec, GoogleAppEngineServiceSpec> { }
-
-function getAppEngineProject<T extends GoogleAppEngineModule>(service: Service<T>, provider: Provider) {
-  return service.spec.project || provider.config["default-project"] || null
-}
+const configSchema = providerConfigBaseSchema.keys({
+  project: Joi.string()
+    .required()
+    .description("The GCP project to deploy containers to."),
+})
 
 export const gardenPlugin = (): GardenPlugin => ({
+  configSchema,
   actions: {
     getEnvironmentStatus,
     prepareEnvironment,
   },
   moduleActions: {
     container: {
+      async configure(params: ConfigureModuleParams<ContainerModule>) {
+        const config = await configureContainerModule(params)
+
+        // TODO: we may want to pull this from the service status instead, along with other outputs
+        const project = params.ctx.provider.config.project
+        const endpoint = `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${config.name}`
+
+        config.outputs = {
+          ...config.outputs || {},
+          endpoint,
+        }
+
+        return config
+      },
+
       async getServiceStatus(): Promise<ServiceStatus> {
         // TODO
         // const project = this.getProject(service, env)
@@ -59,7 +64,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return {}
       },
 
-      async deployService({ ctx, service, runtimeContext, log }: DeployServiceParams<GoogleAppEngineModule>) {
+      async deployService({ ctx, service, runtimeContext, log }: DeployServiceParams<ContainerModule>) {
         log.info({
           section: service.name,
           msg: `Deploying app...`,
@@ -92,7 +97,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         await dumpYaml(appYamlPath, appYaml)
 
         // deploy to GAE
-        const project = getAppEngineProject(service, ctx.provider)
+        const project = ctx.provider.config.project
 
         await gcloud(project).call([
           "app", "deploy", "--quiet",
@@ -101,15 +106,6 @@ export const gardenPlugin = (): GardenPlugin => ({
         log.info({ section: service.name, msg: `App deployed` })
 
         return {}
-      },
-
-      async getServiceOutputs({ ctx, service }: GetServiceOutputsParams<GoogleAppEngineModule>) {
-        // TODO: we may want to pull this from the service status instead, along with other outputs
-        const project = getAppEngineProject(service, ctx.provider)
-
-        return {
-          ingress: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${service.name}`,
-        }
       },
     },
   },

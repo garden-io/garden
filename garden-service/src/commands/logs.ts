@@ -17,7 +17,7 @@ import {
 import chalk from "chalk"
 import { ServiceLogEntry } from "../types/plugin/outputs"
 import Bluebird = require("bluebird")
-import { Service } from "../types/service"
+import { Service, getServiceRuntimeContext } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType } from "../logger/logger"
 import dedent = require("dedent")
@@ -68,7 +68,8 @@ export class LogsCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const { follow, tail } = opts
-    const services = await garden.getServices(args.services)
+    const graph = await garden.getConfigGraph()
+    const services = await graph.getServices(args.services)
 
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()
@@ -96,10 +97,11 @@ export class LogsCommand extends Command<Args, Opts> {
 
     await Bluebird.map(services, async (service: Service<any>) => {
       const voidLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
-      const status = await garden.actions.getServiceStatus({ log: voidLog, service, hotReload: false })
+      const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
+      const status = await garden.actions.getServiceStatus({ log: voidLog, service, hotReload: false, runtimeContext })
 
       if (status.state === "ready" || status.state === "outdated") {
-        await garden.actions.getServiceLogs({ log, service, stream, follow, tail })
+        await garden.actions.getServiceLogs({ log, service, stream, follow, tail, runtimeContext })
       } else {
         await stream.write({
           serviceName: service.name,

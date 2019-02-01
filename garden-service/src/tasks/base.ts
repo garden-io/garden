@@ -10,7 +10,7 @@ import { TaskResults } from "../task-graph"
 import { ModuleVersion } from "../vcs/base"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType } from "../dependency-graph"
+import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
 export class TaskDefinitionError extends Error { }

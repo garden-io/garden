@@ -6,17 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isString, flatten } from "lodash"
-import { Module } from "../types/module"
+import { isString } from "lodash"
 import { PrimitiveMap, isPrimitive, Primitive, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
 import { Provider, Environment, providerConfigBaseSchema } from "./project"
 import { ModuleConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
-import { Service } from "../types/service"
 import { resolveTemplateString } from "../template-string"
 import * as Joi from "joi"
 import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
+import { ModuleVersion } from "../vcs/base"
 
 export type ContextKey = string[]
 
@@ -132,6 +130,7 @@ export abstract class ConfigContext {
     }
 
     this._resolvedValues[path] = value
+
     return value
   }
 }
@@ -188,15 +187,10 @@ class EnvironmentContext extends ConfigContext {
   }
 }
 
+const exampleOutputs = { endpoint: "http://my-service/path/to/endpoint" }
 const exampleVersion = "v17ad4cb3fd"
 
 class ModuleContext extends ConfigContext {
-  @schema(Joi.string().description("The local path of the module.").example("/home/me/code/my-project/my-module"))
-  public path: string
-
-  @schema(Joi.string().description("The current version of the module.").example(exampleVersion))
-  public version: string
-
   @schema(
     Joi.string()
       .description("The build path of the module.")
@@ -204,33 +198,25 @@ class ModuleContext extends ConfigContext {
   )
   public buildPath: string
 
-  constructor(root: ConfigContext, module: Module) {
-    super(root)
-    this.path = module.path
-    this.version = module.version.versionString
-    this.buildPath = module.buildPath
-  }
-}
-
-const exampleOutputs = { ingress: "http://my-service/path/to/endpoint" }
-
-class ServiceContext extends ConfigContext {
   @schema(
-    joiIdentifierMap(joiPrimitive()
-      .description("The outputs defined by the service (see individual plugins for details)."),
-    ).example(exampleOutputs),
+    joiIdentifierMap(joiPrimitive())
+      .description("The outputs defined by the module (see individual plugins for details).")
+      .example(exampleOutputs),
   )
   public outputs: PrimitiveMap
 
-  @schema(Joi.string().description("The current version of the service.").example(exampleVersion))
+  @schema(Joi.string().description("The local path of the module.").example("/home/me/code/my-project/my-module"))
+  public path: string
+
+  @schema(Joi.string().description("The current version of the module.").example(exampleVersion))
   public version: string
 
-  // TODO: add ingresses
-
-  constructor(root: ConfigContext, service: Service, outputs: PrimitiveMap) {
+  constructor(root: ConfigContext, moduleConfig: ModuleConfig, buildPath: string, version: ModuleVersion) {
     super(root)
-    this.outputs = outputs
-    this.version = service.module.version.versionString
+    this.buildPath = buildPath
+    this.outputs = moduleConfig.outputs
+    this.path = moduleConfig.path
+    this.version = version.versionString
   }
 }
 
@@ -253,24 +239,11 @@ export class ModuleConfigContext extends ProjectConfigContext {
   public modules: Map<string, () => Promise<ModuleContext>>
 
   @schema(
-    joiIdentifierMap(ServiceContext.getSchema())
-      .description("Retrieve information about services that are defined in the project.")
-      .example({ "my-service": { outputs: exampleOutputs, version: exampleVersion } }),
-  )
-  public services: Map<string, () => Promise<ServiceContext>>
-
-  @schema(
     joiIdentifierMap(providerConfigBaseSchema)
       .description("A map of all configured plugins/providers for this environment and their configuration.")
       .example({ kubernetes: { name: "local-kubernetes", context: "my-kube-context" } }),
   )
   public providers: Map<string, Provider>
-
-  // NOTE: This has some negative performance implications and may not be something we want to support,
-  //       so I'm disabling this feature for now.
-  //
-  // @description("Use this to look up values that are configured in the current environment.")
-  // public config: RemoteConfigContext
 
   @schema(
     joiIdentifierMap(joiPrimitive())
@@ -281,7 +254,6 @@ export class ModuleConfigContext extends ProjectConfigContext {
 
   constructor(
     garden: Garden,
-    log: LogEntry,
     environment: Environment,
     moduleConfigs: ModuleConfig[],
   ) {
@@ -293,39 +265,17 @@ export class ModuleConfigContext extends ProjectConfigContext {
 
     this.modules = new Map(moduleConfigs.map((config) =>
       <[string, () => Promise<ModuleContext>]>[config.name, async () => {
-        const module = await garden.getModule(config.name)
-        return new ModuleContext(_this, module)
-      }],
-    ))
+        // NOTE: This is a temporary hacky solution until we implement module resolution as a TaskGraph task
+        const resolvedConfig = await garden.resolveModuleConfig(config.name)
+        const version = await garden.resolveVersion(resolvedConfig.name, resolvedConfig.build.dependencies)
+        const buildPath = await garden.buildDir.buildPath(config.name)
 
-    const serviceNames = flatten(moduleConfigs.map(m => m.serviceConfigs)).map(s => s.name)
-
-    this.services = new Map(serviceNames.map((name) =>
-      <[string, () => Promise<ServiceContext>]>[name, async () => {
-        const service = await garden.getService(name)
-        const outputs = {
-          ...service.config.outputs,
-          ...await garden.actions.getServiceOutputs({ log, service }),
-        }
-        return new ServiceContext(_this, service, outputs)
+        return new ModuleContext(_this, resolvedConfig, buildPath, version)
       }],
     ))
 
     this.providers = new Map(environment.providers.map(p => <[string, Provider]>[p.name, p]))
 
-    // this.config = new SecretsContextNode(ctx)
-
     this.variables = environment.variables
   }
 }
-
-// class RemoteConfigContext extends ConfigContext {
-//   constructor(private ctx: PluginContext) {
-//     super()
-//   }
-
-//   async resolve({ key }: ResolveParams) {
-//     const { value } = await this.ctx.getSecret({ key })
-//     return value === null ? undefined : value
-//   }
-// }

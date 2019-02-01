@@ -11,14 +11,13 @@ import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ServiceSpec } from "../config/service"
-import { Task, taskFromConfig } from "./task"
-import { TaskSpec, taskSchema } from "../config/task"
+import { TaskSpec } from "../config/task"
 import { ModuleVersion, moduleVersionSchema } from "../vcs/base"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
-import { serviceFromConfig, Service, serviceSchema } from "./service"
 import * as Joi from "joi"
 import { joiArray, joiIdentifier, joiIdentifierMap } from "../config/common"
+import { ConfigGraph } from "../config-graph"
 import * as Bluebird from "bluebird"
 
 export interface FileCopySpec {
@@ -37,11 +36,9 @@ export interface Module<
 
   buildDependencies: ModuleMap
 
-  services: Service<Module<M, S, T, W>>[]
   serviceNames: string[]
   serviceDependencyNames: string[]
 
-  tasks: Task<Module<M, S, T, W>>[]
   taskNames: string[]
   taskDependencyNames: string[]
 
@@ -59,18 +56,12 @@ export const moduleSchema = moduleConfigSchema
     buildDependencies: joiIdentifierMap(Joi.lazy(() => moduleSchema))
       .required()
       .description("A map of all modules referenced under \`build.dependencies\`."),
-    services: joiArray(Joi.lazy(() => serviceSchema))
-      .required()
-      .description("A list of all the services that the module provides."),
     serviceNames: joiArray(joiIdentifier())
       .required()
       .description("The names of the services that the module provides."),
     serviceDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the services and tasks that the services in this module depend on."),
-    tasks: joiArray(Joi.lazy(() => taskSchema))
-      .required()
-      .description("A list of all the tasks that the module provides."),
     taskNames: joiArray(joiIdentifier())
       .required()
       .description("The names of the tasks that the module provides."),
@@ -87,7 +78,7 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
   [key: string]: T
 }
 
-export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Promise<Module> {
+export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, config: ModuleConfig): Promise<Module> {
   const module: Module = {
     ...cloneDeep(config),
 
@@ -96,13 +87,11 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
 
     buildDependencies: {},
 
-    services: [],
     serviceNames: getNames(config.serviceConfigs),
     serviceDependencyNames: uniq(flatten(config.serviceConfigs
       .map(serviceConfig => serviceConfig.dependencies)
       .filter(deps => !!deps))),
 
-    tasks: [],
     taskNames: getNames(config.taskConfigs),
     taskDependencyNames: uniq(flatten(config.taskConfigs
       .map(taskConfig => taskConfig.dependencies)
@@ -112,16 +101,9 @@ export async function moduleFromConfig(garden: Garden, config: ModuleConfig): Pr
   }
 
   const buildDependencyModules = await Bluebird.map(
-    module.build.dependencies, d => garden.getModule(getModuleKey(d.name, d.plugin)),
+    module.build.dependencies, d => graph.getModule(getModuleKey(d.name, d.plugin)),
   )
   module.buildDependencies = keyBy(buildDependencyModules, "name")
-
-  module.services = await Bluebird.map(
-    config.serviceConfigs,
-    serviceConfig => serviceFromConfig(garden, module, serviceConfig),
-  )
-
-  module.tasks = config.taskConfigs.map(taskConfig => taskFromConfig(module, taskConfig))
 
   return module
 }

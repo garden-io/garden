@@ -19,6 +19,7 @@ import {
   BooleanParameter,
 } from "./base"
 import dedent = require("dedent")
+import { getServiceRuntimeContext } from "../types/service"
 
 const runArgs = {
   service: new StringParameter({
@@ -72,8 +73,16 @@ export class ExecCommand extends Command<Args> {
       command: `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
     })
 
-    const service = await garden.getService(serviceName)
-    const result = await garden.actions.execInService({ log, service, command, interactive: opts.interactive })
+    const graph = await garden.getConfigGraph()
+    const service = await graph.getService(serviceName)
+    const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
+    const result = await garden.actions.execInService({
+      log,
+      service,
+      command,
+      interactive: opts.interactive,
+      runtimeContext,
+    })
 
     return { result }
   }

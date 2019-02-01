@@ -8,6 +8,8 @@ import {
 import { makeTestGarden, dataDir } from "../../helpers"
 import { ModuleConfig } from "../../../src/config/module"
 import { ConfigurationError } from "../../../src/exceptions"
+import { Garden } from "../../../src/garden"
+import { flatten } from "lodash"
 
 /**
  * Here, we cast the garden arg to any in order to access the private moduleConfigs property.
@@ -16,16 +18,15 @@ import { ConfigurationError } from "../../../src/exceptions"
  * test the validation methods below (which normally throw their exceptions during the
  * execution of scanModules).
  */
-async function scanAndGetConfigs(garden: any) {
-  try {
-    await garden.scanModules()
-  } finally {
-    const moduleConfigs: ModuleConfig[] = Object.values(garden.moduleConfigs)
-    return {
-      moduleConfigs,
-      serviceNames: Object.keys(garden.serviceNameIndex),
-      taskNames: Object.keys(garden.taskNameIndex),
-    }
+async function scanAndGetConfigs(garden: Garden) {
+  const moduleConfigs: ModuleConfig[] = await garden.resolveModuleConfigs()
+  const serviceNames = flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
+  const taskNames = flatten(moduleConfigs.map(m => m.taskConfigs.map(s => s.name)))
+
+  return {
+    moduleConfigs,
+    serviceNames,
+    taskNames,
   }
 }
 
