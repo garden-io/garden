@@ -28,17 +28,39 @@ When generating the changelog, we only include the following types: **feat**, **
 
 ## Setting up your development environment
 
-Start by cloning the repo.
+### Step 1: Install Docker and Kubernetes
 
-For Mac we have a script that installs all required dependencies, mostly via Homebrew:
+Please refer to our [installation docs](./docs/basics/installation.md) for instructions on how to install Docker and Kubernetes for different platforms.
+
+### Step 2: Clone the repo
+
+    git clone https://github.com/garden-io/garden.git
+
+### Step 3: Install dependencies
+
+#### OSX
+
+For Mac we have a script that installs all required dependencies.
+
+If you haven't already, please [install Homebrew](https://docs.brew.sh/Installation). Then run:
 
     ./bin/bootstrap-osx
 
-Other platforms need to roll their own for now (contributions welcome!). Please have a look
-at the script for Mac to see what's installed. Once dependencies are in place, all you need is:
+#### Windows / Linux
 
-    npm install
-    lerna bootstrap
+Other platforms need to roll their own for now (contributions welcome!). Please have a look at the script for OSX to see what's installed.
+
+**Note:** We recommend using Node 10 when developing Garden.
+
+### Step 4: Bootstrap project
+
+Install Node modules for the root package, and the `dashboard` and `garden-service` packages:
+
+    npm run bootstrap
+
+Install Go dependencies for the `garden-cli`:
+
+    dep ensure
 
 ## Running a development version of the CLI
 
