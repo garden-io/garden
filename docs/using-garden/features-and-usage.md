@@ -4,40 +4,38 @@ Now that you've had a glimpse of the basic Garden commands in the [Quick Start](
 
 ## Starting a new project
 
-There are two ways to start a new project with Garden:
+To start a new project, you create a `garden.yml` file in the project's root directory. At it's simplest, the project level `garden.yml` file looks something like this:
 
-- You can create all the configuration files by hand. For that that you should take a look at our [Configuration files](./configuration-files.md) document.
-- Or you can use the `garden create` command—often a lot easier.
-
-### `garden create`
-
-The `garden create` command can be used to create either whole projects, or just modules. Essentially what it does is help you create configuration files so you don't have to do it by hand.
-
-The command `garden create project` will create a new project in the current directory and prompt you to add modules to it, which should each have a name and a type. It will then create the appropriate folders and the configuration files within them.
-
-If this is a pre-existing project and you want to "gardenify" code that's already there, you can try, for example, `garden create project --module-dirs=./services`. This will prompt you to create configuration files for every subfolder within the `./services` directory.
-
-To add individual modules later on you can use `garden create module`.
-
+```yaml
+# examples/simple-project/garden.yml
+project:
+  name: simple-project
+  environments:
+    - name: local
+      providers:
+        - name: local-kubernetes
 ```
-➜  test-project g create project
 
-Initializing new Garden project test-project
----------
-? Would you like to add a module to your project? Yes
-? Enter module name my-module
-? Module type container
-? Add another module? (current modules: my-module) Yes
-? Enter module name my-module-2
-? Module type container
-? Add another module? (current modules: my-module, my-module-2) No
----------
-✔ Setting up project
-✔ Writing config for my-module
-✔ Writing config for my-module-2
-✔ Writing config for test-project
-Project created! Be sure to check out our docs for how to get sarted!
+You then add a `garden.yml` file at the root directory of every module in your project. Normally, a module is a single container or a single serverless function. A module level `garden.yml` file looks something like this:
+
+```yaml
+# examples/simple-project/services/go-service/garden.yml
+module:
+  name: go-service
+  description: Go service container
+  type: container
+  services:
+    - name: go-service
+      ports:
+        - name: http
+          containerPort: 8080
+          servicePort: 80
+      ingresses:
+        - path: /hello-go
+          port: http
 ```
+
+To learn more about how to configure a Garden project, please take a look at our [Configuration files](./configuration-files.md) document.
 
 For a practical example of "gardenifying" an existing project, check out the [Simple project](../examples/simple-project.md) example.
 
