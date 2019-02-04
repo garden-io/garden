@@ -471,18 +471,26 @@ export class Garden {
   }
 
   /**
+   * Returns module configs that are registered in this context, before template resolution and validation.
+   * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
+   */
+  async getRawModuleConfigs(keys?: string[]): Promise<ModuleConfig[]> {
+    if (!this.modulesScanned) {
+      await this.scanModules()
+    }
+
+    return Object.values(
+      keys ? pickKeys(this.moduleConfigs, keys, "module") : this.moduleConfigs,
+    )
+  }
+
+  /**
    * Returns module configs that are registered in this context, fully resolved and configured (via their respective
    * plugin handlers).
    * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
    */
   async resolveModuleConfigs(keys?: string[], configContext?: ModuleConfigContext): Promise<ModuleConfig[]> {
-    if (!this.modulesScanned) {
-      await this.scanModules()
-    }
-
-    const configs: ModuleConfig[] = Object.values(
-      keys ? pickKeys(this.moduleConfigs, keys, "module") : this.moduleConfigs,
-    )
+    const configs = await this.getRawModuleConfigs(keys)
 
     if (!configContext) {
       configContext = new ModuleConfigContext(this, this.environment, Object.values(this.moduleConfigs))
