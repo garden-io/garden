@@ -108,13 +108,35 @@ function getRoleResources(namespace: string): KubernetesResource[] {
       },
       roleRef: {
         kind: "Role",
-        name: "tiller",
+        name: serviceAccountName,
         apiGroup: "rbac.authorization.k8s.io",
       },
       subjects: [
         {
           kind: "ServiceAccount",
-          name: "tiller",
+          name: serviceAccountName,
+          namespace,
+        },
+      ],
+    },
+    // TODO: either get rid of Tiller entirely, or find a more narrow (yet usable) way to limit permissions
+    // cluster-wide. The reason for this is that often Helm charts contain cluster-scoped objects that are in practice
+    // difficult to limit the creation of, especically for dev.
+    {
+      apiVersion: "rbac.authorization.k8s.io/v1",
+      kind: "ClusterRoleBinding",
+      metadata: {
+        name: serviceAccountName + "-cluster-admin",
+      },
+      roleRef: {
+        kind: "ClusterRole",
+        name: "cluster-admin",
+        apiGroup: "rbac.authorization.k8s.io",
+      },
+      subjects: [
+        {
+          kind: "ServiceAccount",
+          name: serviceAccountName,
           namespace,
         },
       ],
