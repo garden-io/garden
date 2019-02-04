@@ -1,3 +1,74 @@
+<a name="v0.9.0-rc1"></a>
+## [v0.9.0-rc1](https://github.com/garden-io/garden/compare/v0.8.1...v0.9.0-rc1) (2019-01-28)
+
+### Bug Fixes
+
+* add missing package to garden-service/package.json ([4688e56](https://github.com/garden-io/garden/commit/4688e56))
+* don't watch project-level log files ([81c8d04](https://github.com/garden-io/garden/commit/81c8d04))
+* add path to module validation error messages ([b1c54b0](https://github.com/garden-io/garden/commit/b1c54b0))
+* **dashboard:** limit number of log lines that are fetched ([#461](https://github.com/garden-io/garden/issues/461)) ([3c214ce](https://github.com/garden-io/garden/commit/3c214ce))
+* **exec:** missing tasks key in module schema ([cc13f33](https://github.com/garden-io/garden/commit/cc13f33))
+* **get-tasks:** print msg if no tasks found ([0868a98](https://github.com/garden-io/garden/commit/0868a98))
+* **perf:** reuse port-forwards when hot-reloading ([6db83a7](https://github.com/garden-io/garden/commit/6db83a7))
+
+### Code Refactoring
+
+* add configureProvider plugin action ([bdf6994](https://github.com/garden-io/garden/commit/bdf6994))
+* rename `validate` module action to `configure` ([7b02fdd](https://github.com/garden-io/garden/commit/7b02fdd))
+* use events for file watching instead of callbacks ([f6a99c2](https://github.com/garden-io/garden/commit/f6a99c2))
+* rename `generic` plugin to `exec` ([4c85d46](https://github.com/garden-io/garden/commit/4c85d46))
+* **dashboard:** use React Hooks API for state management ([588dd6c](https://github.com/garden-io/garden/commit/588dd6c))
+* **dashboard:** rename root dir to dashboard ([6b48430](https://github.com/garden-io/garden/commit/6b48430))
+* **k8s:** shorten default namespace names ([15aa5de](https://github.com/garden-io/garden/commit/15aa5de))
+* **k8s:** minor change to speed up container deploys ([91da102](https://github.com/garden-io/garden/commit/91da102))
+
+### Features
+
+* add servicePort config option ([57b23f3](https://github.com/garden-io/garden/commit/57b23f3))
+* added get tasks command ([250315d](https://github.com/garden-io/garden/commit/250315d))
+* rename command to args for container type ([84f5a8d](https://github.com/garden-io/garden/commit/84f5a8d))
+* **dashboard:** update UI (closes [#460](https://github.com/garden-io/garden/issues/460)) ([e59897c](https://github.com/garden-io/garden/commit/e59897c))
+* **dashboard:** expose provider links in sidebar ([48c9e13](https://github.com/garden-io/garden/commit/48c9e13))
+* **k8s:** add Helm module inheritance via the `base` field ([8a7a7e5](https://github.com/garden-io/garden/commit/8a7a7e5))
+* **k8s:** proper support for Helm charts ([48f0375](https://github.com/garden-io/garden/commit/48f0375))
+* **k8s:** make hot reloading work for remote clusters ([7ca3dc3](https://github.com/garden-io/garden/commit/7ca3dc3))
+* **k8s:** allow disabling nginx setup in local-kubernetes provider ([33511bc](https://github.com/garden-io/garden/commit/33511bc))
+* **versioncmd:** add version command ([8be4761](https://github.com/garden-io/garden/commit/8be4761))
+
+### BREAKING CHANGE
+
+
+We no longer default to "nginx" as the ingress class to annotation
+container module ingresses. If you need it configured, you need to set
+it via the `ingressClass` parameter in the `local-kubernetes` provider
+configuration.
+
+After updating, the following configuration fields for container modules
+must be renamed as indicated:
+
+  * service.command -> service.args
+  * service.hotReloadCommand -> service.hotReloadArgs
+  * test.command -> test.args
+  * task.command -> task.args
+
+This is done in preparation for a new configuration option (using the
+key `command`, hence the rename) that's planned for release soon,
+whereby users can override the current default of running
+tests / tasks / ad-hoc commands inside containers via
+`/bin/sh -c [args]`.
+
+After updating, any project that doesn't have an explicitly
+configured namespace will be installed into a new namespace,
+and the old namespace needs to be manually removed.
+
+Projects using the `generic` module type need to update the relevant
+`garden.yml` files, to reference the `exec` module type instead.
+
+The `--tail|-t` flag for the `garden logs` command now takes an integer parameter
+and specifies the number of log lines to display, whereas previously it was a boolean
+flag that determined whether or not to stream the logs. For streaming, we now have
+the `--follow|-f` flag. This conforms to other similar CLI tools.
+
 <a name="v0.8.1"></a>
 ## [v0.8.1](https://github.com/garden-io/garden/compare/v0.8.1-rc1...v0.8.1) (2018-12-10)
 
