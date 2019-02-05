@@ -33,6 +33,10 @@
   name = "gopkg.in/yaml.v2"
   version = "2.2.1"
 
+[[constraint]]
+  name = "github.com/havoc-io/mutagen"
+  version = "v0.7.0-beta2"
+
 # [[constraint]]
 #   branch = "master"
 #   name = "k8s.io/api"
