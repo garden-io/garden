@@ -60,7 +60,7 @@ export const Services: React.SFC<ServicesProps> = ({ moduleConfigs, services }) 
     service,
     services[service].state,
     moduleConfigs.find(m => m.serviceConfigs.map(s => s.name).includes(service)).name,
-    <Ingresses ingresses={services[service].ingresses} />,
+    services[service].ingresses ? <Ingresses ingresses={services[service].ingresses} /> : null,
   ])
   return (
     <Table
