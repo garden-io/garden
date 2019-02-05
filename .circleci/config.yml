@@ -5,12 +5,6 @@ version: 2.1
 # These can be used to inject shared variables
 # see https://blog.daemonl.com/2016/02/yaml.html
 .references:
-  # Go configuration for all our jobs
-  go-config: &go-config
-    docker:
-    - image: circleci/golang:1.10
-    working_directory: /go/src/github.com/garden-io/garden
-
   # Configuration for our node jobs
   node-config: &node-config
     docker:
@@ -70,28 +64,6 @@ commands:
       - save_cache:
           paths: [dashboard/node_modules]
           key: dashboard-{{ checksum "dashboard/package-lock.json" }}
-
-  go_install_deps:
-    description: |
-      Installs our go dependancies and deals with caching and loading the cache
-    steps:
-      - restore_cache:
-          keys:
-            - pkg-cache-{{ checksum "Gopkg.lock" }}
-      - run: go get -u github.com/jstemmer/go-junit-report
-      - run:
-          name: Install dep
-          command: |
-            if [ ! -d /go/src/github.com/garden-io/garden/vendor ]; then
-                # This needs to match the version installed locally
-                curl -L -s https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 -o /go/bin/dep
-                chmod +x /go/bin/dep
-                /go/bin/dep ensure
-            fi
-      - save_cache:
-          key: pkg-cache-{{ checksum "Gopkg.lock" }}
-          paths:
-            - "/go/src/github.com/garden-io/garden/vendor"
 
   docker_build:
     description: Builds and Tags a Docker Image
@@ -162,66 +134,6 @@ commands:
 # Jobs section
 #
 jobs:
-  test-cli:
-    <<: *go-config
-    steps:
-      - checkout
-      - go_install_deps
-      # NOTE: This always fails in CI with the error:
-      #
-      # # github.com/garden-io/garden/vendor/github.com/havoc-io/mutagen/pkg/session
-      #   ../vendor/github.com/havoc-io/mutagen/pkg/session/controller.go:113:25: undefined: mutagen.VersionMajor
-      #   ../vendor/github.com/havoc-io/mutagen/pkg/session/controller.go:114:25: undefined: mutagen.VersionMinor
-      #   ../vendor/github.com/havoc-io/mutagen/pkg/session/controller.go:115:25: undefined: mutagen.VersionPatch
-      #
-      # However, it does work locally. Moreover, it does work locally inside a circleci/golang:1.10 Docker container.
-      # Not sure why it keeps failing in CI.
-      #
-      # Therefore we're removing this step for now so that we can get this merged. Additionally, the Go CLI
-      # is being deprecated and moved into a separate repo once this has been merged.
-      #
-      # - run:
-      #     name: Unit Tests
-      #     command: |
-      #       cd garden-cli
-      #       go test -v 2>&1 | go-junit-report > /tmp/report.xml
-      # - store_artifacts:
-      #     path: /tmp/report.xml
-      # - store_test_results:
-      #     path: /tmp/
-  build-cli:
-    <<: *go-config
-    steps:
-      - checkout
-      - go_install_deps
-      - run: go get -u github.com/goreleaser/goreleaser
-      - run:
-          name: Build Go cli
-          command: |
-            cd garden-cli
-            # Set to snapshot builds unless we are on a git tag
-            FLAGS="--snapshot"
-            if [[ -n "$CIRCLE_TAG" ]]; then
-              FLAGS=""
-            fi
-            # Build them all
-            goreleaser $FLAGS --rm-dist
-      - store_artifacts:
-          path: garden-cli/dist/
-          destination: /downloads
-  build-sync-docker:
-    <<: *node-config
-    steps:
-      - checkout
-      - docker_build:
-          context: garden-sync
-  release-sync:
-    <<: *node-config
-    steps:
-      - checkout
-      - docker_release:
-          context: garden-sync
-          image: $DOCKER_ORG/garden-sync
   build-service-docker:
     <<: *node-config
     steps:
@@ -321,12 +233,8 @@ workflows:
   commit:
     jobs:
       - build-service
-      - test-cli:
-          requires:
-            - build-service
       - test-service
       - build-dashboard
-      - build-sync-docker
       - build-service-docker:
           requires:
             - build-service
@@ -342,9 +250,6 @@ workflows:
             - build-service
       - build-dashboard:
           <<: *only-master
-      - release-sync:
-          <<: *only-master
-          context: docker
       - release-service-docker:
           <<: *only-master
           context: docker
@@ -356,8 +261,6 @@ workflows:
           requires:
             - build-service
             - build-dashboard
-      - build-cli:
-          <<: *only-master
 
   tags:
     jobs:
@@ -370,17 +273,12 @@ workflows:
           - build-service
       - build-dashboard:
           <<: *only-tags
-      - release-sync:
-          <<: *only-tags
-          context: docker
       - release-service-docker:
           <<: *only-tags
           context: docker
           requires:
             - build-service
             - build-dashboard
-      - build-cli:
-          <<: *only-tags
       - release-service-pkg:
           <<: *only-tags
           requires:
