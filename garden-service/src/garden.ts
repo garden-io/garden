@@ -711,7 +711,7 @@ export class Garden {
       environmentName: this.environment.name,
       providers: this.environment.providers,
       variables: this.environment.variables,
-      modules: sortBy(Object.values(this.moduleConfigs), "name"),
+      moduleConfigs: sortBy(await this.resolveModuleConfigs(), "name"),
     }
   }
 
@@ -722,5 +722,5 @@ export interface ConfigDump {
   environmentName: string
   providers: Provider[]
   variables: PrimitiveMap
-  modules: ModuleConfig[]
+  moduleConfigs: ModuleConfig[]
 }
