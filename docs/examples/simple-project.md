@@ -214,6 +214,26 @@ app.get('/call-go-service', (req, res) => {
 })
 ```
 
+We need change the yaml configuration on `services/node-service/garden.yml` and add the new path.Your file will be like this:
+
+```yaml
+module:
+  description: Node service container
+  type: container
+  services:
+    - name: node-service
+      args: [npm, start]
+      ports:
+        - name: http
+          containerPort: 8080
+      ingresses:
+        - path: /hello-node
+          port: http
+        - path: /call-go-service
+          port: http
+```
+
+
 Now let's re-deploy the `node-service` and try out our new endpoint:
 
 ```sh
