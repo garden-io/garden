@@ -71,11 +71,7 @@ import {
   RunTaskParams,
   TaskActionParams,
 } from "./types/plugin/params"
-import {
-  Service,
-  ServiceStatus,
-  prepareRuntimeContext,
-} from "./types/service"
+import { Service, ServiceStatus, getServiceRuntimeContext } from "./types/service"
 import { mapValues, values, keyBy, omit, pickBy, fromPairs } from "lodash"
 import { Omit } from "./util/util"
 import { processServices, ProcessResults } from "./process"
@@ -344,8 +340,7 @@ export class ActionHelper implements TypeGuard {
     const services = keyBy(await graph.getServices(), "name")
 
     const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
-      const serviceDependencies = await graph.getServices(service.config.dependencies)
-      const runtimeContext = await prepareRuntimeContext(this.garden, graph, service.module, serviceDependencies)
+      const runtimeContext = await getServiceRuntimeContext(this.garden, graph, service)
       // TODO: The status will be reported as "outdated" if the service was deployed with hot-reloading enabled.
       //       Once hot-reloading is a toggle, as opposed to an API/CLI flag, we can resolve that issue.
       return this.getServiceStatus({ log, service, runtimeContext, hotReload: false })
