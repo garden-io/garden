@@ -58,10 +58,6 @@ Install Node modules for the root package, and the `dashboard` and `garden-servi
 
     npm run bootstrap
 
-Install Go dependencies for the `garden-cli`:
-
-    dep ensure
-
 ## Running a development version of the CLI
 
 While developing the CLI, we recommend you run the dev command in your console:
