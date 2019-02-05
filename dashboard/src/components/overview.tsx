@@ -16,7 +16,7 @@ import { ExternalLink } from "./links"
 
 import {
   ServiceStatus,
-  Module,
+  ModuleConfig,
   ServiceIngress,
 } from "../api/types"
 
@@ -30,20 +30,20 @@ export function getIngressUrl(ingress: ServiceIngress) {
 }
 
 interface ServicesProps {
-  modules: Module[]
+  moduleConfigs: ModuleConfig[]
   services: { [name: string]: ServiceStatus }
 }
 
 interface ModulesProps {
-  modules: Module[]
+  moduleConfigs: ModuleConfig[]
 }
 
-export const Modules: React.SFC<ModulesProps> = ({ modules }) => {
+export const Modules: React.SFC<ModulesProps> = ({ moduleConfigs }) => {
   const rowHeaders = ["Name", "Type", "Services"]
-  const rows = modules.map(module => [
-    module.name,
-    module.type,
-    module.services.map(s => s.name).join("\n"),
+  const rows = moduleConfigs.map(moduleConfig => [
+    moduleConfig.name,
+    moduleConfig.type,
+    moduleConfig.serviceConfigs.map(s => s.name).join("\n"),
   ])
   return (
     <Table
@@ -54,12 +54,12 @@ export const Modules: React.SFC<ModulesProps> = ({ modules }) => {
   )
 }
 
-export const Services: React.SFC<ServicesProps> = ({ modules, services }) => {
+export const Services: React.SFC<ServicesProps> = ({ moduleConfigs, services }) => {
   const rowHeaders = ["Name", "Status", "Module", "Ingresses"]
   const rows = Object.keys(services).map(service => [
     service,
     services[service].state,
-    modules.find(m => m.serviceNames.includes(service)).name,
+    moduleConfigs.find(m => m.serviceConfigs.map(s => s.name).includes(service)).name,
     <Ingresses ingresses={services[service].ingresses} />,
   ])
   return (

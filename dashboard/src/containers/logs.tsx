@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten } from "lodash"
 import React, { useContext, useEffect } from "react"
 
 import PageError from "../components/page-error"
 import Logs from "../components/logs"
 import LoadWrapper from "../components/load-wrapper"
 import { DataContext } from "../context/data"
+import { getServiceNames } from "../util/helpers"
 
 export default () => {
   const {
@@ -37,9 +37,8 @@ const LogsContainer = () => {
     store: { config, logs },
   } = useContext(DataContext)
 
-  const serviceNames = flatten(config.data.modules.map(m => m.serviceNames))
   useEffect(() => {
-    loadLogs(serviceNames)
+    loadLogs(getServiceNames(config.data.moduleConfigs))
   }, [])
 
   const isLoading = !logs.data
