@@ -1,3 +1,36 @@
+
+<a name="v0.9.0-rc2"></a>
+## [v0.9.0-rc2](https://github.com/garden-io/garden/compare/v0.9.0-rc1...v0.9.0-rc2) (2019-02-04)
+
+### Bug Fixes
+
+* **core:** using module version in templates didn't work with watch ([6c209af](https://github.com/garden-io/garden/commit/6c209af))
+* **core:** certain template strings could not be resolved in configs ([3d582c4](https://github.com/garden-io/garden/commit/3d582c4))
+* **get-tasks:** print msg if no tasks found ([f64d59c](https://github.com/garden-io/garden/commit/f64d59c))
+* **k8s:** incorrect role binding for tiller service account ([9a61840](https://github.com/garden-io/garden/commit/9a61840))
+* **openfaas:** override release name to avoid conflict across namespaces ([2eea9bd](https://github.com/garden-io/garden/commit/2eea9bd))
+* **server:** ensure log entries have level silly ([#496](https://github.com/garden-io/garden/issues/496)) ([5b11322](https://github.com/garden-io/garden/commit/5b11322))
+
+### Code Refactoring
+
+* **commands:** remove create commands ([88d18d8](https://github.com/garden-io/garden/commit/88d18d8))
+* **logger:** rename preserveLevel opt to childEntriesInheritLevel ([0b3efab](https://github.com/garden-io/garden/commit/0b3efab))
+
+### BREAKING CHANGE
+
+
+Module configurations using the `services` template key need to be
+updated to use `modules` instead.
+
+The (admittedly poorly supported) google-cloud-function module type has
+been changed to include only one function per module. This is more
+consistent with other module types, and avoids complex refactoring
+to fit with the changes in the templating context.
+
+After this, the `create project` and `create module` commands will no
+longer be available. We're removing them for now because currently
+they're more confusing than they are useful. There's an open Github}
+
 <a name="v0.9.0-rc1"></a>
 ## [v0.9.0-rc1](https://github.com/garden-io/garden/compare/v0.8.1...v0.9.0-rc1) (2019-01-28)
 
@@ -588,4 +621,3 @@ environment configuration with a global configuration specified on the
 new `global` key in the project config. The schema for the `providers`
 key also different - its keys should now match plugin names, and
 contain configuration for those plugins.
-
