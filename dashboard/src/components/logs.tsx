@@ -7,7 +7,7 @@
  */
 
 import styled from "@emotion/styled/macro"
-import { flatten, max } from "lodash"
+import { max } from "lodash"
 import React, { Component } from "react"
 
 import Terminal from "./terminal"
@@ -15,6 +15,7 @@ import { FetchConfigResponse, FetchLogsResponse } from "../api/types"
 import Card, { CardTitle } from "./card"
 import { colors } from "../styles/variables"
 import { LoadLogs } from "../context/data"
+import { getServiceNames } from "../util/helpers"
 
 interface Props {
   config: FetchConfigResponse
@@ -58,14 +59,13 @@ class Logs extends Component<Props, State> {
   }
 
   refresh() {
-    const serviceNames = flatten(this.props.config.modules.map(m => m.serviceNames))
-    this.props.loadLogs(serviceNames, true)
+    this.props.loadLogs(getServiceNames(this.props.config.moduleConfigs), true)
   }
 
   render() {
     const { config, logs } = this.props
     const { selectedService } = this.state
-    const serviceNames = flatten(config.modules.map(m => m.serviceNames))
+    const serviceNames = getServiceNames(config.moduleConfigs)
     const maxServiceName = max(serviceNames).length
     const title = selectedService === "all"
       ? "All service logs"

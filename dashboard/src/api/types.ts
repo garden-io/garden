@@ -9,6 +9,10 @@
 // TODO: Figure out how to do proper type handling. The types here are mostly just copied from
 // garden-service to facilitate rendering.
 
+export type Primitive = string | number | boolean
+
+export interface PrimitiveMap { [key: string]: Primitive }
+
 export interface DashboardPage {
   title: string
   description: string
@@ -22,27 +26,23 @@ export interface Provider {
   name: string
 }
 
-export interface Service {
-  config: any
+export interface CommonServiceSpec {
+  name: string
+  dependencies: string[]
+  outputs: PrimitiveMap
+}
+
+export interface ServiceConfig extends CommonServiceSpec {
   name: string
   spec: any
 }
 
-export interface Module {
+export interface ModuleConfig {
   name: string
-  buildPath: string
+  path: string
   type: string
-  // version: ModuleVersion
 
-  services: Service[]
-  serviceNames: string[]
-  serviceDependencyNames: string[]
-
-  // tasks: Task<Module<M, S, T, W>>[]
-  taskNames: string[]
-  taskDependencyNames: string[]
-
-  // _ConfigType: ModuleConfig<M, S, T, W>
+  serviceConfigs: ServiceConfig[]
 }
 
 export interface ServiceIngress {
@@ -81,7 +81,7 @@ export interface FetchStatusResponse {
 export interface FetchConfigResponse {
   environmentName: string
   providers: Provider[]
-  modules: Module[]
+  moduleConfigs: ModuleConfig[]
 }
 
 export type RenderedNode = { type: RenderedNodeType, name: string }

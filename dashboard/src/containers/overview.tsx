@@ -43,7 +43,7 @@ export default () => {
   return (
     <div>
       <LoadWrapper error={config.error} ErrorComponent={PageError} loading={isLoadingModules}>
-        <Modules modules={config.data && config.data.modules} />
+        <Modules moduleConfigs={config.data && config.data.moduleConfigs} />
       </LoadWrapper>
       <LoadWrapper
         error={status.error}
@@ -51,7 +51,7 @@ export default () => {
         ErrorComponent={PageError}
         loading={isLoadingServices}>
         <Services
-          modules={config.data && config.data.modules}
+          moduleConfigs={config.data && config.data.moduleConfigs}
           services={status.data && status.data.services}
         />
       </LoadWrapper>
