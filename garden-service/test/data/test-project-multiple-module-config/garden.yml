@@ -1,0 +1,19 @@
+project:
+  name: test-project-multiple-modules
+  environmentDefaults:
+    variables:
+      some: variable
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin
+        - name: test-plugin-b
+    - name: other
+
+---
+
+module:
+  name: module-from-project-config
+  type: test
+  build:
+    command: [echo, project]

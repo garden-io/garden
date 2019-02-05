@@ -464,10 +464,10 @@ export async function getOpenFaasGarden(ctx: PluginContext): Promise<Garden> {
   return Garden.factory(systemProjectPath, {
     environmentName: "default",
     config: {
-      version: "0",
       dirname: "system",
       path: systemProjectPath,
       project: {
+        apiVersion: "0",
         name: `${ctx.projectName}-openfaas`,
         environmentDefaults: {
           providers: [],

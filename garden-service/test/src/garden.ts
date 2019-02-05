@@ -130,6 +130,21 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
+    it("should scan and add modules for projects with configs defining multiple modules", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-project-multiple-module-config"))
+      await garden.scanModules()
+
+      const modules = await garden.resolveModuleConfigs()
+      expect(getNames(modules).sort()).to.eql([
+        "module-a1",
+        "module-a2",
+        "module-b1",
+        "module-b2",
+        "module-c",
+        "module-from-project-config",
+      ])
+    })
+
     it("should scan and add modules for projects with external project sources", async () => {
       const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"))
 
@@ -160,19 +175,19 @@ describe("Garden", () => {
     })
   })
 
-  describe("loadModuleConfig", () => {
+  describe("loadModuleConfigs", () => {
     it("should resolve module by absolute path", async () => {
       const garden = await makeTestGardenA()
       const path = join(projectRootA, "module-a")
 
-      const module = await (<any>garden).loadModuleConfig(path)
+      const module = (await (<any>garden).loadModuleConfigs(path))[0]
       expect(module!.name).to.equal("module-a")
     })
 
     it("should resolve module by relative path to project root", async () => {
       const garden = await makeTestGardenA()
 
-      const module = await (<any>garden).loadModuleConfig("./module-a")
+      const module = (await (<any>garden).loadModuleConfigs("./module-a"))[0]
       expect(module!.name).to.equal("module-a")
     })
 
@@ -181,7 +196,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRoot)
       stubGitCli()
 
-      const module = await (<any>garden).loadModuleConfig("./module-a")
+      const module = (await (<any>garden).loadModuleConfigs("./module-a"))[0]
       const repoUrlHash = hashRepoUrl(module!.repositoryUrl!)
 
       expect(module!.path).to.equal(join(projectRoot, ".garden", "sources", "module", `module-a--${repoUrlHash}`))

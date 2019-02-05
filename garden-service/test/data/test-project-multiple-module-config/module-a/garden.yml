@@ -1,0 +1,31 @@
+module:
+  name: module-a1
+  type: test
+  services:
+    - name: service-a1
+  build:
+    command: [echo, A1]
+    dependencies:
+      - module-from-project-config
+  tests:
+    - name: unit
+      command: [echo, OK]
+  tasks:
+    - name: task-a1
+      command: [echo, OK]
+
+---
+
+module:
+  name: module-a2
+  type: test
+  services:
+    - name: service-a2
+  build:
+    command: [echo, A2]
+  tests:
+    - name: unit
+      command: [echo, OK]
+  tasks:
+    - name: task-a2
+      command: [echo, OK]

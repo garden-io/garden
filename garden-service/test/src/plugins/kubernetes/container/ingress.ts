@@ -336,6 +336,7 @@ describe("createIngresses", () => {
         command: [],
         dependencies: [],
       },
+      apiVersion: "0",
       name: "test",
       outputs: {},
       path: "/tmp",

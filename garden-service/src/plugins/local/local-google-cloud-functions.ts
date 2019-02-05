@@ -76,6 +76,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         })
 
         return {
+          apiVersion: "0",
           allowPublish: true,
           build: {
             command: [],

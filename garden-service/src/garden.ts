@@ -403,15 +403,18 @@ export class Garden {
     this.loadedPlugins[pluginName] = plugin
 
     for (const modulePath of plugin.modules || []) {
-      let moduleConfig = await this.loadModuleConfig(modulePath)
-      if (!moduleConfig) {
-        throw new PluginError(`Could not load module "${modulePath}" specified in plugin "${pluginName}"`, {
+      let moduleConfigs = await this.loadModuleConfigs(modulePath)
+      if (!moduleConfigs) {
+        throw new PluginError(`Could not load module(s) at "${modulePath}" specified in plugin "${pluginName}"`, {
           pluginName,
           modulePath,
         })
       }
-      moduleConfig.plugin = pluginName
-      this.pluginModuleConfigs.push(moduleConfig)
+
+      for (const moduleConfig of moduleConfigs) {
+        moduleConfig.plugin = pluginName
+        this.pluginModuleConfigs.push(moduleConfig)
+      }
     }
 
     const actions = plugin.actions || {}
@@ -609,9 +612,9 @@ export class Garden {
       const rawConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]
 
       await Bluebird.map(modulePaths, async path => {
-        const config = await this.loadModuleConfig(path)
-        if (config) {
-          rawConfigs.push(config)
+        const configs = await this.loadModuleConfigs(path)
+        if (configs) {
+          rawConfigs.push(...configs)
         }
       })
 
@@ -657,24 +660,23 @@ export class Garden {
    *
    * @param path Directory containing the module
    */
-  private async loadModuleConfig(path: string): Promise<ModuleConfig | null> {
+  private async loadModuleConfigs(path: string): Promise<ModuleConfig[] | null> {
     const config = await loadConfig(this.projectRoot, resolve(this.projectRoot, path))
 
-    if (!config || !config.module) {
+    if (!config || !config.modules) {
       return null
     }
 
-    const moduleConfig = cloneDeep(config.module)
-
-    if (moduleConfig.repositoryUrl) {
-      moduleConfig.path = await this.loadExtSourcePath({
-        name: moduleConfig.name,
-        repositoryUrl: moduleConfig.repositoryUrl,
-        sourceType: "module",
-      })
-    }
-
-    return moduleConfig
+    return Bluebird.map(cloneDeep(config.modules), async (moduleConfig) => {
+      if (moduleConfig.repositoryUrl) {
+        moduleConfig.path = await this.loadExtSourcePath({
+          name: moduleConfig.name,
+          repositoryUrl: moduleConfig.repositoryUrl,
+          sourceType: "module",
+        })
+      }
+      return moduleConfig
+    })
   }
 
   //===========================================================================

@@ -1,0 +1,30 @@
+project:
+  name: test-project
+  environmentDefaults:
+    variables:
+      some: variable
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin
+        - name: test-plugin-b
+    - name: other
+
+---
+
+project:
+  name: test-project-duplicate
+  environmentDefaults:
+    variables:
+      some: variable
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin
+    - name: other
+
+module:
+  name: module-from-project-config
+  type: test
+  build:
+    command: [echo, project]

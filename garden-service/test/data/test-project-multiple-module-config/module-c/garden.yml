@@ -1,0 +1,14 @@
+module:
+  name: module-c
+  type: test
+  services:
+    - name: service-c
+  build:
+    dependencies:
+      - module-b1
+  tests:
+    - name: unit
+      command: [echo, OK]
+  tasks:
+    - name: task-c
+      command: [echo, OK]
