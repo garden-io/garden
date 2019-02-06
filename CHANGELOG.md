@@ -1,4 +1,8 @@
 
+<a name="v0.9.0"></a>
+## [v0.9.0](https://github.com/garden-io/garden/compare/v0.9.0-rc3...v0.9.0) (2019-02-06)}
+
+
 <a name="v0.9.0-rc2"></a>
 ## [v0.9.0-rc2](https://github.com/garden-io/garden/compare/v0.9.0-rc1...v0.9.0-rc2) (2019-02-04)
 
