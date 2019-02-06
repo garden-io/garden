@@ -86,12 +86,16 @@ export class Watcher {
         this.invalidateCached(modules)
 
         if (changedModule) {
-          this.garden.events.emit("moduleConfigChanged", { name: changedModule.name })
+          this.garden.events.emit("moduleConfigChanged", { name: changedModule.name, path })
         } else if (filename === MODULE_CONFIG_FILENAME) {
           if (parsed.dir === this.garden.projectRoot) {
             this.garden.events.emit("projectConfigChanged", {})
           } else {
-            this.garden.events.emit("configAdded", { path })
+            if (type === "added") {
+              this.garden.events.emit("configAdded", { path })
+            } else {
+              this.garden.events.emit("configRemoved", { path })
+            }
           }
         }
 

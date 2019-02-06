@@ -19,6 +19,8 @@ import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { startServer } from "./server/server"
 import { ConfigGraph } from "./config-graph"
+import { dedent } from "./util/string"
+import { ConfigurationError } from "./exceptions"
 
 export type ProcessHandler = (graph: ConfigGraph, module: Module) => Promise<BaseTask[]>
 
@@ -121,19 +123,32 @@ export async function processModules(
       resolve()
     })
 
-    garden.events.on("projectConfigChanged", () => {
-      log.info({ symbol: "info", msg: `Project configuration changed, reloading...` })
-      resolve()
+    garden.events.on("projectConfigChanged", async () => {
+      if (await validateConfigChange(garden, log, garden.projectRoot, "changed")) {
+        log.info({ symbol: "info", msg: `Project configuration changed, reloading...` })
+        resolve()
+      }
     })
 
-    garden.events.on("configAdded", (event) => {
-      log.info({ symbol: "info", msg: `Garden config added at ${event.path}, reloading...` })
-      resolve()
+    garden.events.on("configAdded", async (event) => {
+      if (await validateConfigChange(garden, log, event.path, "added")) {
+        log.info({ symbol: "info", msg: `Garden config added at ${event.path}, reloading...` })
+        resolve()
+      }
     })
 
-    garden.events.on("moduleConfigChanged", (event) => {
-      log.info({ symbol: "info", section: event.name, msg: `Module configuration changed, reloading...` })
-      resolve()
+    garden.events.on("configRemoved", async (event) => {
+      if (await validateConfigChange(garden, log, event.path, "removed")) {
+        log.info({ symbol: "info", msg: `Garden config at ${event.path} removed, reloading...` })
+        resolve()
+      }
+    })
+
+    garden.events.on("moduleConfigChanged", async (event) => {
+      if (await validateConfigChange(garden, log, event.path, "changed")) {
+        log.info({ symbol: "info", section: event.name, msg: `Module configuration changed, reloading...` })
+        resolve()
+      }
     })
 
     garden.events.on("moduleSourcesChanged", async (event) => {
@@ -163,4 +178,36 @@ export async function processModules(
     restartRequired: true,
   }
 
+}
+
+/**
+ * When config files change / are added / are removed, we try initializing a new Garden instance
+ * with the changed config files and performing a bit of validation on it before proceeding with
+ * a restart. If a config error was encountered, we simply log the error and keep the existing
+ * Garden instance.
+ *
+ * Returns true if no configuration errors occurred.
+ */
+async function validateConfigChange(
+  garden: Garden, log: LogEntry, changedPath: string, operationType: "added" | "changed" | "removed",
+): Promise<boolean> {
+
+  try {
+    const nextGarden = await Garden.factory(garden.projectRoot, garden.opts)
+    await nextGarden.getConfigGraph()
+  } catch (error) {
+    if (error instanceof ConfigurationError) {
+      const msg = dedent`
+        Encountered configuration error after ${changedPath} was ${operationType}:
+
+        ${error.message}
+
+        Keeping existing configuration and skipping restart.`
+      log.error({ symbol: "error", msg, error })
+      return false
+    } else {
+      throw error
+    }
+  }
+  return true
 }
