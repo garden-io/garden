@@ -7,8 +7,9 @@
  */
 
 import { expect } from "chai"
-import { getPackageVersion, parseLogLevel, getLogLevelChoices } from "../../../src/cli/helpers"
+import { parseLogLevel, getLogLevelChoices } from "../../../src/cli/helpers"
 import { expectError } from "../../helpers"
+import { getPackageVersion } from "../../../src/util/util"
 
 describe("helpers", () => {
   const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]

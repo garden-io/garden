@@ -11,8 +11,8 @@ import {
   CommandResult,
   CommandParams,
 } from "./base"
-import { getPackageVersion } from "../cli/helpers"
 import chalk from "chalk"
+import { getPackageVersion } from "../util/util"
 
 export class VersionCommand extends Command {
   name = "version"
