@@ -8,6 +8,7 @@
 
 import * as split from "split"
 import moment = require("moment")
+import JSONStream = require("JSONStream")
 
 import { GetServiceLogsResult } from "../../types/plugin/outputs"
 import { GetServiceLogsParams } from "../../types/plugin/params"
@@ -51,18 +52,13 @@ async function followLogs({ context, namespace, service, selector, stream, log, 
   let timestamp: Date | undefined
 
   proc.stdout
-    .pipe(split())
-    .on("data", (line) => {
-      if (!line || line[0] !== "{") {
-        return
-      }
-      const obj = JSON.parse(line)
-      const [timestampStr, msg] = splitFirst(obj.message, " ")
+    .pipe(JSONStream.parse(["message"], (message) => {
+      const [timestampStr, msg] = splitFirst(message, " ")
       try {
         timestamp = moment(timestampStr).toDate()
       } catch { }
       void stream.write({ serviceName: service.name, timestamp, msg: msg.trimRight() })
-    })
+    }))
 
   return proc
 }
