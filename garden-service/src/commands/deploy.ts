@@ -45,6 +45,7 @@ const deployOpts = {
       Use comma as a separator to specify multiple services. When this option is used,
       the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
     `,
+    alias: "hot",
   }),
 }
 
