@@ -1,3 +1,17 @@
+<a name="v0.9.0-rc3"></a>
+## [v0.9.0-rc3](https://github.com/garden-io/garden/compare/v0.9.0-rc2...v0.9.0-rc3) (2019-02-06)
+
+### Bug Fixes
+
+* **core:** missing module configs in dumpConfig response ([c8609a2](https://github.com/garden-io/garden/commit/c8609a2))
+* **core:** error in actions.getStatus helper ([a4cf625](https://github.com/garden-io/garden/commit/a4cf625))
+* **dashboard:** handle empty ingress in service status ([870d5f3](https://github.com/garden-io/garden/commit/870d5f3))
+* **dashboard:** conform to new "get config" response ([bfa2c0f](https://github.com/garden-io/garden/commit/bfa2c0f))
+
+### Code Refactoring
+
+* remove experimental Go CLI ([e9ef3aa](https://github.com/garden-io/garden/commit/e9ef3aa))
+* **go-cli:** replace unison with mutagen (wip) ([b7a0d33](https://github.com/garden-io/garden/commit/b7a0d33))
 
 <a name="v0.9.0-rc2"></a>
 ## [v0.9.0-rc2](https://github.com/garden-io/garden/compare/v0.9.0-rc1...v0.9.0-rc2) (2019-02-04)
