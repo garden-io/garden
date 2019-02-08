@@ -199,8 +199,3 @@ export function failOnInvalidOptions(argv, ctx) {
     ctx.cliMessage(`Received invalid flag(s): ${invalid.join(", ")}`)
   }
 }
-
-export function getPackageVersion(): String {
-  const version = require("../../package.json").version
-  return version
-}

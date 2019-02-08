@@ -11,7 +11,9 @@ import { KubeApi } from "./api"
 import { KubernetesProvider } from "./kubernetes"
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
+import { getPackageVersion } from "../../util/util"
 
+const GARDEN_VERSION = getPackageVersion()
 const created: { [name: string]: boolean } = {}
 
 export async function ensureNamespace(api: KubeApi, namespace: string) {
@@ -26,19 +28,26 @@ export async function ensureNamespace(api: KubeApi, namespace: string) {
 
     if (!created[namespace]) {
       // TODO: the types for all the create functions in the library are currently broken
-      await api.core.createNamespace(<any>{
-        apiVersion: "v1",
-        kind: "Namespace",
-        metadata: {
-          name: namespace,
-          annotations: {
-            "garden.io/generated": "true",
-          },
-        },
-      })
+      await createNamespace(api, namespace)
       created[namespace] = true
     }
   }
+}
+
+// Note: Does not check whether the namespace already exists.
+export async function createNamespace(api: KubeApi, namespace: string) {
+  // TODO: the types for all the create functions in the library are currently broken
+  return api.core.createNamespace(<any>{
+    apiVersion: "v1",
+    kind: "Namespace",
+    metadata: {
+      name: namespace,
+      annotations: {
+        "garden.io/generated": "true",
+        "garden.io/version": GARDEN_VERSION,
+      },
+    },
+  })
 }
 
 export async function getNamespace(
