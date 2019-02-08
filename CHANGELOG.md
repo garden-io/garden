@@ -1,3 +1,17 @@
+
+<a name="v0.9.0"></a>
+## [v0.9.0](https://github.com/garden-io/garden/compare/v0.9.0-rc3...v0.9.0) (2019-02-08)
+
+### Bug Fixes
+
+* delete outdated system namespaces ([cda0c7c](https://github.com/garden-io/garden/commit/cda0c7c))
+* **deploy:** make watch parameter implicit when hot-reloading ([0819605](https://github.com/garden-io/garden/commit/0819605))
+* **k8s:** fix issue with log following for K8s ([6624964](https://github.com/garden-io/garden/commit/6624964))
+
+### Features
+
+* **cli:** add --hot alias for --hot-reload flag ([22ac4f6](https://github.com/garden-io/garden/commit/22ac4f6))}
+
 <a name="v0.9.0-rc3"></a>
 ## [v0.9.0-rc3](https://github.com/garden-io/garden/compare/v0.9.0-rc2...v0.9.0-rc3) (2019-02-06)
 

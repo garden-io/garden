@@ -1,6 +1,6 @@
 {
   "name": "garden-cli",
-  "version": "0.9.0-rc3",
+  "version": "0.9.0",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
