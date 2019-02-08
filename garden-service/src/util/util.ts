@@ -61,6 +61,11 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
   exitHook(func)
 }
 
+export function getPackageVersion(): String {
+  const version = require("../../package.json").version
+  return version
+}
+
 /*
   Warning: Don't make any async calls in the loop body when using this function, since this may cause
   funky concurrency behavior.

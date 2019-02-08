@@ -42,8 +42,8 @@ In a separate tab, open http://result.local.app.garden. The results there will r
 Hot-reloading needs to be enabled per service when starting `garden deploy` or `garden dev`:
 
 ```sh
-garden dev --hot-reload=vote
-# OR garden deploy -w --hot-reload=vote
+garden dev --hot=vote
+# OR garden deploy --hot=vote
 ```
 
 Then try making a change to one of the source files in the `vote` service, to see it synchronize into the

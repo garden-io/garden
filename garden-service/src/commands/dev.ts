@@ -39,7 +39,9 @@ const devOpts = {
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
       Use comma as a separator to specify multiple services.
-    `}),
+    `,
+    alias: "hot",
+  }),
 }
 
 type Args = typeof devArgs
@@ -61,7 +63,8 @@ export class DevCommand extends Command<Args, Opts> {
     Examples:
 
         garden dev
-        garden dev --hot-reload=foo-service,bar-service # enable hot reloading for foo-service and bar-service
+        garden dev --hot-reload=foo-service       # enable hot reloading for foo-service
+        garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
   `
 
   options = devOpts

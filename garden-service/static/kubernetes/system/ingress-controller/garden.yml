@@ -3,6 +3,7 @@ module:
   name: ingress-controller
   type: helm
   chart: stable/nginx-ingress
+  releaseName: garden-nginx
   dependencies:
     - default-backend
   version: 0.25.1

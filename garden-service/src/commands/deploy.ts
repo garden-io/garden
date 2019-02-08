@@ -23,7 +23,6 @@ import { processServices } from "../process"
 import { logHeader } from "../logger/util"
 import { HotReloadTask } from "../tasks/hot-reload"
 import { BaseTask } from "../tasks/base"
-import { ParameterError } from "../exceptions"
 
 const deployArgs = {
   services: new StringsParameter({
@@ -45,6 +44,7 @@ const deployOpts = {
       Use comma as a separator to specify multiple services. When this option is used,
       the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
     `,
+    alias: "hot",
   }),
 }
 
@@ -89,12 +89,8 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: {} }
     }
 
-    const watch = opts.watch
     const hotReloadServiceNames = opts["hot-reload"] || []
-
-    if (hotReloadServiceNames.length > 0 && !watch) {
-      throw new ParameterError(`Must specify --watch flag when requesting hot-reloading`, { opts })
-    }
+    const watch = opts.watch || hotReloadServiceNames.length > 0
 
     // TODO: make this a task
     await garden.actions.prepareEnvironment({ log })

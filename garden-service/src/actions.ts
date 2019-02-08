@@ -181,8 +181,10 @@ export class ActionHelper implements TypeGuard {
     // sequentially go through the preparation steps, to allow plugins to request user input
     for (const [name, handler] of Object.entries(handlers)) {
       const status = statuses[name] || { ready: false }
+      const needForce = status.detail && !!status.detail.needForce
+      const forcePrep = force || needForce
 
-      if (status.ready && !force) {
+      if (status.ready && !forcePrep) {
         continue
       }
 
@@ -192,7 +194,7 @@ export class ActionHelper implements TypeGuard {
         msg: "Preparing environment...",
       })
 
-      await handler({ ...this.commonParams(handler, log), force, status, log: envLogEntry })
+      await handler({ ...this.commonParams(handler, log), force: forcePrep, status, log: envLogEntry })
 
       envLogEntry.setSuccess("Configured")
 

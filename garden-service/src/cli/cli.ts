@@ -12,7 +12,7 @@ import { resolve } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import { DeepPrimitiveMap } from "../config/common"
-import { shutdown, sleep } from "../util/util"
+import { shutdown, sleep, getPackageVersion } from "../util/util"
 import {
   BooleanParameter,
   ChoicesParameter,
@@ -42,7 +42,6 @@ import {
   prepareArgConfig,
   prepareOptionConfig,
   styleConfig,
-  getPackageVersion,
   getLogLevelChoices,
   parseLogLevel,
 } from "./helpers"
