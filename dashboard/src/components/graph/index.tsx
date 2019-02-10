@@ -325,7 +325,7 @@ class Chart extends Component<Props, State> {
             display: flex;
             justify-content: space-between;
           `, "ml-1 mr-1 pb-1")}>
-            <div>
+            <div className={css`display: flex;`}>
               <Status>{status}</Status>
               {spinner}
             </div>
