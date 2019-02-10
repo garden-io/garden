@@ -104,7 +104,7 @@ Our release process generates the following packages:
 
 To make a new release, set your current working directory to the garden root directory and follow the steps below.
 
-1. Run the release script: `./bin/release <version>`. The script does the following:
+1. Run the release script: `./bin/release.tsx <minor | patch | preminor | prepatch | prerelease> [--force]`. The script does the following:
     * Checks out a branch named `release-<version>`.
     * Updates `package.json` and `package-lock.json` for `garden-service` and the changelog.
     * Commits the changes, tags the commit and pushes the tag, triggering a CI process the creates the release artifacts.
@@ -112,7 +112,11 @@ To make a new release, set your current working directory to the garden root dir
 3. Go to our Github [Releases tab](https://github.com/garden-io/garden/releases) and click the **Draft a new release** button.
 4. Fill in the **Tag version** and **Release title** fields with the new release version (same as you used for the tag).
 5. Upload the downloaded artifacts.
-6. Write release notes (not necessary for RCs). The notes should _at least_ contain the changelog.
+6. Write release notes (not necessary for RCs). The notes should _at least_ contain the changelog. To generate a changelog for just that tag, run `git-chglog <tag-name>`.
 7. Click the **Publish release** button.
 8. Push the branch and make a pull request.
 9. If you're making an RC, you're done! Otherwise, you need to update Homebrew package: `gulp update-brew`.
+
+## Changelog
+
+We keep a changelog under `CHANGELOG.md` that get's updated on every release. For pre-releases, we include every pre-release tag in that release cycle in the changelog. So if we're releasing, say, `v0.9.1-3`, the changelog will include entries for `v0.9.1-0`, `v0.9.1-1`, `v0.9.1-2`, assuming those tags exist. Once we make a proper release, we remove the pre-release tags so that the changelog only shows changes between `v0.9.0` and `v0.9.1`. A changelog with the pre-releases is of course always available in our Git history.
