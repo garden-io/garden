@@ -6,19 +6,81 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import styled from "@emotion/styled/macro"
 import React, { ChangeEvent } from "react"
+
+import { colors } from "../styles/variables"
+
+const Label = styled.label`
+  display: block;
+  position: relative;
+  padding-left: 35px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  user-select: none;
+  :hover {
+    input, span {
+      background-color: ${colors.gray};
+    }
+  }
+`
+
+const Input = styled.input`
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+  :checked {
+    background-color: ${colors.gardenPink} !important;
+  }
+`
+
+const Checkmark = styled.span`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 21px;
+  width: 21px;
+  border: 1px solid ${colors.darkGray};
+  :after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 7px;
+    top: 3px;
+    width: 7px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+  }
+`
+
+const CheckmarkChecked = styled(Checkmark)`
+  background-color: ${colors.gardenPink} !important;
+  border: none;
+  :after {
+    display: block;
+  }
+`
 
 interface Props {
   name: string
+  label: string
   checked?: boolean
   onChange: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
-const CheckBox: React.SFC<Props> = ({ name, onChange, checked = false }) => {
+const CheckBox: React.SFC<Props> = ({ name, label, onChange, checked = false }) => {
+  const Mark = checked ? CheckmarkChecked : Checkmark
   return (
-    <label>
-      <input type={"checkbox"} name={name} checked={checked} onChange={onChange} />
-    </label>
+    <Label>
+      {label}
+      <Input type={"checkbox"} name={name} checked={checked} onChange={onChange} />
+      <Mark />
+    </Label>
   )
 }
 

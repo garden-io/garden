@@ -29,6 +29,7 @@ export const colors = {
   white: "#ffffff",
   lightBlack: "#030303",
   gray: "#f0f0f0",
+  darkGray: "#ccc",
   lightGray: "#fafafa",
   waikawaGray: "#597088",
   gardenGreen: "#02f2b4",

@@ -25,6 +25,7 @@ import Card from "../card"
 import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner from "../spinner"
+import CheckBox from "../checkbox"
 
 interface Node {
   name: string
@@ -303,18 +304,17 @@ class Chart extends Component<Props, State> {
 
     return (
       <Card>
-        <div>
-          <div>
+        <div className="mt-1">
+          <div className={css`display: flex;`}>
             {taskTypes.map(type => (
-              <label className="ml-1" key={type}>
-                {capitalize(type)}
-                <input
-                  type={"checkbox"}
+              <div className="ml-1" key={type}>
+                <CheckBox
+                  label={capitalize(type)}
                   name={type}
                   checked={!this.state.filters[type]}
                   onChange={this.onCheckboxChange}
                 />
-              </label>
+              </div>
             ))}
           </div>
           <div className={css`
@@ -325,7 +325,7 @@ class Chart extends Component<Props, State> {
             display: flex;
             justify-content: space-between;
           `, "ml-1 mr-1 pb-1")}>
-            <div>
+            <div className={css`display: flex;`}>
               <Status>{status}</Status>
               {spinner}
             </div>
