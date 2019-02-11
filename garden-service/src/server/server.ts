@@ -8,6 +8,7 @@
 
 import chalk from "chalk"
 import Koa = require("koa")
+import mount = require("koa-mount")
 import serve = require("koa-static")
 import Router = require("koa-router")
 import websockify = require("koa-websocket")
@@ -79,8 +80,12 @@ export async function createApp(garden: Garden, log: LogEntry) {
   app.use(http.routes())
   app.use(http.allowedMethods())
 
-  // TODO: Bundle the dashboard with the NPM / Zeit packages
-  app.use(serve(DASHBOARD_STATIC_DIR))
+  // This enables navigating straight to a nested route, e.g. "localhost:<PORT>/graph".
+  // FIXME: We need to be able to do this for any route, instead of hard coding the routes like this.
+  const routes = ["/", "/graph", "/logs"]
+  for (const route of routes) {
+    app.use(mount(route, serve(DASHBOARD_STATIC_DIR)))
+  }
 
   addWebsocketEndpoint(app, garden, log, commands)
 
