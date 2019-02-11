@@ -21,24 +21,25 @@ interface Props {
 }
 
 const Term = styled.div`
-  background-color: ${colors.lightBlack};
+  background-color: ${colors.black};
   border-radius: 2px;
   max-height: 45rem;
+  max-width: calc(18wv - 4rem);
   overflow-y: auto;
 `
 
 const P = styled.p`
-  color: ${colors.white};
+  color: ${colors.gardenWhite};
   font-size: 0.8rem;
 `
 
 const Service = styled.span`
-  color: ${colors.brightTealAccent};
+  color: ${colors.gardenGreen};
   display: inline-block;
 `
 
 const Timestamp = styled.span`
-  color: ${colors.lightGray};
+  color: ${colors.gardenGrayLight};
 `
 
 // FIXME Use whitespace instead of dots for the sectinon padding.

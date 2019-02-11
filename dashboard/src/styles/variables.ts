@@ -20,62 +20,28 @@ export const fontMedium = `${fontFamily};font-weight: 500;`
 export const fontItalic = `${fontFamily};font-style: italic;`
 
 function gardenPinkLighten(pct: number) {
-  return `rgba(218, 69, 162, ${pct})`
+  return `rgba(237, 131, 204, ${pct})`
 }
 
+// Colours prefixed with `garden` are from the official Garden colour palette.
+// The rest are for those cases where none of the official colours worked.
 export const colors = {
-  azure: "#00aeef",
-  lightWhite: "rgba(255, 255, 255, 0.15)",
-  white: "#ffffff",
-  lightBlack: "#030303",
-  gray: "#f0f0f0",
-  darkGray: "#ccc",
-  lightGray: "#fafafa",
-  waikawaGray: "#597088",
-  gardenGreen: "#02f2b4",
-  gardenGrey: "#f8faff",
-  gardenPink: "#da45a2",
-  gardenPinkRgba: "rgba(218, 69, 162, 0)",
-  gardenPinkLighten,
-  blueyGrey: "#98a6b6",
-  iceCold: "#a5f1e6",
-  darkGreen: "#277379",
-  navy: "#01244a",
-  jungleMist: "#bccfd9",
-  spindle: "#c3ccec",
-  thistle: "#d7b7dc",
-  frenchLilac: "#ebb9e0",
-  brightTealAccent: "#00eac7",
-  regentGray: "#8294a6",
-  pink: "#ff2ea7",
-  purplePink: "#f17fcd",
-  heather: "#b4bfca",
   border: "rgba(0,0,0,0.12)",
-  font: {
-    default: "#000000",
-    light: "#666666",
-    main: "#333333",
-  },
-  navbar: {
-    peacockBlue: "#00569a",
-    lightGreenishBlue: "#66ffcc",
-    aquamarine: "#00c9b6",
-    azure: "#00aeef",
-    blueGreen: "#169a9a",
-    border: "rgba(1, 36, 74, 0.1)",
-    catskill: "#deeaf0",
-  },
-  section: {
-    motivation: "#e4f6fd",
-    product: "#c9ffed",
-    excited: "#05284d",
-    about: "#bcf0eb",
-    investors: "#f17fcd",
-    jobs: "#e6f4f4",
-  },
-  impressum: {
-    section: {
-      google: "#eef4f7",
-    },
-  },
+  black: "#030303",
+  gray: "#f0f0f0",
+  grayLight: "#fafafa",
+  gardenGray: "#555656",
+  gardenGrayLight: "#cdcfd1",
+  gardenBlack: "#010101",
+  gardenBlue: "#00adef",
+  gardenBlueDark: "#01569a",
+  gardenBlueLight: "#e4f6fd",
+  gardenGreenDarker: "#16999a",
+  gardenGreenDark: "#00c9b6",
+  gardenGreen: "#66ffcc",
+  gardenGreenLight: "#c9ffed",
+  gardenPink: "#ed83cc",
+  gardenPinkLighten,
+  gardenPinkRgba: "rgba(237, 131, 204, 0)",
+  gardenWhite: "#ffffff",
 }

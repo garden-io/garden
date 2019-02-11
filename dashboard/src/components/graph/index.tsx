@@ -216,6 +216,10 @@ class Chart extends Component<Props, State> {
     }
   }
 
+  componentWillUnmount() {
+    window.onresize = () => { }
+  }
+
   onCheckboxChange({ target }: ChangeEvent<HTMLInputElement>) {
     this.setState({
       filters: { ...this.state.filters, [target.name]: !target.checked },
@@ -299,7 +303,7 @@ class Chart extends Component<Props, State> {
     let status = ""
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."
-      spinner = <ProcessSpinner background={colors.white} fontSize="2px" />
+      spinner = <ProcessSpinner background={colors.gardenWhite} fontSize="2px" />
     }
 
     return (

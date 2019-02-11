@@ -39,10 +39,10 @@ const Header = styled.div`
 const Button = styled.div`
   padding: 0.5em;
   border-radius: 10%;
-  border: 1px solid ${colors.darkGray};
+  border: 2px solid ${colors.gardenGrayLight};
   cursor: pointer;
   :hover {
-    background-color: ${colors.gray};
+    border: 2px solid ${colors.gardenGray};
     transition: all 0.3s ease-out;
   }
   :active {
@@ -51,7 +51,8 @@ const Button = styled.div`
 `
 
 const Icon = styled.i`
-  font-size: 1.5rem;
+  color: ${colors.gardenGray};
+  font-size: 1.25rem;
   :active {
     opacity: 0.5;
   }
@@ -73,18 +74,18 @@ const IconLoading = styled(Icon)`
 const selectStyles = {
   control: (base, state) => ({
     ...base,
-    "boxShadow": state.isFocused ? `0 0 0 1px ${colors.gray}` : 0, // The box shadow adds width to the border
-    "borderColor": state.isFocused ? colors.gray : base.borderColor,
+    "boxShadow": state.isFocused ? `0 0 0 1px ${colors.gardenGrayLight}` : 0, // The box shadow adds width to the border
+    "borderColor": state.isFocused ? colors.gardenGrayLight : base.borderColor,
     "&:hover": {
-      borderColor: state.isFocused ? colors.gray : base.borderColor,
+      borderColor: state.isFocused ? colors.gardenGrayLight : base.borderColor,
     },
   }),
   option: (base, state) => ({
     ...base,
-    color: colors.lightBlack,
+    color: colors.black,
     backgroundColor: state.isSelected
-      ? colors.gray
-      : state.isFocused ? colors.lightGray : colors.white,
+      ? colors.gardenGreenDark
+      : state.isFocused ? colors.gardenGreenLight : colors.gardenWhite,
   }),
 }
 

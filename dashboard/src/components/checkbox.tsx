@@ -43,7 +43,7 @@ const Checkmark = styled.span`
   left: 0;
   height: 21px;
   width: 21px;
-  border: 1px solid ${colors.darkGray};
+  border: 1px solid ${colors.gardenGrayLight};
   :after {
     content: "";
     position: absolute;
