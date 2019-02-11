@@ -82,7 +82,7 @@ const selectStyles = {
   }),
   option: (base, state) => ({
     ...base,
-    color: colors.black,
+    color: colors.gardenBlack,
     backgroundColor: state.isSelected
       ? colors.gardenGreenDark
       : state.isFocused ? colors.gardenGreenLight : colors.gardenWhite,
