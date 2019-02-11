@@ -20,7 +20,7 @@ import {
 const styles = css`
   html {
     box-sizing: border-box;
-    color: ${colors.black};
+    color: ${colors.gardenBlack};
     font-size: ${"1em" /*was: 44%*/};
 
     ${media.tablet`

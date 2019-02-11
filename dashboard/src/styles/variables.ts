@@ -27,7 +27,6 @@ function gardenPinkLighten(pct: number) {
 // The rest are for those cases where none of the official colours worked.
 export const colors = {
   border: "rgba(0,0,0,0.12)",
-  black: "#030303",
   gray: "#f0f0f0",
   grayLight: "#fafafa",
   gardenGray: "#555656",
