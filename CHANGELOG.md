@@ -1,34 +1,65 @@
-<a name="v0.9.0-rc3"></a>
-## [v0.9.0-rc3](https://github.com/garden-io/garden/compare/v0.9.0-rc2...v0.9.0-rc3) (2019-02-06)
+
+<a name="v0.9.0"></a>
+## [v0.9.0](https://github.com/garden-io/garden/compare/v0.8.1...v0.9.0) (2019-02-08)
 
 ### Bug Fixes
 
-* **core:** missing module configs in dumpConfig response ([c8609a2](https://github.com/garden-io/garden/commit/c8609a2))
+* improved error messages when deps are missing ([#484](https://github.com/garden-io/garden/issues/484)) ([c5e6dce](https://github.com/garden-io/garden/commit/c5e6dce))
+* add path to module validation error messages ([b1c54b0](https://github.com/garden-io/garden/commit/b1c54b0))
+* delete outdated system namespaces ([cda0c7c](https://github.com/garden-io/garden/commit/cda0c7c))
+* add missing package to garden-service/package.json ([4688e56](https://github.com/garden-io/garden/commit/4688e56))
+* don't watch project-level log files ([81c8d04](https://github.com/garden-io/garden/commit/81c8d04))
 * **core:** error in actions.getStatus helper ([a4cf625](https://github.com/garden-io/garden/commit/a4cf625))
-* **dashboard:** handle empty ingress in service status ([870d5f3](https://github.com/garden-io/garden/commit/870d5f3))
-* **dashboard:** conform to new "get config" response ([bfa2c0f](https://github.com/garden-io/garden/commit/bfa2c0f))
-
-### Code Refactoring
-
-* remove experimental Go CLI ([e9ef3aa](https://github.com/garden-io/garden/commit/e9ef3aa))
-* **go-cli:** replace unison with mutagen (wip) ([b7a0d33](https://github.com/garden-io/garden/commit/b7a0d33))
-
-<a name="v0.9.0-rc2"></a>
-## [v0.9.0-rc2](https://github.com/garden-io/garden/compare/v0.9.0-rc1...v0.9.0-rc2) (2019-02-04)
-
-### Bug Fixes
-
+* **core:** missing module configs in dumpConfig response ([c8609a2](https://github.com/garden-io/garden/commit/c8609a2))
 * **core:** using module version in templates didn't work with watch ([6c209af](https://github.com/garden-io/garden/commit/6c209af))
 * **core:** certain template strings could not be resolved in configs ([3d582c4](https://github.com/garden-io/garden/commit/3d582c4))
+* **dashboard:** conform to new "get config" response ([bfa2c0f](https://github.com/garden-io/garden/commit/bfa2c0f))
+* **dashboard:** handle empty ingress in service status ([870d5f3](https://github.com/garden-io/garden/commit/870d5f3))
+* **dashboard:** limit number of log lines that are fetched ([#461](https://github.com/garden-io/garden/issues/461)) ([3c214ce](https://github.com/garden-io/garden/commit/3c214ce))
+* **deploy:** make watch parameter implicit when hot-reloading ([0819605](https://github.com/garden-io/garden/commit/0819605))
+* **exec:** missing tasks key in module schema ([cc13f33](https://github.com/garden-io/garden/commit/cc13f33))
 * **get-tasks:** print msg if no tasks found ([f64d59c](https://github.com/garden-io/garden/commit/f64d59c))
+* **k8s:** configure RBAC properly for Tiller ([d182929](https://github.com/garden-io/garden/commit/d182929))
+* **k8s:** fix issue with log following for K8s ([6624964](https://github.com/garden-io/garden/commit/6624964))
 * **k8s:** incorrect role binding for tiller service account ([9a61840](https://github.com/garden-io/garden/commit/9a61840))
+* **logger:** only inherit parent level if option is set ([#493](https://github.com/garden-io/garden/issues/493)) ([99fdb12](https://github.com/garden-io/garden/commit/99fdb12))
 * **openfaas:** override release name to avoid conflict across namespaces ([2eea9bd](https://github.com/garden-io/garden/commit/2eea9bd))
+* **perf:** reuse port-forwards when hot-reloading ([6db83a7](https://github.com/garden-io/garden/commit/6db83a7))
 * **server:** ensure log entries have level silly ([#496](https://github.com/garden-io/garden/issues/496)) ([5b11322](https://github.com/garden-io/garden/commit/5b11322))
+* **status:** return more correct/granular statuses ([d4a7cf2](https://github.com/garden-io/garden/commit/d4a7cf2))
 
 ### Code Refactoring
 
+* add configureProvider plugin action ([bdf6994](https://github.com/garden-io/garden/commit/bdf6994))
+* rename `generic` plugin to `exec` ([4c85d46](https://github.com/garden-io/garden/commit/4c85d46))
+* use events for file watching instead of callbacks ([f6a99c2](https://github.com/garden-io/garden/commit/f6a99c2))
+* rename `validate` module action to `configure` ([7b02fdd](https://github.com/garden-io/garden/commit/7b02fdd))
+* allow consecutive dashes in identifier regex ([37fe9c3](https://github.com/garden-io/garden/commit/37fe9c3))
+* remove experimental Go CLI ([e9ef3aa](https://github.com/garden-io/garden/commit/e9ef3aa))
 * **commands:** remove create commands ([88d18d8](https://github.com/garden-io/garden/commit/88d18d8))
+* **dashboard:** use React Hooks API for state management ([588dd6c](https://github.com/garden-io/garden/commit/588dd6c))
+* **dashboard:** rename root dir to dashboard ([6b48430](https://github.com/garden-io/garden/commit/6b48430))
+* **go-cli:** replace unison with mutagen (wip) ([b7a0d33](https://github.com/garden-io/garden/commit/b7a0d33))
+* **k8s:** minor change to speed up container deploys ([91da102](https://github.com/garden-io/garden/commit/91da102))
+* **k8s:** shorten default namespace names ([15aa5de](https://github.com/garden-io/garden/commit/15aa5de))
+* **logger:** remove root prop from LogNode class ([b1e8fa6](https://github.com/garden-io/garden/commit/b1e8fa6))
 * **logger:** rename preserveLevel opt to childEntriesInheritLevel ([0b3efab](https://github.com/garden-io/garden/commit/0b3efab))
+
+### Features
+
+* rename command to args for container type ([84f5a8d](https://github.com/garden-io/garden/commit/84f5a8d))
+* added get tasks command ([250315d](https://github.com/garden-io/garden/commit/250315d))
+* add servicePort config option ([57b23f3](https://github.com/garden-io/garden/commit/57b23f3))
+* **cli:** add --hot alias for --hot-reload flag ([22ac4f6](https://github.com/garden-io/garden/commit/22ac4f6))
+* **dashboard:** update UI (closes [#460](https://github.com/garden-io/garden/issues/460)) ([e59897c](https://github.com/garden-io/garden/commit/e59897c))
+* **dashboard:** expose provider links in sidebar ([48c9e13](https://github.com/garden-io/garden/commit/48c9e13))
+* **k8s:** add Helm module inheritance via the `base` field ([8a7a7e5](https://github.com/garden-io/garden/commit/8a7a7e5))
+* **k8s:** proper support for Helm charts ([48f0375](https://github.com/garden-io/garden/commit/48f0375))
+* **k8s:** make hot reloading work for remote clusters ([7ca3dc3](https://github.com/garden-io/garden/commit/7ca3dc3))
+* **k8s:** allow overriding release name in Helm modules ([1530105](https://github.com/garden-io/garden/commit/1530105))
+* **k8s:** allow disabling nginx setup in local-kubernetes provider ([33511bc](https://github.com/garden-io/garden/commit/33511bc))
+* **logger:** allow controlling level with env var ([#452](https://github.com/garden-io/garden/issues/452)) ([ec8bd45](https://github.com/garden-io/garden/commit/ec8bd45))
+* **versioncmd:** add version command ([8be4761](https://github.com/garden-io/garden/commit/8be4761))
 
 ### BREAKING CHANGE
 
@@ -43,47 +74,7 @@ to fit with the changes in the templating context.
 
 After this, the `create project` and `create module` commands will no
 longer be available. We're removing them for now because currently
-they're more confusing than they are useful. There's an open Github}
-
-<a name="v0.9.0-rc1"></a>
-## [v0.9.0-rc1](https://github.com/garden-io/garden/compare/v0.8.1...v0.9.0-rc1) (2019-01-28)
-
-### Bug Fixes
-
-* add missing package to garden-service/package.json ([4688e56](https://github.com/garden-io/garden/commit/4688e56))
-* don't watch project-level log files ([81c8d04](https://github.com/garden-io/garden/commit/81c8d04))
-* add path to module validation error messages ([b1c54b0](https://github.com/garden-io/garden/commit/b1c54b0))
-* **dashboard:** limit number of log lines that are fetched ([#461](https://github.com/garden-io/garden/issues/461)) ([3c214ce](https://github.com/garden-io/garden/commit/3c214ce))
-* **exec:** missing tasks key in module schema ([cc13f33](https://github.com/garden-io/garden/commit/cc13f33))
-* **get-tasks:** print msg if no tasks found ([0868a98](https://github.com/garden-io/garden/commit/0868a98))
-* **perf:** reuse port-forwards when hot-reloading ([6db83a7](https://github.com/garden-io/garden/commit/6db83a7))
-
-### Code Refactoring
-
-* add configureProvider plugin action ([bdf6994](https://github.com/garden-io/garden/commit/bdf6994))
-* rename `validate` module action to `configure` ([7b02fdd](https://github.com/garden-io/garden/commit/7b02fdd))
-* use events for file watching instead of callbacks ([f6a99c2](https://github.com/garden-io/garden/commit/f6a99c2))
-* rename `generic` plugin to `exec` ([4c85d46](https://github.com/garden-io/garden/commit/4c85d46))
-* **dashboard:** use React Hooks API for state management ([588dd6c](https://github.com/garden-io/garden/commit/588dd6c))
-* **dashboard:** rename root dir to dashboard ([6b48430](https://github.com/garden-io/garden/commit/6b48430))
-* **k8s:** shorten default namespace names ([15aa5de](https://github.com/garden-io/garden/commit/15aa5de))
-* **k8s:** minor change to speed up container deploys ([91da102](https://github.com/garden-io/garden/commit/91da102))
-
-### Features
-
-* add servicePort config option ([57b23f3](https://github.com/garden-io/garden/commit/57b23f3))
-* added get tasks command ([250315d](https://github.com/garden-io/garden/commit/250315d))
-* rename command to args for container type ([84f5a8d](https://github.com/garden-io/garden/commit/84f5a8d))
-* **dashboard:** update UI (closes [#460](https://github.com/garden-io/garden/issues/460)) ([e59897c](https://github.com/garden-io/garden/commit/e59897c))
-* **dashboard:** expose provider links in sidebar ([48c9e13](https://github.com/garden-io/garden/commit/48c9e13))
-* **k8s:** add Helm module inheritance via the `base` field ([8a7a7e5](https://github.com/garden-io/garden/commit/8a7a7e5))
-* **k8s:** proper support for Helm charts ([48f0375](https://github.com/garden-io/garden/commit/48f0375))
-* **k8s:** make hot reloading work for remote clusters ([7ca3dc3](https://github.com/garden-io/garden/commit/7ca3dc3))
-* **k8s:** allow disabling nginx setup in local-kubernetes provider ([33511bc](https://github.com/garden-io/garden/commit/33511bc))
-* **versioncmd:** add version command ([8be4761](https://github.com/garden-io/garden/commit/8be4761))
-
-### BREAKING CHANGE
-
+they're more confusing than they are useful. There's an open Github
 
 We no longer default to "nginx" as the ingress class to annotation
 container module ingresses. If you need it configured, you need to set
@@ -111,43 +102,28 @@ and the old namespace needs to be manually removed.
 Projects using the `generic` module type need to update the relevant
 `garden.yml` files, to reference the `exec` module type instead.
 
-The `--tail|-t` flag for the `garden logs` command now takes an integer parameter
-and specifies the number of log lines to display, whereas previously it was a boolean
-flag that determined whether or not to stream the logs. For streaming, we now have
-the `--follow|-f` flag. This conforms to other similar CLI tools.
 
 <a name="v0.8.1"></a>
-## [v0.8.1](https://github.com/garden-io/garden/compare/v0.8.1-rc1...v0.8.1) (2018-12-10)
+## [v0.8.1](https://github.com/garden-io/garden/compare/v0.8.0...v0.8.1) (2018-12-10)
 
 ### Bug Fixes
 
+* minor logging issue ([61e4428](https://github.com/garden-io/garden/commit/61e4428))
+* make dev cmd consistent with deploy cmd ([85f31f9](https://github.com/garden-io/garden/commit/85f31f9))
+* fixed dependency bug & simplified TaskGraph ([4a8428c](https://github.com/garden-io/garden/commit/4a8428c))
+* fixed another dependency calculation bug ([99df5d9](https://github.com/garden-io/garden/commit/99df5d9))
+* performance regression on startup ([b856e36](https://github.com/garden-io/garden/commit/b856e36))
+* do not run dependant tasks unless updated services depend on them ([1ae0284](https://github.com/garden-io/garden/commit/1ae0284))
+* stale version in some tasks triggered by watch handler ([da134b4](https://github.com/garden-io/garden/commit/da134b4))
+* fix dev command terminating on config change ([261e974](https://github.com/garden-io/garden/commit/261e974))
 * **dashboard:** fix contants import in setupProxy.js ([e2c5bbd](https://github.com/garden-io/garden/commit/e2c5bbd))
+* **k8s:** exec and run commands didn't work properly in interactive mode ([420953d](https://github.com/garden-io/garden/commit/420953d))
 * **k8s:** revert removal of `-i` flag on kubectl run commands ([663deea](https://github.com/garden-io/garden/commit/663deea))
+* **k8s:** log tailing now returns logs for new pods at runtime ([432e6dc](https://github.com/garden-io/garden/commit/432e6dc))
+* **k8s:** remove replicasets and daemonsets when deleting services ([6c63314](https://github.com/garden-io/garden/commit/6c63314))
 * **k8s:** incorrect flags sent to `kubectl run` when not interactive ([260b976](https://github.com/garden-io/garden/commit/260b976))
 * **log:** log footer line was duplicated after config reload ([a8b50b1](https://github.com/garden-io/garden/commit/a8b50b1))
 * **tasks:** task errors had lost their color ([66390e1](https://github.com/garden-io/garden/commit/66390e1))
-
-### Code Refactoring
-
-* **task-graph:** add task key to TaskResult interface ([3ce6633](https://github.com/garden-io/garden/commit/3ce6633))
-
-
-<a name="v0.8.1-rc1"></a>
-## [v0.8.1-rc1](https://github.com/garden-io/garden/compare/v0.8.0...v0.8.1-rc1) (2018-12-10)
-
-### Bug Fixes
-
-* do not run dependant tasks unless updated services depend on them ([1ae0284](https://github.com/garden-io/garden/commit/1ae0284))
-* minor logging issue ([61e4428](https://github.com/garden-io/garden/commit/61e4428))
-* stale version in some tasks triggered by watch handler ([da134b4](https://github.com/garden-io/garden/commit/da134b4))
-* performance regression on startup ([b856e36](https://github.com/garden-io/garden/commit/b856e36))
-* fixed another dependency calculation bug ([99df5d9](https://github.com/garden-io/garden/commit/99df5d9))
-* fixed dependency bug & simplified TaskGraph ([4a8428c](https://github.com/garden-io/garden/commit/4a8428c))
-* make dev cmd consistent with deploy cmd ([85f31f9](https://github.com/garden-io/garden/commit/85f31f9))
-* fix dev command terminating on config change ([261e974](https://github.com/garden-io/garden/commit/261e974))
-* **k8s:** exec and run commands didn't work properly in interactive mode ([420953d](https://github.com/garden-io/garden/commit/420953d))
-* **k8s:** log tailing now returns logs for new pods at runtime ([432e6dc](https://github.com/garden-io/garden/commit/432e6dc))
-* **k8s:** remove replicasets and daemonsets when deleting services ([6c63314](https://github.com/garden-io/garden/commit/6c63314))
 
 ### Code Refactoring
 
@@ -156,6 +132,7 @@ the `--follow|-f` flag. This conforms to other similar CLI tools.
 * add placeholder method to logger + fix rendering issues ([fa8d81e](https://github.com/garden-io/garden/commit/fa8d81e))
 * rename logEntry to log and require for tests, cmds and actions ([13cf263](https://github.com/garden-io/garden/commit/13cf263))
 * **formatting:** improve quoting style of objects to consistent-as-needed ([687c6f3](https://github.com/garden-io/garden/commit/687c6f3))
+* **task-graph:** add task key to TaskResult interface ([3ce6633](https://github.com/garden-io/garden/commit/3ce6633))
 
 ### Features
 
@@ -434,11 +411,7 @@ The `tests[].variables` config key has been removed from the
 
 
 <a name="v0.2.0"></a>
-## [v0.2.0](https://github.com/garden-io/garden/compare/v0.2.0-0...v0.2.0) (2018-06-27)
-
-
-<a name="v0.2.0-0"></a>
-## [v0.2.0-0](https://github.com/garden-io/garden/compare/v0.1.2...v0.2.0-0) (2018-06-27)
+## [v0.2.0](https://github.com/garden-io/garden/compare/v0.1.2...v0.2.0) (2018-06-27)
 
 ### Bug Fixes
 
@@ -499,11 +472,7 @@ project.global key.
 
 
 <a name="v0.1.2"></a>
-## [v0.1.2](https://github.com/garden-io/garden/compare/v0.1.1-0...v0.1.2) (2018-06-02)
-
-
-<a name="v0.1.1-0"></a>
-## [v0.1.1-0](https://github.com/garden-io/garden/compare/v0.1.0...v0.1.1-0) (2018-06-02)
+## [v0.1.2](https://github.com/garden-io/garden/compare/v0.1.0...v0.1.2) (2018-06-02)
 
 ### Bug Fixes
 
@@ -635,3 +604,4 @@ environment configuration with a global configuration specified on the
 new `global` key in the project config. The schema for the `providers`
 key also different - its keys should now match plugin names, and
 contain configuration for those plugins.
+
