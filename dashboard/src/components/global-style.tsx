@@ -13,7 +13,6 @@ import {
   colors,
   fontBold,
   fontMedium,
-  fontRegular,
   tablet,
   fontFamily,
 } from "../styles/variables"
@@ -21,7 +20,7 @@ import {
 const styles = css`
   html {
     box-sizing: border-box;
-    color: ${colors.lightBlack};
+    color: ${colors.black};
     font-size: ${"1em" /*was: 44%*/};
 
     ${media.tablet`
@@ -111,32 +110,6 @@ const styles = css`
 
   .underline {
     text-decoration: underline;
-  }
-
-  ::-webkit-input-placeholder {
-    color: ${colors.waikawaGray};
-    ${fontRegular};
-  }
-  :-moz-placeholder {
-     color: ${colors.waikawaGray};
-     ${fontRegular};
-  }
-  ::-moz-placeholder {
-     color: ${colors.waikawaGray};
-     ${fontRegular};
-  }
-  :-ms-input-placeholder {
-     color: ${colors.waikawaGray};
-     ${fontRegular};
-  }
-  ::-ms-input-placeholder {
-     color: ${colors.waikawaGray};
-     ${fontRegular};
-  }
-
-  ::placeholder {
-     color: ${colors.waikawaGray};
-     ${fontRegular};
   }
 `
 

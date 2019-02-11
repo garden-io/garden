@@ -30,9 +30,8 @@ const Button = styled.li`
   width: 100%;
   transition: all 0.3s ease;
   &: hover {
-    background-color: ${colors.brightTealAccent};
-    color: ${colors.white};
-    border-color: ${colors.brightTealAccent};
+    background-color: ${colors.gardenGreenLight};
+    border-color: ${colors.gardenGreenLight};
   }
 `
 

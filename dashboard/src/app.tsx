@@ -36,9 +36,8 @@ const Logo = styled.img`
 
 const SidebarWrapper = styled.div`
   border-right: 1px solid ${colors.border};
-  min-width: 12rem;
-  width: 18vw;
-  max-width: 19rem;
+  min-width: 19rem;
+  width: 19rem;
   height: 100vh;
 `
 
@@ -67,7 +66,7 @@ const App = () => (
             overflow-y: auto;
           `}>
             <div className={cls(css`
-              background-color: ${colors.lightGray};
+              background-color: ${colors.grayLight};
               flex-grow: 1;
             `, "p-2")}>
               <Route exact path="/" component={Overview} />

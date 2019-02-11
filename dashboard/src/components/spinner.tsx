@@ -37,7 +37,7 @@ export default styled.div`
     content: '';
   }
   :after {
-    background: ${props => props.background || colors.lightGray};
+    background: ${props => props.background || colors.grayLight};
     width: 75%;
     height: 75%;
     border-radius: 50%;

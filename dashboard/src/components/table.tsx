@@ -32,8 +32,14 @@ const Td = styled.td`
   font-size: 0.9rem;
 `
 
+const Tr = styled.tr`
+  :hover {
+    background-color: ${colors.gardenGreenLight}
+  }
+`
+
 const THead = styled.thead`
-  color: ${colors.gardenGrey};
+  color: ${colors.gardenGray};
   text-align: left;
 `
 
@@ -60,13 +66,13 @@ const Table: React.SFC<Props> = props => (
       </THead>
       <tbody>
         {props.rows.map((row, idx) => (
-          <tr key={idx}>
+          <Tr key={idx}>
             {row.map((col, cidx) => {
               return (
                 <Td key={cidx}>{col}</Td>
               )
             })}
-          </tr>
+          </Tr>
         ))}
       </tbody>
     </TableEl>

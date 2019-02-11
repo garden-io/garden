@@ -6,9 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import cls from "classnames"
+import { css } from "emotion/macro"
 import styled from "@emotion/styled/macro"
 import { max } from "lodash"
 import React, { Component } from "react"
+import Select from "react-select"
 
 import Terminal from "./terminal"
 import { FetchConfigResponse, FetchLogsResponse } from "../api/types"
@@ -24,7 +27,8 @@ interface Props {
 }
 
 interface State {
-  selectedService: string
+  loading: boolean
+  selectedService: { value: string, label: string }
 }
 
 const Header = styled.div`
@@ -32,14 +36,58 @@ const Header = styled.div`
   justify-content: space-between;
 `
 
-const Icon = styled.i`
-  color: ${colors.gardenPink};
-  font-size: 1.5rem;
+const Button = styled.div`
+  padding: 0.5em;
+  border-radius: 10%;
+  border: 2px solid ${colors.gardenGrayLight};
   cursor: pointer;
+  :hover {
+    border: 2px solid ${colors.gardenGray};
+    transition: all 0.3s ease-out;
+  }
   :active {
-    color: ${colors.gardenPinkLighten(0.7)}
+    opacity: 0.5;
   }
 `
+
+const Icon = styled.i`
+  color: ${colors.gardenGray};
+  font-size: 1.25rem;
+  :active {
+    opacity: 0.5;
+  }
+`
+
+const IconLoading = styled(Icon)`
+  animation spin 0.5s infinite linear;
+  @keyframes spin {
+    from {
+      transform:rotate(0deg);
+    }
+    to {
+      transform:rotate(360deg);
+    }
+  }
+`
+
+// TODO: Roll our own Select component instead of using react-select, it's an overkill.
+const selectStyles = {
+  control: (base, state) => ({
+    ...base,
+    "boxShadow": state.isFocused ? `0 0 0 1px ${colors.gardenGrayLight}` : 0, // The box shadow adds width to the border
+    "borderColor": state.isFocused ? colors.gardenGrayLight : base.borderColor,
+    "&:hover": {
+      borderColor: state.isFocused ? colors.gardenGrayLight : base.borderColor,
+    },
+  }),
+  option: (base, state) => ({
+    ...base,
+    color: colors.black,
+    backgroundColor: state.isSelected
+      ? colors.gardenGreenDark
+      : state.isFocused ? colors.gardenGreenLight : colors.gardenWhite,
+  }),
+}
 
 class Logs extends Component<Props, State> {
 
@@ -48,52 +96,65 @@ class Logs extends Component<Props, State> {
 
     // TODO Use tab id instead of title
     this.state = {
-      selectedService: "all",
+      loading: false,
+      selectedService: { value: "all", label: "All service logs" },
     }
     this.handleChange = this.handleChange.bind(this)
     this.refresh = this.refresh.bind(this)
   }
 
-  handleChange(event) {
-    this.setState({ selectedService: event.target.value })
+  handleChange(selectedService) {
+    this.setState({ selectedService })
+  }
+
+  componentDidUpdate(_, prevState) {
+    if (prevState.loading) {
+      this.setState({ loading: false })
+    }
   }
 
   refresh() {
     this.props.loadLogs(getServiceNames(this.props.config.moduleConfigs), true)
+    this.setState({ loading: true })
   }
 
   render() {
     const { config, logs } = this.props
-    const { selectedService } = this.state
+    const { loading, selectedService } = this.state
     const serviceNames = getServiceNames(config.moduleConfigs)
     const maxServiceName = max(serviceNames).length
-    const title = selectedService === "all"
-      ? "All service logs"
-      : `${selectedService} logs`
-    const filteredLogs = selectedService === "all"
-      ? logs
-      : logs.filter(l => l.serviceName === selectedService)
+    const options = [{ value: "all", label: "All service logs" }]
+      .concat(serviceNames.map(name => ({ value: name, label: name })))
+
+    const { value, label } = selectedService
+    const title = value === "all" ? label : `${label} logs`
+    const filteredLogs = value === "all" ? logs : logs.filter(l => l.serviceName === value)
+
+    const IconComp = loading ? IconLoading : Icon
+
     return (
       <div>
-        <div className="mb-1">
-          <select value={this.state.selectedService} onChange={this.handleChange}>
-            <option value="all">All service logs</option>
-            {serviceNames.map(name => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
+        <div className={cls(css`width: 30%;`, "mb-1")}>
+          <Select
+            value={this.state.selectedService}
+            options={options}
+            styles={selectStyles}
+            onChange={this.handleChange}
+          />
         </div>
         <Card>
           <div>
             <Header className="pl-1 pr-1 pb-1">
               <CardTitle>{title}</CardTitle>
-              <Icon className={"fas fa-sync-alt"} onClick={this.refresh} />
+              <Button onClick={this.refresh}>
+                <IconComp className={"fas fa-redo-alt"} />
+              </Button>
             </Header>
             <Terminal
               entries={filteredLogs}
               sectionPad={maxServiceName}
               title={title}
-              showServiceName={selectedService === "all"}
+              showServiceName={value === "all"}
             />
           </div>
         </Card>
