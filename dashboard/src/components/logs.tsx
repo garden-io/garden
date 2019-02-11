@@ -134,7 +134,10 @@ class Logs extends Component<Props, State> {
 
     return (
       <div>
-        <div className={cls(css`width: 30%;`, "mb-1")}>
+        <div className={cls(css`
+          min-width: 12rem;
+          width: 30%;
+        `, "mb-1")}>
           <Select
             value={this.state.selectedService}
             options={options}
