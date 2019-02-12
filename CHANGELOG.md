@@ -1,4 +1,20 @@
 
+<a name="v0.9.1-0"></a>
+## [v0.9.1-0](https://github.com/garden-io/garden/compare/v0.9.0...v0.9.1-0) (2019-02-12)
+
+### Bug Fixes
+
+* **dashboard:** set min select width ([06386bf](https://github.com/garden-io/garden/commit/06386bf))
+* **server:** serve dashboard from all dashboard routes ([5abf580](https://github.com/garden-io/garden/commit/5abf580))
+
+### Features
+
+* **dashboard:** update font colour ([dccbf87](https://github.com/garden-io/garden/commit/dccbf87))
+* **dashboard:** conform colours to style guide ([44b54e0](https://github.com/garden-io/garden/commit/44b54e0))
+* **dashboard:** ui improvments ([4d38659](https://github.com/garden-io/garden/commit/4d38659))
+* **dashboard:** enable by default ([574f56d](https://github.com/garden-io/garden/commit/574f56d))
+
+
 <a name="v0.9.0"></a>
 ## [v0.9.0](https://github.com/garden-io/garden/compare/v0.8.1...v0.9.0) (2019-02-08)
 
