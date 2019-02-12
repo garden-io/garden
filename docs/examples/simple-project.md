@@ -17,7 +17,7 @@ This tutorial assumes that you have already have a running [installation of Gard
 
 ## Clone the example repo
 
-The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/master/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/master/examples/simple-project-start/) example and work our way from there. The final version is under [simple-project](https://github.com/garden-io/garden/tree/master/examples/simple-project).
+The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.9.0/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/v0.9.0/examples/simple-project-start/) example and work our way from there. The final version is under [simple-project](https://github.com/garden-io/garden/tree/v0.9.0/examples/simple-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
 ```sh
