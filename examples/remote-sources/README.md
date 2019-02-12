@@ -48,7 +48,7 @@ garden unlink source web-services
 Looking at the project structure, you'll notice that the project doesn't contain any code outside the `garden.yml` config files. Rather, the config files themselves contain the URLs to the remote repositories.
 
 ```sh
-$ tree
+tree
 .
 ├── README.md
 ├── garden.yml
@@ -81,7 +81,7 @@ project:
 
 Additionally, we want to import the Java worker as a remote _module_. In that case, Garden assumes that the remote repository contains the source code for a single Garden module. Furthermore, the `garden.yml` config file for that module is kept in the main project repo:
 ```sh
-$ tree services
+tree services
 services
 └── jworker
     └── garden.yml

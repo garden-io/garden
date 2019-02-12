@@ -32,7 +32,7 @@ garden deploy
 
 Use the `call` command to get the output of the hello-container endpoint:
 ```sh
-$ garden call hello-container/hello
+garden call hello-container/hello
 
 ✔ Sending HTTP GET request to http://hello-world.local.app.garden/hello
 
@@ -47,7 +47,7 @@ $ garden call hello-container/hello
 or call the function directly:
 
 ```sh
-$ garden call hello-function/function/hello-function
+garden call hello-function/function/hello-function
 
 ✔ Sending HTTP GET request to http://hello-world.local.app.garden/function/hello-function
 
