@@ -3,7 +3,12 @@ module:
   name: kubernetes-dashboard
   type: helm
   chart: stable/kubernetes-dashboard
-  version: 0.9.0
+  version: 1.2.0
   values:
-    # The dashboard currently needs to be exposed directly, because it does its own SSL termination.
-    service.type: NodePort
+    fullnameOverride: kubernetes-dashboard
+    service:
+      type: NodePort
+    # This is only okay because it's just used for the local-kubernetes plugin.
+    # Don't use this config for remote clusters!
+    enableInsecureLogin: true
+    enableSkipLogin: true

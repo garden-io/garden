@@ -143,7 +143,7 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
 
     const dashboardStatus = sysStatus.services["kubernetes-dashboard"]
     const dashboardServiceResource = find(
-      (dashboardStatus.detail || {}).remoteObjects,
+      (dashboardStatus.detail || {}).remoteObjects || [],
       o => o.kind === "Service",
     )
 
@@ -154,7 +154,7 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
         dashboardPages.push({
           title: "Kubernetes",
           description: "The standard Kubernetes dashboard for this project",
-          url: `https://${defaultHostname}:${dashboardPort}/#!/workload?namespace=${namespace}`,
+          url: `http://${defaultHostname}:${dashboardPort}/#!/workload?namespace=${namespace}`,
           newWindow: true,
         })
       }
