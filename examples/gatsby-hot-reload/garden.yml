@@ -16,7 +16,6 @@ module:
   services:
     - name: website
       args: [npm, run, dev]
-      hotReloadCommand: [npm, run, dev]
       env:
         GATSBY_WEBPACK_PUBLICPATH: /
       ports:
