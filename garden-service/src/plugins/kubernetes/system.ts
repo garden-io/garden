@@ -27,7 +27,7 @@ export async function getSystemGarden(provider: KubernetesProvider): Promise<Gar
       dirname: "system",
       path: systemProjectPath,
       project: {
-        apiVersion: "0",
+        apiVersion: "garden.io/v0",
         name: "garden-system",
         environmentDefaults: {
           providers: [],

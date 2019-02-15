@@ -73,7 +73,7 @@ export const MOCK_CONFIG: GardenConfig = {
   dirname: "/",
   path: process.cwd(),
   project: {
-    apiVersion: "0",
+    apiVersion: "garden.io/v0",
     name: "mock-project",
     defaultEnvironment: "local",
     environments: defaultEnvironments,

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, basename, sep, resolve } from "path"
+import { join, basename, sep, resolve, relative } from "path"
 import {
   findByName,
   getNames,
@@ -87,10 +87,91 @@ type ConfigDoc = {
   project?: ProjectConfig,
 }
 
+export type ConfigKind = "Module" | "Project"
+export const configKinds = new Set(["Module", "Project"])
+
+const configKindSettings = {
+  Module: {
+    specKey: "module",
+    validationSchema: baseModuleSpecSchema,
+  },
+  Project: {
+    specKey: "project",
+    validationSchema: projectSchema,
+  },
+}
+
 /**
  * Each YAML document in a garden.yml file consists of a project definition and/or a module definition.
+ *
+ * A document can be structured according to either the (old) nested or the (new) flat style.
+ *
+ * In the nested style, the project/module's config is nested under the project/module key respectively.
+ *
+ * In the flat style, the project/module's config is at the top level, and the kind key is used to indicate
+ * whether the entity being configured is a project or a module (similar to the YAML syntax for k8s object
+ * definitions). The kind key is removed before validation, so that specs following both styles can be validated
+ * with the same schema.
  */
 function prepareConfigDoc(spec: any, path: string, projectRoot: string): ConfigDoc {
+
+  const kind = spec.kind
+
+  if (!spec.kind) {
+    const preparedSpec = prepareScopedConfigDoc(spec, path)
+    // validate with scoped config schema
+    return validateWithPath({
+      config: preparedSpec,
+      schema: configSchema,
+      configType: "config",
+      path,
+      projectRoot,
+    })
+  }
+
+  if (configKinds.has(kind)) {
+    const { specKey, validationSchema } = configKindSettings[kind]
+    delete spec.kind
+    const preparedSpec = prepareFlatConfigDoc(spec, path)
+    const validated = validateWithPath({
+      config: preparedSpec,
+      schema: validationSchema,
+      configType: specKey,
+      path,
+      projectRoot,
+    })
+    return { [specKey]: validated }
+  } else {
+    const relPath = `${relative(projectRoot, path)}/garden.yml`
+    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, { kind, path: relPath })
+  }
+
+}
+
+/**
+ * The new / flat configuration style.
+ *
+ * The spec defines either a project or a module (determined by its "kind" field).
+ */
+function prepareFlatConfigDoc(spec: any, path: string): ConfigDoc {
+  if (spec.kind === "Project") {
+    spec = prepareProjectConfig(spec, path)
+  }
+
+  if (spec.kind === "Module") {
+    spec = prepareModuleConfig(spec, path)
+  }
+
+  return spec
+}
+
+/**
+ * The old / nested configuration style.
+ *
+ * The spec defines a project and/or a module, with the config for each nested under the "project" / "module" field,
+ * respectively.
+ */
+function prepareScopedConfigDoc(spec: any, path: string): ConfigDoc {
   if (spec.project) {
     spec.project = prepareProjectConfig(spec.project, path)
   }
@@ -99,13 +180,7 @@ function prepareConfigDoc(spec: any, path: string, projectRoot: string): ConfigD
     spec.module = prepareModuleConfig(spec.module, path)
   }
 
-  return validateWithPath({
-    config: spec,
-    schema: configSchema,
-    configType: "config",
-    path,
-    projectRoot,
-  })
+  return spec
 }
 
 function prepareProjectConfig(projectSpec: any, path: string): ProjectConfig {

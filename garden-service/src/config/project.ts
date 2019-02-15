@@ -124,8 +124,8 @@ export const projectNameSchema = joiIdentifier()
 export const projectSchema = Joi.object()
   .keys({
     apiVersion: Joi.string()
-      .default("0")
-      .only("0")
+      .default("garden.io/v0")
+      .only("garden.io/v0")
       .description("The schema version of this project's config (currently not used)."),
     name: projectNameSchema,
     defaultEnvironment: Joi.string()

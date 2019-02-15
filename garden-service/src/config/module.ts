@@ -78,8 +78,8 @@ export interface BaseModuleSpec {
 export const baseModuleSpecSchema = Joi.object()
   .keys({
     apiVersion: Joi.string()
-      .default("0")
-      .only("0")
+      .default("garden.io/v0")
+      .only("garden.io/v0")
       .description("The schema version of this module's config (currently not used)."),
     type: joiIdentifier()
       .required()

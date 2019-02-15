@@ -29,7 +29,7 @@ The schema version of this project's config (currently not used).
 
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
-| `string` | Yes | "0"
+| `string` | Yes | "garden.io/v0"
 ### `project.name`
 [project](#project) > name
 
@@ -207,7 +207,7 @@ project:
 ## Project YAML schema
 ```yaml
 project:
-  apiVersion: '0'
+  apiVersion: garden.io/v0
   name:
   defaultEnvironment: ''
   environmentDefaults:
@@ -240,7 +240,7 @@ The schema version of this module's config (currently not used).
 
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
-| `string` | Yes | "0"
+| `string` | Yes | "garden.io/v0"
 ### `module.type`
 [module](#module) > type
 
@@ -388,7 +388,7 @@ POSIX-style path or filename to copy the directory or file(s) to (defaults to sa
 ## Module YAML schema
 ```yaml
 module:
-  apiVersion: '0'
+  apiVersion: garden.io/v0
   type:
   name:
   description:

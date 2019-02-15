@@ -336,7 +336,7 @@ describe("createIngresses", () => {
         command: [],
         dependencies: [],
       },
-      apiVersion: "0",
+      apiVersion: "garden.io/v0",
       name: "test",
       outputs: {},
       path: "/tmp",

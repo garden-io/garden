@@ -43,7 +43,7 @@ describe("validateHelmModule", () => {
         command: [],
       },
       description: "The API backend for the voting UI",
-      apiVersion: "0",
+      apiVersion: "garden.io/v0",
       name: "api",
       outputs: {
         "release-name": "api-release",
