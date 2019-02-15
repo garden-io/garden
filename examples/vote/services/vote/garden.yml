@@ -10,7 +10,6 @@ module:
   services:
     - name: vote
       args: [npm, run, serve]
-      hotReloadCommand: [npm, run, serve]
       ports:
         - name: http
           containerPort: 8080

@@ -5,7 +5,6 @@ module:
   serviceResource:
     kind: Deployment
     containerModule: vote-image
-    hotReloadArgs: [npm, run, serve]
   dependencies:
     - api
   values:
