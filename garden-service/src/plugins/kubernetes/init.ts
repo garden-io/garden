@@ -186,7 +186,7 @@ export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentP
   return {}
 }
 
-export async function prepareLocalEnvironment({ ctx, force, log }: PrepareEnvironmentParams) {
+export async function prepareLocalEnvironment({ ctx, log }: PrepareEnvironmentParams) {
   // make sure system services are deployed
   if (!isSystemGarden(ctx.provider)) {
     const api = new KubeApi(ctx.provider)
@@ -195,7 +195,7 @@ export async function prepareLocalEnvironment({ ctx, force, log }: PrepareEnviro
     if (outdated) {
       await recreateSystemNamespaces(api, log)
     }
-    await configureSystemServices({ ctx, log, force: force || outdated })
+    await configureSystemServices({ ctx, log, force: true })
     await installTiller(ctx, ctx.provider, log)
   }
 
@@ -393,19 +393,7 @@ async function configureSystemServices(
   const sysGarden = await getSystemGarden(provider)
   const sysCtx = sysGarden.getPluginContext(provider.name)
 
-  const sysStatus = await getLocalEnvironmentStatus({
-    ctx: sysCtx,
-    log,
-  })
-
   await installTiller(sysCtx, sysCtx.provider, log)
-
-  await prepareLocalEnvironment({
-    ctx: sysCtx,
-    force,
-    status: sysStatus,
-    log,
-  })
 
   // only deploy services if configured to do so (e.g. minikube bundles some required services as addons)
   const systemServices = getSystemServices(ctx.provider)
