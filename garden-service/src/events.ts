@@ -56,9 +56,13 @@ export interface Events {
   configAdded: {
     path: string,
   },
+  configRemoved: {
+    path: string,
+  },
   projectConfigChanged: {},
   moduleConfigChanged: {
     name: string,
+    path: string,
   },
   moduleSourcesChanged: {
     name: string,

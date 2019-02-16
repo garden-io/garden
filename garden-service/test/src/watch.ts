@@ -33,9 +33,10 @@ describe("Watcher", () => {
   }
 
   it("should emit a moduleConfigChanged changed event when module config is changed", async () => {
-    emitEvent("change", resolve(modulePath, "garden.yml"))
+    const path = resolve(modulePath, "garden.yml")
+    emitEvent("change", path)
     expect(garden.events.log).to.eql([
-      { name: "moduleConfigChanged", payload: { name: "module-a" } },
+      { name: "moduleConfigChanged", payload: { name: "module-a", path } },
     ])
   })
 
@@ -68,6 +69,14 @@ describe("Watcher", () => {
     emitEvent("add", path)
     expect(garden.events.log).to.eql([
       { name: "configAdded", payload: { path } },
+    ])
+  })
+
+  it("should emit a configRemoved event when removing a garden.yml file", async () => {
+    const path = resolve(garden.projectRoot, "module-b", "garden.yml")
+    emitEvent("unlink", path)
+    expect(garden.events.log).to.eql([
+      { name: "configRemoved", payload: { path } },
     ])
   })
 
