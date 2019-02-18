@@ -11,11 +11,12 @@ app.get('/call-go-service', (req, res) => {
   // Query the go-service and return the response
   request.get(goServiceEndpoint)
     .then(message => {
+      message = `Go says: '${message}'`
       res.json({
         message,
       })
     })
-    .catch((err) => {
+    .catch(err => {
       res.statusCode = 500
       res.json({
         error: err,

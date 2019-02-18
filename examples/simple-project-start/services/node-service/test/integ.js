@@ -7,7 +7,7 @@ describe('GET /call-go-service', () => {
   it('should respond with a message from go-service', (done) => {
     agent
       .get("/call-go-service")
-      .expect(200, { message: "Hello from Go!" })
+      .expect(200, { message: "Go says: 'Hello from Go!'" })
       .end((err) => {
         if (err) return done(err)
         done()

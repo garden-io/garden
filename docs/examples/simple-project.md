@@ -13,17 +13,23 @@ In what follows you'll learn how to:
 
 ## Before you get started
 
-This tutorial assumes that you have already have a running [installation of Garden](../basics/installation.md).
+This tutorial assumes that you already have a running [installation of Garden](../basics/installation.md).
 
 ## Clone the example repo
 
 The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.9.0/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/v0.9.0/examples/simple-project-start/) example and work our way from there. The final version is under [simple-project](https://github.com/garden-io/garden/tree/v0.9.0/examples/simple-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
+
 ```sh
-$ git clone https://github.com/garden-io/garden.git
-$ cd garden/examples/simple-project-start
-$ tree .
+git clone https://github.com/garden-io/garden.git
+cd garden/examples/simple-project-start
+tree .
+```
+
+The project structure should look like this:
+
+```sh
 .
 └── services
     ├── go-service
@@ -52,7 +58,7 @@ To begin with, every project needs a project-wide `garden.yml` [configuration fi
 Let's go ahead and create one:
 
 ```sh
-$ touch garden.yml
+touch garden.yml
 ```
 
 and add the following configuration:
@@ -66,16 +72,16 @@ project:
         - name: local-kubernetes
 ```
 
-Above, we've specified the name of our project and configured it to use the local-kubernetes provider for local development. Note that this file must be located in the project root directory.
+Above, we've specified the name of our project and configured it to use the `local-kubernetes` provider for local development. Note that this file must be located in the project root directory.
 
 ## Module configuration
 
-Now, let's turn to our services. Services live inside [modules](../reference/glossary.md#Module), and each module has its own `garden.yml` configuration file.
+Now, let's turn to our services. Services live inside [modules](../reference/glossary.md#Module), and each module has its own `garden.yml` configuration file. You can read more about the difference between services and modules [here](../basics/concepts.md#projects-vs-modules-vs-services).
 
 We'll start with the module for the `node-service`:
 
 ```sh
-$ touch services/node-service/garden.yml
+touch services/node-service/garden.yml
 ```
 
 and add the following:
@@ -83,21 +89,32 @@ and add the following:
 ```yaml
 module:
   description: Node service container
+  name: node-module
   type: container
 ```
 
-By running the `scan` command we can see that Garden detects our module config:
+By running the `scan` command
 
 ```sh
-$ garden scan
-- name: node-service
-  type: container
-  path: /Users/username/code/simple-project/services/node-service
-  description: Node service container
-  version:
-    versionString: 2c8818986d-1528373640
-    latestCommit: 2c8818986d
-    dirtyTimestamp: 1528373640
+garden scan
+```
+
+we can see that Garden detects our module config:
+
+```sh
+modules:
+  - allowPublish: true
+    build:
+      command: []
+      dependencies: []
+    description: Node service container
+    name: node-module
+    outputs: {}
+    path: /Users/eysi/code/garden-io/simple-project-start/services/node-service
+    serviceConfigs: []
+    taskConfigs: []
+    testConfigs: []
+    type: container
 ```
 
 Under the `module` directive of our `services/node-service/garden.yml` file we can now specify how to run our service:
@@ -105,10 +122,10 @@ Under the `module` directive of our `services/node-service/garden.yml` file we c
 ```yaml
 module:
   description: Node service container
+  name: node-module
   type: container
   services:
     - name: node-service
-      args: [npm, start]
       ports:
         - name: http
           containerPort: 8080
@@ -116,27 +133,28 @@ module:
         - path: /hello-node
           port: http
 ```
-The [services](../using-garden/configuration-files.md#Services) field is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The sub-directives tell Garden how to start the service and which ingress endpoints to expose.
+
+The [services](../using-garden/configuration-files.md#Services) field is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The other keys tell Garden how to expose our `/hello-node` endpoint.
 
 ## Deploying
 
-With this configuration we're almost ready to deploy. First, we'll need to make sure the environment is ready, by
-running the init command:
+With this configuration, Garden can now deploy our service to a local Kubernetes cluster. If this is your first time deploying this project, Garden will start by initializing the environment.
+
+To deploy, run:
 
 ```sh
-$ garden init
+garden deploy
 ```
 
-Garden can now deploy our service to a local Kubernetes cluster:
+Once the service has been deployed, we can verify that everything works by calling the service with:
 
 ```sh
-$ garden deploy
+garden call node-service
 ```
 
-To verify that everything is working, we can call the service at the `/hello-node` ingress defined in `/services/node-service/app.js`:
+Since we called the service without a specific endpoint, Garden will pick the first ingress it finds, in this case the ingress to our `/hello-node` endpoint:
 
 ```sh
-$ garden call node-service/hello-node
 ✔ Sending HTTP GET request to http://simple-project.local.app.garden/hello-node
 
 200 OK
@@ -147,7 +165,7 @@ Hello from Node server!
 In a similar manner, we create a config file for our `go-service` with
 
 ```sh
-$ touch services/go-service/garden.yml
+touch services/go-service/garden.yml
 ```
 
 and add the following:
@@ -155,6 +173,7 @@ and add the following:
 ```yaml
 module:
   description: Go service container
+  name: go-module
   type: container
   services:
     - name: go-service
@@ -169,13 +188,18 @@ module:
 Run the deploy command again, this time only for the `go-service`:
 
 ```sh
-$ garden deploy go-service
+garden deploy go-service
 ```
 
 Another way to verify that our services are up and running is to have a look at the service logs. We can either get an aggregate from all our services, by running `garden logs`, or we can specify a list of services. This time we're only interested in our `go-service`:
 
 ```sh
-$ garden logs go-service
+garden logs go-service
+```
+
+This should return something like:
+
+```sh
 go-service         → 2018-06-07T12:52:41.075Z → Server running...
 ```
 
@@ -186,7 +210,7 @@ Looks good! Let's take stock:
 * We deployed our entire project with the `garden deploy` command
 * We saw how we could call our services and read their logs with the `garden call` and `garden logs` commands.
 
-## Inter-service communication
+## Communication between services
 
 Calling the `go-service` from the `node-service` is straightforward from within the application code. Open `services/node-service/app.js` with your favorite editor and add the following:
 
@@ -200,11 +224,12 @@ app.get('/call-go-service', (req, res) => {
   // Query the go-service and return the response
   request.get(goServiceEndpoint)
     .then(message => {
+      message = `Go says: '${message}'`
       res.json({
         message,
       })
     })
-    .catch((err) => {
+    .catch(err => {
       res.statusCode = 500
       res.json({
         error: err,
@@ -214,21 +239,45 @@ app.get('/call-go-service', (req, res) => {
 })
 ```
 
-Now let's re-deploy the `node-service` and try out our new endpoint:
+We'll also add an ingress for our new endpoint to the `services/node-service/garden.yml` config, so that we can call it with Garden:
+
+```yaml
+module:
+  description: Node service container
+  ...
+  services:
+    - name: node-service
+      ...
+      ingresses:
+        - path: /hello-node
+          port: http
+        - path: /call-go-service
+          port: http
+```
+
+Now, let's re-deploy `node-service`:
 
 ```sh
-$ garden deploy node-service
-$ garden call node-service/call-go-service
+garden deploy node-service
+```
+
+and try out our new endpoint:
+
+```sh
+garden call node-service/call-go-service
+```
+
+We should get:
+
+```sh
 ✔ Sending HTTP GET request to http://simple-project.local.app.garden/call-go-service
 
 200 OK
 
 {
-    "message": "Hello from Go!"
+  "message": "Go says: 'Hello from Go!'"
 }
 ```
-
-Nice!
 
 So far, we've seen how to configure a simple project and it's modules, how to deploy our services, and how these services can communicate. Next, let's take a look at how we can define dependencies and set up testing.
 
@@ -242,7 +291,6 @@ module:
   ...
   services:
     - name: node-service
-      command: [npm, start]
       ...
       dependencies:
         - go-service
@@ -260,13 +308,12 @@ module:
   ...
   services:
     - name: node-service
-      command: [npm, start]
     ...
   tests:
     - name: unit
-      command: [npm, test]
+      args: [npm, test]
     - name: integ
-      command: [npm, run, integ]
+      args: [npm, run, integ]
       dependencies:
         - go-service
 ```
@@ -274,7 +321,7 @@ module:
 This allows us to run individual test groups by name or all of them at once with the test command:
 
 ```sh
-$ garden test
+garden test
 ```
 
 Notice also that the integration test depends on the `go-service` being deployed.
@@ -284,27 +331,27 @@ The entire module config should now look like this:
 ```yaml
 module:
   description: Node service container
+  name: node-module
   type: container
   services:
     - name: node-service
-      command: [npm, start]
       ports:
         - name: http
           containerPort: 8080
       ingresses:
-        - path: /
+        - path: /hello-node
           port: http
       dependencies:
         - go-service
   tests:
     - name: unit
-      command: [npm, test]
+      args: [npm, test]
     - name: integ
-      command: [npm, run, integ]
+      args: [npm, run, integ]
       dependencies:
         - go-service
 ```
 
 And that's it! Our services are up and running locally, dependencies are resolved, and tests are ready to run.
 
-Check out some of our other [Example projects](./README.md) for more of an in-depth look.
+Check out some of our other [Example projects](./README.md) for more of an in-depth look at Garden.
