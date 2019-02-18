@@ -20,7 +20,7 @@ const placeholderTaskResult = (moduleName, taskName, command) => ({
   taskName,
   command,
   version: {
-    versionString: "1",
+    versionString: "v-1",
     dirtyTimestamp: null,
     dependencyVersions: {},
   },
