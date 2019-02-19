@@ -12,3 +12,6 @@ module:
     # Don't use this config for remote clusters!
     enableInsecureLogin: true
     enableSkipLogin: true
+    # We should remove this after https://github.com/helm/charts/issues/9776 is resolved.
+    rbac:
+      clusterAdminRole: true
