@@ -87,6 +87,7 @@ export const projectSourcesSchema = joiArray(projectSourceSchema)
   .description("A list of remote sources to import into project.")
 
 export interface ProjectConfig {
+  apiVersion: string,
   name: string
   defaultEnvironment: string
   environmentDefaults: CommonEnvironmentConfig
@@ -122,6 +123,10 @@ export const projectNameSchema = joiIdentifier()
 
 export const projectSchema = Joi.object()
   .keys({
+    apiVersion: Joi.string()
+      .default("garden.io/v0")
+      .only("garden.io/v0")
+      .description("The schema version of this project's config (currently not used)."),
     name: projectNameSchema,
     defaultEnvironment: Joi.string()
       .default("", "<first specified environment>")
@@ -134,7 +139,6 @@ export const projectSchema = Joi.object()
       ),
     environments: joiArray(environmentConfigSchema.keys({ name: joiUserIdentifier().required() }))
       .unique("name")
-      .default(() => ({ ...defaultEnvironments }), safeDump(defaultEnvironments))
       .description("A list of environments to configure for the project.")
       .example([defaultEnvironments, {}]),
     sources: projectSourcesSchema,

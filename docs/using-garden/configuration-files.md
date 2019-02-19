@@ -192,6 +192,48 @@ in your tests.
 
 Tests can be run via `garden test`, as well as `garden dev`.
 
+## Multiple modules in the same file
+
+Sometimes, it's useful to define several modules in the same `garden.yml` file. One common situation is where more than
+one Dockerfile is in use (e.g. one for a development build and one for a production build).
+
+Another is when the dev configuration and the production configuration have different integration testing suites,
+which may depend on different external services being available.
+
+To do this, simply add a document separator (`---`) between the module definitions. Here's a simple example:
+
+```yaml
+module:
+  description: Hello world container - dev configuration
+  type: container
+  dockerfile: Dockerfile-dev
+  ...
+  tests:
+    - name: unit
+      args: [npm, test]
+    - name: integ
+      args: [npm, run, integ-dev]
+      dependencies:
+        - hello-function
+        - dev-integration-testing-backend
+
+---
+
+module:
+  description: Hello world container - production configuration
+  type: container
+  dockerfile: Dockerfile-prod
+  ...
+  tests:
+    - name: unit
+      args: [npm, test]
+    - name: integ
+      args: [npm, run, integ-prod]
+      dependencies:
+        - hello-function
+        - prod-integration-testing-backend
+```
+
 ## Next steps
 
 We highly recommend browsing through the [Example projects](../examples/README.md) to see different examples of how projects and modules can be configured.

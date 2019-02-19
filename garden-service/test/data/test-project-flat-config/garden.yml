@@ -1,0 +1,19 @@
+kind: Project
+name: test-project-flat-config
+environmentDefaults:
+  variables:
+    some: variable
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+      - name: test-plugin-b
+  - name: other
+
+---
+
+kind: Module
+name: module-from-project-config
+type: test
+build:
+  command: [echo, project]

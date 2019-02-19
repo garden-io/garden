@@ -220,6 +220,7 @@ export const testPluginC: PluginFactory = async (params) => {
 }
 
 const defaultModuleConfig: ModuleConfig = {
+  apiVersion: "garden.io/v0",
   type: "test",
   name: "test",
   path: "bla",

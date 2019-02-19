@@ -6,6 +6,14 @@ import { dataDir, expectError } from "../../helpers"
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
 
+const projectPathMultipleModules = resolve(dataDir, "test-project-multiple-module-config")
+const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
+
+const projectPathDuplicateProjects = resolve(dataDir, "test-project-duplicate-project-config")
+
+const projectPathFlat = resolve(dataDir, "test-project-flat-config")
+const modulePathFlatInvalid = resolve(projectPathFlat, "invalid-config-kind")
+
 describe("loadConfig", () => {
 
   it("should not throw an error if no file was found", async () => {
@@ -14,7 +22,7 @@ describe("loadConfig", () => {
     expect(parsed).to.eql(undefined)
   })
 
-  it("should throw a config error if the file couldn't be parsed°", async () => {
+  it("should throw a config error if the file couldn't be parsed", async () => {
     const projectPath = resolve(dataDir, "test-project-invalid-config")
     await expectError(
       async () => await loadConfig(projectPath, resolve(projectPath, "invalid-syntax-module")),
@@ -37,6 +45,7 @@ describe("loadConfig", () => {
     const parsed = await loadConfig(projectPathA, projectPathA)
 
     expect(parsed!.project).to.eql({
+      apiVersion: "garden.io/v0",
       name: "test-project-a",
       defaultEnvironment: "local",
       sources: [],
@@ -65,32 +74,190 @@ describe("loadConfig", () => {
   it("should load and parse a module config", async () => {
     const parsed = await loadConfig(projectPathA, modulePathA)
 
-    expect(parsed!.module).to.eql({
-      name: "module-a",
+    expect(parsed!.modules).to.eql([
+      {
+        apiVersion: "garden.io/v0",
+        name: "module-a",
+        type: "test",
+        description: undefined,
+        repositoryUrl: undefined,
+        allowPublish: true,
+        build: { command: ["echo", "A"], dependencies: [] },
+        outputs: {},
+        path: modulePathA,
+
+        spec: {
+          services: [{ name: "service-a" }],
+          tasks: [{
+            name: "task-a",
+            command: ["echo", "OK"],
+          }],
+          tests: [{
+            name: "unit",
+            command: ["echo", "OK"],
+          }],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      },
+    ])
+  })
+
+  it("should load and parse a config file defining a project and a module", async () => {
+    const parsed = await loadConfig(projectPathMultipleModules, projectPathMultipleModules)
+
+    expect(parsed!.project).to.eql({
+      apiVersion: "garden.io/v0",
+      defaultEnvironment: "local",
+      environmentDefaults: {
+        providers: [],
+        variables: {
+          some: "variable",
+        },
+      },
+      environments: [
+        {
+          name: "local",
+          providers: [
+            { name: "test-plugin" },
+            { name: "test-plugin-b" },
+          ],
+          variables: {},
+        },
+        {
+          name: "other",
+          providers: [],
+          variables: {},
+        },
+      ],
+      name: "test-project-multiple-modules",
+      sources: [],
+    })
+
+    expect(parsed!.modules).to.eql([{
+      apiVersion: "garden.io/v0",
+      name: "module-from-project-config",
       type: "test",
       description: undefined,
       repositoryUrl: undefined,
       allowPublish: true,
-      build: { command: ["echo", "A"], dependencies: [] },
+      build: { command: ["echo", "project"], dependencies: [] },
       outputs: {},
-      path: modulePathA,
-
-      spec: {
-        services: [{ name: "service-a" }],
-        tasks: [{
-          name: "task-a",
-          command: ["echo", "OK"],
-        }],
-        tests: [{
-          name: "unit",
-          command: ["echo", "OK"],
-        }],
-      },
-
+      path: projectPathMultipleModules,
       serviceConfigs: [],
-      taskConfigs: [],
+      spec: {},
       testConfigs: [],
+      taskConfigs: [],
+    }])
+  })
+
+  it("should load and parse a config file defining multiple modules", async () => {
+    const parsed = await loadConfig(projectPathMultipleModules, modulePathAMultiple)
+
+    expect(parsed!.modules).to.eql([
+      {
+        apiVersion: "garden.io/v0",
+        name: "module-a1",
+        type: "test",
+        allowPublish: true,
+        description: undefined,
+        repositoryUrl: undefined,
+        build: {
+          command: ["echo", "A1"],
+          dependencies: [
+            { name: "module-from-project-config", copy: [] },
+          ],
+        },
+        outputs: {},
+        path: modulePathAMultiple,
+        serviceConfigs: [],
+        spec: {
+          services: [{ name: "service-a1" }],
+          tests: [{ name: "unit", command: ["echo", "OK"] }],
+          tasks: [{ name: "task-a1", command: ["echo", "OK"] }],
+        },
+        testConfigs: [],
+        taskConfigs: [],
+      },
+      {
+        apiVersion: "garden.io/v0",
+        name: "module-a2",
+        type: "test",
+        allowPublish: true,
+        description: undefined,
+        repositoryUrl: undefined,
+        build: { command: ["echo", "A2"], dependencies: [] },
+        outputs: {},
+        path: modulePathAMultiple,
+        serviceConfigs: [],
+        spec: {
+          services: [{ name: "service-a2" }],
+          tests: [{ name: "unit", command: ["echo", "OK"] }],
+          tasks: [{ name: "task-a2", command: ["echo", "OK"] }],
+        },
+        testConfigs: [],
+        taskConfigs: [],
+      },
+    ])
+  })
+
+  it("should parse a config file using the flat config style", async () => {
+    const parsed = await loadConfig(projectPathFlat, projectPathFlat)
+
+    expect(parsed!.project).to.eql({
+      apiVersion: "garden.io/v0",
+      defaultEnvironment: "",
+      environmentDefaults: {
+        providers: [],
+        variables: { some: "variable" },
+      },
+      environments: [
+        {
+          name: "local",
+          providers: [
+            { name: "test-plugin" },
+            { name: "test-plugin-b" },
+          ],
+          variables: {},
+        },
+        {
+          name: "other",
+          providers: [],
+          variables: {},
+        },
+      ],
+      name: "test-project-flat-config",
+      sources: [],
     })
+
+    expect(parsed!.modules).to.eql([{
+      name: "module-from-project-config",
+      type: "test",
+      build: {
+        command: ["echo", "project"],
+        dependencies: [],
+      },
+      apiVersion: "garden.io/v0",
+      allowPublish: true,
+    }])
+  })
+
+  it("should throw an error when parsing a flat-style config using an unknown/invalid kind", async () => {
+    await expectError(
+      async () => await loadConfig(projectPathFlat, modulePathFlatInvalid),
+      (err) => {
+        expect(err.message).to.match(/Unknown config kind/)
+      })
+  })
+
+  it("should throw an error when parsing a config file defining multiple projects", async () => {
+    await expectError(
+      async () => await loadConfig(projectPathDuplicateProjects, projectPathDuplicateProjects),
+      (err) => {
+        expect(err.message).to.match(/Multiple project declarations/)
+      })
   })
 
   it("should return undefined if config file is not found", async () => {

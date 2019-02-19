@@ -70,10 +70,10 @@ const DEFAULT_CLI_LOGGER_TYPE = LoggerType.fancy
 
 // For initializing garden without a project config
 export const MOCK_CONFIG: GardenConfig = {
-  version: "0",
   dirname: "/",
   path: process.cwd(),
   project: {
+    apiVersion: "garden.io/v0",
     name: "mock-project",
     defaultEnvironment: "local",
     environments: defaultEnvironments,

@@ -24,10 +24,10 @@ export async function getSystemGarden(provider: KubernetesProvider): Promise<Gar
   return Garden.factory(systemProjectPath, {
     environmentName: "default",
     config: {
-      version: "0",
       dirname: "system",
       path: systemProjectPath,
       project: {
+        apiVersion: "garden.io/v0",
         name: "garden-system",
         environmentDefaults: {
           providers: [],

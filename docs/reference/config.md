@@ -22,6 +22,14 @@ Configuration for a Garden project. This should be specified in the garden.yml f
 | Type | Required |
 | ---- | -------- |
 | `object` | Yes
+### `project.apiVersion`
+[project](#project) > apiVersion
+
+The schema version of this project's config (currently not used).
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "garden.io/v0"
 ### `project.name`
 [project](#project) > name
 
@@ -199,6 +207,7 @@ project:
 ## Project YAML schema
 ```yaml
 project:
+  apiVersion: garden.io/v0
   name:
   defaultEnvironment: ''
   environmentDefaults:
@@ -224,6 +233,14 @@ Configure a module whose sources are located in this directory.
 | Type | Required |
 | ---- | -------- |
 | `object` | Yes
+### `module.apiVersion`
+[module](#module) > apiVersion
+
+The schema version of this module's config (currently not used).
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "garden.io/v0"
 ### `module.type`
 [module](#module) > type
 
@@ -371,6 +388,7 @@ POSIX-style path or filename to copy the directory or file(s) to (defaults to sa
 ## Module YAML schema
 ```yaml
 module:
+  apiVersion: garden.io/v0
   type:
   name:
   description:
