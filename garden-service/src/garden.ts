@@ -444,13 +444,14 @@ export class Garden {
 
     // call configureProvider action if provided
     const configureHandler = actions.configureProvider
-    if (configureHandler) {
-      const configureOutput = await configureHandler({ config: providerConfig })
-      providerConfig = configureOutput.config
-    }
 
     if (plugin.configSchema) {
       providerConfig = validate(providerConfig, plugin.configSchema, { context: `${pluginName} configuration` })
+    }
+
+    if (configureHandler) {
+      const configureOutput = await configureHandler({ config: providerConfig })
+      providerConfig = configureOutput.config
     }
 
     if (providerIndex === -1) {

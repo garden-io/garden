@@ -24,7 +24,7 @@ import { execModuleSpecSchema } from "../plugins/exec"
 import { projectSchema } from "../config/project"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
-import { configSchema as localK8sConfigSchema } from "../plugins/kubernetes/local"
+import { configSchema as localK8sConfigSchema } from "../plugins/kubernetes/local/local"
 import { configSchema as k8sConfigSchema } from "../plugins/kubernetes/kubernetes"
 import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/openfaas"
 import { openfaasModuleSpecSchema } from "../plugins/openfaas/openfaas"

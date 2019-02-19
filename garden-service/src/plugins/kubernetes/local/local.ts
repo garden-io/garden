@@ -10,16 +10,16 @@ import * as execa from "execa"
 import { safeLoad } from "js-yaml"
 import * as Joi from "joi"
 import { join } from "path"
-import { GardenPlugin, PluginFactoryParams } from "../../types/plugin/plugin"
+import { GardenPlugin, PluginFactoryParams } from "../../../types/plugin/plugin"
 import {
   gardenPlugin as k8sPlugin,
   KubernetesBaseConfig,
   kubernetesConfigBase,
-} from "./kubernetes"
+} from "../kubernetes"
 import { readFile } from "fs-extra"
 import { homedir } from "os"
-import { getLocalEnvironmentStatus, prepareLocalEnvironment } from "./init"
-import { ConfigureProviderParams } from "../../types/plugin/params"
+import { getLocalEnvironmentStatus, prepareLocalEnvironment } from "../init"
+import { ConfigureProviderParams } from "../../../types/plugin/params"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -52,6 +52,7 @@ async function setMinikubeDockerEnv() {
 
 export interface LocalKubernetesConfig extends KubernetesBaseConfig {
   _system?: Symbol
+  setupIngressController: string | boolean | null
 }
 
 export const configSchema = kubernetesConfigBase
@@ -80,6 +81,7 @@ export function gardenPlugin({ projectName, log }: PluginFactoryParams): GardenP
   plugin.actions!.configureProvider = async ({ config }: ConfigureProviderParams<LocalKubernetesConfig>) => {
     let context = config.context
     let defaultHostname = config.defaultHostname
+    let setupIngressController = config.setupIngressController
 
     if (!context) {
       // automatically detect supported kubectl context if not explicitly configured
@@ -117,11 +119,15 @@ export function gardenPlugin({ projectName, log }: PluginFactoryParams): GardenP
         defaultHostname = `${projectName}.${minikubeIp}.nip.io`
       }
 
-      await Promise.all([
-        // TODO: wait for ingress addon to be ready, if it was previously disabled
-        execa("minikube", ["addons", "enable", "ingress"]),
-        setMinikubeDockerEnv(),
-      ])
+      if (config.setupIngressController === "nginx") {
+        log.silly("Using minikube's ingress addon")
+        await execa("minikube", ["addons", "enable", "ingress"])
+        // make sure the prepare handler doesn't also set up the ingress controller
+        setupIngressController = false
+      }
+
+      await setMinikubeDockerEnv()
+
     } else {
       if (!defaultHostname) {
         defaultHostname = `${projectName}.local.app.garden`
@@ -142,6 +148,7 @@ export function gardenPlugin({ projectName, log }: PluginFactoryParams): GardenP
       ingressHttpsPort: 443,
       ingressClass: "nginx",
       namespace: config.namespace || projectName,
+      setupIngressController,
       tlsCertificates: config.tlsCertificates,
       _system: config._system,
     }
