@@ -74,7 +74,7 @@ describe("VcsHandler", () => {
       const result = await handler.resolveVersion(module, [])
 
       expect(result).to.eql({
-        versionString: versionA.latestCommit,
+        versionString: `v-${versionA.latestCommit}`,
         dirtyTimestamp: null,
         dependencyVersions: {},
       })
@@ -93,7 +93,7 @@ describe("VcsHandler", () => {
       const result = await handler.resolveVersion(module, [])
 
       expect(result).to.eql({
-        versionString: "abcdef-1234",
+        versionString: "v-abcdef-1234",
         dirtyTimestamp: 1234,
         dependencyVersions: {},
       })
@@ -116,7 +116,7 @@ describe("VcsHandler", () => {
       handler.setTestVersion(moduleC.path, versionC)
 
       expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
-        versionString: "asdfgh-123",
+        versionString: "v-asdfgh-123",
         dirtyTimestamp: 123,
         dependencyVersions: {
           "module-a": versionA,
@@ -142,7 +142,7 @@ describe("VcsHandler", () => {
       handler.setTestVersion(moduleC.path, versionC)
 
       expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
-        versionString: "qwerty-456",
+        versionString: "v-qwerty-456",
         dirtyTimestamp: 456,
         dependencyVersions: {
           "module-a": versionA,
@@ -169,7 +169,7 @@ describe("VcsHandler", () => {
       handler.setTestVersion(moduleC.path, versionC)
 
       expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
-        versionString: "v5ff3a146d9",
+        versionString: "v-5ff3a146d9",
         dirtyTimestamp: null,
         dependencyVersions: {
           "module-a": versionA,
@@ -199,7 +199,7 @@ describe("VcsHandler", () => {
         handler.setTestVersion(moduleC.path, versionC)
 
         expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
-          versionString: "vcfa6d28ec5-1234",
+          versionString: "v-cfa6d28ec5-1234",
           dirtyTimestamp: 1234,
           dependencyVersions: {
             "module-a": versionA,

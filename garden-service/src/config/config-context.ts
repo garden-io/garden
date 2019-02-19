@@ -188,7 +188,7 @@ class EnvironmentContext extends ConfigContext {
 }
 
 const exampleOutputs = { endpoint: "http://my-service/path/to/endpoint" }
-const exampleVersion = "v17ad4cb3fd"
+const exampleVersion = "v-v17ad4cb3fd"
 
 class ModuleContext extends ConfigContext {
   @schema(

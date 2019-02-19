@@ -45,7 +45,7 @@ import timekeeper = require("timekeeper")
 export const dataDir = resolve(__dirname, "data")
 export const examplesDir = resolve(__dirname, "..", "..", "examples")
 export const testNow = new Date()
-export const testModuleVersionString = "1234512345"
+export const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
   versionString: testModuleVersionString,
   dirtyTimestamp: null,

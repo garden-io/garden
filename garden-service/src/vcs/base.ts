@@ -43,6 +43,7 @@ interface NamedTreeVersion extends TreeVersion {
 }
 
 const versionStringSchema = Joi.string()
+  .regex(/^v/)
   .required()
   .description("String representation of the module version.")
 
@@ -136,7 +137,7 @@ export abstract class VcsHandler {
 
       if (latestDirty.length > 1) {
         // if the last modified timestamp is common across multiple modules, hash their versions
-        const versionString = `${hashVersions(latestDirty)}-${dirtyTimestamp}`
+        const versionString = addVersionPrefix(`${hashVersions(latestDirty)}-${dirtyTimestamp}`)
 
         return {
           versionString,
@@ -153,7 +154,7 @@ export abstract class VcsHandler {
       }
     } else {
       // otherwise derive the version from all the modules
-      const versionString = hashVersions(allVersions)
+      const versionString = addVersionPrefix(hashVersions(allVersions))
 
       return {
         versionString,
@@ -175,8 +176,7 @@ export abstract class VcsHandler {
 function hashVersions(versions: NamedTreeVersion[]) {
   const versionHash = createHash("sha256")
   versionHash.update(versions.map(v => `${v.name}_${v.latestCommit}`).join("."))
-  // this format is kinda arbitrary, but prefixing the "v" is useful to visually spot hashed versions
-  return "v" + versionHash.digest("hex").slice(0, 10)
+  return versionHash.digest("hex").slice(0, 10)
 }
 
 async function readVersionFile(path: string, schema): Promise<any> {
@@ -222,7 +222,17 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
 }
 
 export function getVersionString(treeVersion: TreeVersion) {
-  return treeVersion.dirtyTimestamp
+  const rawVersion = treeVersion.dirtyTimestamp
     ? `${treeVersion.latestCommit}-${treeVersion.dirtyTimestamp}`
     : treeVersion.latestCommit
+  return addVersionPrefix(rawVersion)
+}
+
+/**
+ * We prefix with "v-" to prevent this.version from being read as a number when only a prefix of the
+ * commit hash is used, and that prefix consists of only numbers. This can cause errors in certain contexts
+ * when the version string is used in template variables in configuration files.
+ */
+export function addVersionPrefix(versionString: string) {
+  return `v-${versionString}`
 }
