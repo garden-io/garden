@@ -208,7 +208,7 @@ describe("loadConfig", () => {
 
     expect(parsed!.project).to.eql({
       apiVersion: "garden.io/v0",
-      defaultEnvironment: "",
+      defaultEnvironment: "local",
       environmentDefaults: {
         providers: [],
         variables: { some: "variable" },
@@ -233,14 +233,22 @@ describe("loadConfig", () => {
     })
 
     expect(parsed!.modules).to.eql([{
+      apiVersion: "garden.io/v0",
       name: "module-from-project-config",
       type: "test",
+      description: undefined,
       build: {
         command: ["echo", "project"],
         dependencies: [],
       },
-      apiVersion: "garden.io/v0",
       allowPublish: true,
+      outputs: {},
+      path: projectPathFlat,
+      repositoryUrl: undefined,
+      serviceConfigs: [],
+      spec: {},
+      taskConfigs: [],
+      testConfigs: [],
     }])
   })
 

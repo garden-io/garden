@@ -22,3 +22,10 @@ module:
       args: [echo, ok]
       dependencies:
         - db-init
+
+---
+
+module:
+  description: Results UI service container
+  type: container
+  name: result-image
