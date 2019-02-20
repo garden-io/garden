@@ -6,14 +6,17 @@ import { TestGarden, dataDir, makeTestGarden, expectError } from "../../../../he
 import { PluginContext } from "../../../../../src/plugin-context"
 import { validateHelmModule } from "../../../../../src/plugins/kubernetes/helm/config"
 import { deline } from "../../../../../src/util/string"
+import { LogEntry } from "../../../../../src/logger/log-entry"
 
 describe("validateHelmModule", () => {
   let garden: TestGarden
   let ctx: PluginContext
+  let log: LogEntry
 
   before(async () => {
     const projectRoot = resolve(dataDir, "test-projects", "helm")
     garden = await makeTestGarden(projectRoot)
+    log = garden.log
     ctx = garden.getPluginContext("local-kubernetes")
     await garden.resolveModuleConfigs()
   })
@@ -119,7 +122,7 @@ describe("validateHelmModule", () => {
   it("should not return a serviceConfig if skipDeploy=true", async () => {
     const moduleConfig = getModuleConfig("api")
     moduleConfig.spec.skipDeploy = true
-    const config = await validateHelmModule({ ctx, moduleConfig })
+    const config = await validateHelmModule({ ctx, moduleConfig, log })
 
     expect(config.serviceConfigs).to.eql([])
   })
@@ -127,7 +130,7 @@ describe("validateHelmModule", () => {
   it("should add the module specified under 'base' as a build dependency", async () => {
     const moduleConfig = getModuleConfig("postgres")
     moduleConfig.spec.base = "foo"
-    const config = await validateHelmModule({ ctx, moduleConfig })
+    const config = await validateHelmModule({ ctx, moduleConfig, log })
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [{ source: "*", target: "." }] },
@@ -138,7 +141,7 @@ describe("validateHelmModule", () => {
     const moduleConfig = getModuleConfig("postgres")
     moduleConfig.build.dependencies = [{ name: "foo", copy: [] }]
     moduleConfig.spec.base = "foo"
-    const config = await validateHelmModule({ ctx, moduleConfig })
+    const config = await validateHelmModule({ ctx, moduleConfig, log })
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [{ source: "*", target: "." }] },
@@ -150,7 +153,7 @@ describe("validateHelmModule", () => {
     moduleConfig.spec.tasks = [
       { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
     ]
-    const config = await validateHelmModule({ ctx, moduleConfig })
+    const config = await validateHelmModule({ ctx, moduleConfig, log })
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [] },
@@ -162,7 +165,7 @@ describe("validateHelmModule", () => {
     moduleConfig.spec.tests = [
       { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
     ]
-    const config = await validateHelmModule({ ctx, moduleConfig })
+    const config = await validateHelmModule({ ctx, moduleConfig, log })
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [] },
@@ -173,7 +176,7 @@ describe("validateHelmModule", () => {
     const moduleConfig = getModuleConfig("api")
     moduleConfig.spec.base = "foo"
     await expectError(
-      () => validateHelmModule({ ctx, moduleConfig }),
+      () => validateHelmModule({ ctx, moduleConfig, log }),
       err => expect(err.message).to.equal(deline`
         Helm module 'api' both contains sources and specifies a base module.
         Since Helm charts cannot currently be merged, please either remove the sources or
@@ -186,7 +189,7 @@ describe("validateHelmModule", () => {
     const moduleConfig = getModuleConfig("postgres")
     delete moduleConfig.spec.chart
     await expectError(
-      () => validateHelmModule({ ctx, moduleConfig }),
+      () => validateHelmModule({ ctx, moduleConfig, log }),
       err => expect(err.message).to.equal(deline`
         Chart neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
       `),

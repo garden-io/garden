@@ -356,7 +356,7 @@ describe("createIngresses", () => {
     }
 
     const ctx = await garden.getPluginContext("container")
-    const parsed = await configure({ ctx, moduleConfig })
+    const parsed = await configure({ ctx, moduleConfig, log: garden.log })
     const graph = await garden.getConfigGraph()
     const module = await moduleFromConfig(garden, graph, parsed)
 
