@@ -41,7 +41,7 @@ import { SourceConfig } from "../src/config/project"
 import { BuildDir } from "../src/build-dir"
 import timekeeper = require("timekeeper")
 
-export const dataDir = resolve(__dirname, "data")
+export const dataDir = resolve(__dirname, "unit", "data")
 export const examplesDir = resolve(__dirname, "..", "..", "examples")
 export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"

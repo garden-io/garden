@@ -9,7 +9,9 @@
 import * as logSymbols from "log-symbols"
 import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
+import { chain } from "lodash"
 import chalk from "chalk"
+import * as stripAnsi from "strip-ansi"
 import {
   curryRight,
   flow,
@@ -25,6 +27,7 @@ import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
 import { LogEntry, EmojiName } from "./log-entry"
+import { JsonLogEntry } from "./writers/json-terminal-writer"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -157,4 +160,32 @@ export function formatForTerminal(entry: LogEntry): string {
     [renderDuration, [entry]],
     ["\n"],
   ])
+}
+
+export function cleanForJSON(input?: string | string[]): string {
+  if (!input) {
+    return ""
+  }
+
+  const inputStr = isArray(input) ? input.join(" - ") : input
+  return chain(inputStr)
+    .thru(str => stripAnsi(str))
+    .thru(str => str.replace(/\s+/g, " ")) // clean up whitespace
+    .thru(str => str.replace(/\\"/g, "'")) // replace double quotes with single quotes
+    .value()
+    .trim()
+}
+
+export function cleanWhitespace(str) {
+  return str.replace(/\s+/g, " ")
+}
+
+export function formatForJSON(entry: LogEntry): JsonLogEntry {
+  const { msg, section, showDuration, metadata } = entry.opts
+  return {
+    msg: cleanForJSON(msg),
+    metadata,
+    section: cleanForJSON(section),
+    durationMs: showDuration ? entry.getDuration(3) * 1000 : undefined,
+  }
 }

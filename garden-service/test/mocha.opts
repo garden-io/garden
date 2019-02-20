@@ -1,5 +1,6 @@
 --require ts-node/register/type-check
 --watch-dirs test/,src/
+--exclude test/integ/**/*.ts
 --watch-extensions ts,json,pegjs,yml
 --reporter spec
 --timeout 20000
