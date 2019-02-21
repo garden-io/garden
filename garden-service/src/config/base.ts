@@ -131,7 +131,6 @@ function prepareConfigDoc(spec: any, path: string, projectRoot: string): ConfigD
 
   if (configKinds.has(kind)) {
     const { specKey, validationSchema } = configKindSettings[kind]
-    delete spec.kind
     const preparedSpec = prepareFlatConfigDoc(spec, path)
     const validated = validateWithPath({
       config: preparedSpec,
@@ -154,11 +153,15 @@ function prepareConfigDoc(spec: any, path: string, projectRoot: string): ConfigD
  * The spec defines either a project or a module (determined by its "kind" field).
  */
 function prepareFlatConfigDoc(spec: any, path: string): ConfigDoc {
-  if (spec.kind === "Project") {
+
+  const kind = spec.kind
+  delete spec.kind
+
+  if (kind === "Project") {
     spec = prepareProjectConfig(spec, path)
   }
 
-  if (spec.kind === "Module") {
+  if (kind === "Module") {
     spec = prepareModuleConfig(spec, path)
   }
 
@@ -222,6 +225,7 @@ function prepareProjectConfig(projectSpec: any, path: string): ProjectConfig {
 }
 
 function prepareModuleConfig(moduleSpec: any, path: string): ModuleConfig {
+
   // Built-in keys are validated here and the rest are put into the `spec` field
   const module = {
     apiVersion: moduleSpec.apiVersion,
