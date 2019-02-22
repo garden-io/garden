@@ -16,7 +16,7 @@ import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
 import { KubernetesResource } from "../types"
-import { safeLoadAll } from "js-yaml"
+import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
 import { HelmModule, HelmModuleConfig, HelmResourceSpec } from "./config"
 import { HotReloadableResource } from "../hot-reload"
@@ -43,7 +43,7 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
   const context = ctx.provider.config.context
   const releaseName = getReleaseName(module)
 
-  const objects = <KubernetesResource[]>safeLoadAll(await helm(namespace, context, log,
+  const objects = <KubernetesResource[]>loadTemplate(await helm(namespace, context, log,
     "template",
     "--name", releaseName,
     "--namespace", namespace,
@@ -269,7 +269,7 @@ async function renderHelmTemplateString(
   try {
     await writeFile(tempFilePath, value)
 
-    const objects = safeLoadAll(await helm(namespace, context, log,
+    const objects = loadTemplate(await helm(namespace, context, log,
       "template",
       "--name", releaseName,
       "--namespace", namespace,
@@ -283,4 +283,17 @@ async function renderHelmTemplateString(
   } finally {
     await remove(tempFilePath)
   }
+}
+
+/**
+ * Helm templates can include duplicate keys, e.g. because of a mistake in the remote chart repo.
+ * We therefore load the template with `{ json: true }`, so that duplicate keys in a mapping will override values rather
+ * than throwing an error.
+ *
+ * However, this behavior is broken for the `safeLoadAll` function, see: https://github.com/nodeca/js-yaml/issues/456.
+ * We therefore need to use the `loadAll` function. See the following link for a conversation on using
+ * `loadAll` in this context: https://github.com/kubeapps/kubeapps/issues/636.
+ */
+function loadTemplate(template: string) {
+  return loadAll(template, undefined, { json: true })
 }

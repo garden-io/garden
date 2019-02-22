@@ -1,0 +1,4 @@
+module:
+  description: Helm chart for the duplicate-keys-in-template container
+  type: helm
+  name: duplicate-keys-in-template
