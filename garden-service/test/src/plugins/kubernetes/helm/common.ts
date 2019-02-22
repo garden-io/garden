@@ -433,6 +433,11 @@ describe("Helm common functions", () => {
         },
       ])
     })
+
+    it("should handle duplicate keys in template", async () => {
+      const module = await graph.getModule("duplicate-keys-in-template")
+      expect(await getChartResources(ctx, module, log)).to.not.throw
+    })
   })
 
   describe("getBaseModule", () => {
