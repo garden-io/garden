@@ -1,4 +1,27 @@
 
+<a name="v0.9.2-0"></a>
+## [v0.9.2-0](https://github.com/garden-io/garden/compare/v0.9.1...v0.9.2-0) (2019-02-22)
+
+### Bug Fixes
+
+* clean up field usage in example projects ([7ed2da3](https://github.com/garden-io/garden/commit/7ed2da3))
+* fixed bug in configuring flat-config modules ([fd5bed8](https://github.com/garden-io/garden/commit/fd5bed8))
+* **helm:** allow duplicate keys in template ([5153857](https://github.com/garden-io/garden/commit/5153857))
+* **k8s:** kubernetes dashboard wasn't showing up in dashboard ([2b76841](https://github.com/garden-io/garden/commit/2b76841))
+* **k8s:** don't use --wait when installing using Helm ([02cd157](https://github.com/garden-io/garden/commit/02cd157))
+* **k8s:** fix RBAC issues with kubernetes-dashboard on minikube ([291f368](https://github.com/garden-io/garden/commit/291f368))
+* **local-k8s:** remove hardcoded ingress class ([9eb6052](https://github.com/garden-io/garden/commit/9eb6052))
+* **local-k8s:** always use force flag when deploying to garden-system ns ([6cbe064](https://github.com/garden-io/garden/commit/6cbe064))
+* **local-k8s:** don't install nginx when running with Minikube ([056924b](https://github.com/garden-io/garden/commit/056924b))
+* **templates:** add prefix to versionString ([fe9cd49](https://github.com/garden-io/garden/commit/fe9cd49))
+
+### Features
+
+* add support for flat config style ([fecde8b](https://github.com/garden-io/garden/commit/fecde8b))
+* allow multiple modules in a single file ([ff4d370](https://github.com/garden-io/garden/commit/ff4d370))
+* don't restart command when config is invalid ([2a534b1](https://github.com/garden-io/garden/commit/2a534b1))
+
+
 <a name="v0.9.1"></a>
 ## [v0.9.1](https://github.com/garden-io/garden/compare/v0.9.0...v0.9.1) (2019-02-12)
 
