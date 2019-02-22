@@ -133,6 +133,28 @@ describe("task-graph", () => {
       ])
     })
 
+    it.only("should not emit a taskPending event when adding a task with a cached result", async () => {
+      const now = freezeTime()
+
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+
+      const task = new TestTask(garden, "a", false)
+      await graph.addTask(task)
+      const result = await graph.processTasks()
+
+      // repeatedTask has the same baseKey and version as task, so its result is already cached
+      const repeatedTask = new TestTask(garden, "a", false)
+      await graph.addTask(repeatedTask)
+
+      expect(garden.events.log).to.eql([
+        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskGraphProcessing", payload: { startedAt: now } },
+        { name: "taskComplete", payload: result["a"] },
+        { name: "taskGraphComplete", payload: { completedAt: now } },
+      ])
+    })
+
     it("should emit events when processing and completing a task", async () => {
       const now = freezeTime()
 

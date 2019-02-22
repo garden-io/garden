@@ -96,13 +96,15 @@ export class TaskGraph {
   }
 
   private async addTaskInternal(task: BaseTask) {
-    this.garden.events.emit("taskPending", {
-      addedAt: new Date(),
-      key: task.getKey(),
-      version: task.version,
-    })
     await this.addNodeWithDependencies(task)
     await this.rebuild()
+    if (this.index.getNode(task)) {
+      this.garden.events.emit("taskPending", {
+        addedAt: new Date(),
+        key: task.getKey(),
+        version: task.version,
+      })
+    }
   }
 
   private getNode(task: BaseTask): TaskNode | null {
