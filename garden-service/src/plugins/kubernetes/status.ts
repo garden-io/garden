@@ -10,7 +10,7 @@ import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { ServiceState, combineStates } from "../../types/service"
 import { sleep } from "../../util/util"
-import { KubeApi } from "./api"
+import { KubeApi, KubernetesError } from "./api"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { getAppNamespace } from "./namespace"
 import * as Bluebird from "bluebird"
@@ -173,6 +173,12 @@ export async function checkDeploymentStatus(
     }
 
     if (event.type === "Warning" || event.type === "Error") {
+      if (event.type === "Warning" && event.reason === "FailedScheduling") {
+        // this can happen on first attempt to schedule a pod
+        // TODO: we may want to more specifically look at the message
+        //       (e.g. 'pod has unbound immediate PersistentVolumeClaims')
+        continue
+      }
       if (event.reason === "Unhealthy") {
         // still waiting on readiness probe
         continue
@@ -561,10 +567,18 @@ async function getPodLogs(api: KubeApi, namespace: string, podNames: string[]): 
   const allLogs = await Bluebird.map(podNames, async (name) => {
     // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
     // accidentally logs a binary file or something.
-    const res = await api.core.readNamespacedPodLog(
-      name, namespace, undefined, false, 5000, undefined, false, undefined, podLogLines,
-    )
-    return `****** ${name} ******\n${res.body}`
+    try {
+      const res = await api.core.readNamespacedPodLog(
+        name, namespace, undefined, false, 5000, undefined, false, undefined, podLogLines,
+      )
+      return res.body ? `****** ${name} ******\n${res.body}` : ""
+    } catch (err) {
+      if (err instanceof KubernetesError && err.message.includes("waiting to start")) {
+        return ""
+      } else {
+        throw err
+      }
+    }
   })
-  return allLogs.join("\n\n")
+  return allLogs.filter(l => l !== "").join("\n\n")
 }
