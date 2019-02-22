@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chart-with-test-pod
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: chart-with-test-pod
+  ports:
+  - port: 80
+    name: http

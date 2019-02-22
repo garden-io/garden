@@ -1,0 +1,3 @@
+module:
+  type: helm
+  name: chart-with-test-pod
