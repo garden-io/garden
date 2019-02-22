@@ -57,7 +57,6 @@ export async function deployService(
       "--name", releaseName,
       "--namespace", namespace,
       "--values", valuesPath,
-      "--wait",
     ]
     if (force) {
       installArgs.push("--replace")
@@ -70,7 +69,6 @@ export async function deployService(
       "--install",
       "--namespace", namespace,
       "--values", valuesPath,
-      "--wait",
     ]
     if (force) {
       upgradeArgs.push("--force")

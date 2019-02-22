@@ -375,6 +375,7 @@ export class Garden {
   }
 
   private async loadPlugin(pluginName: string, config: ProviderConfig) {
+    this.log.silly(`Loading plugin ${pluginName}`)
     const factory = this.registeredPlugins[pluginName]
 
     if (!factory) {
@@ -444,13 +445,19 @@ export class Garden {
 
     // call configureProvider action if provided
     const configureHandler = actions.configureProvider
-    if (configureHandler) {
-      const configureOutput = await configureHandler({ config: providerConfig })
-      providerConfig = configureOutput.config
-    }
 
     if (plugin.configSchema) {
       providerConfig = validate(providerConfig, plugin.configSchema, { context: `${pluginName} configuration` })
+    }
+
+    if (configureHandler) {
+      this.log.silly(`Calling configureProvider on ${pluginName}`)
+      const configureOutput = await configureHandler({
+        config: providerConfig,
+        projectName: this.projectName,
+        log: this.log,
+      })
+      providerConfig = configureOutput.config
     }
 
     if (providerIndex === -1) {
@@ -458,6 +465,8 @@ export class Garden {
     } else {
       this.environment.providers[providerIndex].config = providerConfig
     }
+
+    this.log.silly(`Done loading plugin ${pluginName}`)
   }
 
   getPlugin(pluginName: string) {
@@ -508,7 +517,7 @@ export class Garden {
       })
       const ctx = this.getPluginContext(configureHandler["pluginName"])
 
-      config = await configureHandler({ ctx, moduleConfig: config })
+      config = await configureHandler({ ctx, moduleConfig: config, log: this.log })
 
       // FIXME: We should be able to avoid this
       config.name = getModuleKey(config.name, config.plugin)

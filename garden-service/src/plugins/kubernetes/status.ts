@@ -184,22 +184,24 @@ export async function checkDeploymentStatus(
       if (event.involvedObject.kind === "Pod") {
         const logs = await getPodLogs(api, namespace, [event.involvedObject.name])
 
-        out.logs = dedent`
-          <Showing last ${podLogLines} lines for the pod. Run the following command for complete logs:>
-          kubectl -n ${namespace} --context=${api.context} logs ${event.involvedObject.name}
+        if (logs) {
+          out.logs = dedent`
+            <Showing last ${podLogLines} lines for the pod. Run the following command for complete logs>
+            kubectl -n ${namespace} --context=${api.context} logs ${event.involvedObject.name}
 
-          ${logs}
-        `
+          ` + logs
+        }
       } else {
         const pods = await getPods(api, namespace, statusRes.spec.selector.matchLabels)
         const logs = await getPodLogs(api, namespace, pods.map(pod => pod.metadata.name))
 
-        out.logs = dedent`
-          <Showing last ${podLogLines} lines per pod in this ${obj.kind}. Run the following command for complete logs:>
-          kubectl -n ${namespace} --context=${api.context} logs ${obj.kind.toLowerCase()}/${obj.metadata.name}
+        if (logs) {
+          out.logs = dedent`
+            <Showing last ${podLogLines} lines per pod in this ${obj.kind}. Run the following command for complete logs>
+            kubectl -n ${namespace} --context=${api.context} logs ${obj.kind.toLowerCase()}/${obj.metadata.name}
 
-          ${logs}
-        `
+          ` + logs
+        }
       }
 
       return out

@@ -71,7 +71,7 @@ describe("plugins.container", () => {
   })
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-    const parsed = await configure({ ctx, moduleConfig })
+    const parsed = await configure({ ctx, moduleConfig, log })
     const graph = await garden.getConfigGraph()
     return moduleFromConfig(garden, graph, parsed)
   }
@@ -248,7 +248,7 @@ describe("plugins.container", () => {
           testConfigs: [],
         }
 
-        const result = await configure({ ctx, moduleConfig })
+        const result = await configure({ ctx, moduleConfig, log })
 
         expect(result).to.eql({
           allowPublish: false,
@@ -358,7 +358,7 @@ describe("plugins.container", () => {
         moduleConfig.spec.dockerfile = "path/to/non-existing/Dockerfile"
 
         await expectError(
-          () => configure({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig, log }),
           "configuration",
         )
       })
@@ -415,7 +415,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => configure({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig, log }),
           "configuration",
         )
       })
@@ -467,7 +467,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => configure({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig, log }),
           "configuration",
         )
       })
@@ -516,7 +516,7 @@ describe("plugins.container", () => {
         }
 
         await expectError(
-          () => configure({ ctx, moduleConfig }),
+          () => configure({ ctx, moduleConfig, log }),
           "configuration",
         )
       })

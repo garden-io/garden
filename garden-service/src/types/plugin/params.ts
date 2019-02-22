@@ -19,7 +19,7 @@ import { EnvironmentStatus, ServiceLogEntry, environmentStatusSchema } from "./o
 import { moduleConfigSchema } from "../../config/module"
 import { testConfigSchema } from "../../config/test"
 import { taskSchema } from "../../config/task"
-import { ProviderConfig } from "../../config/project"
+import { ProviderConfig, projectNameSchema, providerConfigBaseSchema } from "../../config/project"
 
 export interface PluginActionContextParams {
   ctx: PluginContext
@@ -32,6 +32,7 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
 // Note: not specifying this further because we will later remove it from the API
 const logEntrySchema = Joi.object()
   .description("Logging context handler that the handler can use to log messages and progress.")
+  .required()
 
 const actionParamsSchema = Joi.object()
   .keys({
@@ -73,14 +74,14 @@ const taskActionParamsSchema = moduleActionParamsSchema
  */
 export interface ConfigureProviderParams<T extends ProviderConfig = any> {
   config: T
+  log: LogEntry
+  projectName: string
 }
 export const configureProviderParamsSchema = Joi.object()
   .keys({
-    ctx: pluginContextSchema
-      .required(),
+    config: providerConfigBaseSchema.required(),
     log: logEntrySchema,
-    moduleConfig: moduleConfigSchema
-      .required(),
+    projectName: projectNameSchema,
   })
 
 export interface GetEnvironmentStatusParams extends PluginActionParamsBase { }
@@ -146,14 +147,14 @@ export const describeModuleTypeParamsSchema = Joi.object()
 
 export interface ConfigureModuleParams<T extends Module = Module> {
   ctx: PluginContext
-  logEntry?: LogEntry
+  log: LogEntry
   moduleConfig: T["_ConfigType"]
 }
 export const configureModuleParamsSchema = Joi.object()
   .keys({
     ctx: pluginContextSchema
       .required(),
-    logEntry: logEntrySchema,
+    log: logEntrySchema,
     moduleConfig: moduleConfigSchema
       .required(),
   })
