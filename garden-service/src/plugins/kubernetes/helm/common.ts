@@ -24,6 +24,7 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { Module } from "../../../types/module"
 import { findByName } from "../../../util/util"
 import { deline } from "../../../util/string"
+import { getAnnotation } from "../util"
 
 /**
  * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
@@ -51,12 +52,25 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
     chartPath,
   ))
 
-  return objects.filter(obj => obj !== null).map((obj) => {
-    if (!obj.metadata.annotations) {
-      obj.metadata.annotations = {}
-    }
-    return obj
-  })
+  return objects
+    .filter(obj => {
+      if (obj === null) {
+        return false
+      }
+
+      const helmHook = getAnnotation(obj, "helm.sh/hook")
+      if (helmHook && helmHook.startsWith("test-")) {
+        return false
+      }
+
+      return true
+    })
+    .map((obj) => {
+      if (!obj.metadata.annotations) {
+        obj.metadata.annotations = {}
+      }
+      return obj
+    })
 }
 
 /**

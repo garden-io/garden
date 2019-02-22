@@ -438,6 +438,34 @@ describe("Helm common functions", () => {
       const module = await graph.getModule("duplicate-keys-in-template")
       expect(await getChartResources(ctx, module, log)).to.not.throw
     })
+
+    it("should filter out test pods", async () => {
+      const module = await graph.getModule("chart-with-test-pod")
+      const resources = await getChartResources(ctx, module, log)
+
+      expect(resources).to.eql([
+        {
+          apiVersion: "v1",
+          kind: "Service",
+          metadata: {
+            annotations: {},
+            name: "chart-with-test-pod",
+          },
+          spec: {
+            ports: [
+              {
+                name: "http",
+                port: 80,
+              },
+            ],
+            selector: {
+              app: "chart-with-test-pod",
+            },
+            type: "ClusterIP",
+          },
+        },
+      ])
+    })
   })
 
   describe("getBaseModule", () => {
