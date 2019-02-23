@@ -349,7 +349,7 @@ async function getServiceStatus({ ctx, module, service }: GetServiceStatusParams
     }
   }
 
-  const container: any = findByName(deployment.spec.template.spec.containers, "hello-function")
+  const container: any = findByName(deployment.spec.template.spec.containers, service.name)
   const version = findByName<any>(container.env, "GARDEN_VERSION").value
   const status = await checkDeploymentStatus(api, namespace, deployment)
 
