@@ -17,7 +17,7 @@ This tutorial assumes that you already have a running [installation of Garden](.
 
 ## Clone the example repo
 
-The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.9.0/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/v0.9.0-docfix.1/examples/simple-project-start/) example and work our way from there. The final version is under [simple-project](https://github.com/garden-io/garden/tree/v0.9.0-docfix.1/examples/simple-project).
+The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples). We'll use the [simple-project-start](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/simple-project-start/) example and work our way from there. The final version is under [simple-project](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/simple-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
 
@@ -89,7 +89,7 @@ and add the following:
 ```yaml
 module:
   description: Node service container
-  name: node-module
+  name: node-service
   type: container
 ```
 
@@ -108,7 +108,7 @@ modules:
       command: []
       dependencies: []
     description: Node service container
-    name: node-module
+    name: node-service
     outputs: {}
     path: /Users/eysi/code/garden-io/simple-project-start/services/node-service
     serviceConfigs: []
@@ -122,7 +122,7 @@ Under the `module` directive of our `services/node-service/garden.yml` file we c
 ```yaml
 module:
   description: Node service container
-  name: node-module
+  name: node-service
   type: container
   services:
     - name: node-service
@@ -173,7 +173,7 @@ and add the following:
 ```yaml
 module:
   description: Go service container
-  name: go-module
+  name: go-service
   type: container
   services:
     - name: go-service
@@ -331,7 +331,7 @@ The entire module config should now look like this:
 ```yaml
 module:
   description: Node service container
-  name: node-module
+  name: node-service
   type: container
   services:
     - name: node-service
