@@ -1,5 +1,5 @@
 module:
-  name: node-module
+  name: node-service
   description: Node service container
   type: container
   services:
