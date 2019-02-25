@@ -10,7 +10,7 @@ Important concepts:
 
 ## About
 
-This project is the same as the [vote example](https://github.com/garden-io/garden/tree/v0.9.0-docfix.1/examples/vote)—except that in this case the services live in their own repositories. The repositories are:
+This project is the same as the [vote example](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/vote)—except that in this case the services live in their own repositories. The repositories are:
 
 * [Database services](https://github.com/garden-io/garden-example-remote-sources-db-services) (contains the Postgres and Redis services)
 * [Web services](https://github.com/garden-io/garden-example-remote-sources-web-services) (contains the Python Vote web service and the Node.js Result web service)
