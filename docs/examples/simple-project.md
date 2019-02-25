@@ -89,7 +89,7 @@ and add the following:
 ```yaml
 module:
   description: Node service container
-  name: node-module
+  name: node-service
   type: container
 ```
 
@@ -108,7 +108,7 @@ modules:
       command: []
       dependencies: []
     description: Node service container
-    name: node-module
+    name: node-service
     outputs: {}
     path: /Users/eysi/code/garden-io/simple-project-start/services/node-service
     serviceConfigs: []
@@ -122,7 +122,7 @@ Under the `module` directive of our `services/node-service/garden.yml` file we c
 ```yaml
 module:
   description: Node service container
-  name: node-module
+  name: node-service
   type: container
   services:
     - name: node-service
@@ -173,7 +173,7 @@ and add the following:
 ```yaml
 module:
   description: Go service container
-  name: go-module
+  name: go-service
   type: container
   services:
     - name: go-service
@@ -331,7 +331,7 @@ The entire module config should now look like this:
 ```yaml
 module:
   description: Node service container
-  name: node-module
+  name: node-service
   type: container
   services:
     - name: node-service

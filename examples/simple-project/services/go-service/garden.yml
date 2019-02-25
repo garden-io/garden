@@ -1,5 +1,5 @@
 module:
-  name: go-module
+  name: go-service
   description: Go service container
   type: container
   services:
