@@ -223,7 +223,7 @@ export async function prepareRuntimeContext(
     GARDEN_VERSION: versionString,
   }
 
-  for (const [key, value] of Object.entries(garden.environment.variables)) {
+  for (const [key, value] of Object.entries(garden.variables)) {
     const envVarName = `GARDEN_VARIABLES_${key.replace(/-/g, "_").toUpperCase()}`
     envVars[envVarName] = value
   }

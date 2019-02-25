@@ -56,7 +56,8 @@ export class CallCommand extends Command<Args> {
     const graph = await garden.getConfigGraph()
     const service = await graph.getService(serviceName)
     const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
-    const status = await garden.actions.getServiceStatus({ service, log, hotReload: false, runtimeContext })
+    const actions = await garden.getActionHelper()
+    const status = await actions.getServiceStatus({ service, log, hotReload: false, runtimeContext })
 
     if (!includes(["ready", "outdated"], status.state)) {
       throw new RuntimeError(`Service ${service.name} is not running`, {

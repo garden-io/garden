@@ -64,7 +64,7 @@ export async function getLinkedSources(
   garden: Garden,
   type: ExternalSourceType,
 ): Promise<LinkedSource[]> {
-  const localConfig = await garden.localConfigStore.get()
+  const localConfig = await garden.configStore.get()
   return (type === "project"
     ? localConfig.linkedProjectSources
     : localConfig.linkedModuleSources) || []
@@ -76,7 +76,7 @@ export async function addLinkedSources({ garden, sourceType, sources }: {
   sources: LinkedSource[],
 }): Promise<LinkedSource[]> {
   const linked = uniqBy([...await getLinkedSources(garden, sourceType), ...sources], "name")
-  await garden.localConfigStore.set([getConfigKey(sourceType)], linked)
+  await garden.configStore.set([getConfigKey(sourceType)], linked)
   return linked
 }
 
@@ -100,6 +100,6 @@ export async function removeLinkedSources({ garden, sourceType, names }: {
   }
 
   const linked = currentlyLinked.filter(({ name }) => !names.includes(name))
-  await garden.localConfigStore.set([getConfigKey(sourceType)], linked)
+  await garden.configStore.set([getConfigKey(sourceType)], linked)
   return linked
 }

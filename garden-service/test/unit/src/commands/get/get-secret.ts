@@ -11,7 +11,8 @@ describe("GetSecretCommand", () => {
     const log = garden.log
     const command = new GetSecretCommand()
 
-    await garden.actions.setSecret({
+    const actions = await garden.getActionHelper()
+    await actions.setSecret({
       log,
       pluginName,
       key: "project.mykey",

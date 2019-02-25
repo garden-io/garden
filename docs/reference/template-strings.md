@@ -107,6 +107,17 @@ environment:
   #
   name:
 
+# Retrieve information about providers that are defined in the project.
+#
+# Type: object
+#
+# Example:
+#   kubernetes:
+#     config:
+#       clusterHostname: my-cluster.example.com
+#
+providers: {}
+
 # Retrieve information about modules that are defined in the project.
 #
 # Type: object
@@ -114,20 +125,9 @@ environment:
 # Example:
 #   my-module:
 #     path: /home/me/code/my-project/my-module
-#     version: v-v17ad4cb3fd
+#     version: v-17ad4cb3fd
 #
 modules: {}
-
-# A map of all configured plugins/providers for this environment and their configuration.
-#
-# Type: object
-#
-# Example:
-#   kubernetes:
-#     name: local-kubernetes
-#     context: my-kube-context
-#
-providers: {}
 
 # A map of all variables defined in the project configuration.
 #

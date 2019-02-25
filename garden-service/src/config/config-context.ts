@@ -8,7 +8,7 @@
 
 import { isString } from "lodash"
 import { PrimitiveMap, isPrimitive, Primitive, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
-import { Provider, Environment, providerConfigBaseSchema } from "./project"
+import { Provider, ProviderConfig } from "./provider"
 import { ModuleConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
@@ -207,8 +207,58 @@ class EnvironmentContext extends ConfigContext {
   }
 }
 
+const providersExample = { kubernetes: { config: { clusterHostname: "my-cluster.example.com" } } }
+
+class ProviderContext extends ConfigContext {
+  @schema(
+    Joi.object()
+      .description("The resolved configuration for the provider.")
+      .example(providersExample.kubernetes),
+  )
+  public config: ProviderConfig
+
+  // TODO: Need further steps to be able to reference runtime outputs for providers.
+  // @schema(
+  //   joiIdentifierMap(joiPrimitive())
+  //     .description("The outputs defined by the provider (see individual plugin docs for details).")
+  //     .example({ "cluster-ip": "1.2.3.4" }),
+  // )
+  // public outputs: PrimitiveMap
+
+  constructor(root: ConfigContext, config: ProviderConfig) {
+    super(root)
+    this.config = config
+  }
+}
+
+export class ProviderConfigContext extends ProjectConfigContext {
+  @schema(
+    EnvironmentContext.getSchema()
+      .description("Information about the environment that Garden is running against."),
+  )
+  public environment: EnvironmentContext
+
+  @schema(
+    joiIdentifierMap(ProviderContext.getSchema())
+      .description("Retrieve information about providers that are defined in the project.")
+      .example(providersExample),
+  )
+  public providers: Map<string, ProviderContext>
+
+  constructor(environmentName: string, resolvedProviders: Provider[]) {
+    super()
+    const _this = this
+
+    this.environment = new EnvironmentContext(this, environmentName)
+
+    this.providers = new Map(resolvedProviders.map(p =>
+      <[string, ProviderContext]>[p.name, new ProviderContext(_this, p)],
+    ))
+  }
+}
+
 const exampleOutputs = { endpoint: "http://my-service/path/to/endpoint" }
-const exampleVersion = "v-v17ad4cb3fd"
+const exampleVersion = "v-17ad4cb3fd"
 
 class ModuleContext extends ConfigContext {
   @schema(
@@ -244,26 +294,13 @@ class ModuleContext extends ConfigContext {
  * This context is available for template strings under the `module` key in configuration files.
  * It is a superset of the context available under the `project` key.
  */
-export class ModuleConfigContext extends ProjectConfigContext {
-  @schema(
-    EnvironmentContext.getSchema()
-      .description("Information about the environment that Garden is running against."),
-  )
-  public environment: EnvironmentContext
-
+export class ModuleConfigContext extends ProviderConfigContext {
   @schema(
     joiIdentifierMap(ModuleContext.getSchema())
       .description("Retrieve information about modules that are defined in the project.")
       .example({ "my-module": { path: "/home/me/code/my-project/my-module", version: exampleVersion } }),
   )
   public modules: Map<string, () => Promise<ModuleContext>>
-
-  @schema(
-    joiIdentifierMap(providerConfigBaseSchema)
-      .description("A map of all configured plugins/providers for this environment and their configuration.")
-      .example({ kubernetes: { name: "local-kubernetes", context: "my-kube-context" } }),
-  )
-  public providers: Map<string, Provider>
 
   @schema(
     joiIdentifierMap(joiPrimitive())
@@ -280,14 +317,14 @@ export class ModuleConfigContext extends ProjectConfigContext {
 
   constructor(
     garden: Garden,
-    environment: Environment,
+    environmentName: string,
+    resolvedProviders: Provider[],
+    variables: PrimitiveMap,
     moduleConfigs: ModuleConfig[],
   ) {
-    super()
+    super(environmentName, resolvedProviders)
 
     const _this = this
-
-    this.environment = new EnvironmentContext(_this, environment.name)
 
     this.modules = new Map(moduleConfigs.map((config) =>
       <[string, () => Promise<ModuleContext>]>[config.name, async (opts: ContextResolveOpts) => {
@@ -305,8 +342,6 @@ export class ModuleConfigContext extends ProjectConfigContext {
       }],
     ))
 
-    this.providers = new Map(environment.providers.map(p => <[string, Provider]>[p.name, p]))
-
-    this.var = this.variables = environment.variables
+    this.var = this.variables = variables
   }
 }

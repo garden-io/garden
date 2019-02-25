@@ -17,7 +17,7 @@ import { BaseTask, TaskParams, TaskType } from "../tasks/base"
 import { prepareRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
 
@@ -39,7 +39,6 @@ export interface TestTaskParams {
 
 export class TestTask extends BaseTask {
   type: TaskType = "test"
-  depType: DependencyGraphNodeType = "test"
 
   private module: Module
   private graph: ConfigGraph
@@ -69,7 +68,7 @@ export class TestTask extends BaseTask {
     }
 
     const dg = this.graph
-    const services = (await dg.getDependencies(this.depType, this.getName(), false)).service
+    const services = (await dg.getDependencies("test", this.getName(), false)).service
 
     const deps: BaseTask[] = [new BuildTask({
       garden: this.garden,
@@ -121,10 +120,11 @@ export class TestTask extends BaseTask {
 
     const dependencies = await getTestDependencies(this.graph, this.testConfig)
     const runtimeContext = await prepareRuntimeContext(this.garden, this.graph, this.module, dependencies)
+    const actions = await this.garden.getActionHelper()
 
     let result: TestResult
     try {
-      result = await this.garden.actions.testModule({
+      result = await actions.testModule({
         log,
         interactive: false,
         module: this.module,
@@ -152,7 +152,9 @@ export class TestTask extends BaseTask {
       return null
     }
 
-    return this.garden.actions.getTestResult({
+    const actions = await this.garden.getActionHelper()
+
+    return actions.getTestResult({
       log: this.log,
       module: this.module,
       testName: this.testConfig.name,

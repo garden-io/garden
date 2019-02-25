@@ -322,7 +322,7 @@ export interface ContainerModuleSpec extends ModuleSpec {
   tasks: ContainerTaskSpec[],
 }
 
-export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
+export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec> { }
 
 export const defaultNamespace = "_"
 export const defaultTag = "latest"

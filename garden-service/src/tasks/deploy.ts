@@ -14,8 +14,8 @@ import { BaseTask, TaskType } from "./base"
 import { Service, ServiceStatus, getServiceRuntimeContext, getIngressUrl } from "../types/service"
 import { Garden } from "../garden"
 import { TaskTask } from "./task"
-import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
 import { BuildTask } from "./build"
+import { ConfigGraph } from "../config-graph"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -30,7 +30,6 @@ export interface DeployTaskParams {
 
 export class DeployTask extends BaseTask {
   type: TaskType = "deploy"
-  depType: DependencyGraphNodeType = "service"
 
   private graph: ConfigGraph
   private service: Service
@@ -53,8 +52,8 @@ export class DeployTask extends BaseTask {
     const dg = this.graph
 
     // We filter out service dependencies on services configured for hot reloading (if any)
-    const deps = await dg.getDependencies(this.depType, this.getName(), false,
-      (depNode) => !(depNode.type === this.depType && includes(this.hotReloadServiceNames, depNode.name)))
+    const deps = await dg.getDependencies("service", this.getName(), false,
+      (depNode) => !(depNode.type === "service" && includes(this.hotReloadServiceNames, depNode.name)))
 
     const deployTasks = await Bluebird.map(deps.service, async (service) => {
       return new DeployTask({
@@ -96,7 +95,7 @@ export class DeployTask extends BaseTask {
     }
   }
 
-  protected getName() {
+  getName() {
     return this.service.name
   }
 
@@ -116,8 +115,9 @@ export class DeployTask extends BaseTask {
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
     const runtimeContext = await getServiceRuntimeContext(this.garden, this.graph, this.service)
+    const actions = await this.garden.getActionHelper()
 
-    let status = await this.garden.actions.getServiceStatus({
+    let status = await actions.getServiceStatus({
       service: this.service,
       log,
       hotReload,
@@ -140,7 +140,7 @@ export class DeployTask extends BaseTask {
       log.setState(`Deploying version ${versionString}...`)
 
       try {
-        status = await this.garden.actions.deployService({
+        status = await actions.deployService({
           service: this.service,
           runtimeContext,
           log,

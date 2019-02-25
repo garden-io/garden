@@ -16,7 +16,7 @@ import { relative } from "path"
 export type Primitive = string | number | boolean | null
 
 export interface PrimitiveMap { [key: string]: Primitive }
-export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap }
+export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[] }
 
 // export type ConfigWithSpec<S extends object> = <T extends S>{
 //   spec: Omit<T, keyof S> & Partial<S>

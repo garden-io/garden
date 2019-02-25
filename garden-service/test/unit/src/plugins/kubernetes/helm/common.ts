@@ -32,7 +32,7 @@ describe("Helm common functions", () => {
     const projectRoot = resolve(dataDir, "test-projects", "helm")
     garden = await makeTestGarden(projectRoot)
     graph = await garden.getConfigGraph()
-    ctx = garden.getPluginContext("local-kubernetes")
+    ctx = await garden.getPluginContext("local-kubernetes")
     log = garden.log
     await buildModules()
   })

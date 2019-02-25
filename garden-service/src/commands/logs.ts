@@ -95,13 +95,15 @@ export class LogsCommand extends Command<Args, Opts> {
       }
     })
 
+    const actions = await garden.getActionHelper()
+
     await Bluebird.map(services, async (service: Service<any>) => {
       const voidLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
       const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
-      const status = await garden.actions.getServiceStatus({ log: voidLog, service, hotReload: false, runtimeContext })
+      const status = await actions.getServiceStatus({ log: voidLog, service, hotReload: false, runtimeContext })
 
       if (status.state === "ready" || status.state === "outdated") {
-        await garden.actions.getServiceLogs({ log, service, stream, follow, tail, runtimeContext })
+        await actions.getServiceLogs({ log, service, stream, follow, tail, runtimeContext })
       } else {
         await stream.write({
           serviceName: service.name,

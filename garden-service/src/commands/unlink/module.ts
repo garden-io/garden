@@ -62,7 +62,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
     const { modules = [] } = args
 
     if (opts.all) {
-      await garden.localConfigStore.set([localConfigKeys.linkedModuleSources], [])
+      await garden.configStore.set([localConfigKeys.linkedModuleSources], [])
       log.info("Unlinked all modules")
       return { result: [] }
     }

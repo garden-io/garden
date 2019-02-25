@@ -7,7 +7,7 @@
  */
 
 import dedent = require("dedent")
-import { merge } from "lodash"
+import { merge, flatten, uniq } from "lodash"
 import * as indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { getModuleKey } from "../types/module"
@@ -22,7 +22,7 @@ export function validateDependencies(
 ): void {
 
   const missingDepsError = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
-  const circularDepsError = detectCircularDependencies(moduleConfigs)
+  const circularDepsError = detectCircularModuleDependencies(moduleConfigs)
 
   let errMsg = ""
   let detail = {}
@@ -102,22 +102,18 @@ export function detectMissingDependencies(
 export type Cycle = string[]
 
 /**
- * Implements a variation on the Floyd-Warshall algorithm to compute minimal cycles.
- *
- * This is approximately O(m^3) + O(s^3), where m is the number of modules and s is the number of services.
- *
- * Returns an error if cycles were found.
+ * Computes build and runtime dependency graphs for the given modules, and returns an error if cycles were found.
  */
-export function detectCircularDependencies(moduleConfigs: ModuleConfig[]): ConfigurationError | null {
+export function detectCircularModuleDependencies(moduleConfigs: ModuleConfig[]): ConfigurationError | null {
   // Sparse matrices
-  const buildGraph = {}
-  const runtimeGraph = {}
+  const buildGraph: DependencyGraph = {}
+  const runtimeGraph: DependencyGraph = {}
   const services: ServiceConfig[] = []
   const tasks: TaskConfig[] = []
 
   /**
    * Since dependencies listed in test configs cannot introduce circularities (because
-   * builds/deployments/tasks/tests cannot currently depend on tests), we don't need to
+   * builds/deployments/tasks/tests cannot currently depend on tesxts), we don't need to
    * account for test dependencies here.
    */
   for (const module of moduleConfigs) {
@@ -143,10 +139,8 @@ export function detectCircularDependencies(moduleConfigs: ModuleConfig[]): Confi
     }
   }
 
-  const serviceNames = services.map(s => s.name)
-  const taskNames = tasks.map(w => w.name)
-  const buildCycles = detectCycles(buildGraph, moduleConfigs.map(m => m.name))
-  const runtimeCycles = detectCycles(runtimeGraph, serviceNames.concat(taskNames))
+  const buildCycles = detectCycles(buildGraph)
+  const runtimeCycles = detectCycles(runtimeGraph)
 
   if (buildCycles.length > 0 || runtimeCycles.length > 0) {
     const detail = {}
@@ -175,7 +169,32 @@ export function detectCircularDependencies(moduleConfigs: ModuleConfig[]): Confi
   return null
 }
 
-export function detectCycles(graph, vertices: string[]): Cycle[] {
+export interface DependencyGraph {
+  [key: string]: {
+    [target: string]: {
+      distance: number,
+      next: string,
+    },
+  }
+}
+
+/**
+ * Implements a variation on the Floyd-Warshall algorithm to compute minimal cycles.
+ *
+ * This is approximately O(m^3) + O(s^3), where m is the number of modules and s is the number of services.
+ *
+ * Returns a list of cycles found.
+ */
+export function detectCycles(graph: DependencyGraph): Cycle[] {
+  // Collect all the vertices
+  const vertices = uniq(
+    Object.keys(graph).concat(
+      flatten(
+        Object.values(graph).map(v => Object.keys(v)),
+      ),
+    ),
+  )
+
   // Compute shortest paths
   for (const k of vertices) {
     for (const i of vertices) {
@@ -206,15 +225,15 @@ export function detectCycles(graph, vertices: string[]): Cycle[] {
     (c1, c2) => isEqual(c1.concat().sort(), c2.concat().sort()))
 }
 
-function distance(graph, source, destination): number {
+function distance(graph: DependencyGraph, source: string, destination: string): number {
   return get(graph, [source, destination, "distance"], Infinity)
 }
 
-function next(graph, source, destination): string | undefined {
+function next(graph: DependencyGraph, source: string, destination: string): string | undefined {
   return get(graph, [source, destination, "next"])
 }
 
-function cyclesToString(cycles: Cycle[]) {
+export function cyclesToString(cycles: Cycle[]) {
   const cycleDescriptions = cycles.map(c => join(c.concat([c[0]]), " <- "))
   return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions
 }

@@ -135,10 +135,13 @@ describe("VcsHandler", () => {
       moduleABefore = await templateGarden.resolveModuleConfig("module-a") // uses the echo-string variable
       moduleBBefore = await templateGarden.resolveModuleConfig("module-b") // does not use the echo-string variable
 
-      const moduleAAfterEnv = cloneDeep(templateGarden.environment)
-      moduleAAfterEnv.variables["echo-string"] = "something else"
       const configContext = new ModuleConfigContext(
-        templateGarden, moduleAAfterEnv, await templateGarden.getRawModuleConfigs())
+        templateGarden,
+        templateGarden.environmentName,
+        await templateGarden.resolveProviders(),
+        { ...templateGarden.variables, "echo-string": "something else" },
+        await templateGarden.getRawModuleConfigs(),
+      )
 
       moduleAAfter = await templateGarden.resolveModuleConfig("module-a", { configContext })
       moduleBAfter = await templateGarden.resolveModuleConfig("module-b", { configContext })

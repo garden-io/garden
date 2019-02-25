@@ -10,10 +10,9 @@ import { TaskResults } from "../task-graph"
 import { ModuleVersion } from "../vcs/vcs"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
-export type TaskType = "build" | "deploy" | "publish" | "hot-reload" | "task" | "test"
+export type TaskType = "build" | "deploy" | "publish" | "hot-reload" | "resolve-provider" | "task" | "test"
 
 export class TaskDefinitionError extends Error { }
 
@@ -30,7 +29,6 @@ export interface TaskParams {
 
 export abstract class BaseTask {
   abstract type: TaskType
-  abstract depType: DependencyGraphNodeType
   garden: Garden
   log: LogEntry
   uid: string
@@ -52,7 +50,7 @@ export abstract class BaseTask {
     return this.dependencies
   }
 
-  protected abstract getName(): string
+  abstract getName(): string
 
   getKey(): string {
     return makeBaseKey(this.type, this.getName())

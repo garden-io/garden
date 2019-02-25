@@ -6,96 +6,55 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, basename, sep, resolve, relative } from "path"
-import { findByName, getNames } from "../util/util"
-import * as Joi from "joi"
+import { join, sep, resolve, relative } from "path"
 import * as yaml from "js-yaml"
 import { readFile } from "fs-extra"
-import { omit } from "lodash"
-import { baseModuleSpecSchema, ModuleConfig } from "./module"
-import { validateWithPath } from "./common"
+import { omit, flatten, isPlainObject, find } from "lodash"
+import { baseModuleSpecSchema, ModuleResource } from "./module"
 import { ConfigurationError } from "../exceptions"
-import { defaultEnvironments, ProjectConfig, projectSchema } from "../config/project"
-import { CONFIG_FILENAME } from "../constants"
+import { CONFIG_FILENAME, DEFAULT_API_VERSION } from "../constants"
+import { ProjectResource } from "../config/project"
 
-export interface GardenConfig {
-  dirname: string
+export interface GardenResource {
+  apiVersion: string
+  kind: string
+  name: string
   path: string
-  modules?: ModuleConfig[]
-  project?: ProjectConfig
 }
 
-export const configSchema = Joi.object()
-  .keys({
-    dirname: Joi.string().meta({ internal: true }),
-    path: Joi.string().meta({ internal: true }),
-    module: baseModuleSpecSchema,
-    project: projectSchema,
-  })
-  .optionalKeys(["module", "project"])
-  .required()
-  .description("The garden.yml config file.")
+const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children).concat(["kind"])
 
-const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children)
-
-export async function loadConfig(projectRoot: string, path: string): Promise<GardenConfig | undefined> {
+export async function loadConfig(projectRoot: string, path: string): Promise<GardenResource[]> {
   // TODO: nicer error messages when load/validation fails
   const absPath = join(path, CONFIG_FILENAME)
-  let fileData
+  let fileData: Buffer
   let rawSpecs: any[]
 
   // loadConfig returns undefined if config file is not found in the given directory
   try {
     fileData = await readFile(absPath)
   } catch (err) {
-    return undefined
+    return []
   }
 
   try {
-    rawSpecs = yaml.safeLoadAll(fileData) || []
+    rawSpecs = yaml.safeLoadAll(fileData.toString()) || []
   } catch (err) {
     throw new ConfigurationError(`Could not parse ${CONFIG_FILENAME} in directory ${path} as valid YAML`, err)
   }
 
-  const specs: ConfigDoc[] = rawSpecs.map(s => prepareConfigDoc(s, path, projectRoot))
+  const resources: GardenResource[] = flatten(rawSpecs.map(s => prepareResources(s, path, projectRoot)))
 
-  const projectSpecs = specs.filter(s => s.project)
+  const projectSpecs = resources.filter(s => s.kind === "Project")
 
   if (projectSpecs.length > 1) {
     throw new ConfigurationError(`Multiple project declarations in ${path}`, { projectSpecs })
   }
 
-  const project = projectSpecs[0] ? projectSpecs[0].project : undefined
-  const modules: ModuleConfig[] = specs.filter(s => s.module).map(s => s.module!)
-
-  const dirname = basename(path)
-
-  return {
-    dirname,
-    path,
-    modules: modules.length > 0 ? modules : undefined,
-    project,
-  }
-}
-
-type ConfigDoc = {
-  module?: ModuleConfig,
-  project?: ProjectConfig,
+  return resources
 }
 
 export type ConfigKind = "Module" | "Project"
-export const configKinds = new Set(["Module", "Project"])
-
-const configKindSettings = {
-  Module: {
-    specKey: "module",
-    validationSchema: baseModuleSpecSchema,
-  },
-  Project: {
-    specKey: "project",
-    validationSchema: projectSchema,
-  },
-}
 
 /**
  * Each YAML document in a garden.yml file consists of a project definition and/or a module definition.
@@ -109,38 +68,16 @@ const configKindSettings = {
  * definitions). The kind key is removed before validation, so that specs following both styles can be validated
  * with the same schema.
  */
-function prepareConfigDoc(spec: any, path: string, projectRoot: string): ConfigDoc {
-
-  const kind = spec.kind
-
-  if (!spec.kind) {
-    const preparedSpec = prepareScopedConfigDoc(spec, path)
-    // validate with scoped config schema
-    return validateWithPath({
-      config: preparedSpec,
-      schema: configSchema,
-      configType: "config",
-      path,
-      projectRoot,
-    })
+function prepareResources(spec: any, path: string, projectRoot: string): GardenResource[] {
+  if (!isPlainObject(spec)) {
+    throw new ConfigurationError(`Invalid configuration found in ${path}`, { spec, path })
   }
 
-  if (configKinds.has(kind)) {
-    const { specKey, validationSchema } = configKindSettings[kind]
-    const preparedSpec = prepareFlatConfigDoc(spec, path)
-    const validated = validateWithPath({
-      config: preparedSpec,
-      schema: validationSchema,
-      configType: specKey,
-      path,
-      projectRoot,
-    })
-    return { [specKey]: validated }
+  if (spec.kind) {
+    return [prepareFlatConfigDoc(spec, path, projectRoot)]
   } else {
-    const relPath = `${relative(projectRoot, path)}/garden.yml`
-    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, { kind, path: relPath })
+    return prepareScopedConfigDoc(spec, path)
   }
-
 }
 
 /**
@@ -148,20 +85,17 @@ function prepareConfigDoc(spec: any, path: string, projectRoot: string): ConfigD
  *
  * The spec defines either a project or a module (determined by its "kind" field).
  */
-function prepareFlatConfigDoc(spec: any, path: string): ConfigDoc {
-
+function prepareFlatConfigDoc(spec: any, path: string, projectRoot: string): GardenResource {
   const kind = spec.kind
-  delete spec.kind
 
   if (kind === "Project") {
-    spec = prepareProjectConfig(spec, path)
+    return prepareProjectConfig(spec, path)
+  } else if (kind === "Module") {
+    return prepareModuleResource(spec, path)
+  } else {
+    const relPath = `${relative(projectRoot, path)}/garden.yml`
+    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, { kind, path: relPath })
   }
-
-  if (kind === "Module") {
-    spec = prepareModuleConfig(spec, path)
-  }
-
-  return spec
 }
 
 /**
@@ -170,113 +104,84 @@ function prepareFlatConfigDoc(spec: any, path: string): ConfigDoc {
  * The spec defines a project and/or a module, with the config for each nested under the "project" / "module" field,
  * respectively.
  */
-function prepareScopedConfigDoc(spec: any, path: string): ConfigDoc {
+function prepareScopedConfigDoc(spec: any, path: string): GardenResource[] {
+  const resources: GardenResource[] = []
+
   if (spec.project) {
-    spec.project = prepareProjectConfig(spec.project, path)
+    resources.push(prepareProjectConfig(spec.project, path))
   }
 
   if (spec.module) {
-    spec.module = prepareModuleConfig(spec.module, path)
+    resources.push(prepareModuleResource(spec.module, path))
   }
+
+  return resources
+}
+
+function prepareProjectConfig(spec: any, path: string): ProjectResource {
+  if (!spec.apiVersion) {
+    spec.apiVersion = DEFAULT_API_VERSION
+  }
+
+  spec.kind = "Project"
+  spec.path = path
 
   return spec
 }
 
-function prepareProjectConfig(projectSpec: any, path: string): ProjectConfig {
-
-  const validatedSpec = validateWithPath({
-    config: projectSpec,
-    schema: projectSchema,
-    configType: "project",
-    path,
-    projectRoot: path, // If there's a project spec, we can assume path === projectRoot.
-  })
-
-  if (!validatedSpec.environments) {
-    validatedSpec.environments = defaultEnvironments
-  }
-
-  // we include the default local environment unless explicitly overridden
-  for (const env of defaultEnvironments) {
-    if (!findByName(validatedSpec.environments, env.name)) {
-      validatedSpec.environments.push(env)
-    }
-  }
-
-  // the default environment is the first specified environment in the config, unless specified
-  const defaultEnvironment = validatedSpec.defaultEnvironment
-
-  if (defaultEnvironment === "") {
-    validatedSpec.defaultEnvironment = validatedSpec.environments[0].name
-  } else {
-    if (!findByName(validatedSpec.environments, defaultEnvironment)) {
-      throw new ConfigurationError(`The specified default environment ${defaultEnvironment} is not defined`, {
-        defaultEnvironment,
-        availableEnvironments: getNames(validatedSpec.environments),
-      })
-    }
-  }
-
-  return validatedSpec
-}
-
-function prepareModuleConfig(moduleSpec: any, path: string): ModuleConfig {
+function prepareModuleResource(spec: any, path: string): ModuleResource {
   /**
    * We allow specifying modules by name only as a shorthand:
    *   dependencies:
    *   - foo-module
    *   - name: foo-module // same as the above
    */
-  const dependencies = moduleSpec.build && moduleSpec.build.dependencies
-    ? moduleSpec.build.dependencies.map(dep => typeof dep === "string" ? { name: dep, copy: [] } : dep)
+  const dependencies = spec.build && spec.build.dependencies
+    ? spec.build.dependencies.map(dep => typeof dep === "string" ? { name: dep, copy: [] } : dep)
     : []
 
   // Built-in keys are validated here and the rest are put into the `spec` field
-  const module = {
-    apiVersion: moduleSpec.apiVersion,
-    allowPublish: moduleSpec.allowPublish,
+  return {
+    apiVersion: spec.apiVersion || DEFAULT_API_VERSION,
+    kind: "Module",
+    allowPublish: spec.allowPublish,
     build: {
       dependencies,
     },
-    description: moduleSpec.description,
-    include: moduleSpec.include,
-    name: moduleSpec.name,
+    description: spec.description,
+    include: spec.include,
+    name: spec.name,
     outputs: {},
     path,
-    repositoryUrl: moduleSpec.repositoryUrl,
+    repositoryUrl: spec.repositoryUrl,
     serviceConfigs: [],
     spec: {
-      ...omit(moduleSpec, baseModuleSchemaKeys),
-      build: { ...moduleSpec.build, dependencies },
+      ...omit(spec, baseModuleSchemaKeys),
+      build: { ...spec.build, dependencies },
     },
     testConfigs: [],
-    type: moduleSpec.type,
+    type: spec.type,
     taskConfigs: [],
   }
-
-  return module
 }
 
-export async function findProjectConfig(path: string, allowInvalid = false): Promise<GardenConfig | undefined> {
-  let config: GardenConfig | undefined
-
+export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
   for (let i = 0; i < sepCount; i++) {
     try {
-      config = await loadConfig(path, path)
+      const resources = await loadConfig(path, path)
+      const projectResource = find(resources, r => r.kind === "Project")
+      if (projectResource) {
+        return <ProjectResource>projectResource
+      }
     } catch (err) {
       if (!allowInvalid) {
         throw err
       } else {
-        continue
+        path = resolve(path, "..")
       }
-    }
-    if (!config || !config.project) {
-      path = resolve(path, "..")
-    } else if (config.project) {
-      return config
     }
   }
 
-  return config
+  return
 }

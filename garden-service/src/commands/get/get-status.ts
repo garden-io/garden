@@ -40,9 +40,11 @@ export class GetStatusCommand extends Command {
   help = "Outputs the status of your environment."
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult<AllEnvironmentStatus>> {
-    const status = await garden.actions.getStatus({ log })
+    const actions = await garden.getActionHelper()
+    const status = await actions.getStatus({ log })
 
-    let result
+    let result: AllEnvironmentStatus
+
     if (opts.output) {
       const graph = await garden.getConfigGraph()
       result = await Bluebird.props({
@@ -66,10 +68,12 @@ export class GetStatusCommand extends Command {
 
 async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry) {
   const modules = await configGraph.getModules()
+  const actions = await garden.getActionHelper()
+
   return fromPairs(flatten(await Bluebird.map(modules, async (module) => {
     return Bluebird.map(module.testConfigs, async (testConfig) => {
       const testVersion = await getTestVersion(garden, configGraph, module, testConfig)
-      const result = await garden.actions.getTestResult({
+      const result = await actions.getTestResult({
         module, log, testVersion, testName: testConfig.name,
       })
       return [`${module.name}.${testConfig.name}`, runStatus(result)]
@@ -79,9 +83,11 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
 
 async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry): Promise<TaskStatuses> {
   const tasks = await configGraph.getTasks()
+  const actions = await garden.getActionHelper()
+
   return fromPairs(await Bluebird.map(tasks, async (task) => {
     const taskVersion = await getTaskVersion(garden, configGraph, task)
-    const result = await garden.actions.getTaskResult({ task, taskVersion, log })
+    const result = await actions.getTaskResult({ task, taskVersion, log })
     return [task.name, runStatus(result)]
   }))
 }

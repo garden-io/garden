@@ -75,7 +75,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         const opts: any = {
           Name: getSwarmServiceName(ctx, service.name),
           Labels: {
-            environment: ctx.environment.name,
+            environment: ctx.environmentName,
             provider: pluginName,
           },
           TaskTemplate: {

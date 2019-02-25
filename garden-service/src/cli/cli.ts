@@ -47,9 +47,8 @@ import {
   getLogLevelChoices,
   parseLogLevel,
 } from "./helpers"
-import { GardenConfig } from "../config/base"
-import { defaultEnvironments } from "../config/project"
-import { ERROR_LOG_FILENAME } from "../constants"
+import { defaultEnvironments, ProjectConfig } from "../config/project"
+import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION } from "../constants"
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 
@@ -78,23 +77,19 @@ const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
 const DEFAULT_CLI_LOGGER_TYPE = "fancy"
 
 // For initializing garden without a project config
-export const MOCK_CONFIG: GardenConfig = {
-  dirname: "/",
+export const MOCK_CONFIG: ProjectConfig = {
   path: process.cwd(),
-  project: {
-    apiVersion: "garden.io/v0",
-    name: "mock-project",
-    defaultEnvironment: "local",
-    environments: defaultEnvironments,
-    environmentDefaults: {
-      providers: [
-        {
-          name: "local-kubernetes",
-        },
-      ],
-      variables: {},
+  apiVersion: DEFAULT_API_VERSION,
+  kind: "Project",
+  name: "mock-project",
+  defaultEnvironment: "local",
+  environments: defaultEnvironments,
+  providers: [
+    {
+      name: "local-kubernetes",
     },
-  },
+  ],
+  variables: {},
 }
 
 export const GLOBAL_OPTIONS = {

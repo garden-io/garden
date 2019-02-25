@@ -55,6 +55,8 @@ const basicConfig: KubernetesConfig = {
 const basicProvider: KubernetesProvider = {
   name: "kubernetes",
   config: basicConfig,
+  dependencies: [],
+  moduleConfigs: [],
 }
 
 const singleTlsConfig: KubernetesConfig = {
@@ -72,6 +74,8 @@ const singleTlsConfig: KubernetesConfig = {
 const singleTlsProvider: KubernetesProvider = {
   name: "kubernetes",
   config: singleTlsConfig,
+  dependencies: [],
+  moduleConfigs: [],
 }
 
 const multiTlsConfig: KubernetesConfig = {
@@ -105,6 +109,8 @@ const multiTlsConfig: KubernetesConfig = {
 const multiTlsProvider: KubernetesProvider = {
   name: "kubernetes",
   config: multiTlsConfig,
+  dependencies: [],
+  moduleConfigs: [],
 }
 
 // generated with `openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out certificate.pem`
@@ -636,6 +642,8 @@ describe("createIngressResources", () => {
           secretRef: { name: "foo", namespace: "default" },
         }],
       },
+      dependencies: [],
+      moduleConfigs: [],
     }
 
     const err: any = new Error("nope")
@@ -663,6 +671,8 @@ describe("createIngressResources", () => {
           secretRef: { name: "foo", namespace: "default" },
         }],
       },
+      dependencies: [],
+      moduleConfigs: [],
     }
 
     const api = await getKubeApi(basicConfig.context)
@@ -696,6 +706,8 @@ describe("createIngressResources", () => {
           secretRef: { name: "foo", namespace: "default" },
         }],
       },
+      dependencies: [],
+      moduleConfigs: [],
     }
 
     const api = await getKubeApi(basicConfig.context)
@@ -785,6 +797,8 @@ describe("createIngressResources", () => {
           secretRef: { name: "somesecret", namespace: "somenamespace" },
         }],
       },
+      dependencies: [],
+      moduleConfigs: [],
     }
 
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({

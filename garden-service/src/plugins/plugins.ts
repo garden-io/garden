@@ -16,6 +16,7 @@ const kubernetes = require("./kubernetes/kubernetes")
 const localKubernetes = require("./kubernetes/local/local")
 const npmPackage = require("./npm-package")
 const gae = require("./google/google-app-engine")
+const localOpenfaas = require("./openfaas/local")
 const openfaas = require("./openfaas/openfaas")
 const mavenContainer = require("./maven-container/maven-container")
 
@@ -29,6 +30,7 @@ export const builtinPlugins = mapValues({
   "local-kubernetes": localKubernetes,
   "npm-package": npmPackage,
   "google-app-engine": gae,
+  "local-openfaas": localOpenfaas,
   openfaas,
   "maven-container": mavenContainer,
 }, (m => m.gardenPlugin))

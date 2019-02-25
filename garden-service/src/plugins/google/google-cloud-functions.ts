@@ -21,7 +21,7 @@ import {
 } from "./common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
-import { Provider, providerConfigBaseSchema } from "../../config/project"
+import { Provider, providerConfigBaseSchema } from "../../config/provider"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
