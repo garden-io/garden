@@ -1,4 +1,3 @@
-import * as Bluebird from "bluebird"
 const nodetree = require("nodetree")
 import { join } from "path"
 import { pathExists, readdir } from "fs-extra"
@@ -69,17 +68,14 @@ describe("BuildDir", () => {
       await garden.clearBuilds()
       const graph = await garden.getConfigGraph()
       const modules = await graph.getModules()
+      const tasks = modules.map(module => new BuildTask({
+        garden,
+        log,
+        module,
+        force: true,
+      }))
 
-      await Bluebird.map(modules, async (module) => {
-        return garden.addTask(new BuildTask({
-          garden,
-          log,
-          module,
-          force: true,
-        }))
-      })
-
-      await garden.processTasks()
+      await garden.processTasks(tasks)
 
       const buildDirD = await garden.buildDir.buildPath("module-d")
       const buildDirE = await garden.buildDir.buildPath("module-e")

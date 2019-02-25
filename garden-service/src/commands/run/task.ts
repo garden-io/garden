@@ -60,9 +60,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
     await garden.actions.prepareEnvironment({ log })
 
     const taskTask = await TaskTask.factory({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
-    await garden.addTask(taskTask)
-
-    const result = (await garden.processTasks())[taskTask.getBaseKey()]
+    const result = (await garden.processTasks([taskTask]))[taskTask.getBaseKey()]
 
     if (!result.error) {
       log.info("")

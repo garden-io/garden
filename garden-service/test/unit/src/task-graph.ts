@@ -100,8 +100,7 @@ describe("task-graph", () => {
       const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a", false)
 
-      await graph.addTask(task)
-      const results = await graph.processTasks()
+      const results = await graph.process([task])
 
       const expected: TaskResults = {
         a: {
@@ -119,17 +118,20 @@ describe("task-graph", () => {
       expect(results).to.eql(expected)
     })
 
-    it("should emit a taskPending event when adding a task", async () => {
+    it("should emit events when processing and completing a task", async () => {
       const now = freezeTime()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a", false)
 
-      await graph.addTask(task)
+      const result = await graph.process([task])
 
       expect(garden.events.log).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskGraphProcessing", payload: { startedAt: now } },
+        { name: "taskComplete", payload: result["a"] },
+        { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
 
@@ -140,35 +142,16 @@ describe("task-graph", () => {
       const graph = new TaskGraph(garden, garden.log)
 
       const task = new TestTask(garden, "a", false)
-      await graph.addTask(task)
-      const result = await graph.processTasks()
+      await graph.process([task])
+
+      garden.events.log = []
 
       // repeatedTask has the same baseKey and version as task, so its result is already cached
       const repeatedTask = new TestTask(garden, "a", false)
-      await graph.addTask(repeatedTask)
+      await graph.process([repeatedTask])
 
       expect(garden.events.log).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskComplete", payload: result["a"] },
-        { name: "taskGraphComplete", payload: { completedAt: now } },
-      ])
-    })
-
-    it("should emit events when processing and completing a task", async () => {
-      const now = freezeTime()
-
-      const garden = await getGarden()
-      const graph = new TaskGraph(garden, garden.log)
-      const task = new TestTask(garden, "a", false)
-
-      await graph.addTask(task)
-      const result = await graph.processTasks()
-
-      expect(garden.events.log).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
-        { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskComplete", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
@@ -180,8 +163,7 @@ describe("task-graph", () => {
       const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a", false, { throwError: true })
 
-      await graph.addTask(task)
-      const result = await graph.processTasks()
+      const result = await graph.process([task])
 
       expect(garden.events.log).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
@@ -211,21 +193,18 @@ describe("task-graph", () => {
       const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC], id: "d1" })
 
       // we should be able to add tasks multiple times and in any order
-
-      await graph.addTask(taskA)
-      await graph.addTask(taskB)
-      await graph.addTask(taskC)
-      await graph.addTask(taskC)
-      await graph.addTask(taskD)
-      await graph.addTask(taskA)
-      await graph.addTask(taskD)
-      await graph.addTask(taskB)
-      await graph.addTask(taskB)
-      await graph.addTask(taskD)
-      await graph.addTask(taskA)
-      await graph.addTask(taskB)
-
-      const results = await graph.processTasks()
+      const results = await graph.process([
+        taskA,
+        taskB,
+        taskC,
+        taskC,
+        taskD,
+        taskA,
+        taskD,
+        taskB,
+        taskD,
+        taskA,
+      ])
 
       // repeat
 
@@ -247,11 +226,11 @@ describe("task-graph", () => {
       const repeatTaskBforced = new TestTask(garden, "b", true,
         { ...repeatOpts, dependencies: [repeatTaskA], id: "b2f" })
 
-      await graph.addTask(repeatTaskBforced)
-      await graph.addTask(repeatTaskAforced)
-      await graph.addTask(repeatTaskC)
-
-      await graph.processTasks()
+      await graph.process([
+        repeatTaskBforced,
+        repeatTaskAforced,
+        repeatTaskC,
+      ])
 
       const resultA: TaskResult = {
         type: "test",
@@ -343,12 +322,12 @@ describe("task-graph", () => {
       const taskC = new TestTask(garden, "c", false, { ...opts, dependencies: [taskB] })
       const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC] })
 
-      await graph.addTask(taskA)
-      await graph.addTask(taskB)
-      await graph.addTask(taskC)
-      await graph.addTask(taskD)
-
-      const results = await graph.processTasks()
+      const results = await graph.process([
+        taskA,
+        taskB,
+        taskC,
+        taskD,
+      ])
 
       const resultA: TaskResult = {
         type: "test",

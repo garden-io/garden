@@ -299,12 +299,8 @@ export class Garden {
     return this.buildDir.clear()
   }
 
-  async addTask(task: BaseTask) {
-    await this.taskGraph.addTask(task)
-  }
-
-  async processTasks(): Promise<TaskResults> {
-    return this.taskGraph.processTasks()
+  async processTasks(tasks: BaseTask[]): Promise<TaskResults> {
+    return this.taskGraph.process(tasks)
   }
 
   /**

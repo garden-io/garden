@@ -43,10 +43,8 @@ describe("Helm common functions", () => {
 
   async function buildModules() {
     const modules = await graph.getModules()
-    for (const module of modules) {
-      await garden.addTask(new BuildTask({ garden, log, module, force: false }))
-    }
-    const results = await garden.processTasks()
+    const tasks = modules.map(module => new BuildTask({ garden, log, module, force: false }))
+    const results = await garden.processTasks(tasks)
 
     const err = first(Object.values(results).map(r => r.error))
 

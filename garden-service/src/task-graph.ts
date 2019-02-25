@@ -65,18 +65,14 @@ export class TaskGraph {
     this.logEntryMap = {}
   }
 
-  async addTask(task: BaseTask): Promise<void> {
-    return this.opQueue.add(() => this.addTaskInternal(task))
-  }
-
-  async processTasks(): Promise<TaskResults> {
-    return this.opQueue.add(() => this.processTasksInternal())
+  async process(tasks: BaseTask[]): Promise<TaskResults> {
+    return this.opQueue.add(() => this.processTasksInternal(tasks))
   }
 
   /**
    * Rebuilds the dependency relationships between the TaskNodes in this.index, and updates this.roots accordingly.
    */
-  private async rebuild() {
+  private rebuild() {
     const taskNodes = this.index.getNodes()
 
     // this.taskDependencyCache will already have been populated at this point (happens in addTaskInternal).
@@ -95,9 +91,9 @@ export class TaskGraph {
     this.roots.setNodes(newRootNodes)
   }
 
-  private async addTaskInternal(task: BaseTask) {
+  private async addTask(task: BaseTask) {
     await this.addNodeWithDependencies(task)
-    await this.rebuild()
+    this.rebuild()
     if (this.index.getNode(task)) {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
@@ -131,7 +127,11 @@ export class TaskGraph {
   /**
    * Process the graph until it's complete.
    */
-  private async processTasksInternal(): Promise<TaskResults> {
+  private async processTasksInternal(tasks: BaseTask[]): Promise<TaskResults> {
+    for (const task of tasks) {
+      await this.addTask(task)
+    }
+
     this.log.silly("")
     this.log.silly("TaskGraph: this.index before processing")
     this.log.silly("---------------------------------------")
@@ -155,7 +155,7 @@ export class TaskGraph {
         .slice(0, _this.concurrency - this.inProgress.length)
 
       batch.forEach(n => this.inProgress.addNode(n))
-      await this.rebuild()
+      this.rebuild()
 
       this.initLogging()
 
@@ -185,13 +185,13 @@ export class TaskGraph {
             result.error = error
             this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
-            await this.cancelDependants(node)
+            this.cancelDependants(node)
           } finally {
             results[baseKey] = result
             this.resultCache.put(baseKey, task.version.versionString, result)
           }
         } finally {
-          await this.completeTask(node, !result.error)
+          this.completeTask(node, !result.error)
         }
 
         return loop()
@@ -200,7 +200,7 @@ export class TaskGraph {
 
     await loop()
 
-    await this.rebuild()
+    this.rebuild()
 
     return results
   }
@@ -225,14 +225,14 @@ export class TaskGraph {
     }
   }
 
-  private async completeTask(node: TaskNode, success: boolean) {
+  private completeTask(node: TaskNode, success: boolean) {
     if (node.getDependencies().length > 0) {
       throw new TaskGraphError(`Task ${node.getKey()} still has unprocessed dependencies`)
     }
 
     this.remove(node)
     this.logTaskComplete(node, success)
-    await this.rebuild()
+    this.rebuild()
   }
 
   private remove(node: TaskNode) {
@@ -241,12 +241,12 @@ export class TaskGraph {
   }
 
   // Recursively remove node's dependants, without removing node.
-  private async cancelDependants(node: TaskNode) {
+  private cancelDependants(node: TaskNode) {
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
       this.remove(dependant)
     }
-    await this.rebuild()
+    this.rebuild()
   }
 
   private getDependants(node: TaskNode): TaskNode[] {

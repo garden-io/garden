@@ -91,8 +91,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
     await garden.actions.prepareEnvironment({ log })
 
     const pushTask = new PushTask({ garden, log, module, force: opts["force-build"] })
-    await garden.addTask(pushTask)
-    await garden.processTasks()
+    await garden.processTasks([pushTask])
 
     const command = args.command || []
 
