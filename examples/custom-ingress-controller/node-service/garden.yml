@@ -1,0 +1,38 @@
+kind: Module
+description: Helm chart for node-service
+type: helm
+name: node-service
+base: base-chart
+serviceResource:
+  containerModule: node-service-image
+dependencies:
+  - go-service
+tests:
+  - name: integ
+    args: [npm, run, integ]
+values:
+  name: node-service
+  image:
+    repository: node-service-image
+    tag: ${modules.node-service-image.version}
+    containerPort: 8080
+  service:
+    port: 8080
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind:  Mapping
+      name:  node-service_mapping
+      prefix: /node-service/
+      service: node-service:8080
+
+---
+
+kind: Module
+name: node-service-image
+description: node-service container
+type: container
+tests:
+  - name: unit
+    args: [npm, test]

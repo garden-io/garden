@@ -1,0 +1,7 @@
+module:
+  description: Base Helm chart for services with a configurable service annotation parameter
+  type: helm
+  name: base-chart
+  serviceResource:
+    kind: Deployment
+  skipDeploy: true

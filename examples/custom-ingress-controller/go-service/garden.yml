@@ -1,0 +1,28 @@
+kind: Module
+description: Helm chart for go-service
+type: helm
+name: go-service
+base: base-chart
+serviceResource:
+  containerModule: go-service-image
+values:
+  name: go-service
+  image:
+    repository: go-service-image
+    tag: ${modules.go-service-image.version}
+    containerPort: 8080
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind:  Mapping
+      name:  go-service_mapping
+      prefix: /go-service/
+      service: go-service:80
+
+---
+
+kind: Module
+name: go-service-image
+description: go-service container
+type: container

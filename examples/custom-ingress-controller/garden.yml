@@ -1,0 +1,7 @@
+project:
+  name: custom-ingress-controller
+  environments:
+    - name: local
+      providers:
+        - name: local-kubernetes
+          setupIngressController: false

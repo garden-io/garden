@@ -19,3 +19,7 @@ This article discusses how to use hot reloading, so that you can update running 
 ## [Using Helm charts](./using-helm-charts.md)
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container modules. This guide shows you how to use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to configure tests, tasks and hot-reloading for your charts.
+
+## [Using a custom ingress controller](./custom-ingress-controller.md)
+
+Via the [Helm module type](https://docs.garden.io/reference/module-types/helm), Garden supports arbitrary Kubernetes objects. One application of this functionality is the ability to set up a custom ingress controller. In this guide, we show you how to use the [Ambassador API Gateway](https://www.getambassador.io/) instead of the default Nginx ingress controller.
