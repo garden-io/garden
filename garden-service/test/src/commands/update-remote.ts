@@ -24,7 +24,7 @@ describe("UpdateRemoteCommand", () => {
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
       log = garden.log
-      stubGitCli()
+      stubGitCli(garden)
     })
 
     const projectRoot = getDataDir("test-project-ext-project-sources")
