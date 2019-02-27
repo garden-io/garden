@@ -24,8 +24,10 @@ import { ModuleSpec, ModuleConfig } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSchema } from "../../config/service"
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
+import { joiStringMap } from "../../config/common"
 
 export interface ContainerIngressSpec {
+  annotations: Annotations
   hostname?: string
   path: string
   port: string
@@ -59,7 +61,12 @@ export interface ServiceHealthCheckSpec {
   tcpPort?: string,
 }
 
+interface Annotations {
+  [name: string]: string
+}
+
 export interface ContainerServiceSpec extends CommonServiceSpec {
+  annotations: Annotations,
   args: string[],
   daemon: boolean
   ingresses: ContainerIngressSpec[],
@@ -107,8 +114,13 @@ const hotReloadConfigSchema = Joi.object()
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
+const annotationsSchema = joiStringMap(Joi.string())
+  .default(() => ({}), "{}")
+
 const ingressSchema = Joi.object()
   .keys({
+    annotations: annotationsSchema
+      .description("Annotations to attach to the ingress (Note: May not be applicable to all providers)"),
     hostname: ingressHostnameSchema,
     path: Joi.string().uri(<any>{ relativeOnly: true })
       .default("/")
@@ -151,11 +163,12 @@ export const portSchema = Joi.object()
       .required()
       .example("8080")
       .description(deline`
-        The port exposed on the container by the running procces. This will also be the default value
+        The port exposed on the container by the running process. This will also be the default value
         for \`servicePort\`.
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    servicePort: Joi.number().default((context) => context.containerPort, "<containerPort>")
+    servicePort: Joi.number()
+      .default((context) => context.containerPort, "<containerPort>")
       .example("80")
       .description(deline`The port exposed on the service.
         Defaults to \`containerPort\` if not specified.
@@ -183,6 +196,8 @@ const volumeSchema = Joi.object()
 
 const serviceSchema = baseServiceSchema
   .keys({
+    annotations: annotationsSchema
+      .description("Annotations to attach to the service (Note: May not be applicable to all providers)"),
     args: Joi.array().items(Joi.string())
       .description("The arguments to run the container with when starting the service."),
     daemon: Joi.boolean()
