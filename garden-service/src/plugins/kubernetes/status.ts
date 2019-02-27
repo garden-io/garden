@@ -173,10 +173,10 @@ export async function checkDeploymentStatus(
     }
 
     if (event.type === "Warning" || event.type === "Error") {
-      if (event.type === "Warning" && event.reason === "FailedScheduling") {
+      if (event.type === "Warning" && (event.reason === "FailedScheduling" || event.reason === "FailedMount")) {
         // this can happen on first attempt to schedule a pod
         // TODO: we may want to more specifically look at the message
-        //       (e.g. 'pod has unbound immediate PersistentVolumeClaims')
+        //       (e.g. 'pod has unbound immediate PersistentVolumeClaims' or 'couldn't propagate object cache')
         continue
       }
       if (event.reason === "Unhealthy") {
