@@ -8,7 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import { certpem } from "certpem"
-import { groupBy, omit, find } from "lodash"
+import { omit, find, extend } from "lodash"
 import { findByName } from "../../../util/util"
 import { ContainerService, ContainerIngressSpec } from "../../container/config"
 import { IngressTlsCertificate } from "../kubernetes"
@@ -24,34 +24,28 @@ interface ServiceIngressWithCert extends ServiceIngress {
 
 const certificateHostnames: { [name: string]: string[] } = {}
 
-export async function createIngresses(api: KubeApi, namespace: string, service: ContainerService) {
+export async function createIngressResources(api: KubeApi, namespace: string, service: ContainerService) {
   if (service.spec.ingresses.length === 0) {
     return []
   }
 
   const allIngresses = await getIngressesWithCert(service, api)
 
-  // first group ingress endpoints by certificate, so we can properly configure TLS
-  const groupedByCert = groupBy(allIngresses, e => e.certificate ? e.certificate.name : undefined)
-
-  return Bluebird.map(Object.values(groupedByCert), async (certIngresses) => {
-    // second, group ingress endpoints by hostname
-    const groupedByHostname = groupBy(certIngresses, e => e.hostname)
-
-    const rules = Object.entries(groupedByHostname).map(([host, hostnameIngresses]) => ({
-      host,
+  return Bluebird.map(allIngresses, async (ingress) => {
+    const rules = [{
+      host: ingress.hostname,
       http: {
-        paths: hostnameIngresses.map(ingress => ({
+        paths: [{
           path: ingress.path,
           backend: {
             serviceName: service.name,
             servicePort: findByName(service.spec.ports, ingress.spec.port)!.servicePort,
           },
-        })),
+        }],
       },
-    }))
+    }]
 
-    const cert = certIngresses[0].certificate
+    const cert = ingress.certificate
 
     const annotations = {
       "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
@@ -60,6 +54,8 @@ export async function createIngresses(api: KubeApi, namespace: string, service: 
     if (api.provider.config.ingressClass) {
       annotations["kubernetes.io/ingress.class"] = api.provider.config.ingressClass
     }
+
+    extend(annotations, ingress.spec.annotations)
 
     const spec: any = { rules }
 

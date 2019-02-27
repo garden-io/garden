@@ -201,11 +201,13 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
+              annotations: {},
               args: ["echo"],
               dependencies: [],
               daemon: false,
               ingresses: [
                 {
+                  annotations: {},
                   path: "/",
                   port: "http",
                 },
@@ -264,10 +266,12 @@ describe("plugins.container", () => {
             services:
               [{
                 name: "service-a",
+                annotations: {},
                 args: ["echo"],
                 dependencies: [],
                 daemon: false,
                 ingresses: [{
+                  annotations: {},
                   path: "/",
                   port: "http",
                 }],
@@ -304,10 +308,12 @@ describe("plugins.container", () => {
               spec:
               {
                 name: "service-a",
+                annotations: {},
                 args: ["echo"],
                 dependencies: [],
                 daemon: false,
                 ingresses: [{
+                  annotations: {},
                   path: "/",
                   port: "http",
                 }],
@@ -380,11 +386,13 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
+              annotations: {},
               args: ["echo"],
               dependencies: [],
               daemon: false,
               ingresses: [
                 {
+                  annotations: {},
                   path: "/",
                   port: "bla",
                 },
@@ -437,6 +445,7 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
+              annotations: {},
               args: ["echo"],
               dependencies: [],
               daemon: false,
@@ -489,6 +498,7 @@ describe("plugins.container", () => {
             buildArgs: {},
             services: [{
               name: "service-a",
+              annotations: {},
               args: ["echo"],
               dependencies: [],
               daemon: false,

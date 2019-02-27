@@ -8,7 +8,7 @@
 
 import { ContainerService } from "../../container/config"
 
-export async function createServices(service: ContainerService, namespace: string) {
+export async function createServiceResources(service: ContainerService, namespace: string) {
   const services: any = []
 
   const addService = (name: string, type: string, servicePorts: any[]) => {
@@ -17,7 +17,7 @@ export async function createServices(service: ContainerService, namespace: strin
       kind: "Service",
       metadata: {
         name,
-        annotations: {},
+        annotations: service.spec.annotations,
         namespace,
       },
       spec: {

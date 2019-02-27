@@ -10,8 +10,8 @@ import { extend, keyBy, set, toPairs } from "lodash"
 import { DeployServiceParams, PushModuleParams, DeleteServiceParams } from "../../../types/plugin/params"
 import { RuntimeContext, Service, ServiceStatus } from "../../../types/service"
 import { ContainerModule, ContainerService } from "../../container/config"
-import { createIngresses } from "./ingress"
-import { createServices } from "./service"
+import { createIngressResources } from "./ingress"
+import { createServiceResources } from "./service"
 import { waitForResources } from "../status"
 import { applyMany, deleteObjectsByLabel } from "../kubectl"
 import { getAppNamespace } from "../namespace"
@@ -53,9 +53,9 @@ export async function createContainerObjects(
   const version = service.module.version
   const namespace = await getAppNamespace(ctx, ctx.provider)
   const api = new KubeApi(ctx.provider)
-  const ingresses = await createIngresses(api, namespace, service)
+  const ingresses = await createIngressResources(api, namespace, service)
   const deployment = await createDeployment(ctx.provider, service, runtimeContext, namespace, enableHotReload)
-  const kubeservices = await createServices(service, namespace)
+  const kubeservices = await createServiceResources(service, namespace)
 
   const objects = [deployment, ...kubeservices, ...ingresses]
 

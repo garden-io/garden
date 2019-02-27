@@ -113,6 +113,14 @@ The names of any services that this service depends on at runtime, and the names
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+### `module.services[].annotations`
+[module](#module) > [services](#module.services[]) > annotations
+
+Annotations to attach to the service (Note: May not be applicable to all providers)
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
 ### `module.services[].args[]`
 [module](#module) > [services](#module.services[]) > args
 
@@ -147,6 +155,14 @@ module:
       - path: /api
         port: http
 ```
+### `module.services[].ingresses[].annotations`
+[module](#module) > [services](#module.services[]) > [ingresses](#module.services[].ingresses[]) > annotations
+
+Annotations to attach to the ingress (Note: May not be applicable to all providers)
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
 ### `module.services[].ingresses[].hostname`
 [module](#module) > [services](#module.services[]) > [ingresses](#module.services[].ingresses[]) > hostname
 
@@ -273,7 +289,7 @@ The protocol of the port.
 ### `module.services[].ports[].containerPort`
 [module](#module) > [services](#module.services[]) > [ports](#module.services[].ports[]) > containerPort
 
-The port exposed on the container by the running procces. This will also be the default value for `servicePort`.
+The port exposed on the container by the running process. This will also be the default value for `servicePort`.
 `servicePort:80 -> containerPort:8080 -> process:8080`
 
 | Type | Required |
@@ -485,10 +501,12 @@ module:
   services:
     - name:
       dependencies: []
+      annotations: {}
       args:
       daemon: false
       ingresses:
-        - hostname:
+        - annotations: {}
+          hostname:
           path: /
           port:
       env: {}

@@ -133,7 +133,7 @@ describe("task-graph", () => {
       ])
     })
 
-    it.only("should not emit a taskPending event when adding a task with a cached result", async () => {
+    it("should not emit a taskPending event when adding a task with a cached result", async () => {
       const now = freezeTime()
 
       const garden = await getGarden()
