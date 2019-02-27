@@ -13,6 +13,72 @@ Configuration for a container module.
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+### `module.build`
+[module](#module) > build
+
+Specify how to build the module. Note that plugins may define additional keys on this object.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `module.build.dependencies[]`
+[module](#module) > [build](#module.build) > dependencies
+
+A list of modules that must be built before this module is built.
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+
+Example:
+```yaml
+module:
+  ...
+  build:
+    ...
+    dependencies:
+      - name: some-other-module-name
+```
+### `module.build.dependencies[].name`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > name
+
+Module name to build ahead of this module.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+### `module.build.dependencies[].copy[]`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > copy
+
+Specify one or more files or directories to copy from the built dependency to this module.
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+### `module.build.dependencies[].copy[].source`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > source
+
+POSIX-style path or filename of the directory or file(s) to copy to the target.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+### `module.build.dependencies[].copy[].target`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > target
+
+POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+### `module.build.targetImage`
+[module](#module) > [build](#module.build) > targetImage
+
+For multi-stage Dockerfiles, specify which image to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
 ### `module.buildArgs`
 [module](#module) > buildArgs
 
@@ -491,6 +557,13 @@ module:
 ## Complete YAML schema
 ```yaml
 module:
+  build:
+    dependencies:
+      - name:
+        copy:
+          - source:
+            target: ''
+    targetImage:
   buildArgs: {}
   image:
   hotReload:

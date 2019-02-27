@@ -20,7 +20,7 @@ import {
 } from "../../config/common"
 import { Service, ingressHostnameSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { ModuleSpec, ModuleConfig } from "../../config/module"
+import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSchema } from "../../config/service"
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
@@ -280,7 +280,12 @@ export const containerTaskSchema = baseTaskSpecSchema
   })
   .description("A task that can be run in the container.")
 
+interface ContainerBuildSpec extends BaseBuildSpec {
+  targetImage?: string
+}
+
 export interface ContainerModuleSpec extends ModuleSpec {
+  build: ContainerBuildSpec,
   buildArgs: PrimitiveMap,
   image?: string,
   dockerfile?: string,
@@ -297,6 +302,15 @@ export const defaultTag = "latest"
 
 export const containerModuleSpecSchema = Joi.object()
   .keys({
+    build: baseBuildSpecSchema
+      .keys({
+        targetImage: Joi.string()
+          .description(deline`
+            For multi-stage Dockerfiles, specify which image to build (see
+            https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
+            details).
+          `),
+      }),
     buildArgs: Joi.object()
       .pattern(/.+/, joiPrimitive())
       .default(() => ({}), "{}")

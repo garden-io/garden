@@ -57,8 +57,7 @@ export const buildDependencySchema = Joi.object().keys({
     .description("Specify one or more files or directories to copy from the built dependency to this module."),
 })
 
-export interface BuildConfig {
-  command: string[],
+export interface BaseBuildSpec {
   dependencies: BuildDependencyConfig[],
 }
 
@@ -67,13 +66,25 @@ export interface ModuleSpec { }
 export interface BaseModuleSpec {
   apiVersion: string
   allowPublish: boolean
-  build: BuildConfig
+  build: BaseBuildSpec
   description?: string
   name: string
   path: string
   type: string
   repositoryUrl?: string
 }
+
+export const baseBuildSpecSchema = Joi.object()
+  .keys({
+    dependencies: joiArray(buildDependencySchema)
+      .description("A list of modules that must be built before this module is built.")
+      .example([
+        [{ name: "some-other-module-name" }],
+        {},
+      ]),
+  })
+  .default(() => ({ dependencies: [] }), "{}")
+  .description("Specify how to build the module. Note that plugins may define additional keys on this object.")
 
 export const baseModuleSpecSchema = Joi.object()
   .keys({
@@ -100,20 +111,8 @@ export const baseModuleSpecSchema = Joi.object()
     allowPublish: Joi.boolean()
       .default(true)
       .description("When false, disables pushing this module to remote registries."),
-    build: Joi.object().keys({
-      // TODO: move this out of base spec
-      command: joiArray(Joi.string())
-        .description("The command to run inside the module's directory to perform the build.")
-        .example([["npm", "run", "build"], {}]),
-      dependencies: joiArray(buildDependencySchema)
-        .description("A list of modules that must be built before this module is built.")
-        .example([
-          [{ name: "some-other-module-name" }],
-          {},
-        ]),
-    })
-      .default(() => ({ dependencies: [] }), "{}")
-      .description("Specify how to build the module. Note that plugins may define additional keys on this object."),
+    build: baseBuildSpecSchema
+      .unknown(true),
   })
   .required()
   .unknown(true)

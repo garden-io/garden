@@ -36,7 +36,7 @@ import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
 import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/base"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
-import { ModuleSpec, ModuleConfig } from "../config/module"
+import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema } from "../config/module"
 import execa = require("execa")
 import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
 
@@ -66,14 +66,27 @@ export const execTaskSpecSchema = baseTaskSpecSchema
   })
   .description("A task that can be run in this module.")
 
+interface ExecBuildSpec extends BaseBuildSpec {
+  command: string[]
+}
+
 export interface ExecModuleSpec extends ModuleSpec {
+  build: ExecBuildSpec,
   env: { [key: string]: string },
   tasks: ExecTaskSpec[],
   tests: ExecTestSpec[],
 }
 
+export const execBuildSpecSchema = baseBuildSpecSchema
+  .keys({
+    command: joiArray(Joi.string())
+      .description("The command to run inside the module's directory to perform the build.")
+      .example([["npm", "run", "build"], {}]),
+  })
+
 export const execModuleSpecSchema = Joi.object()
   .keys({
+    build: execBuildSpecSchema,
     env: joiEnvVars(),
     tasks: joiArray(execTaskSpecSchema)
       .description("A list of tasks that can be run in this module."),
@@ -132,13 +145,12 @@ export async function getExecModuleBuildStatus({ module }: GetBuildStatusParams)
 }
 
 export async function buildExecModule({ module }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
-  const config: ModuleConfig = module
   const output: BuildResult = {}
   const buildPath = module.buildPath
 
-  if (config.build.command.length) {
+  if (module.spec.build.command.length) {
     const res = await execa.shell(
-      config.build.command.join(" "),
+      module.spec.build.command.join(" "),
       {
         cwd: buildPath,
         env: { ...process.env, ...mapValues(module.spec.env, v => v.toString()) },

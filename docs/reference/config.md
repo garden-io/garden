@@ -313,26 +313,6 @@ Specify how to build the module. Note that plugins may define additional keys on
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.build.command[]`
-[module](#module) > [build](#module.build) > command
-
-The command to run inside the module's directory to perform the build.
-
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
-
-Example:
-```yaml
-module:
-  ...
-  build:
-    ...
-    command:
-      - npm
-      - run
-      - build
-```
 ### `module.build.dependencies[]`
 [module](#module) > [build](#module.build) > dependencies
 
@@ -395,8 +375,6 @@ module:
   repositoryUrl:
   allowPublish: true
   build:
-    command:
-      []
     dependencies:
       - name:
         copy:

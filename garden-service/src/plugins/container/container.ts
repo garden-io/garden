@@ -192,6 +192,10 @@ export const gardenPlugin = (): GardenPlugin => ({
           cmdOpts.push(buildArgs)
         }
 
+        if (module.spec.build.targetImage) {
+          cmdOpts.push("--target", module.spec.build.targetImage)
+        }
+
         if (module.spec.dockerfile) {
           cmdOpts.push("--file", containerHelpers.getDockerfilePathFromModule(module))
         }

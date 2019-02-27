@@ -39,6 +39,9 @@ describe("exec plugin", () => {
     } = modules
 
     expect(moduleA.build).to.eql({
+      dependencies: [],
+    })
+    expect(moduleA.spec.build).to.eql({
       command: ["echo", "A"],
       dependencies: [],
     })
@@ -85,6 +88,9 @@ describe("exec plugin", () => {
     ])
 
     expect(moduleB.build).to.eql({
+      dependencies: [{ name: "module-a", copy: [] }],
+    })
+    expect(moduleB.spec.build).to.eql({
       command: ["echo", "B"],
       dependencies: [{ name: "module-a", copy: [] }],
     })
@@ -106,6 +112,9 @@ describe("exec plugin", () => {
     ])
 
     expect(moduleC.build).to.eql({
+      dependencies: [{ name: "module-b", copy: [] }],
+    })
+    expect(moduleC.spec.build).to.eql({
       command: [],
       dependencies: [{ name: "module-b", copy: [] }],
     })

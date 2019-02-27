@@ -30,6 +30,64 @@ module:
   ...
   base: "my-base-chart"
 ```
+### `module.build`
+[module](#module) > build
+
+Specify how to build the module. Note that plugins may define additional keys on this object.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `module.build.dependencies[]`
+[module](#module) > [build](#module.build) > dependencies
+
+A list of modules that must be built before this module is built.
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+
+Example:
+```yaml
+module:
+  ...
+  build:
+    ...
+    dependencies:
+      - name: some-other-module-name
+```
+### `module.build.dependencies[].name`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > name
+
+Module name to build ahead of this module.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+### `module.build.dependencies[].copy[]`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > copy
+
+Specify one or more files or directories to copy from the built dependency to this module.
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+### `module.build.dependencies[].copy[].source`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > source
+
+POSIX-style path or filename of the directory or file(s) to copy to the target.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+### `module.build.dependencies[].copy[].target`
+[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > target
+
+POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
 ### `module.chart`
 [module](#module) > chart
 
@@ -421,6 +479,12 @@ Map of values to pass to Helm when rendering the templates. May include arrays a
 ```yaml
 module:
   base:
+  build:
+    dependencies:
+      - name:
+        copy:
+          - source:
+            target: ''
   chart:
   chartPath: .
   dependencies: []
