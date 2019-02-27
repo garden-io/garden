@@ -8,10 +8,12 @@
 
 import React from "react"
 import ReactDOM from "react-dom"
+import { BrowserRouter as Router } from "react-router-dom"
 import App from "./app"
 
 it("renders without crashing", () => {
   const div = document.createElement("div")
-  ReactDOM.render(<App />, div)
+  // Need to wrap with Router, see here: https://stackoverflow.com/a/50530166
+  ReactDOM.render(<Router><App /></Router>, div)
   ReactDOM.unmountComponentAtNode(div)
 })

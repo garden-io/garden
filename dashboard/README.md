@@ -1,13 +1,23 @@
 # Garden Dashboard _(experimental)_
 
-This directory contains an experimental web dashboard for the Garden CLI.
+This directory contains an experimental web dashboard for the Garden CLI. The dashboard is available on `localhost` when either the `garden dev` or `garden serve` commands are running.
+
+All commands below assume that the current directory is root.
 
 ## Usage
 
 To use with the Garden CLI, simply run:
 
 ```sh
+cd garden-service
 garden serve
+```
+
+or alternatively
+
+```sh
+cd garden-service
+garden dev
 ```
 
 and follow the dashboard link printed by the command.
@@ -17,23 +27,42 @@ and follow the dashboard link printed by the command.
 To develop the dashboard, first run:
 
 ```sh
-garden serve
+cd garden-service
+garden serve # (or garden dev)
 ```
 
-to start the `garden-service` API server, then run:
+to start the `garden-service` API server. Then run:
 
 ```sh
-npm start
+cd dashboard
+npm dev
 ```
 
 to start the dashboard development server. The `start` command returns a link to the development version of the dashboard. The default is `http://localhost:3000`.
 
 ### CORS
 
-To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `garden-service` server, defaulting to port `9777`. If the `garden-service` server is running on a different port, use:
+To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `garden-service` server, defaulting to port `9777`.
+
+To ensure the `garden-service` server runs on port `9777`, start it with:
 
 ```sh
-REACT_APP_GARDEN_SERVICE_PORT=PORT npm start
+cd garden-service
+GARDEN_SERVER_PORT=9777 garden serve
+```
+
+or
+
+```sh
+cd garden-service
+GARDEN_SERVER_PORT=9777 garden dev
+```
+
+Alternatively, you can run the `garden-service` server as usual and set the port on the dashboard side of things:
+
+```sh
+cd dashboard
+REACT_APP_GARDEN_SERVICE_PORT=my_port npm start
 ```
 
 See also `src/setupProxy.js` and [Adding Custom Environment Variables](https://facebook.github.io/create-react-app/docs/adding-custom-environment-variables).
@@ -43,10 +72,11 @@ See also `src/setupProxy.js` and [Adding Custom Environment Variables](https://f
 To build the dashboard, run:
 
 ```
-npm build
+cd dashboard
+npm run build
 ```
 
-This builds the dashboard into the `build` directory, from where the `garden-service` API server serves it.
+This builds the dashboard into the `garden-service/static/dashboard` directory, from where the `garden-service` API server serves it.
 
 ## About
 

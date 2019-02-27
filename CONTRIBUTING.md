@@ -58,14 +58,26 @@ Install Node modules for the root package, and the `dashboard` and `garden-servi
 
     npm run bootstrap
 
-## Running a development version of the CLI
+## Developing Garden
 
-While developing the CLI, we recommend you run the dev command in your console:
+### Initial build
+
+Before running Garden for the first time, you need to do an initial build by running
+
+```sh
+npm run build
+```
+
+from the root directory. This ensures that the dashboard is built and ready to serve and that version files are in place.
+
+### Developing
+
+To develop the CLI, run the `dev` command in your console:
 
     cd garden-service
     npm run dev
 
-This will do an initial development build, `npm link` it to your global npm folder, and then watch for
+This will `npm link` it to your global npm folder, and then watch for
 changes and auto-rebuild as you code. You can then run the `garden` command as normal.
 
 Also, you might like to add a couple of shorthands:
@@ -73,14 +85,41 @@ Also, you might like to add a couple of shorthands:
     alias g='garden'
     alias k='kubectl'
 
-## Testing
+For developing the dashboard, please refer to the [dashboard docs](./dashboard/README.mdj).
 
-Tests are run using `mocha`. To run the full test suite, including linting and other validation, simply run
-from the root:
+### Tests
 
-    npm test
+Tests are run using `mocha` via `npm test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag. E.g., to the test the `taskGraph` of the `garden-service`, run:
 
-### CI
+```sh
+cd garden-service
+npm test -- -g "taskGraph"
+```
+
+Integration tests are run with:
+
+
+```sh
+npm run integ
+```
+
+### Checks
+
+We have scripts for checking licenses, docs, linting and more. These can all be run with a single command:
+
+```sh
+npm run check-all
+```
+
+### Pre-push hook
+
+Before pushing, we automatically run the `check-all` script from above, as well as unit and integration tests. To skip these, run push with the `--no-verify` flag:
+
+```sh
+git push origin <my-branch> --no-verify
+```
+
+## CI
 
 We use [Circle CI](https://circleci.com) for integration testing. Sometimes
 it can be useful to test and debug the CI build locally, particularly when

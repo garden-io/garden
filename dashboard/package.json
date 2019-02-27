@@ -5,8 +5,6 @@
   "devDependencies": {
     "@types/d3": "^5.0.1",
     "@types/dagre-d3": "^0.4.38",
-    "@types/fs-extra": "^5.0.4",
-    "@types/gulp": "^4.0.5",
     "@types/jest": "^23.3.9",
     "@types/lodash": "^4.14.118",
     "@types/node": "^10.12.10",
@@ -14,10 +12,6 @@
     "@types/react-dom": "^16.0.11",
     "@types/react-router-dom": "^4.3.1",
     "@types/react-select": "^2.0.11",
-    "fs-extra": "^7.0.1",
-    "gulp": "^4.0.0",
-    "gulp-tslint": "^8.1.3",
-    "gulp-typescript": "^5.0.0",
     "react-scripts": "2.1.1",
     "ts-node": "^7.0.1",
     "typescript": "^3.2.2"
@@ -43,9 +37,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "gulp build",
-    "build-ci": "gulp build-ci",
-    "test": "react-scripts test",
+    "build": "npm run build-ci && ./bin/copy-to-static",
+    "build-ci": "react-scripts build",
+    "dev": "npm run start",
+    "test-watch": "react-scripts test",
+    "test": "CI=true react-scripts test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
