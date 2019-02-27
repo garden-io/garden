@@ -82,11 +82,15 @@ describe("loadConfig", () => {
         description: undefined,
         repositoryUrl: undefined,
         allowPublish: true,
-        build: { command: ["echo", "A"], dependencies: [] },
+        build: { dependencies: [] },
         outputs: {},
         path: modulePathA,
 
         spec: {
+          build: {
+            command: ["echo", "A"],
+            dependencies: [],
+          },
           services: [{ name: "service-a" }],
           tasks: [{
             name: "task-a",
@@ -143,11 +147,16 @@ describe("loadConfig", () => {
       description: undefined,
       repositoryUrl: undefined,
       allowPublish: true,
-      build: { command: ["echo", "project"], dependencies: [] },
+      build: { dependencies: [] },
       outputs: {},
       path: projectPathMultipleModules,
       serviceConfigs: [],
-      spec: {},
+      spec: {
+        build: {
+          command: ["echo", "project"],
+          dependencies: [],
+        },
+      },
       testConfigs: [],
       taskConfigs: [],
     }])
@@ -165,7 +174,6 @@ describe("loadConfig", () => {
         description: undefined,
         repositoryUrl: undefined,
         build: {
-          command: ["echo", "A1"],
           dependencies: [
             { name: "module-from-project-config", copy: [] },
           ],
@@ -174,6 +182,12 @@ describe("loadConfig", () => {
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {
+          build: {
+            command: ["echo", "A1"],
+            dependencies: [
+              { name: "module-from-project-config", copy: [] },
+            ],
+          },
           services: [{ name: "service-a1" }],
           tests: [{ name: "unit", command: ["echo", "OK"] }],
           tasks: [{ name: "task-a1", command: ["echo", "OK"] }],
@@ -188,11 +202,15 @@ describe("loadConfig", () => {
         allowPublish: true,
         description: undefined,
         repositoryUrl: undefined,
-        build: { command: ["echo", "A2"], dependencies: [] },
+        build: { dependencies: [] },
         outputs: {},
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {
+          build: {
+            command: ["echo", "A2"],
+            dependencies: [],
+          },
           services: [{ name: "service-a2" }],
           tests: [{ name: "unit", command: ["echo", "OK"] }],
           tasks: [{ name: "task-a2", command: ["echo", "OK"] }],
@@ -238,7 +256,6 @@ describe("loadConfig", () => {
       type: "test",
       description: undefined,
       build: {
-        command: ["echo", "project"],
         dependencies: [],
       },
       allowPublish: true,
@@ -246,7 +263,12 @@ describe("loadConfig", () => {
       path: projectPathFlat,
       repositoryUrl: undefined,
       serviceConfigs: [],
-      spec: {},
+      spec: {
+        build: {
+          command: ["echo", "project"],
+          dependencies: [],
+        },
+      },
       taskConfigs: [],
       testConfigs: [],
     }])

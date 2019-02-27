@@ -11,7 +11,7 @@ import * as Joi from "joi"
 import { resolve, join } from "path"
 import { remove, readdirSync, existsSync } from "fs-extra"
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
-import { testExecModule, buildExecModule } from "../src/plugins/exec"
+import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
 import { validate, PrimitiveMap, joiArray } from "../src/config/common"
 import {
@@ -88,6 +88,7 @@ const testModuleTaskSchema = containerTaskSchema
 
 export const testModuleSpecSchema = containerModuleSpecSchema
   .keys({
+    build: execBuildSpecSchema,
     tests: joiArray(testModuleTestSchema),
     tasks: joiArray(testModuleTaskSchema),
   })
@@ -225,7 +226,7 @@ const defaultModuleConfig: ModuleConfig = {
   name: "test",
   path: "bla",
   allowPublish: false,
-  build: { command: [], dependencies: [] },
+  build: { dependencies: [] },
   outputs: {},
   spec: {
     services: [

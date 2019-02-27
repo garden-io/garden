@@ -43,7 +43,6 @@ describe("validateHelmModule", () => {
       allowPublish: true,
       build: {
         dependencies: [],
-        command: [],
       },
       description: "The API backend for the voting UI",
       apiVersion: "garden.io/v0",
@@ -60,6 +59,9 @@ describe("validateHelmModule", () => {
           outputs: {},
           sourceModuleName: "api-image",
           spec: {
+            build: {
+              dependencies: [],
+            },
             chartPath: ".",
             dependencies: [],
             releaseName: "api-release",
@@ -88,6 +90,9 @@ describe("validateHelmModule", () => {
         },
       ],
       spec: {
+        build: {
+          dependencies: [],
+        },
         chartPath: ".",
         dependencies: [],
         releaseName: "api-release",

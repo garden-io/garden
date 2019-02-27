@@ -225,34 +225,36 @@ function prepareProjectConfig(projectSpec: any, path: string): ProjectConfig {
 }
 
 function prepareModuleConfig(moduleSpec: any, path: string): ModuleConfig {
+  /**
+   * We allow specifying modules by name only as a shorthand:
+   *   dependencies:
+   *   - foo-module
+   *   - name: foo-module // same as the above
+   */
+  const dependencies = moduleSpec.build && moduleSpec.build.dependencies
+    ? moduleSpec.build.dependencies.map(dep => typeof dep === "string" ? { name: dep, copy: [] } : dep)
+    : []
 
   // Built-in keys are validated here and the rest are put into the `spec` field
   const module = {
     apiVersion: moduleSpec.apiVersion,
     allowPublish: moduleSpec.allowPublish,
-    build: moduleSpec.build,
+    build: {
+      dependencies,
+    },
     description: moduleSpec.description,
     name: moduleSpec.name,
     outputs: {},
     path,
     repositoryUrl: moduleSpec.repositoryUrl,
     serviceConfigs: [],
-    spec: omit(moduleSpec, baseModuleSchemaKeys),
+    spec: {
+      ...omit(moduleSpec, baseModuleSchemaKeys),
+      build: { ...moduleSpec.build, dependencies },
+    },
     testConfigs: [],
     type: moduleSpec.type,
     taskConfigs: [],
-  }
-
-  /*
-    We allow specifying modules by name only as a shorthand:
-
-      dependencies:
-        - foo-module
-        - name: foo-module // same as the above
-    */
-  if (module.build && module.build.dependencies) {
-    module.build.dependencies = module.build.dependencies
-      .map(dep => (typeof dep) === "string" ? { name: dep } : dep)
   }
 
   return module

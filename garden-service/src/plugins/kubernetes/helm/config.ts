@@ -30,6 +30,7 @@ import { BaseTestSpec, baseTestSpecSchema } from "../../../config/test"
 import { BaseTaskSpec } from "../../../config/task"
 import { Service } from "../../../types/service"
 import { ContainerModule } from "../../container/config"
+import { baseBuildSpecSchema } from "../../../config/module"
 
 // A Helm Module always maps to a single Service
 export type HelmModuleSpec = HelmServiceSpec
@@ -159,6 +160,7 @@ export const helmModuleSpecSchema = Joi.object().keys({
       Each of those can be overridden in this module. They will be merged with a JSON Merge Patch (RFC 7396).`,
     )
     .example("my-base-chart"),
+  build: baseBuildSpecSchema,
   chart: Joi.string()
     .description(
       deline`A valid Helm chart name or URI (same as you'd input to \`helm install\`).

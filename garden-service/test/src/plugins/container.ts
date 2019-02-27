@@ -31,7 +31,6 @@ describe("plugins.container", () => {
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
     build: {
-      command: [],
       dependencies: [],
     },
     apiVersion: "garden.io/v0",
@@ -41,6 +40,7 @@ describe("plugins.container", () => {
     type: "container",
 
     spec: {
+      build: { dependencies: [] },
       buildArgs: {},
       services: [],
       tasks: [],
@@ -133,7 +133,6 @@ describe("plugins.container", () => {
       const module = await getTestModule({
         allowPublish: false,
         build: {
-          command: [],
           dependencies: [],
         },
         name: "test",
@@ -143,6 +142,7 @@ describe("plugins.container", () => {
         type: "container",
 
         spec: {
+          build: { dependencies: [] },
           buildArgs: {},
           image: "some/image",
           services: [],
@@ -188,7 +188,6 @@ describe("plugins.container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPublish: false,
           build: {
-            command: ["echo", "OK"],
             dependencies: [],
           },
           apiVersion: "garden.io/v0",
@@ -198,6 +197,7 @@ describe("plugins.container", () => {
           type: "container",
 
           spec: {
+            build: { dependencies: [] },
             buildArgs: {},
             services: [{
               name: "service-a",
@@ -254,7 +254,7 @@ describe("plugins.container", () => {
 
         expect(result).to.eql({
           allowPublish: false,
-          build: { command: ["echo", "OK"], dependencies: [] },
+          build: { dependencies: [] },
           apiVersion: "garden.io/v0",
           name: "module-a",
           outputs: {},
@@ -262,6 +262,7 @@ describe("plugins.container", () => {
           type: "container",
           spec:
           {
+            build: { dependencies: [] },
             buildArgs: {},
             services:
               [{
@@ -373,7 +374,6 @@ describe("plugins.container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPublish: false,
           build: {
-            command: ["echo", "OK"],
             dependencies: [],
           },
           apiVersion: "garden.io/v0",
@@ -383,6 +383,7 @@ describe("plugins.container", () => {
           type: "test",
 
           spec: {
+            build: { dependencies: [] },
             buildArgs: {},
             services: [{
               name: "service-a",
@@ -432,7 +433,6 @@ describe("plugins.container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPublish: false,
           build: {
-            command: ["echo", "OK"],
             dependencies: [],
           },
           apiVersion: "garden.io/v0",
@@ -442,6 +442,7 @@ describe("plugins.container", () => {
           type: "test",
 
           spec: {
+            build: { dependencies: [] },
             buildArgs: {},
             services: [{
               name: "service-a",
@@ -485,7 +486,6 @@ describe("plugins.container", () => {
         const moduleConfig: ContainerModuleConfig = {
           allowPublish: false,
           build: {
-            command: ["echo", "OK"],
             dependencies: [],
           },
           apiVersion: "garden.io/v0",
@@ -495,6 +495,7 @@ describe("plugins.container", () => {
           type: "test",
 
           spec: {
+            build: { dependencies: [] },
             buildArgs: {},
             services: [{
               name: "service-a",
@@ -586,6 +587,28 @@ describe("plugins.container", () => {
         })
 
         td.verify(dockerCli(module, ["build", "-t", "some/image", module.buildPath]))
+      })
+
+      it("should set build target image parameter if configured", async () => {
+        const config = cloneDeep(baseConfig)
+        config.spec.image = "some/image"
+        config.spec.build.targetImage = "foo"
+        const module = td.object(await getTestModule(config))
+
+        td.replace(containerHelpers, "hasDockerfile", async () => true)
+        td.replace(containerHelpers, "imageExistsLocally", async () => false)
+        td.replace(containerHelpers, "getLocalImageId", async () => "some/image")
+
+        const dockerCli = td.replace(containerHelpers, "dockerCli")
+
+        const result = await build({ ctx, log, module })
+
+        expect(result).to.eql({
+          fresh: true,
+          details: { identifier: "some/image" },
+        })
+
+        td.verify(dockerCli(module, ["build", "-t", "some/image", "--target", "foo", module.buildPath]))
       })
 
       it("should build image using the user specified Dockerfile path", async () => {
