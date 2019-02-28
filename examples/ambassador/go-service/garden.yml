@@ -1,0 +1,19 @@
+module:
+  name: go-service
+  description: Go service container
+  type: container
+  services:
+    - name: go-service
+      ports:
+        - name: http
+          containerPort: 8080
+          # Maps service:80 -> container:8080
+          servicePort: 80
+      annotations:
+        getambassador.io/config: |
+          ---
+          apiVersion: ambassador/v1
+          kind:  Mapping
+          name:  go-service_mapping
+          prefix: /go-service/
+          service: go-service:80
