@@ -5,7 +5,8 @@
     }
   },
   "packages": [
-    "garden-service/"
+    "garden-service/",
+    "dashboard/"
   ],
   "version": "0.8.0"
 }

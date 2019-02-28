@@ -47,31 +47,23 @@
     "typescript-formatter": "^7.2.2"
   },
   "scripts": {
-    "build": "npm run clean && gulp build",
-    "bootstrap": "npm install && cd garden-service && npm install && cd .. && cd dashboard && npm install && cd ..",
+    "build": "npm run clean && lerna run build",
+    "bootstrap": "lerna bootstrap",
     "check-docs": "./bin/check-docs",
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
+    "check-all": "npm run check-docs && npm run check-package-lock && npm run check-licenses && npm run lint",
     "clean": "lerna run clean && git clean -X -f",
-    "dist": "gulp dist",
     "fix-format": "tslint -p . --fix && tsfmt -r",
     "generate-docs": "gulp generate-docs",
     "integ": "lerna run integ",
     "lint": "tslint -p . && tsfmt --verify && gulp check-licenses",
-    "prepublishOnly": "npm run dist",
-    "preversion": "npm test",
-    "release": "./bin/publish",
-    "release-canary": "./bin/publish-canary",
-    "test": "gulp test",
-    "build-service-ci": "gulp garden-service:build-ci",
-    "test-service-ci": "gulp garden-service:mocha",
-    "build-dashboard": "gulp dashboard:build",
-    "build-dashboard-ci": "gulp dashboard:build-ci"
+    "test": "lerna run test"
   },
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-push": "npm run check-package-lock && npm run lint && npm test && npm run integ"
+      "pre-push": "npm run check-all && npm test && npm run integ"
     }
   },
   "snyk": true,

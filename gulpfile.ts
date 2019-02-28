@@ -20,7 +20,7 @@ const checkLicense = require("gulp-license-check")
 const tsSources = ["garden-service/src/**/*.ts", "dashboard/src/**/*.ts*"]
 const pegjsSources = "garden-service/src/*.pegjs"
 const licenseHeaderPath = "support/license-header.txt"
-const modulePaths = ["garden-service", "dashboard"]
+const modulePaths = ["garden-service"]
 const tmpDir = resolve(__dirname, "tmp")
 
 process.env.FORCE_COLOR = "true"
@@ -45,10 +45,7 @@ modulePaths.forEach(m => {
   tasks(_gulp)
 })
 
-gulp.task("build", gulp.parallel("garden-service:build", "dashboard:build"))
 gulp.task("generate-docs", gulp.parallel("garden-service:generate-docs"))
-gulp.task("test", gulp.parallel("garden-service:test"))
-gulp.task("watch", gulp.parallel("garden-service:watch"))
 
 gulp.task("check-licenses", () =>
   gulp.src([...tsSources, pegjsSources])

@@ -12,11 +12,8 @@ import {
 import { resolve, join } from "path"
 import { spawn } from "../support/support-util"
 
-const cached = require("gulp-cached")
 const pegjs = require("gulp-pegjs")
 const sourcemaps = require("gulp-sourcemaps")
-const gulpTslint = require("gulp-tslint")
-const tslint = require("tslint")
 const ts = require("gulp-typescript")
 
 const tsConfigFilename = "tsconfig.build.json"
@@ -25,11 +22,8 @@ const tsProject = ts.createProject(tsConfigPath, {
   declaration: true,
 })
 
-const tsSources = resolve(__dirname, "src", "**", "*.ts")
-const testTsSources = resolve(__dirname, "test", "**", "*.ts")
 const pegjsSources = resolve(__dirname, "src", "*.pegjs")
 
-const npmBinPath = (name: string) => resolve(__dirname, "node_modules", ".bin", name)
 const destDir = resolve(__dirname, "build")
 const binDir = resolve(__dirname, "bin")
 
@@ -40,16 +34,10 @@ module.exports = (gulp) => {
 
   gulp.task("generate-docs", () => spawn(join(binDir, "generate-docs.ts"), []))
 
-  gulp.task("mocha", () => spawn(npmBinPath("nyc"), [npmBinPath("mocha")], __dirname))
-
   gulp.task("pegjs", () =>
     gulp.src(pegjsSources)
       .pipe(pegjs({ format: "commonjs" }))
       .pipe(gulp.dest(destDir)),
-  )
-
-  gulp.task("pegjs-watch", () =>
-    gulp.watch(pegjsSources, gulp.parallel("pegjs")),
   )
 
   gulp.task("tsc", () =>
@@ -60,69 +48,6 @@ module.exports = (gulp) => {
       .pipe(gulp.dest(destDir)),
   )
 
-  gulp.task("tsc-watch", () =>
-    spawn(npmBinPath("tsc"), [
-      "-w",
-      "--pretty",
-      "--declaration",
-      "-p", tsConfigPath,
-      "--outDir", destDir,
-      "--rootDir", resolve(__dirname, "src"),
-      "--preserveWatchOutput",
-    ],
-    ),
-  )
-
-  gulp.task("tsfmt", () => spawn(npmBinPath("tsfmt"), ["--verify"]))
-
-  gulp.task("tslint", () =>
-    gulp.src(tsSources)
-      .pipe(cached("tslint"))
-      .pipe(gulpTslint({
-        program: tslint.Linter.createProgram(tsConfigPath),
-        formatter: "verbose",
-      }))
-      .pipe(gulpTslint.report()),
-  )
-
-  gulp.task("tslint-tests", () =>
-    gulp.src(testTsSources)
-      .pipe(cached("tslint-tests"))
-      .pipe(gulpTslint({
-        formatter: "verbose",
-      }))
-      .pipe(gulpTslint.report()),
-  )
-
-  gulp.task("watch-code", () => {
-    const verify = (path) => {
-      try {
-        _spawn(npmBinPath("tsfmt"), ["--verify", path], { stdio: "inherit" })
-      } catch (_) { }
-    }
-
-    const task = gulp.series(
-      gulp.parallel("generate-docs", "tsc", "tslint", "tslint-tests"),
-      "build-container",
-    )
-
-    return gulp.watch([tsSources, testTsSources], task)
-      .on("add", verify)
-      .on("change", verify)
-  })
-
-  gulp.task("watch-code-light", () => {
-    const verify = (path) => {
-      try {
-        _spawn(npmBinPath("tsfmt"), ["--verify", path], { stdio: "inherit" })
-      } catch (_) { }
-    }
-
-    return gulp.watch([tsSources, testTsSources], gulp.parallel("generate-docs", "tslint", "tslint-tests"))
-      .on("add", verify)
-      .on("change", verify)
-  })
-
   gulp.task("build", gulp.series(
     gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc"),
     "build-container",
@@ -131,11 +56,6 @@ module.exports = (gulp) => {
   gulp.task("build-ci", gulp.parallel(
     "add-version-files", "generate-docs", "pegjs", "tsc",
   ))
-
-  gulp.task("test", gulp.parallel("build", "mocha"))
-  gulp.task("watch", gulp.parallel("pegjs-watch", "watch-code"))
-  gulp.task("watch-light", gulp.parallel("pegjs-watch", "tsc-watch", "watch-code-light"))
-  gulp.task("default", gulp.series("watch"))
 }
 
 if (process.cwd() === __dirname) {

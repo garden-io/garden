@@ -162,7 +162,9 @@ jobs:
       - npm_install
       - run:
           name: build
-          command: npm run build-service-ci
+          command: |
+            cd garden-service
+            npm run build-ci
       # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -191,9 +193,22 @@ jobs:
       - run:
           name: test
           command: |
-            npm run test-service-ci
+            cd garden-service
+            npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
+  test-dashboard:
+    <<: *node-config
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - npm_install
+      - run:
+          name: Test dashboard
+          command: |
+            cd dashboard
+            npm test
   build-dashboard:
     <<: *node-config
     steps:
@@ -203,7 +218,9 @@ jobs:
       - npm_install
       - run:
           name: Build dashboard
-          command: npm run build-dashboard-ci
+          command: |
+            cd dashboard
+            npm run build-ci
       # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -235,6 +252,7 @@ workflows:
       - build-service
       - test-service
       - build-dashboard
+      - test-dashboard
       - build-service-docker:
           requires:
             - build-service
@@ -249,6 +267,8 @@ workflows:
           requires:
             - build-service
       - build-dashboard:
+          <<: *only-master
+      - test-dashboard:
           <<: *only-master
       - release-service-docker:
           <<: *only-master
@@ -272,6 +292,8 @@ workflows:
           requires:
           - build-service
       - build-dashboard:
+          <<: *only-tags
+      - test-dashboard:
           <<: *only-tags
       - release-service-docker:
           <<: *only-tags
