@@ -13,7 +13,7 @@ import * as Joi from "joi"
 import { validate } from "../config/common"
 import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
-import { pathExists, readFile, writeFile } from "fs-extra"
+import { pathExists, readFile, writeFile, stat } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 import {
   ExternalSourceType,
@@ -83,9 +83,35 @@ export abstract class VcsHandler {
   constructor(protected projectRoot: string) { }
 
   abstract name: string
-  abstract async getTreeVersion(path: string): Promise<TreeVersion>
+  abstract async getLatestCommit(path: string): Promise<string>
+  abstract async getDirtyFiles(path: string): Promise<string[]>
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
-  abstract async updateRemoteSource(params: RemoteSourceParams)
+  abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
+
+  async getTreeVersion(path: string) {
+    const commitHash = await this.getLatestCommit(path)
+    const dirtyFiles = await this.getDirtyFiles(path)
+
+    let latestDirty = 0
+
+    // for dirty trees, we append the last modified time of last modified or added file
+    if (dirtyFiles.length) {
+      const stats = await Bluebird.filter(dirtyFiles, (file: string) => pathExists(file))
+        .map((file: string) => stat(file))
+
+      let mtimes = stats.map((s) => Math.round(s.mtime.getTime() / 1000))
+      let latest = mtimes.sort().slice(-1)[0]
+
+      if (latest > latestDirty) {
+        latestDirty = latest
+      }
+    }
+
+    return {
+      latestCommit: commitHash,
+      dirtyTimestamp: latestDirty || null,
+    }
+  }
 
   async resolveTreeVersion(path: string): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control

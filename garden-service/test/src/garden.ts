@@ -194,7 +194,7 @@ describe("Garden", () => {
     it("should resolve module path to external sources dir if module has a remote source", async () => {
       const projectRoot = resolve(dataDir, "test-project-ext-module-sources")
       const garden = await makeTestGarden(projectRoot)
-      stubGitCli()
+      stubGitCli(garden)
 
       const module = (await (<any>garden).loadModuleConfigs("./module-a"))[0]
       const repoUrlHash = hashRepoUrl(module!.repositoryUrl!)
@@ -260,46 +260,48 @@ describe("Garden", () => {
   describe("loadExtSourcePath", () => {
     let projectRoot: string
 
-    const makeGardenContext = async (root) => {
-      const ctx = await makeTestGarden(root)
-      stubGitCli()
-      return ctx
+    const makeGarden = async (root) => {
+      const garden = await makeTestGarden(root)
+      stubGitCli(garden)
+      return garden
     }
 
     afterEach(async () => {
-      await cleanProject(projectRoot)
+      if (projectRoot) {
+        await cleanProject(projectRoot)
+      }
     })
 
     it("should return the path to the project source if source type is project", async () => {
       projectRoot = getDataDir("test-project-ext-project-sources")
-      const ctx = await makeGardenContext(projectRoot)
+      const garden = await makeGarden(projectRoot)
       const repositoryUrl = "https://github.com/org/repo.git#master"
-      const path = await ctx.loadExtSourcePath({ repositoryUrl, name: "source-a", sourceType: "project" })
+      const path = await garden.loadExtSourcePath({ repositoryUrl, name: "source-a", sourceType: "project" })
       const repoUrlHash = hashRepoUrl(repositoryUrl)
       expect(path).to.equal(join(projectRoot, ".garden", "sources", "project", `source-a--${repoUrlHash}`))
     })
 
     it("should return the path to the module source if source type is module", async () => {
       projectRoot = getDataDir("test-project-ext-module-sources")
-      const ctx = await makeGardenContext(projectRoot)
+      const garden = await makeGarden(projectRoot)
       const repositoryUrl = "https://github.com/org/repo.git#master"
-      const path = await ctx.loadExtSourcePath({ repositoryUrl, name: "module-a", sourceType: "module" })
+      const path = await garden.loadExtSourcePath({ repositoryUrl, name: "module-a", sourceType: "module" })
       const repoUrlHash = hashRepoUrl(repositoryUrl)
       expect(path).to.equal(join(projectRoot, ".garden", "sources", "module", `module-a--${repoUrlHash}`))
     })
 
     it("should return the local path of the project source if linked", async () => {
       projectRoot = getDataDir("test-project-ext-project-sources")
-      const ctx = await makeGardenContext(projectRoot)
+      const garden = await makeGarden(projectRoot)
       const localPath = join(projectRoot, "mock-local-path", "source-a")
 
       const linked: LinkedSource[] = [{
         name: "source-a",
         path: localPath,
       }]
-      await ctx.localConfigStore.set(["linkedProjectSources"], linked)
+      await garden.localConfigStore.set(["linkedProjectSources"], linked)
 
-      const path = await ctx.loadExtSourcePath({
+      const path = await garden.loadExtSourcePath({
         name: "source-a",
         repositoryUrl: "https://github.com/org/repo.git#master",
         sourceType: "project",
@@ -310,16 +312,16 @@ describe("Garden", () => {
 
     it("should return the local path of the module source if linked", async () => {
       projectRoot = getDataDir("test-project-ext-module-sources")
-      const ctx = await makeGardenContext(projectRoot)
+      const garden = await makeGarden(projectRoot)
       const localPath = join(projectRoot, "mock-local-path", "module-a")
 
       const linked: LinkedSource[] = [{
         name: "module-a",
         path: localPath,
       }]
-      await ctx.localConfigStore.set(["linkedModuleSources"], linked)
+      await garden.localConfigStore.set(["linkedModuleSources"], linked)
 
-      const path = await ctx.loadExtSourcePath({
+      const path = await garden.loadExtSourcePath({
         name: "module-a",
         repositoryUrl: "https://github.com/org/repo.git#master",
         sourceType: "module",

@@ -185,6 +185,11 @@ jobs:
       - npm_install
       - *attach-workspace
       - run:
+          name: Configure git (needed for some tests)
+          command: |
+            git config --global user.name "Garden CI"
+            git config --global user.email "admin@garden.io"
+      - run:
           name: Make sure generated docs are up-to-date
           command: npm run check-docs
       - run:

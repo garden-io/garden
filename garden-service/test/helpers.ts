@@ -33,7 +33,6 @@ import {
   RunTaskParams,
   SetSecretParams,
 } from "../src/types/plugin/params"
-import { helpers } from "../src/vcs/git"
 import { ModuleVersion } from "../src/vcs/base"
 import { GARDEN_DIR_NAME } from "../src/constants"
 import { EventBus, Events } from "../src/events"
@@ -365,8 +364,8 @@ export const cleanProject = async (projectRoot: string) => {
   return remove(join(projectRoot, GARDEN_DIR_NAME))
 }
 
-export function stubGitCli() {
-  td.replace(helpers, "gitCli", () => async () => "")
+export function stubGitCli(garden: Garden) {
+  td.replace(garden.vcs, "gitCli", () => async () => "")
 }
 
 /**
@@ -374,7 +373,7 @@ export function stubGitCli() {
  * or test-project-ext-project-sources as project root.
  */
 export function stubExtSources(garden: Garden) {
-  stubGitCli()
+  stubGitCli(garden)
   const getRemoteSourcesDirname = td.replace(garden.vcs, "getRemoteSourcesDirname")
 
   td.when(getRemoteSourcesDirname("module")).thenReturn(join("mock-dot-garden", "sources", "module"))

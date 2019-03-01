@@ -7,6 +7,14 @@ class TestVcsHandler extends VcsHandler {
   name = "test"
   private testVersions: TreeVersions = {}
 
+  async getLatestCommit() {
+    return NEW_MODULE_VERSION
+  }
+
+  async getDirtyFiles() {
+    return []
+  }
+
   async getTreeVersion(path: string) {
     return this.testVersions[path] || {
       latestCommit: NEW_MODULE_VERSION,
@@ -18,12 +26,12 @@ class TestVcsHandler extends VcsHandler {
     this.testVersions[path] = version
   }
 
-  async ensureRemoteSource(_params): Promise<string> {
+  async ensureRemoteSource(): Promise<string> {
     return ""
   }
 
-  async updateRemoteSource(_params) {
-    return ""
+  async updateRemoteSource() {
+    return
   }
 
 }
