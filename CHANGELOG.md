@@ -1,4 +1,47 @@
 
+<a name="v0.9.3-0"></a>
+## [v0.9.3-0](https://github.com/garden-io/garden/compare/v0.9.2...v0.9.3-0) (2019-03-01)
+
+### Bug Fixes
+
+* allow ingress annotations in service status ([fac3193](https://github.com/garden-io/garden/commit/fac3193))
+* openfaas plugin bug ([d7cf528](https://github.com/garden-io/garden/commit/d7cf528))
+* **k8s:** don't abort deployment on FailedMount warning ([90ac36c](https://github.com/garden-io/garden/commit/90ac36c))
+* **vcs:** untracked files didn't update version timestamp correctly ([3b85c35](https://github.com/garden-io/garden/commit/3b85c35))
+
+### Features
+
+* **cli:** print ingress endpoints after deploying ([b7961ec](https://github.com/garden-io/garden/commit/b7961ec))
+* **container:** add `build.targetImage` parameter ([9bf6aa1](https://github.com/garden-io/garden/commit/9bf6aa1))
+* **k8s:** support service and ingress annotations on container module ([894bd1f](https://github.com/garden-io/garden/commit/894bd1f))
+
+
+<a name="v0.9.2"></a>
+## [v0.9.2](https://github.com/garden-io/garden/compare/v0.9.1...v0.9.2) (2019-02-22)
+
+### Bug Fixes
+
+* fixed bug in configuring flat-config modules ([fd5bed8](https://github.com/garden-io/garden/commit/fd5bed8))
+* don't emit taskPending if task is skipped ([74e2c5d](https://github.com/garden-io/garden/commit/74e2c5d))
+* clean up field usage in example projects ([7ed2da3](https://github.com/garden-io/garden/commit/7ed2da3))
+* **helm:** filter out test pods when deploying charts ([b646236](https://github.com/garden-io/garden/commit/b646236))
+* **helm:** allow duplicate keys in template ([5153857](https://github.com/garden-io/garden/commit/5153857))
+* **k8s:** kubernetes dashboard wasn't showing up in dashboard ([2b76841](https://github.com/garden-io/garden/commit/2b76841))
+* **k8s:** fix RBAC issues with kubernetes-dashboard on minikube ([291f368](https://github.com/garden-io/garden/commit/291f368))
+* **k8s:** don't use --wait when installing using Helm ([02cd157](https://github.com/garden-io/garden/commit/02cd157))
+* **k8s:** don't error on pod scheduling warning ([49f8115](https://github.com/garden-io/garden/commit/49f8115))
+* **local-k8s:** always use force flag when deploying to garden-system ns ([6cbe064](https://github.com/garden-io/garden/commit/6cbe064))
+* **local-k8s:** remove hardcoded ingress class ([9eb6052](https://github.com/garden-io/garden/commit/9eb6052))
+* **local-k8s:** don't install nginx when running with Minikube ([056924b](https://github.com/garden-io/garden/commit/056924b))
+* **templates:** add prefix to versionString ([fe9cd49](https://github.com/garden-io/garden/commit/fe9cd49))
+
+### Features
+
+* add support for flat config style ([fecde8b](https://github.com/garden-io/garden/commit/fecde8b))
+* allow multiple modules in a single file ([ff4d370](https://github.com/garden-io/garden/commit/ff4d370))
+* don't restart command when config is invalid ([2a534b1](https://github.com/garden-io/garden/commit/2a534b1))
+
+
 <a name="v0.9.1"></a>
 ## [v0.9.1](https://github.com/garden-io/garden/compare/v0.9.0...v0.9.1) (2019-02-12)
 
