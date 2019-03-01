@@ -130,7 +130,7 @@ async function release() {
     A CI job that creates the release artifacts is currently in process: https://circleci.com/gh/garden-io/garden\n
 
     Create a pull request for ${branchName} on Github by visting:
-      https://github.com/garden-io/garden/pull/new/${branchName}
+      https://github.com/garden-io/garden/pull/new/${branchName}\n
 
     Please refer to our contributing docs for the next steps:
     https://github.com/garden-io/garden/blob/master/CONTRIBUTING.md
