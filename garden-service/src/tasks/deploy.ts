@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import { Service, ServiceStatus, getServiceRuntimeContext } from "../types/service"
+import { Service, ServiceStatus, getServiceRuntimeContext, getIngressUrl } from "../types/service"
 import { Garden } from "../garden"
 import { PushTask } from "./push"
 import { TaskTask } from "./task"
@@ -117,7 +117,7 @@ export class DeployTask extends BaseTask {
 
     const runtimeContext = await getServiceRuntimeContext(this.garden, this.graph, this.service)
 
-    const status = await this.garden.actions.getServiceStatus({
+    let status = await this.garden.actions.getServiceStatus({
       service: this.service,
       log,
       hotReload,
@@ -136,26 +136,29 @@ export class DeployTask extends BaseTask {
         msg: `Version ${versionString} already deployed`,
         append: true,
       })
-      return status
+    } else {
+      log.setState(`Deploying version ${versionString}...`)
+
+      try {
+        status = await this.garden.actions.deployService({
+          service: this.service,
+          runtimeContext,
+          log,
+          force: this.force,
+          hotReload,
+        })
+      } catch (err) {
+        log.setError()
+        throw err
+      }
+
+      log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     }
 
-    log.setState(`Deploying version ${versionString}...`)
-
-    let result: ServiceStatus
-    try {
-      result = await this.garden.actions.deployService({
-        service: this.service,
-        runtimeContext,
-        log,
-        force: this.force,
-        hotReload,
-      })
-    } catch (err) {
-      log.setError()
-      throw err
+    for (const ingress of status.ingresses || []) {
+      log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getIngressUrl(ingress)))
     }
 
-    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
-    return result
+    return status
   }
 }
