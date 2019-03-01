@@ -1,8 +1,21 @@
 #!/bin/bash -e
 
 # Linter before git check so we can lint docs even if they are 'dirty'
-# Using xargs to exit 1 if link is broken, see: https://github.com/tcort/markdown-link-check/issues/57
-find docs examples -name '*.md' -type f | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+
+# Use "|| true" so we don't exit on empty
+modified_docs=$(git diff --name-status master docs README.md) || true
+modified_examples=$(git diff --name-status master examples | grep "examples.*\README.md$") || true
+
+# Only check links if docs or examples were modified
+if !([ -z "$modified_docs" ] && [ -z "$modified_examples" ]); then
+  # Using xargs to exit 1 if link is broken, see: https://github.com/tcort/markdown-link-check/issues/57
+  # Check docs
+  find docs -name '*.md' -type f | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+  # Check examples
+  find examples -name 'README.md' -type f -not -path "*/.garden/*" | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+  # Check README.md
+  find . -name 'README.md' -type f  -maxdepth 1 | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+fi
 
 # Needs to generate clean docs before we can validate they are up to date
 npm run generate-docs

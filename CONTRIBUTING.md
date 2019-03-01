@@ -82,10 +82,33 @@ changes and auto-rebuild as you code. You can then run the `garden` command as n
 
 Also, you might like to add a couple of shorthands:
 
-    alias g='garden'
-    alias k='kubectl'
+```sh
+alias g='garden'
+alias k='kubectl'
+```
 
 For developing the dashboard, please refer to the [dashboard docs](./dashboard/README.mdj).
+
+### Debugging
+
+To enable setting a breakpoint in the code, run the CLI with the `garden-service/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
+
+```sh
+alias gd='/path/to/garden/garden-service/bin/static/garden-debug'
+```
+
+You can e.g. use the Chrome DevTools to inspect the code at the breakpoint:
+
+1. Add a `debugger` statement somewhere in the code.
+2. Navigate to [chrome://inspect/](chrome://inspect/) in your Chrome browser.
+3. Click the **Open dedicated DevTools for Node** link.
+4. Run a CLI command that hits the breakpoint, e.g.:
+
+```sh
+garden-service/bin/static/garden-debug deploy # or gd deploy, if you've set the alias
+```
+
+You should now be able to inspect the code at run time in the **Console** tab of the DevTools window.
 
 ### Tests
 
