@@ -1,6 +1,6 @@
 
-<a name="v0.9.3-0"></a>
-## [v0.9.3-0](https://github.com/garden-io/garden/compare/v0.9.2...v0.9.3-0) (2019-03-01)
+<a name="v0.9.3"></a>
+## [v0.9.3](https://github.com/garden-io/garden/compare/v0.9.2...v0.9.3) (2019-03-01)
 
 ### Bug Fixes
 
