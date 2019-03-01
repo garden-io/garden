@@ -8,7 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import { certpem } from "certpem"
-import { omit, find, extend } from "lodash"
+import { find, extend } from "lodash"
 import { findByName } from "../../../util/util"
 import { ContainerService, ContainerIngressSpec } from "../../container/config"
 import { IngressTlsCertificate } from "../kubernetes"
@@ -113,7 +113,12 @@ async function getIngressesWithCert(service: ContainerService, api: KubeApi): Pr
 
 export async function getIngresses(service: ContainerService, api: KubeApi): Promise<ServiceIngress[]> {
   return (await getIngressesWithCert(service, api))
-    .map(e => omit(e, ["certificate", "spec"]))
+    .map(ingress => ({
+      hostname: ingress.hostname,
+      path: ingress.path,
+      port: ingress.port,
+      protocol: ingress.protocol,
+    }))
 }
 
 async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate): Promise<string[]> {
