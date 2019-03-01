@@ -8,7 +8,7 @@ Garden is a _development orchestrator_ for Kubernetes, containers and functions,
 
 Using Garden, you can make your workflow reproducible and portable. With Garden, each part of your stack _describes itself_ using simple, intuitive declarations, without changing any code.
 
-Garden collects all of your declarations–even across multiple repositories—into a full graph of your stack, and leverages that information to **dramatically improve your developer experience**.
+Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack, and leverages that information to **dramatically improve your developer experience**.
 
 > _If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
 
