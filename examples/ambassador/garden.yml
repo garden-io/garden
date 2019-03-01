@@ -1,0 +1,7 @@
+project:
+  name: ambassador
+  environments:
+    - name: local
+      providers:
+        - name: local-kubernetes
+          setupIngressController: false
