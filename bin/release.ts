@@ -21,6 +21,7 @@ const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
  * 7. Tag the commit.
  * 8. Push the tag. This triggers CircleCI process that creates the release artifacts.
  * 9. If we're making a minor release, update links to examples and re-push the tag.
+ * 10. Pushes the release branch to Github.
  *
  * Usage: ./bin/release.ts <minor | patch | preminor | prepatch | prerelease> [--force]
  */
@@ -119,11 +120,17 @@ async function release() {
     await createTag(version, gardenRoot, true)
   }
 
+  console.log("Pushing release branch...")
+  await execa("git", ["push", "origin", branchName, "--no-verify"], { cwd: gardenRoot })
+
   console.log(deline`
     \nVersion ${chalk.bold.cyan(version)} has been ${chalk.bold("tagged")}, ${chalk.bold("committed")},
     and ${chalk.bold("pushed")} to Github! 🎉\n
 
     A CI job that creates the release artifacts is currently in process: https://circleci.com/gh/garden-io/garden\n
+
+    Create a pull request for ${branchName} on Github by visiting:
+      https://github.com/garden-io/garden/pull/new/${branchName}
 
     Please refer to our contributing docs for the next steps:
     https://github.com/garden-io/garden/blob/master/CONTRIBUTING.md
@@ -168,7 +175,7 @@ async function rollBack(gardenRoot: string) {
 
 async function prompt(version: string): Promise<boolean> {
   const message = deline`
-    Running this script will create a tag for ${chalk.bold.cyan(version)} and push it to Github.
+    Running this script will create a branch and a tag for ${chalk.bold.cyan(version)} and push them to Github.
     This triggers a CI process that creates the release artifacts.\n
 
     Are you sure you want to continue?
