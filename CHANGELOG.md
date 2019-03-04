@@ -1,4 +1,12 @@
 
+<a name="v0.9.4"></a>
+## [v0.9.4](https://github.com/garden-io/garden/compare/v0.9.3...v0.9.4) (2019-03-04)
+
+### Bug Fixes
+
+* ensure module is up to date in watch handler ([44e8871](https://github.com/garden-io/garden/commit/44e8871))
+
+
 <a name="v0.9.3"></a>
 ## [v0.9.3](https://github.com/garden-io/garden/compare/v0.9.2...v0.9.3) (2019-03-01)
 
