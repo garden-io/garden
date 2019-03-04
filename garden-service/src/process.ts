@@ -161,7 +161,11 @@ export async function processModules(
       // Update the config graph
       graph = await garden.getConfigGraph()
 
-      await Bluebird.map(changeHandler!(graph, changedModule), (task) => garden.addTask(task))
+      // Make sure the module's version is up to date.
+      const refreshedModule = await graph.getModule(changedModule.name)
+      modulesByName[event.name] = refreshedModule
+
+      await Bluebird.map(changeHandler!(graph, refreshedModule), (task) => garden.addTask(task))
       await garden.processTasks()
     })
   })
