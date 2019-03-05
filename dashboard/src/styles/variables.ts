@@ -10,9 +10,6 @@ export const tablet = 768
 export const desktop = 992
 export const big = 1680
 
-export const MOBILE_SECTIONS_MARGIN = "48px"
-// TODO Find proper fonts and set weights
-
 export const fontFamily = `font-family: Raleway, Arial, Helvetica, sans-serif`
 export const fontBold = `${fontFamily};font-weight: 700;`
 export const fontRegular = `${fontFamily};font-weight: 400;`
