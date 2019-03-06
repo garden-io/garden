@@ -121,6 +121,8 @@ md -Force $gardenHomePath | Out-Null
 md -Force $gardenBinPath | Out-Null
 md -Force $gardenTmpPath | Out-Null
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 # Download and extract the archive to $gardenBinPath
 $latestRelease = Invoke-WebRequest "https://github.com/garden-io/garden/releases/latest" -Headers @{"Accept"="application/json"}
 # The releases are returned in the format {"id":3622206,"tag_name":"hello-1.0.0.11",...}, we have to extract the tag_name.
@@ -138,7 +140,7 @@ if (-not ([Net.ServicePointManager]::SecurityProtocol).ToString().Contains([Net.
 
 Write-Host "-> Extracting archive..."
 Expand-Archive $zipPath -DestinationPath $gardenTmpPath -Force
-Copy-Item -Force -Recurse -Path "$gardenTmpPath/win-amd64/*" -Destination $gardenBinPath
+Copy-Item -Force -Recurse -Path "$gardenTmpPath/windows-amd64/*" -Destination $gardenBinPath
 
 # Make sure $gardenBinPath is in the user's PATH
 if (!($env:path.ToLower() -like "*$gardenBinPath*".ToLower())) {
