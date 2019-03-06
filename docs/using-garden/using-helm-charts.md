@@ -226,7 +226,7 @@ module:
     ingress:
       enabled: true
       paths: [/]
-      hosts: [result.local.app.garden]
+      hosts: [result-helm.local.app.garden]
   tests:
     - name: integ
       args: [echo, ok]

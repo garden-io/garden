@@ -13,7 +13,7 @@ module:
     ingress:
       enabled: true
       paths: [/]
-      hosts: [vote.local.app.garden]
+      hosts: [vote-helm.local.app.garden]
   tests:
     - name: integ
       args: [npm, run, test:integ]

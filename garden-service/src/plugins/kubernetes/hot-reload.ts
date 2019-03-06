@@ -312,6 +312,8 @@ async function getLocalRsyncPort(ctx: PluginContext, log: LogEntry, targetDeploy
 
     proc.stdout.on("data", (line) => {
       // This is unfortunately the best indication that we have that the connection is up...
+      log.silly(`[${targetDeployment} port forwarder] ${line}`)
+
       if (line.toString().includes("Forwarding from ")) {
         const portForward = { proc, rsyncLocalPort }
         registeredPortForwards[targetDeployment] = portForward
