@@ -565,11 +565,27 @@ async function getPods(api: KubeApi, namespace: string, selector: { [key: string
  */
 async function getPodLogs(api: KubeApi, namespace: string, podNames: string[]): Promise<string> {
   const allLogs = await Bluebird.map(podNames, async (name) => {
+    let containerName: string | undefined
+    try {
+      const podRes = await api.core.readNamespacedPod(name, namespace)
+      const containerNames = podRes.body.spec.containers.map(c => c.name)
+      if (containerNames.length > 1) {
+        containerName = containerNames.filter(n => !n.match(/garden-/))[0]
+      } else {
+        containerName = undefined
+      }
+    } catch (err) {
+      if (err.code === 404) {
+        return ""
+      } else {
+        throw err
+      }
+    }
     // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
     // accidentally logs a binary file or something.
     try {
       const res = await api.core.readNamespacedPodLog(
-        name, namespace, undefined, false, 5000, undefined, false, undefined, podLogLines,
+        name, namespace, containerName, false, 5000, undefined, false, undefined, podLogLines,
       )
       return res.body ? `****** ${name} ******\n${res.body}` : ""
     } catch (err) {
