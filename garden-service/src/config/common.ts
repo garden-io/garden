@@ -149,7 +149,7 @@ export function validateWithPath<T>(
     validateOpts["ErrorClass"] = ErrorClass
   }
 
-  return validate(config, schema, validateOpts)
+  return <T>validate(config, schema, validateOpts)
 }
 
 export function validate<T>(
