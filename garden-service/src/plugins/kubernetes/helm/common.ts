@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find, isEmpty } from "lodash"
+import { find, isEmpty, isPlainObject } from "lodash"
 import { join } from "path"
 import { pathExists, writeFile, remove } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
@@ -54,22 +54,12 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
 
   return objects
     .filter(obj => {
-      if (obj === null) {
-        return false
-      }
-
       const helmHook = getAnnotation(obj, "helm.sh/hook")
       if (helmHook && helmHook.startsWith("test-")) {
         return false
       }
 
       return true
-    })
-    .map((obj) => {
-      if (!obj.metadata.annotations) {
-        obj.metadata.annotations = {}
-      }
-      return obj
     })
 }
 
@@ -310,4 +300,16 @@ async function renderHelmTemplateString(
  */
 function loadTemplate(template: string) {
   return loadAll(template, undefined, { json: true })
+    .filter(obj => obj !== null)
+    .map((obj) => {
+      if (isPlainObject(obj)) {
+        if (!obj.metadata) {
+          obj.metadata = {}
+        }
+        if (!obj.metadata.annotations) {
+          obj.metadata.annotations = {}
+        }
+      }
+      return obj
+    })
 }

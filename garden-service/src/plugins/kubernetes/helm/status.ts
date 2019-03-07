@@ -74,6 +74,7 @@ export async function getReleaseStatus(
   namespace: string, context: string, releaseName: string, log: LogEntry,
 ): Promise<ServiceStatus> {
   try {
+    log.silly(`Getting the release status for ${releaseName}`)
     const res = JSON.parse(await helm(namespace, context, log, "status", releaseName, "--output", "json"))
     const statusCode = res.info.status.code
     return {

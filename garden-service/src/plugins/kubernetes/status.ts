@@ -526,7 +526,7 @@ async function getDeployedObject(
 
   try {
     const res = await api.readBySpec(namespace, obj)
-    return res.body
+    return <KubernetesResource>res.body
   } catch (err) {
     if (err.code === 404) {
       return null

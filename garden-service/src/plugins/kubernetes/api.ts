@@ -17,10 +17,11 @@ import {
   Policy_v1beta1Api,
 } from "@kubernetes/client-node"
 import { join } from "path"
+import request = require("request")
 import { readFileSync, pathExistsSync } from "fs-extra"
 import { safeLoad } from "js-yaml"
 import { zip, omitBy, isObject } from "lodash"
-import { GardenBaseError, ConfigurationError } from "../../exceptions"
+import { GardenBaseError } from "../../exceptions"
 import { homedir } from "os"
 import { KubernetesProvider } from "./kubernetes"
 import { KubernetesResource } from "./types"
@@ -72,6 +73,7 @@ export class KubernetesError extends GardenBaseError {
 
 export class KubeApi {
   public context: string
+  private config: KubeConfig
 
   public apiExtensions: Apiextensions_v1beta1Api
   public apps: Apps_v1Api
@@ -82,11 +84,11 @@ export class KubeApi {
 
   constructor(public provider: KubernetesProvider) {
     this.context = provider.config.context
-    const config = getConfig(this.context)
+    this.config = getConfig(this.context)
 
     for (const [name, cls] of Object.entries(apiTypes)) {
-      const api = new cls(config.getCurrentCluster()!.server)
-      this[name] = this.proxyApi(api, config)
+      const api = new cls(this.config.getCurrentCluster()!.server)
+      this[name] = this.proxyApi(api, this.config)
     }
   }
 
@@ -140,9 +142,14 @@ export class KubeApi {
       case "PodDisruptionBudget":
         return this.policy.readNamespacedPodDisruptionBudget(name, namespace)
       default:
-        throw new ConfigurationError(`Unsupported Kubernetes spec kind: ${spec.kind}`, {
-          spec,
-        })
+        const apiVersion = spec.apiVersion
+        const url = `${this.config.getCurrentCluster()!.server}/apis/${apiVersion}` +
+          `/namespaces/${namespace}/${spec.kind.toLowerCase()}/${name || spec.metadata.name}`
+
+        const opts: request.Options = { method: "get", url, json: true }
+        this.config.applyToRequest(opts)
+
+        return request(opts)
     }
   }
 
