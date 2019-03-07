@@ -269,16 +269,23 @@ function deploymentConfig(service: Service, configuredReplicas: number, namespac
 
 function configureHealthCheck(container, spec): void {
 
+  const readinessPeriodSeconds = 1
+  const readinessFailureThreshold = 90
+
   container.readinessProbe = {
-    initialDelaySeconds: 10,
-    periodSeconds: 5,
+    initialDelaySeconds: 2,
+    periodSeconds: readinessPeriodSeconds,
     timeoutSeconds: 3,
     successThreshold: 2,
-    failureThreshold: 5,
+    failureThreshold: readinessFailureThreshold,
   }
 
+  /*
+   * We wait for the effective failure duration (period * threshold) of the readiness probe before starting the
+   * liveness probe.
+   */
   container.livenessProbe = {
-    initialDelaySeconds: 15,
+    initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
     periodSeconds: 5,
     timeoutSeconds: 3,
     successThreshold: 1,
