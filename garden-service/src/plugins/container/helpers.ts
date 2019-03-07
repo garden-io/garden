@@ -11,7 +11,7 @@ import { join } from "path"
 import { ConfigurationError } from "../../exceptions"
 import { splitFirst, spawn } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
-import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace } from "./config"
+import { ContainerModule, ContainerRegistryConfig, defaultTag } from "./config"
 
 interface ParsedImageId {
   host?: string
@@ -35,11 +35,22 @@ export const containerHelpers = {
    * (when we don't need to push to remote registries).
    */
   async getLocalImageId(module: ContainerModule): Promise<string> {
-    if (await containerHelpers.hasDockerfile(module)) {
+    const hasDockerfile = await containerHelpers.hasDockerfile(module)
+
+    if (module.spec.image && hasDockerfile) {
       const { versionString } = module.version
-      return `${module.name}:${versionString}`
+      const parsedImage = containerHelpers.parseImageId(module.spec.image || module.name)
+      return containerHelpers.unparseImageId({ ...parsedImage, tag: versionString })
+    } else if (!module.spec.image && hasDockerfile) {
+      const { versionString } = module.version
+      return containerHelpers.unparseImageId({ repository: module.name, tag: versionString })
+    } else if (module.spec.image && !hasDockerfile) {
+      return module.spec.image
     } else {
-      return module.spec.image!
+      throw new ConfigurationError(
+        `Module ${module.name} neither specifies image nor provides Dockerfile`,
+        { module },
+      )
     }
   },
 
@@ -98,21 +109,27 @@ export const containerHelpers = {
 
     if (parts.length === 1) {
       return {
-        namespace: defaultNamespace,
         repository,
         tag,
       }
     } else if (parts.length === 2) {
       return {
         namespace: parts[0],
-        repository,
+        repository: parts[1],
         tag,
       }
     } else if (parts.length === 3) {
       return {
         host: parts[0],
         namespace: parts[1],
-        repository,
+        repository: parts[2],
+        tag,
+      }
+    } else if (parts.length > 3) {
+      return {
+        host: parts[0],
+        namespace: parts.slice(1, parts.length - 1).join("/"),
+        repository: parts[parts.length - 1],
         tag,
       }
     } else {
