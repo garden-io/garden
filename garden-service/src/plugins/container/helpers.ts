@@ -11,7 +11,7 @@ import { join } from "path"
 import { ConfigurationError } from "../../exceptions"
 import { splitFirst, spawn } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
-import { ContainerModule, ContainerRegistryConfig, defaultTag } from "./config"
+import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace } from "./config"
 
 interface ParsedImageId {
   host?: string
@@ -101,15 +101,16 @@ export const containerHelpers = {
   },
 
   parseImageId(imageId: string): ParsedImageId {
-    const parts = imageId.split("/")
-    let [repository, tag] = parts[0].split(":")
+    let [name, tag] = imageId.split(":")
+    const parts = name.length > 0 ? name.split("/") : []
+
     if (!tag) {
       tag = defaultTag
     }
 
     if (parts.length === 1) {
       return {
-        repository,
+        repository: parts[0],
         tag,
       }
     } else if (parts.length === 2) {
@@ -141,7 +142,7 @@ export const containerHelpers = {
     const name = `${parsed.repository}:${parsed.tag}`
 
     if (parsed.host) {
-      return `${parsed.host}/${parsed.namespace}/${name}`
+      return `${parsed.host}/${parsed.namespace || defaultNamespace}/${name}`
     } else if (parsed.namespace) {
       return `${parsed.namespace}/${name}`
     } else {
