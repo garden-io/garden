@@ -258,10 +258,6 @@ workflows:
       - test-service
       - build-dashboard
       - test-dashboard
-      - build-service-docker:
-          requires:
-            - build-service
-            - build-dashboard
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it
