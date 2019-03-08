@@ -51,6 +51,8 @@ export type Unpacked<T> =
   : T extends Promise<infer W> ? W
   : T
 
+const MAX_BUFFER_SIZE = 1024 * 1024
+
 export function shutdown(code) {
   // This is a good place to log exitHookNames if needed.
   process.exit(code)
@@ -166,6 +168,21 @@ export interface SpawnOutput {
   proc: any
 }
 
+/**
+ * Truncates the first n characters from a string where n equals the number by
+ * which the string byte length exceeds the MAX_BUFFER_SIZE.
+ *
+ * Note that a utf8 character can be 1-4 bytes so this is a naive but inexpensive approach.
+ */
+function naivelyTruncateBytes(str: string) {
+  const overflow = Buffer.byteLength(str, "utf8") - MAX_BUFFER_SIZE
+  if (overflow > 0) {
+    str = str.substr(overflow)
+  }
+  return str
+}
+
+// TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   const { timeout = 0, cwd, data, ignoreError = false, env, tty } = opts
 
@@ -193,14 +210,14 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     _process.stdin.setRawMode && _process.stdin.setRawMode(true)
 
   } else {
+    // We ensure the output strings never exceed the MAX_BUFFER_SIZE
     proc.stdout.on("data", (s) => {
-      result.output += s
-      result.stdout! += s
+      result.output = naivelyTruncateBytes(result.output + s)
+      result.stdout! = naivelyTruncateBytes(result.stdout! + s)
     })
 
     proc.stderr.on("data", (s) => {
-      result.output += s
-      result.stderr! += s
+      result.stderr! = naivelyTruncateBytes(result.stderr! + s)
     })
 
     if (data) {
@@ -230,10 +247,13 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
-        _reject(new RuntimeError(
-          `${cmd} exited with code ${code}. Here is the output:\n\n ${result.output}`,
-          { cmd, args, opts },
-        ))
+        const nLinesToShow = 100
+        const output = result.output.split("\n").slice(-nLinesToShow).join("\n")
+        const msg =
+          `Command failed with code ${code}: ${cmd} ${args.join(" ")}\n\n` +
+          `${result.stderr}\n` +
+          `Here are the last ${nLinesToShow} lines of the output:\n\n ${output}`
+        _reject(new RuntimeError(msg, { cmd, args, opts, result }))
       }
     })
   })

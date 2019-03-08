@@ -6,12 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa = require("execa")
-
 import { pathExists } from "fs-extra"
 import { join } from "path"
 import { ConfigurationError } from "../../exceptions"
-import { splitFirst } from "../../util/util"
+import { splitFirst, spawn } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace } from "./config"
 
@@ -147,7 +145,8 @@ export const containerHelpers = {
 
   async dockerCli(module: ContainerModule, args: string[]) {
     // TODO: use dockerode instead of CLI
-    return execa.stdout("docker", args, { cwd: module.buildPath, maxBuffer: 1024 * 1024 })
+    const output = await spawn("docker", args, { cwd: module.buildPath })
+    return output.output || ""
   },
 
   async hasDockerfile(module: ContainerModule) {
