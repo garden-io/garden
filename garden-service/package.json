@@ -88,7 +88,8 @@
     "unzipper": "^0.9.6",
     "uuid": "^3.3.2",
     "winston": "^3.1.0",
-    "wrap-ansi": "^4.0.0"
+    "wrap-ansi": "^4.0.0",
+    "xml-js": "^1.6.11"
   },
   "devDependencies": {
     "@commitlint/cli": "^7.2.1",

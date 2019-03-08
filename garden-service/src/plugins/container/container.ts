@@ -12,16 +12,11 @@ import { validateWithPath } from "../../config/common"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "../../exceptions"
 import { GardenPlugin } from "../../types/plugin/plugin"
-import {
-  BuildModuleParams,
-  GetBuildStatusParams,
-  ConfigureModuleParams,
-  HotReloadServiceParams,
-  PublishModuleParams,
-} from "../../types/plugin/params"
+import { ConfigureModuleParams, HotReloadServiceParams, PublishModuleParams } from "../../types/plugin/params"
 import { keyBy } from "lodash"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
+import { buildContainerModule, getContainerBuildStatus } from "./build"
 
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   moduleConfig.spec = validateWithPath({
@@ -149,63 +144,8 @@ export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
     container: {
       configure: configureContainerModule,
-
-      async getBuildStatus({ module, log }: GetBuildStatusParams<ContainerModule>) {
-        const identifier = await containerHelpers.imageExistsLocally(module)
-
-        if (identifier) {
-          log.debug({
-            section: module.name,
-            msg: `Image ${identifier} already exists`,
-            symbol: "info",
-          })
-        }
-
-        return { ready: !!identifier }
-      },
-
-      async build({ module, log }: BuildModuleParams<ContainerModule>) {
-        const buildPath = module.buildPath
-        const image = module.spec.image
-
-        if (!!image && !(await containerHelpers.hasDockerfile(module))) {
-          if (await containerHelpers.imageExistsLocally(module)) {
-            return { fresh: false }
-          }
-          log.setState(`Pulling image ${image}...`)
-          await containerHelpers.pullImage(module)
-          return { fetched: true }
-        }
-
-        const identifier = await containerHelpers.getLocalImageId(module)
-
-        // build doesn't exist, so we create it
-        log.setState(`Building ${identifier}...`)
-
-        const cmdOpts = ["build", "-t", identifier]
-        const buildArgs = Object.entries(module.spec.buildArgs).map(([key, value]) => {
-          // TODO: may need to escape this
-          return `--build-arg ${key}=${value}`
-        }).join(" ")
-
-        if (buildArgs) {
-          cmdOpts.push(buildArgs)
-        }
-
-        if (module.spec.build.targetImage) {
-          cmdOpts.push("--target", module.spec.build.targetImage)
-        }
-
-        if (module.spec.dockerfile) {
-          cmdOpts.push("--file", containerHelpers.getDockerfilePathFromModule(module))
-        }
-
-        // TODO: log error if it occurs
-        // TODO: stream output to log if at debug log level
-        await containerHelpers.dockerCli(module, [...cmdOpts, buildPath])
-
-        return { fresh: true, details: { identifier } }
-      },
+      getBuildStatus: getContainerBuildStatus,
+      build: buildContainerModule,
 
       async publishModule({ module, log }: PublishModuleParams<ContainerModule>) {
         if (!(await containerHelpers.hasDockerfile(module))) {

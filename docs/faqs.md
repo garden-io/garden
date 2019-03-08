@@ -58,7 +58,7 @@ We currently have a rough version of a Docker Swarm plug-in for Garden, but don'
 
 The Garden orchestrator itself doesn't care where your services are built, tested and deployed. However, the current selection of plug-ins does support local development better than remote development. For Kubernetes development in particular, it is currently much easier to set up the `local-kubernetes` plugin, and feedback loops are generally faster than with the more generic `kubernetes` plugin (see [this example](https://github.com/garden-io/garden/tree/master/examples/remote-k8s) for how to configure remote clusters).
 
-However, we are working to bridge that gap, since we strongly believe that remote building, testing and deployment is the way of the future. You can already use our [hot reloading](./hot-reload.md) feature with remote clusters, for example.
+However, we are working to bridge that gap, since we strongly believe that remote building, testing and deployment is the way of the future. You can already use our [hot reloading](./using-garden/hot-reload.md) feature with remote clusters, for example.
 
 ### Garden vs. Skaffold?
 

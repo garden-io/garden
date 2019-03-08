@@ -17,6 +17,7 @@ const localKubernetes = require("./kubernetes/local/local")
 const npmPackage = require("./npm-package")
 const gae = require("./google/google-app-engine")
 const openfaas = require("./openfaas/openfaas")
+const mavenContainer = require("./maven-container/maven-container")
 
 // These plugins are always registered
 export const builtinPlugins = mapValues({
@@ -29,6 +30,7 @@ export const builtinPlugins = mapValues({
   "npm-package": npmPackage,
   "google-app-engine": gae,
   openfaas,
+  "maven-container": mavenContainer,
 }, (m => m.gardenPlugin))
 
 // These plugins are always loaded
