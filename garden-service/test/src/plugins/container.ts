@@ -77,17 +77,17 @@ describe("plugins.container", () => {
   }
 
   describe("getLocalImageId", () => {
-    it("should create identifier with commit hash version if module has a Dockerfile", async () => {
+    it("should return configured image name with local version if module has a Dockerfile", async () => {
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
       const module = await getTestModule(config)
 
       td.replace(containerHelpers, "hasDockerfile", async () => true)
 
-      expect(await containerHelpers.getLocalImageId(module)).to.equal("test:1234")
+      expect(await containerHelpers.getLocalImageId(module)).to.equal("some/image:1234")
     })
 
-    it("should create identifier with image name if module has no Dockerfile", async () => {
+    it("should return configured image name and tag if module has no Dockerfile and name includes tag", async () => {
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
       const module = await getTestModule(config)
@@ -95,6 +95,34 @@ describe("plugins.container", () => {
       td.replace(containerHelpers, "hasDockerfile", async () => false)
 
       expect(await containerHelpers.getLocalImageId(module)).to.equal("some/image:1.1")
+    })
+
+    it("should return configured image with local version if module has Dockerfile and name has no tag", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image"
+      const module = await getTestModule(config)
+
+      td.replace(containerHelpers, "hasDockerfile", async () => true)
+
+      expect(await containerHelpers.getLocalImageId(module)).to.equal("some/image:1234")
+    })
+
+    it("should return module name with local version if there is no configured name", async () => {
+      const config = cloneDeep(baseConfig)
+      const module = await getTestModule(config)
+
+      td.replace(containerHelpers, "hasDockerfile", async () => true)
+
+      expect(await containerHelpers.getLocalImageId(module)).to.equal("test:1234")
+    })
+
+    it("should throw if there is no Dockerfile and no image specified", async () => {
+      const config = cloneDeep(baseConfig)
+      const module = await getTestModule(config)
+
+      td.replace(containerHelpers, "hasDockerfile", async () => false)
+
+      await expectError(() => containerHelpers.getLocalImageId(module), "configuration")
     })
   })
 
@@ -179,6 +207,92 @@ describe("plugins.container", () => {
 
       const path = await containerHelpers.getDockerfilePathFromConfig(config)
       expect(path).to.equal(join(config.path, relDockerfilePath))
+    })
+  })
+
+  describe("parseImageId", () => {
+    it("should correctly parse a simple id", () => {
+      expect(containerHelpers.parseImageId("image:tag")).to.eql({
+        repository: "image",
+        tag: "tag",
+      })
+    })
+
+    it("should correctly parse an id with a namespace", () => {
+      expect(containerHelpers.parseImageId("namespace/image:tag")).to.eql({
+        namespace: "namespace",
+        repository: "image",
+        tag: "tag",
+      })
+    })
+
+    it("should correctly parse an id with a host and namespace", () => {
+      expect(containerHelpers.parseImageId("my-host.com/namespace/image:tag")).to.eql({
+        host: "my-host.com",
+        namespace: "namespace",
+        repository: "image",
+        tag: "tag",
+      })
+    })
+
+    it("should correctly parse an id with a host and multi-level namespace", () => {
+      expect(containerHelpers.parseImageId("my-host.com/a/b/c/d/image:tag")).to.eql({
+        host: "my-host.com",
+        namespace: "a/b/c/d",
+        repository: "image",
+        tag: "tag",
+      })
+    })
+
+    it("should throw on an empty name", async () => {
+      await expectError(() => containerHelpers.parseImageId(""), "configuration")
+    })
+  })
+
+  describe("unparseImageId", () => {
+    it("should correctly compose a simple id", () => {
+      expect(containerHelpers.unparseImageId({
+        repository: "image",
+        tag: "tag",
+      })).to.equal("image:tag")
+    })
+
+    it("should correctly compose an id with a namespace", () => {
+      expect(containerHelpers.unparseImageId({
+        namespace: "namespace",
+        repository: "image",
+        tag: "tag",
+      })).to.equal("namespace/image:tag")
+    })
+
+    it("should correctly compose an id with a host and namespace", () => {
+      expect(containerHelpers.unparseImageId({
+        host: "my-host.com",
+        namespace: "namespace",
+        repository: "image",
+        tag: "tag",
+      })).to.equal("my-host.com/namespace/image:tag")
+    })
+
+    it("should set a default namespace when host but no namespace is specified", () => {
+      expect(containerHelpers.unparseImageId({
+        host: "my-host.com",
+        repository: "image",
+        tag: "tag",
+      })).to.equal("my-host.com/_/image:tag")
+    })
+
+    it("should correctly compose an id with a host and multi-level namespace", () => {
+      expect(containerHelpers.unparseImageId({
+        host: "my-host.com",
+        namespace: "a/b/c/d",
+        repository: "image",
+        tag: "tag",
+      })).to.equal("my-host.com/a/b/c/d/image:tag")
+    })
+
+    it("should throw on an empty name", async () => {
+      await expectError(() => containerHelpers.parseImageId(""), "configuration")
     })
   })
 

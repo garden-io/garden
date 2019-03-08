@@ -126,6 +126,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
 
   const hasDockerfile = await pathExists(containerHelpers.getDockerfilePathFromConfig(moduleConfig))
 
+  // make sure we can build the thing
   if (moduleConfig.spec.dockerfile && !hasDockerfile) {
     throw new ConfigurationError(
       `Dockerfile not found at specififed path ${moduleConfig.spec.dockerfile} for module ${moduleConfig.name}`,
@@ -133,11 +134,10 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
     )
   }
 
-  // make sure we can build the thing
   if (!moduleConfig.spec.image && !hasDockerfile) {
     throw new ConfigurationError(
       `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
-      {},
+      { moduleConfig },
     )
   }
 
