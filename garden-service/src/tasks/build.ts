@@ -66,6 +66,14 @@ export class BuildTask extends BaseTask {
   async process(): Promise<BuildResult> {
     const module = this.module
 
+    const log = this.log.info({
+      section: this.getName(),
+      msg: `Syncing sources...`,
+      status: "active",
+    })
+
+    await this.garden.buildDir.syncFromSrc(this.module)
+
     if (!this.force) {
       const status = await this.garden.actions.getBuildStatus({ log: this.log, module })
 
@@ -76,11 +84,7 @@ export class BuildTask extends BaseTask {
       }
     }
 
-    const log = this.log.info({
-      section: this.getName(),
-      msg: `Building version ${module.version.versionString}...`,
-      status: "active",
-    })
+    log.setState({ msg: `Building version ${module.version.versionString}...` })
 
     let result: BuildResult
     try {
