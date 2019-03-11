@@ -72,6 +72,10 @@ export class BuildTask extends BaseTask {
       status: "active",
     })
 
+    const logSuccess = () => {
+      log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
+    }
+
     await this.garden.buildDir.syncFromSrc(this.module)
 
     if (!this.force) {
@@ -80,6 +84,7 @@ export class BuildTask extends BaseTask {
       if (status.ready) {
         // this is necessary in case other modules depend on files from this one
         await this.garden.buildDir.syncDependencyProducts(this.module)
+        logSuccess()
         return { fresh: false }
       }
     }
@@ -97,7 +102,7 @@ export class BuildTask extends BaseTask {
       throw err
     }
 
-    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
+    logSuccess()
     return result
   }
 }
