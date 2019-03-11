@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { includes } from "lodash"
+import { includes, extend } from "lodash"
 import { DeploymentError } from "../../../exceptions"
 import { RunResult } from "../../../types/plugin/outputs"
 import {
@@ -112,6 +112,8 @@ export async function runContainerService(
 export async function runContainerTask(
   { ctx, task, interactive, runtimeContext, log }: RunTaskParams<ContainerModule>,
 ) {
+  extend(runtimeContext.envVars, task.spec.env || {})
+
   const result = await runContainerModule({
     ctx,
     interactive,

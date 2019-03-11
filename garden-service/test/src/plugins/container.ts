@@ -348,13 +348,18 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo", "OK"],
               dependencies: [],
+              env: {
+                TASK_ENV_VAR: "value",
+              },
               timeout: null,
             }],
             tests: [{
               name: "unit",
               args: ["echo", "OK"],
               dependencies: [],
-              env: {},
+              env: {
+                TEST_ENV_VAR: "value",
+              },
               timeout: null,
             }],
           },
@@ -404,6 +409,9 @@ describe("plugins.container", () => {
                 name: "task-a",
                 args: ["echo", "OK"],
                 dependencies: [],
+                env: {
+                  TASK_ENV_VAR: "value",
+                },
                 timeout: null,
               }],
             tests:
@@ -411,7 +419,9 @@ describe("plugins.container", () => {
                 name: "unit",
                 args: ["echo", "OK"],
                 dependencies: [],
-                env: {},
+                env: {
+                  TEST_ENV_VAR: "value",
+                },
                 timeout: null,
               }],
           },
@@ -452,6 +462,9 @@ describe("plugins.container", () => {
                   "OK",
                 ],
                 dependencies: [],
+                env: {
+                  TASK_ENV_VAR: "value",
+                },
                 name: "task-a",
                 timeout: null,
               },
@@ -466,7 +479,9 @@ describe("plugins.container", () => {
                 name: "unit",
                 args: ["echo", "OK"],
                 dependencies: [],
-                env: {},
+                env: {
+                  TEST_ENV_VAR: "value",
+                },
                 timeout: null,
               },
               timeout: null,
@@ -521,6 +536,7 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo"],
               dependencies: [],
+              env: {},
               timeout: null,
             }],
             tests: [{
@@ -580,6 +596,7 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo"],
               dependencies: [],
+              env: {},
               timeout: null,
             }],
             tests: [],
@@ -630,6 +647,7 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo"],
               dependencies: [],
+              env: {},
               timeout: null,
             }],
             tests: [],
