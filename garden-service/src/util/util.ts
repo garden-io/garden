@@ -211,17 +211,17 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   } else {
     // We ensure the output strings never exceed the MAX_BUFFER_SIZE
-    proc.stdout.on("data", (s) => {
+    proc.stdout!.on("data", (s) => {
       result.output = naivelyTruncateBytes(result.output + s)
       result.stdout! = naivelyTruncateBytes(result.stdout! + s)
     })
 
-    proc.stderr.on("data", (s) => {
+    proc.stderr!.on("data", (s) => {
       result.stderr! = naivelyTruncateBytes(result.stderr! + s)
     })
 
     if (data) {
-      proc.stdin.end(data)
+      proc.stdin!.end(data)
     }
   }
 

@@ -20,8 +20,8 @@ export async function spawn(cmd: string, args: string[], cwd?: string) {
   children.push(child)
 
   const output: string[] = []
-  child.stdout.on("data", (data) => output.push(data.toString()))
-  child.stderr.on("data", (data) => output.push(data.toString()))
+  child.stdout!.on("data", (data) => output.push(data.toString()))
+  child.stderr!.on("data", (data) => output.push(data.toString()))
 
   return new Promise((resolve, reject) => {
     child.on("exit", (code) => {
