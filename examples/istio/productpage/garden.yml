@@ -1,0 +1,10 @@
+kind: Module
+name: productpage
+description: Product page service container
+type: container
+image: istio/examples-bookinfo-productpage-v1:1.8.0
+services:
+  - name: productpage
+    ports:
+      - name: http
+        containerPort: 9080

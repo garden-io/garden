@@ -1,0 +1,10 @@
+kind: Module
+name: details
+description: Details service container
+type: container
+image: istio/examples-bookinfo-details-v1:1.8.0
+services:
+  - name: details
+    ports:
+      - name: http
+        containerPort: 9080

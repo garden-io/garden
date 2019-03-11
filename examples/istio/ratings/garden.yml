@@ -1,0 +1,10 @@
+kind: Module
+name: ratings
+description: Ratings service container
+type: container
+image: istio/examples-bookinfo-ratings-v1:1.8.0
+services:
+  - name: ratings
+    ports:
+      - name: http
+        containerPort: 9080
