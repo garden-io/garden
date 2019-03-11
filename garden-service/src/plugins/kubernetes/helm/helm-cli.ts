@@ -13,24 +13,24 @@ const helmCmd = new BinaryCmd({
   name: "helm",
   specs: {
     darwin: {
-      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-darwin-amd64.tar.gz",
-      sha256: "551b13a398749ae3e0a5c54d3078f6e3bee552c5d6a0bf6f338cab64ce38ab0f",
+      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.13.0-darwin-amd64.tar.gz",
+      sha256: "166318b2159613f87a7cb02af1614c96244b3d3c119f8e010429c1b4449681d5",
       extract: {
         format: "tar",
         executablePath: ["darwin-amd64", "helm"],
       },
     },
     linux: {
-      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz",
-      sha256: "02a4751586d6a80f6848b58e7f6bd6c973ffffadc52b4c06652db7def02773a1",
+      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.13.0-linux-amd64.tar.gz",
+      sha256: "15eca6ad225a8279de80c7ced42305e24bc5ac60bb7d96f2d2fa4af86e02c794",
       extract: {
         format: "tar",
         executablePath: ["linux-amd64", "helm"],
       },
     },
     win32: {
-      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-windows-amd64.zip",
-      sha256: "04dd84691f18170a82b02656cd1ec9f32c5a66893abe5498b4ea63c941eae12a",
+      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.13.0-windows-amd64.zip",
+      sha256: "63fdb71ad6fac0572a21ad81da7508b1f0cae960ea944670f4d2f7fbaf23acb2",
       extract: {
         format: "zip",
         executablePath: ["windows-amd64", "helm.exe"],
