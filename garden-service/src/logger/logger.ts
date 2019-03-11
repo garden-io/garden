@@ -87,7 +87,7 @@ export class Logger extends LogNode {
         })
       }
 
-      instance = new Logger(getCommonConfig(loggerType))
+      instance = new Logger({ ...getCommonConfig(loggerType), level: config.level })
       instance.debug(`Setting logger type to ${loggerType} (from GARDEN_LOGGER_TYPE)`)
     } else {
       instance = new Logger(config)
