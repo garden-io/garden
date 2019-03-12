@@ -1,0 +1,21 @@
+module:
+  description: Spring Boot devtools-sample module
+  type: container
+  name: devtools
+  hotReload:
+    sync:
+      - target: /app/target
+        source: target
+  services:
+    - name: devtools
+      ports:
+        - name: http
+          containerPort: 8080
+          servicePort: 80
+      healthCheck:
+        httpGet:
+          path: /actuator/health
+          port: http
+      ingresses:
+        - path: /
+          port: http
