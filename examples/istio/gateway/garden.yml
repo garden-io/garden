@@ -1,0 +1,4 @@
+kind: Module
+description: Istio gateway service
+type: helm
+name: bookinfo-gateway
