@@ -1,4 +1,34 @@
 
+<a name="v0.9.5"></a>
+## [v0.9.5](https://github.com/garden-io/garden/compare/v0.9.4...v0.9.5) (2019-03-12)
+
+### Bug Fixes
+
+* increase init delay for liveness probe ([e2a1e87](https://github.com/garden-io/garden/commit/e2a1e87))
+* occasional concurrency issue when fetching external tools ([9d61d71](https://github.com/garden-io/garden/commit/9d61d71))
+* use abs target paths in HR copy commands ([94619f6](https://github.com/garden-io/garden/commit/94619f6))
+* include container name in pod log requests ([247272d](https://github.com/garden-io/garden/commit/247272d))
+* add tasks for all affected modules on watch ([badb2b2](https://github.com/garden-io/garden/commit/badb2b2))
+* respect level when using logger type env var ([c5a5d6b](https://github.com/garden-io/garden/commit/c5a5d6b))
+* stream container build output and cap max buffer size ([2a885c8](https://github.com/garden-io/garden/commit/2a885c8))
+* make sure to log build task success ([d0c896a](https://github.com/garden-io/garden/commit/d0c896a))
+* **build:** always sync sources when building ([874e23c](https://github.com/garden-io/garden/commit/874e23c))
+* **cli:** log test duration in CLI output ([61a0e40](https://github.com/garden-io/garden/commit/61a0e40))
+* **container:** error when getting status ahead of building ([6c4b0b4](https://github.com/garden-io/garden/commit/6c4b0b4))
+* **container:** handle image IDs with multi-level namespace ([342b987](https://github.com/garden-io/garden/commit/342b987))
+* **container:** use configured image ID locally ([bf5d428](https://github.com/garden-io/garden/commit/bf5d428))
+* **dashboard:** fix undefined color ([a0f0b43](https://github.com/garden-io/garden/commit/a0f0b43))
+* **examples:** use different ingress hostnames for vote-helm example ([e4ad813](https://github.com/garden-io/garden/commit/e4ad813))
+* **k8s:** handle CRDs properly ([73f48bf](https://github.com/garden-io/garden/commit/73f48bf))
+* **openfaas:** error when getting status of func not created by Garden ([d7da089](https://github.com/garden-io/garden/commit/d7da089))
+* **openfaas:** update faas-cli to 0.8.3 ([7915008](https://github.com/garden-io/garden/commit/7915008))
+
+### Features
+
+* add maven-container plugin type ([7414898](https://github.com/garden-io/garden/commit/7414898))
+* **container:** add env field to task spec ([950536f](https://github.com/garden-io/garden/commit/950536f))
+
+
 <a name="v0.9.4"></a>
 ## [v0.9.4](https://github.com/garden-io/garden/compare/v0.9.3...v0.9.4) (2019-03-04)
 
