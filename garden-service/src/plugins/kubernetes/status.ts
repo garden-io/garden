@@ -32,17 +32,20 @@ import { LogEntry } from "../../logger/log-entry"
 import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
 import dedent = require("dedent")
 
-export interface RolloutStatus {
+interface WorkloadStatus {
   state: ServiceState
   obj: KubernetesResource
   lastMessage?: string
   lastError?: string
+  warning?: true
   resourceVersion?: number
   logs?: string
 }
 
+type Workload = V1Deployment | V1DaemonSet | V1StatefulSet
+
 interface ObjHandler {
-  (api: KubeApi, namespace: string, obj: KubernetesResource, resourceVersion?: number): Promise<RolloutStatus>
+  (api: KubeApi, namespace: string, obj: KubernetesResource, resourceVersion?: number): Promise<WorkloadStatus>
 }
 
 const podLogLines = 20
@@ -50,9 +53,9 @@ const podLogLines = 20
 // Handlers to check the rollout status for K8s objects where that applies.
 // Using https://github.com/kubernetes/helm/blob/master/pkg/kube/wait.go as a reference here.
 const objHandlers: { [kind: string]: ObjHandler } = {
-  DaemonSet: checkDeploymentStatus,
-  Deployment: checkDeploymentStatus,
-  StatefulSet: checkDeploymentStatus,
+  DaemonSet: checkWorkloadStatus,
+  Deployment: checkWorkloadStatus,
+  StatefulSet: checkWorkloadStatus,
 
   PersistentVolumeClaim: async (api, namespace, obj) => {
     const res = await api.core.readNamespacedPersistentVolumeClaim(obj.metadata.name, namespace)
@@ -92,7 +95,7 @@ const objHandlers: { [kind: string]: ObjHandler } = {
   },
 }
 
-async function checkPodStatus(obj: KubernetesResource, pods: V1Pod[]): Promise<RolloutStatus> {
+async function checkPodStatus(obj: KubernetesResource, pods: V1Pod[]): Promise<WorkloadStatus> {
   for (const pod of pods) {
     // TODO: detect unhealthy state (currently we just time out)
     const ready = some(pod.status.conditions.map(c => c.type === "ready"))
@@ -110,19 +113,19 @@ async function checkPodStatus(obj: KubernetesResource, pods: V1Pod[]): Promise<R
  * NOTE: This mostly replicates the logic in `kubectl rollout status`. Using that directly here
  * didn't pan out, since it doesn't look for events and just times out when errors occur during rollout.
  */
-export async function checkDeploymentStatus(
+export async function checkWorkloadStatus(
   api: KubeApi, namespace: string, obj: KubernetesResource, resourceVersion?: number,
-): Promise<RolloutStatus> {
-  const out: RolloutStatus = {
+): Promise<WorkloadStatus> {
+  const out: WorkloadStatus = {
     state: "unhealthy",
     obj,
     resourceVersion,
   }
 
-  let statusRes: V1Deployment | V1DaemonSet | V1StatefulSet
+  let statusRes: Workload
 
   try {
-    statusRes = <V1Deployment | V1DaemonSet | V1StatefulSet>(await api.readBySpec(namespace, obj)).body
+    statusRes = <Workload>(await api.readBySpec(namespace, obj)).body
   } catch (err) {
     if (err.code && err.code === 404) {
       // service is not running
@@ -172,17 +175,11 @@ export async function checkDeploymentStatus(
       out.resourceVersion = eventVersion
     }
 
-    if (event.type === "Warning" || event.type === "Error") {
-      if (event.type === "Warning" && (event.reason === "FailedScheduling" || event.reason === "FailedMount")) {
-        // this can happen on first attempt to schedule a pod
-        // TODO: we may want to more specifically look at the message
-        //       (e.g. 'pod has unbound immediate PersistentVolumeClaims' or 'couldn't propagate object cache')
-        continue
-      }
-      if (event.reason === "Unhealthy") {
-        // still waiting on readiness probe
-        continue
-      }
+    if (event.type === "Warning") {
+      out.warning = true
+    }
+
+    if (event.type === "Error" || event.type === "Failed") {
       out.state = "unhealthy"
       out.lastError = `${event.reason} - ${event.message}`
 
@@ -300,18 +297,18 @@ export async function checkDeploymentStatus(
  * Check if the specified Kubernetes objects are deployed and fully rolled out
  */
 export async function checkResourceStatuses(
-  api: KubeApi, namespace: string, resources: KubernetesResource[], prevStatuses?: RolloutStatus[],
-): Promise<RolloutStatus[]> {
+  api: KubeApi, namespace: string, resources: KubernetesResource[], prevStatuses?: WorkloadStatus[],
+): Promise<WorkloadStatus[]> {
   return Bluebird.map(resources, async (obj, i) => {
     return checkResourceStatus(api, namespace, obj, prevStatuses && prevStatuses[i])
   })
 }
 
 export async function checkResourceStatus(
-  api: KubeApi, namespace: string, resource: KubernetesResource, prevStatus?: RolloutStatus,
+  api: KubeApi, namespace: string, resource: KubernetesResource, prevStatus?: WorkloadStatus,
 ) {
   const handler = objHandlers[resource.kind]
-  let status: RolloutStatus
+  let status: WorkloadStatus
   if (handler) {
     try {
       status = await handler(api, namespace, resource, prevStatus && prevStatus.resourceVersion)
@@ -347,7 +344,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
   let lastMessage
   const startTime = new Date().getTime()
 
-  log.verbose({
+  const statusLine = log.info({
     symbol: "info",
     section: serviceName,
     msg: `Waiting for service to be ready...`,
@@ -355,7 +352,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
 
   const api = new KubeApi(provider)
   const namespace = await getAppNamespace(ctx, provider)
-  let prevStatuses: RolloutStatus[] = objects.map((obj) => ({
+  let prevStatuses: WorkloadStatus[] = objects.map((obj) => ({
     state: <ServiceState>"unknown",
     obj,
   }))
@@ -382,10 +379,15 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
 
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
-        log.verbose({
-          symbol: "info",
-          section: serviceName,
+        const symbol = status.warning === true ? "warning" : "info"
+        statusLine.setState({
+          symbol,
           msg: status.lastMessage,
+        })
+        log.verbose({
+          symbol,
+          section: serviceName,
+          msg: `Waiting for service to be ready...`,
         })
       }
     }
@@ -403,7 +405,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
     }
   }
 
-  log.verbose({ symbol: "info", section: serviceName, msg: `Service deployed` })
+  statusLine.setState({ symbol: "info", section: serviceName, msg: `Service deployed` })
 }
 
 interface ComparisonResult {
@@ -439,7 +441,7 @@ export async function compareDeployedObjects(
     return result
   }
 
-  const deployedObjectStatuses: RolloutStatus[] = await Bluebird.map(
+  const deployedObjectStatuses: WorkloadStatus[] = await Bluebird.map(
     deployedObjects,
     async (obj) => checkResourceStatus(api, namespace, obj, undefined))
 
