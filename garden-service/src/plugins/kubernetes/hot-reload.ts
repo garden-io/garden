@@ -17,7 +17,7 @@ import { getAppNamespace } from "./namespace"
 import { kubectl } from "./kubectl"
 import getPort = require("get-port")
 import { RuntimeError, ConfigurationError } from "../../exceptions"
-import { resolve as resolvePath, normalize } from "path"
+import { resolve as resolvePath, normalize, dirname } from "path"
 import { Omit, registerCleanupFunction } from "../../util/util"
 import { deline } from "../../util/string"
 import { set } from "lodash"
@@ -26,7 +26,6 @@ import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
 import { waitForContainerService } from "./container/status"
-import { FileCopySpec } from "../../types/module"
 
 export const RSYNC_PORT = 873
 export const RSYNC_PORT_NAME = "garden-rsync"
@@ -65,14 +64,13 @@ export function configureHotReload({
 
   // We're copying the target folder, not just its contents
   const syncConfig = hotReloadSpec.sync
-  const syncTarget = syncConfig.map(pair => removeTrailingSlashes(pair.target))
-
-  const copyCommands = makeCopyCommands(syncConfig)
+  const targets = syncConfig.map(pair => removeTrailingSlashes(pair.target))
+  const copyCommand = makeCopyCommand(targets)
 
   const initContainer = {
     name: "garden-sync-init",
     image: mainContainer.image,
-    command: ["/bin/sh", "-c", copyCommands],
+    command: ["/bin/sh", "-c", copyCommand],
     env: mainContainer.env || [],
     imagePullPolicy: "IfNotPresent",
     volumeMounts: [{
@@ -81,7 +79,7 @@ export function configureHotReload({
     }],
   }
 
-  const syncMounts = syncTarget.map(t => {
+  const syncMounts = targets.map(t => {
     return {
       name: syncVolumeName,
       mountPath: t,
@@ -178,31 +176,24 @@ export async function hotReloadContainer(
 /**
  * Creates the initial copy command for the sync init container.
  *
- * This handles copying the contents from source into a volume for
- * the rsync container to update.
+ * This handles copying the target paths from the service's container into a volume that is then shared with the
+ * rsync sidecar container.
  *
- * This needs to deal with nested pathing as well as root.
- * This will first create the path, and then copy the contents from the
- * docker image into the shared volume as a base for the rsync command
- * to update.
+ * Changes to a source path in a given sync spec are then applied to the corresponding target path (from the same
+ * spec) inside the rsync sidecar container, which propagates the changes into the running service's container
+ * (which mounts mounts the volume at the appropriate subpaths).
  *
- * @param syncConfig
+ * @param syncTargets
  */
-export function makeCopyCommands(syncConfig: FileCopySpec[]) {
-  const commands = syncConfig.map(({ source, target }) => {
-    const adjustedSource = `${removeTrailingSlashes(source)}/.`
-    const absTarget = normalize(`/.garden/hot_reload/${target}/`)
-    return `mkdir -p ${absTarget} && cp -r ${adjustedSource} ${absTarget}`
+export function makeCopyCommand(syncTargets: string[]) {
+  const commands = syncTargets.map((target) => {
+    const syncCopySource = normalize(`${target}/`)
+    const syncVolumeTarget = normalize(`/.garden/hot_reload/${target}/`)
+    return `mkdir -p ${dirname(syncVolumeTarget)} && cp -r ${syncCopySource} ${syncVolumeTarget}`
   })
   return commands.join(" && ")
 }
 
-/**
- * Ensure that there's no trailing slash
- *
- * converts /src/foo/ into /src/foo
- * @param path
- */
 export function removeTrailingSlashes(path: string) {
   return path.replace(/\/*$/, "")
 }
@@ -215,7 +206,7 @@ export function rsyncSourcePath(modulePath: string, sourcePath: string) {
 /**
  * Removes leading slash, and ensures there's exactly one trailing slash.
  *
- * converts /src/foo into src/foo/
+ * Converts /src/foo into src/foo/
  * @param target
  */
 export function rsyncTargetPath(path: string) {
