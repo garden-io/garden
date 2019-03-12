@@ -61,15 +61,14 @@ export interface Events {
   },
   projectConfigChanged: {},
   moduleConfigChanged: {
-    name: string,
+    names: string[],
     path: string,
   },
   moduleSourcesChanged: {
-    name: string,
+    names: string[],
     pathChanged: string,
   },
   moduleRemoved: {
-    name: string,
   },
 
   // TaskGraph events

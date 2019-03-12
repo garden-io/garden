@@ -146,26 +146,28 @@ export async function processModules(
 
     garden.events.on("moduleConfigChanged", async (event) => {
       if (await validateConfigChange(garden, log, event.path, "changed")) {
-        log.info({ symbol: "info", section: event.name, msg: `Module configuration changed, reloading...` })
+        const moduleNames = event.names
+        const section = moduleNames.length === 1 ? moduleNames[0] : undefined
+        log.info({ symbol: "info", section, msg: `Module configuration changed, reloading...` })
         resolve()
       }
     })
 
     garden.events.on("moduleSourcesChanged", async (event) => {
-      const changedModule = modulesByName[event.name]
+      graph = await garden.getConfigGraph()
+      const changedModuleNames = event.names.filter((moduleName) => !!modulesByName[moduleName])
 
-      if (!changedModule) {
+      if (changedModuleNames.length === 0) {
         return
       }
 
-      // Update the config graph
-      graph = await garden.getConfigGraph()
+      // Make sure the modules' versions are up to date.
+      const changedModules = await graph.getModules(changedModuleNames)
 
-      // Make sure the module's version is up to date.
-      const refreshedModule = await graph.getModule(changedModule.name)
-      modulesByName[event.name] = refreshedModule
-
-      await Bluebird.map(changeHandler!(graph, refreshedModule), (task) => garden.addTask(task))
+      await Bluebird.map(changedModules, async (m) => {
+        modulesByName[m.name] = m
+        return Bluebird.map(changeHandler!(graph, m), (task) => garden.addTask(task))
+      })
       await garden.processTasks()
     })
   })

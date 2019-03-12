@@ -1,0 +1,29 @@
+module:
+  name: module-b
+  type: test
+  services:
+    - name: service-b
+  build:
+    command: [echo, B]
+  tests:
+    - name: unit
+      command: [echo, OK]
+  tasks:
+    - name: task-b
+      command: [echo, OK]
+
+---
+
+module:
+  name: module-c
+  type: test
+  services:
+    - name: service-c
+  build:
+    command: [echo, C]
+  tests:
+    - name: unit
+      command: [echo, OK]
+  tasks:
+    - name: task-c
+      command: [echo, OK]

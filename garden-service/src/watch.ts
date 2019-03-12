@@ -80,13 +80,16 @@ export class Watcher {
 
       const parsed = parse(path)
       const filename = parsed.base
-      const changedModule = modules.find(m => path.startsWith(m.path)) || null
+
+      // changedModules will only have more than one element when the changed path belongs to >= 2 modules.
+      const changedModules = modules.filter(m => path.startsWith(m.path))
+      const changedModuleNames = changedModules.map(m => m.name)
 
       if (filename === MODULE_CONFIG_FILENAME || filename === ".gitignore" || filename === ".gardenignore") {
         this.invalidateCached(modules)
 
-        if (changedModule) {
-          this.garden.events.emit("moduleConfigChanged", { name: changedModule.name, path })
+        if (changedModuleNames.length > 0) {
+          this.garden.events.emit("moduleConfigChanged", { names: changedModuleNames, path })
         } else if (filename === MODULE_CONFIG_FILENAME) {
           if (parsed.dir === this.garden.projectRoot) {
             this.garden.events.emit("projectConfigChanged", {})
@@ -102,9 +105,9 @@ export class Watcher {
         return
       }
 
-      if (changedModule) {
-        this.invalidateCached([changedModule])
-        this.garden.events.emit("moduleSourcesChanged", { name: changedModule.name, pathChanged: path })
+      if (changedModuleNames.length > 0) {
+        this.invalidateCached(changedModules)
+        this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
       }
     }
   }
@@ -146,11 +149,13 @@ export class Watcher {
             return
           }
 
-          const changedModule = modules.find(m => path.startsWith(m.path))
+          // changedModules will only have more than one element when the changed path belongs to >= 2 modules.
+          const changedModules = modules.filter(m => path.startsWith(m.path))
+          const changedModuleNames = changedModules.map(m => m.name)
 
-          if (changedModule) {
-            this.invalidateCached([changedModule])
-            this.garden.events.emit("moduleSourcesChanged", { name: changedModule.name, pathChanged: path })
+          if (changedModules.length > 0) {
+            this.invalidateCached(changedModules)
+            this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
           }
         })
     }
@@ -164,14 +169,19 @@ export class Watcher {
         if (module.path.startsWith(path)) {
           // at least one module's root dir was removed
           this.invalidateCached(modules)
-          this.garden.events.emit("moduleRemoved", { name: module.name })
+          this.garden.events.emit("moduleRemoved", {})
           return
         }
 
         if (path.startsWith(module.path)) {
-          // removed dir is a subdir of changedModule's root dir
-          this.invalidateCached([module])
-          this.garden.events.emit("moduleSourcesChanged", { name: module.name, pathChanged: path })
+          /*
+           * Removed dir is a subdir of changedModules' root dir.
+           * changedModules will only have more than one element when the changed path belongs to >= 2 modules.
+           */
+          const changedModules = modules.filter(m => path.startsWith(m.path))
+          const changedModuleNames = changedModules.map(m => m.name)
+          this.invalidateCached(changedModules)
+          this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
         }
       }
     }
