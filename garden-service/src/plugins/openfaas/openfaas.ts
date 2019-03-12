@@ -45,7 +45,7 @@ import {
 import { every, values } from "lodash"
 import { dumpYaml, findByName } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
-import { waitForResources, checkDeploymentStatus } from "../kubernetes/status"
+import { waitForResources, checkWorkloadStatus } from "../kubernetes/status"
 import { systemSymbol } from "../kubernetes/system"
 import { CommonServiceSpec } from "../../config/service"
 import { GardenPlugin } from "../../types/plugin/plugin"
@@ -352,7 +352,7 @@ async function getServiceStatus({ ctx, module, service }: GetServiceStatusParams
   const container: any = findByName(deployment.spec.template.spec.containers, service.name)
   const envVersion = findByName<any>(container.env, "GARDEN_VERSION")
   const version = envVersion ? envVersion.value : undefined
-  const status = await checkDeploymentStatus(api, namespace, deployment)
+  const status = await checkWorkloadStatus(api, namespace, deployment)
 
   return {
     state: status.state,
