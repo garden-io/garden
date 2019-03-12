@@ -1,31 +1,20 @@
 
-<a name="v0.9.5-2"></a>
-## [v0.9.5-2](https://github.com/garden-io/garden/compare/v0.9.5-1...v0.9.5-2) (2019-03-12)
+<a name="v0.9.5"></a>
+## [v0.9.5](https://github.com/garden-io/garden/compare/v0.9.4...v0.9.5) (2019-03-12)
 
 ### Bug Fixes
 
-* **container:** error when getting status ahead of building ([6c4b0b4](https://github.com/garden-io/garden/commit/6c4b0b4))
-
-
-<a name="v0.9.5-1"></a>
-## [v0.9.5-1](https://github.com/garden-io/garden/compare/v0.9.5-0...v0.9.5-1) (2019-03-12)
-
-
-<a name="v0.9.5-0"></a>
-## [v0.9.5-0](https://github.com/garden-io/garden/compare/v0.9.4...v0.9.5-0) (2019-03-12)
-
-### Bug Fixes
-
-* stream container build output and cap max buffer size ([2a885c8](https://github.com/garden-io/garden/commit/2a885c8))
+* increase init delay for liveness probe ([e2a1e87](https://github.com/garden-io/garden/commit/e2a1e87))
+* occasional concurrency issue when fetching external tools ([9d61d71](https://github.com/garden-io/garden/commit/9d61d71))
 * use abs target paths in HR copy commands ([94619f6](https://github.com/garden-io/garden/commit/94619f6))
 * include container name in pod log requests ([247272d](https://github.com/garden-io/garden/commit/247272d))
 * add tasks for all affected modules on watch ([badb2b2](https://github.com/garden-io/garden/commit/badb2b2))
 * respect level when using logger type env var ([c5a5d6b](https://github.com/garden-io/garden/commit/c5a5d6b))
+* stream container build output and cap max buffer size ([2a885c8](https://github.com/garden-io/garden/commit/2a885c8))
 * make sure to log build task success ([d0c896a](https://github.com/garden-io/garden/commit/d0c896a))
-* increase init delay for liveness probe ([e2a1e87](https://github.com/garden-io/garden/commit/e2a1e87))
-* occasional concurrency issue when fetching external tools ([9d61d71](https://github.com/garden-io/garden/commit/9d61d71))
 * **build:** always sync sources when building ([874e23c](https://github.com/garden-io/garden/commit/874e23c))
 * **cli:** log test duration in CLI output ([61a0e40](https://github.com/garden-io/garden/commit/61a0e40))
+* **container:** error when getting status ahead of building ([6c4b0b4](https://github.com/garden-io/garden/commit/6c4b0b4))
 * **container:** handle image IDs with multi-level namespace ([342b987](https://github.com/garden-io/garden/commit/342b987))
 * **container:** use configured image ID locally ([bf5d428](https://github.com/garden-io/garden/commit/bf5d428))
 * **dashboard:** fix undefined color ([a0f0b43](https://github.com/garden-io/garden/commit/a0f0b43))
@@ -108,11 +97,7 @@
 
 
 <a name="v0.9.0"></a>
-## [v0.9.0](https://github.com/garden-io/garden/compare/vv0.9.0...v0.9.0) (2019-02-08)
-
-
-<a name="vv0.9.0"></a>
-## [vv0.9.0](https://github.com/garden-io/garden/compare/v0.8.1...vv0.9.0) (2019-02-08)
+## [v0.9.0](https://github.com/garden-io/garden/compare/v0.8.1...v0.9.0) (2019-02-08)
 
 ### Bug Fixes
 
