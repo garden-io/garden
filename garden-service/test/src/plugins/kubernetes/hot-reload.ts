@@ -3,7 +3,7 @@ import { HotReloadableResource } from "../../../../src/plugins/kubernetes/hot-re
 
 import {
   removeTrailingSlashes,
-  makeCopyCommands,
+  makeCopyCommand,
   configureHotReload,
 } from "../../../../src/plugins/kubernetes/hot-reload"
 
@@ -105,7 +105,7 @@ describe("configureHotReload", () => {
                 command: [
                   "/bin/sh",
                   "-c",
-                  "mkdir -p /.garden/hot_reload/app/ && cp -r */. /.garden/hot_reload/app/",
+                  "mkdir -p /.garden/hot_reload && cp -r /app/ /.garden/hot_reload/app/",
                 ],
                 env: [],
                 imagePullPolicy: "IfNotPresent",
@@ -140,42 +140,23 @@ describe("removeTrailingSlashes", () => {
   }
 })
 
-describe("makeCopyCommands", () => {
-  // Test cases for each type
-  const configs: any[] = [
-    // Source is missing slash
-    [
-      [{ source: "src", target: "/app/src" }],
-      "mkdir -p /.garden/hot_reload/app/src/ && cp -r src/. /.garden/hot_reload/app/src/",
-    ],
-    // Source ends on slash
-    [
-      [{ source: "src/", target: "/app/src" }],
-      "mkdir -p /.garden/hot_reload/app/src/ && cp -r src/. /.garden/hot_reload/app/src/",
-    ],
-    // Base root of the module
-    [
-      [{ source: ".", target: "/app" }],
-      "mkdir -p /.garden/hot_reload/app/ && cp -r ./. /.garden/hot_reload/app/",
-    ],
-    // Subdirectory not ending on a slash
-    [
-      [{ source: "src/foo", target: "/app/foo" }],
-      "mkdir -p /.garden/hot_reload/app/foo/ && cp -r src/foo/. /.garden/hot_reload/app/foo/",
-    ],
-    // Multiple pairs
-    [
-      [
-        { source: "src1", target: "/app/src1" },
-        { source: "src2", target: "/app/src2" },
-      ],
-      "mkdir -p /.garden/hot_reload/app/src1/ && cp -r src1/. /.garden/hot_reload/app/src1/ && " +
-      "mkdir -p /.garden/hot_reload/app/src2/ && cp -r src2/. /.garden/hot_reload/app/src2/",
-    ],
-  ]
-  for (const config of configs) {
-    it("correctly generates copy commands for the hot reload init container", () => {
-      expect(makeCopyCommands(config[0])).to.eql(config[1])
-    })
-  }
+describe("makeCopyCommand", () => {
+
+  it("ensures a trailing slash in the copy source and target", () => {
+    const cmd = "mkdir -p /.garden/hot_reload && cp -r /app/ /.garden/hot_reload/app/"
+    expect(makeCopyCommand(["/app/"])).to.eql(cmd)
+    expect(makeCopyCommand(["/app"])).to.eql(cmd)
+  })
+
+  it("correctly handles target paths with more than one path component", () => {
+    const cmd = "mkdir -p /.garden/hot_reload/app/src && cp -r /app/src/foo/ /.garden/hot_reload/app/src/foo/"
+    expect(makeCopyCommand(["/app/src/foo"])).to.eql(cmd)
+  })
+
+  it("correctly handles multiple target paths", () => {
+    const cmd = "mkdir -p /.garden/hot_reload/app && cp -r /app/src1/ /.garden/hot_reload/app/src1/ && " +
+      "mkdir -p /.garden/hot_reload/app && cp -r /app/src2/ /.garden/hot_reload/app/src2/"
+    expect(makeCopyCommand(["/app/src1", "/app/src2/"])).to.eql(cmd)
+  })
+
 })
