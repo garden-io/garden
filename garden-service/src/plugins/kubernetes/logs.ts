@@ -51,7 +51,7 @@ async function followLogs({ context, namespace, service, selector, stream, log, 
   const proc = await stern.spawn({ args, log })
   let timestamp: Date | undefined
 
-  proc.stdout
+  proc.stdout!
     .pipe(JSONStream.parse(["message"], (message) => {
       const [timestampStr, msg] = splitFirst(message, " ")
       try {
@@ -75,7 +75,7 @@ async function getLogs({ context, namespace, service, selector, stream, tail }: 
   const proc = kubectl(context, namespace).spawn(kubectlArgs)
   let timestamp: Date
 
-  proc.stdout
+  proc.stdout!
     .pipe(split())
     .on("data", (s) => {
       if (!s) {
