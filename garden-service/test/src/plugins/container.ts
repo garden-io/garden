@@ -97,17 +97,7 @@ describe("plugins.container", () => {
       expect(await containerHelpers.getLocalImageId(module)).to.equal("some/image:1.1")
     })
 
-    it("should return configured image with local version if module has Dockerfile and name has no tag", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image"
-      const module = await getTestModule(config)
-
-      td.replace(containerHelpers, "hasDockerfile", async () => true)
-
-      expect(await containerHelpers.getLocalImageId(module)).to.equal("some/image:1234")
-    })
-
-    it("should return module name with local version if there is no configured name", async () => {
+    it("should return module name with local version if there is a Dockerfile and no configured name", async () => {
       const config = cloneDeep(baseConfig)
       const module = await getTestModule(config)
 
@@ -116,13 +106,13 @@ describe("plugins.container", () => {
       expect(await containerHelpers.getLocalImageId(module)).to.equal("test:1234")
     })
 
-    it("should throw if there is no Dockerfile and no image specified", async () => {
+    it("should return module name with local version if there is no Dockerfile and no configured name", async () => {
       const config = cloneDeep(baseConfig)
       const module = await getTestModule(config)
 
       td.replace(containerHelpers, "hasDockerfile", async () => false)
 
-      await expectError(() => containerHelpers.getLocalImageId(module), "configuration")
+      expect(await containerHelpers.getLocalImageId(module)).to.equal("test:1234")
     })
   })
 
