@@ -20,6 +20,7 @@ import { Extract } from "unzipper"
 import { createHash } from "crypto"
 import * as uuid from "uuid"
 import * as spawn from "cross-spawn"
+const AsyncLock = require("async-lock")
 
 const globalGardenPath = join(homedir(), ".garden")
 const toolsPath = join(globalGardenPath, "tools")
@@ -68,6 +69,7 @@ export class BinaryCmd extends Cmd {
   name: string
   spec: BinarySpec
 
+  private lock: any
   private toolPath: string
   private versionDirname: string
   private versionPath: string
@@ -88,6 +90,8 @@ export class BinaryCmd extends Cmd {
       )
     }
 
+    this.lock = new AsyncLock()
+
     this.name = spec.name
     this.spec = platformSpec
     this.toolPath = join(toolsPath, this.name)
@@ -102,43 +106,42 @@ export class BinaryCmd extends Cmd {
   }
 
   private async download(log: LogEntry) {
-    // TODO: use lockfile to avoid multiple downloads of the same thing
-    // (we avoid a race condition by downloading to a temporary path, so it's more about efficiency)
-
-    if (await pathExists(this.executablePath)) {
-      return
-    }
-
-    const tmpPath = join(this.toolPath, this.versionDirname + "." + uuid.v4().substr(0, 8))
-    const tmpExecutable = join(tmpPath, ...this.executableSubpath)
-
-    const logEntry = log.verbose(`Fetching ${this.name}...`)
-    const debug = logEntry.debug(`Downloading ${this.spec.url}...`)
-
-    await ensureDir(tmpPath)
-
-    try {
-      await this.fetch(tmpPath, log)
-
-      if (!(await pathExists(tmpExecutable))) {
-        throw new ConfigurationError(
-          `Archive ${this.spec.url} does not contain a file at ${join(...this.spec.extract!.executablePath)}`,
-          { name: this.name, spec: this.spec },
-        )
+    return this.lock.acquire("download", async () => {
+      if (await pathExists(this.executablePath)) {
+        return
       }
 
-      await chmod(tmpExecutable, 0o755)
-      await move(tmpPath, this.versionPath, { overwrite: true })
+      const tmpPath = join(this.toolPath, this.versionDirname + "." + uuid.v4().substr(0, 8))
+      const tmpExecutable = join(tmpPath, ...this.executableSubpath)
 
-    } finally {
-      // make sure tmp path is cleared after errors
-      if (await pathExists(tmpPath)) {
-        await remove(tmpPath)
+      const logEntry = log.verbose(`Fetching ${this.name}...`)
+      const debug = logEntry.debug(`Downloading ${this.spec.url}...`)
+
+      await ensureDir(tmpPath)
+
+      try {
+        await this.fetch(tmpPath, log)
+
+        if (!(await pathExists(tmpExecutable))) {
+          throw new ConfigurationError(
+            `Archive ${this.spec.url} does not contain a file at ${join(...this.spec.extract!.executablePath)}`,
+            { name: this.name, spec: this.spec },
+          )
+        }
+
+        await chmod(tmpExecutable, 0o755)
+        await move(tmpPath, this.versionPath, { overwrite: true })
+
+      } finally {
+        // make sure tmp path is cleared after errors
+        if (await pathExists(tmpPath)) {
+          await remove(tmpPath)
+        }
       }
-    }
 
-    debug && debug.setSuccess("Done")
-    logEntry.setSuccess(`Fetched ${this.name}`)
+      debug && debug.setSuccess("Done")
+      logEntry.setSuccess(`Fetched ${this.name}`)
+    })
   }
 
   async exec({ cwd, args, log, timeout }: ExecParams) {
