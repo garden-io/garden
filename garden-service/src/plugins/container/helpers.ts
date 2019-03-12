@@ -39,7 +39,7 @@ export const containerHelpers = {
 
     if (module.spec.image && hasDockerfile) {
       const { versionString } = module.version
-      const parsedImage = containerHelpers.parseImageId(module.spec.image || module.name)
+      const parsedImage = containerHelpers.parseImageId(module.spec.image)
       return containerHelpers.unparseImageId({ ...parsedImage, tag: versionString })
     } else if (!module.spec.image && hasDockerfile) {
       const { versionString } = module.version
@@ -47,10 +47,9 @@ export const containerHelpers = {
     } else if (module.spec.image && !hasDockerfile) {
       return module.spec.image
     } else {
-      throw new ConfigurationError(
-        `Module ${module.name} neither specifies image nor provides Dockerfile`,
-        { module },
-      )
+      const { versionString } = module.version
+      const parsedImage = containerHelpers.parseImageId(module.name)
+      return containerHelpers.unparseImageId({ ...parsedImage, tag: versionString })
     }
   },
 
