@@ -552,6 +552,14 @@ module:
       - rake
       - 'db:migrate'
 ```
+### `module.tasks[].env`
+[module](#module) > [tasks](#module.tasks[]) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
 
 
 ## Complete YAML schema
@@ -614,4 +622,5 @@ module:
       dependencies: []
       timeout: null
       args:
+      env: {}
 ```

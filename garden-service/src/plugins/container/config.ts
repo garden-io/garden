@@ -269,7 +269,8 @@ export const containerTestSchema = baseTestSpecSchema
   })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
-  args: string[],
+  args: string[]
+  env: PrimitiveMap
 }
 
 export const containerTaskSchema = baseTaskSpecSchema
@@ -277,6 +278,7 @@ export const containerTaskSchema = baseTaskSpecSchema
     args: Joi.array().items(Joi.string())
       .description("The arguments used to run the task inside the container.")
       .example([["rake", "db:migrate"], {}]),
+    env: joiEnvVars(),
   })
   .description("A task that can be run in the container.")
 
@@ -341,5 +343,6 @@ export const containerModuleSpecSchema = Joi.object()
 export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
-  T extends ContainerTestSpec = ContainerTestSpec
-  > extends Module<M, S, T> { }
+  T extends ContainerTestSpec = ContainerTestSpec,
+  W extends ContainerTaskSpec = ContainerTaskSpec
+  > extends Module<M, S, T, W> { }
