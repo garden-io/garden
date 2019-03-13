@@ -23,7 +23,6 @@ import { safeLoad } from "js-yaml"
 import { zip, omitBy, isObject } from "lodash"
 import { GardenBaseError } from "../../exceptions"
 import { homedir } from "os"
-import { KubernetesProvider } from "./kubernetes"
 import { KubernetesResource } from "./types"
 import * as dedent from "dedent"
 
@@ -72,7 +71,6 @@ export class KubernetesError extends GardenBaseError {
 }
 
 export class KubeApi {
-  public context: string
   private config: KubeConfig
 
   public apiExtensions: Apiextensions_v1beta1Api
@@ -82,8 +80,7 @@ export class KubeApi {
   public policy: Policy_v1beta1Api
   public rbac: RbacAuthorization_v1Api
 
-  constructor(public provider: KubernetesProvider) {
-    this.context = provider.config.context
+  constructor(public context: string) {
     this.config = getConfig(this.context)
 
     for (const [name, cls] of Object.entries(apiTypes)) {

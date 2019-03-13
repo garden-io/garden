@@ -14,6 +14,7 @@ import { HelmModule } from "./config"
 import { getAppNamespace } from "../namespace"
 import { runPod } from "../run"
 import { findServiceResource, getChartResources, getResourceContainer, getServiceResourceSpec } from "./common"
+import { KubernetesPluginContext } from "../kubernetes"
 
 export async function testHelmModule(
   { ctx, log, interactive, module, runtimeContext, testConfig }:
@@ -24,12 +25,13 @@ export async function testHelmModule(
   runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
-  const context = ctx.provider.config.context
-  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const context = k8sCtx.provider.config.context
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
 
-  const chartResources = await getChartResources(ctx, module, log)
+  const chartResources = await getChartResources(k8sCtx, module, log)
   const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module)
-  const target = await findServiceResource({ ctx, log, chartResources, module, resourceSpec })
+  const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
   const image = container.image
 
@@ -45,5 +47,5 @@ export async function testHelmModule(
     timeout,
   })
 
-  return storeTestResult({ ctx, module, testName, result })
+  return storeTestResult({ ctx: k8sCtx, module, testName, result })
 }

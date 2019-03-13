@@ -11,7 +11,7 @@ import { certpem } from "certpem"
 import { find, extend } from "lodash"
 import { findByName } from "../../../util/util"
 import { ContainerService, ContainerIngressSpec } from "../../container/config"
-import { IngressTlsCertificate } from "../kubernetes"
+import { IngressTlsCertificate, KubernetesProvider } from "../kubernetes"
 import { ServiceIngress, ServiceProtocol } from "../../../types/service"
 import { KubeApi } from "../api"
 import { ConfigurationError, PluginError } from "../../../exceptions"
@@ -24,12 +24,14 @@ interface ServiceIngressWithCert extends ServiceIngress {
 
 const certificateHostnames: { [name: string]: string[] } = {}
 
-export async function createIngressResources(api: KubeApi, namespace: string, service: ContainerService) {
+export async function createIngressResources(
+  api: KubeApi, provider: KubernetesProvider, namespace: string, service: ContainerService,
+) {
   if (service.spec.ingresses.length === 0) {
     return []
   }
 
-  const allIngresses = await getIngressesWithCert(service, api)
+  const allIngresses = await getIngressesWithCert(service, api, provider)
 
   return Bluebird.map(allIngresses, async (ingress) => {
     const rules = [{
@@ -51,8 +53,8 @@ export async function createIngressResources(api: KubeApi, namespace: string, se
       "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
     }
 
-    if (api.provider.config.ingressClass) {
-      annotations["kubernetes.io/ingress.class"] = api.provider.config.ingressClass
+    if (provider.config.ingressClass) {
+      annotations["kubernetes.io/ingress.class"] = provider.config.ingressClass
     }
 
     extend(annotations, ingress.spec.annotations)
@@ -82,19 +84,19 @@ export async function createIngressResources(api: KubeApi, namespace: string, se
 }
 
 async function getIngress(
-  service: ContainerService, api: KubeApi, spec: ContainerIngressSpec,
+  service: ContainerService, api: KubeApi, provider: KubernetesProvider, spec: ContainerIngressSpec,
 ): Promise<ServiceIngressWithCert> {
-  const hostname = spec.hostname || api.provider.config.defaultHostname
+  const hostname = spec.hostname || provider.config.defaultHostname
 
   if (!hostname) {
     // this should be caught when parsing the module
     throw new PluginError(`Missing hostname in ingress spec`, { serviceSpec: service.spec, ingressSpec: spec })
   }
 
-  const certificate = await pickCertificate(service, api, hostname)
+  const certificate = await pickCertificate(service, api, provider, hostname)
   // TODO: support other protocols
   const protocol: ServiceProtocol = !!certificate ? "https" : "http"
-  const port = !!certificate ? api.provider.config.ingressHttpsPort : api.provider.config.ingressHttpPort
+  const port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
 
   return {
     ...spec,
@@ -107,12 +109,16 @@ async function getIngress(
   }
 }
 
-async function getIngressesWithCert(service: ContainerService, api: KubeApi): Promise<ServiceIngressWithCert[]> {
-  return Bluebird.map(service.spec.ingresses, spec => getIngress(service, api, spec))
+async function getIngressesWithCert(
+  service: ContainerService, api: KubeApi, provider: KubernetesProvider,
+): Promise<ServiceIngressWithCert[]> {
+  return Bluebird.map(service.spec.ingresses, spec => getIngress(service, api, provider, spec))
 }
 
-export async function getIngresses(service: ContainerService, api: KubeApi): Promise<ServiceIngress[]> {
-  return (await getIngressesWithCert(service, api))
+export async function getIngresses(
+  service: ContainerService, api: KubeApi, provider: KubernetesProvider,
+): Promise<ServiceIngress[]> {
+  return (await getIngressesWithCert(service, api, provider))
     .map(ingress => ({
       hostname: ingress.hostname,
       path: ingress.path,
@@ -188,9 +194,9 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
 }
 
 async function pickCertificate(
-  service: ContainerService, api: KubeApi, hostname: string,
+  service: ContainerService, api: KubeApi, provider: KubernetesProvider, hostname: string,
 ): Promise<IngressTlsCertificate | undefined> {
-  for (const cert of api.provider.config.tlsCertificates) {
+  for (const cert of provider.config.tlsCertificates) {
     const certHostnames = await getCertificateHostnames(api, cert)
 
     for (const certHostname of certHostnames) {
@@ -203,7 +209,7 @@ async function pickCertificate(
     }
   }
 
-  if (api.provider.config.forceSsl) {
+  if (provider.config.forceSsl) {
     throw new ConfigurationError(
       `Could not find certificate for hostname '${hostname}' ` +
       `configured on service '${service.name}' and forceSsl flag is set.`,

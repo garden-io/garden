@@ -31,7 +31,7 @@ export const providerConfigBaseSchema = Joi.object()
   .unknown(true)
   .meta({ extendable: true })
 
-export interface Provider<T extends ProviderConfig = any> {
+export interface Provider<T extends ProviderConfig = ProviderConfig> {
   name: string
   config: T
 }
@@ -151,5 +151,5 @@ export const projectSchema = Joi.object()
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {
   name: "_default",
-  config: {},
+  config: { name: "_default" },
 }

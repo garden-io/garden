@@ -23,7 +23,7 @@ import {
 import { getReleaseStatus, getServiceStatus } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
 import { apply } from "../kubectl"
-import { KubernetesProvider } from "../kubernetes"
+import { KubernetesPluginContext } from "../kubernetes"
 import { ContainerHotReloadSpec } from "../../container/config"
 import { getHotReloadSpec } from "./hot-reload"
 
@@ -41,10 +41,11 @@ export async function deployService(
     hotReloadSpec = getHotReloadSpec(service)
   }
 
-  const provider: KubernetesProvider = ctx.provider
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
   const chartPath = await getChartPath(module)
   const valuesPath = getValuesPath(chartPath)
-  const namespace = await getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(k8sCtx, provider)
   const context = provider.config.context
   const releaseName = getReleaseName(module)
 
@@ -101,8 +102,9 @@ export async function deployService(
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
   const { ctx, log, module } = params
 
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  const context = ctx.provider.config.context
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const context = k8sCtx.provider.config.context
   const releaseName = getReleaseName(module)
 
   await helm(namespace, context, log, "delete", "--purge", releaseName)

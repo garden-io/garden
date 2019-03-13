@@ -15,14 +15,16 @@ import { findServiceResource, getChartResources, getResourceContainer, getServic
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { ConfigurationError } from "../../../exceptions"
+import { KubernetesPluginContext } from "../kubernetes"
 
 export async function runHelmModule(
   {
     ctx, module, command, ignoreError = true, interactive, runtimeContext, timeout, log,
   }: RunModuleParams<HelmModule>,
 ): Promise<RunResult> {
-  const context = ctx.provider.config.context
-  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const context = k8sCtx.provider.config.context
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
   const serviceResourceSpec = getServiceResourceSpec(module)
 
   if (!serviceResourceSpec) {
@@ -33,7 +35,7 @@ export async function runHelmModule(
     )
   }
 
-  const image = await getImage(ctx, module, log, serviceResourceSpec)
+  const image = await getImage(k8sCtx, module, log, serviceResourceSpec)
 
   return runPod({
     context,
@@ -51,11 +53,12 @@ export async function runHelmModule(
 export async function runHelmTask(
   { ctx, log, module, task, interactive, runtimeContext, timeout }: RunTaskParams<HelmModule>,
 ): Promise<RunTaskResult> {
-  const context = ctx.provider.config.context
-  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const context = k8sCtx.provider.config.context
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
 
   const args = task.spec.args
-  const image = await getImage(ctx, module, log, task.spec.resource || getServiceResourceSpec(module))
+  const image = await getImage(k8sCtx, module, log, task.spec.resource || getServiceResourceSpec(module))
 
   const res = await runPod({
     context,

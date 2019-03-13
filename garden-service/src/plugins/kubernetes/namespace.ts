@@ -85,7 +85,7 @@ export async function getNamespace(
   }
 
   if (!skipCreate) {
-    const api = new KubeApi(provider)
+    const api = new KubeApi(provider.config.context)
     await ensureNamespace(api, namespace)
   }
 

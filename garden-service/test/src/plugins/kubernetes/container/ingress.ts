@@ -375,8 +375,8 @@ describe("createIngressResources", () => {
     }
   }
 
-  function getKubeApi(provider) {
-    const api = new KubeApi(provider)
+  function getKubeApi(context: string) {
+    const api = new KubeApi(context)
 
     const core = td.replace(api, "core")
     td.when(core.readNamespacedSecret("somesecret", "somenamespace")).thenResolve({
@@ -401,8 +401,8 @@ describe("createIngressResources", () => {
       port: "http",
     })
 
-    const api = getKubeApi(basicProvider)
-    const ingresses = await createIngressResources(api, namespace, service)
+    const api = getKubeApi(basicProvider.config.context)
+    const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
     expect(ingresses).to.eql([{
       apiVersion: "extensions/v1beta1",
@@ -443,8 +443,8 @@ describe("createIngressResources", () => {
       port: "http",
     })
 
-    const api = getKubeApi(basicProvider)
-    const ingresses = await createIngressResources(api, namespace, service)
+    const api = getKubeApi(basicProvider.config.context)
+    const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
     expect(ingresses).to.eql([{
       apiVersion: "extensions/v1beta1",
@@ -494,8 +494,8 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = getKubeApi(basicProvider)
-    const ingresses = await createIngressResources(api, namespace, service)
+    const api = getKubeApi(basicProvider.config.context)
+    const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
     expect(ingresses).to.eql([
       {
@@ -566,8 +566,8 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = getKubeApi(singleTlsProvider)
-    const ingresses = await createIngressResources(api, namespace, service)
+    const api = getKubeApi(singleTlsProvider.config.context)
+    const ingresses = await createIngressResources(api, singleTlsProvider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, myDomainCertSecret))
 
@@ -615,19 +615,24 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = getKubeApi({
+    const api = getKubeApi(basicConfig.context)
+
+    const provider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
-        tlsCertificates: [{ secretRef: { name: "foo", namespace: "default" } }],
+        tlsCertificates: [{
+          name: "foo",
+          secretRef: { name: "foo", namespace: "default" },
+        }],
       },
-    })
+    }
 
     const err: any = new Error("nope")
     err.code = 404
     td.when(api.core.readNamespacedSecret("foo", "default")).thenReject(err)
 
-    await expectError(async () => await createIngressResources(api, namespace, service), "configuration")
+    await expectError(async () => await createIngressResources(api, provider, namespace, service), "configuration")
   })
 
   it("should throw if a secret for a configured certificate doesn't contain a certificate", async () => {
@@ -639,13 +644,18 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = getKubeApi({
+    const provider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
-        tlsCertificates: [{ secretRef: { name: "foo", namespace: "default" } }],
+        tlsCertificates: [{
+          name: "foo",
+          secretRef: { name: "foo", namespace: "default" },
+        }],
       },
-    })
+    }
+
+    const api = getKubeApi(basicConfig.context)
 
     const err: any = new Error("nope")
     err.code = 404
@@ -655,7 +665,7 @@ describe("createIngressResources", () => {
       },
     })
 
-    await expectError(async () => await createIngressResources(api, namespace, service), "configuration")
+    await expectError(async () => await createIngressResources(api, provider, namespace, service), "configuration")
   })
 
   it("should throw if a secret for a configured certificate contains an invalid certificate", async () => {
@@ -667,13 +677,18 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = getKubeApi({
+    const provider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
-        tlsCertificates: [{ secretRef: { name: "foo", namespace: "default" } }],
+        tlsCertificates: [{
+          name: "foo",
+          secretRef: { name: "foo", namespace: "default" },
+        }],
       },
-    })
+    }
+
+    const api = getKubeApi(basicConfig.context)
 
     const err: any = new Error("nope")
     err.code = 404
@@ -685,7 +700,7 @@ describe("createIngressResources", () => {
       },
     })
 
-    await expectError(async () => await createIngressResources(api, namespace, service), "configuration")
+    await expectError(async () => await createIngressResources(api, provider, namespace, service), "configuration")
   })
 
   it("should correctly match an ingress to a wildcard certificate", async () => {
@@ -698,8 +713,8 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = getKubeApi(multiTlsProvider)
-    const ingresses = await createIngressResources(api, namespace, service)
+    const api = getKubeApi(multiTlsProvider.config.context)
+    const ingresses = await createIngressResources(api, multiTlsProvider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, wildcardDomainCertSecret))
 
@@ -748,7 +763,9 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = getKubeApi({
+    const api = getKubeApi(basicConfig.context)
+
+    const provider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
@@ -758,12 +775,12 @@ describe("createIngressResources", () => {
           secretRef: { name: "somesecret", namespace: "somenamespace" },
         }],
       },
-    })
+    }
 
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({
       body: myDomainCertSecret,
     })
-    const ingresses = await createIngressResources(api, namespace, service)
+    const ingresses = await createIngressResources(api, provider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, myDomainCertSecret))
 

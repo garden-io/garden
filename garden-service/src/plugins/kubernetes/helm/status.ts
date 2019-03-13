@@ -19,6 +19,7 @@ import { getChartResources, findServiceResource } from "./common"
 import { buildHelmModule } from "./build"
 import { configureHotReload } from "../hot-reload"
 import { getHotReloadSpec } from "./hot-reload"
+import { KubernetesPluginContext } from "../kubernetes"
 
 const helmStatusCodeMap: { [code: number]: ServiceState } = {
   // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto
@@ -36,17 +37,18 @@ const helmStatusCodeMap: { [code: number]: ServiceState } = {
 export async function getServiceStatus(
   { ctx, module, service, log, hotReload }: GetServiceStatusParams<HelmModule>,
 ): Promise<ServiceStatus> {
+  const k8sCtx = <KubernetesPluginContext>ctx
   // need to build to be able to check the status
-  const buildStatus = await getExecModuleBuildStatus({ ctx, module, log })
+  const buildStatus = await getExecModuleBuildStatus({ ctx: k8sCtx, module, log })
   if (!buildStatus.ready) {
-    await buildHelmModule({ ctx, module, log })
+    await buildHelmModule({ ctx: k8sCtx, module, log })
   }
 
   // first check if the installed objects on the cluster match the current code
-  const chartResources = await getChartResources(ctx, module, log)
+  const chartResources = await getChartResources(k8sCtx, module, log)
 
   if (hotReload) {
-    const target = await findServiceResource({ ctx, log, chartResources, module })
+    const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module })
     const hotReloadSpec = getHotReloadSpec(service)
     const resourceSpec = module.spec.serviceResource!
 
@@ -58,9 +60,10 @@ export async function getServiceStatus(
     })
   }
 
-  const api = new KubeApi(ctx.provider)
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  let { state, remoteObjects } = await compareDeployedObjects(ctx, api, namespace, chartResources, log)
+  const provider = k8sCtx.provider
+  const api = new KubeApi(provider.config.context)
+  const namespace = await getAppNamespace(k8sCtx, provider)
+  let { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, chartResources, log)
   const detail = { remoteObjects }
 
   return {

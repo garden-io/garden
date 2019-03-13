@@ -15,6 +15,7 @@ import {
   projectSourcesSchema,
   environmentSchema,
   providerConfigBaseSchema,
+  ProviderConfig,
 } from "./config/project"
 import { joiIdentifier, joiIdentifierMap } from "./config/common"
 import { PluginError } from "./exceptions"
@@ -37,8 +38,8 @@ const providerSchema = Joi.object()
     config: providerConfigBaseSchema,
   })
 
-export interface PluginContext extends WrappedFromGarden {
-  provider: Provider
+export interface PluginContext<C extends ProviderConfig = ProviderConfig> extends WrappedFromGarden {
+  provider: Provider<C>
   providers: { [name: string]: Provider }
 }
 

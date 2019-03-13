@@ -30,7 +30,7 @@ import {
   createNamespace,
 } from "./namespace"
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
-import { name as providerName, KubernetesProvider } from "./kubernetes"
+import { name as providerName, KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
 import { isSystemGarden, getSystemGarden } from "./system"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
@@ -45,7 +45,8 @@ const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
  * Used by both the remote and local plugin
  */
 async function prepareNamespaces({ ctx }: GetEnvironmentStatusParams) {
-  const kubeContext = ctx.provider.config.context
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const kubeContext = k8sCtx.provider.config.context
 
   try {
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
@@ -66,13 +67,14 @@ async function prepareNamespaces({ ctx }: GetEnvironmentStatusParams) {
   }
 
   await Bluebird.all([
-    getMetadataNamespace(ctx, ctx.provider),
-    getAppNamespace(ctx, ctx.provider),
+    getMetadataNamespace(k8sCtx, k8sCtx.provider),
+    getAppNamespace(k8sCtx, k8sCtx.provider),
   ])
 }
 
 export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {
-  const loggedIn = await getLoginStatus({ ctx, log })
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const loggedIn = await getLoginStatus({ ctx: k8sCtx, log })
 
   if (!loggedIn) {
     return {
@@ -81,11 +83,11 @@ export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentSta
     }
   }
 
-  await prepareNamespaces({ ctx, log })
+  await prepareNamespaces({ ctx: k8sCtx, log })
 
-  let ready = (await checkTillerStatus(ctx, ctx.provider, log)) === "ready"
+  let ready = (await checkTillerStatus(k8sCtx, k8sCtx.provider, log)) === "ready"
 
-  const api = new KubeApi(ctx.provider)
+  const api = new KubeApi(k8sCtx.provider.config.context)
   const contextForLog = `Checking environment status for plugin "kubernetes"`
   const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, contextForLog)
   if (!sysNamespaceUpToDate) {
@@ -107,20 +109,23 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
 
   await prepareNamespaces({ ctx, log })
 
-  if (!isSystemGarden(ctx.provider)) {
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
+
+  if (!isSystemGarden(provider)) {
     // Check if system services are deployed
-    const sysGarden = await getSystemGarden(ctx.provider)
-    const sysCtx = await sysGarden.getPluginContext(ctx.provider.name)
+    const sysGarden = await getSystemGarden(provider)
+    const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(provider.name)
     const sysStatus = await sysGarden.actions.getStatus({ log })
 
-    const serviceStatuses = pick(sysStatus.services, getSystemServices(ctx.provider))
+    const serviceStatuses = pick(sysStatus.services, getSystemServices(provider))
 
-    const api = new KubeApi(ctx.provider)
+    const api = new KubeApi(provider.config.context)
 
     const servicesReady = every(values(serviceStatuses).map(s => s.state === "ready"))
     const contextForLog = `Checking environment status for plugin "local-kubernetes"`
     sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, contextForLog)
-    const systemReady = sysStatus.providers[ctx.provider.config.name].ready
+    const systemReady = sysStatus.providers[provider.config.name].ready
       && servicesReady
       && sysNamespaceUpToDate
 
@@ -129,7 +134,7 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
     }
 
     // Check Tiller status
-    if (await checkTillerStatus(ctx, ctx.provider, log) !== "ready") {
+    if (await checkTillerStatus(k8sCtx, provider, log) !== "ready") {
       ready = false
     }
 
@@ -138,8 +143,8 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
     }
 
     // Add the Kubernetes dashboard to the Garden dashboard
-    const namespace = await getAppNamespace(ctx, ctx.provider)
-    const defaultHostname = ctx.provider.config.defaultHostname
+    const namespace = await getAppNamespace(k8sCtx, provider)
+    const defaultHostname = provider.config.defaultHostname
 
     const dashboardStatus = sysStatus.services["kubernetes-dashboard"]
     const dashboardServiceResource = find(
@@ -170,33 +175,36 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
 }
 
 export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentParams) {
-  const loggedIn = await getLoginStatus({ ctx, log })
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const loggedIn = await getLoginStatus({ ctx: k8sCtx, log })
 
   if (!loggedIn) {
-    await login({ ctx, log })
+    await login({ ctx: k8sCtx, log })
   }
 
-  const api = new KubeApi(ctx.provider)
+  const provider = k8sCtx.provider
+  const api = new KubeApi(provider.config.context)
   const contextForLog = `Preparing environment for plugin "kubernetes"`
   if (!await systemNamespaceUpToDate(api, log, contextForLog)) {
     await recreateSystemNamespaces(api, log)
   }
-  await installTiller(ctx, ctx.provider, log)
+  await installTiller(k8sCtx, provider, log)
 
   return {}
 }
 
 export async function prepareLocalEnvironment({ ctx, log }: PrepareEnvironmentParams) {
   // make sure system services are deployed
-  if (!isSystemGarden(ctx.provider)) {
-    const api = new KubeApi(ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  if (!isSystemGarden(k8sCtx.provider)) {
+    const api = new KubeApi(k8sCtx.provider.config.context)
     const contextForLog = `Preparing environment for plugin "local-kubernetes"`
     const outdated = !(await systemNamespaceUpToDate(api, log, contextForLog))
     if (outdated) {
       await recreateSystemNamespaces(api, log)
     }
-    await configureSystemServices({ ctx, log, force: true })
-    await installTiller(ctx, ctx.provider, log)
+    await configureSystemServices({ ctx: k8sCtx, log, force: true })
+    await installTiller(k8sCtx, k8sCtx.provider, log)
   }
 
   return {}
@@ -247,8 +255,9 @@ export async function recreateSystemNamespaces(api: KubeApi, log: LogEntry) {
 }
 
 export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams) {
-  const api = new KubeApi(ctx.provider)
-  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = new KubeApi(k8sCtx.provider.config.context)
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
   const entry = log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace} (this may take a while)`,
@@ -256,7 +265,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   })
 
   await deleteNamespaces([namespace], api, entry)
-  await logout({ ctx, log })
+  await logout({ ctx: k8sCtx, log })
 
   return {}
 }
@@ -389,14 +398,15 @@ async function configureSystemServices(
   { ctx, force, log }:
     { ctx: PluginContext, force: boolean, log: LogEntry },
 ) {
-  const provider = ctx.provider
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
   const sysGarden = await getSystemGarden(provider)
-  const sysCtx = sysGarden.getPluginContext(provider.name)
+  const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(provider.name)
 
   await installTiller(sysCtx, sysCtx.provider, log)
 
   // only deploy services if configured to do so (e.g. minikube bundles some required services as addons)
-  const systemServices = getSystemServices(ctx.provider)
+  const systemServices = getSystemServices(k8sCtx.provider)
 
   if (systemServices.length > 0) {
     const results = await sysGarden.actions.deployServices({
