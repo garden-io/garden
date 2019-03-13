@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as execa from "execa"
 import * as Joi from "joi"
 import { omit, pick, get } from "lodash"
 import { copy, pathExists, readFile } from "fs-extra"
@@ -16,6 +15,7 @@ import {
   ContainerServiceSpec,
   ContainerTestSpec,
   ContainerModuleConfig,
+  ContainerTaskSpec,
 } from "../container/config"
 import { validateWithPath } from "../../config/common"
 import { BuildModuleParams, ConfigureModuleParams, GetBuildStatusParams } from "../../types/plugin/params"
@@ -29,6 +29,8 @@ import { STATIC_DIR } from "../../constants"
 import { xml2json } from "xml-js"
 import { containerModuleSpecSchema } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/project"
+import { openJdks } from "./openjdk"
+import { maven } from "./maven"
 
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile")
 
@@ -41,10 +43,11 @@ interface MavenContainerModuleSpec extends ContainerModuleSpec {
 // type MavenContainerModuleConfig = ModuleConfig<MavenContainerModuleSpec>
 
 interface MavenContainerModule<
-  M extends ContainerModuleSpec = MavenContainerModuleSpec,
+  M extends MavenContainerModuleSpec = MavenContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
-  T extends ContainerTestSpec = ContainerTestSpec
-  > extends Module<M, S, T> { }
+  T extends ContainerTestSpec = ContainerTestSpec,
+  W extends ContainerTaskSpec = ContainerTaskSpec
+  > extends Module<M, S, T, W> { }
 
 const mavenKeys = {
   jarPath: Joi.string()
@@ -53,16 +56,15 @@ const mavenKeys = {
     .example("target/my-module.jar"),
   jdkVersion: Joi.number()
     .integer()
-    .min(8)
+    .allow(8, 11)
     .default(8)
-    .description("The Java version to run"),
+    .description("The JDK version to use."),
 }
 
 const mavenFieldsSchema = Joi.object()
   .keys(mavenKeys)
 
 export const mavenContainerModuleSpecSchema = containerModuleSpecSchema.keys(mavenKeys)
-
 export const mavenContainerConfigSchema = providerConfigBaseSchema
 
 export const gardenPlugin = (): GardenPlugin => {
@@ -95,9 +97,11 @@ async function configure(params: ConfigureModuleParams<MavenContainerModule>) {
   let containerConfig: ContainerModuleConfig = { ...moduleConfig }
   containerConfig.spec = <ContainerModuleSpec>omit(moduleConfig.spec, Object.keys(mavenKeys))
 
+  const jdkVersion = mavenFields.jdkVersion!
+
   containerConfig.spec.buildArgs = {
     JAR_PATH: mavenFields.jarPath!,
-    JDK_VERSION: mavenFields.jdkVersion!.toString(),
+    JDK_VERSION: jdkVersion.toString(),
   }
 
   const configured = await configureContainerModule({ ...params, moduleConfig: containerConfig })
@@ -127,7 +131,7 @@ async function getBuildStatus(params: GetBuildStatusParams<MavenContainerModule>
 async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Run the maven build
   const { ctx, module, log } = params
-  let { jarPath } = module.spec
+  let { jarPath, jdkVersion } = module.spec
 
   const pom = await loadPom(module.path)
   const artifactId = get(pom, ["project", "artifactId", "_text"])
@@ -135,6 +139,11 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   if (!artifactId) {
     throw new ConfigurationError(`Could not read artifact ID from pom.xml in ${module.path}`, { path: module.path })
   }
+
+  log.setState(`Creating jar artifact...`)
+
+  const openJdk = openJdks[jdkVersion]
+  const openJdkPath = await openJdk.getPath(log)
 
   const mvnArgs = [
     "package",
@@ -145,8 +154,14 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   ]
   const mvnCmdStr = "mvn " + mvnArgs.join(" ")
 
-  log.setState(`Creating jar artifact...`)
-  await mvn(ctx.projectRoot, mvnArgs)
+  await maven.exec({
+    args: mvnArgs,
+    cwd: ctx.projectRoot,
+    log,
+    env: {
+      JAVA_HOME: openJdkPath,
+    },
+  })
 
   // Copy the artifact to the module build directory
   const resolvedJarPath = resolve(module.path, jarPath)
@@ -164,10 +179,6 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   return buildContainerModule(params)
 }
 
-async function mvn(cwd: string, args: string[]) {
-  return execa.stdout("mvn", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
-}
-
 async function loadPom(dir: string) {
   try {
     const pomPath = resolve(dir, "pom.xml")
@@ -177,26 +188,3 @@ async function loadPom(dir: string) {
     throw new ConfigurationError(`Could not load pom.xml from directory ${dir}`, { dir })
   }
 }
-
-// TODO: see if we could make this perform adequately, or perhaps use this only on Linux...
-//
-// async function mvn(jdkVersion: number, projectRoot: string, args: string[]) {
-//   const mvnImage = `maven:3.6.0-jdk-${jdkVersion}-slim`
-//   const m2Path = resolve(homedir(), ".m2")
-
-//   const dockerArgs = [
-//     "run",
-//     "--rm",
-//     "--interactive",
-//     "--volume", `${m2Path}:/root/.m2`,
-//     "--volume", `${projectRoot}:/project`,
-//     "--workdir", "/project",
-//     mvnImage,
-//     "--",
-//     ...args,
-//   ]
-
-//   console.log(dockerArgs.join(" "))
-
-//   return execa.stdout("docker", dockerArgs, { maxBuffer: 10 * 1024 * 1024 })
-// }

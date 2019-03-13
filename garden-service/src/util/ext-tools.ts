@@ -9,7 +9,7 @@
 import { platform, homedir } from "os"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
-import { join, dirname, basename } from "path"
+import { join, dirname, basename, sep } from "path"
 import { hashString } from "./util"
 import Axios from "axios"
 import * as execa from "execa"
@@ -25,32 +25,27 @@ const AsyncLock = require("async-lock")
 const globalGardenPath = join(homedir(), ".garden")
 const toolsPath = join(globalGardenPath, "tools")
 
-interface ExecParams {
-  cwd?: string
-  log: LogEntry
-  args?: string[]
-  timeout?: number
+export interface LibraryExtractSpec {
+  // Archive format. Note: the "tar" format also implicitly supports gzip and bz2 compression.
+  format: "tar" | "zip"
+  // Path to the target file or directory, relative to the download directory, after downloading and
+  // extracting the archive. For BinaryCmds, this should point to the executable in the archive.
+  targetPath: string[]
 }
 
-abstract class Cmd {
-  abstract async exec(params: ExecParams): Promise<execa.ExecaReturns>
-  abstract async stdout(params: ExecParams): Promise<string>
-}
-
-interface BinarySpec {
+export interface LibraryPlatformSpec {
   url: string
-  sha256?: string               // optionally specify sha256 checksum for validation
-  extract?: {
-    format: "tar" | "zip",      // note: the "tar" format also supports gzip compression
-    executablePath: string[],   // the path of the executable in the archive
-  }
+  // Optionally specify sha256 checksum for validation.
+  sha256?: string
+  // If the URL contains an archive, provide extraction instructions.
+  extract?: LibraryExtractSpec,
 }
 
 // TODO: support different architectures? (the Garden class currently errors on non-x64 archs, and many tools may
 // only be available in x64).
-interface BinaryCmdSpec {
+interface LibrarySpec {
   name: string
-  specs: { [key in SupportedPlatform]: BinarySpec }
+  specs: { [key in SupportedPlatform]: LibraryPlatformSpec }
 }
 
 export class DownloadError extends GardenBaseError {
@@ -58,28 +53,24 @@ export class DownloadError extends GardenBaseError {
 }
 
 /**
- * This helper class allows you to declare a tool dependency by providing a URL to a single-file binary,
- * or an archive containing an executable, for each of our supported platforms. When executing the tool,
- * the appropriate URL for the current platform will be downloaded and cached in the user's home directory
+ * This helper class allows you to declare a library dependency by providing a URL to a file or an archive,
+ * for each of our supported platforms. When requesting the path to the library, the appropriate URL for the
+ * current platform will be downloaded, extracted (if applicable) and cached in the user's home directory
  * (under .garden/tools/<name>/<url-hash>).
  *
- * Note: The binary or archive currently needs to be self-contained and work without further installation steps.
+ * Note: The file or archive currently needs to be self-contained and work without further installation steps.
  */
-export class BinaryCmd extends Cmd {
+export class Library {
   name: string
-  spec: BinarySpec
+  spec: LibraryPlatformSpec
 
   private lock: any
   private toolPath: string
   private versionDirname: string
-  private versionPath: string
-  private executablePath: string
-  private executableSubpath: string[]
-  private defaultCwd: string
+  protected versionPath: string
+  protected targetSubpath: string[]
 
-  constructor(spec: BinaryCmdSpec) {
-    super()
-
+  constructor(spec: LibrarySpec) {
     const currentPlatform = platform()
     const platformSpec = spec.specs[currentPlatform]
 
@@ -98,23 +89,26 @@ export class BinaryCmd extends Cmd {
     this.versionDirname = hashString(this.spec.url, 16)
     this.versionPath = join(this.toolPath, this.versionDirname)
 
-    this.executableSubpath = this.spec.extract
-      ? this.spec.extract.executablePath
+    this.targetSubpath = this.spec.extract
+      ? this.spec.extract.targetPath
       : [basename(this.spec.url)]
-    this.executablePath = join(this.versionPath, ...this.executableSubpath)
-    this.defaultCwd = dirname(this.executablePath)
   }
 
-  private async download(log: LogEntry) {
+  async getPath(log: LogEntry) {
+    await this.download(log)
+    return join(this.versionPath, ...this.targetSubpath)
+  }
+
+  protected async download(log: LogEntry) {
     return this.lock.acquire("download", async () => {
-      if (await pathExists(this.executablePath)) {
+      if (await pathExists(this.versionPath)) {
         return
       }
 
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuid.v4().substr(0, 8))
-      const tmpExecutable = join(tmpPath, ...this.executableSubpath)
+      const targetAbsPath = join(tmpPath, ...this.targetSubpath)
 
-      const logEntry = log.verbose(`Fetching ${this.name}...`)
+      const logEntry = log.info({ symbol: "info", msg: `Fetching ${this.name}...` })
       const debug = logEntry.debug(`Downloading ${this.spec.url}...`)
 
       await ensureDir(tmpPath)
@@ -122,14 +116,13 @@ export class BinaryCmd extends Cmd {
       try {
         await this.fetch(tmpPath, log)
 
-        if (!(await pathExists(tmpExecutable))) {
+        if (this.spec.extract && !(await pathExists(targetAbsPath))) {
           throw new ConfigurationError(
-            `Archive ${this.spec.url} does not contain a file at ${join(...this.spec.extract!.executablePath)}`,
+            `Archive ${this.spec.url} does not contain a file or directory at ${this.targetSubpath.join(sep)}`,
             { name: this.name, spec: this.spec },
           )
         }
 
-        await chmod(tmpExecutable, 0o755)
         await move(tmpPath, this.versionPath, { overwrite: true })
 
       } finally {
@@ -144,22 +137,7 @@ export class BinaryCmd extends Cmd {
     })
   }
 
-  async exec({ cwd, args, log, timeout }: ExecParams) {
-    await this.download(log)
-    return execa(this.executablePath, args || [], { cwd: cwd || this.defaultCwd, timeout })
-  }
-
-  async stdout(params: ExecParams) {
-    const res = await this.exec(params)
-    return res.stdout
-  }
-
-  async spawn({ cwd, args, log }: ExecParams) {
-    await this.download(log)
-    return spawn(this.executablePath, args || [], { cwd })
-  }
-
-  private async fetch(targetPath: string, log: LogEntry) {
+  protected async fetch(tmpPath: string, log: LogEntry) {
     const response = await Axios({
       method: "GET",
       url: this.spec.url,
@@ -195,22 +173,22 @@ export class BinaryCmd extends Cmd {
       })
 
       if (!this.spec.extract) {
-        const targetExecutable = join(targetPath, ...this.executableSubpath)
+        const targetExecutable = join(tmpPath, ...this.targetSubpath)
         response.data.pipe(createWriteStream(targetExecutable))
         response.data.on("end", () => resolve())
       } else {
         const format = this.spec.extract.format
-        let extractor
+        let extractor: any
 
         if (format === "tar") {
           extractor = tar.x({
-            C: targetPath,
+            C: tmpPath,
             strict: true,
             onwarn: entry => console.log(entry),
           })
           extractor.on("end", () => resolve())
         } else if (format === "zip") {
-          extractor = Extract({ path: targetPath })
+          extractor = Extract({ path: tmpPath })
           extractor.on("close", () => resolve())
         } else {
           reject(new ParameterError(`Invalid archive format: ${format}`, { name: this.name, spec: this.spec }))
@@ -225,5 +203,58 @@ export class BinaryCmd extends Cmd {
         })
       }
     })
+  }
+}
+
+interface ExecParams {
+  args?: string[]
+  cwd?: string
+  env?: { [key: string]: string }
+  log: LogEntry
+  timeout?: number
+}
+
+/**
+ * This helper class allows you to declare a tool dependency by providing a URL to a single-file binary,
+ * or an archive containing an executable, for each of our supported platforms. When executing the tool,
+ * the appropriate URL for the current platform will be downloaded and cached in the user's home directory
+ * (under .garden/tools/<name>/<url-hash>).
+ *
+ * Note: The binary or archive currently needs to be self-contained and work without further installation steps.
+ */
+export class BinaryCmd extends Library {
+  name: string
+  spec: LibraryPlatformSpec
+
+  private chmodDone: boolean
+
+  constructor(spec: LibrarySpec) {
+    super(spec)
+    this.chmodDone = false
+  }
+
+  async getPath(log: LogEntry) {
+    const path = await super.getPath(log)
+    // Make sure the target path is executable
+    if (!this.chmodDone) {
+      await chmod(path, 0o755)
+      this.chmodDone = true
+    }
+    return path
+  }
+
+  async exec({ args, cwd, env, log, timeout }: ExecParams) {
+    const path = await this.getPath(log)
+    return execa(path, args || [], { cwd: cwd || dirname(path), timeout, env })
+  }
+
+  async stdout(params: ExecParams) {
+    const res = await this.exec(params)
+    return res.stdout
+  }
+
+  async spawn({ args, cwd, env, log }: ExecParams) {
+    const path = await this.getPath(log)
+    return spawn(path, args || [], { cwd: cwd || dirname(path), env })
   }
 }

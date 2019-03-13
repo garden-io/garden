@@ -578,7 +578,7 @@ module:
 ### `module.jdkVersion`
 [module](#module) > jdkVersion
 
-The Java version to run
+The JDK version to use.
 
 | Type | Required |
 | ---- | -------- |
