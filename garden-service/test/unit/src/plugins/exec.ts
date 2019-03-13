@@ -140,8 +140,8 @@ describe("exec plugin", () => {
     it("should read a build version file if it exists", async () => {
       const module = await graph.getModule(moduleName)
       const version = module.version
-      const buildPath = module.buildPath
-      const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
+      const buildMetadataPath = module.buildMetadataPath
+      const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
 
       await writeModuleVersionFile(versionFilePath, version)
 
@@ -155,8 +155,8 @@ describe("exec plugin", () => {
     it("should write a build version file after building", async () => {
       const module = await graph.getModule(moduleName)
       const version = module.version
-      const buildPath = module.buildPath
-      const versionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
+      const buildMetadataPath = module.buildMetadataPath
+      const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
 
       await garden.actions.build({ log, module })
 
