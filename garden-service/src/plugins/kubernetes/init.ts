@@ -12,7 +12,7 @@ import * as Joi from "joi"
 import * as semver from "semver"
 import { every, find, intersection, pick, uniq, values } from "lodash"
 
-import { DeploymentError, NotFoundError, TimeoutError, PluginError } from "../../exceptions"
+import { DeploymentError, TimeoutError, PluginError } from "../../exceptions"
 import {
   PrepareEnvironmentParams,
   CleanupEnvironmentParams,
@@ -85,19 +85,21 @@ export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentSta
 
   await prepareNamespaces({ ctx: k8sCtx, log })
 
-  let ready = (await checkTillerStatus(k8sCtx, k8sCtx.provider, log)) === "ready"
+  const ready = (await checkTillerStatus(k8sCtx, k8sCtx.provider, log)) === "ready"
 
-  const api = new KubeApi(k8sCtx.provider.config.context)
-  const contextForLog = `Checking environment status for plugin "kubernetes"`
-  const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, contextForLog)
-  if (!sysNamespaceUpToDate) {
-    ready = false
-  }
+  // Note: We don't need the system namespaces for remote k8s for now
+
+  // const api = new KubeApi(k8sCtx.provider.config.context)
+  // const contextForLog = `Checking environment status for plugin "kubernetes"`
+  // const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, contextForLog)
+  // if (!sysNamespaceUpToDate) {
+  //   ready = false
+  // }
 
   return {
     ready,
     needUserInput: false,
-    detail: { needForce: !sysNamespaceUpToDate },
+    detail: {},
   }
 }
 
@@ -182,13 +184,15 @@ export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentP
     await login({ ctx: k8sCtx, log })
   }
 
-  const provider = k8sCtx.provider
-  const api = new KubeApi(provider.config.context)
-  const contextForLog = `Preparing environment for plugin "kubernetes"`
-  if (!await systemNamespaceUpToDate(api, log, contextForLog)) {
-    await recreateSystemNamespaces(api, log)
-  }
-  await installTiller(k8sCtx, provider, log)
+  // Note: We don't need the system namespaces for remote k8s for now
+
+  // const provider = k8sCtx.provider
+  // const api = new KubeApi(provider.config.context)
+  // const contextForLog = `Preparing environment for plugin "kubernetes"`
+  // if (!await systemNamespaceUpToDate(api, log, contextForLog)) {
+  //   await recreateSystemNamespaces(api, log)
+  // }
+  // await installTiller(k8sCtx, provider, log)
 
   return {}
 }
@@ -277,11 +281,10 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
       // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
       await api.core.deleteNamespace(ns, <any>{})
     } catch (err) {
-      if (log) {
-        log.setError(err.message)
+      // Ignore not found errors.
+      if (err.code !== 404) {
+        throw err
       }
-      const availableNamespaces = await getAllNamespaces(api)
-      throw new NotFoundError(err, { namespace: ns, availableNamespaces })
     }
   }
 
