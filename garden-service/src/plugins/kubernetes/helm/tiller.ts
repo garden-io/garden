@@ -22,7 +22,7 @@ import chalk from "chalk"
 const serviceAccountName = "garden-tiller"
 
 export async function checkTillerStatus(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
-  const api = new KubeApi(provider)
+  const api = new KubeApi(provider.config.context)
   const namespace = await getAppNamespace(ctx, provider)
 
   const resources = [

@@ -16,12 +16,14 @@ import { Module } from "../../types/module"
 import { ModuleVersion } from "../../vcs/base"
 import { HelmModule } from "./helm/config"
 import { PluginContext } from "../../plugin-context"
+import { KubernetesPluginContext } from "./kubernetes"
 
 export async function getTestResult(
   { ctx, module, testName, version }: GetTestResultParams<ContainerModule | HelmModule>,
 ) {
-  const api = new KubeApi(ctx.provider)
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = new KubeApi(k8sCtx.provider.config.context)
+  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
   const resultKey = getTestResultKey(module, testName, version)
 
   try {
@@ -49,14 +51,15 @@ export async function storeTestResult(
   { ctx, module, testName, result }:
     { ctx: PluginContext, module: Module, testName: string, result: RunResult },
 ) {
-  const api = new KubeApi(ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = new KubeApi(k8sCtx.provider.config.context)
 
   const testResult: TestResult = {
     ...result,
     testName,
   }
 
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
+  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
   const resultKey = getTestResultKey(module, testName, result.version)
   const body = {
     apiVersion: "v1",

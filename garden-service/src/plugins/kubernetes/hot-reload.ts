@@ -26,6 +26,7 @@ import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
 import { waitForContainerService } from "./container/status"
+import { KubernetesPluginContext } from "./kubernetes"
 
 export const RSYNC_PORT = 873
 export const RSYNC_PORT_NAME = "garden-rsync"
@@ -283,7 +284,8 @@ async function getLocalRsyncPort(ctx: PluginContext, log: LogEntry, targetDeploy
     return rsyncLocalPort
   }
 
-  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
 
   // Forward random free local port to the remote rsync container.
   rsyncLocalPort = await getPort()
@@ -292,7 +294,7 @@ async function getLocalRsyncPort(ctx: PluginContext, log: LogEntry, targetDeploy
   log.debug(`Forwarding local port ${rsyncLocalPort} to ${targetDeployment} sync container port ${RSYNC_PORT}`)
 
   // TODO: use the API directly instead of kubectl (need to reverse engineer kubectl a bit to get how that works)
-  const proc = kubectl(ctx.provider.config.context, namespace)
+  const proc = kubectl(k8sCtx.provider.config.context, namespace)
     .spawn(["port-forward", targetDeployment, portMapping])
 
   return new Promise((resolve) => {

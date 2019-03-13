@@ -16,9 +16,11 @@ import { dumpYaml } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
 import { apply as jsonMerge } from "json-merge-patch"
+import { KubernetesPluginContext } from "../kubernetes"
 
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
-  const namespace = await getNamespace({ ctx, provider: ctx.provider, skipCreate: true })
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const namespace = await getNamespace({ ctx: k8sCtx, provider: k8sCtx.provider, skipCreate: true })
   const context = ctx.provider.config.context
   const baseModule = getBaseModule(module)
 

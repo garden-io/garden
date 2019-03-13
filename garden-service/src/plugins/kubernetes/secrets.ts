@@ -9,14 +9,15 @@
 import { V1Secret } from "@kubernetes/client-node"
 
 import { KubeApi } from "./api"
-import { SecretRef } from "./kubernetes"
+import { SecretRef, KubernetesPluginContext } from "./kubernetes"
 import { ConfigurationError } from "../../exceptions"
 import { GetSecretParams, SetSecretParams, DeleteSecretParams } from "../../types/plugin/params"
 import { getMetadataNamespace } from "./namespace"
 
 export async function getSecret({ ctx, key }: GetSecretParams) {
-  const api = new KubeApi(ctx.provider)
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = new KubeApi(k8sCtx.provider.config.context)
+  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
 
   try {
     const res = await api.core.readNamespacedSecret(key, ns)
@@ -32,8 +33,9 @@ export async function getSecret({ ctx, key }: GetSecretParams) {
 
 export async function setSecret({ ctx, key, value }: SetSecretParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
-  const api = new KubeApi(ctx.provider)
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = new KubeApi(k8sCtx.provider.config.context)
+  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
   const body = {
     body: {
       apiVersion: "v1",
@@ -63,8 +65,9 @@ export async function setSecret({ ctx, key, value }: SetSecretParams) {
 }
 
 export async function deleteSecret({ ctx, key }: DeleteSecretParams) {
-  const api = new KubeApi(ctx.provider)
-  const ns = await getMetadataNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = new KubeApi(k8sCtx.provider.config.context)
+  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
 
   try {
     await api.core.deleteNamespacedSecret(key, ns, <any>{})

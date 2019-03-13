@@ -25,6 +25,7 @@ import { Module } from "../../../types/module"
 import { findByName } from "../../../util/util"
 import { deline } from "../../../util/string"
 import { getAnnotation } from "../util"
+import { KubernetesPluginContext } from "../kubernetes"
 
 /**
  * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
@@ -38,9 +39,10 @@ export async function containsSource(config: HelmModuleConfig) {
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
  */
 export async function getChartResources(ctx: PluginContext, module: Module, log: LogEntry) {
+  const k8sCtx = <KubernetesPluginContext>ctx
   const chartPath = await getChartPath(module)
   const valuesPath = getValuesPath(chartPath)
-  const namespace = await getNamespace({ ctx, provider: ctx.provider, skipCreate: true })
+  const namespace = await getNamespace({ ctx: k8sCtx, provider: k8sCtx.provider, skipCreate: true })
   const context = ctx.provider.config.context
   const releaseName = getReleaseName(module)
 
@@ -266,7 +268,8 @@ async function renderHelmTemplateString(
 ): Promise<string> {
   const tempFilePath = join(chartPath, "templates", cryptoRandomString(16))
   const valuesPath = getValuesPath(chartPath)
-  const namespace = await getNamespace({ ctx, provider: ctx.provider, skipCreate: true })
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const namespace = await getNamespace({ ctx: k8sCtx, provider: k8sCtx.provider, skipCreate: true })
   const releaseName = getReleaseName(module)
   const context = ctx.provider.config.context
 

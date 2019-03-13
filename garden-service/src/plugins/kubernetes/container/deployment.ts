@@ -18,12 +18,13 @@ import { getAppNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../../constants"
 import { KubeApi } from "../api"
-import { KubernetesProvider } from "../kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "../kubernetes"
 import { configureHotReload } from "../hot-reload"
 import { KubernetesResource, KubeEnvVar } from "../types"
 import { ConfigurationError } from "../../../exceptions"
 import { getContainerServiceStatus } from "./status"
 import { containerHelpers } from "../../container/helpers"
+import { LogEntry } from "../../../logger/log-entry"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_CPU_LIMIT = "500m"
@@ -32,14 +33,21 @@ export const DEFAULT_MEMORY_LIMIT = "512Mi"
 
 export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
   const { ctx, service, runtimeContext, force, log, hotReload } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  const objects = await createContainerObjects(ctx, service, runtimeContext, hotReload)
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const objects = await createContainerObjects(k8sCtx, service, runtimeContext, hotReload)
 
   // TODO: use Helm instead of kubectl apply
   const pruneSelector = "service=" + service.name
-  await applyMany(ctx.provider.config.context, objects, { force, namespace, pruneSelector })
-  await waitForResources({ ctx, provider: ctx.provider, serviceName: service.name, resources: objects, log })
+  await applyMany(k8sCtx.provider.config.context, objects, { force, namespace, pruneSelector })
+  await waitForResources({
+    ctx: k8sCtx,
+    provider: k8sCtx.provider,
+    serviceName: service.name,
+    resources: objects,
+    log,
+  })
 
   return getContainerServiceStatus(params)
 }
@@ -50,11 +58,13 @@ export async function createContainerObjects(
   runtimeContext: RuntimeContext,
   enableHotReload: boolean,
 ) {
+  const k8sCtx = <KubernetesPluginContext>ctx
   const version = service.module.version
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  const api = new KubeApi(ctx.provider)
-  const ingresses = await createIngressResources(api, namespace, service)
-  const deployment = await createDeployment(ctx.provider, service, runtimeContext, namespace, enableHotReload)
+  const provider = k8sCtx.provider
+  const namespace = await getAppNamespace(k8sCtx, provider)
+  const api = new KubeApi(provider.config.context)
+  const ingresses = await createIngressResources(api, provider, namespace, service)
+  const deployment = await createDeployment(provider, service, runtimeContext, namespace, enableHotReload)
   const kubeservices = await createServiceResources(service, namespace)
 
   const objects = [deployment, ...kubeservices, ...ingresses]
@@ -367,11 +377,12 @@ export function rsyncTargetPath(path: string) {
 
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
   const { ctx, log, service } = params
-  const namespace = await getAppNamespace(ctx, ctx.provider)
-  const provider = ctx.provider
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const provider = k8sCtx.provider
 
   const context = provider.config.context
-  await deleteContainerDeployment({ namespace, provider, serviceName: service.name, log })
+  await deleteContainerDeployment({ namespace, context, serviceName: service.name, log })
   await deleteObjectsByLabel({
     context,
     namespace,
@@ -385,11 +396,11 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
 }
 
 export async function deleteContainerDeployment(
-  { namespace, provider, serviceName, log },
+  { namespace, context, serviceName, log }: { namespace: string, context: string, serviceName: string, log: LogEntry },
 ) {
 
   let found = true
-  const api = new KubeApi(provider)
+  const api = new KubeApi(context)
 
   try {
     await api.extensions.deleteNamespacedDeployment(serviceName, namespace, <any>{})

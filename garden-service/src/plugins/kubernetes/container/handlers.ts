@@ -23,7 +23,7 @@ async function configure(params: ConfigureModuleParams<ContainerModule>) {
   const config = await configureContainerModule(params)
 
   // validate ingress specs
-  const provider: KubernetesProvider = params.ctx.provider
+  const provider = <KubernetesProvider>params.ctx.provider
 
   for (const serviceConfig of config.serviceConfigs) {
     for (const ingressSpec of serviceConfig.spec.ingresses) {

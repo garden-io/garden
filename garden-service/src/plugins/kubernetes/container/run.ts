@@ -22,12 +22,15 @@ import { kubectl } from "../kubectl"
 import { getContainerServiceStatus } from "./status"
 import { runPod } from "../run"
 import { containerHelpers } from "../../container/helpers"
+import { KubernetesPluginContext } from "../kubernetes"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, service, command, interactive } = params
-  const api = new KubeApi(ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
+  const api = new KubeApi(provider.config.context)
   const status = await getContainerServiceStatus({ ...params, hotReload: false })
-  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
 
   // TODO: this check should probably live outside of the plugin
   if (!includes(["ready", "outdated"], status.state)) {
@@ -78,8 +81,9 @@ export async function runContainerModule(
     ctx, module, command, ignoreError = true, interactive, runtimeContext, timeout,
   }: RunModuleParams<ContainerModule>,
 ): Promise<RunResult> {
-  const context = ctx.provider.config.context
-  const namespace = await getAppNamespace(ctx, ctx.provider)
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const context = k8sCtx.provider.config.context
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
   const image = await containerHelpers.getLocalImageId(module)
 
   return runPod({

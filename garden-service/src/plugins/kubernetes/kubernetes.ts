@@ -17,6 +17,7 @@ import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { getRemoteEnvironmentStatus, prepareRemoteEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers } from "./container/handlers"
+import { PluginContext } from "../../plugin-context"
 
 export const name = "kubernetes"
 
@@ -49,6 +50,7 @@ export interface KubernetesConfig extends KubernetesBaseConfig {
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>
+export type KubernetesPluginContext = PluginContext<KubernetesConfig>
 
 export const k8sContextSchema = Joi.string()
   .required()

@@ -26,7 +26,7 @@ import {
   V1DeploymentStatus,
 } from "@kubernetes/client-node"
 import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
-import { KubernetesProvider } from "./kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
 import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
@@ -350,7 +350,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
     msg: `Waiting for service to be ready...`,
   })
 
-  const api = new KubeApi(provider)
+  const api = new KubeApi(provider.config.context)
   const namespace = await getAppNamespace(ctx, provider)
   let prevStatuses: WorkloadStatus[] = objects.map((obj) => ({
     state: <ServiceState>"unknown",
@@ -420,7 +420,8 @@ export async function compareDeployedObjects(
   ctx: PluginContext, api: KubeApi, namespace: string, objects: KubernetesResource[], log: LogEntry,
 ): Promise<ComparisonResult> {
 
-  const maybeDeployedObjects = await Bluebird.map(objects, obj => getDeployedObject(ctx, ctx.provider, obj))
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const maybeDeployedObjects = await Bluebird.map(objects, obj => getDeployedObject(k8sCtx, k8sCtx.provider, obj))
   const deployedObjects = <KubernetesResource[]>maybeDeployedObjects.filter(o => o !== null)
 
   const result: ComparisonResult = {
@@ -523,7 +524,7 @@ export async function compareDeployedObjects(
 async function getDeployedObject(
   ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesResource,
 ): Promise<KubernetesResource | null> {
-  const api = new KubeApi(provider)
+  const api = new KubeApi(provider.config.context)
   const namespace = obj.metadata.namespace || await getAppNamespace(ctx, provider)
 
   try {
