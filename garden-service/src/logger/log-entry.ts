@@ -19,6 +19,18 @@ import { Logger } from "./logger"
 export type EmojiName = keyof typeof nodeEmoji.emoji
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type EntryStatus = "active" | "done" | "error" | "success" | "warn"
+export type TaskLogStatus = "active" | "success" | "error"
+
+export interface LogEntryMetadata { task?: TaskMetadata }
+
+export interface TaskMetadata {
+  type: string,
+  baseKey: string,
+  status: TaskLogStatus,
+  id: string,
+  versionString: string,
+  durationMs?: number,
+}
 
 export interface UpdateOpts {
   msg?: string | string[]
@@ -32,6 +44,7 @@ export interface UpdateOpts {
   status?: EntryStatus
   indent?: number
   childEntriesInheritLevel?: boolean
+  metadata?: LogEntryMetadata
 }
 
 export interface CreateOpts extends UpdateOpts {

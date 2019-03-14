@@ -130,6 +130,7 @@ export const serviceIngressSchema = serviceIngressSpecSchema
     port: portSchema
       .required(),
   })
+  .unknown(true)
   .description("A description of a deployed service ingress.")
 
 // TODO: revise this schema

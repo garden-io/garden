@@ -12,28 +12,34 @@ import { getChildEntries, findLogNode } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
 import { LogLevel } from "./log-node"
-import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
+import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
+import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { parseLogLevel } from "../cli/helpers"
 
 export enum LoggerType {
   quiet = "quiet",
   basic = "basic",
   fancy = "fancy",
+  json = "json",
 }
 
 export function getCommonConfig(loggerType: LoggerType): LoggerConfig {
   const configs: { [key in LoggerType]: LoggerConfig } = {
-    [LoggerType.fancy]: {
+    [LoggerType.quiet]: {
       level: LogLevel.info,
-      writers: [new FancyTerminalWriter()],
     },
     [LoggerType.basic]: {
       level: LogLevel.info,
       writers: [new BasicTerminalWriter()],
     },
-    [LoggerType.quiet]: {
+    [LoggerType.fancy]: {
       level: LogLevel.info,
+      writers: [new FancyTerminalWriter()],
+    },
+    [LoggerType.json]: {
+      level: LogLevel.info,
+      writers: [new JsonTerminalWriter()],
     },
   }
   return configs[loggerType]

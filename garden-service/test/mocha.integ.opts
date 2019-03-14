@@ -1,0 +1,8 @@
+--require ts-node/register/type-check
+--watch-dirs test/,src/
+--exclude test/unit/**/*.ts
+--watch-extensions ts,json,pegjs,yml
+--reporter spec
+--timeout 0
+test/setup.ts
+test/**/*.ts
