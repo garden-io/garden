@@ -17,7 +17,7 @@ const helmCmd = new BinaryCmd({
       sha256: "166318b2159613f87a7cb02af1614c96244b3d3c119f8e010429c1b4449681d5",
       extract: {
         format: "tar",
-        executablePath: ["darwin-amd64", "helm"],
+        targetPath: ["darwin-amd64", "helm"],
       },
     },
     linux: {
@@ -25,7 +25,7 @@ const helmCmd = new BinaryCmd({
       sha256: "15eca6ad225a8279de80c7ced42305e24bc5ac60bb7d96f2d2fa4af86e02c794",
       extract: {
         format: "tar",
-        executablePath: ["linux-amd64", "helm"],
+        targetPath: ["linux-amd64", "helm"],
       },
     },
     win32: {
@@ -33,7 +33,7 @@ const helmCmd = new BinaryCmd({
       sha256: "63fdb71ad6fac0572a21ad81da7508b1f0cae960ea944670f4d2f7fbaf23acb2",
       extract: {
         format: "zip",
-        executablePath: ["windows-amd64", "helm.exe"],
+        targetPath: ["windows-amd64", "helm.exe"],
       },
     },
   },
