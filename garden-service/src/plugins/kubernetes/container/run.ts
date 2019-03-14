@@ -8,7 +8,7 @@
 
 import { includes, extend } from "lodash"
 import { DeploymentError } from "../../../exceptions"
-import { RunResult } from "../../../types/plugin/outputs"
+import { RunResult, RunTaskResult } from "../../../types/plugin/outputs"
 import {
   ExecInServiceParams,
   RunModuleParams,
@@ -114,19 +114,27 @@ export async function runContainerService(
 }
 
 export async function runContainerTask(
-  { ctx, task, interactive, runtimeContext, log }: RunTaskParams<ContainerModule>,
-) {
+  { ctx, module, task, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
+): Promise<RunTaskResult> {
   extend(runtimeContext.envVars, task.spec.env || {})
 
-  const result = await runContainerModule({
-    ctx,
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const context = k8sCtx.provider.config.context
+  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const image = await containerHelpers.getLocalImageId(module)
+
+  const result = await runPod({
+    context,
+    namespace,
+    module,
+    envVars: runtimeContext.envVars,
+    args: task.spec.args || [],
+    image,
     interactive,
-    log,
-    runtimeContext,
-    module: task.module,
-    command: task.spec.args || [],
     ignoreError: false,
     timeout: task.spec.timeout || 9999,
+    // Workaround to make sure sidecars are not injected, due to https://github.com/kubernetes/kubernetes/issues/25908
+    overrides: { metadata: { annotations: { "sidecar.istio.io/inject": "false" } } },
   })
 
   return {
