@@ -21,10 +21,11 @@ interface RunPodParams {
   interactive: boolean,
   ignoreError: boolean,
   timeout?: number,
+  overrides?: any,
 }
 
 export async function runPod(
-  { context, namespace, module, image, envVars, args, interactive, ignoreError, timeout }: RunPodParams,
+  { context, namespace, module, image, envVars, args, interactive, ignoreError, timeout, overrides }: RunPodParams,
 ): Promise<RunResult> {
   const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
 
@@ -39,6 +40,10 @@ export async function runPod(
     // Need to attach to get the log output and exit code.
     "-i",
   ]
+
+  if (overrides) {
+    opts.push("--overrides", `${JSON.stringify(overrides)}`)
+  }
 
   if (interactive) {
     opts.push("--tty")
