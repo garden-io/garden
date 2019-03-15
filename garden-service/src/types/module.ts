@@ -32,6 +32,7 @@ export interface Module<
   W extends TaskSpec = any,
   > extends ModuleConfig<M, S, T, W> {
   buildPath: string
+  buildMetadataPath: string
   version: ModuleVersion
 
   buildDependencies: ModuleMap
@@ -51,6 +52,10 @@ export const moduleSchema = moduleConfigSchema
       .required()
       .uri(<any>{ relativeOnly: true })
       .description("The path to the build staging directory for the module."),
+    buildMetadataPath: Joi.string()
+      .required()
+      .uri(<any>{ relativeOnly: true })
+      .description("The path to the build metadata directory for the module."),
     version: moduleVersionSchema
       .required(),
     buildDependencies: joiIdentifierMap(Joi.lazy(() => moduleSchema))
@@ -83,6 +88,7 @@ export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, confi
     ...cloneDeep(config),
 
     buildPath: await garden.buildDir.buildPath(config.name),
+    buildMetadataPath: await garden.buildDir.buildMetadataPath(config.name),
     version: await garden.resolveVersion(config.name, config.build.dependencies),
 
     buildDependencies: {},

@@ -128,7 +128,7 @@ export async function configureExecModule(
 }
 
 export async function getExecModuleBuildStatus({ module }: GetBuildStatusParams): Promise<BuildStatus> {
-  const buildVersionFilePath = join(module.buildPath, GARDEN_BUILD_VERSION_FILENAME)
+  const buildVersionFilePath = join(module.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
   let builtVersion: ModuleVersion | null = null
 
   try {
@@ -162,7 +162,7 @@ export async function buildExecModule({ module }: BuildModuleParams<ExecModule>)
   }
 
   // keep track of which version has been built
-  const buildVersionFilePath = join(buildPath, GARDEN_BUILD_VERSION_FILENAME)
+  const buildVersionFilePath = join(module.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
   await writeModuleVersionFile(buildVersionFilePath, module.version)
 
   return output

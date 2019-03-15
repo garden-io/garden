@@ -34,14 +34,17 @@ import { ModuleConfig } from "./config/module"
 // Lazily construct a directory of modules inside which all build steps are performed.
 
 const buildDirRelPath = join(GARDEN_DIR_NAME, "build")
+const buildMetadataDirRelPath = join(GARDEN_DIR_NAME, "build-metadata")
 
 export class BuildDir {
-  constructor(private projectRoot: string, public buildDirPath: string) { }
+  constructor(private projectRoot: string, public buildDirPath: string, public buildMetadataDirPath) { }
 
   static async factory(projectRoot: string) {
     const buildDirPath = join(projectRoot, buildDirRelPath)
+    const buildMetadataDirPath = join(projectRoot, buildMetadataDirRelPath)
     await ensureDir(buildDirPath)
-    return new BuildDir(projectRoot, buildDirPath)
+    await ensureDir(buildMetadataDirPath)
+    return new BuildDir(projectRoot, buildDirPath, buildMetadataDirPath)
   }
 
   async syncFromSrc(module: ModuleConfig) {
@@ -95,6 +98,16 @@ export class BuildDir {
     return path
   }
 
+  /**
+   * This directory can be used to store build-related metadata for a given module, for example the last built
+   * version for exec modules.
+   */
+  async buildMetadataPath(moduleName: string): Promise<string> {
+    const path = resolve(this.buildMetadataDirPath, moduleName)
+    await ensureDir(path)
+    return path
+  }
+
   private async sync(sourcePath: string, destinationPath: string): Promise<void> {
     const destinationDir = parse(destinationPath).dir
     await ensureDir(destinationDir)
@@ -110,7 +123,7 @@ export class BuildDir {
     destinationPath = stripWildcard(destinationPath)
 
     // --exclude is required for modules where the module and project are in the same directory
-    await execa("rsync", ["-rptgo", `--exclude=${GARDEN_DIR_NAME}`, sourcePath, destinationPath])
+    await execa("rsync", ["-rptgo", "--delete", `--exclude=${GARDEN_DIR_NAME}`, sourcePath, destinationPath])
   }
 }
 
