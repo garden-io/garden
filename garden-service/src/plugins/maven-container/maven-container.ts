@@ -32,8 +32,10 @@ import { providerConfigBaseSchema } from "../../config/project"
 import { openJdks } from "./openjdk"
 import { maven } from "./maven"
 import { LogEntry } from "../../logger/log-entry"
+import AsyncLock = require("async-lock")
 
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile")
+const buildLock = new AsyncLock()
 
 interface MavenContainerModuleSpec extends ContainerModuleSpec {
   jarPath: string
@@ -152,13 +154,17 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   ]
   const mvnCmdStr = "mvn " + mvnArgs.join(" ")
 
-  await maven.exec({
-    args: mvnArgs,
-    cwd: ctx.projectRoot,
-    log,
-    env: {
-      JAVA_HOME: openJdkPath,
-    },
+  // Maven has issues when running concurrent processes, so we're working around that with a lock.
+  // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
+  await buildLock.acquire("mvn", async () => {
+    await maven.exec({
+      args: mvnArgs,
+      cwd: ctx.projectRoot,
+      log,
+      env: {
+        JAVA_HOME: openJdkPath,
+      },
+    })
   })
 
   // Copy the artifact to the module build directory
