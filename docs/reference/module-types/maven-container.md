@@ -583,6 +583,14 @@ The JDK version to use.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+### `module.mvnOpts[]`
+[module](#module) > mvnOpts
+
+Options to add to the `mvn package` command when building.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
 
 
 ## Complete YAML schema
@@ -648,4 +656,5 @@ module:
       env: {}
   jarPath:
   jdkVersion: 8
+  mvnOpts: []
 ```
