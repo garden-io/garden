@@ -13,6 +13,7 @@ import {
   parse,
   resolve,
   sep,
+  relative,
 } from "path"
 import {
   emptyDir,
@@ -30,6 +31,7 @@ import * as execa from "execa"
 import { platform } from "os"
 import { toCygwinPath } from "./util/util"
 import { ModuleConfig } from "./config/module"
+import { LogEntry } from "./logger/log-entry"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
@@ -47,16 +49,16 @@ export class BuildDir {
     return new BuildDir(projectRoot, buildDirPath, buildMetadataDirPath)
   }
 
-  async syncFromSrc(module: ModuleConfig) {
+  async syncFromSrc(module: ModuleConfig, log: LogEntry) {
     await this.sync(
       resolve(this.projectRoot, module.path) + sep,
       await this.buildPath(module.name),
       true,
+      log,
     )
   }
 
-  async syncDependencyProducts(module: Module) {
-    await this.syncFromSrc(module)
+  async syncDependencyProducts(module: Module, log: LogEntry) {
     const buildPath = await this.buildPath(module.name)
     const buildDependencies = await module.build.dependencies
     const dependencyConfigs = module.build.dependencies || []
@@ -84,7 +86,7 @@ export class BuildDir {
 
         const sourcePath = join(sourceBuildPath, copy.source)
         const destinationPath = join(buildPath, copy.target)
-        return this.sync(sourcePath, destinationPath, false)
+        return this.sync(sourcePath, destinationPath, false, log)
       })
     })
   }
@@ -114,7 +116,7 @@ export class BuildDir {
    *
    * If withDelete = true, files/folders in destinationPath that are not in sourcePath will also be deleted.
    */
-  private async sync(sourcePath: string, destinationPath: string, withDelete: boolean): Promise<void> {
+  private async sync(sourcePath: string, destinationPath: string, withDelete: boolean, log: LogEntry): Promise<void> {
     const destinationDir = parse(destinationPath).dir
     await ensureDir(destinationDir)
 
@@ -133,6 +135,16 @@ export class BuildDir {
     if (withDelete) {
       syncOpts.push("--delete")
     }
+
+    let logMsg =
+      `Syncing from ${relative(this.projectRoot, sourcePath)} to ${relative(this.projectRoot, destinationPath)}`
+
+    if (withDelete) {
+      logMsg += " (with delete)"
+    }
+
+    log.debug(logMsg)
+
     await execa("rsync", [...syncOpts, sourcePath, destinationPath])
   }
 }

@@ -76,14 +76,14 @@ export class BuildTask extends BaseTask {
       log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     }
 
-    await this.garden.buildDir.syncFromSrc(this.module)
+    await this.garden.buildDir.syncFromSrc(this.module, log)
+    await this.garden.buildDir.syncDependencyProducts(this.module, log)
 
     if (!this.force) {
+      log.setState({ msg: `Getting build status...` })
       const status = await this.garden.actions.getBuildStatus({ log: this.log, module })
 
       if (status.ready) {
-        // this is necessary in case other modules depend on files from this one
-        await this.garden.buildDir.syncDependencyProducts(this.module)
         logSuccess()
         return { fresh: false }
       }

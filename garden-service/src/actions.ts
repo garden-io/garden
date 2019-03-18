@@ -244,7 +244,6 @@ export class ActionHelper implements TypeGuard {
   }
 
   async build<T extends Module>(params: ModuleActionHelperParams<BuildModuleParams<T>>): Promise<BuildResult> {
-    await this.garden.buildDir.syncDependencyProducts(params.module)
     return this.callModuleHandler({ params, actionType: "build" })
   }
 
