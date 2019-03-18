@@ -18,11 +18,45 @@ import { ConfigureModuleParams } from "../../../types/plugin/params"
 import { getContainerServiceStatus } from "./status"
 import { getTestResult } from "../test"
 import { ContainerModule } from "../../container/config"
+import { configureMavenContainerModule, MavenContainerModule } from "../../maven-container/maven-container"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   const config = await configureContainerModule(params)
+  await validateConfig(params)
+  return config
+}
 
+// TODO: avoid having to special-case this (needs framework improvements)
+async function configureMaven(params: ConfigureModuleParams<MavenContainerModule>) {
+  const config = await configureMavenContainerModule(params)
+  await validateConfig(params)
+  return config
+}
+
+export const containerHandlers = {
+  configure,
+  deployService: deployContainerService,
+  deleteService,
+  execInService,
+  getServiceLogs,
+  getServiceStatus: getContainerServiceStatus,
+  getTestResult,
+  hotReloadService: hotReloadContainer,
+  pushModule,
+  runModule: runContainerModule,
+  runService: runContainerService,
+  runTask: runContainerTask,
+  testModule: testContainerModule,
+}
+
+export const mavenContainerHandlers = {
+  ...containerHandlers,
+  configure: configureMaven,
+}
+
+async function validateConfig(params: ConfigureModuleParams<ContainerModule>) {
   // validate ingress specs
+  const config = params.moduleConfig
   const provider = <KubernetesProvider>params.ctx.provider
 
   for (const serviceConfig of config.serviceConfigs) {
@@ -44,22 +78,4 @@ async function configure(params: ConfigureModuleParams<ContainerModule>) {
       ingressSpec.hostname = hostname
     }
   }
-
-  return config
-}
-
-export const containerHandlers = {
-  configure,
-  deployService: deployContainerService,
-  deleteService,
-  execInService,
-  getServiceLogs,
-  getServiceStatus: getContainerServiceStatus,
-  getTestResult,
-  hotReloadService: hotReloadContainer,
-  pushModule,
-  runModule: runContainerModule,
-  runService: runContainerService,
-  runTask: runContainerTask,
-  testModule: testContainerModule,
 }
