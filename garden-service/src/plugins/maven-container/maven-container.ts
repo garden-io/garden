@@ -43,7 +43,7 @@ interface MavenContainerModuleSpec extends ContainerModuleSpec {
 
 // type MavenContainerModuleConfig = ModuleConfig<MavenContainerModuleSpec>
 
-interface MavenContainerModule<
+export interface MavenContainerModule<
   M extends MavenContainerModuleSpec = MavenContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
@@ -78,7 +78,7 @@ export const gardenPlugin = (): GardenPlugin => {
     moduleActions: {
       "maven-container": {
         ...basePlugin.moduleActions!.container,
-        configure,
+        configure: configureMavenContainerModule,
         getBuildStatus,
         build,
       },
@@ -86,7 +86,7 @@ export const gardenPlugin = (): GardenPlugin => {
   }
 }
 
-async function configure(params: ConfigureModuleParams<MavenContainerModule>) {
+export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
   const { ctx, moduleConfig } = params
 
   const mavenFields = validateWithPath({

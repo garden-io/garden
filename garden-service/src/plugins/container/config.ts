@@ -282,7 +282,7 @@ export const containerTaskSchema = baseTaskSpecSchema
   })
   .description("A task that can be run in the container.")
 
-interface ContainerBuildSpec extends BaseBuildSpec {
+export interface ContainerBuildSpec extends BaseBuildSpec {
   targetImage?: string
 }
 
