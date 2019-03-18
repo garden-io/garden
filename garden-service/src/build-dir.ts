@@ -51,6 +51,7 @@ export class BuildDir {
     await this.sync(
       resolve(this.projectRoot, module.path) + sep,
       await this.buildPath(module.name),
+      true,
     )
   }
 
@@ -83,7 +84,7 @@ export class BuildDir {
 
         const sourcePath = join(sourceBuildPath, copy.source)
         const destinationPath = join(buildPath, copy.target)
-        return this.sync(sourcePath, destinationPath)
+        return this.sync(sourcePath, destinationPath, false)
       })
     })
   }
@@ -108,7 +109,12 @@ export class BuildDir {
     return path
   }
 
-  private async sync(sourcePath: string, destinationPath: string): Promise<void> {
+  /**
+   * Syncs sourcePath with destinationPath using rsync.
+   *
+   * If withDelete = true, files/folders in destinationPath that are not in sourcePath will also be deleted.
+   */
+  private async sync(sourcePath: string, destinationPath: string, withDelete: boolean): Promise<void> {
     const destinationDir = parse(destinationPath).dir
     await ensureDir(destinationDir)
 
@@ -123,7 +129,11 @@ export class BuildDir {
     destinationPath = stripWildcard(destinationPath)
 
     // --exclude is required for modules where the module and project are in the same directory
-    await execa("rsync", ["-rptgo", "--delete", `--exclude=${GARDEN_DIR_NAME}`, sourcePath, destinationPath])
+    const syncOpts = ["-rptgo", `--exclude=${GARDEN_DIR_NAME}`]
+    if (withDelete) {
+      syncOpts.push("--delete")
+    }
+    await execa("rsync", [...syncOpts, sourcePath, destinationPath])
   }
 }
 
