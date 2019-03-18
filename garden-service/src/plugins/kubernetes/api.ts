@@ -17,7 +17,7 @@ import {
   Policy_v1beta1Api,
 } from "@kubernetes/client-node"
 import { join } from "path"
-import request = require("request")
+import request = require("request-promise")
 import { readFileSync, pathExistsSync } from "fs-extra"
 import { safeLoad } from "js-yaml"
 import { zip, omitBy, isObject } from "lodash"
@@ -25,6 +25,8 @@ import { GardenBaseError } from "../../exceptions"
 import { homedir } from "os"
 import { KubernetesResource } from "./types"
 import * as dedent from "dedent"
+import { LogEntry } from "../../logger/log-entry"
+import { splitLast, findByName } from "../../util/util"
 
 let kubeConfigStr: string
 let kubeConfig: any
@@ -89,7 +91,7 @@ export class KubeApi {
     }
   }
 
-  async readBySpec(namespace: string, spec: KubernetesResource) {
+  async readBySpec(namespace: string, spec: KubernetesResource, log: LogEntry) {
     // this is just awful, sorry. any better ideas? - JE
     const name = spec.metadata.name
 
@@ -139,15 +141,78 @@ export class KubeApi {
       case "PodDisruptionBudget":
         return this.policy.readNamespacedPodDisruptionBudget(name, namespace)
       default:
+        // Handle CRDs
         const apiVersion = spec.apiVersion
-        const url = `${this.config.getCurrentCluster()!.server}/apis/${apiVersion}` +
-          `/namespaces/${namespace}/${spec.kind.toLowerCase()}/${name || spec.metadata.name}`
+        const baseUrl = `${this.config.getCurrentCluster()!.server}/apis/${apiVersion}`
 
-        const opts: request.Options = { method: "get", url, json: true }
+        const [group, version] = splitLast(apiVersion, "/")
+
+        if (!group || !version) {
+          throw new KubernetesError(`Invalid apiVersion ${apiVersion}`, { spec })
+        }
+
+        let url: string
+
+        if (!group.includes(".") && group.endsWith("k8s.io")) {
+          // Looks like a built-in object
+          // TODO: this is awful, need to find out where to look this up...
+          let plural: string
+
+          if (spec.kind.endsWith("s")) {
+            plural = spec.kind + "es"
+          } else if (spec.kind.endsWith("y")) {
+            plural = spec.kind.slice(0, spec.kind.length - 1) + "ies"
+          } else {
+            plural = spec.kind + "s"
+          }
+          // /apis/networking.istio.io/v1alpha3/namespaces/gis-backend/virtualservices/gis-elasticsearch-master
+          // /apis/networking.istio.io/v1alpha3/namespaces/gis-backend/virtualservices/gis-elasticsearch-master
+          url = spec.metadata.namespace
+            ? `${baseUrl}/namespaces/${namespace}/${plural}/${name}`
+            : `${baseUrl}/${plural}/${name}`
+
+        } else {
+          // Must be a CRD then...
+          const crd = await this.findCrd(group, version, spec.kind)
+
+          const plural = crd.spec.names.plural
+          url = crd.spec.scope === "Namespaced"
+            ? `${baseUrl}/namespaces/${namespace}/${plural}/${name}`
+            : `${baseUrl}/${plural}/${name}`
+        }
+
+        log.silly(`GET ${url}`)
+
+        const opts: request.Options = { method: "get", url, json: true, resolveWithFullResponse: true }
         this.config.applyToRequest(opts)
 
-        return request(opts)
+        try {
+          return await request(opts)
+        } catch (err) {
+          wrapError(err)
+        }
     }
+  }
+
+  async findCrd(group: string, version: string, kind: string) {
+    const crds = (await this.apiExtensions.listCustomResourceDefinition()).body
+
+    for (const crd of crds.items) {
+      if (
+        crd.spec.group === group &&
+        crd.status.acceptedNames.kind === kind &&
+        findByName(crd.spec.versions, version)
+      ) {
+        return crd
+      }
+    }
+
+    throw new KubernetesError(`Could not find resource type ${group}/${version}/${kind}`, {
+      group,
+      version,
+      kind,
+      availableCrds: crds.items,
+    })
   }
 
   async upsert<K extends keyof CrudMapType>(

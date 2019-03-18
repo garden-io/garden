@@ -30,7 +30,7 @@ export async function checkTillerStatus(ctx: PluginContext, provider: Kubernetes
     ...await getTillerResources(ctx, provider, log),
   ]
 
-  const statuses = await checkResourceStatuses(api, namespace, resources)
+  const statuses = await checkResourceStatuses(api, namespace, resources, log)
 
   return combineStates(statuses.map(s => s.state))
 }
