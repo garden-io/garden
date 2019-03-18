@@ -17,7 +17,7 @@ import { findServiceResource, getChartResources, getResourceContainer, getServic
 import { KubernetesPluginContext } from "../kubernetes"
 
 export async function testHelmModule(
-  { ctx, log, interactive, module, runtimeContext, testConfig }:
+  { ctx, log, interactive, module, runtimeContext, testConfig, testVersion }:
     TestModuleParams<HelmModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
@@ -48,5 +48,5 @@ export async function testHelmModule(
     log,
   })
 
-  return storeTestResult({ ctx: k8sCtx, module, testName, result })
+  return storeTestResult({ ctx: k8sCtx, module, testName, testVersion, result })
 }

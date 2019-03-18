@@ -302,16 +302,7 @@ export const runTaskResultSchema = Joi.object()
       .description("The output log from the run."),
   })
 
-export interface TaskStatus {
-  done: boolean
-}
-
-export const taskStatusSchema = Joi.object()
-  .keys({
-    done: Joi.boolean()
-      .required()
-      .description("Whether the task has been successfully executed for the module's current version."),
-  })
+export const getTaskResultSchema = runTaskResultSchema.allow(null)
 
 export interface PluginActionOutputs {
   configureProvider: Promise<ConfigureProviderResult>
@@ -336,8 +327,8 @@ export interface ServiceActionOutputs {
 }
 
 export interface TaskActionOutputs {
-  getTaskStatus: Promise<TaskStatus>
   runTask: Promise<RunTaskResult>
+  getTaskResult: Promise<RunTaskResult | null>
 }
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {

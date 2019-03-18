@@ -44,7 +44,7 @@ import {
   testModuleParamsSchema,
   getTestResultParamsSchema,
   publishModuleParamsSchema,
-  getTaskStatusParamsSchema,
+  getTaskResultParamsSchema,
   runTaskParamsSchema,
   configureProviderParamsSchema,
 } from "./params"
@@ -71,8 +71,8 @@ import {
   testResultSchema,
   configureModuleResultSchema,
   publishModuleResultSchema,
-  taskStatusSchema,
   runTaskResultSchema,
+  getTaskResultSchema,
   configureProviderResultSchema,
 } from "./outputs"
 
@@ -263,13 +263,17 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
 
 export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescription } = {
   // TODO: see if this is actually necessary or useful
-  getTaskStatus: {
+  getTaskResult: {
     description: dedent`
-      Check and return the execution status of a task, i.e. whether the task has been successfully
-      completed for the module's current version.
+      Retrieve the task result for the specified version. Use this along with the \`runTask\` handler
+      to avoid running the same task repeatedly when its dependencies haven't changed.
+
+      Note that the version string provided to this handler may be a hash of the module's version, as
+      well as any runtime dependencies configured for the task, so it may not match the current version
+      of the module itself.
     `,
-    paramsSchema: getTaskStatusParamsSchema,
-    resultSchema: taskStatusSchema,
+    paramsSchema: getTaskResultParamsSchema,
+    resultSchema: getTaskResultSchema,
   },
   runTask: {
     description: dedent`

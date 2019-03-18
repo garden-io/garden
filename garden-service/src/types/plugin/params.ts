@@ -20,6 +20,7 @@ import { moduleConfigSchema } from "../../config/module"
 import { testConfigSchema } from "../../config/test"
 import { taskSchema } from "../../config/task"
 import { ProviderConfig, projectNameSchema, providerConfigBaseSchema } from "../../config/project"
+import { deline } from "../../util/string"
 
 export interface PluginActionContextParams {
   ctx: PluginContext
@@ -196,26 +197,30 @@ export const runModuleParamsSchema = runModuleBaseSchema
       .description("The command to run in the module."),
   })
 
+export const testVersionSchema = moduleVersionSchema
+  .description(deline`
+    The test run's version. In addition to the parent module's version, this also
+    factors in the module versions of the test's runtime dependencies (if any).`)
+
 export interface TestModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   interactive: boolean
   runtimeContext: RuntimeContext
   silent: boolean
   testConfig: T["testConfigs"][0]
+  testVersion: ModuleVersion
 }
 export const testModuleParamsSchema = runModuleBaseSchema
-  .keys({
-    testConfig: testConfigSchema,
-  })
+  .keys({ testConfig: testConfigSchema, testVersion: testVersionSchema })
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   testName: string
-  version: ModuleVersion
+  testVersion: ModuleVersion
 }
 export const getTestResultParamsSchema = moduleActionParamsSchema
   .keys({
     testName: Joi.string()
       .description("A unique name to identify the test run."),
-    version: moduleVersionSchema,
+    testVersion: testVersionSchema,
   })
 
 /**
@@ -319,16 +324,27 @@ export const runServiceParamsSchema = serviceActionParamsSchema
 /**
  * Task actions
  */
-export interface GetTaskStatusParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> { }
-export const getTaskStatusParamsSchema = taskActionParamsSchema
+
+export const taskVersionSchema = moduleVersionSchema
+  .description(deline`
+    The task run's version. In addition to the parent module's version, this also
+    factors in the module versions of the tasks's runtime dependencies (if any).`)
+
+export interface GetTaskResultParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> {
+  taskVersion: ModuleVersion
+}
+export const getTaskResultParamsSchema = taskActionParamsSchema
+  .keys({ taskVersion: taskVersionSchema })
 
 export interface RunTaskParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> {
   interactive: boolean
   runtimeContext: RuntimeContext
+  taskVersion: ModuleVersion
   timeout?: number
 }
 export const runTaskParamsSchema = taskActionParamsSchema
   .keys(runBaseParams)
+  .keys({ taskVersion: taskVersionSchema })
 
 export interface ServiceActionParams<T extends Module = Module> {
   getServiceStatus: GetServiceStatusParams<T>
@@ -341,7 +357,7 @@ export interface ServiceActionParams<T extends Module = Module> {
 }
 
 export interface TaskActionParams<T extends Module = Module> {
-  getTaskStatus: GetTaskStatusParams<T>
+  getTaskResult: GetTaskResultParams<T>
   runTask: RunTaskParams<T>
 }
 

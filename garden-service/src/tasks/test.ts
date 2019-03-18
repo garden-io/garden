@@ -130,6 +130,7 @@ export class TestTask extends BaseTask {
         runtimeContext,
         silent: true,
         testConfig: this.testConfig,
+        testVersion: this.version,
       })
     } catch (err) {
       log.setError()
@@ -145,7 +146,7 @@ export class TestTask extends BaseTask {
     return result
   }
 
-  private async getTestResult() {
+  private async getTestResult(): Promise<TestResult | null> {
     if (this.force) {
       return null
     }
@@ -154,7 +155,7 @@ export class TestTask extends BaseTask {
       log: this.log,
       module: this.module,
       testName: this.testConfig.name,
-      version: this.version,
+      testVersion: this.version,
     })
   }
 }
@@ -192,7 +193,7 @@ async function getTestDependencies(graph: ConfigGraph, testConfig: TestConfig) {
 /**
  * Determine the version of the test run, based on the version of the module and each of its dependencies.
  */
-async function getTestVersion(
+export async function getTestVersion(
   garden: Garden, graph: ConfigGraph, module: Module, testConfig: TestConfig,
 ): Promise<ModuleVersion> {
   const moduleDeps = await graph.resolveDependencyModules(module.build.dependencies, testConfig.dependencies)

@@ -23,6 +23,7 @@ import { getContainerServiceStatus } from "./status"
 import { runPod } from "../run"
 import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes"
+import { storeTaskResult } from "../task-results"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, service, command, interactive } = params
@@ -115,7 +116,7 @@ export async function runContainerService(
 }
 
 export async function runContainerTask(
-  { ctx, log, module, task, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
+  { ctx, log, module, task, taskVersion, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
 ): Promise<RunTaskResult> {
   extend(runtimeContext.envVars, task.spec.env || {})
 
@@ -124,7 +125,7 @@ export async function runContainerTask(
   const namespace = await getAppNamespace(ctx, provider)
   const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
-  const result = await runPod({
+  const res = await runPod({
     context,
     namespace,
     module,
@@ -139,8 +140,14 @@ export async function runContainerTask(
     log,
   })
 
-  return {
-    ...result,
+  const result = { ...res, taskName: task.name }
+
+  await storeTaskResult({
+    ctx,
+    result,
+    taskVersion,
     taskName: task.name,
-  }
+  })
+
+  return result
 }
