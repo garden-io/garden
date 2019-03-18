@@ -184,15 +184,17 @@ export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentP
     await login({ ctx: k8sCtx, log })
   }
 
+  const provider = k8sCtx.provider
+
   // Note: We don't need the system namespaces for remote k8s for now
 
-  // const provider = k8sCtx.provider
   // const api = new KubeApi(provider.config.context)
   // const contextForLog = `Preparing environment for plugin "kubernetes"`
   // if (!await systemNamespaceUpToDate(api, log, contextForLog)) {
   //   await recreateSystemNamespaces(api, log)
   // }
-  // await installTiller(k8sCtx, provider, log)
+
+  await installTiller(k8sCtx, provider, log)
 
   return {}
 }
