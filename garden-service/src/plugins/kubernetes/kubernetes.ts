@@ -154,8 +154,10 @@ export function gardenPlugin(): GardenPlugin {
       deleteSecret,
     },
     moduleActions: {
-      container: containerHandlers,
-      helm: helmHandlers,
+      "container": containerHandlers,
+      // TODO: we should find a way to avoid having to explicitly specify the key here
+      "maven-container": containerHandlers,
+      "helm": helmHandlers,
     },
   }
 }
