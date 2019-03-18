@@ -73,19 +73,19 @@ async function prepareNamespaces({ ctx }: GetEnvironmentStatusParams) {
 }
 
 export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const loggedIn = await getLoginStatus({ ctx: k8sCtx, log })
+  const provider = <KubernetesProvider>ctx.provider
+  const loggedIn = await getLoginStatus({ ctx, log })
 
-  if (!loggedIn) {
+  if (!loggedIn && !provider.config.namespace) {
     return {
       ready: false,
       needUserInput: true,
     }
   }
 
-  await prepareNamespaces({ ctx: k8sCtx, log })
+  await prepareNamespaces({ ctx, log })
 
-  const ready = (await checkTillerStatus(k8sCtx, k8sCtx.provider, log)) === "ready"
+  const ready = (await checkTillerStatus(ctx, provider, log)) === "ready"
 
   // Note: We don't need the system namespaces for remote k8s for now
 
@@ -177,14 +177,12 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
 }
 
 export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentParams) {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const loggedIn = await getLoginStatus({ ctx: k8sCtx, log })
+  const provider = <KubernetesProvider>ctx.provider
+  const loggedIn = await getLoginStatus({ ctx, log })
 
-  if (!loggedIn) {
-    await login({ ctx: k8sCtx, log })
+  if (!loggedIn && !provider.config.namespace) {
+    await login({ ctx, log })
   }
-
-  const provider = k8sCtx.provider
 
   // Note: We don't need the system namespaces for remote k8s for now
 
@@ -194,7 +192,7 @@ export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentP
   //   await recreateSystemNamespaces(api, log)
   // }
 
-  await installTiller(k8sCtx, provider, log)
+  await installTiller(ctx, provider, log)
 
   return {}
 }
