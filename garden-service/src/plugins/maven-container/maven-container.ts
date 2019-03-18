@@ -102,7 +102,7 @@ async function configure(params: ConfigureModuleParams<MavenContainerModule>) {
   const jdkVersion = mavenFields.jdkVersion!
 
   containerConfig.spec.buildArgs = {
-    JAR_PATH: mavenFields.jarPath!,
+    JAR_PATH: "app.jar",
     JDK_VERSION: jdkVersion.toString(),
   }
 
