@@ -288,7 +288,9 @@ export async function checkWorkloadStatus(
     }
   }
 
-  out.lastMessage = statusMsg
+  if (!out.lastMessage) {
+    out.lastMessage = statusMsg
+  }
 
   return out
 }
