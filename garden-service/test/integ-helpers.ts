@@ -1,5 +1,9 @@
 import * as execa from "execa"
+import * as Bluebird from "bluebird"
+import { remove } from "fs-extra"
 import { get, intersection } from "lodash"
+import { resolve } from "path"
+import { GARDEN_DIR_NAME } from "../src/constants"
 import { KubeApi } from "../src/plugins/kubernetes/api"
 import { deleteNamespaces } from "../src/plugins/kubernetes/init"
 import { TaskLogStatus } from "../src/logger/log-entry"
@@ -7,6 +11,12 @@ import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { getAllNamespaces } from "../src/plugins/kubernetes/namespace"
 import { getExampleProjects } from "./helpers"
 import { WatchTestConditionState } from "./run-garden"
+
+export async function removeExampleDotGardenDirs() {
+  await Bluebird.map(Object.values(getExampleProjects()), (projectRoot) => {
+    return remove(resolve(projectRoot, GARDEN_DIR_NAME))
+  })
+}
 
 export async function deleteExampleNamespaces(includeSystemNamespaces = false) {
   const namespacesToDelete: string[] = []
