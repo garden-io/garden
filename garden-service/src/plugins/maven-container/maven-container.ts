@@ -31,6 +31,7 @@ import { containerModuleSpecSchema } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/project"
 import { openJdks } from "./openjdk"
 import { maven } from "./maven"
+import { LogEntry } from "../../logger/log-entry"
 
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile")
 
@@ -120,12 +121,7 @@ async function configure(params: ConfigureModuleParams<MavenContainerModule>) {
 async function getBuildStatus(params: GetBuildStatusParams<MavenContainerModule>) {
   const { module, log } = params
 
-  // Copy the default Dockerfile to the build directory, if the module doesn't provide one
-  // Note: Doing this here so that the build status check works as expected.
-  if (!(await containerHelpers.hasDockerfile(module))) {
-    log.debug(`Using default Dockerfile`)
-    await copy(defaultDockerfilePath, resolve(module.buildPath, "Dockerfile"))
-  }
+  await prepareBuild(module, log)
 
   return getContainerBuildStatus(params)
 }
@@ -178,7 +174,17 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   await copy(resolvedJarPath, resolve(module.buildPath, "app.jar"))
 
   // Build the container
+  await prepareBuild(module, log)
   return buildContainerModule(params)
+}
+
+async function prepareBuild(module: MavenContainerModule, log: LogEntry) {
+  // Copy the default Dockerfile to the build directory, if the module doesn't provide one
+  // Note: Doing this here so that the build status check works as expected.
+  if (!(await containerHelpers.hasDockerfile(module))) {
+    log.debug(`Using default Dockerfile`)
+    await copy(defaultDockerfilePath, resolve(module.buildPath, "Dockerfile"))
+  }
 }
 
 async function loadPom(dir: string) {
