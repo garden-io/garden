@@ -408,7 +408,7 @@ describe("createIngressResources", () => {
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
       metadata: {
-        name: service.name,
+        name: `${service.name}-0`,
         annotations: {
           "ingress.kubernetes.io/force-ssl-redirect": "false",
           "kubernetes.io/ingress.class": "nginx",
@@ -450,7 +450,7 @@ describe("createIngressResources", () => {
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
       metadata: {
-        name: service.name,
+        name: `${service.name}-0`,
         annotations: {
           "ingress.kubernetes.io/force-ssl-redirect": "false",
           "kubernetes.io/ingress.class": "nginx",
@@ -502,7 +502,7 @@ describe("createIngressResources", () => {
         apiVersion: "extensions/v1beta1",
         kind: "Ingress",
         metadata: {
-          name: service.name,
+          name: `${service.name}-0`,
           annotations: {
             "ingress.kubernetes.io/force-ssl-redirect": "false",
             "kubernetes.io/ingress.class": "nginx",
@@ -530,7 +530,7 @@ describe("createIngressResources", () => {
         apiVersion: "extensions/v1beta1",
         kind: "Ingress",
         metadata: {
-          name: service.name,
+          name: `${service.name}-1`,
           annotations: {
             "ingress.kubernetes.io/force-ssl-redirect": "false",
             "kubernetes.io/ingress.class": "nginx",
@@ -575,7 +575,7 @@ describe("createIngressResources", () => {
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
       metadata: {
-        name: service.name,
+        name: `${service.name}-0`,
         annotations: {
           "ingress.kubernetes.io/force-ssl-redirect": "true",
           "kubernetes.io/ingress.class": "nginx",
@@ -722,7 +722,7 @@ describe("createIngressResources", () => {
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
       metadata: {
-        name: service.name,
+        name: `${service.name}-0`,
         annotations: {
           "ingress.kubernetes.io/force-ssl-redirect": "true",
           "kubernetes.io/ingress.class": "nginx",
@@ -788,7 +788,7 @@ describe("createIngressResources", () => {
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
       metadata: {
-        name: service.name,
+        name: `${service.name}-0`,
         annotations: {
           "ingress.kubernetes.io/force-ssl-redirect": "true",
           "kubernetes.io/ingress.class": "nginx",

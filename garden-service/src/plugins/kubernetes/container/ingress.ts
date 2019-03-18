@@ -33,7 +33,7 @@ export async function createIngressResources(
 
   const allIngresses = await getIngressesWithCert(service, api, provider)
 
-  return Bluebird.map(allIngresses, async (ingress) => {
+  return Bluebird.map(allIngresses, async (ingress, index) => {
     const rules = [{
       host: ingress.hostname,
       http: {
@@ -74,7 +74,7 @@ export async function createIngressResources(
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
       metadata: {
-        name: service.name,
+        name: `${service.name}-${index}`,
         annotations,
         namespace,
       },
