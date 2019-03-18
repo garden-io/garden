@@ -17,7 +17,7 @@ import {
   ContainerModuleConfig,
   ContainerTaskSpec,
 } from "../container/config"
-import { validateWithPath } from "../../config/common"
+import { validateWithPath, joiArray } from "../../config/common"
 import { BuildModuleParams, ConfigureModuleParams, GetBuildStatusParams } from "../../types/plugin/params"
 import { Module } from "../../types/module"
 import { configureContainerModule, gardenPlugin as containerPlugin } from "../container/container"
@@ -37,7 +37,7 @@ const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile
 interface MavenContainerModuleSpec extends ContainerModuleSpec {
   jarPath: string
   jdkVersion: number
-  mvnArgs: string[]
+  mvnOpts: string[]
 }
 
 // type MavenContainerModuleConfig = ModuleConfig<MavenContainerModuleSpec>
@@ -59,6 +59,8 @@ const mavenKeys = {
     .allow(8, 11)
     .default(8)
     .description("The JDK version to use."),
+  mvnOpts: joiArray(Joi.string())
+    .description("Options to add to the `mvn package` command when building."),
 }
 
 const mavenFieldsSchema = Joi.object()
@@ -131,7 +133,7 @@ async function getBuildStatus(params: GetBuildStatusParams<MavenContainerModule>
 async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Run the maven build
   const { ctx, module, log } = params
-  let { jarPath, jdkVersion } = module.spec
+  let { jarPath, jdkVersion, mvnOpts } = module.spec
 
   const pom = await loadPom(module.path)
   const artifactId = get(pom, ["project", "artifactId", "_text"])
@@ -148,9 +150,9 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   const mvnArgs = [
     "package",
     "--batch-mode",
-    "-DskipTests",
     "--projects", ":" + artifactId,
     "--also-make",
+    ...mvnOpts,
   ]
   const mvnCmdStr = "mvn " + mvnArgs.join(" ")
 
