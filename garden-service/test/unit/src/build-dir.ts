@@ -48,7 +48,7 @@ describe("BuildDir", () => {
   it("should sync sources to the build dir", async () => {
     const garden = await makeGarden()
     const moduleA = await garden.resolveModuleConfig("module-a")
-    await garden.buildDir.syncFromSrc(moduleA)
+    await garden.buildDir.syncFromSrc(moduleA, garden.log)
     const buildDirA = await garden.buildDir.buildPath(moduleA.name)
 
     const copiedPaths = [
