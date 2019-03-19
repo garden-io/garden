@@ -156,6 +156,7 @@ interface SywacParseResults extends ParseResults {
   details: { logger: Logger, result?: CommandResult }
 }
 
+// test
 export class GardenCli {
   private program: any
   private commands: { [key: string]: Command } = {}
