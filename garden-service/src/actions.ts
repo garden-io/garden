@@ -37,9 +37,9 @@ import {
   TestResult,
   PluginActionOutputs,
   PublishResult,
-  RunTaskResult,
   TaskActionOutputs,
   HotReloadServiceResult,
+  RunTaskResult,
 } from "./types/plugin/outputs"
 import {
   BuildModuleParams,
@@ -70,6 +70,7 @@ import {
   PluginTaskActionParamsBase,
   RunTaskParams,
   TaskActionParams,
+  GetTaskResultParams,
 } from "./types/plugin/params"
 import { Service, ServiceStatus, getServiceRuntimeContext } from "./types/service"
 import { mapValues, values, keyBy, omit, pickBy, fromPairs } from "lodash"
@@ -327,6 +328,14 @@ export class ActionHelper implements TypeGuard {
 
   async runTask(params: TaskActionHelperParams<RunTaskParams>): Promise<RunTaskResult> {
     return this.callTaskHandler({ params, actionType: "runTask" })
+  }
+
+  async getTaskResult(params: TaskActionHelperParams<GetTaskResultParams>): Promise<RunTaskResult | null> {
+    return this.callTaskHandler({
+      params,
+      actionType: "getTaskResult",
+      defaultHandler: async () => null,
+    })
   }
 
   //endregion

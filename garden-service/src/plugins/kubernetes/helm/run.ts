@@ -16,6 +16,7 @@ import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../kubernetes"
+import { storeTaskResult } from "../task-results"
 
 export async function runHelmModule(
   {
@@ -52,7 +53,7 @@ export async function runHelmModule(
 }
 
 export async function runHelmTask(
-  { ctx, log, module, task, interactive, runtimeContext, timeout }: RunTaskParams<HelmModule>,
+  { ctx, log, module, task, taskVersion, interactive, runtimeContext, timeout }: RunTaskParams<HelmModule>,
 ): Promise<RunTaskResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
@@ -74,10 +75,16 @@ export async function runHelmTask(
     log,
   })
 
-  return {
+  const result = { ...res, taskName: task.name }
+
+  await storeTaskResult({
+    ctx,
+    result,
+    taskVersion,
     taskName: task.name,
-    ...res,
-  }
+  })
+
+  return result
 }
 
 async function getImage(ctx: PluginContext, module: HelmModule, log: LogEntry, resourceSpec: HelmResourceSpec) {

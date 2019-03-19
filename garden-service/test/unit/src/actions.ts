@@ -27,7 +27,7 @@ import {
   execInServiceParamsSchema,
   getServiceLogsParamsSchema,
   runServiceParamsSchema,
-  getTaskStatusParamsSchema,
+  getTaskResultParamsSchema,
   runTaskParamsSchema,
   getEnvironmentStatusParamsSchema,
   prepareEnvironmentParamsSchema,
@@ -218,6 +218,7 @@ describe("ActionHelper", () => {
             timeout: 1234,
             spec: {},
           },
+          testVersion: module.version,
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -238,7 +239,7 @@ describe("ActionHelper", () => {
           log,
           module,
           testName: "test",
-          version: module.version,
+          testVersion: module.version,
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -331,6 +332,7 @@ describe("ActionHelper", () => {
           envVars: { FOO: "bar" },
           dependencies: {},
         },
+        taskVersion: task.module.version,
       })
       expect(result).to.eql({
         moduleName: task.module.name,
@@ -582,10 +584,18 @@ const testPlugin: PluginFactory = async () => ({
         }
       },
 
-      getTaskStatus: async (params) => {
-        validate(params, getTaskStatusParamsSchema)
+      getTaskResult: async (params) => {
+        validate(params, getTaskResultParamsSchema)
+        const module = params.task.module
         return {
-          done: true,
+          moduleName: module.name,
+          taskName: params.task.name,
+          command: ["foo"],
+          completedAt: now,
+          output: "bla bla",
+          success: true,
+          startedAt: now,
+          version: params.module.version,
         }
       },
 

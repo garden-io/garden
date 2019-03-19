@@ -72,13 +72,13 @@ export class DeployTask extends BaseTask {
     if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
       return deployTasks
     } else {
-      const taskTasks = deps.task.map(task => {
-        return new TaskTask({
+      const taskTasks = await Bluebird.map(deps.task, (task) => {
+        return TaskTask.factory({
           task,
           garden: this.garden,
           log: this.log,
           graph: this.graph,
-          force: false,
+          force: this.force,
           forceBuild: this.forceBuild,
         })
       })

@@ -19,12 +19,12 @@ import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./kubernetes"
 
 export async function getTestResult(
-  { ctx, module, testName, version }: GetTestResultParams<ContainerModule | HelmModule>,
-) {
+  { ctx, module, testName, testVersion }: GetTestResultParams<ContainerModule | HelmModule>,
+): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = new KubeApi(k8sCtx.provider.config.context)
   const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
-  const resultKey = getTestResultKey(module, testName, version)
+  const resultKey = getTestResultKey(module, testName, testVersion)
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, ns)
@@ -48,9 +48,9 @@ export function getTestResultKey(module: Module, testName: string, version: Modu
  * TODO: Implement a CRD for this.
  */
 export async function storeTestResult(
-  { ctx, module, testName, result }:
-    { ctx: PluginContext, module: Module, testName: string, result: RunResult },
-) {
+  { ctx, module, testName, testVersion, result }:
+    { ctx: PluginContext, module: Module, testName: string, testVersion: ModuleVersion, result: RunResult },
+): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = new KubeApi(k8sCtx.provider.config.context)
 
@@ -60,7 +60,7 @@ export async function storeTestResult(
   }
 
   const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
-  const resultKey = getTestResultKey(module, testName, result.version)
+  const resultKey = getTestResultKey(module, testName, testVersion)
   const body = {
     apiVersion: "v1",
     kind: "ConfigMap",

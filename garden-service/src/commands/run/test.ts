@@ -25,6 +25,7 @@ import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 import { logHeader } from "../../logger/util"
 import { PushTask } from "../../tasks/push"
+import { getTestVersion } from "../../tasks/test"
 
 const runArgs = {
   module: new StringParameter({
@@ -101,6 +102,8 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     printRuntimeContext(log, runtimeContext)
 
+    const testVersion = await getTestVersion(garden, graph, module, testConfig)
+
     const result = await garden.actions.testModule({
       log,
       module,
@@ -108,6 +111,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       runtimeContext,
       silent: false,
       testConfig,
+      testVersion,
     })
 
     return { result }
