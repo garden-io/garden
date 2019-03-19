@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { Module } from "../types/module"
 import { TestConfig } from "../config/test"
 import { ModuleVersion } from "../vcs/base"
-import { BuildTask } from "./build"
+import { PushTask } from "./push"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
 import { BaseTask, TaskParams } from "../tasks/base"
@@ -70,7 +70,7 @@ export class TestTask extends BaseTask {
     const dg = this.graph
     const services = (await dg.getDependencies(this.depType, this.getName(), false)).service
 
-    const deps: BaseTask[] = [new BuildTask({
+    const deps: BaseTask[] = [new PushTask({
       garden: this.garden,
       log: this.log,
       module: this.module,

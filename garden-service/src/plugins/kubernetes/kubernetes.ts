@@ -46,7 +46,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
 }
 
 export interface KubernetesConfig extends KubernetesBaseConfig {
-  deploymentRegistry: ContainerRegistryConfig
+  deploymentRegistry?: ContainerRegistryConfig
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>

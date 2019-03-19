@@ -22,7 +22,7 @@ import { kubectl } from "../kubectl"
 import { getContainerServiceStatus } from "./status"
 import { runPod } from "../run"
 import { containerHelpers } from "../../container/helpers"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, service, command, interactive } = params
@@ -78,13 +78,13 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
 
 export async function runContainerModule(
   {
-    ctx, module, command, ignoreError = true, interactive, runtimeContext, timeout,
+    ctx, log, module, command, ignoreError = true, interactive, runtimeContext, timeout,
   }: RunModuleParams<ContainerModule>,
 ): Promise<RunResult> {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
-  const image = await containerHelpers.getLocalImageId(module)
+  const provider = <KubernetesProvider>ctx.provider
+  const context = provider.config.context
+  const namespace = await getAppNamespace(ctx, provider)
+  const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
   return runPod({
     context,
@@ -96,6 +96,7 @@ export async function runContainerModule(
     interactive,
     ignoreError,
     timeout,
+    log,
   })
 }
 
@@ -114,14 +115,14 @@ export async function runContainerService(
 }
 
 export async function runContainerTask(
-  { ctx, module, task, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
+  { ctx, log, module, task, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
 ): Promise<RunTaskResult> {
   extend(runtimeContext.envVars, task.spec.env || {})
 
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
-  const image = await containerHelpers.getLocalImageId(module)
+  const provider = <KubernetesProvider>ctx.provider
+  const context = provider.config.context
+  const namespace = await getAppNamespace(ctx, provider)
+  const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
   const result = await runPod({
     context,
@@ -135,6 +136,7 @@ export async function runContainerTask(
     timeout: task.spec.timeout || 9999,
     // Workaround to make sure sidecars are not injected, due to https://github.com/kubernetes/kubernetes/issues/25908
     overrides: { metadata: { annotations: { "sidecar.istio.io/inject": "false" } } },
+    log,
   })
 
   return {

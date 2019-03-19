@@ -160,6 +160,7 @@ describe("DeployCommand", () => {
       "deploy.service-b": { version: "1", state: "ready" },
       "push.module-a": { pushed: false },
       "push.module-b": { pushed: false },
+      "push.module-c": { pushed: false },
     })
   })
 })

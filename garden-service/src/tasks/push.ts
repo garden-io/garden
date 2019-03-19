@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
@@ -42,14 +43,30 @@ export class PushTask extends BaseTask {
   }
 
   async getDependencies() {
-    return [new BuildTask({
+    const dg = await this.garden.getConfigGraph()
+    const deps = (await dg.getDependencies(this.depType, this.getName(), false)).build
+
+    const buildTask = new BuildTask({
       garden: this.garden,
       log: this.log,
       module: this.module,
       force: this.force,
       fromWatch: this.fromWatch,
       hotReloadServiceNames: this.hotReloadServiceNames,
-    })]
+    })
+
+    const pushTasks = await Bluebird.map(deps, async (m: Module) => {
+      return new PushTask({
+        garden: this.garden,
+        log: this.log,
+        module: m,
+        force: this.force,
+        fromWatch: this.fromWatch,
+        hotReloadServiceNames: this.hotReloadServiceNames,
+      })
+    })
+
+    return [buildTask, ...pushTasks]
   }
 
   getName() {
@@ -70,6 +87,7 @@ export class PushTask extends BaseTask {
     })
 
     if (handler === defaultHandler) {
+      this.log.verbose(`No push handler for module ${this.module.name}`)
       return { pushed: false }
     }
 

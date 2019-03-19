@@ -366,7 +366,9 @@ describe("plugins.container", () => {
           build: { dependencies: [] },
           apiVersion: "garden.io/v0",
           name: "module-a",
-          outputs: {},
+          outputs: {
+            "deployment-image-name": "module-a",
+          },
           path: modulePath,
           type: "container",
           spec:

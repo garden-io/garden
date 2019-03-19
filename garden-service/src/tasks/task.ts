@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { Task } from "../types/task"
-import { BuildTask } from "./build"
+import { PushTask } from "./push"
 import { DeployTask } from "./deploy"
 import { LogEntry } from "../logger/log-entry"
 import { RunTaskResult } from "../types/plugin/outputs"
@@ -43,7 +43,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
 
   async getDependencies(): Promise<BaseTask[]> {
 
-    const buildTask = new BuildTask({
+    const pushTask = new PushTask({
       garden: this.garden,
       log: this.log,
       module: this.task.module,
@@ -75,7 +75,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
       })
     })
 
-    return [buildTask, ...deployTasks, ...taskTasks]
+    return [pushTask, ...deployTasks, ...taskTasks]
 
   }
 

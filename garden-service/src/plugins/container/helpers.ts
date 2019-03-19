@@ -11,13 +11,13 @@ import { join } from "path"
 import { ConfigurationError } from "../../exceptions"
 import { splitFirst, spawn } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
-import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace } from "./config"
+import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
 
 interface ParsedImageId {
   host?: string
   namespace?: string
   repository: string
-  tag: string
+  tag?: string
 }
 
 function getDockerfilePath(basePath: string, dockerfile?: string) {
@@ -78,16 +78,16 @@ export const containerHelpers = {
   },
 
   /**
-   * Returns the image ID to be used when pushing to deployment registries.
+   * Returns the image name (sans tag/version) to be used when pushing to deployment registries.
    */
-  async getDeploymentImageId(module: ContainerModule, registryConfig?: ContainerRegistryConfig) {
-    const localId = await containerHelpers.getLocalImageId(module)
+  async getDeploymentImageName(moduleConfig: ContainerModuleConfig, registryConfig?: ContainerRegistryConfig) {
+    const localName = moduleConfig.spec.image || moduleConfig.name
+    const parsedId = containerHelpers.parseImageId(localName)
+    const withoutVersion = containerHelpers.unparseImageId({ ...parsedId, tag: undefined })
 
     if (!registryConfig) {
-      return localId
+      return withoutVersion
     }
-
-    const parsedId = containerHelpers.parseImageId(localId)
 
     const host = registryConfig.port ? `${registryConfig.hostname}:${registryConfig.port}` : registryConfig.hostname
 
@@ -95,7 +95,20 @@ export const containerHelpers = {
       host,
       namespace: registryConfig.namespace,
       repository: parsedId.repository,
-      tag: parsedId.tag,
+      tag: undefined,
+    })
+  },
+
+  /**
+   * Returns the image ID to be used when pushing to deployment registries. This always has the module version
+   * set as the tag.
+   */
+  async getDeploymentImageId(module: ContainerModule, registryConfig?: ContainerRegistryConfig) {
+    const imageName = await containerHelpers.getDeploymentImageName(module, registryConfig)
+
+    return containerHelpers.unparseImageId({
+      repository: imageName,
+      tag: module.version.versionString,
     })
   },
 
@@ -138,7 +151,7 @@ export const containerHelpers = {
   },
 
   unparseImageId(parsed: ParsedImageId) {
-    const name = `${parsed.repository}:${parsed.tag}`
+    const name = parsed.tag ? `${parsed.repository}:${parsed.tag}` : parsed.repository
 
     if (parsed.host) {
       return `${parsed.host}/${parsed.namespace || defaultNamespace}/${name}`

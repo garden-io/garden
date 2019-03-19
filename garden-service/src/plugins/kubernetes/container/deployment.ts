@@ -431,5 +431,5 @@ export async function pushModule({ ctx, module, log }: PushModuleParams<Containe
   await containerHelpers.dockerCli(module, ["tag", localId, remoteId])
   await containerHelpers.dockerCli(module, ["push", remoteId])
 
-  return { pushed: true, message: `Pushed ${localId}` }
+  return { pushed: true, message: `Pushed ${remoteId}` }
 }

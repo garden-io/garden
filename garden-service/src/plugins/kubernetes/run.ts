@@ -10,6 +10,7 @@ import { RunResult } from "../../types/plugin/outputs"
 import { kubectl } from "./kubectl"
 import { PrimitiveMap } from "../../config/common"
 import { Module } from "../../types/module"
+import { LogEntry } from "../../logger/log-entry"
 
 interface RunPodParams {
   context: string,
@@ -22,10 +23,11 @@ interface RunPodParams {
   ignoreError: boolean,
   timeout?: number,
   overrides?: any,
+  log: LogEntry,
 }
 
 export async function runPod(
-  { context, namespace, module, image, envVars, args, interactive, ignoreError, timeout, overrides }: RunPodParams,
+  { context, namespace, module, image, envVars, args, interactive, ignoreError, timeout, overrides, log }: RunPodParams,
 ): Promise<RunResult> {
   const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
 
@@ -58,6 +60,8 @@ export async function runPod(
     "-c",
     commandStr,
   ]
+
+  log.verbose(`Running kubectl ${kubecmd.join(" ")}`)
 
   const startedAt = new Date()
 
