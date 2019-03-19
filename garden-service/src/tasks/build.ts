@@ -14,6 +14,7 @@ import { BaseTask } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
+import { PushTask } from "./push"
 
 export interface BuildTaskParams {
   garden: Garden
@@ -39,12 +40,12 @@ export class BuildTask extends BaseTask {
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
-  async getDependencies(): Promise<BuildTask[]> {
+  async getDependencies() {
     const dg = await this.garden.getConfigGraph()
     const deps = (await dg.getDependencies(this.depType, this.getName(), false)).build
 
     return Bluebird.map(deps, async (m: Module) => {
-      return new BuildTask({
+      return new PushTask({
         garden: this.garden,
         log: this.log,
         module: m,

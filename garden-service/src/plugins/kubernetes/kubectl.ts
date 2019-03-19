@@ -20,7 +20,7 @@ export interface ApplyOptions {
 export const KUBECTL_DEFAULT_TIMEOUT = 300
 
 export class Kubectl {
-  public context?: string
+  public context: string
   public namespace?: string
   public configPath?: string
 
@@ -52,14 +52,10 @@ export class Kubectl {
   }
 
   private prepareArgs(args: string[]) {
-    const opts: string[] = []
+    const opts: string[] = [`--context=${this.context}`]
 
     if (this.namespace) {
       opts.push(`--namespace=${this.namespace}`)
-    }
-
-    if (this.context) {
-      opts.push(`--context=${this.context}`)
     }
 
     if (this.configPath) {

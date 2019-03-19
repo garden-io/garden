@@ -46,12 +46,11 @@ describe("TaskHelpers", () => {
       })
 
       expect(sortedBaseKeys(tasks)).to.eql([
-        "build.good-morning",
         "deploy.good-morning",
+        "push.good-morning",
       ])
 
       expect(await sortedBaseKeysdependencyTasks(tasks)).to.eql([
-        "build.build-dependency",
         "build.good-morning",
         "deploy.good-morning",
         "push.good-morning",
@@ -64,22 +63,23 @@ describe("TaskHelpers", () => {
         {
           moduleName: "build-dependency",
           expected: [
-            "build.build-dependency",
+            "push.build-dependency",
             "deploy.build-dependency",
 
-            "build.good-morning",
+            "push.good-morning",
             "deploy.good-morning",
 
-            "build.build-dependant",
+            "push.build-dependant",
             "deploy.build-dependant",
 
             "deploy.service-dependant",
             "deploy.service-dependant2",
           ],
           dependencyTasks: [
-            "push.build-dependency",
-            "push.good-morning",
-            "push.build-dependant",
+            "build.build-dependant",
+            "build.build-dependency",
+            "build.good-morning",
+
             "push.service-dependant",
             "push.service-dependant2",
 
@@ -89,20 +89,19 @@ describe("TaskHelpers", () => {
         {
           moduleName: "good-morning",
           expected: [
-            "build.good-morning",
+            "push.good-morning",
             "deploy.good-morning",
 
-            "build.build-dependant",
+            "push.build-dependant",
             "deploy.build-dependant",
 
             "deploy.service-dependant",
             "deploy.service-dependant2",
           ],
           dependencyTasks: [
-            "build.build-dependency",
+            "build.build-dependant",
+            "build.good-morning",
 
-            "push.good-morning",
-            "push.build-dependant",
             "push.service-dependant",
             "push.service-dependant2",
 
@@ -112,33 +111,32 @@ describe("TaskHelpers", () => {
         {
           moduleName: "good-evening",
           expected: [
-            "build.good-evening",
             "deploy.good-evening",
+            "push.good-evening",
           ],
           dependencyTasks: [
-            "push.good-evening",
+            "build.good-evening",
           ],
         },
         {
           moduleName: "build-dependant",
           expected: [
-            "build.build-dependant",
             "deploy.build-dependant",
+            "push.build-dependant",
           ],
           dependencyTasks: [
-            "build.good-morning",
-            "push.build-dependant",
+            "build.build-dependant",
           ],
         },
         {
           moduleName: "service-dependant",
           expected: [
-            "build.service-dependant",
             "deploy.service-dependant",
+            "push.service-dependant",
           ],
           dependencyTasks: [
+            "build.service-dependant",
             "deploy.good-morning",
-            "push.service-dependant",
           ],
         },
       ]
@@ -163,11 +161,11 @@ describe("TaskHelpers", () => {
         {
           moduleName: "build-dependency",
           expected: [
-            "build.build-dependency",
+            "push.build-dependency",
             "deploy.build-dependency",
           ],
           dependencyTasks: [
-            "push.build-dependency",
+            "build.build-dependency",
           ],
         },
         {
@@ -184,32 +182,31 @@ describe("TaskHelpers", () => {
         {
           moduleName: "good-evening",
           expected: [
-            "build.good-evening",
             "deploy.good-evening",
+            "push.good-evening",
           ],
           dependencyTasks: [
-            "push.good-evening",
+            "build.good-evening",
           ],
         },
         {
           moduleName: "build-dependant",
           expected: [
-            "build.build-dependant",
             "deploy.build-dependant",
+            "push.build-dependant",
           ],
           dependencyTasks: [
-            "build.good-morning",
-            "push.build-dependant",
+            "build.build-dependant",
           ],
         },
         {
           moduleName: "service-dependant",
           expected: [
-            "build.service-dependant",
             "deploy.service-dependant",
+            "push.service-dependant",
           ],
           dependencyTasks: [
-            "push.service-dependant",
+            "build.service-dependant",
           ],
         },
       ]

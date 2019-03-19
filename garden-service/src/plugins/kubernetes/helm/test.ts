@@ -45,6 +45,7 @@ export async function testHelmModule(
     interactive,
     ignoreError: true,
     timeout,
+    log,
   })
 
   return storeTestResult({ ctx: k8sCtx, module, testName, result })

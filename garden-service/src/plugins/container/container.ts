@@ -17,6 +17,7 @@ import { keyBy } from "lodash"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
+import { KubernetesProvider } from "../kubernetes/kubernetes"
 
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   moduleConfig.spec = validateWithPath({
@@ -134,6 +135,16 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
       `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
       { moduleConfig },
     )
+  }
+
+  const provider = <KubernetesProvider>ctx.provider
+  const deploymentImageName = await containerHelpers.getDeploymentImageName(
+    moduleConfig,
+    provider.config.deploymentRegistry,
+  )
+
+  moduleConfig.outputs = {
+    "deployment-image-name": deploymentImageName,
   }
 
   return moduleConfig

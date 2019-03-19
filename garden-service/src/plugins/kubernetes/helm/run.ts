@@ -47,6 +47,7 @@ export async function runHelmModule(
     interactive,
     ignoreError,
     timeout,
+    log,
   })
 }
 
@@ -70,6 +71,7 @@ export async function runHelmTask(
     interactive,
     ignoreError: false,
     timeout,
+    log,
   })
 
   return {

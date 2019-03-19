@@ -26,6 +26,7 @@ export function gardenPlugin(): GardenPlugin {
 
   // no need to push before deploying locally
   delete plugin.moduleActions!.container.pushModule
+  delete plugin.moduleActions!["maven-container"].pushModule
 
   return plugin
 }

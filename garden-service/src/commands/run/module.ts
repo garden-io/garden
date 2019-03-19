@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin/outputs"
 import {
   BooleanParameter,
@@ -25,6 +24,7 @@ import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 import { logHeader } from "../../logger/util"
+import { PushTask } from "../../tasks/push"
 
 const runArgs = {
   module: new StringParameter({
@@ -90,8 +90,8 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     await garden.actions.prepareEnvironment({ log })
 
-    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
-    await garden.addTask(buildTask)
+    const pushTask = new PushTask({ garden, log, module, force: opts["force-build"] })
+    await garden.addTask(pushTask)
     await garden.processTasks()
 
     const command = args.command || []

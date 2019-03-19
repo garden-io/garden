@@ -127,10 +127,6 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     name: config.name,
     context,
     defaultHostname,
-    deploymentRegistry: {
-      hostname: "foo.garden",   // this is not used by this plugin, but required by the base plugin
-      namespace: "_",
-    },
     forceSsl: false,
     imagePullSecrets: config.imagePullSecrets,
     ingressHttpPort: 80,

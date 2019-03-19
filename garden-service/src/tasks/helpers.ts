@@ -8,7 +8,7 @@
 
 import { intersection, uniq } from "lodash"
 import { DeployTask } from "./deploy"
-import { BuildTask } from "./build"
+import { PushTask } from "./push"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
 import { Service } from "../types/service"
@@ -32,12 +32,12 @@ export async function getDependantTasksForModule(
     },
 ): Promise<BaseTask[]> {
 
-  let buildTasks: BuildTask[] = []
+  let pushTasks: PushTask[] = []
   let dependantBuildModules: Module[] = []
   let services: Service[] = []
 
   if (!includeDependants) {
-    buildTasks.push(new BuildTask({ garden, log, module, force: forceBuild, fromWatch, hotReloadServiceNames }))
+    pushTasks.push(new PushTask({ garden, log, module, force: forceBuild, fromWatch, hotReloadServiceNames }))
     services = await graph.getServices(module.serviceNames)
   } else {
     const hotReloadModuleNames = await getModuleNames(graph, hotReloadServiceNames)
@@ -54,14 +54,14 @@ export async function getDependantTasksForModule(
     } else {
       const dependants = await graph.getDependantsForModule(module, dependantFilterFn)
 
-      buildTasks.push(new BuildTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
+      pushTasks.push(new PushTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
       dependantBuildModules = dependants.build
       services = (await graph.getServices(module.serviceNames)).concat(dependants.service)
     }
   }
 
-  buildTasks.push(...dependantBuildModules
-    .map(m => new BuildTask({ garden, log, module: m, force: forceBuild, fromWatch, hotReloadServiceNames })))
+  pushTasks.push(...dependantBuildModules
+    .map(m => new PushTask({ garden, log, module: m, force: forceBuild, fromWatch, hotReloadServiceNames })))
 
   const deployTasks = services
     .map(service => new DeployTask({
@@ -74,7 +74,7 @@ export async function getDependantTasksForModule(
       fromWatch, hotReloadServiceNames,
     }))
 
-  const outputTasks = [...buildTasks, ...deployTasks]
+  const outputTasks = [...pushTasks, ...deployTasks]
   log.silly(`getDependantTasksForModule called for module ${module.name}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map(t => t.getBaseKey()).join(", ")}`)
 
