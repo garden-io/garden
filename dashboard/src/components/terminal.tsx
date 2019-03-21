@@ -42,15 +42,13 @@ const Timestamp = styled.span`
   color: ${colors.gardenGrayLight};
 `
 
-// FIXME Use whitespace instead of dots for the sectinon padding.
-// For some reason whitespace is not rendered inside spans.
 const Terminal: React.SFC<Props> = ({ entries, sectionPad, showServiceName }) => {
   return (
     <Term className="p-1">
       <code>
         {entries.map((e, idx) => {
           const service = showServiceName
-            ? <Service>{padEnd(e.serviceName, sectionPad + 3, ".")}</Service>
+            ? <Service>{padEnd(e.serviceName, sectionPad + 3, "\u00A0")}</Service>
             : ""
           return (
             <P key={idx}>
