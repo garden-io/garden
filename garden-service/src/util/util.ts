@@ -221,12 +221,15 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     })
 
     if (data) {
+      // This may happen if the spawned process errors while we're still writing data.
+      proc.stdin!.on("error", () => { })
+
       proc.stdin!.end(data)
     }
   }
 
   return new Promise<SpawnOutput>((resolve, reject) => {
-    let _timeout
+    let _timeout: NodeJS.Timeout
 
     const _reject = (err: GardenError) => {
       extend(err.detail, <any>result)
@@ -283,6 +286,14 @@ export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
 export function splitFirst(s: string, delimiter: string) {
   const parts = s.split(delimiter)
   return [parts[0], parts.slice(1).join(delimiter)]
+}
+
+/**
+ * Splits the input string on the last occurrence of `delimiter`.
+ */
+export function splitLast(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts.slice(0, parts.length - 1).join(delimiter), parts[parts.length - 1]]
 }
 
 /**

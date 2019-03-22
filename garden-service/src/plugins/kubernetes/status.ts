@@ -9,9 +9,9 @@
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { ServiceState, combineStates } from "../../types/service"
-import { sleep } from "../../util/util"
+import { sleep, encodeYamlMulti } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
+import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { getAppNamespace } from "./namespace"
 import * as Bluebird from "bluebird"
 import { KubernetesResource } from "./types"
@@ -45,7 +45,8 @@ interface WorkloadStatus {
 type Workload = V1Deployment | V1DaemonSet | V1StatefulSet
 
 interface ObjHandler {
-  (api: KubeApi, namespace: string, obj: KubernetesResource, resourceVersion?: number): Promise<WorkloadStatus>
+  (api: KubeApi, namespace: string, obj: KubernetesResource, log: LogEntry, resourceVersion?: number)
+    : Promise<WorkloadStatus>
 }
 
 const podLogLines = 20
@@ -114,7 +115,7 @@ async function checkPodStatus(obj: KubernetesResource, pods: V1Pod[]): Promise<W
  * didn't pan out, since it doesn't look for events and just times out when errors occur during rollout.
  */
 export async function checkWorkloadStatus(
-  api: KubeApi, namespace: string, obj: KubernetesResource, resourceVersion?: number,
+  api: KubeApi, namespace: string, obj: KubernetesResource, log: LogEntry, resourceVersion?: number,
 ): Promise<WorkloadStatus> {
   const out: WorkloadStatus = {
     state: "unhealthy",
@@ -125,7 +126,7 @@ export async function checkWorkloadStatus(
   let statusRes: Workload
 
   try {
-    statusRes = <Workload>(await api.readBySpec(namespace, obj)).body
+    statusRes = <Workload>(await api.readBySpec(namespace, obj, log)).body
   } catch (err) {
     if (err.code && err.code === 404) {
       // service is not running
@@ -299,21 +300,21 @@ export async function checkWorkloadStatus(
  * Check if the specified Kubernetes objects are deployed and fully rolled out
  */
 export async function checkResourceStatuses(
-  api: KubeApi, namespace: string, resources: KubernetesResource[], prevStatuses?: WorkloadStatus[],
+  api: KubeApi, namespace: string, resources: KubernetesResource[], log: LogEntry, prevStatuses?: WorkloadStatus[],
 ): Promise<WorkloadStatus[]> {
   return Bluebird.map(resources, async (obj, i) => {
-    return checkResourceStatus(api, namespace, obj, prevStatuses && prevStatuses[i])
+    return checkResourceStatus(api, namespace, obj, log, prevStatuses && prevStatuses[i])
   })
 }
 
 export async function checkResourceStatus(
-  api: KubeApi, namespace: string, resource: KubernetesResource, prevStatus?: WorkloadStatus,
+  api: KubeApi, namespace: string, resource: KubernetesResource, log: LogEntry, prevStatus?: WorkloadStatus,
 ) {
   const handler = objHandlers[resource.kind]
   let status: WorkloadStatus
   if (handler) {
     try {
-      status = await handler(api, namespace, resource, prevStatus && prevStatus.resourceVersion)
+      status = await handler(api, namespace, resource, log, prevStatus && prevStatus.resourceVersion)
     } catch (err) {
       // We handle 404s specifically since this might be invoked before some objects are deployed
       if (err.code === 404) {
@@ -363,7 +364,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
     await sleep(2000 + 1000 * loops)
     loops += 1
 
-    const statuses = await checkResourceStatuses(api, namespace, objects, prevStatuses)
+    const statuses = await checkResourceStatuses(api, namespace, objects, log, prevStatuses)
 
     for (const status of statuses) {
       if (status.lastError) {
@@ -419,11 +420,11 @@ interface ComparisonResult {
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
 export async function compareDeployedObjects(
-  ctx: PluginContext, api: KubeApi, namespace: string, objects: KubernetesResource[], log: LogEntry,
+  ctx: KubernetesPluginContext, api: KubeApi, namespace: string, resources: KubernetesResource[], log: LogEntry,
 ): Promise<ComparisonResult> {
 
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const maybeDeployedObjects = await Bluebird.map(objects, obj => getDeployedObject(k8sCtx, k8sCtx.provider, obj))
+  // First check if any resources are missing from the cluster.
+  const maybeDeployedObjects = await Bluebird.map(resources, obj => getDeployedObject(ctx, ctx.provider, obj, log))
   const deployedObjects = <KubernetesResource[]>maybeDeployedObjects.filter(o => o !== null)
 
   const result: ComparisonResult = {
@@ -433,20 +434,59 @@ export async function compareDeployedObjects(
 
   const logDescription = (obj: KubernetesResource) => `${obj.kind}/${obj.metadata.name}`
 
-  const missingObjectNames = zip(objects, maybeDeployedObjects)
+  const missingObjectNames = zip(resources, maybeDeployedObjects)
     .filter(([_, deployed]) => !deployed)
     .map(([obj, _]) => logDescription(obj!))
 
-  if (missingObjectNames.length > 0) {
-    // One or more objects is not deployed.
-    log.silly(`Resource(s) ${missingObjectNames.join(", ")} missing from cluster`)
+  if (missingObjectNames.length === resources.length) {
+    // All resources missing.
+    log.verbose(`All resources missing from cluster`)
     result.state = "missing"
+    return result
+  } else if (missingObjectNames.length > 0) {
+    // One or more objects missing.
+    log.verbose(`Resource(s) ${missingObjectNames.join(", ")} missing from cluster`)
+    result.state = "outdated"
     return result
   }
 
+  // From here, the state can only be "ready" or "outdated", so we proceed to compare the old & new specs.
+
+  // First we try using `kubectl diff`, to avoid potential normalization issues (i.e. false negatives). This errors
+  // with exit code 1 if there is a mismatch, but may also fail with the same exit code for a number of other reasons,
+  // including the cluster not supporting dry-runs, certain CRDs not supporting dry-runs etc.
+  const yamlResources = await encodeYamlMulti(resources)
+
+  try {
+    await kubectl(ctx.provider.config.context, namespace)
+      .call(["diff", "-f", "-"], { data: Buffer.from(yamlResources) })
+
+    // If the commands exits succesfully, the check was successful and the diff is empty.
+    log.verbose(`kubectl diff indicates all resources match the deployed resources.`)
+    result.state = "ready"
+    return result
+  } catch (err) {
+    // Exited with non-zero code. Check for error messages on stderr. If one is there, the command was unable to
+    // complete the check, so we fall back to our own mechanism. Otherwise the command worked, but one or more resources
+    // are missing or outdated.
+    if (
+      !err.detail || !err.detail.result
+      || (!!err.detail.result.stderr && err.detail.result.stderr.trim() !== "exit status 1")
+    ) {
+      log.verbose(`kubectl diff failed: ${err.message}`)
+    } else {
+      log.verbose(`kubectl diff indicates one or more resources are outdated.`)
+      log.silly(err.detail.result.stdout)
+      result.state = "outdated"
+      return result
+    }
+  }
+
+  // Using kubectl diff didn't work, so we fall back to our own comparison check, which works in _most_ cases,
+  // but doesn't exhaustively handle normalization issues.
   const deployedObjectStatuses: WorkloadStatus[] = await Bluebird.map(
     deployedObjects,
-    async (obj) => checkResourceStatus(api, namespace, obj, undefined))
+    async (obj) => checkResourceStatus(api, namespace, obj, log, undefined))
 
   const deployedStates = deployedObjectStatuses.map(s => s.state)
   if (deployedStates.find(s => s !== "ready")) {
@@ -464,10 +504,7 @@ export async function compareDeployedObjects(
     return result
   }
 
-  // From here, the state can only be "ready" or "outdated", so we proceed to compare the old & new specs.
-
-  for (let [newSpec, existingSpec] of zip(objects, deployedObjects) as KubernetesResource[][]) {
-
+  for (let [newSpec, existingSpec] of zip(resources, deployedObjects) as KubernetesResource[][]) {
     // the API version may implicitly change when deploying
     existingSpec.apiVersion = newSpec.apiVersion
 
@@ -485,15 +522,15 @@ export async function compareDeployedObjects(
       delete newSpec.spec.clusterIP
     }
 
-    // handle properties that are omitted in the response because they have the default value
-    // (another design issue in the K8s API)
     // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
     //       `kubectl diff` is ready, or server-side apply/diff is ready
-    if (newSpec.kind === "DaemonSet") {
+    if (newSpec.kind === "DaemonSet" || newSpec.kind === "Deployment" || newSpec.kind == "StatefulSet") {
+      // handle properties that are omitted in the response because they have the default value
+      // (another design issue in the K8s API)
       if (newSpec.spec.minReadySeconds === 0) {
         delete newSpec.spec.minReadySeconds
       }
-      if (newSpec.spec.template.spec.hostNetwork === false) {
+      if (newSpec.spec.template && newSpec.spec.template.spec && newSpec.spec.template.spec.hostNetwork === false) {
         delete newSpec.spec.template.spec.hostNetwork
       }
     }
@@ -524,13 +561,13 @@ export async function compareDeployedObjects(
 }
 
 async function getDeployedObject(
-  ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesResource,
+  ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesResource, log: LogEntry,
 ): Promise<KubernetesResource | null> {
   const api = new KubeApi(provider.config.context)
   const namespace = obj.metadata.namespace || await getAppNamespace(ctx, provider)
 
   try {
-    const res = await api.readBySpec(namespace, obj)
+    const res = await api.readBySpec(namespace, obj, log)
     return <KubernetesResource>res.body
   } catch (err) {
     if (err.code === 404) {

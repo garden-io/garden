@@ -330,7 +330,7 @@ async function writeStackFile(
   })
 }
 
-async function getServiceStatus({ ctx, module, service }: GetServiceStatusParams<OpenFaasModule>) {
+async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusParams<OpenFaasModule>) {
   const openFaasCtx = <OpenFaasPluginContext>ctx
   const k8sProvider = getK8sProvider(openFaasCtx)
 
@@ -359,7 +359,7 @@ async function getServiceStatus({ ctx, module, service }: GetServiceStatusParams
   const container: any = findByName(deployment.spec.template.spec.containers, service.name)
   const envVersion = findByName<any>(container.env, "GARDEN_VERSION")
   const version = envVersion ? envVersion.value : undefined
-  const status = await checkWorkloadStatus(api, namespace, deployment)
+  const status = await checkWorkloadStatus(api, namespace, deployment, log)
 
   return {
     state: status.state,
