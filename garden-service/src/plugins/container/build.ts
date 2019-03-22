@@ -9,6 +9,7 @@
 import { BuildModuleParams, GetBuildStatusParams } from "../../types/plugin/params"
 import { containerHelpers } from "./helpers"
 import { ContainerModule } from "./config"
+import { ConfigurationError } from "../../exceptions"
 
 export async function getContainerBuildStatus({ module, log }: GetBuildStatusParams<ContainerModule>) {
   const identifier = await containerHelpers.imageExistsLocally(module)
@@ -27,14 +28,23 @@ export async function getContainerBuildStatus({ module, log }: GetBuildStatusPar
 export async function buildContainerModule({ module, log }: BuildModuleParams<ContainerModule>) {
   const buildPath = module.buildPath
   const image = module.spec.image
+  const hasDockerfile = await containerHelpers.hasDockerfile(module)
 
-  if (!!image && !(await containerHelpers.hasDockerfile(module))) {
+  if (!!image && !hasDockerfile) {
     if (await containerHelpers.imageExistsLocally(module)) {
       return { fresh: false }
     }
     log.setState(`Pulling image ${image}...`)
     await containerHelpers.pullImage(module)
     return { fetched: true }
+  }
+
+  // make sure we can build the thing
+  if (!hasDockerfile) {
+    throw new ConfigurationError(
+      `Dockerfile not found at ${module.spec.dockerfile || "Dockerfile"} for module ${module.name}`,
+      { spec: module.spec },
+    )
   }
 
   const identifier = await containerHelpers.getLocalImageId(module)
@@ -53,7 +63,7 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
   }
 
   if (module.spec.dockerfile) {
-    cmdOpts.push("--file", containerHelpers.getDockerfilePathFromModule(module))
+    cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
   }
 
   // TODO: log error if it occurs

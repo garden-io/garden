@@ -9,7 +9,6 @@
 import dedent = require("dedent")
 
 import { validateWithPath } from "../../config/common"
-import { pathExists } from "fs-extra"
 import { ConfigurationError } from "../../exceptions"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { ConfigureModuleParams, HotReloadServiceParams, PublishModuleParams } from "../../types/plugin/params"
@@ -119,23 +118,6 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
     spec: t,
     timeout: t.timeout,
   }))
-
-  const hasDockerfile = await pathExists(containerHelpers.getDockerfilePathFromConfig(moduleConfig))
-
-  // make sure we can build the thing
-  if (moduleConfig.spec.dockerfile && !hasDockerfile) {
-    throw new ConfigurationError(
-      `Dockerfile not found at specififed path ${moduleConfig.spec.dockerfile} for module ${moduleConfig.name}`,
-      {},
-    )
-  }
-
-  if (!moduleConfig.spec.image && !hasDockerfile) {
-    throw new ConfigurationError(
-      `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
-      { moduleConfig },
-    )
-  }
 
   const provider = <KubernetesProvider>ctx.provider
   const deploymentImageName = await containerHelpers.getDeploymentImageName(
