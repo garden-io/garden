@@ -52,7 +52,7 @@
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "check-all": "npm run check-docs && npm run check-package-lock && npm run check-licenses && npm run lint",
-    "clean": "lerna run clean && git clean -X -f",
+    "clean": "lerna run clean && git clean -X -f && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
     "fix-format": "tslint -p . --fix && tsfmt -r",
     "generate-docs": "gulp generate-docs",
     "integ": "lerna run integ",
