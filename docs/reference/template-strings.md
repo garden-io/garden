@@ -43,6 +43,18 @@ lookups of keys. However, it is possible to do nested templating. For a somewhat
 There the name of the module is pulled from the project/environment configuration, and used to find the
 appropriate key under the `modules` configuration context.
 
+You can also do simple OR statements:
+
+
+```yaml
+      # ...
+      env:
+        PROFILE_NAME: ${local.env.PROFILE || "default"}
+        LOG_LEVEL: ${local.env.LOG_LEVEL || variables.default-log-level}
+```
+
+This allows you to easily set default values when certain template keys are not available.
+
 ## Reference
 
 ### Project configuration context
@@ -51,7 +63,7 @@ The following keys are available in template strings under the `project` key in
 
 ```yaml
 
-local: 
+local:
   # A map of all local environment variables (see
   # https://nodejs.org/api/process.html#process_process_env).
   env: {}
@@ -70,7 +82,7 @@ The following keys are available in template strings under the `module` key in 
 
 ```yaml
 
-local: 
+local:
   # A map of all local environment variables (see
   # https://nodejs.org/api/process.html#process_process_env).
   env: {}
@@ -83,7 +95,7 @@ local:
   platform:
 
 # Information about the environment that Garden is running against.
-environment: 
+environment:
   # The name of the environment Garden is running against.
   #
   # Example: "local"
@@ -97,7 +109,7 @@ environment:
 #     path: /home/me/code/my-project/my-module
 #     version: v17ad4cb3fd
 #
-modules: 
+modules:
   {}
 
 # A map of all configured plugins/providers for this environment and their configuration.
@@ -107,7 +119,7 @@ modules:
 #     name: local-kubernetes
 #     context: my-kube-context
 #
-providers: 
+providers:
   {}
 
 # A map of all variables defined in the project configuration.
@@ -116,6 +128,6 @@ providers:
 #   team-name: bananaramallama
 #   some-service-endpoint: 'https://someservice.com/api/v2'
 #
-variables: 
+variables:
   {}
 ```

@@ -1,6 +1,7 @@
 import { expect } from "chai"
 import { resolveTemplateString, resolveTemplateStrings } from "../../../src/template-string"
 import { ConfigContext } from "../../../src/config/config-context"
+import { expectError } from "../../helpers"
 
 /* tslint:disable:no-invalid-template-strings */
 
@@ -20,6 +21,11 @@ describe("resolveTemplateString", async () => {
   it("should interpolate a simple format string", async () => {
     const res = await resolveTemplateString("${some}", new TestContext({ some: "value" }))
     expect(res).to.equal("value")
+  })
+
+  it("should optionally allow undefined values", async () => {
+    const res = await resolveTemplateString("${some}", new TestContext({}), { allowUndefined: true })
+    expect(res).to.equal("")
   })
 
   it("should interpolate a format string with a prefix", async () => {
@@ -121,7 +127,7 @@ describe("resolveTemplateString", async () => {
     try {
       await resolveTemplateString("${some", new TestContext({ some: {} }))
     } catch (err) {
-      expect(err.message).to.equal("Invalid template string: ...${some")
+      expect(err.message).to.equal("Invalid template string: ${some")
       return
     }
 
@@ -150,6 +156,64 @@ describe("resolveTemplateString", async () => {
       "${resol${pa${deep}t}ed}", new TestContext({ resolved: 123, deep: "r", part: "v" }),
     )
     expect(res).to.equal("123")
+  })
+
+  it("should handle a single-quoted string", async () => {
+    const res = await resolveTemplateString(
+      "${'foo'}",
+      new TestContext({}),
+    )
+    expect(res).to.equal("foo")
+  })
+
+  it("should handle a double-quoted string", async () => {
+    const res = await resolveTemplateString(
+      "${\"foo\"}",
+      new TestContext({}),
+    )
+    expect(res).to.equal("foo")
+  })
+
+  it("should handle a conditional between two identifiers", async () => {
+    const res = await resolveTemplateString(
+      "${a || b}",
+      new TestContext({ a: undefined, b: 123 }),
+    )
+    expect(res).to.equal("123")
+  })
+
+  it("should handle a conditional between two identifiers without spaces", async () => {
+    const res = await resolveTemplateString(
+      "${a||b}",
+      new TestContext({ a: undefined, b: 123 }),
+    )
+    expect(res).to.equal("123")
+  })
+
+  it("should throw if neither key in conditional is valid", async () => {
+    return expectError(
+      () => resolveTemplateString(
+        "${a || b}",
+        new TestContext({}),
+      ),
+      "configuration",
+    )
+  })
+
+  it("should handle a conditional between an identifier and a string", async () => {
+    const res = await resolveTemplateString(
+      "${a || 'b'}",
+      new TestContext({ a: undefined }),
+    )
+    expect(res).to.equal("b")
+  })
+
+  it("should handle a conditional between a string and a string", async () => {
+    const res = await resolveTemplateString(
+      "${'a' || 'b'}",
+      new TestContext({ a: undefined }),
+    )
+    expect(res).to.equal("a")
   })
 })
 

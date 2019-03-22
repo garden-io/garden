@@ -31,7 +31,7 @@ describe("ConfigContext", () => {
   describe("resolve", () => {
     // just a shorthand to aid in testing
     function resolveKey(c: ConfigContext, key: ContextKey) {
-      return c.resolve({ key, nodePath: [] })
+      return c.resolve({ key, nodePath: [], opts: {} })
     }
 
     it("should resolve simple keys", async () => {
@@ -103,15 +103,15 @@ describe("ConfigContext", () => {
       })
       const key = ["nested", "key"]
       const stack = [key.join(".")]
-      await expectError(() => c.resolve({ key, nodePath: [], stack }), "configuration")
+      await expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "configuration")
     })
 
     it("should detect a circular reference from a nested context", async () => {
       class NestedContext extends ConfigContext {
-        async resolve({ key, nodePath, stack }: ContextResolveParams) {
+        async resolve({ key, nodePath, opts }: ContextResolveParams) {
           const circularKey = nodePath.concat(key)
-          stack!.push(circularKey.join("."))
-          return c.resolve({ key: circularKey, nodePath: [], stack })
+          opts.stack!.push(circularKey.join("."))
+          return c.resolve({ key: circularKey, nodePath: [], opts })
         }
       }
       const c = new TestContext({
@@ -214,13 +214,13 @@ describe("ProjectConfigContext", () => {
   it("should should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
     const c = new ProjectConfigContext()
-    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [] })).to.equal("foo")
+    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.equal("foo")
     delete process.env.TEST_VARIABLE
   })
 
   it("should should resolve the local platform", async () => {
     const c = new ProjectConfigContext()
-    expect(await c.resolve({ key: ["local", "platform"], nodePath: [] })).to.equal(process.platform)
+    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.equal(process.platform)
   })
 })
 
@@ -240,38 +240,38 @@ describe("ModuleConfigContext", () => {
 
   it("should should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
-    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [] })).to.equal("foo")
+    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.equal("foo")
     delete process.env.TEST_VARIABLE
   })
 
   it("should should resolve the local platform", async () => {
-    expect(await c.resolve({ key: ["local", "platform"], nodePath: [] })).to.equal(process.platform)
+    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.equal(process.platform)
   })
 
   it("should should resolve the environment config", async () => {
-    expect(await c.resolve({ key: ["environment", "name"], nodePath: [] })).to.equal(garden.environment.name)
+    expect(await c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.equal(garden.environment.name)
   })
 
   it("should should resolve the path of a module", async () => {
     const path = join(garden.projectRoot, "module-a")
-    expect(await c.resolve({ key: ["modules", "module-a", "path"], nodePath: [] })).to.equal(path)
+    expect(await c.resolve({ key: ["modules", "module-a", "path"], nodePath: [], opts: {} })).to.equal(path)
   })
 
   it("should should resolve the version of a module", async () => {
     const { versionString } = await garden.resolveVersion("module-a", [])
-    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [] })).to.equal(versionString)
+    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.equal(versionString)
   })
 
   it("should should resolve the outputs of a module", async () => {
-    expect(await c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [] })).to.equal("bar")
+    expect(await c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [], opts: {} })).to.equal("bar")
   })
 
   it("should should resolve the version of a module", async () => {
     const { versionString } = await garden.resolveVersion("module-a", [])
-    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [] })).to.equal(versionString)
+    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.equal(versionString)
   })
 
   it("should should resolve a project variable", async () => {
-    expect(await c.resolve({ key: ["variables", "some"], nodePath: [] })).to.equal("variable")
+    expect(await c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.equal("variable")
   })
 })
