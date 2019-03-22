@@ -116,6 +116,37 @@ describe("plugins.container", () => {
     })
   })
 
+  describe("getDeploymentImageId", () => {
+    it("should return module name with module version if there is a Dockerfile and no image name set", async () => {
+      const config = cloneDeep(baseConfig)
+      const module = await getTestModule(config)
+
+      td.replace(containerHelpers, "hasDockerfile", async () => true)
+
+      expect(await containerHelpers.getDeploymentImageId(module)).to.equal("test:1234")
+    })
+
+    it("should return image name with module version if there is a Dockerfile and image name is set", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image:1.1"
+      const module = await getTestModule(config)
+
+      td.replace(containerHelpers, "hasDockerfile", async () => true)
+
+      expect(await containerHelpers.getDeploymentImageId(module)).to.equal("some/image:1234")
+    })
+
+    it("should return configured image tag if there is no Dockerfile", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image:1.1"
+      const module = await getTestModule(config)
+
+      td.replace(containerHelpers, "hasDockerfile", async () => false)
+
+      expect(await containerHelpers.getDeploymentImageId(module)).to.equal("some/image:1.1")
+    })
+  })
+
   describe("getDockerfilePathFromModule", () => {
     it("should return the absolute default Dockerfile path", async () => {
       const module = await getTestModule(baseConfig)
