@@ -112,10 +112,14 @@ export const containerHelpers = {
         repository: imageName,
         tag: module.version.versionString,
       })
-    } else {
+    } else if (module.spec.image) {
       // Otherwise, return the configured image ID.
-      // Note: This will always be set here, otherwise validation will have failed already.
-      return module.spec.image!
+      return module.spec.image
+    } else {
+      throw new ConfigurationError(
+        `Module ${module.name} neither specifies image nor provides Dockerfile`,
+        { spec: module.spec },
+      )
     }
   },
 
@@ -186,15 +190,17 @@ export const containerHelpers = {
     return output.output || ""
   },
 
-  async hasDockerfile(module: ContainerModule) {
-    return pathExists(containerHelpers.getDockerfilePathFromModule(module))
+  async hasDockerfile(moduleConfig: ContainerModuleConfig) {
+    // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
+    // If the file turns out to be missing, this will come up in the build handler.
+    return moduleConfig.spec.dockerfile || pathExists(containerHelpers.getDockerfileSourcePath(moduleConfig))
   },
 
-  getDockerfilePathFromModule(module: ContainerModule) {
+  getDockerfileBuildPath(module: ContainerModule) {
     return getDockerfilePath(module.buildPath, module.spec.dockerfile)
   },
 
-  getDockerfilePathFromConfig(config: ModuleConfig) {
+  getDockerfileSourcePath(config: ModuleConfig) {
     return getDockerfilePath(config.path, config.spec.dockerfile)
   },
 

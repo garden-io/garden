@@ -145,15 +145,22 @@ describe("plugins.container", () => {
 
       expect(await containerHelpers.getDeploymentImageId(module)).to.equal("some/image:1.1")
     })
+
+    it("should throw if no image name is set and there is no Dockerfile", async () => {
+      const config = cloneDeep(baseConfig)
+      const module = await getTestModule(config)
+
+      td.replace(containerHelpers, "hasDockerfile", async () => false)
+
+      await expectError(() => containerHelpers.getDeploymentImageId(module), "configuration")
+    })
   })
 
-  describe("getDockerfilePathFromModule", () => {
+  describe("getDockerfileBuildPath", () => {
     it("should return the absolute default Dockerfile path", async () => {
       const module = await getTestModule(baseConfig)
 
-      td.replace(containerHelpers, "hasDockerfile", async () => true)
-
-      const path = await containerHelpers.getDockerfilePathFromModule(module)
+      const path = await containerHelpers.getDockerfileBuildPath(module)
       expect(path).to.equal(join(module.buildPath, "Dockerfile"))
     })
 
@@ -162,10 +169,26 @@ describe("plugins.container", () => {
       config.spec.dockerfile = relDockerfilePath
       const module = await getTestModule(config)
 
-      td.replace(containerHelpers, "hasDockerfile", async () => true)
-
-      const path = await containerHelpers.getDockerfilePathFromModule(module)
+      const path = await containerHelpers.getDockerfileBuildPath(module)
       expect(path).to.equal(join(module.buildPath, relDockerfilePath))
+    })
+  })
+
+  describe("getDockerfileSourcePath", () => {
+    it("should return the absolute default Dockerfile path", async () => {
+      const module = await getTestModule(baseConfig)
+
+      const path = await containerHelpers.getDockerfileSourcePath(module)
+      expect(path).to.equal(join(module.path, "Dockerfile"))
+    })
+
+    it("should return the absolute user specified Dockerfile path", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.dockerfile = relDockerfilePath
+      const module = await getTestModule(config)
+
+      const path = await containerHelpers.getDockerfileSourcePath(module)
+      expect(path).to.equal(join(module.path, relDockerfilePath))
     })
   })
 
@@ -218,7 +241,7 @@ describe("plugins.container", () => {
 
   describe("getDockerfilePathFromConfig", () => {
     it("should return the absolute default Dockerfile path", async () => {
-      const path = await containerHelpers.getDockerfilePathFromConfig(baseConfig)
+      const path = await containerHelpers.getDockerfileSourcePath(baseConfig)
       expect(path).to.equal(join(baseConfig.path, "Dockerfile"))
     })
 
@@ -226,7 +249,7 @@ describe("plugins.container", () => {
       const config = cloneDeep(baseConfig)
       config.spec.dockerfile = relDockerfilePath
 
-      const path = await containerHelpers.getDockerfilePathFromConfig(config)
+      const path = await containerHelpers.getDockerfileSourcePath(config)
       expect(path).to.equal(join(config.path, relDockerfilePath))
     })
   })
@@ -510,16 +533,6 @@ describe("plugins.container", () => {
               timeout: null,
             }],
         })
-      })
-
-      it("should fail if user specified Dockerfile not found", async () => {
-        const moduleConfig = cloneDeep(baseConfig)
-        moduleConfig.spec.dockerfile = "path/to/non-existing/Dockerfile"
-
-        await expectError(
-          () => configure({ ctx, moduleConfig, log }),
-          "configuration",
-        )
       })
 
       it("should fail with invalid port in ingress spec", async () => {
