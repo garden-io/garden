@@ -187,7 +187,7 @@
     "dev": "npm link && npm run tsc",
     "dist": "npm run build",
     "integ": "./test/integ/run",
-    "integ-full": "node_modules/.bin/mocha --opts test/mocha.integ.opts",
+    "integ-full": "./bin/integ-full.ts",
     "prepare": "npm run snyk-protect",
     "snyk-protect": "snyk protect",
     "test": "node_modules/.bin/mocha",
