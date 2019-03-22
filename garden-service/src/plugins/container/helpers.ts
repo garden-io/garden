@@ -104,12 +104,19 @@ export const containerHelpers = {
    * set as the tag.
    */
   async getDeploymentImageId(module: ContainerModule, registryConfig?: ContainerRegistryConfig) {
-    const imageName = await containerHelpers.getDeploymentImageName(module, registryConfig)
+    if (await containerHelpers.hasDockerfile(module)) {
+      // If building, return the deployment image name, with the current module version.
+      const imageName = await containerHelpers.getDeploymentImageName(module, registryConfig)
 
-    return containerHelpers.unparseImageId({
-      repository: imageName,
-      tag: module.version.versionString,
-    })
+      return containerHelpers.unparseImageId({
+        repository: imageName,
+        tag: module.version.versionString,
+      })
+    } else {
+      // Otherwise, return the configured image ID.
+      // Note: This will always be set here, otherwise validation will have failed already.
+      return module.spec.image!
+    }
   },
 
   parseImageId(imageId: string): ParsedImageId {
