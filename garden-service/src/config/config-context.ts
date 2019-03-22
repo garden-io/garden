@@ -18,11 +18,16 @@ import { ModuleVersion } from "../vcs/base"
 
 export type ContextKey = string[]
 
+export interface ContextResolveOpts {
+  allowUndefined?: boolean
+  // a list of previously resolved paths, used to detect circular references
+  stack?: string[]
+}
+
 export interface ContextResolveParams {
   key: ContextKey
   nodePath: ContextKey
-  // a list of previously resolved paths, used to detect circular references
-  stack?: string[]
+  opts: ContextResolveOpts
 }
 
 export function schema(joiSchema: Joi.Schema) {
@@ -46,7 +51,7 @@ export abstract class ConfigContext {
     return Joi.object().keys(schemas).required()
   }
 
-  async resolve({ key, nodePath, stack }: ContextResolveParams): Promise<Primitive> {
+  async resolve({ key, nodePath, opts }: ContextResolveParams): Promise<Primitive | undefined> {
     const path = key.join(".")
     const fullPath = nodePath.concat(key).join(".")
 
@@ -57,15 +62,15 @@ export abstract class ConfigContext {
       return resolved
     }
 
-    stack = [...stack || []]
+    opts.stack = [...opts.stack || []]
 
-    if (stack.includes(fullPath)) {
+    if (opts.stack.includes(fullPath)) {
       throw new ConfigurationError(
-        `Circular reference detected when resolving key ${path} (${stack.join(" -> ")})`,
+        `Circular reference detected when resolving key ${path} (${opts.stack.join(" -> ")})`,
         {
           nodePath,
           fullPath,
-          stack,
+          opts,
         },
       )
     }
@@ -94,15 +99,15 @@ export abstract class ConfigContext {
       // handle nested contexts
       if (value instanceof ConfigContext) {
         const nestedKey = remainder
-        stack.push(stackEntry)
-        value = await value.resolve({ key: nestedKey, nodePath: nestedNodePath, stack })
+        opts.stack.push(stackEntry)
+        value = await value.resolve({ key: nestedKey, nodePath: nestedNodePath, opts })
         break
       }
 
       // handle templated strings in context variables
       if (isString(value)) {
-        stack.push(stackEntry)
-        value = await resolveTemplateString(value, this._rootContext, stack)
+        opts.stack.push(stackEntry)
+        value = await resolveTemplateString(value, this._rootContext, opts)
       }
 
       if (value === undefined) {
@@ -111,11 +116,15 @@ export abstract class ConfigContext {
     }
 
     if (value === undefined) {
-      throw new ConfigurationError(`Could not find key: ${path}`, {
-        nodePath,
-        fullPath,
-        stack,
-      })
+      if (opts.allowUndefined) {
+        return
+      } else {
+        throw new ConfigurationError(`Could not find key: ${path}`, {
+          nodePath,
+          fullPath,
+          opts,
+        })
+      }
     }
 
     if (!isPrimitive(value)) {

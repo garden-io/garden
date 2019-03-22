@@ -11,7 +11,7 @@ import { resolve } from "path"
 import Bluebird = require("bluebird")
 import { asyncDeepMap } from "./util/util"
 import { GardenBaseError } from "./exceptions"
-import { ConfigContext } from "./config/config-context"
+import { ConfigContext, ContextResolveOpts } from "./config/config-context"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -45,14 +45,14 @@ async function getParser() {
  * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
  * dependencies when resolving context variables.
  */
-export async function resolveTemplateString(string: string, context: ConfigContext, stack?: string[]) {
+export async function resolveTemplateString(string: string, context: ConfigContext, opts: ContextResolveOpts = {}) {
   const parser = await getParser()
   const parsed = parser.parse(string, {
-    getKey: async (key: string[]) => context.resolve({ key, nodePath: [], stack }),
+    getKey: async (key: string[]) => context.resolve({ key, nodePath: [], opts }),
     // need this to allow nested template strings
-    resolve: async (parts: StringOrStringPromise[]) => {
+    resolve: async (parts: StringOrStringPromise[], resolveOpts?: ContextResolveOpts) => {
       const s = (await Bluebird.all(parts)).join("")
-      return resolveTemplateString(`\$\{${s}\}`, context, stack)
+      return resolveTemplateString(`\$\{${s}\}`, context, { ...opts, ...resolveOpts || {} })
     },
     TemplateStringError,
   })

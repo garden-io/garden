@@ -40,6 +40,10 @@ module.exports = (gulp) => {
       .pipe(gulp.dest(destDir)),
   )
 
+  gulp.task("pegjs-watch", () =>
+    gulp.watch(pegjsSources, gulp.series(["pegjs"])),
+  )
+
   gulp.task("tsc", () =>
     tsProject.src()
       .pipe(sourcemaps.init())
