@@ -7,6 +7,7 @@
  */
 
 import dedent = require("dedent")
+import stableStringify = require("json-stable-stringify")
 import * as Joi from "joi"
 import { ServiceConfig, ServiceSpec } from "./service"
 import {
@@ -146,3 +147,7 @@ export const moduleConfigSchema = baseModuleSpecSchema
       .description("The module spec, as defined by the provider plugin."),
   })
   .description("The configuration for a module.")
+
+export function serializeConfig(moduleConfig: ModuleConfig) {
+  return stableStringify(moduleConfig)
+}

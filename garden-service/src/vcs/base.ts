@@ -7,7 +7,7 @@
  */
 
 import * as Bluebird from "bluebird"
-import { mapValues, keyBy, sortBy, orderBy, omit } from "lodash"
+import { mapValues, keyBy, last, sortBy, omit } from "lodash"
 import { createHash } from "crypto"
 import * as Joi from "joi"
 import { validate } from "../config/common"
@@ -20,7 +20,7 @@ import {
   getRemoteSourcesDirname,
   getRemoteSourcePath,
 } from "../util/ext-source-util"
-import { ModuleConfig } from "../config/module"
+import { ModuleConfig, serializeConfig } from "../config/module"
 import { LogNode } from "../logger/log-node"
 
 export const NEW_MODULE_VERSION = "0000000000"
@@ -128,8 +128,12 @@ export abstract class VcsHandler {
     })
 
     if (dependencies.length === 0) {
+      const versionString = getVersionString(
+        moduleConfig,
+        [{ ...treeVersion, name: moduleConfig.name }],
+        treeVersion.dirtyTimestamp)
       return {
-        versionString: getVersionString(treeVersion),
+        versionString,
         dirtyTimestamp: treeVersion.dirtyTimestamp,
         dependencyVersions: {},
       }
@@ -142,51 +146,14 @@ export abstract class VcsHandler {
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), v => omit(v, "name"))
 
     // keep the module at the top of the chain, dependencies sorted by name
-    const sortedDependencies = sortBy(namedDependencyVersions, "name")
-    const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }].concat(sortedDependencies)
+    const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }]
+      .concat(namedDependencyVersions)
+    const dirtyTimestamp = getLatestDirty(allVersions)
 
-    const dirtyVersions = allVersions.filter(v => !!v.dirtyTimestamp)
-
-    if (dirtyVersions.length > 0) {
-      // if any modules are dirty, we resolve with the one(s) with the most recent timestamp
-      const latestDirty: NamedTreeVersion[] = []
-
-      for (const v of orderBy(dirtyVersions, "dirtyTimestamp", "desc")) {
-        if (latestDirty.length === 0 || v.dirtyTimestamp === latestDirty[0].dirtyTimestamp) {
-          latestDirty.push(v)
-        } else {
-          break
-        }
-      }
-
-      const dirtyTimestamp = latestDirty[0].dirtyTimestamp
-
-      if (latestDirty.length > 1) {
-        // if the last modified timestamp is common across multiple modules, hash their versions
-        const versionString = addVersionPrefix(`${hashVersions(latestDirty)}-${dirtyTimestamp}`)
-
-        return {
-          versionString,
-          dirtyTimestamp,
-          dependencyVersions,
-        }
-      } else {
-        // if there's just one module that was most recently modified, return that version
-        return {
-          versionString: getVersionString(latestDirty[0]),
-          dirtyTimestamp,
-          dependencyVersions,
-        }
-      }
-    } else {
-      // otherwise derive the version from all the modules
-      const versionString = addVersionPrefix(hashVersions(allVersions))
-
-      return {
-        versionString,
-        dirtyTimestamp: null,
-        dependencyVersions,
-      }
+    return {
+      dirtyTimestamp,
+      dependencyVersions,
+      versionString: getVersionString(moduleConfig, allVersions, dirtyTimestamp),
     }
   }
 
@@ -197,12 +164,6 @@ export abstract class VcsHandler {
   getRemoteSourcePath(name, url, sourceType) {
     return getRemoteSourcePath({ name, url, sourceType })
   }
-}
-
-function hashVersions(versions: NamedTreeVersion[]) {
-  const versionHash = createHash("sha256")
-  versionHash.update(versions.map(v => `${v.name}_${v.latestCommit}`).join("."))
-  return versionHash.digest("hex").slice(0, 10)
 }
 
 async function readVersionFile(path: string, schema): Promise<any> {
@@ -247,18 +208,37 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
   await writeFile(path, JSON.stringify(version))
 }
 
-export function getVersionString(treeVersion: TreeVersion) {
-  const rawVersion = treeVersion.dirtyTimestamp
-    ? `${treeVersion.latestCommit}-${treeVersion.dirtyTimestamp}`
-    : treeVersion.latestCommit
-  return addVersionPrefix(rawVersion)
-}
-
 /**
  * We prefix with "v-" to prevent this.version from being read as a number when only a prefix of the
  * commit hash is used, and that prefix consists of only numbers. This can cause errors in certain contexts
  * when the version string is used in template variables in configuration files.
  */
-export function addVersionPrefix(versionString: string) {
-  return `v-${versionString}`
+export function getVersionString(
+  moduleConfig: ModuleConfig, treeVersions: NamedTreeVersion[], dirtyTimestamp: number | null,
+) {
+  const hashed = `v-${hashVersions(moduleConfig, treeVersions)}`
+  return dirtyTimestamp ? `${hashed}-${dirtyTimestamp}` : hashed
+}
+
+/**
+ * Returns the latest (i.e. numerically largest) dirty timestamp found in versions, or null if none of versions
+ * has a dirty timestamp.
+ */
+export function getLatestDirty(versions: TreeVersion[]): number | null {
+  const latest = last(sortBy(
+    versions.filter(v => !!v.dirtyTimestamp), v => v.dirtyTimestamp)
+    .map(v => v.dirtyTimestamp))
+  return latest || null
+}
+
+/**
+ * The versions argument should consist of moduleConfig's tree version, and the tree versions of its dependencies.
+ */
+export function hashVersions(moduleConfig: ModuleConfig, versions: NamedTreeVersion[]) {
+  const versionHash = createHash("sha256")
+  const configString = serializeConfig(moduleConfig)
+  const versionStrings = sortBy(versions, "name")
+    .map(v => `${v.name}_${v.latestCommit}`)
+  versionHash.update([configString, ...versionStrings].join("."))
+  return versionHash.digest("hex").slice(0, 10)
 }
