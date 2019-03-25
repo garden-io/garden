@@ -1,3 +1,6 @@
+# OS
+.DS_STORE
+
 # Logs
 *.log
 npm-debug.log*
