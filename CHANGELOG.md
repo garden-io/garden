@@ -1,4 +1,41 @@
 
+<a name="v0.9.6"></a>
+## [v0.9.6](https://github.com/garden-io/garden/compare/v0.9.5...v0.9.6) (2019-03-22)
+
+### Bug Fixes
+
+* use unique names for a service's ingresses ([b1fbb25](https://github.com/garden-io/garden/commit/b1fbb25))
+* set correct jdk target path ([29874e1](https://github.com/garden-io/garden/commit/29874e1))
+* fixed vulnerabilities identified by Snyk ([bc79d26](https://github.com/garden-io/garden/commit/bc79d26))
+* **build:** remove deleted files/dirs during sync ([9630192](https://github.com/garden-io/garden/commit/9630192))
+* **build:** don't delete when syncing dependencies ([a5e12a7](https://github.com/garden-io/garden/commit/a5e12a7))
+* **container:** wrong image ID when deploying external image locally ([a12682c](https://github.com/garden-io/garden/commit/a12682c))
+* **container:** further issues with deployment image IDs ([5230408](https://github.com/garden-io/garden/commit/5230408))
+* **core:** generated files were sometimes deleted between build and run ([dcfb7e1](https://github.com/garden-io/garden/commit/dcfb7e1))
+* **core:** missing detail in error.log for non-Garden exceptions ([7a0265d](https://github.com/garden-io/garden/commit/7a0265d))
+* **integ-tests:** helper to remove .garden dirs ([77abbe3](https://github.com/garden-io/garden/commit/77abbe3))
+* **k8s:** validation error on maven-container modules ([3c41c8e](https://github.com/garden-io/garden/commit/3c41c8e))
+* **k8s:** regression in remote K8s init flow ([77fb9fa](https://github.com/garden-io/garden/commit/77fb9fa))
+* **k8s:** work around issue with Istio sidecars and ad-hoc pod runs ([f8d5b44](https://github.com/garden-io/garden/commit/f8d5b44))
+* **k8s:** issues with remote cluster deployments ([982e6e2](https://github.com/garden-io/garden/commit/982e6e2))
+* **k8s:** error when initializing remote kubernetes provider ([27cf2b5](https://github.com/garden-io/garden/commit/27cf2b5))
+* **maven-container:** work around issue with concurrent builds in mvn ([4bd9b8b](https://github.com/garden-io/garden/commit/4bd9b8b))
+* **maven-container:** incorrect JAR_PATH build argument ([bd66bb5](https://github.com/garden-io/garden/commit/bd66bb5))
+* **maven-container:** always copy Dockerfile to build dir before build ([fada240](https://github.com/garden-io/garden/commit/fada240))
+
+### Code Refactoring
+
+* split provider from KubeApi ([4787e51](https://github.com/garden-io/garden/commit/4787e51))
+
+### Features
+
+* **config:** support simple OR statements in template strings ([312e90b](https://github.com/garden-io/garden/commit/312e90b))
+* **k8s:** cache task results ([5769aeb](https://github.com/garden-io/garden/commit/5769aeb))
+* **maven-container:** explicity support in K8s provider ([592bf94](https://github.com/garden-io/garden/commit/592bf94))
+* **maven-container:** add mvnOpts field and remove default option ([187dc7d](https://github.com/garden-io/garden/commit/187dc7d))
+* **maven-container:** automatically fetch Maven and OpenJDK ([5045cd3](https://github.com/garden-io/garden/commit/5045cd3))
+
+
 <a name="v0.9.5"></a>
 ## [v0.9.5](https://github.com/garden-io/garden/compare/v0.9.4...v0.9.5) (2019-03-12)
 
