@@ -8,7 +8,7 @@
 
 import cls from "classnames"
 import { css } from "emotion/macro"
-import React from "react"
+import React, { useContext } from "react"
 import styled from "@emotion/styled/macro"
 import { Route } from "react-router-dom"
 
@@ -27,6 +27,7 @@ import { DataProvider } from "./context/data"
 import { NavLink } from "./components/links"
 
 import logo from "./assets/logo.png"
+import { UiStateProvider, UiStateContext } from "./context/ui"
 
 // Style and align properly
 const Logo = styled.img`
@@ -41,44 +42,60 @@ const SidebarWrapper = styled.div`
   height: 100vh;
 `
 
-const App = () => (
-  <div>
-    <DataProvider>
-      <EventProvider>
-        <div className={css`
-          display: flex;
-          height: 100vh;
-          max-height: 100vh;
-          overflow-y: hidden;
-        `}>
-          <SidebarWrapper>
-            <div className={"ml-1"}>
-              <NavLink to="/">
-                <Logo src={logo} alt="Home" />
-              </NavLink>
-            </div>
-            <Sidebar />
-          </SidebarWrapper>
-          <div className={css`
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            overflow-y: auto;
-          `}>
-            <div className={cls(css`
-              background-color: ${colors.grayLight};
-              flex-grow: 1;
-            `, "p-2")}>
-              <Route exact path="/" component={Overview} />
-              <Route path="/logs/" component={Logs} />
-              <Route path="/graph/" component={Graph} />
-              <Route path="/providers/:id" component={Provider} />
-            </div>
-          </div>
-        </div>
-      </EventProvider>
-    </DataProvider>
-  </div>
-)
+const AppContainer = () => {
+  return (
+    <div>
+      <DataProvider>
+        <EventProvider>
+          <UiStateProvider>
+            <App />
+          </UiStateProvider>
+        </EventProvider>
+      </DataProvider>
+    </div>
+  )
 
-export default App
+}
+
+const App = () => {
+  const { state: { isSidebarOpen }, actions: { toggleSidebar } } = useContext(UiStateContext)
+
+  console.log(isSidebarOpen)
+
+  return (
+    <div className={css`
+      display: flex;
+      height: 100vh;
+      max-height: 100vh;
+      overflow-y: hidden;
+    `}>
+      <SidebarWrapper>
+        <button onClick={toggleSidebar}>Click ME</button>
+        <div className={"ml-1"}>
+          <NavLink to="/">
+            <Logo src={logo} alt="Home" />
+          </NavLink>
+        </div>
+        <Sidebar isOpen={isSidebarOpen} />
+      </SidebarWrapper>
+      <div className={css`
+          display: flex;
+          flex-direction: column;
+          flex-grow: 1;
+          overflow-y: auto;
+        `}>
+        <div className={cls(css`
+            background-color: ${colors.grayLight};
+            flex-grow: 1;
+          `, "p-2")}>
+          <Route exact path="/" component={Overview} />
+          <Route path="/logs/" component={Logs} />
+          <Route path="/graph/" component={Graph} />
+          <Route path="/providers/:id" component={Provider} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default AppContainer
