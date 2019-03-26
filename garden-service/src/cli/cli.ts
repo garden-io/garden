@@ -25,7 +25,7 @@ import {
 } from "../commands/base"
 import { GardenError, PluginError, toGardenError } from "../exceptions"
 import { Garden, GardenOpts } from "../garden"
-import { getLogger, Logger, LoggerType } from "../logger/logger"
+import { getLogger, Logger, LoggerType, LOGGER_TYPES } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../logger/writers/fancy-terminal-writer"
@@ -62,9 +62,9 @@ const OUTPUT_RENDERERS = {
 }
 
 const WRITER_CLASSES = {
-  [LoggerType.basic]: BasicTerminalWriter,
-  [LoggerType.fancy]: FancyTerminalWriter,
-  [LoggerType.json]: JsonTerminalWriter,
+  basic: BasicTerminalWriter,
+  fancy: FancyTerminalWriter,
+  json: JsonTerminalWriter,
 }
 
 const FILE_WRITER_CONFIGS = [
@@ -74,7 +74,7 @@ const FILE_WRITER_CONFIGS = [
 ]
 
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
-const DEFAULT_CLI_LOGGER_TYPE = LoggerType.fancy
+const DEFAULT_CLI_LOGGER_TYPE = "fancy"
 
 // For initializing garden without a project config
 export const MOCK_CONFIG: GardenConfig = {
@@ -97,22 +97,29 @@ export const MOCK_CONFIG: GardenConfig = {
 }
 
 export const GLOBAL_OPTIONS = {
-  root: new StringParameter({
+  "root": new StringParameter({
     alias: "r",
     help: "Override project root directory (defaults to working directory).",
     defaultValue: process.cwd(),
   }),
-  silent: new BooleanParameter({
+  "silent": new BooleanParameter({
     alias: "s",
     help: "Suppress log output.",
     defaultValue: false,
   }),
-  env: new EnvironmentOption(),
-  loggerType: new ChoicesParameter({
-    choices: Object.keys(WRITER_CLASSES),
-    help: `TODO`,
+  "env": new EnvironmentOption(),
+  "logger-type": new ChoicesParameter({
+    choices: [...LOGGER_TYPES],
+    defaultValue: DEFAULT_CLI_LOGGER_TYPE,
+    help: deline`
+      Set logger type:
+      fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
+      basic: appends a new log line when a log line's status changes,
+      json: same as basic, but renders log lines as JSON,
+      quiet: uppresses all log output,
+    `,
   }),
-  loglevel: new ChoicesParameter({
+  "loglevel": new ChoicesParameter({
     alias: "l",
     choices: getLogLevelChoices(),
     help: deline`
@@ -122,12 +129,12 @@ export const GLOBAL_OPTIONS = {
       "[enum] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
   }),
-  output: new ChoicesParameter({
+  "output": new ChoicesParameter({
     alias: "o",
     choices: Object.keys(OUTPUT_RENDERERS),
     help: "Output command result in specified format (note: disables progress logging and interactive functionality).",
   }),
-  emoji: new BooleanParameter({
+  "emoji": new BooleanParameter({
     help: "Enable emoji in output (defaults to true if the environment supports it).",
     defaultValue: envSupportsEmoji(),
   }),
@@ -166,13 +173,11 @@ export class GardenCli {
     this.program = sywac
       .help("-h, --help", {
         group: GLOBAL_OPTIONS_GROUP_NAME,
-        implicitCommand: false,
       })
       .version("-v, --version", {
         version,
         group: GLOBAL_OPTIONS_GROUP_NAME,
         description: "Show's the current cli version.",
-        implicitCommand: false,
       })
       .showHelpByDefault()
       .check((argv, _ctx) => {
@@ -240,12 +245,12 @@ export class GardenCli {
       const parsedArgs = filterByKeys(argv, argKeys)
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
-      const { emoji, env, loglevel, loggerType: loggerTypeOpt, silent, output } = parsedOpts
+      const { emoji, env, loglevel, "logger-type": loggerTypeOpt, silent, output } = parsedOpts
 
       const loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
 
       // Init logger
-      const logEnabled = !silent && !output && loggerType !== LoggerType.quiet
+      const logEnabled = !silent && !output && loggerType !== "quiet"
       const level = parseLogLevel(loglevel)
       const logger = initLogger({ level, logEnabled, loggerType, emoji })
 
@@ -347,7 +352,7 @@ export class GardenCli {
       console.log(cliOutput)
 
       // fix issue where sywac returns exit code 0 even when a command doesn't exist
-      if (!argv.h && !argv.help) {
+      if (!argv.h && !argv.v) {
         code = 1
       }
 

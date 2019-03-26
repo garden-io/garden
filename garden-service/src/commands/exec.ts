@@ -61,7 +61,7 @@ export class ExecCommand extends Command<Args> {
 
   arguments = runArgs
   options = runOpts
-  loggerType = LoggerType.basic
+  loggerType: LoggerType = "basic"
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
