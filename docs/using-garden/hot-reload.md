@@ -1,16 +1,16 @@
 # Hot Reload
 
-When the `local-kubernetes` provider is used, `container` modules can be configured to hot-reload their running services when the module's sources change (i.e. without redeploying). In essence, hot-reloading copies source files into the appropriate running containers when code is changed by the user.
+When the `local-kubernetes` or `kubernetes` provider is used, `container` modules can be configured to hot-reload their running services when the module's sources change (i.e. without redeploying). In essence, hot-reloading copies source files into the appropriate running containers (local or remote) when code is changed by the user.
 
 For example, services that can be run with a file system watcher that automatically update the running application process when sources change (e.g. nodemon, Django, Ruby on Rails, and many other web app frameworks) are a natural fit for this feature.
 
 # Usage
 
-Currently, modules configured for hot reloading are only deployed with hot reloading enabled when they're deployed via `garden deploy -w` or `garden dev`; and not, for example, when deployed via `garden deploy` without the `-w` flag.
+Currently, services are only deployed with hot reloading enabled when their names are passed to the `--hot` option via `garden deploy` or `garden dev` commands (e.g. `garden dev --hot=foo-service,bar-service`). If these services don't belong to a module defining a `hotReload` configuration (see below for an example), an error will be thrown if their names are passed to the `--hot` option.
 
-Subsequently deploying a service belonging to a module configured for hot reloading via `garden deploy` (without the watch flag) results in the service being redeployed in standard configuration. (See [this link](https://github.com/garden-io/garden/pull/291) for a more technical discussion.)
+Subsequently deploying a service belonging to a module configured for hot reloading via `garden deploy` (without the watch flag) results in the service being redeployed in standard configuration.
 
-Since hot reloading is triggered via Garden's file system watcher, hot reloading only occurs while a `garden deploy -w`, `garden build -w`, or `garden dev` command is running.
+Since hot reloading is triggered via Garden's file system watcher, hot reloading only occurs while a watch-mode Garden command is running.
 
 # Quick example
 
@@ -46,4 +46,4 @@ You can configure several such `source`/`target` pairs, but note that the `sourc
         target: /app/bar
 ```
 
-Lastly, `hotReloadArgs` specifies the arguments to use to run the container (when deployed with hot reloading enabled). If no `hotReloadArgs` are specified, `args` is also used in hot reload mode.
+Lastly, `hotReloadArgs` specifies the arguments to use to run the container (when deployed with hot reloading enabled). If no `hotReloadArgs` are specified, `args` is also used to run the container when the service is deployed with hot reloading enabled

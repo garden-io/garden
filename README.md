@@ -14,9 +14,9 @@ With the Stack Graph, each part of your stack can _describe itself_ using simple
 
 ## Key features
 
-- Spin up your whole stack with a single command, and (optionally) watch for changes. Because of the Stack Graph, only what's needed gets re-built, re-deployed, and/or re-tested, so you get **much faster feedback loops**.
+- Spin up your whole stack with a single command, and (optionally) watch for changes. Because of the Stack Graph, only what's needed gets re-built, re-deployed, and/or re-tested, so you get a **much faster feedback loop**.
 - Easily write [integration test suites](https://docs.garden.io/using-garden/features-and-usage#testing-and-dependencies) that have runtime dependencies. Run tests before pushing your code to CI, and avoid having to mock or stub your own services.
-- Define [tasks](https://github.com/garden-io/garden/tree/master/examples/tasks) that run as part of your deployment process, e.g. database migrations or scaffolding.
+- Define [tasks](https://github.com/garden-io/garden/tree/master/examples/tasks) that run as part of your deployment process—e.g. database migrations or scaffolding.
 - [Hot reload](https://docs.garden.io/using-garden/hot-reload) lets you near-instantaneously update code and static files in containers as they run, for services that support in-place reloading.
 - [Remote sources](https://docs.garden.io/examples/remote-sources) support allows your project to automatically pull code from different repositories.
 - The built-in web **dashboard** gives you a full overview of your stack (and many more UI features are planned to further aid with development).
@@ -33,27 +33,27 @@ _Note: The project is in beta. APIs may still change slightly across  versions, 
 
 Head over to the [Basics](https://docs.garden.io/basics) section in our documentation for details
 on how to set up and use Garden, or look through our [Simple Project](https://docs.garden.io/examples/simple-project)
-guide to get a quick sense of how it works.
+guide for a brief introduction to how it works.
 
 ## Documentation
 
-You can find the full Garden documentation at [https://docs.garden.io](https://docs.garden.io/).
+You can find Garden's full documentation at [https://docs.garden.io](https://docs.garden.io/).
 
 Overview:
 
-- [Basics](https://docs.garden.io/basics), for installation instructions, our quick start guide, and an overview of the main concepts around Garden.
-- [Using Garden](https://docs.garden.io/using-garden), for features and usage, Garden configuration files, usage with remote clusters, and setting up hot reload.
-- [Example Projects](https://docs.garden.io/examples) contains guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.9.6/examples).
-- [Reference](https://docs.garden.io/reference), for the glossary, commands reference, configuration files reference, and template strings reference.
+- [Basics](https://docs.garden.io/basics)—installation instructions, our quick start guide, and an overview of the main concepts around Garden.
+- [Using Garden](https://docs.garden.io/using-garden)—features and usage, Garden configuration files, usage with remote clusters, and setting up hot reload.
+- [Example Projects](https://docs.garden.io/examples)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.9.6/examples).
+- [Reference](https://docs.garden.io/reference)—glossary, commands reference, configuration files reference, and template strings reference.
 - [FAQs](https://docs.garden.io/faqs).
 
 ## Examples
 
-There are examples of how to use Garden in a myriad of different ways in the [examples](https://github.com/garden-io/garden/tree/v0.9.3/examples) folder of our repository.
+The [examples](https://github.com/garden-io/garden/tree/v0.9.3/examples) folder of our repository shows a myriad of different ways to use Garden.
 
 For written guides based on some of these examples, check out the [examples section](https://docs.garden.io/examples) of our documentation.
 
-Here are some simple examples of how Garden configuration files look:
+Here are a few simple examples of Garden configuration files:
 
 ```yaml
 kind: Module
@@ -95,11 +95,11 @@ Please browse our [examples directory](https://github.com/garden-io/garden/tree/
 
 ## Support
 
-Please join the Garden [Slack workspace](http://chat.garden.io) to ask questions, discuss how Garden might fit into your workflow, or even just chat about all things DevOps.
+Please join the Garden [Slack workspace](http://chat.garden.io) to ask questions, discuss how Garden might fit into your workflow, or just chat about all things DevOps.
 
 ## Acknowledgements
 
-Garden would not be possible without an amazing ecosystem of open-source projects. Here are just some of the projects that Garden uses, either directly or indirectly:
+Garden would not be possible without an amazing ecosystem of open-source projects. Here are some of the projects that Garden uses, either directly or indirectly:
 
 - [Kubernetes](https://kubernetes.io/)
 - [OpenFaaS](https://www.openfaas.com/)

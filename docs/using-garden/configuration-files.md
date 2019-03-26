@@ -15,9 +15,7 @@ To decide how to split your project up into modules, it's useful to consider wha
 step, and what the dependency relationships are between your build steps. For example, each container and each
 serverless function should be represented by its own module.
 
-Below, we'll be using examples from the
-[Hello world](../examples/hello-world.md) example project, which touches
-on many of the things you're likely to want to configure in a project.
+Below, we'll be using examples from the [Hello world](../examples/hello-world.md) example project.
 
 ## Project Configuration
 
@@ -25,22 +23,23 @@ We'll start by looking at the top-level [project configuration file](https://git
 
 ```yaml
 # examples/hello-world/garden.yml
-project:
-  name: hello-world
-  environmentDefaults:
-    variables:
-      my-variable: hello-variable
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
-        - name: openfaas
+kind: Project
+name: hello-world
+environmentDefaults:
+  variables:
+    my-variable: hello-variable
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+      - name: openfaas
 ```
 
 The project-wide `garden.yml` defines the project's name, the default configuration used for each
 [environment](../reference/glossary.md#environment) (via the `environmentDefaults` field), and
-environment-specific provider configuration. The above only configures a `local` environment, but you could add
-further environments, such as a remote Kubernetes environment.
+environment-specific [provider](../reference/glossary.md#provider) configuration. The above only configures a `local` environment, but you could add
+further environments, such as a remote Kubernetes environment, where you'd use the `kubernetes` (i.e. remote)
+provider instead of `local-kubernetes`.
 
 Here, project-wide configuration variables can also be specified (global, and/or environment-specific). These are
 then available for substitution in any string value in any module's `garden.yml`.
@@ -57,17 +56,17 @@ as examples to illustrate some of the primary module-level configuration options
 The following is a snippet from `hello-container`'s module config:
 
 ```yaml
-module:
-  name: hello-container
-  type: container
-  description: Hello world container service
-  ...
-  build:
-    dependencies:
-      - name: hello-npm-package
-        copy:
-          - source: "./"
-            target: libraries/hello-npm-package/
+kind: Module
+name: hello-container
+type: container
+description: Hello world container service
+...
+build:
+  dependencies:
+    - name: hello-npm-package
+      copy:
+        - source: "./"
+          target: libraries/hello-npm-package/
 ```
 
 The first lines you'll find in all module configurations, and describe the module at a high level.
@@ -87,9 +86,9 @@ modules use the same name.
 
 ### type
 
-A [module](../reference/glossary.md#module)'s `type` specifies what kind of module this is, which will control how the
-module's code gets built, tested, deployed, etc. The module types are implemented by _providers_. The built-in module types
-include `container` and `exec` (which basically provides a way to run commands locally).
+A [module](../reference/glossary.md#module)'s `type` determines its schema, and which [provider](../reference/glossary.md#provider) is
+used to build, test and deploy (etc.) it. The built-in module types include `container`, `helm` and `exec`
+(which basically provides a way to run commands locally).
 
 The example above is a `container` module, and the `hello-function` module is an `openfaas` module
 (which is one of many ways to run functions-as-a-service on Kubernetes).
@@ -99,12 +98,12 @@ In this particular project, the `container` module type is implemented by the `l
 
 ### build
 
-A module's build configuration is specified via the `build` field, and the implementation of what `build` does varies depending on which provider is responsible for that module.
+A module's build configuration is specified via the `build` field, and the implementation of what `build` does varies
+depending on which provider is responsible for that module.
 
-Regardless of the implementation, a module's build command is executed
-with its working directory set to a copy of the module's top-level directory, located at
-`[project-root]/.garden/build/[module-name]`. This internal directory is referred to as the module's
-[build directory](../reference/glossary.md#build-directory).
+Regardless of the implementation, a module's build process is executed with its working directory set to a copy of the
+module's top-level directory, located at `[project-root]/.garden/build/[module-name]`. This internal directory is
+referred to as the module's [build directory](../reference/glossary.md#build-directory).
 
 The `.garden` directory should not be modified by users, since this may lead to unexpected errors when the Garden CLI
 tools are used in the project.
@@ -122,7 +121,7 @@ into `libraries/hello-npm-package/` in the `hello-container` build directory, _b
 
 ## Services
 
-A module may contain zero or more _services_. Services are deployed when running `garden deploy` or `garden dev` as
+A module may define zero or more _services_. Services are deployed when running `garden deploy` or `garden dev` as
 part of your runtime stack.
 
 How services are configured will depend on the module type. An `openfaas` module always contains a single service. A

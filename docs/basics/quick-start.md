@@ -4,9 +4,9 @@ This guide will walk you through setting up the Garden framework. It assumes you
 
 ## Using the CLI
 
-With the CLI installed, we can now try out a few commands using the [Simple Project](../examples/simple-project.md) from our [example projects](../examples/README.md). The example project consists of a couple of simple modules, each defining one service.
+With the CLI installed, we can now try out a few commands using the [Simple Project](../examples/simple-project.md) from our [example projects](../examples/README.md). The example project consists of a couple of basic modules, each defining one service.
 
-_Note: Check if Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
+_Note: Check whether Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
 
 Clone the repo and change into the `simple-project`  directory:
 
@@ -33,7 +33,7 @@ This builds Docker images for `go-service` and `node-service` respectively. Next
 garden deploy
 ```
 
-And that's it! The `garden build` step above is actually unnecessary (only included here for clarity), since `garden deploy` will also rebuild modules as needed. The services are now running on the Garden framework. You can see for yourself by querying the `/hello` endpoint of `go-service`'s running container:
+And that's it! The `garden build` step above is actually unnecessary (only included here for clarity), since `garden deploy` will also rebuild modules as needed. The services are now running in your Kubernetes cluster. You can see for yourself by querying the `/hello` endpoint of `go-service`'s running container:
 
 ```sh
 garden call go-service/hello-go
