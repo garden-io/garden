@@ -101,11 +101,11 @@ async function release() {
   // Reset local tag state (after stripping release tags)
   await execa("git", ["fetch", "origin", "--tags"], { cwd: gardenRoot })
 
-  // For minor releases, we update links to examples in the docs so that they point to the relevant tag.
+  // For non pre-releases, we update links to examples in the docs so that they point to the relevant tag.
   // E.g.: "github.com/garden-io/tree/v0.8.0/example/..." becomes "github.com/garden-io/tree/v0.9.0/example/..."
-  // Note that we do this after pushing the tag originally. This because we check that links are valid in CI
-  // and the check would fail if the tag hasen't been created in the first place.
-  if (releaseType === "minor") {
+  // Note that we do this after pushing the tag originally. This is because we check that links are valid in CI
+  // and the check would fail if the tag hasn't been created in the first place.
+  if (releaseType === "minor" || releaseType === "patch") {
     console.log("Updating links to examples and re-pushing tag...")
     await updateExampleLinks(version)
 
