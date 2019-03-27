@@ -1,7 +1,7 @@
-module:
-  description: Image for the API backend for the voting UI
-  type: container
-  name: api-image
-  tests:
-    - name: unit
-      args: [echo, ok]
+kind: Module
+description: Image for the API backend for the voting UI
+type: container
+name: api-image
+tests:
+  - name: unit
+    args: [echo, ok]

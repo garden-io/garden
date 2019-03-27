@@ -5,7 +5,7 @@ here=$(cd `dirname $0` && pwd)
 garden_root=$(cd ${here} && cd $(git rev-parse --show-toplevel) && pwd)
 garden_bin="node ${garden_root}/garden-service/bin/garden"
 
-cd ${garden_root}/examples/hello-world
+cd ${garden_root}/examples/openfaas
 
 export GARDEN_LOGGER_TYPE=basic
 

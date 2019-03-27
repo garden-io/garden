@@ -1,25 +1,25 @@
-project:
-  name: local-tls
-  defaultEnvironment: local
-  environments:
-  - name: local
-    providers:
-    - name: local-kubernetes
-  # you can run garden against this environment by adding "--env remote" to your commands,
-  # e.g. garden --env remote deploy
-  - name: remote
-    providers:
-    - name: kubernetes
-      context: my-remote-context
-      defaultHostname: my-cluster.example.com   # change this to the hostname that points to your cluster
-      forceSsl: true
-      tlsCertificates:
-      - name: garden-example-tls
-        secretRef:
-          name: garden-example-tls
-          namespace: default
-      deploymentRegistry:
-        # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
-        hostname: my.registry.io
-        # Namespace to use in the registry for this project. For GCR, use the project ID where your cluster is.
-        namespace: my-project-id
+kind: Project
+name: local-tls
+defaultEnvironment: local
+environments:
+- name: local
+  providers:
+  - name: local-kubernetes
+# you can run garden against this environment by adding "--env remote" to your commands,
+# e.g. garden --env remote deploy
+- name: remote
+  providers:
+  - name: kubernetes
+    context: my-remote-context
+    defaultHostname: my-cluster.example.com   # change this to the hostname that points to your cluster
+    forceSsl: true
+    tlsCertificates:
+    - name: garden-example-tls
+      secretRef:
+        name: garden-example-tls
+        namespace: default
+    deploymentRegistry:
+      # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
+      hostname: my.registry.io
+      # Namespace to use in the registry for this project. For GCR, use the project ID where your cluster is.
+      namespace: my-project-id

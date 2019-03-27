@@ -1,6 +1,6 @@
-project:
-  name: spring-boot-hot-reload
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
+kind: Project
+name: spring-boot-hot-reload
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes

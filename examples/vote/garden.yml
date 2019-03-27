@@ -1,14 +1,14 @@
-project:
-  name: vote
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
-    - name: remote
-      providers:
-        - name: kubernetes
-          # Replace these values as appropriate
-          context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-          namespace: ${local.env.USER || "default"}-vote
-          defaultHostname: ${local.env.USER || "default"}-vote.dev-1.sys.garden
-          buildMode: cluster-docker
+kind: Project
+name: vote
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+  - name: remote
+    providers:
+      - name: kubernetes
+        # Replace these values as appropriate
+        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        namespace: ${local.env.USER || "default"}-vote
+        defaultHostname: ${local.env.USER || "default"}-vote.dev-1.sys.garden
+        buildMode: cluster-docker

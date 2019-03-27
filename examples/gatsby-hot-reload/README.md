@@ -26,15 +26,15 @@ Now, open `http://gatsby-hot-reload.local.app.garden/` in your browser, and then
 
 Older versions of Gatsby.js will need to set the `GATSBY_WEBPACK_PUBLICPATH` environment variable to `/`. For example, in the `garden.yml` config:
 ```
-module:
-  description: Minimal Gatsby example
-  ...
-  services:
-    - name: website
-      ...
-      env:
-        GATSBY_WEBPACK_PUBLICPATH: /
-      ...
+kind: Module
+description: Minimal Gatsby example
+...
+services:
+  - name: website
+    ...
+    env:
+      GATSBY_WEBPACK_PUBLICPATH: /
+    ...
 ```
 For more details see [this issue](https://github.com/gatsbyjs/gatsby/issues/8348).
 

@@ -21,9 +21,9 @@ ${chalk.green("--binPath")}: Uses the garden binary at the path provided instead
 of the one at ${chalk.blue("[garden-root]/bin/garden")}.
 
 ${chalk.green("--only")}: Runs only the test sequence indicated. \
-E.g. ${chalk.blue("simple-project")} or ${chalk.blue("vote-helm")}.
+E.g. ${chalk.blue("demo-project")} or ${chalk.blue("vote-helm")}.
 
-Example: npm run integ-full -- --binPath=/path/to/garden --only=simple-project
+Example: ./garden-service/bin/integ-full.ts --binPath=/path/to/garden --only=demo-project
 `
 
 async function run() {
