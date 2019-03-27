@@ -15,16 +15,16 @@ To decide how to split your project up into modules, it's useful to consider wha
 step, and what the dependency relationships are between your build steps. For example, each container and each
 serverless function should be represented by its own module.
 
-Below, we'll be using examples from the [Hello world](../examples/hello-world.md) example project.
+Below, we'll be using examples from the [OpenFaaS](../examples/openfaas.md) example project.
 
 ## Project Configuration
 
-We'll start by looking at the top-level [project configuration file](https://github.com/garden-io/garden/blob/master/examples/hello-world/garden.yml).
+We'll start by looking at the top-level [project configuration file](https://github.com/garden-io/garden/blob/master/examples/openfaas/garden.yml).
 
 ```yaml
-# examples/hello-world/garden.yml
+# examples/openfaas/garden.yml
 kind: Project
-name: hello-world
+name: openfaas
 environmentDefaults:
   variables:
     my-variable: hello-variable
@@ -50,7 +50,7 @@ For example, assuming the above project configuration, `"foo-${var.my-variable}-
 ## Module Configuration
 
 Below, we'll use the module configurations of `hello-function` and `hello-container` from the
-[Hello world](../examples/hello-world.md) example project
+[Hello world](../examples/openfaas.md) example project
 as examples to illustrate some of the primary module-level configuration options.
 
 The following is a snippet from `hello-container`'s module config:
@@ -130,25 +130,25 @@ How services are configured will depend on the module type. An `openfaas` module
 The following is a snippet from `hello-container`'s module config:
 
 ```yaml
-module:
-  description: Hello world container service
-  type: container
-  services:
-    - name: hello-container
-      args: [npm, start]
-      ports:
-        - name: http
-          containerPort: 8080
-      ingresses:
-        - path: /hello
-          port: http
-      healthCheck:
-        httpGet:
-          path: /_ah/health
-          port: http
-      dependencies:
-        - hello-function
-  ...
+kind: Module
+description: Hello world container service
+type: container
+services:
+  - name: hello-container
+    args: [npm, start]
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /hello
+        port: http
+    healthCheck:
+      httpGet:
+        path: /_ah/health
+        port: http
+    dependencies:
+      - hello-function
+...
 ```
 
 Here the `services` field defines the services exposed by the module. We only have one service in this example,
@@ -167,17 +167,17 @@ execute them, and in some cases which services need to be running for the tests 
 For an example, here is another snippet from the `hello-container` module configuration:
 
 ```yaml
-module:
-  description: Hello world container service
-  type: container
-  ...
-  tests:
-    - name: unit
-      args: [npm, test]
-    - name: integ
-      args: [npm, run, integ]
-      dependencies:
-        - hello-function
+kind: Module
+description: Hello world container service
+type: container
+...
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ]
+    dependencies:
+      - hello-function
 ```
 
 Here we define two types of tests. First are unit tests, which can be run on their own without any dependencies. The
@@ -202,35 +202,35 @@ which may depend on different external services being available.
 To do this, simply add a document separator (`---`) between the module definitions. Here's a simple example:
 
 ```yaml
-module:
-  description: Hello world container - dev configuration
-  type: container
-  dockerfile: Dockerfile-dev
-  ...
-  tests:
-    - name: unit
-      args: [npm, test]
-    - name: integ
-      args: [npm, run, integ-dev]
-      dependencies:
-        - hello-function
-        - dev-integration-testing-backend
+kind: Module
+description: Hello world container - dev configuration
+type: container
+dockerfile: Dockerfile-dev
+...
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ-dev]
+    dependencies:
+      - hello-function
+      - dev-integration-testing-backend
 
 ---
 
-module:
-  description: Hello world container - production configuration
-  type: container
-  dockerfile: Dockerfile-prod
-  ...
-  tests:
-    - name: unit
-      args: [npm, test]
-    - name: integ
-      args: [npm, run, integ-prod]
-      dependencies:
-        - hello-function
-        - prod-integration-testing-backend
+kind: Module
+description: Hello world container - production configuration
+type: container
+dockerfile: Dockerfile-prod
+...
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ-prod]
+    dependencies:
+      - hello-function
+      - prod-integration-testing-backend
 ```
 
 ## Next steps

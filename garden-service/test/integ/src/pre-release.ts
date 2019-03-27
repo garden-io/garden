@@ -25,7 +25,7 @@ import { getLogger } from "../../../src/logger/logger"
 
 describe("PreReleaseTests", () => {
 
-  const simpleProjectPath = resolve(examplesDir, "simple-project")
+  const demoProjectPath = resolve(examplesDir, "demo-project")
   const log = getLogger().placeholder()
 
   before(async () => {
@@ -39,32 +39,32 @@ describe("PreReleaseTests", () => {
     await execa("git", ["checkout", examplesDir])
   })
 
-  describe("simple-project: top-level sanity checks", () => {
+  describe("demo-project: top-level sanity checks", () => {
 
     it("runs the validate command", async () => {
-      await runGarden(simpleProjectPath, ["validate"])
+      await runGarden(demoProjectPath, ["validate"])
     })
 
     it("runs the deploy command", async () => {
-      const logEntries = await runGarden(simpleProjectPath, ["deploy"])
+      const logEntries = await runGarden(demoProjectPath, ["deploy"])
       expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
     })
 
     it("runs the test command", async () => {
-      const logEntries = await runGarden(simpleProjectPath, ["test"])
+      const logEntries = await runGarden(demoProjectPath, ["test"])
       expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
     })
 
     it("runs the dev command", async () => {
-      const gardenWatch = new GardenWatch(simpleProjectPath, ["dev"])
+      const gardenWatch = new GardenWatch(demoProjectPath, ["dev"])
 
       const testSteps = [
         dashboardUpStep(),
-        changeFileStep(resolve(simpleProjectPath, "services/go-service/webserver/main.go"),
-          "change app code in go-service"),
-        taskCompletedStep("build.go-service", 2),
-        taskCompletedStep("deploy.go-service", 2),
-        changeFileStep(resolve(simpleProjectPath, "services/go-service/garden.yml"), "change garden.yml in go-service"),
+        changeFileStep(resolve(demoProjectPath, "backend/webserver/main.go"),
+          "change app code in backend"),
+        taskCompletedStep("build.backend", 2),
+        taskCompletedStep("deploy.backend", 2),
+        changeFileStep(resolve(demoProjectPath, "backend/garden.yml"), "change garden.yml in backend"),
         commandReloadedStep(),
       ]
 
@@ -72,7 +72,7 @@ describe("PreReleaseTests", () => {
     })
 
     after(async () => {
-      await deleteExistingNamespaces(log, ["simple-project"])
+      await deleteExistingNamespaces(log, ["demo-project"])
     })
 
   })

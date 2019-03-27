@@ -35,7 +35,7 @@ _Note: The project is in beta. APIs may still change slightly across  versions, 
 ## Quick start
 
 Head over to the [Basics](https://docs.garden.io/basics) section in our documentation for details
-on how to set up and use Garden, or look through our [Simple Project](https://docs.garden.io/examples/simple-project)
+on how to set up and use Garden, or look through our [Demo Project](https://docs.garden.io/examples/demo-project)
 guide for a brief introduction to how it works.
 
 ## Documentation
@@ -78,15 +78,15 @@ lang: node
 ```yaml
 kind: Module
 type: container
-name: go-service
+name: backend
 description: Go service container
 services:
-- name: go-service
+- name: backend
   ports:
     - name: http
       containerPort: 80
   ingresses:
-    - path: /hello-go
+    - path: /backend
       port: http
 tests:
 - name: integ

@@ -1,11 +1,11 @@
-module:
-  description: Helm chart for the worker container
-  type: helm
-  name: worker
-  serviceResource:
-    kind: Deployment
-  build:
-    dependencies: [worker-image]
-  values:
-    image:
-      tag: ${modules.worker-image.version}
+kind: Module
+description: Helm chart for the worker container
+type: helm
+name: worker
+serviceResource:
+  kind: Deployment
+build:
+  dependencies: [worker-image]
+values:
+  image:
+    tag: ${modules.worker-image.version}

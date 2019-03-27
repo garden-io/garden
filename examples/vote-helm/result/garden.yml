@@ -1,24 +1,24 @@
-module:
-  description: Helm chart for the results UI
-  type: helm
+kind: Module
+description: Helm chart for the results UI
+type: helm
+name: result
+base: base-chart
+serviceResource:
+  containerModule: result-image
+  hotReloadArgs: [nodemon, server.js]
+dependencies:
+  - db-init
+values:
   name: result
-  base: base-chart
-  serviceResource:
-    containerModule: result-image
-    hotReloadArgs: [nodemon, server.js]
-  dependencies:
-    - db-init
-  values:
-    name: result
-    image:
-      repository: result-image
-      tag: ${modules.result-image.version}
-    ingress:
-      enabled: true
-      paths: [/]
-      hosts: [result-helm.local.app.garden]
-  tests:
-    - name: integ
-      args: [echo, ok]
-      dependencies:
-        - db-init
+  image:
+    repository: result-image
+    tag: ${modules.result-image.version}
+  ingress:
+    enabled: true
+    paths: [/]
+    hosts: [result-helm.local.app.garden]
+tests:
+  - name: integ
+    args: [echo, ok]
+    dependencies:
+      - db-init

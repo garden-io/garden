@@ -1,4 +1,4 @@
-module:
-  description: Results UI service container
-  type: container
-  name: result-image
+kind: Module
+description: Results UI service container
+type: container
+name: result-image

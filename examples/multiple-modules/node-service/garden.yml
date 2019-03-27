@@ -1,37 +1,37 @@
-module:
-  name: dev
-  description: Node service (dev mode)
-  dockerfile: Dockerfile-dev
-  type: container
-  services:
-    - name: dev
-      command: [npm, start]
-      ports:
-        - name: http
-          containerPort: 8080
-      ingresses:
-        - path: /hello-dev
-          port: http
-  tests:
-    - name: unit
-      args: [npm, test]
+kind: Module
+name: dev
+description: Node service (dev mode)
+dockerfile: Dockerfile-dev
+type: container
+services:
+  - name: dev
+    command: [npm, start]
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /hello-dev
+        port: http
+tests:
+  - name: unit
+    args: [npm, test]
 
 ---
 
-module:
-  name: prod
-  description: Node service (production mode)
-  dockerfile: Dockerfile-prod
-  type: container
-  services:
-    - name: prod
-      command: [npm, start]
-      ports:
-        - name: http
-          containerPort: 8080
-      ingresses:
-        - path: /hello-prod
-          port: http
-  tests:
-    - name: unit
-      args: [npm, test]
+kind: Module
+name: prod
+description: Node service (production mode)
+dockerfile: Dockerfile-prod
+type: container
+services:
+  - name: prod
+    command: [npm, start]
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /hello-prod
+        port: http
+tests:
+  - name: unit
+    args: [npm, test]

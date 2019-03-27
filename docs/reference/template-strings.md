@@ -13,31 +13,31 @@ For example, for one service you might want to reference something from another 
 environment variable:
 
 ```yaml
-module:
-  name: some-module
-  services:
-    - name: some-service
-      # ...
-      env:
-        OTHER_MODULE_VERSION: ${modules.other-module.version}
+kind: Module
+name: some-module
+services:
+  - name: some-service
+    # ...
+    env:
+      OTHER_MODULE_VERSION: ${modules.other-module.version}
 ```
 
 You can also inject a template variable into a string. For instance, you might need to include a module's
 version as part of a URI:
 
 ```yaml
-      # ...
-      env:
-        OTHER_MODULE_ENDPOINT: http://other-module/api/${modules.other-module.version}
+# ...
+env:
+  OTHER_MODULE_ENDPOINT: http://other-module/api/${modules.other-module.version}
 ```
 
 Note that while the syntax looks similar to template strings in Javascript, you can currently only do simple
 lookups of keys. However, it is possible to do nested templating. For a somewhat contrived example:
 
 ```yaml
-      # ...
-      env:
-        OTHER_MODULE_ENDPOINT: http://${var.auth-module}/api/${modules.${var.auth-module}.version}
+# ...
+env:
+  OTHER_MODULE_ENDPOINT: http://${var.auth-module}/api/${modules.${var.auth-module}.version}
 ```
 
 There the name of the module is pulled from the project/environment configuration, and used to find the

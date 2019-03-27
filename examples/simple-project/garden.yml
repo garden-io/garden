@@ -1,6 +1,0 @@
-project:
-  name: simple-project
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
