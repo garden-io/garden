@@ -8,4 +8,4 @@ The following articles cover the basics of installing and using Garden:
 
 If you're already familiar with the basics, feel free to move on to the next chapter: [Using Garden](../using-garden/README.md).
 
-Or dive right in by exploring our [configuration files](../using-garden/configuration-files.md) and [Example projects](../examples/README.md).
+Or dive right in by exploring our [configuration files](../using-garden/configuration-files.md) and [Example Projects](../examples/README.md).

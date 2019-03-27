@@ -18,7 +18,7 @@ steps below if you prefer.
 
 #### Step 1: Install Homebrew
 
-If you haven't already set up homebrew, please follow [their instructions](https://brew.sh/) to set it up.
+If you haven't already set up Homebrew, please follow [their installation instructions](https://brew.sh/).
 
 #### Step 2: Docker and local Kubernetes
 
@@ -37,7 +37,7 @@ configure and use, but we do fully support it on Mac. Please look at the
 
 #### Step 3: Install `garden-cli`
 
-We have a Homebrew tap and package that you can use to easily install `garden-cli` and all dependencies:
+We have a Homebrew tap and package that you can use to easily install `garden-cli` and its dependencies:
 
 ```sh
 brew tap garden-io/garden
@@ -50,10 +50,7 @@ To later upgrade to the newest version, simply run `brew update` and then `brew 
 
 You can run Garden on Windows 10 Pro or Enterprise editions (the Home edition unfortunately does not work because it does not include support for virtualization).
 
-To install the Garden CLI, please use our automated installation script, which will
-check for dependencies, install missing dependencies if needed, and finally install the Garden CLI.
-
-To run the script, open PowerShell as an Administrator and run:
+To install the Garden CLI and its dependencies, please use our installation script. To run the script, open PowerShell as an administrator and run:
 
 ```PowerShell
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/support/install.ps1'))
@@ -64,7 +61,7 @@ The things the script will check for are the following:
 * The [Chocolatey](https://chocolatey.org) package manager. The script installs it automatically if necessary.
 * _git_, _rsync_ and _Docker for Windows_. The script will install or upgrade those via Chocolatey.
 * Whether you have Hyper-V enabled. This is required for _Docker for Windows_. If you do not already have it enabled,
-  the script will enable it but you will need to restart your computer before starting Docker for Windows.
+  the script will enable it, but you will need to restart your computer before starting Docker for Windows.
 * Whether you have Kubernetes enabled in your _Docker for Windows_ installation.
 
 To later upgrade to the newest version, simply re-run the above script.
@@ -129,12 +126,12 @@ since it uses the `local-kubernetes` plugin by default, but you can configure it
 `garden.yml` as follows:
 
 ```yaml
-project:
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
-          context: minikube
+kind: Project
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+        context: minikube
 ```
 
 If you happen to have installed both Minikube and a version of Docker for Mac with Kubernetes support enabled,

@@ -78,6 +78,8 @@ project:
 
 ### Configuring a container registry
 
+> NOTE: Configuring a container registry is not necessary when using Garden Enterprise, which features integrated remote building.
+
 When you deploy to the environment (via `garden deploy` or `garden dev`), containers are first built and then pushed
 to the configured _deployment registry_, where the K8s cluster will then pull the built images when deploying.
 This should generally be a _private_ container registry, or at least a private project in a public registry.

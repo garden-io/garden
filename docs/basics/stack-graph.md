@@ -2,7 +2,7 @@
 
 Garden centers around the _Stack Graph_, which allows you to describe your whole stack in a consistent, structured way.
 
-Garden uses the graph to detect when modules need to re-built or re-tested, services re-deployed etc., by looking at your current code and comparing against previously built, deployed and tested versions.
+Garden uses the graph to detect when modules need to be re-built or re-tested, services re-deployed etc. by comparing your current code with previously built, deployed and tested versions.
 
 ## Structure
 
@@ -10,12 +10,12 @@ The Stack Graph is essentially an opinionated graph structure, with a handful of
 
 * **Project**: The root of the graph. Contains one or more _modules_ and configures _providers_.
 * **Provider**: Providers are configured at the project level. They take care of initializing deployment environments, and control what happens within each node of the graph, e.g. how modules are built, services are deployed etc. They also specify _module types_ and how they are configured.
-* **Module**: A module is something you _build_. Each module specifies a type (e.g. `container` or `helm`) which dictates how it is configured, deployed etc. It can contain zero or more _services_, _tasks_ and _tests_. It can also have build dependencies.
+* **Module**: A module is something you _build_. Each module specifies a type (e.g. `container` or `helm`) which dictates how it is configured, built, deployed etc. It can contain zero or more _services_, _tasks_ and _tests_. It can also have build dependencies.
 * **Service**: A service is something you _deploy_. It can depend on other services, as well as tasks.
 * **Task**: A task is something you _run_ and wait for to finish. It can depend on other services and tasks.
 * **Test**: A test is also something you run and wait for to finish, similar to tasks, but with slightly different semantics and separate commands for execution. It can depend on services and tasks (but notably services and tasks cannot depend on tests).
 
-Each part of your stack _describes itself_ using a simple configuration file, and Garden collects all those declarations, validates, and compiles them into a DAG (a directed acyclic graph, meaning it should have no circular dependencies).
+Each part of your stack _describes itself_ using a simple configuration file. Garden collects all those declarations, validates, and compiles them into a DAG (a directed acyclic graph, meaning it should have no circular dependencies).
 
 Importantly, what happens within each of the actions that the graph describes—building, deploying, running etc.—is completely pluggable via the providers. The Stack Graph is only opinionated in terms of flows and dependencies—_what_ should happen _when_—but the _how_ is pluggable.
 
@@ -53,7 +53,7 @@ tests:
   dependencies: [my-other-service]
 ```
 
-Note here the first four fields, which are common across all module types. Other fields are specified by the corresponding _provider_.
+Note here the first four fields, which are common across all module types—`kind`, `type`, `name` and `description`. Other fields are specified by the corresponding _provider_.
 
 Also notice that the `container` module explicitly declares a service, whereas the `helm` module does not. This is dictated by the provider. Containers often only need to be built (e.g. base images for other containers), or may contain multiple services. A Helm chart , however, is generally a single deployable so the provider makes the service implicit when configuring it.
 
