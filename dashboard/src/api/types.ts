@@ -86,7 +86,7 @@ export interface FetchConfigResponse {
 
 export type RenderedNode = { type: RenderedNodeType, name: string }
 
-export type RenderedNodeType = "build" | "deploy" | "runTask" | "test" | "push" | "publish"
+export type RenderedNodeType = "build" | "deploy" | "run" | "test" | "push" | "publish"
 
 export type RenderedEdge = { dependant: RenderedNode, dependency: RenderedNode }
 

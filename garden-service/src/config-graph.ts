@@ -47,7 +47,7 @@ export type DependencyRelationFilterFn = (DependencyGraphNode) => boolean
 export type RenderedGraph = { nodes: RenderedNode[], relationships: RenderedEdge[] }
 export type RenderedEdge = { dependant: RenderedNode, dependency: RenderedNode }
 export type RenderedNode = { type: RenderedNodeType, name: string }
-export type RenderedNodeType = "build" | "deploy" | "runTask" | "test" | "push" | "publish"
+export type RenderedNodeType = "build" | "deploy" | "run" | "test" | "push" | "publish"
 
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
@@ -501,7 +501,7 @@ export class ConfigGraph {
 const renderedNodeTypeMap = {
   build: "build",
   service: "deploy",
-  task: "runTask",
+  task: "run",
   test: "test",
   push: "push",
   publish: "publish",
