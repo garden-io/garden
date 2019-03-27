@@ -30,7 +30,7 @@ export class ServeCommand extends Command<Args, Opts> {
   help = "Starts the Garden HTTP API service - **Experimental**"
 
   cliOnly = true
-  loggerType = LoggerType.basic
+  loggerType: LoggerType = "basic"
 
   description = dedent`
     **Experimental**

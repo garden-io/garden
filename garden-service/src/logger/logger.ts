@@ -17,27 +17,23 @@ import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { parseLogLevel } from "../cli/helpers"
 
-export enum LoggerType {
-  quiet = "quiet",
-  basic = "basic",
-  fancy = "fancy",
-  json = "json",
-}
+export type LoggerType = "quiet" | "basic" | "fancy" | "json"
+export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
 
 export function getCommonConfig(loggerType: LoggerType): LoggerConfig {
   const configs: { [key in LoggerType]: LoggerConfig } = {
-    [LoggerType.quiet]: {
+    quiet: {
       level: LogLevel.info,
     },
-    [LoggerType.basic]: {
+    basic: {
       level: LogLevel.info,
       writers: [new BasicTerminalWriter()],
     },
-    [LoggerType.fancy]: {
+    fancy: {
       level: LogLevel.info,
       writers: [new FancyTerminalWriter()],
     },
-    [LoggerType.json]: {
+    json: {
       level: LogLevel.info,
       writers: [new JsonTerminalWriter()],
     },
@@ -84,12 +80,12 @@ export class Logger extends LogNode {
 
     // GARDEN_LOGGER_TYPE env variable takes precedence over the config param
     if (process.env.GARDEN_LOGGER_TYPE) {
-      const loggerType = LoggerType[process.env.GARDEN_LOGGER_TYPE]
+      const loggerType = <LoggerType>process.env.GARDEN_LOGGER_TYPE
 
-      if (!loggerType) {
-        throw new ParameterError(`Invalid logger type specified: ${process.env.GARDEN_LOGGER_TYPE}`, {
+      if (!LOGGER_TYPES.has(loggerType)) {
+        throw new ParameterError(`Invalid logger type specified: ${loggerType}`, {
           loggerType: process.env.GARDEN_LOGGER_TYPE,
-          availableTypes: Object.keys(LoggerType),
+          availableTypes: LOGGER_TYPES,
         })
       }
 

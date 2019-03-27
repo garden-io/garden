@@ -18,6 +18,42 @@ if [[ $? -eq 0 ]]; then
   exit 1
 fi
 
+${garden_bin} version
+if [[ $? -ne 0 ]]; then
+  echo "Expected exit code 0 when calling version"
+  exit 1
+fi
+
+${garden_bin} --version
+if [[ $? -ne 0 ]]; then
+  echo "Expected exit code 0 when calling --version"
+  exit 1
+fi
+
+${garden_bin} -v
+if [[ $? -ne 0 ]]; then
+  echo "Expected exit code 0 when calling -v"
+  exit 1
+fi
+
+${garden_bin} help
+if [[ $? -ne 0 ]]; then
+  echo "Expected exit code 0 when calling help"
+  exit 1
+fi
+
+${garden_bin} --help
+if [[ $? -ne 0 ]]; then
+  echo "Expected exit code 0 when calling --help"
+  exit 1
+fi
+
+${garden_bin} -h
+if [[ $? -ne 0 ]]; then
+  echo "Expected exit code 0 when calling --help"
+  exit 1
+fi
+
 set -e
 
 ${garden_bin} scan
