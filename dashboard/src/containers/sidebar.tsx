@@ -28,8 +28,8 @@ const builtinPages: Page[] = [
     url: "",
   },
   {
-    title: "Task Graph",
-    description: "Task Graph",
+    title: "Stack Graph",
+    description: "Stack Graph",
     path: "/graph",
     newWindow: false,
     url: "",
