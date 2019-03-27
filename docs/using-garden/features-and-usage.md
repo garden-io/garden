@@ -1,6 +1,6 @@
 # Features and Usage
 
-Now that you've had a glimpse of the basic Garden commands in the [Quick Start](../basics/quick-start.md) guide, and a brief look at the main [Concepts](../basics/concepts.md) we'll be dealing with, let's go through what some typical Garden workflows look like.
+Now that you've had a glimpse of the basic Garden commands in the [Quick Start](../basics/quick-start.md) guide, and learned about the [Stack Graph](../basics/stack-graph.md), let's go through what some typical Garden workflows look like.
 
 ## Starting a new project
 
@@ -45,14 +45,6 @@ Most of the time, the development workflow when using Garden after the configura
 
 Sometimes though, you might prefer to skip the testing step, in which case you can simply use `garden deploy --watch`. This will watch for changes, then build and deploy them, but it'll skip testing.
 
-Another important topic to keep in mind is [inter-service communication](../basics/concepts.md#how-inter-service-communication-works). As previously discussed, your project has multiple services, and they need to talk to each other at some point. That's pretty simple: a service's hostname is simply its name. So a the hostname for a service called `my-service` is simply `http://my-service/`.
-
-For example, the following snippet calls a different service in the project called `go-service`.
-
-```js
-request.get('http://go-service/hello-go').then(message => {res.json({message})})
-```
-
 Lastly, when things go wrong you should refer to the error logs. These consist of an `error.log` file in the project root, along with the service logs that you can retrieve from the individual pods in your cluster.
 
 For the latter, you can use the `garden logs` command, followed by the name of the service you'd like to query. For example `garden logs go-service` would fetch the logs for the `go-service` service, while `garden logs go-service,node-service` would fetch the logs for both the `go-service` and the `node-service` services.
@@ -61,10 +53,9 @@ The `garden logs` command is functionally equivalent to `kubectl logs`, but simp
 
 ## Providers
 
-Whenever "a module's type" is mentioned in the documentation, what's meant is "which provider will handle this module?" Providers, as [previously discussed](../basics/concepts.md), are responsible for implementing different behaviors for say containers and serverless functions, and they need to be specified in a module's configuration files.
+Whenever "a module's type" is mentioned in the documentation, what's meant is "which provider will handle this module?" Providers, as [previously discussed](../basics/stack-graph.md), are responsible for implementing different behaviors for say containers and functions, and they need to be specified in a module's configuration files.
 
 For a comprehensive list of providers available in Garden, check out the [References](../reference/README.md)
-
 
 ## Testing and dependencies
 

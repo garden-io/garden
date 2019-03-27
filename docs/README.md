@@ -3,7 +3,7 @@
 * [Basics](./basics/README.md)
   * [Installation](./basics/installation.md)
   * [Quick Start](./basics/quick-start.md)
-  * [Concepts](./basics/concepts.md)
+  * [Stack Graph](./basics/stack-graph.md)
 * [Using Garden](./using-garden/README.md)
   * [Features and usage](./using-garden/features-and-usage.md)
   * [Configuration files](./using-garden/configuration-files.md)
