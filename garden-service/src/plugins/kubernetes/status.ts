@@ -249,7 +249,7 @@ export async function checkWorkloadStatus(
     const status = <V1StatefulSetStatus>statusRes.status
     const statusSpec = <V1StatefulSetSpec>statusRes.spec
 
-    const replicas = status.replicas
+    const replicas = status.replicas || 0
     const updated = status.updatedReplicas || 0
     const ready = status.readyReplicas || 0
 
@@ -272,7 +272,7 @@ export async function checkWorkloadStatus(
   } else {
     const status = <V1DeploymentStatus>statusRes.status
 
-    const desired = 1 // TODO: service.count[env.name] || 1
+    const desired = status.replicas || 0
     const updated = status.updatedReplicas || 0
     const replicas = status.replicas || 0
     const available = status.availableReplicas || 0
@@ -385,7 +385,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
         const symbol = status.warning === true ? "warning" : "info"
         statusLine.setState({
           symbol,
-          msg: status.lastMessage,
+          msg: `${status.obj.kind}/${status.obj.metadata.name}: ${status.lastMessage}`,
         })
         log.verbose({
           symbol,
