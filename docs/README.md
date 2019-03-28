@@ -15,6 +15,7 @@
   * [Simple project](./examples/simple-project.md)
   * [TLS project](./examples/tls-project.md)
   * [Remote sources project](./examples/remote-sources.md)
+  * [Using Garden in CI](./examples/using-garden-in-ci.md)
 * [Reference](./reference/README.md)
   * [Module Types](./reference/module-types/README.md)
     * [Container](./reference/module-types/container.md)
