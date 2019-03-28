@@ -1,0 +1,8 @@
+module:
+  name: module-a
+  type: test
+  build:
+    command: [echo, "${variables.echo-string}"]
+  tests:
+    - name: unit
+      command: [echo, OK]
