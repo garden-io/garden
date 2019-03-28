@@ -8,10 +8,13 @@
 
 import { pathExists } from "fs-extra"
 import { join } from "path"
-import { ConfigurationError } from "../../exceptions"
+import * as semver from "semver"
+import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { splitFirst, spawn } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
+
+export const minDockerVersion = "17.07.0"
 
 interface ParsedImageId {
   host?: string
@@ -29,27 +32,27 @@ function getDockerfilePath(basePath: string, dockerfile?: string) {
 
 // TODO: This is done to make it easy to stub when testing.
 // We should come up with a better way than exporting this object.
-export const containerHelpers = {
+const helpers = {
   /**
    * Returns the image ID used locally, when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
   async getLocalImageId(module: ContainerModule): Promise<string> {
-    const hasDockerfile = await containerHelpers.hasDockerfile(module)
+    const hasDockerfile = await helpers.hasDockerfile(module)
 
     if (module.spec.image && hasDockerfile) {
       const { versionString } = module.version
-      const parsedImage = containerHelpers.parseImageId(module.spec.image)
-      return containerHelpers.unparseImageId({ ...parsedImage, tag: versionString })
+      const parsedImage = helpers.parseImageId(module.spec.image)
+      return helpers.unparseImageId({ ...parsedImage, tag: versionString })
     } else if (!module.spec.image && hasDockerfile) {
       const { versionString } = module.version
-      return containerHelpers.unparseImageId({ repository: module.name, tag: versionString })
+      return helpers.unparseImageId({ repository: module.name, tag: versionString })
     } else if (module.spec.image && !hasDockerfile) {
       return module.spec.image
     } else {
       const { versionString } = module.version
-      const parsedImage = containerHelpers.parseImageId(module.name)
-      return containerHelpers.unparseImageId({ ...parsedImage, tag: versionString })
+      const parsedImage = helpers.parseImageId(module.name)
+      return helpers.unparseImageId({ ...parsedImage, tag: versionString })
     }
   },
 
@@ -73,7 +76,7 @@ export const containerHelpers = {
         return `${imageName}:${versionString}`
       }
     } else {
-      return containerHelpers.getLocalImageId(module)
+      return helpers.getLocalImageId(module)
     }
   },
 
@@ -82,8 +85,8 @@ export const containerHelpers = {
    */
   async getDeploymentImageName(moduleConfig: ContainerModuleConfig, registryConfig?: ContainerRegistryConfig) {
     const localName = moduleConfig.spec.image || moduleConfig.name
-    const parsedId = containerHelpers.parseImageId(localName)
-    const withoutVersion = containerHelpers.unparseImageId({ ...parsedId, tag: undefined })
+    const parsedId = helpers.parseImageId(localName)
+    const withoutVersion = helpers.unparseImageId({ ...parsedId, tag: undefined })
 
     if (!registryConfig) {
       return withoutVersion
@@ -91,7 +94,7 @@ export const containerHelpers = {
 
     const host = registryConfig.port ? `${registryConfig.hostname}:${registryConfig.port}` : registryConfig.hostname
 
-    return containerHelpers.unparseImageId({
+    return helpers.unparseImageId({
       host,
       namespace: registryConfig.namespace,
       repository: parsedId.repository,
@@ -104,11 +107,11 @@ export const containerHelpers = {
    * set as the tag.
    */
   async getDeploymentImageId(module: ContainerModule, registryConfig?: ContainerRegistryConfig) {
-    if (await containerHelpers.hasDockerfile(module)) {
+    if (await helpers.hasDockerfile(module)) {
       // If building, return the deployment image name, with the current module version.
-      const imageName = await containerHelpers.getDeploymentImageName(module, registryConfig)
+      const imageName = await helpers.getDeploymentImageName(module, registryConfig)
 
-      return containerHelpers.unparseImageId({
+      return helpers.unparseImageId({
         repository: imageName,
         tag: module.version.versionString,
       })
@@ -174,26 +177,91 @@ export const containerHelpers = {
   },
 
   async pullImage(module: ContainerModule) {
-    const identifier = await containerHelpers.getPublicImageId(module)
-    await containerHelpers.dockerCli(module, ["pull", identifier])
+    const identifier = await helpers.getPublicImageId(module)
+    await helpers.dockerCli(module, ["pull", identifier])
   },
 
   async imageExistsLocally(module: ContainerModule) {
-    const identifier = await containerHelpers.getLocalImageId(module)
-    const exists = (await containerHelpers.dockerCli(module, ["images", identifier, "-q"])).length > 0
+    const identifier = await helpers.getLocalImageId(module)
+    const exists = (await helpers.dockerCli(module, ["images", identifier, "-q"])).length > 0
     return exists ? identifier : null
   },
 
+  dockerVersionChecked: false,
+
+  async getDockerVersion() {
+    let versionRes
+
+    try {
+      versionRes = await spawn("docker", ["version", "-f", "{{ .Client.Version }} {{ .Server.Version }}"])
+    } catch (err) {
+      throw new RuntimeError(
+        `Unable to get docker version: ${err.message}`,
+        { err },
+      )
+    }
+
+    const output = versionRes.output.trim()
+    const split = output.split(" ")
+
+    const clientVersion = split[0]
+    const serverVersion = split[1]
+
+    if (!clientVersion || !serverVersion) {
+      throw new RuntimeError(
+        `Unexpected docker version output: ${output}`,
+        { output },
+      )
+    }
+
+    return { clientVersion, serverVersion }
+  },
+
+  async checkDockerVersion() {
+    if (helpers.dockerVersionChecked) {
+      return
+    }
+
+    const fixedMinVersion = fixDockerVersionString(minDockerVersion)
+    const { clientVersion, serverVersion } = await helpers.getDockerVersion()
+
+    if (!semver.gte(fixDockerVersionString(clientVersion), fixedMinVersion)) {
+      throw new RuntimeError(
+        `Docker client needs to be version ${minDockerVersion} or newer (got ${clientVersion})`,
+        { clientVersion, serverVersion },
+      )
+    }
+
+    if (!semver.gte(fixDockerVersionString(serverVersion), fixedMinVersion)) {
+      throw new RuntimeError(
+        `Docker server needs to be version ${minDockerVersion} or newer (got ${serverVersion})`,
+        { clientVersion, serverVersion },
+      )
+    }
+
+    helpers.dockerVersionChecked = true
+  },
+
   async dockerCli(module: ContainerModule, args: string[]) {
-    // TODO: use dockerode instead of CLI
-    const output = await spawn("docker", args, { cwd: module.buildPath })
-    return output.output || ""
+    await helpers.checkDockerVersion()
+
+    const cwd = module.buildPath
+
+    try {
+      const res = await spawn("docker", args, { cwd })
+      return res.output || ""
+    } catch (err) {
+      throw new RuntimeError(
+        `Unable to run docker command: ${err.message}`,
+        { err, args, cwd },
+      )
+    }
   },
 
   async hasDockerfile(moduleConfig: ContainerModuleConfig) {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-    return moduleConfig.spec.dockerfile || pathExists(containerHelpers.getDockerfileSourcePath(moduleConfig))
+    return moduleConfig.spec.dockerfile || pathExists(helpers.getDockerfileSourcePath(moduleConfig))
   },
 
   getDockerfileBuildPath(module: ContainerModule) {
@@ -203,5 +271,11 @@ export const containerHelpers = {
   getDockerfileSourcePath(config: ModuleConfig) {
     return getDockerfilePath(config.path, config.spec.dockerfile)
   },
+}
 
+export const containerHelpers = helpers
+
+// Ugh, Docker doesn't use valid semver. Here's a hacky fix.
+function fixDockerVersionString(v: string) {
+  return semver.coerce(v.replace(/\.0([\d]+)/g, ".$1"))!
 }
