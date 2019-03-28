@@ -9,15 +9,17 @@
 import { GetServiceLogsParams } from "../../../types/plugin/params"
 import { ContainerModule } from "../../container/config"
 import { getAppNamespace } from "../namespace"
-import { getKubernetesLogs } from "../logs"
+import { getAllLogs } from "../logs"
 import { KubernetesPluginContext } from "../kubernetes"
+import { createDeployment } from "./deployment"
 
 export async function getServiceLogs(params: GetServiceLogsParams<ContainerModule>) {
   const { ctx, service } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
   const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
-  const selector = `service=${service.name}`
 
-  return getKubernetesLogs({ ...params, context, namespace, selector })
+  const resources = [await createDeployment(k8sCtx.provider, service, params.runtimeContext, namespace, false)]
+
+  return getAllLogs({ ...params, context, namespace, resources })
 }
