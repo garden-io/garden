@@ -15,3 +15,8 @@ This is an example project of how to set up TLS using the `mkcert` tool.
 ## [Remote sources project](./remote-sources.md)
 
 This project demonstrates how to use multiple sources and repositories together into the same project. Although in this project we're using _remote_ sources, the same applies to using multiple _local_ repositories.
+
+## [Using Garden in CI](./using-garden-in-ci.md)
+
+In this example we demonstrate how to use Garden in a CI pipeline to run tests and deploy to preview and staging environments. Note that you'll need to have a remote Kubernetes cluster set up to complete the steps in the guide.
+

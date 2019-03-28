@@ -26,6 +26,7 @@ With the Stack Graph, each part of your stack can _describe itself_ using simple
 - The built-in web **dashboard** gives you a full overview of your stack (and many more UI features are planned to further aid with development).
 - Build, test and deploy Docker containers, [Helm charts](https://docs.garden.io/using-garden/using-helm-charts), OpenFaaS functions and more.
 - An extensible plug-in system ensures you'll later be able add anything that's not on this list, or create custom module types tailored to your needs (_due in April 2019_).
+- _Enterprise version only_: In-cluster building and image caching for Kubernetes. Please [reach out](https://garden.io#request-demo) to learn more!
 
 _Note: The project is in beta. APIs may still change slightly across  versions, and some features are still experimental._
 
