@@ -73,7 +73,7 @@ You need the following dependencies on your local machine to use Garden:
 * [Docker](https://docs.docker.com/)
 * Git
 * rsync
-* Local installation of Kubernetes and kubectl
+* Local installation of Kubernetes and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 #### Step 1: Docker
 
@@ -86,11 +86,11 @@ For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minik
 
 #### Step 3: Install other dependencies
 
-Use your preferred method or package manager to install `git` and `rsync`.
+Use your preferred method or package manager to install `git` and `rsync`. On Ubuntu, that's `sudo apt install git rsync`.
 
 #### Step 4: Install `garden-cli`
 
-Once you have the dependencies set up, download the Garden CLI for your platform from our [latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH.
+Once you have the dependencies set up, download the Garden CLI for your platform from our [latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH. E.g. by extracting to `~/.garden/bin` and adding `export PATH=$PATH:~/.garden/bin` to your `.bashrc` or `.zshrc` file.
 
 ## Minikube
 
