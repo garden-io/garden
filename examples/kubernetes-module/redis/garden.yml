@@ -1,0 +1,5 @@
+kind: Module
+type: kubernetes
+name: redis
+description: Redis deployment with kubernetes manifests in a file ((extracted from the stable/redis Helm chart))
+files: [redis.yml]

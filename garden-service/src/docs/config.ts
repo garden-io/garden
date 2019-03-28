@@ -31,6 +31,7 @@ import { openfaasModuleSpecSchema } from "../plugins/openfaas/openfaas"
 import { helmModuleSpecSchema } from "../plugins/kubernetes/helm/config"
 import { joiArray } from "../config/common"
 import { mavenContainerModuleSpecSchema, mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
+import { kubernetesModuleSpecSchema } from "../plugins/kubernetes/kubernetes-module/config"
 
 const baseProjectSchema = Joi.object().keys({
   project: projectSchema,
@@ -57,6 +58,7 @@ const moduleTypes = [
   { name: "openfaas", schema: populateModuleSchema(openfaasModuleSpecSchema) },
   { name: "helm", schema: populateModuleSchema(helmModuleSpecSchema) },
   { name: "maven-container", schema: populateModuleSchema(mavenContainerModuleSpecSchema) },
+  { name: "kubernetes", schema: populateModuleSchema(kubernetesModuleSpecSchema) },
 ]
 
 const providers = [

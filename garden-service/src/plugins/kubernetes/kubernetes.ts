@@ -18,6 +18,7 @@ import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../conta
 import { getRemoteEnvironmentStatus, prepareRemoteEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers, mavenContainerHandlers } from "./container/handlers"
 import { PluginContext } from "../../plugin-context"
+import { kubernetesHandlers } from "./kubernetes-module/handlers"
 
 export const name = "kubernetes"
 
@@ -158,6 +159,7 @@ export function gardenPlugin(): GardenPlugin {
       // TODO: we should find a way to avoid having to explicitly specify the key here
       "maven-container": mavenContainerHandlers,
       "helm": helmHandlers,
+      "kubernetes": kubernetesHandlers,
     },
   }
 }
