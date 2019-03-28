@@ -10,11 +10,11 @@ Important concepts:
 
 > Remote _module_: The remote source code for a single Garden module. In this case, the `garden.yml` config file is stored in the main project repository while the module code itself is in the remote repository.
 
-_Note: The source code for this project can be found at: [https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/remote-sources](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/remote-sources)._
+_Note: The source code for this project can be found at: [https://github.com/garden-io/garden/tree/v0.9.7/examples//remote-sources)._
 
 ## About
 
-This project is the same as the [vote example](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/vote)—except that in this case the services live in their own repositories. The repositories are:
+This project is the same as the [vote example](https://github.com/garden-io/garden/tree/v0.9.7/examples//vote)—except that in this case the services live in their own repositories. The repositories are:
 
 * [Database services](https://github.com/garden-io/garden-example-remote-sources-db-services) (contains the Postgres and Redis services)
 * [Web services](https://github.com/garden-io/garden-example-remote-sources-web-services) (contains the Python Vote web service and the Node.js Result web service)
