@@ -53,7 +53,7 @@ import { Provider, providerConfigBaseSchema } from "../../config/project"
 import { faasCli } from "./faas-cli"
 import { CleanupEnvironmentParams } from "../../types/plugin/params"
 import dedent = require("dedent")
-import { getKubernetesLogs } from "../kubernetes/logs"
+import { getAllLogs } from "../kubernetes/logs"
 import { installTiller, checkTillerStatus } from "../kubernetes/helm/tiller"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
@@ -230,8 +230,11 @@ export function gardenPlugin(): GardenPlugin {
           const k8sProvider = getK8sProvider(<OpenFaasPluginContext>ctx)
           const context = k8sProvider.config.context
           const namespace = await getAppNamespace(ctx, k8sProvider)
-          const selector = `faas_function=${service.name}`
-          return getKubernetesLogs({ ...params, context, namespace, selector })
+
+          const api = new KubeApi(k8sProvider.config.context)
+          const resources = await getResources(api, service, namespace)
+
+          return getAllLogs({ ...params, context, namespace, resources })
         },
 
         async deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
@@ -253,15 +256,14 @@ export function gardenPlugin(): GardenPlugin {
           const k8sProvider = getK8sProvider(openFaasCtx)
           const namespace = await getAppNamespace(openFaasCtx, k8sProvider)
           const api = new KubeApi(k8sProvider.config.context)
-
-          const deployment = (await api.apps.readNamespacedDeployment(service.name, namespace)).body
+          const resources = await getResources(api, service, namespace)
 
           await waitForResources({
             ctx: openFaasCtx,
             provider: k8sProvider,
             serviceName: service.name,
             log,
-            resources: [deployment],
+            resources,
           })
 
           // TODO: avoid duplicate work here
@@ -328,6 +330,11 @@ async function writeStackFile(
       },
     },
   })
+}
+
+async function getResources(api: KubeApi, service: OpenFaasService, namespace: string) {
+  const deployment = (await api.apps.readNamespacedDeployment(service.name, namespace)).body
+  return [deployment]
 }
 
 async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusParams<OpenFaasModule>) {

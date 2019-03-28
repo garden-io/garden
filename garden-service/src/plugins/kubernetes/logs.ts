@@ -7,70 +7,79 @@
  */
 
 import * as split from "split"
+import { omit } from "lodash"
 import moment = require("moment")
-import JSONStream = require("JSONStream")
 
-import { GetServiceLogsResult } from "../../types/plugin/outputs"
-import { GetServiceLogsParams } from "../../types/plugin/params"
+import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/outputs"
 import { splitFirst } from "../../util/util"
-import { BinaryCmd } from "../../util/ext-tools"
 import { kubectl } from "./kubectl"
+import { KubernetesResource } from "./types"
+import { getAllPodNames } from "./util"
+import { KubeApi } from "./api"
+import { Service } from "../../types/service"
+import Stream from "ts-stream"
 
-interface GetKubernetesLogsParams extends GetServiceLogsParams {
+interface GetLogsBaseParams {
   context: string
   namespace: string
-  selector: string
+  service: Service
+  stream: Stream<ServiceLogEntry>
+  follow: boolean
+  tail: number
 }
 
-export async function getKubernetesLogs(params: GetKubernetesLogsParams) {
-  // Currently Stern doesn't support just returning the logs and exiting, it can only follow
-  const proc = params.follow
-    ? await followLogs(params)
-    : await getLogs(params)
+interface GetPodLogsParams extends GetLogsBaseParams {
+  podNames: string[]
+}
+
+interface GetAllLogsParams extends GetLogsBaseParams {
+  resources: KubernetesResource[]
+}
+
+interface GetLogsParams extends GetLogsBaseParams {
+  podName: string
+}
+
+/**
+ * Stream all logs for the given pod names and service.
+ */
+export async function getPodLogs(params: GetPodLogsParams) {
+  const procs = params.podNames.map(podName => getLogs({ ...omit(params, "podNames"), podName }))
 
   return new Promise<GetServiceLogsResult>((resolve, reject) => {
-    proc.on("error", reject)
+    for (const proc of procs) {
+      proc.on("error", reject)
 
-    proc.on("exit", () => {
-      resolve({})
-    })
+      proc.on("exit", () => {
+        resolve({})
+      })
+    }
   })
 }
 
-async function followLogs({ context, namespace, service, selector, stream, log, tail }: GetKubernetesLogsParams) {
-  const args = [
-    "--color", "never",
-    "--context", context,
-    "--namespace", namespace,
-    "--output", "json",
-    "--selector", selector,
-    "--tail", String(tail),
-    "--timestamps",
-  ]
-
-  const proc = await stern.spawn({ args, log })
-  let timestamp: Date | undefined
-
-  proc.stdout!
-    .pipe(JSONStream.parse(["message"], (message) => {
-      const [timestampStr, msg] = splitFirst(message, " ")
-      try {
-        timestamp = moment(timestampStr).toDate()
-      } catch { }
-      void stream.write({ serviceName: service.name, timestamp, msg: msg.trimRight() })
-    }))
-
-  return proc
+/**
+ * Stream all logs for the given resources and service.
+ */
+export async function getAllLogs(params: GetAllLogsParams) {
+  const api = new KubeApi(params.context)
+  const podNames = await getAllPodNames(api, params.namespace, params.resources)
+  return getPodLogs({ ...params, podNames })
 }
 
-async function getLogs({ context, namespace, service, selector, stream, tail }: GetKubernetesLogsParams) {
+function getLogs({ context, namespace, service, stream, tail, follow, podName }: GetLogsParams) {
   // TODO: do this via API instead of kubectl
   const kubectlArgs = [
     "logs",
-    "--selector", selector,
     "--tail", String(tail),
     "--timestamps=true",
+    "--all-containers=true",
   ]
+
+  if (follow) {
+    kubectlArgs.push("--follow=true")
+  }
+
+  kubectlArgs.push(`pod/${podName}`)
 
   const proc = kubectl(context, namespace).spawn(kubectlArgs)
   let timestamp: Date
@@ -85,26 +94,12 @@ async function getLogs({ context, namespace, service, selector, stream, tail }: 
       try {
         timestamp = moment(timestampStr).toDate()
       } catch { }
-      void stream.write({ serviceName: service.name, timestamp, msg })
+      void stream.write({
+        serviceName: service.name,
+        timestamp,
+        msg: `${podName} ${msg}`,
+      })
     })
 
   return proc
 }
-
-const stern = new BinaryCmd({
-  name: "stern",
-  specs: {
-    darwin: {
-      url: "https://github.com/wercker/stern/releases/download/1.10.0/stern_darwin_amd64",
-      sha256: "b91dbcfd3bbda69cd7a7abd80a225ce5f6bb9d6255b7db192de84e80e4e547b7",
-    },
-    linux: {
-      url: "https://github.com/wercker/stern/releases/download/1.10.0/stern_linux_amd64",
-      sha256: "a0335b298f6a7922c35804bffb32a68508077b2f35aaef44d9eb116f36bc7eda",
-    },
-    win32: {
-      url: "https://github.com/wercker/stern/releases/download/1.10.0/stern_windows_amd64.exe",
-      sha256: "8cb94d3f47c831f2b0a59286336b41569ab38cb1528755545cb490536274f885",
-    },
-  },
-})

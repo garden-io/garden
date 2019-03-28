@@ -31,6 +31,7 @@ import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
 import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
 import dedent = require("dedent")
+import { getWorkloadPods, getPods } from "./util"
 
 interface WorkloadStatus {
   state: ServiceState
@@ -196,7 +197,7 @@ export async function checkWorkloadStatus(
           ` + logs
         }
       } else {
-        const pods = await getPods(api, namespace, statusRes.spec.selector.matchLabels)
+        const pods = await getWorkloadPods(api, namespace, statusRes)
         const logs = await getPodLogs(api, namespace, pods.map(pod => pod.metadata.name))
 
         if (logs) {
@@ -589,17 +590,6 @@ function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof 
   } else {
     return value
   }
-}
-
-/**
- * Retrieve a list of pods based on the provided label selector.
- */
-async function getPods(api: KubeApi, namespace: string, selector: { [key: string]: string }): Promise<V1Pod[]> {
-  const selectorString = Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
-  const res = await api.core.listNamespacedPod(
-    namespace, undefined, undefined, undefined, true, selectorString,
-  )
-  return res.body.items
 }
 
 /**
