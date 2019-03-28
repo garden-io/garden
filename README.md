@@ -6,7 +6,11 @@
 
 Garden is a _development orchestrator_ for Kubernetes, containers and functions, designed to make it easy to rapidly develop and test multi-service systems.
 
-It is centered around the [Stack Graph](https://docs.garden.io/basics/stack-graph), which allows you to fully codify how each part of your stack is built, deployed and tested—making your workflow reproducible and portable.
+It is centered around the **[Stack Graph](https://docs.garden.io/basics/stack-graph)**, which allows you to fully codify how each part of your stack is built, deployed and tested—making your workflow reproducible and portable.
+
+<p align="center">
+  <img src="docs/stack-graph.png" width="60%">
+</p>
 
 With the Stack Graph, each part of your stack can _describe itself_ using simple, intuitive declarations, without changing any of your code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack, and leverages that information to **dramatically improve your developer experience**.
 
@@ -25,9 +29,7 @@ With the Stack Graph, each part of your stack can _describe itself_ using simple
 
 _Note: The project is in beta. APIs may still change slightly across  versions, and some features are still experimental._
 
-<p align="center">
-  <img src="docs/loop.gif" width="75%">
-</p>
+![Dashboard](docs/dashboard.gif)
 
 ## Quick start
 
