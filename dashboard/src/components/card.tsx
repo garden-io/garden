@@ -37,7 +37,7 @@ const Card: React.SFC<CardProps> = ({ children, title }) => {
     )
     : null
   return (
-    <Wrapper className="pt-1 mt-2">
+    <Wrapper className="pt-1 mb-2">
       {titleEl}
       {children}
     </Wrapper>

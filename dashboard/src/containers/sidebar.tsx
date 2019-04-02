@@ -60,7 +60,7 @@ const SidebarContainer: React.SFC<SidebarProps> = () => {
     return (
       <div className={cls(css`
       text-align: center;
-    `, "mt-2")}>
+    `)}>
         <p>Loading sidebar...</p>
       </div>
     )
