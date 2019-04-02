@@ -65,7 +65,7 @@ import { BaseTask } from "./tasks/base"
 import { LocalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
-import { ProjectConfigContext, ModuleConfigContext } from "./config/config-context"
+import { ProjectConfigContext, ModuleConfigContext, ContextResolveOpts } from "./config/config-context"
 import { ActionHelper } from "./actions"
 import { createPluginContext } from "./plugin-context"
 import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
@@ -102,6 +102,10 @@ export interface GardenOpts {
   environmentName?: string,
   log?: LogEntry,
   plugins?: Plugins,
+}
+
+interface ModuleConfigResolveOpts extends ContextResolveOpts {
+  configContext?: ModuleConfigContext
 }
 
 const scanLock = new AsyncLock()
@@ -501,15 +505,15 @@ export class Garden {
    * plugin handlers).
    * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
    */
-  async resolveModuleConfigs(keys?: string[], configContext?: ModuleConfigContext): Promise<ModuleConfig[]> {
+  async resolveModuleConfigs(keys?: string[], opts: ModuleConfigResolveOpts = {}): Promise<ModuleConfig[]> {
     const configs = await this.getRawModuleConfigs(keys)
 
-    if (!configContext) {
-      configContext = new ModuleConfigContext(this, this.environment, Object.values(this.moduleConfigs))
+    if (!opts.configContext) {
+      opts.configContext = new ModuleConfigContext(this, this.environment, Object.values(this.moduleConfigs))
     }
 
     return Bluebird.map(configs, async (config) => {
-      config = await resolveTemplateStrings(cloneDeep(config), configContext!)
+      config = await resolveTemplateStrings(cloneDeep(config), opts.configContext!, opts)
 
       const configureHandler = await this.actions.getModuleActionHandler({
         actionType: "configure",
@@ -529,8 +533,8 @@ export class Garden {
   /**
    * Returns the module with the specified name. Throws error if it doesn't exist.
    */
-  async resolveModuleConfig(name: string, configContext?: ModuleConfigContext): Promise<ModuleConfig> {
-    return (await this.resolveModuleConfigs([name], configContext))[0]
+  async resolveModuleConfig(name: string, opts: ModuleConfigResolveOpts = {}): Promise<ModuleConfig> {
+    return (await this.resolveModuleConfigs([name], opts))[0]
   }
 
   /**

@@ -64,10 +64,12 @@ export async function resolveTemplateString(string: string, context: ConfigConte
 /**
  * Recursively parses and resolves all templated strings in the given object.
  */
-export async function resolveTemplateStrings<T extends object>(obj: T, context: ConfigContext): Promise<T> {
+export async function resolveTemplateStrings<T extends object>(
+  obj: T, context: ConfigContext, opts: ContextResolveOpts = {},
+): Promise<T> {
   return asyncDeepMap(
     obj,
-    (v) => typeof v === "string" ? resolveTemplateString(v, context) : v,
+    (v) => typeof v === "string" ? resolveTemplateString(v, context, opts) : v,
     // need to iterate sequentially to catch potential circular dependencies
     { concurrency: 1 },
   )
