@@ -26,6 +26,7 @@ import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner from "../spinner"
 import CheckBox from "../checkbox"
+import { SelectGraphNode } from "../../context/ui"
 
 interface Node {
   name: string
@@ -125,6 +126,7 @@ function drawChart(graph: Graph, width: number, height: number) {
 interface Props {
   config: FetchConfigResponse
   graph: FetchGraphResponse
+  selectGraphNode: SelectGraphNode
   message?: WsMessage
 }
 
@@ -306,6 +308,7 @@ class Chart extends Component<Props, State> {
     return (
       <Card>
         <div className="mt-1">
+        <button onClick={() => this.props.selectGraphNode("")}>CLICK ME</button>
           <div className={css`display: flex;`}>
             {taskTypes.map(type => (
               <div className="ml-1" key={type}>

@@ -9,7 +9,7 @@
 import { useState } from "react"
 import React from "react"
 
-import { fetchConfig, fetchLogs, fetchStatus, fetchGraph, FetchLogsParam } from "../api"
+import { fetchConfig, fetchLogs, fetchTaskResults, fetchGraph, FetchLogsParam } from "../api"
 import {
   FetchConfigResponse,
   FetchStatusResponse,
@@ -26,6 +26,7 @@ interface Config extends StoreSlice { data: FetchConfigResponse | null }
 interface Status extends StoreSlice { data: FetchStatusResponse | null }
 interface Graph extends StoreSlice { data: FetchGraphResponse | null }
 interface Logs extends StoreSlice { data: FetchLogsResponse | null }
+interface TaskResults extends StoreSlice { data: FetchLogsResponse | null }
 
 // This is the global data store
 interface Store {
@@ -33,6 +34,7 @@ interface Store {
   status: Status
   graph: Graph
   logs: Logs,
+  taskResults: TaskResults
 }
 
 export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
@@ -43,12 +45,14 @@ interface Actions {
   loadConfig: Loader
   loadStatus: Loader
   loadGraph: Loader
+  loadTaskResults: Loader
 }
 
 type KeyActionPair =
   ["config", (arg0?: any) => Promise<FetchConfigResponse>] |
   ["logs", (arg0?: any) => Promise<FetchLogsResponse>] |
   ["status", (arg0?: any) => Promise<FetchStatusResponse>] |
+  ["taskResults", (arg0?: any) => Promise<FetchStatusResponse>] |
   ["graph", (arg0?: any) => Promise<FetchGraphResponse>]
 
 type Context = {
@@ -57,7 +61,7 @@ type Context = {
 }
 
 type SliceName = keyof Store
-const sliceNames: SliceName[] = ["config", "status", "graph", "logs"]
+const sliceNames: SliceName[] = ["config", "status", "graph", "logs", "taskResults"]
 
 // TODO Fix type cast
 const initialState: Store = sliceNames.reduce((acc, key) => {
@@ -116,7 +120,10 @@ function useApi() {
     fetchOrReadFromStore(["graph", fetchGraph], force)
   )
   const loadStatus: Loader = (force: boolean = false) => (
-    fetchOrReadFromStore(["status", fetchStatus], force)
+    fetchOrReadFromStore(["status", fetchTaskResults], force)
+  )
+  const loadTaskResults: Loader = (force: boolean = false) => (
+    fetchOrReadFromStore(["taskResults", fetchTaskResults], force)
   )
 
   return {
@@ -126,6 +133,7 @@ function useApi() {
       loadLogs,
       loadGraph,
       loadStatus,
+      loadTaskResults,
     },
   }
 }
