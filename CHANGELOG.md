@@ -1,6 +1,24 @@
 
+<a name="v0.9.7"></a>
+## [v0.9.7](https://github.com/garden-io/garden/compare/v0.9.6...v0.9.7) (2019-03-28)
+
+### Bug Fixes
+
+* include resolved config in module version ([31b2936](https://github.com/garden-io/garden/commit/31b2936))
+* ensure CLI returns correct exit code ([#626](https://github.com/garden-io/garden/issues/626)) ([eeb069f](https://github.com/garden-io/garden/commit/eeb069f))
+* whitespaces instead of dots in terminal ([f6445c7](https://github.com/garden-io/garden/commit/f6445c7))
+* **dashboard:** awkward name for task nodes in Stack Graph ([616c8b5](https://github.com/garden-io/garden/commit/616c8b5))
+* **dashboard:** graph ui fixes ([60c746e](https://github.com/garden-io/garden/commit/60c746e))
+* **k8s:** handle logs properly for all module types and resources ([56a15ba](https://github.com/garden-io/garden/commit/56a15ba))
+* **k8s:** report correct deployment status when replicas=0 ([a7a2983](https://github.com/garden-io/garden/commit/a7a2983))
+
+### Features
+
+* **k8s:** add kubernetes module type ([1488cd8](https://github.com/garden-io/garden/commit/1488cd8))
+
+
 <a name="v0.9.6"></a>
-## [v0.9.6](https://github.com/garden-io/garden/compare/v0.9.5...v0.9.6) (2019-03-22)
+## [v0.9.6](https://github.com/garden-io/garden/compare/v0.9.5...v0.9.6) (2019-03-25)
 
 ### Bug Fixes
 
