@@ -32,6 +32,14 @@ export async function fetchStatus(): Promise<FetchStatusResponse> {
   return apiPost<FetchStatusResponse>("get.status")
 }
 
+export async function fetchTaskResults(): Promise<any> {
+  return apiPost<FetchStatusResponse>("get.tasks")
+}
+
+export async function fetchTasks(): Promise<FetchStatusResponse> {
+  return apiPost<FetchStatusResponse>("get.status")
+}
+
 export async function fetchLogs(services: FetchLogsParam): Promise<FetchLogsResponse> {
   const tail = Math.floor(MAX_LOG_LINES / services.length)
   return apiPost<FetchLogsResponse>("logs", { services, tail })

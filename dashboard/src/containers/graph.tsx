@@ -13,6 +13,9 @@ import PageError from "../components/page-error"
 import { EventContext } from "../context/events"
 import LoadWrapper from "../components/load-wrapper"
 import { DataContext } from "../context/data"
+import Card from "../components/card"
+import { UiStateContext } from "../context/ui"
+import Spinner from "../components/spinner"
 
 export default () => {
   const {
@@ -24,12 +27,63 @@ export default () => {
   useEffect(loadConfig, [])
   useEffect(loadGraph, [])
 
+  const {
+    actions: { selectGraphNode },
+    state: { selectedGraphNode },
+  } = useContext(UiStateContext)
+
   const isLoading = !config.data || !graph.data || config.loading || graph.loading
   const error = config.error || graph.error
 
+  let paneEl = null
+  if (selectedGraphNode !== null) {
+    paneEl = <TestPane selectedGraphNode={selectedGraphNode} />
+  }
+
   return (
     <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
-      <Graph message={message} config={config.data} graph={graph.data} />
+      {paneEl}
+      <Graph message={message} selectGraphNode={selectGraphNode} config={config.data} graph={graph.data} />
+    </LoadWrapper>
+  )
+}
+
+interface PaneProps {
+  selectedGraphNode: string
+}
+
+const TestPaneErrorMsg = () => <p>Error!</p>
+
+const TestPaneSpinner = () => <Spinner fontSize="10px" />
+
+const TestPane: React.SFC<PaneProps> = ({ selectedGraphNode }) => {
+  const {
+    actions: { loadTaskResults },
+    store: { taskResults },
+  } = useContext(DataContext)
+
+  const [name, taskType] = selectedGraphNode.split(".")
+  console.log(name, taskType)
+
+  useEffect(loadTaskResults, [])
+
+  console.log(taskResults)
+
+  const isLoading = !taskResults.data || taskResults.loading
+
+  return (
+    <LoadWrapper
+      loading={isLoading}
+      error={taskResults.error}
+      ErrorComponent={TestPaneErrorMsg}
+      LoadComponent={TestPaneSpinner}>
+      <Card>
+        <div>
+          <h1>Hello world</h1>
+          <p>Data</p>
+          {taskResults.data}
+        </div>
+      </Card>
     </LoadWrapper>
   )
 }
