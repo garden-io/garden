@@ -18,6 +18,10 @@ about: Create a report to help make garden better
 <!-- Use one of our examples or link to a minimal example showing the issue -->
 <!-- Try to include commands run or output -->
 
+### Workaround
+
+<!-- If applicable, a way to work around the issue until it has been resolved. -->
+
 ### Suggested solution(s)
 
 <!-- How could we solve this bug? What changes would need to made? -->
