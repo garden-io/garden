@@ -43,7 +43,11 @@ const builtinPages: Page[] = [
   },
 ]
 
-export default () => {
+interface SidebarProps {
+  isOpen: boolean
+}
+
+const SidebarContainer: React.SFC<SidebarProps> = () => {
   const {
     actions: { loadStatus },
     store: { status },
@@ -56,7 +60,7 @@ export default () => {
     return (
       <div className={cls(css`
       text-align: center;
-    `, "mt-2")}>
+    `)}>
         <p>Loading sidebar...</p>
       </div>
     )
@@ -72,3 +76,5 @@ export default () => {
 
   return <Sidebar pages={[...builtinPages, ...pages]} />
 }
+
+export default SidebarContainer

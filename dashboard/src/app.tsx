@@ -8,7 +8,7 @@
 
 import cls from "classnames"
 import { css } from "emotion/macro"
-import React from "react"
+import React, { useContext } from "react"
 import styled from "@emotion/styled/macro"
 import { Route } from "react-router-dom"
 
@@ -16,7 +16,6 @@ import Graph from "./containers/graph"
 import Logs from "./containers/logs"
 import Overview from "./containers/overview"
 import Sidebar from "./containers/sidebar"
-
 import Provider from "./components/provider"
 
 import { colors } from "./styles/variables"
@@ -27,58 +26,103 @@ import { DataProvider } from "./context/data"
 import { NavLink } from "./components/links"
 
 import logo from "./assets/logo.png"
+import { ReactComponent as Hamburger } from "./assets/hamburger.svg"
+
+import { UiStateProvider, UiStateContext } from "./context/ui"
 
 // Style and align properly
 const Logo = styled.img`
   height: auto;
-  width: 80%;
+  width: 100%;
+  max-width: 10rem;
 `
 
 const SidebarWrapper = styled.div`
-  border-right: 1px solid ${colors.border};
-  min-width: 19rem;
-  width: 19rem;
+  border-right: 1px solid ${colors.border}
   height: 100vh;
+  position: relative;
+`
+const SidebarContainer = styled.div`
+  display: ${props => (props.visible ? `block` : "none")}
+  width: ${props => (props.visible ? `19rem` : "0")}
+`
+const SidebarToggleButton = styled.div`
+  position: absolute;
+  right: -2.5rem;
+  top: 1rem;
+  width: 1.5rem;
+  cursor: pointer;
 `
 
-const App = () => (
-  <div>
-    <DataProvider>
-      <EventProvider>
-        <div className={css`
-          display: flex;
-          height: 100vh;
-          max-height: 100vh;
-          overflow-y: hidden;
-        `}>
-          <SidebarWrapper>
-            <div className={"ml-1"}>
-              <NavLink to="/">
-                <Logo src={logo} alt="Home" />
-              </NavLink>
-            </div>
-            <Sidebar />
-          </SidebarWrapper>
-          <div className={css`
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            overflow-y: auto;
-          `}>
-            <div className={cls(css`
-              background-color: ${colors.grayLight};
-              flex-grow: 1;
-            `, "p-2")}>
-              <Route exact path="/" component={Overview} />
-              <Route path="/logs/" component={Logs} />
-              <Route path="/graph/" component={Graph} />
-              <Route path="/providers/:id" component={Provider} />
-            </div>
-          </div>
-        </div>
-      </EventProvider>
-    </DataProvider>
-  </div>
-)
+const AppContainer = () => {
+  return (
+    <div>
+      <DataProvider>
+        <EventProvider>
+          <UiStateProvider>
+            <App />
+          </UiStateProvider>
+        </EventProvider>
+      </DataProvider>
+    </div>
+  )
+}
 
-export default App
+const App = () => {
+  const {
+    state: { isSidebarOpen },
+    actions: { toggleSidebar },
+  } = useContext(UiStateContext)
+
+  return (
+    <div
+      className={css`
+        display: flex;
+        height: 100vh;
+        max-height: 100vh;
+        overflow-y: hidden;
+      `}
+    >
+      <SidebarWrapper>
+        <SidebarToggleButton onClick={toggleSidebar}>
+          <Hamburger width="24px" />
+        </SidebarToggleButton>
+        <SidebarContainer visible={isSidebarOpen}>
+          <div className={"ml-1"}>
+            <NavLink to="/">
+              <Logo src={logo} alt="Home" />
+            </NavLink>
+          </div>
+          <Sidebar />
+        </SidebarContainer>
+      </SidebarWrapper>
+      <div
+        className={css`
+          display: flex;
+          flex-direction: column;
+          flex-grow: 1;
+          overflow-y: auto;
+        `}
+      >
+        <div
+          className={cls(
+            css`
+              background-color: ${colors.grayLight}
+              flex-grow: 1;
+            `,
+            "pl-3",
+            "pt-4",
+            "pr-1",
+          )}
+        >
+          <Route exact path="/" component={Overview} />
+          <Route path="/logs/" component={Logs} />
+          <Route path="/graph/" component={Graph} />
+          <Route path="/providers/:id" component={Provider} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default AppContainer

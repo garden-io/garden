@@ -85,14 +85,11 @@ function drawChart(graph: Graph, width: number, height: number) {
   const render = new dagreD3.render()
 
   // Clear previous content if any (for updating)
-  d3.selectAll("svg").remove()
+  d3.selectAll("#chart svg").remove()
 
   // Set width and height. Height gets updated once graph is rendered
   width = Math.max(width, MIN_CHART_WIDTH)
   height = Math.max(height, MIN_CHART_HEIGHT)
-
-  // Clear previous content if any (for updating)
-  d3.selectAll("svg").remove()
 
   const svg = d3.select("#chart").append("svg")
     .attr("width", width)
