@@ -93,14 +93,25 @@ export abstract class ConfigContext {
 
       if (typeof value === "function") {
         // call the function to resolve the value, then continue
-        value = await value()
+        if (opts.stack.includes(stackEntry)) {
+          throw new ConfigurationError(
+            `Circular reference detected when resolving key ${stackEntry} (from ${opts.stack.join(" -> ")})`,
+            {
+              nodePath,
+              fullPath,
+              opts,
+            },
+          )
+        }
+
+        opts.stack.push(stackEntry)
+        value = await value({ key: remainder, nodePath: nestedNodePath, opts })
       }
 
       // handle nested contexts
       if (value instanceof ConfigContext) {
-        const nestedKey = remainder
         opts.stack.push(stackEntry)
-        value = await value.resolve({ key: nestedKey, nodePath: nestedNodePath, opts })
+        value = await value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
         break
       }
 
@@ -273,9 +284,14 @@ export class ModuleConfigContext extends ProjectConfigContext {
     this.environment = new EnvironmentContext(_this, environment.name)
 
     this.modules = new Map(moduleConfigs.map((config) =>
-      <[string, () => Promise<ModuleContext>]>[config.name, async () => {
+      <[string, () => Promise<ModuleContext>]>[config.name, async (opts: ContextResolveOpts) => {
         // NOTE: This is a temporary hacky solution until we implement module resolution as a TaskGraph task
-        const resolvedConfig = await garden.resolveModuleConfig(config.name)
+        const stackKey = "modules." + config.name
+        const resolvedConfig = await garden.resolveModuleConfig(config.name, {
+          configContext: _this,
+          ...opts,
+          stack: [...opts.stack || [], stackKey],
+        })
         const version = await garden.resolveVersion(resolvedConfig.name, resolvedConfig.build.dependencies)
         const buildPath = await garden.buildDir.buildPath(config.name)
 

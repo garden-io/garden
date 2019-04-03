@@ -11,6 +11,7 @@ import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { Garden } from "../../../../src/garden"
 import { ModuleConfigContext } from "../../../../src/config/config-context"
+import { ModuleConfig } from "../../../../src/config/module"
 
 class TestVcsHandler extends VcsHandler {
   name = "test"
@@ -85,10 +86,10 @@ describe("VcsHandler", () => {
   })
 
   describe("getVersionString", () => {
-    let moduleABefore
-    let moduleAAfter
-    let moduleBBefore
-    let moduleBAfter
+    let moduleABefore: ModuleConfig
+    let moduleAAfter: ModuleConfig
+    let moduleBBefore: ModuleConfig
+    let moduleBAfter: ModuleConfig
 
     before(async () => {
       const templateGarden = await makeTestGarden(getDataDir("test-project-variable-versioning"))
@@ -98,11 +99,11 @@ describe("VcsHandler", () => {
 
       const moduleAAfterEnv = cloneDeep(templateGarden.environment)
       moduleAAfterEnv.variables["echo-string"] = "something else"
-      const changedModuleConfigContext = new ModuleConfigContext(
+      const configContext = new ModuleConfigContext(
         templateGarden, moduleAAfterEnv, await templateGarden.getRawModuleConfigs())
 
-      moduleAAfter = await templateGarden.resolveModuleConfig("module-a", changedModuleConfigContext)
-      moduleBAfter = await templateGarden.resolveModuleConfig("module-b", changedModuleConfigContext)
+      moduleAAfter = await templateGarden.resolveModuleConfig("module-a", { configContext })
+      moduleBAfter = await templateGarden.resolveModuleConfig("module-b", { configContext })
     })
 
     it("should return a different version for a module when a variable used by it changes", async () => {

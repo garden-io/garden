@@ -203,6 +203,19 @@ describe("Garden", () => {
     })
   })
 
+  describe("resolveModuleConfigs", () => {
+    it("should throw if a module references itself in a template string", async () => {
+      const projectRoot = resolve(dataDir, "test-projects", "module-self-ref")
+      const garden = await makeTestGarden(projectRoot)
+      await expectError(
+        () => garden.resolveModuleConfigs(),
+        (err) => expect(err.message).to.equal(
+          "Circular reference detected when resolving key modules.module-a (from modules.module-a)",
+        ),
+      )
+    })
+  })
+
   describe("resolveVersion", () => {
     beforeEach(() => td.reset())
 
