@@ -156,21 +156,17 @@ async function createTag(version: string, gardenRoot: string, force: boolean) {
 async function updateExampleLinks(version: string) {
   const options = {
     files: ["docs/**/*.md", "README.md"],
-    from: /github\.com\/garden-io\/garden\/tree\/.*\/examples/g,
-    to: `github.com/garden-io/garden/tree/${version}/examples/`,
+    from: /github\.com\/garden-io\/garden\/tree\/[^\/]*\/examples/g,
+    to: `github.com/garden-io/garden/tree/${version}/examples`,
   }
   const changes = await replace(options)
   console.log("Modified files:", changes.join(", "))
 }
 
 async function rollBack(gardenRoot: string) {
-  // Clean up changes to package.json and package-lock.json. This is safe since we know the branch is clean.
-  console.log("Undoing changes to package.json and package-lock.json")
-  await execa.stdout("git", [
-    "checkout",
-    "garden-service/package.json",
-    "garden-service/package-lock.json",
-  ], { cwd: gardenRoot })
+  // Undo any file changes. This is safe since we know the branch is clean.
+  console.log("Undoing file changes")
+  await execa.stdout("git", ["checkout", "."], { cwd: gardenRoot })
 }
 
 async function prompt(version: string): Promise<boolean> {
