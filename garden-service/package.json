@@ -178,13 +178,14 @@
     "build-ci": "gulp build-ci",
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
-    "dev": "npm link && tsc -w -p tsconfig.build.json --outDir build",
+    "dev": "npm link && npm run tsc",
     "dist": "npm run build",
     "integ": "./test/integ/run",
     "integ-full": "node_modules/.bin/mocha --opts test/mocha.integ.opts",
     "prepare": "npm run snyk-protect",
     "snyk-protect": "snyk protect",
     "test": "node_modules/.bin/mocha",
+    "tsc": "tsc -w -p tsconfig.build.json --outDir build --declaration --declarationMap",
     "view-report": "open coverage/index.html"
   },
   "pkg": {
