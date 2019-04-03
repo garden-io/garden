@@ -37,7 +37,7 @@ lookups of keys. However, it is possible to do nested templating. For a somewhat
 ```yaml
       # ...
       env:
-        OTHER_MODULE_ENDPOINT: http://${variables.auth-module}/api/${modules.${variables.auth-module}.version}
+        OTHER_MODULE_ENDPOINT: http://${var.auth-module}/api/${modules.${var.auth-module}.version}
 ```
 
 There the name of the module is pulled from the project/environment configuration, and used to find the

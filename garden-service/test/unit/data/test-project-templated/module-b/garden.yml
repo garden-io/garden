@@ -7,7 +7,7 @@ module:
       dependencies:
         - service-a
   build:
-    command: [echo, "${variables.service-a-build-command}"]
+    command: [echo, "${var.service-a-build-command}"]
   tests:
     - name: unit
       command: [echo, OK]

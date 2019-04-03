@@ -2,7 +2,7 @@ module:
   name: module-a
   type: test
   build:
-    command: [echo, "${variables.echo-string}"]
+    command: [echo, "${var.echo-string}"]
   tests:
     - name: unit
       command: [echo, OK]

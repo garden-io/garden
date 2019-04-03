@@ -15,7 +15,7 @@ manifests:
         heritage: "Tiller"
     type: Opaque
     data:
-      postgresql-password: ${variables.postgres-password}
+      postgresql-password: ${var.postgres-password}
     # Source: postgresql/templates/svc-headless.yaml
   - apiVersion: v1
     kind: Service

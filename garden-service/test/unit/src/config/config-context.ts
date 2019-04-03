@@ -274,4 +274,8 @@ describe("ModuleConfigContext", () => {
   it("should should resolve a project variable", async () => {
     expect(await c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.equal("variable")
   })
+
+  it("should should resolve a project variable under the var alias", async () => {
+    expect(await c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.equal("variable")
+  })
 })
