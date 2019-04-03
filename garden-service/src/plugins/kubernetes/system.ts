@@ -11,10 +11,10 @@ import { STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesProvider } from "./kubernetes"
 
-export const GARDEN_SYSTEM_NAMESPACE = "garden-system"
-
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
 export const systemSymbol = Symbol()
+export const systemNamespace = "garden-system"
+export const systemMetadataNamespace = "garden-system--metadata"
 
 export function isSystemGarden(provider: KubernetesProvider): boolean {
   return provider.config._system === systemSymbol
@@ -28,7 +28,7 @@ export async function getSystemGarden(provider: KubernetesProvider): Promise<Gar
       path: systemProjectPath,
       project: {
         apiVersion: "garden.io/v0",
-        name: "garden-system",
+        name: systemNamespace,
         environmentDefaults: {
           providers: [],
           variables: {},
@@ -41,7 +41,7 @@ export async function getSystemGarden(provider: KubernetesProvider): Promise<Gar
               {
                 name: "local-kubernetes",
                 context: provider.config.context,
-                namespace: GARDEN_SYSTEM_NAMESPACE,
+                namespace: systemNamespace,
                 _system: systemSymbol,
               },
             ],

@@ -11,23 +11,24 @@ import { GetTestResultParams } from "../../types/plugin/params"
 import { ContainerModule } from "../container/config"
 import { deserializeValues, serializeValues } from "../../util/util"
 import { KubeApi } from "./api"
-import { getMetadataNamespace } from "./namespace"
 import { Module } from "../../types/module"
 import { ModuleVersion } from "../../vcs/base"
 import { HelmModule } from "./helm/config"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./kubernetes"
+import { systemMetadataNamespace } from "./system"
+
+const testResultNamespace = systemMetadataNamespace
 
 export async function getTestResult(
   { ctx, module, testName, testVersion }: GetTestResultParams<ContainerModule | HelmModule>,
 ): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = new KubeApi(k8sCtx.provider.config.context)
-  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
-  const resultKey = getTestResultKey(module, testName, testVersion)
+  const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
 
   try {
-    const res = await api.core.readNamespacedConfigMap(resultKey, ns)
+    const res = await api.core.readNamespacedConfigMap(resultKey, testResultNamespace)
     return <TestResult>deserializeValues(res.body.data)
   } catch (err) {
     if (err.code === 404) {
@@ -38,8 +39,8 @@ export async function getTestResult(
   }
 }
 
-export function getTestResultKey(module: Module, testName: string, version: ModuleVersion) {
-  return `test-result--${module.name}--${testName}--${version.versionString}`
+export function getTestResultKey(ctx: PluginContext, module: Module, testName: string, version: ModuleVersion) {
+  return `test-result--${ctx.projectName}--${module.name}--${testName}--${version.versionString}`
 }
 
 /**
@@ -59,8 +60,7 @@ export async function storeTestResult(
     testName,
   }
 
-  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
-  const resultKey = getTestResultKey(module, testName, testVersion)
+  const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
   const body = {
     apiVersion: "v1",
     kind: "ConfigMap",
@@ -74,10 +74,10 @@ export async function storeTestResult(
   }
 
   try {
-    await api.core.createNamespacedConfigMap(ns, <any>body)
+    await api.core.createNamespacedConfigMap(testResultNamespace, <any>body)
   } catch (err) {
     if (err.code === 409) {
-      await api.core.patchNamespacedConfigMap(resultKey, ns, body)
+      await api.core.patchNamespacedConfigMap(resultKey, testResultNamespace, body)
     } else {
       throw err
     }
