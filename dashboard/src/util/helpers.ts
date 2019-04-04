@@ -12,3 +12,21 @@ import { ModuleConfig } from "../api/types"
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
 }
+
+export function getEmojiByType(type: string) : string{
+  switch (type) {
+    case "deploy":
+      return "🚀";
+    case "build":
+      return "🔧";
+    case "integ":
+    case "unit":
+    case "test (integ)":
+    case "test (unit)":
+      return "✅";
+    case "task":
+      return "🏃";
+    default:
+      return "";
+  }
+}
