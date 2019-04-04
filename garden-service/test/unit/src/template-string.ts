@@ -182,6 +182,28 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("123")
   })
 
+  it("should handle a conditional between two nested identifiers", async () => {
+    const res = await resolveTemplateString(
+      "${a.b || c.d}",
+      new TestContext({
+        a: { b: undefined },
+        c: { d: "123" },
+      }),
+    )
+    expect(res).to.equal("123")
+  })
+
+  it("should handle a conditional between two nested identifiers where the first resolves", async () => {
+    const res = await resolveTemplateString(
+      "${a.b || c.d}",
+      new TestContext({
+        a: { b: "123" },
+        c: { d: undefined },
+      }),
+    )
+    expect(res).to.equal("123")
+  })
+
   it("should handle a conditional between two identifiers without spaces", async () => {
     const res = await resolveTemplateString(
       "${a||b}",
