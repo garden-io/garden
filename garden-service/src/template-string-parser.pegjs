@@ -27,20 +27,20 @@ FormatString
       return options.getKey(key)
   }
   / FormatStart a:Key Or b:Key FormatEnd {
-      return options.resolve(a, { allowUndefined: true })
+      return options.getKey(a, { allowUndefined: true })
         .then(result => {
-          return result || options.resolve(b, { allowUndefined: false })
+          return result || options.getKey(b, { allowUndefined: false })
         })
   }
   / FormatStart a:Key Or b:StringLiteral FormatEnd {
-      return options.resolve(a, { allowUndefined: true })
+      return options.getKey(a, { allowUndefined: true })
         .then(result => {
           return result || b
         })
   }
   // These would be odd in configuration, but there's no reason to throw if it comes up.
   / FormatStart a:StringLiteral Or b:StringLiteral FormatEnd {
-      return a
+      return a || b
   }
   / FormatStart a:StringLiteral FormatEnd {
       return a

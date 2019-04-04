@@ -48,7 +48,9 @@ async function getParser() {
 export async function resolveTemplateString(string: string, context: ConfigContext, opts: ContextResolveOpts = {}) {
   const parser = await getParser()
   const parsed = parser.parse(string, {
-    getKey: async (key: string[]) => context.resolve({ key, nodePath: [], opts }),
+    getKey: async (key: string[], resolveOpts?: ContextResolveOpts) => {
+      return context.resolve({ key, nodePath: [], opts: { ...opts, ...resolveOpts || {} } })
+    },
     // need this to allow nested template strings
     resolve: async (parts: StringOrStringPromise[], resolveOpts?: ContextResolveOpts) => {
       const s = (await Bluebird.all(parts)).join("")
