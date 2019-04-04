@@ -34,9 +34,14 @@
     stroke: rgba(0,0,0,0.32);
     stroke-width: 1.5px;
   }
+  
+  .label-container{
+    cursor: pointer;
+  }
 
   div.label-wrap {
     text-align: center;
+    cursor: pointer;
 
     span.name {
       font-weight: 700;
