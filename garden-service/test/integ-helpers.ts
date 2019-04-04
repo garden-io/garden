@@ -11,6 +11,7 @@ import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { getAllNamespaces } from "../src/plugins/kubernetes/namespace"
 import { getExampleProjects } from "./helpers"
 import { WatchTestConditionState } from "./run-garden"
+import { systemNamespace, systemMetadataNamespace } from "../src/plugins/kubernetes/system"
 
 export async function removeExampleDotGardenDirs() {
   await Bluebird.map(Object.values(getExampleProjects()), (projectRoot) => {
@@ -28,7 +29,7 @@ export async function deleteExampleNamespaces(includeSystemNamespaces = false) {
   }
 
   if (includeSystemNamespaces) {
-    namespacesToDelete.push("garden-system", "garden-system--metadata")
+    namespacesToDelete.push(systemNamespace, systemMetadataNamespace)
   }
 
   // TODO: Accept context parameter in integ script.

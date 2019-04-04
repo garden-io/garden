@@ -31,7 +31,7 @@ import {
 } from "./namespace"
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { name as providerName, KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
-import { isSystemGarden, getSystemGarden } from "./system"
+import { isSystemGarden, getSystemGarden, systemNamespace, systemMetadataNamespace } from "./system"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { DashboardPage } from "../../config/dashboard"
@@ -218,9 +218,9 @@ export async function prepareLocalEnvironment({ ctx, log }: PrepareEnvironmentPa
  * Returns true if the garden-system namespace exists and has the version
  */
 export async function systemNamespaceUpToDate(api: KubeApi, log: LogEntry, contextForLog: string): Promise<boolean> {
-  let systemNamespace
+  let systemNamespaceRes
   try {
-    systemNamespace = await api.core.readNamespace("garden-system")
+    systemNamespaceRes = await api.core.readNamespace(systemNamespace)
   } catch (err) {
     if (err.code === 404) {
       return false
@@ -229,7 +229,7 @@ export async function systemNamespaceUpToDate(api: KubeApi, log: LogEntry, conte
     }
   }
 
-  const versionInCluster = systemNamespace.body.metadata.annotations["garden.io/version"]
+  const versionInCluster = systemNamespaceRes.body.metadata.annotations["garden.io/version"]
 
   const upToDate = !!versionInCluster && semver.gte(semver.coerce(versionInCluster)!, SYSTEM_NAMESPACE_MIN_VERSION)
 
@@ -250,10 +250,10 @@ export async function recreateSystemNamespaces(api: KubeApi, log: LogEntry) {
     msg: "Deleting outdated system namespaces...",
     status: "active",
   })
-  await deleteNamespaces(["garden-system", "garden-system--metadata"], api, log)
+  await deleteNamespaces([systemNamespace, systemMetadataNamespace], api, log)
   entry.setState({ msg: "Creating system namespaces..." })
-  await createNamespace(api, "garden-system")
-  await createNamespace(api, "garden-system--metadata")
+  await createNamespace(api, systemNamespace)
+  await createNamespace(api, systemMetadataNamespace)
   entry.setState({ msg: "System namespaces up to date" })
   entry.setSuccess()
 }
