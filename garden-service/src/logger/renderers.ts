@@ -96,8 +96,13 @@ export function renderError(entry: LogEntry) {
         acc[kebabCase(key)] = val
         return acc
       }, {})
-      const yamlDetail = yaml.safeDump(kebabCasedDetail, { noRefs: true, skipInvalid: true })
-      out += `\nError Details:\n${yamlDetail}`
+
+      try {
+        const yamlDetail = yaml.safeDump(kebabCasedDetail, { noRefs: true, skipInvalid: true })
+        out += `\nError Details:\n${yamlDetail}`
+      } catch (err) {
+        out += `\nUnable to render error details:\n${err.message}`
+      }
     }
     return out
   }
