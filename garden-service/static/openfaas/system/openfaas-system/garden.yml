@@ -5,18 +5,18 @@ module:
   repo: https://openfaas.github.io/faas-netes/
   chart: openfaas
   version: 1.7.0
-  releaseName: ${variables.release-name}
+  releaseName: ${var.release-name}
   values:
     exposeServices: false
-    functionNamespace: ${variables.function-namespace}
+    functionNamespace: ${var.function-namespace}
     ingress:
       enabled: true
       hosts:
-        - host: ${variables.gateway-hostname}
+        - host: ${var.gateway-hostname}
           serviceName: gateway
           servicePort: 8080
           path: /function/
-        - host: ${variables.gateway-hostname}
+        - host: ${var.gateway-hostname}
           serviceName: gateway
           servicePort: 8080
           path: /system/

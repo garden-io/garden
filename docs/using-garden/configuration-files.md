@@ -44,7 +44,7 @@ provider instead of `local-kubernetes`.
 Here, project-wide configuration variables can also be specified (global, and/or environment-specific). These are
 then available for substitution in any string value in any module's `garden.yml`.
 
-For example, assuming the above project configuration, `"foo-${variables.my-variable}-bar"` would evaluate to
+For example, assuming the above project configuration, `"foo-${var.my-variable}-bar"` would evaluate to
 `"foo-hello-variable-bar"` when used as a string value in a module's `garden.yml`.
 
 ## Module Configuration

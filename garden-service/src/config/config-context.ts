@@ -272,6 +272,12 @@ export class ModuleConfigContext extends ProjectConfigContext {
   )
   public variables: PrimitiveMap
 
+  @schema(
+    joiIdentifierMap(joiPrimitive())
+      .description("Alias for the variables field."),
+  )
+  public var: PrimitiveMap
+
   constructor(
     garden: Garden,
     environment: Environment,
@@ -301,6 +307,6 @@ export class ModuleConfigContext extends ProjectConfigContext {
 
     this.providers = new Map(environment.providers.map(p => <[string, Provider]>[p.name, p]))
 
-    this.variables = environment.variables
+    this.var = this.variables = environment.variables
   }
 }
