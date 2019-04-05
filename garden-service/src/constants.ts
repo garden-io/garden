@@ -10,7 +10,7 @@ import { resolve, join } from "path"
 
 export const isPkg = !!(<any>process).pkg
 
-export const MODULE_CONFIG_FILENAME = "garden.yml"
+export const CONFIG_FILENAME = "garden.yml"
 export const LOCAL_CONFIG_FILENAME = "local-config.yml"
 export const STATIC_DIR = resolve(isPkg ? process.execPath : __dirname, "..", "static")
 // We copy the built dashboard to the garden-service static directory (with gulp in development, otherwise in CI).

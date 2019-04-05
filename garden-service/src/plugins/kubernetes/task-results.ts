@@ -9,7 +9,7 @@
 import { GetTaskResultParams } from "../../types/plugin/params"
 import { ContainerModule } from "../container/config"
 import { HelmModule } from "./helm/config"
-import { ModuleVersion } from "../../vcs/base"
+import { ModuleVersion } from "../../vcs/vcs"
 import { KubernetesPluginContext, KubernetesProvider } from "./kubernetes"
 import { KubeApi } from "./api"
 import { getMetadataNamespace } from "./namespace"

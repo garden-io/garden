@@ -10,7 +10,7 @@ import { difference } from "lodash"
 import { join, basename } from "path"
 import { remove, pathExists } from "fs-extra"
 
-import { getChildDirNames } from "../../util/util"
+import { getChildDirNames } from "../../util/fs"
 import {
   ExternalSourceType,
   getRemoteSourcesDirname,

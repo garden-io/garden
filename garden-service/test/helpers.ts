@@ -33,10 +33,11 @@ import {
   RunTaskParams,
   SetSecretParams,
 } from "../src/types/plugin/params"
-import { ModuleVersion } from "../src/vcs/base"
-import { GARDEN_DIR_NAME } from "../src/constants"
+import { ModuleVersion } from "../src/vcs/vcs"
+import { GARDEN_DIR_NAME, CONFIG_FILENAME } from "../src/constants"
 import { EventBus, Events } from "../src/events"
-import { ValueOf, Ignorer } from "../src/util/util"
+import { ValueOf } from "../src/util/util"
+import { Ignorer } from "../src/util/fs"
 import { SourceConfig } from "../src/config/project"
 import { BuildDir } from "../src/build-dir"
 import timekeeper = require("timekeeper")
@@ -47,12 +48,12 @@ export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
   versionString: testModuleVersionString,
-  dirtyTimestamp: null,
   dependencyVersions: {},
+  files: [],
 }
 
-export function getDataDir(name: string) {
-  return resolve(dataDir, name)
+export function getDataDir(...names: string[]) {
+  return resolve(dataDir, ...names)
 }
 
 export async function profileBlock(description: string, block: () => Promise<any>) {
@@ -381,7 +382,7 @@ export function stubExtSources(garden: Garden) {
 }
 
 export function getExampleProjects() {
-  const names = readdirSync(examplesDir).filter(n => existsSync(join(examplesDir, n, "garden.yml")))
+  const names = readdirSync(examplesDir).filter(n => existsSync(join(examplesDir, n, CONFIG_FILENAME)))
   return fromPairs(names.map(n => [n, join(examplesDir, n)]))
 }
 

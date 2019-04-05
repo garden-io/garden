@@ -7,10 +7,7 @@
  */
 
 import { join, basename, sep, resolve, relative } from "path"
-import {
-  findByName,
-  getNames,
-} from "../util/util"
+import { findByName, getNames } from "../util/util"
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
 import { readFile } from "fs-extra"
@@ -19,8 +16,7 @@ import { baseModuleSpecSchema, ModuleConfig } from "./module"
 import { validateWithPath } from "./common"
 import { ConfigurationError } from "../exceptions"
 import { defaultEnvironments, ProjectConfig, projectSchema } from "../config/project"
-
-const CONFIG_FILENAME = "garden.yml"
+import { CONFIG_FILENAME } from "../constants"
 
 export interface GardenConfig {
   dirname: string
@@ -243,6 +239,7 @@ function prepareModuleConfig(moduleSpec: any, path: string): ModuleConfig {
       dependencies,
     },
     description: moduleSpec.description,
+    include: moduleSpec.include,
     name: moduleSpec.name,
     outputs: {},
     path,

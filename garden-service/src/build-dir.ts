@@ -29,7 +29,7 @@ import {
 import { zip } from "lodash"
 import * as execa from "execa"
 import { platform } from "os"
-import { toCygwinPath } from "./util/util"
+import { toCygwinPath } from "./util/fs"
 import { ModuleConfig } from "./config/module"
 import { LogEntry } from "./logger/log-entry"
 

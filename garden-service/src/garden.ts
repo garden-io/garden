@@ -31,22 +31,15 @@ import { builtinPlugins, fixedPlugins } from "./plugins/plugins"
 import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
 import { moduleActionNames, pluginModuleSchema, pluginSchema } from "./types/plugin/plugin"
 import { Environment, SourceConfig, ProviderConfig, Provider } from "./config/project"
-import {
-  findByName,
-  getIgnorer,
-  getNames,
-  scanDirectory,
-  pickKeys,
-  Ignorer,
-} from "./util/util"
-import { DEFAULT_NAMESPACE, MODULE_CONFIG_FILENAME } from "./constants"
+import { findByName, getNames, pickKeys } from "./util/util"
+import { DEFAULT_NAMESPACE, CONFIG_FILENAME } from "./constants"
 import {
   ConfigurationError,
   ParameterError,
   PluginError,
   RuntimeError,
 } from "./exceptions"
-import { VcsHandler, ModuleVersion } from "./vcs/base"
+import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
 import { ConfigGraph } from "./config-graph"
@@ -74,6 +67,7 @@ import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
+import { getIgnorer, Ignorer, scanDirectory } from "./util/fs"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -608,7 +602,7 @@ export class Garden {
 
           const parsedPath = parse(item.path)
 
-          if (parsedPath.base !== MODULE_CONFIG_FILENAME) {
+          if (parsedPath.base !== CONFIG_FILENAME) {
             continue
           }
 
@@ -651,8 +645,8 @@ export class Garden {
 
     if (this.moduleConfigs[key]) {
       const [pathA, pathB] = [
-        relative(this.projectRoot, join(this.moduleConfigs[key].path, MODULE_CONFIG_FILENAME)),
-        relative(this.projectRoot, join(config.path, MODULE_CONFIG_FILENAME)),
+        relative(this.projectRoot, join(this.moduleConfigs[key].path, CONFIG_FILENAME)),
+        relative(this.projectRoot, join(config.path, CONFIG_FILENAME)),
       ].sort()
 
       throw new ConfigurationError(

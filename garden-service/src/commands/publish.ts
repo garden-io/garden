@@ -16,7 +16,6 @@ import {
 } from "./base"
 import { Module } from "../types/module"
 import { PublishTask } from "../tasks/publish"
-import { RuntimeError } from "../exceptions"
 import { TaskResults } from "../task-graph"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -80,17 +79,11 @@ export async function publishModules(
   forceBuild: boolean,
   allowDirty: boolean,
 ): Promise<TaskResults> {
+  if (!!allowDirty) {
+    log.warn(`The --allow-dirty flag has been deprecated. It no longer has an effect.`)
+  }
+
   const tasks = modules.map(module => {
-    const version = module.version
-
-    if (version.dirtyTimestamp && !allowDirty) {
-      throw new RuntimeError(
-        `Module ${module.name} has uncommitted changes. ` +
-        `Please commit them, clean the module's source tree or set the --allow-dirty flag to override.`,
-        { moduleName: module.name, version },
-      )
-    }
-
     return new PublishTask({ garden, log, module, forceBuild })
   })
 

@@ -9,7 +9,7 @@ import { ConfigGraph } from "../../../../src/config-graph"
 import {
   writeModuleVersionFile,
   readModuleVersionFile,
-} from "../../../../src/vcs/base"
+} from "../../../../src/vcs/vcs"
 import {
   dataDir,
   makeTestGarden,

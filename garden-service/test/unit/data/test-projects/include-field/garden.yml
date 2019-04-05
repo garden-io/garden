@@ -1,0 +1,6 @@
+project:
+  name: include-filter
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin

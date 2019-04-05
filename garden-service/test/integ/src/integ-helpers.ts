@@ -14,7 +14,7 @@ describe("integ-helpers", () => {
   describe("findTasks", () => {
 
     before(async () => {
-      testEntries = await runGarden("/Users/ths/go/src/garden/examples/vote", ["test"])
+      testEntries = await runGarden(voteExamplePath, ["test"])
     })
 
     const specs = [

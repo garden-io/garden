@@ -77,7 +77,7 @@ export function commandReloadedStep(): WatchTestStep {
  * The GardenWatch class below, on the other hand, is for running/testing watch-mode commands.
  */
 export async function runGarden(dir: string, command: string[]): Promise<JsonLogEntry[]> {
-  const out = (await execa(gardenBinPath, [...command, "--loggerType", "json", "-l", "4"], { cwd: dir })).stdout
+  const out = (await execa(gardenBinPath, [...command, "--logger-type", "json", "-l", "4"], { cwd: dir })).stdout
   return parseLogEntries(out.split("\n").filter(Boolean))
 }
 
@@ -155,7 +155,7 @@ export class GardenWatch {
     this.currentTestStepIdx = 0
     this.testSteps = testSteps
 
-    this.proc = execa(gardenBinPath, [...this.command, "--loggerType", "json", "-l", "4"], { cwd: this.dir })
+    this.proc = execa(gardenBinPath, [...this.command, "--logger-type", "json", "-l", "4"], { cwd: this.dir })
     this.proc.stdout.on("data", (rawLine) => {
       const lines = rawLine.toString().trim().split("\n")
       if (showLog) {

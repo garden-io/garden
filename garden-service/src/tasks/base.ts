@@ -7,7 +7,7 @@
  */
 
 import { TaskResults } from "../task-graph"
-import { ModuleVersion } from "../vcs/base"
+import { ModuleVersion } from "../vcs/vcs"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"

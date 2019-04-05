@@ -279,6 +279,30 @@ module:
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+### `module.include[]`
+[module](#module) > include
+
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
+as well as when responding to filesystem watch events.
+
+Note that you can also _exclude_ files by placing `.gardenignore` files in your source tree, which use the
+same format as `.gitignore` files.
+
+Also note that specifying an empty list here means _no sources_ should be included.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+module:
+  ...
+  include:
+    - Dockerfile
+    - my-app.js
+```
 ### `module.repositoryUrl`
 [module](#module) > repositoryUrl
 
@@ -372,6 +396,7 @@ module:
   type:
   name:
   description:
+  include:
   repositoryUrl:
   allowPublish: true
   build:

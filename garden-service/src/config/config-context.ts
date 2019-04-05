@@ -14,7 +14,7 @@ import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
 import * as Joi from "joi"
 import { Garden } from "../garden"
-import { ModuleVersion } from "../vcs/base"
+import { ModuleVersion } from "../vcs/vcs"
 
 export type ContextKey = string[]
 

@@ -313,8 +313,8 @@ describe("createIngressResources", () => {
 
     td.replace(Garden.prototype, "resolveVersion", async () => ({
       versionString: "1234",
-      dirtyTimestamp: null,
-      dependencyVersions: [],
+      dependencyVersions: {},
+      files: [],
     }))
   })
 

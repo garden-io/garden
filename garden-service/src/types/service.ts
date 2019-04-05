@@ -14,7 +14,7 @@ import { serviceOutputsSchema, ServiceConfig, serviceConfigSchema } from "../con
 import { validate } from "../config/common"
 import dedent = require("dedent")
 import { format } from "url"
-import { moduleVersionSchema } from "../vcs/base"
+import { moduleVersionSchema } from "../vcs/vcs"
 import { Garden } from "../garden"
 import { uniq } from "lodash"
 import { ConfigGraph } from "../config-graph"
