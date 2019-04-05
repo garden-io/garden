@@ -7,7 +7,7 @@
  */
 
 import { safeDump } from "js-yaml"
-import { RuntimeContext } from "../../types/service"
+import { RuntimeContext, prepareRuntimeContext } from "../../types/service"
 import { highlightYaml } from "../../util/util"
 import { Command } from "../base"
 import { RunModuleCommand } from "./module"
@@ -15,6 +15,9 @@ import { RunServiceCommand } from "./service"
 import { RunTaskCommand } from "./task"
 import { RunTestCommand } from "./test"
 import { LogEntry } from "../../logger/log-entry"
+import { ConfigGraph } from "../../config-graph"
+import { Module } from "../../types/module"
+import { Garden } from "../../garden"
 
 export class RunCommand extends Command {
   name = "run"
@@ -28,6 +31,13 @@ export class RunCommand extends Command {
   ]
 
   async action() { return {} }
+}
+
+export async function runtimeContextForServiceDeps(garden: Garden, graph: ConfigGraph, module: Module) {
+  const depNames = module.serviceDependencyNames
+  const allServices = await graph.getServices()
+  const deps = allServices.filter(s => depNames.includes(s.name))
+  return prepareRuntimeContext(garden, graph, module, deps)
 }
 
 export function printRuntimeContext(log: LogEntry, runtimeContext: RuntimeContext) {
