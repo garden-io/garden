@@ -16,13 +16,8 @@ import {
   CommandResult,
   StringsParameter,
 } from "../base"
-import {
-  uniq,
-  flatten,
-} from "lodash"
-import { printRuntimeContext } from "./run"
+import { printRuntimeContext, runtimeContextForServiceDeps } from "./run"
 import dedent = require("dedent")
-import { prepareRuntimeContext } from "../../types/service"
 import { logHeader } from "../../logger/util"
 import { PushTask } from "../../tasks/push"
 
@@ -95,11 +90,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     const command = args.command || []
 
-    // combine all dependencies for all services in the module, to be sure we have all the context we need
-    const depNames = uniq(flatten(module.serviceConfigs.map(s => s.dependencies)))
-    const deps = await graph.getServices(depNames)
-
-    const runtimeContext = await prepareRuntimeContext(garden, graph, module, deps)
+    const runtimeContext = await runtimeContextForServiceDeps(garden, graph, module)
 
     printRuntimeContext(log, runtimeContext)
 
