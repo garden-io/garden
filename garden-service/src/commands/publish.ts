@@ -80,7 +80,7 @@ export async function publishModules(
   forceBuild: boolean,
   allowDirty: boolean,
 ): Promise<TaskResults> {
-  for (const module of modules) {
+  const tasks = modules.map(module => {
     const version = module.version
 
     if (version.dirtyTimestamp && !allowDirty) {
@@ -91,9 +91,8 @@ export async function publishModules(
       )
     }
 
-    const task = new PublishTask({ garden, log, module, forceBuild })
-    await garden.addTask(task)
-  }
+    return new PublishTask({ garden, log, module, forceBuild })
+  })
 
-  return await garden.processTasks()
+  return await garden.processTasks(tasks)
 }
