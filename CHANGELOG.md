@@ -1,4 +1,24 @@
 
+<a name="v0.9.8-0"></a>
+## [v0.9.8-0](https://github.com/garden-io/garden/compare/v0.9.7...v0.9.8-0) (2019-04-05)
+
+### Bug Fixes
+
+* **cli:** avoid crash with circular references in error details ([92b31c0](https://github.com/garden-io/garden/commit/92b31c0))
+* **config:** issue with nested keys in conditional template strings ([35ad3df](https://github.com/garden-io/garden/commit/35ad3df))
+* **config:** catch module self-references instead of crashing ([2fb8720](https://github.com/garden-io/garden/commit/2fb8720))
+* **run:** correctly ignore task dependencies ([e51778b](https://github.com/garden-io/garden/commit/e51778b))
+
+### Code Refactoring
+
+* add ui state provider ([dd36a0e](https://github.com/garden-io/garden/commit/dd36a0e))
+* **graph:** make sure all tasks are included in process results ([91afd59](https://github.com/garden-io/garden/commit/91afd59))
+
+### Features
+
+* **config:** add var alias for variables template key ([ede49e5](https://github.com/garden-io/garden/commit/ede49e5))
+
+
 <a name="v0.9.7"></a>
 ## [v0.9.7](https://github.com/garden-io/garden/compare/v0.9.6...v0.9.7) (2019-03-28)
 
