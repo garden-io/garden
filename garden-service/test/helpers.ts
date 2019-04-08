@@ -40,6 +40,7 @@ import { ValueOf } from "../src/util/util"
 import { Ignorer } from "../src/util/fs"
 import { SourceConfig } from "../src/config/project"
 import { BuildDir } from "../src/build-dir"
+import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 
 export const dataDir = resolve(__dirname, "unit", "data")
@@ -261,20 +262,20 @@ interface EventLogEntry {
  * Used for test Garden instances, to log emitted events.
  */
 class TestEventBus extends EventBus {
-  log: EventLogEntry[]
+  public eventLog: EventLogEntry[]
 
-  constructor() {
-    super()
-    this.log = []
+  constructor(log: LogEntry) {
+    super(log)
+    this.eventLog = []
   }
 
   emit<T extends keyof Events>(name: T, payload: Events[T]) {
-    this.log.push({ name, payload })
+    this.eventLog.push({ name, payload })
     return super.emit(name, payload)
   }
 
   clearLog() {
-    this.log = []
+    this.eventLog = []
   }
 }
 
@@ -292,7 +293,7 @@ export class TestGarden extends Garden {
     log?,
   ) {
     super(projectRoot, projectName, environmentName, variables, projectSources, buildDir, ignorer, log)
-    this.events = new TestEventBus()
+    this.events = new TestEventBus(this.log)
   }
 }
 

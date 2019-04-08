@@ -164,7 +164,7 @@ export class Garden {
 
     this.taskGraph = new TaskGraph(this, this.log)
     this.actions = new ActionHelper(this)
-    this.events = new EventBus()
+    this.events = new EventBus(this.log)
     this.watcher = new Watcher(this, this.log)
   }
 

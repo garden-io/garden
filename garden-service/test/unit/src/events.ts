@@ -8,12 +8,13 @@
 
 import { EventBus } from "../../../src/events"
 import { expect } from "chai"
+import { getLogger } from "../../../src/logger/logger"
 
 describe("EventBus", () => {
   let events: EventBus
 
   beforeEach(() => {
-    events = new EventBus()
+    events = new EventBus(getLogger().placeholder())
   })
 
   it("should send+receive events", (done) => {

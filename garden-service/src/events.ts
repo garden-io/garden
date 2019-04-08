@@ -9,6 +9,7 @@
 import { EventEmitter2 } from "eventemitter2"
 import { TaskResult } from "./task-graph"
 import { ModuleVersion } from "./vcs/vcs"
+import { LogEntry } from "./logger/log-entry"
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function
@@ -17,7 +18,7 @@ import { ModuleVersion } from "./vcs/vcs"
  * See below for the event interfaces.
  */
 export class EventBus extends EventEmitter2 {
-  constructor() {
+  constructor(private log: LogEntry) {
     super({
       wildcard: false,
       newListener: false,
@@ -26,6 +27,7 @@ export class EventBus extends EventEmitter2 {
   }
 
   emit<T extends EventName>(name: T, payload: Events[T]) {
+    this.log.silly(`Emit event '${name}' with payload: ${payload}`)
     return super.emit(name, payload)
   }
 
