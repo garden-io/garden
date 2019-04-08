@@ -56,7 +56,7 @@ async function getServiceStatus(
   const api = new KubeApi(context)
   const manifests = await getManifests(module)
 
-  const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log)
+  const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
 
   return {
     state,
