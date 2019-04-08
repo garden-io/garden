@@ -179,6 +179,11 @@ export class TaskGraph {
             pick(results, dependencyBaseKeys))
 
           try {
+            this.garden.events.emit("taskProcessing", {
+              startedAt: new Date(),
+              key: task.getKey(),
+              version: task.version,
+            })
             result = await node.process(dependencyResults)
             this.garden.events.emit("taskComplete", result)
           } catch (error) {

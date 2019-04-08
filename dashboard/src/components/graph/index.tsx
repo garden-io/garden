@@ -18,7 +18,7 @@ import {
   FetchConfigResponse,
   FetchGraphResponse,
   WsMessage,
-  NodeTask,
+  nodeTaskTypes,
 } from "../../api/types"
 import Card from "../card"
 
@@ -268,8 +268,7 @@ class Chart extends Component<Props, State> {
   }
 
   clearClasses(el: HTMLElement) {
-    const classList: NodeTask[] = ["taskComplete", "taskPending", "taskError"]
-    for (const className of classList) {
+    for (const className of nodeTaskTypes) {
       el.classList.remove(className)
     }
   }
@@ -280,12 +279,8 @@ class Chart extends Component<Props, State> {
       if (message.payload.key && node.id === getIdFromTaskKey(message.payload.key)) {
         const nodeEl = document.getElementById(node.id)
         this.clearClasses(nodeEl)
-        if (message.name === "taskPending") {
-          nodeEl.classList.add("taskPending")
-        } else if (message.name === "taskError") {
-          nodeEl.classList.add("taskError")
-        } else if (message.name === "taskComplete") {
-          nodeEl.classList.add("taskComplete")
+        if (nodeTaskTypes.find(t => t === message.name)) {
+          nodeEl.classList.add(message.name) // message.name is of type NodeTask
         }
       }
     }
