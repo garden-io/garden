@@ -1,7 +1,6 @@
 import { expect } from "chai"
-import dedent = require("dedent")
 import * as tmp from "tmp-promise"
-import { createFile, writeFile, realpath } from "fs-extra"
+import { createFile, writeFile, realpath, mkdir } from "fs-extra"
 import { join, resolve } from "path"
 
 import { expectError } from "../../../helpers"
@@ -25,30 +24,75 @@ describe("GitHandler", () => {
     await tmpDir.cleanup()
   })
 
-  describe("getDirtyFiles", () => {
+  describe("getFiles", () => {
     it("should work with no commits in repo", async () => {
-      expect(await handler.getDirtyFiles(tmpPath)).to.eql([])
+      expect(await handler.getFiles(tmpPath)).to.eql([])
     })
 
-    it("should return modified files as absolute paths", async () => {
+    it("should return tracked files as absolute paths with hash", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+
+      await createFile(path)
+      await writeFile(path, "my change")
+      await git("add", ".")
+      await git("commit", "-m", "foo")
+
+      const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
+
+      expect(await handler.getFiles(tmpPath)).to.eql([
+        { path, hash },
+      ])
+    })
+
+    it("should return the correct hash on a modified file", async () => {
       const path = resolve(tmpPath, "foo.txt")
 
       await createFile(path)
       await git("add", ".")
       await git("commit", "-m", "foo")
 
-      expect(await handler.getDirtyFiles(tmpPath)).to.eql([])
-
       await writeFile(path, "my change")
+      const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      expect(await handler.getDirtyFiles(tmpPath)).to.eql([path])
+      expect(await handler.getFiles(tmpPath)).to.eql([
+        { path, hash },
+      ])
     })
 
-    it("should return untracked files as absolute paths", async () => {
+    it("should return untracked files as absolute paths with hash", async () => {
       await createFile(join(tmpPath, "foo.txt"))
+      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getDirtyFiles(tmpPath)).to.eql([
-        resolve(tmpPath, "foo.txt"),
+      expect(await handler.getFiles(tmpPath)).to.eql([
+        { path: resolve(tmpPath, "foo.txt"), hash },
+      ])
+    })
+
+    it("should return untracked files in untracked directory", async () => {
+      const dirPath = join(tmpPath, "dir")
+      await mkdir(dirPath)
+      await createFile(join(dirPath, "file.txt"))
+      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+
+      expect(await handler.getFiles(dirPath)).to.eql([
+        { path: resolve(dirPath, "file.txt"), hash },
+      ])
+    })
+
+    it("should filter out files that don't match the include filter, if specified", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+      await createFile(path)
+
+      expect(await handler.getFiles(tmpPath, [])).to.eql([])
+    })
+
+    it("should include files that match the include filter, if specified", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      await createFile(path)
+
+      expect(await handler.getFiles(tmpPath, ["foo.*"])).to.eql([
+        { path, hash },
       ])
     })
   })
@@ -57,27 +101,27 @@ describe("GitHandler", () => {
 describe("git", () => {
   describe("getCommitIdFromRefList", () => {
     it("should get the commit id from a list of commit ids and refs", () => {
-      const refList = dedent`
-      abcde	ref/heads/master
-      1234	ref/heads/master
-      foobar	ref/heads/master
-      `
+      const refList = [
+        "abcde	ref/heads/master",
+        "1234	ref/heads/master",
+        "foobar	ref/heads/master",
+      ]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a list of commit ids without refs", () => {
-      const refList = dedent`
-      abcde
-      1234	ref/heads/master
-      foobar	ref/heads/master
-      `
+      const refList = [
+        "abcde",
+        "1234	ref/heads/master",
+        "foobar	ref/heads/master",
+      ]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a single commit id / ref pair", () => {
-      const refList = "abcde	ref/heads/master"
+      const refList = ["abcde	ref/heads/master"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from single commit id without a ref", () => {
-      const refList = "abcde"
+      const refList = ["abcde"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
   })

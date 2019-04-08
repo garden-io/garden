@@ -7,7 +7,7 @@
  */
 
 import * as Joi from "joi"
-import { ModuleVersion, moduleVersionSchema } from "../../vcs/base"
+import { ModuleVersion, moduleVersionSchema } from "../../vcs/vcs"
 import { Module } from "../module"
 import { ServiceStatus } from "../service"
 import { moduleConfigSchema, ModuleConfig } from "../../config/module"

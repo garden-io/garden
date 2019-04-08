@@ -8,7 +8,7 @@
 
 import { EventEmitter2 } from "eventemitter2"
 import { TaskResult } from "./task-graph"
-import { ModuleVersion } from "./vcs/base"
+import { ModuleVersion } from "./vcs/vcs"
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function

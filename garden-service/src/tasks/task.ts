@@ -17,7 +17,7 @@ import { LogEntry } from "../logger/log-entry"
 import { RunTaskResult } from "../types/plugin/outputs"
 import { prepareRuntimeContext } from "../types/service"
 import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
-import { ModuleVersion } from "../vcs/base"
+import { ModuleVersion } from "../vcs/vcs"
 
 export interface TaskTaskParams {
   garden: Garden

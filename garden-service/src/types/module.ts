@@ -6,19 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { resolve } from "path"
 import { flatten, uniq, cloneDeep, keyBy } from "lodash"
 import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ServiceSpec } from "../config/service"
 import { TaskSpec } from "../config/task"
-import { ModuleVersion, moduleVersionSchema } from "../vcs/base"
+import { ModuleVersion, moduleVersionSchema } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import * as Joi from "joi"
 import { joiArray, joiIdentifier, joiIdentifierMap } from "../config/common"
 import { ConfigGraph } from "../config-graph"
 import * as Bluebird from "bluebird"
+import { CONFIG_FILENAME } from "../constants"
 
 export interface FileCopySpec {
   source: string
@@ -31,8 +33,11 @@ export interface Module<
   T extends TestSpec = any,
   W extends TaskSpec = any,
   > extends ModuleConfig<M, S, T, W> {
+
   buildPath: string
   buildMetadataPath: string
+  configPath: string
+
   version: ModuleVersion
 
   buildDependencies: ModuleMap
@@ -56,6 +61,10 @@ export const moduleSchema = moduleConfigSchema
       .required()
       .uri(<any>{ relativeOnly: true })
       .description("The path to the build metadata directory for the module."),
+    configPath: Joi.string()
+      .required()
+      .uri(<any>{ relativeOnly: true })
+      .description("The path to the module config file."),
     version: moduleVersionSchema
       .required(),
     buildDependencies: joiIdentifierMap(Joi.lazy(() => moduleSchema))
@@ -84,12 +93,22 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
 }
 
 export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, config: ModuleConfig): Promise<Module> {
+  const configPath = resolve(config.path, CONFIG_FILENAME)
+  const version = await garden.resolveVersion(config.name, config.build.dependencies)
+
+  // Always include configuration file
+  if (!version.files.includes(configPath)) {
+    version.files.push(configPath)
+  }
+
   const module: Module = {
     ...cloneDeep(config),
 
     buildPath: await garden.buildDir.buildPath(config.name),
     buildMetadataPath: await garden.buildDir.buildMetadataPath(config.name),
-    version: await garden.resolveVersion(config.name, config.build.dependencies),
+    configPath,
+
+    version,
 
     buildDependencies: {},
 

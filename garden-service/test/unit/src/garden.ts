@@ -17,7 +17,7 @@ import {
 import { getNames } from "../../../src/util/util"
 import { MOCK_CONFIG } from "../../../src/cli/cli"
 import { LinkedSource } from "../../../src/config-store"
-import { ModuleVersion } from "../../../src/vcs/base"
+import { ModuleVersion } from "../../../src/vcs/vcs"
 import { hashRepoUrl } from "../../../src/util/ext-source-util"
 import { getModuleCacheContext } from "../../../src/types/module"
 
@@ -224,8 +224,8 @@ describe("Garden", () => {
       const module = await garden.resolveModuleConfig("module-a")
       const version: ModuleVersion = {
         versionString: "banana",
-        dirtyTimestamp: 987654321,
         dependencyVersions: {},
+        files: [],
       }
       garden.cache.set(["moduleVersions", module.name], version, getModuleCacheContext(module))
 
@@ -243,8 +243,8 @@ describe("Garden", () => {
       const resolveStub = td.replace(garden.vcs, "resolveVersion")
       const version: ModuleVersion = {
         versionString: "banana",
-        dirtyTimestamp: 987654321,
         dependencyVersions: {},
+        files: [],
       }
 
       td.when(resolveStub(), { ignoreExtraArgs: true }).thenResolve(version)
@@ -259,8 +259,8 @@ describe("Garden", () => {
       const module = await garden.resolveModuleConfig("module-a")
       const version: ModuleVersion = {
         versionString: "banana",
-        dirtyTimestamp: 987654321,
         dependencyVersions: {},
+        files: [],
       }
       garden.cache.set(["moduleVersions", module.name], version, getModuleCacheContext(module))
 

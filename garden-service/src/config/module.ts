@@ -69,6 +69,7 @@ export interface BaseModuleSpec {
   allowPublish: boolean
   build: BaseBuildSpec
   description?: string
+  include?: string[]
   name: string
   path: string
   type: string
@@ -102,6 +103,17 @@ export const baseModuleSpecSchema = Joi.object()
       .description("The name of this module.")
       .example("my-sweet-module"),
     description: Joi.string(),
+    include: Joi.array().items(Joi.string().uri({ relativeOnly: true }))
+      .description(
+        dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+        module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
+        as well as when responding to filesystem watch events.
+
+        Note that you can also _exclude_ files by placing \`.gardenignore\` files in your source tree, which use the
+        same format as \`.gitignore\` files.
+
+        Also note that specifying an empty list here means _no sources_ should be included.`)
+      .example([["Dockerfile", "my-app.js"], {}]),
     repositoryUrl: joiRepositoryUrl()
       .description(
         dedent`${joiRepositoryUrl().describe().description}

@@ -10,11 +10,13 @@ import { watch, FSWatcher } from "chokidar"
 import { parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
-import { MODULE_CONFIG_FILENAME } from "./constants"
+import { CONFIG_FILENAME } from "./constants"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import * as klaw from "klaw"
 import { registerCleanupFunction } from "./util/util"
+import * as Bluebird from "bluebird"
+import { some } from "lodash"
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
@@ -54,7 +56,7 @@ export class Watcher {
     })
 
     this.watcher
-      .on("add", this.makeFileChangedHandler("added", modules))
+      .on("add", this.makeFileAddedHandler(modules))
       .on("change", this.makeFileChangedHandler("modified", modules))
       .on("unlink", this.makeFileChangedHandler("removed", modules))
       .on("addDir", this.makeDirAddedHandler(modules))
@@ -74,41 +76,70 @@ export class Watcher {
     }
   }
 
+  private makeFileAddedHandler(modules: Module[]) {
+    return this.wrapAsync(async (path: string) => {
+      this.log.debug(`Watcher: File ${path} added`)
+
+      const changedModules = await Bluebird.filter(modules, async (m) => {
+        const files = await this.garden.vcs.getFiles(m.path)
+        return some(files, f => f.path === path)
+      })
+
+      this.sourcesChanged(modules, changedModules, path, "added")
+    })
+  }
+
+  private wrapAsync(listener: (path: string) => Promise<void>) {
+    const _this = this
+
+    return (path: string) => {
+      listener(path)
+        .catch(err => {
+          console.log("catch", err)
+          _this.watcher.emit("error", err)
+        })
+    }
+  }
+
   private makeFileChangedHandler(type: string, modules: Module[]) {
     return (path: string) => {
       this.log.debug(`Watcher: File ${path} ${type}`)
 
-      const parsed = parse(path)
-      const filename = parsed.base
+      const changedModules = modules.filter(m => m.version.files.includes(path))
 
-      // changedModules will only have more than one element when the changed path belongs to >= 2 modules.
-      const changedModules = modules.filter(m => path.startsWith(m.path))
-      const changedModuleNames = changedModules.map(m => m.name)
+      this.sourcesChanged(modules, changedModules, path, type)
+    }
+  }
 
-      if (filename === MODULE_CONFIG_FILENAME || filename === ".gitignore" || filename === ".gardenignore") {
-        this.invalidateCached(modules)
+  private sourcesChanged(modules: Module[], changedModules: Module[], path: string, type: string) {
+    const changedModuleNames = changedModules.map(m => m.name)
 
-        if (changedModuleNames.length > 0) {
-          this.garden.events.emit("moduleConfigChanged", { names: changedModuleNames, path })
-        } else if (filename === MODULE_CONFIG_FILENAME) {
-          if (parsed.dir === this.garden.projectRoot) {
-            this.garden.events.emit("projectConfigChanged", {})
-          } else {
-            if (type === "added") {
-              this.garden.events.emit("configAdded", { path })
-            } else {
-              this.garden.events.emit("configRemoved", { path })
-            }
-          }
-        }
+    const parsed = parse(path)
+    const filename = parsed.base
 
-        return
-      }
+    if (filename === CONFIG_FILENAME || filename === ".gitignore" || filename === ".gardenignore") {
+      this.invalidateCached(modules)
 
       if (changedModuleNames.length > 0) {
-        this.invalidateCached(changedModules)
-        this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
+        this.garden.events.emit("moduleConfigChanged", { names: changedModuleNames, path })
+      } else if (filename === CONFIG_FILENAME) {
+        if (parsed.dir === this.garden.projectRoot) {
+          this.garden.events.emit("projectConfigChanged", {})
+        } else {
+          if (type === "added") {
+            this.garden.events.emit("configAdded", { path })
+          } else {
+            this.garden.events.emit("configRemoved", { path })
+          }
+        }
       }
+
+      return
+    }
+
+    if (changedModuleNames.length > 0) {
+      this.invalidateCached(changedModules)
+      this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
     }
   }
 
@@ -129,7 +160,7 @@ export class Watcher {
       klaw(path, scanOpts)
         .on("data", (item) => {
           const parsed = parse(item.path)
-          if (item.path !== path && parsed.base === MODULE_CONFIG_FILENAME) {
+          if (item.path !== path && parsed.base === CONFIG_FILENAME) {
             configChanged = true
             this.garden.events.emit("configAdded", { path: item.path })
           }

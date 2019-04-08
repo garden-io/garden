@@ -34,7 +34,7 @@ import {
 } from "../types/plugin/params"
 import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
-import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/base"
+import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/vcs"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema } from "../config/module"
 import execa = require("execa")

@@ -21,7 +21,7 @@ const placeholderTaskResult = (moduleName, taskName, command) => ({
   command,
   version: {
     versionString: "v-1",
-    dirtyTimestamp: null,
+    files: [],
     dependencyVersions: {},
   },
   success: true,

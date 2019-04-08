@@ -10,14 +10,16 @@ import execa = require("execa")
 import { join, resolve } from "path"
 import { ensureDir, pathExists } from "fs-extra"
 
-import { NEW_MODULE_VERSION, VcsHandler, RemoteSourceParams } from "./base"
+import { VcsHandler, RemoteSourceParams } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
+import * as Bluebird from "bluebird"
+import { matchGlobs } from "../util/fs"
 
-export function getCommitIdFromRefList(refList: string): string {
+export function getCommitIdFromRefList(refList: string[]): string {
   try {
-    return refList.split("\n")[0].split("\t")[0]
+    return refList[0].split("\t")[0]
   } catch (err) {
-    return refList
+    return refList[0]
   }
 }
 
@@ -34,63 +36,74 @@ export function parseGitUrl(url: string) {
   return parsed
 }
 
+interface GitCli {
+  (...args: string[]): Promise<string[]>
+}
+
 // TODO Consider moving git commands to separate (and testable) functions
 export class GitHandler extends VcsHandler {
   name = "git"
 
-  private gitCli(cwd: string) {
+  private gitCli(cwd: string): GitCli {
     return async (...args: string[]) => {
-      return execa.stdout("git", args, { cwd })
+      const output = await execa.stdout("git", args, { cwd })
+      return output.split("\n").filter(line => line.length > 0)
     }
   }
 
-  async getLatestCommit(path: string) {
-    const git = this.gitCli(path)
-
+  private async getModifiedFiles(git: GitCli, path: string) {
     try {
-      return await git(
-        "rev-list",
-        "--max-count=1",
-        "--abbrev-commit",
-        "--abbrev=10",
-        "HEAD",
-      ) || NEW_MODULE_VERSION
-    } catch (err) {
-      if (err.code === 128) {
-        // not in a repo root, use default version
-        return NEW_MODULE_VERSION
-      } else {
-        throw err
-      }
-    }
-  }
-
-  async getDirtyFiles(path: string) {
-    const git = this.gitCli(path)
-    let modifiedFiles: string[]
-
-    const repoRoot = await git("rev-parse", "--show-toplevel")
-
-    try {
-      modifiedFiles = (await git("diff-index", "--name-only", "HEAD", path))
-        .split("\n")
-        .filter((f) => f.length > 0)
-        .map(file => resolve(repoRoot, file))
+      return await git("diff-index", "--name-only", "HEAD", path)
     } catch (err) {
       if (err.code === 128) {
         // no commit in repo
-        modifiedFiles = []
+        return []
       } else {
         throw err
       }
     }
+  }
 
-    const newFiles = (await git("ls-files", "--other", "--exclude-standard", path))
-      .split("\n")
-      .filter((f) => f.length > 0)
-      .map(file => resolve(path, file))
+  async getFiles(path: string, include?: string[]) {
+    const git = this.gitCli(path)
 
-    return modifiedFiles.concat(newFiles)
+    let lines: string[] = []
+    let ignored: string[] = []
+
+    try {
+      lines = await git("ls-files", "-s", "--other", path)
+      ignored = await git("ls-files", "--ignored", "--exclude-per-directory=.gardenignore", path)
+    } catch (err) {
+      // if we get 128 we're not in a repo root, so we get no files
+      if (err.code !== 128) {
+        throw err
+      }
+    }
+
+    const files = await Bluebird.map(lines, async (line) => {
+      const split = line.trim().split(" ")
+      if (split.length === 1) {
+        // File is untracked
+        return { path: split[0] }
+      } else {
+        return { path: split[2].split("\t")[1], hash: split[1] }
+      }
+    })
+
+    const modified = new Set(await this.getModifiedFiles(git, path))
+    const filtered = files
+      .filter(f => !include || matchGlobs(f.path, include))
+      .filter(f => !ignored.includes(f.path))
+
+    return Bluebird.map(filtered, async (f) => {
+      const resolvedPath = resolve(path, f.path)
+      if (!f.hash || modified.has(f.path)) {
+        const hash = (await git("hash-object", resolvedPath))[0]
+        return { path: resolvedPath, hash }
+      } else {
+        return { path: resolvedPath, hash: f.hash }
+      }
+    })
   }
 
   // TODO Better auth handling

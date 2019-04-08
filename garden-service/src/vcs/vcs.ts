@@ -7,35 +7,31 @@
  */
 
 import * as Bluebird from "bluebird"
-import { mapValues, keyBy, last, sortBy, omit } from "lodash"
+import { mapValues, keyBy, sortBy, omit } from "lodash"
 import { createHash } from "crypto"
 import * as Joi from "joi"
-import { validate } from "../config/common"
+import { validate, joiArray } from "../config/common"
 import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
-import { pathExists, readFile, writeFile, stat } from "fs-extra"
+import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
-import {
-  ExternalSourceType,
-  getRemoteSourcesDirname,
-  getRemoteSourcePath,
-} from "../util/ext-source-util"
+import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourcePath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
 import { LogNode } from "../logger/log-node"
 
 export const NEW_MODULE_VERSION = "0000000000"
 
 export interface TreeVersion {
-  latestCommit: string
-  dirtyTimestamp: number | null
+  contentHash: string
+  files: string[]
 }
 
 export interface TreeVersions { [moduleName: string]: TreeVersion }
 
 export interface ModuleVersion {
   versionString: string
-  dirtyTimestamp: number | null
   dependencyVersions: TreeVersions
+  files: string[]
 }
 
 interface NamedTreeVersion extends TreeVersion {
@@ -47,29 +43,25 @@ const versionStringSchema = Joi.string()
   .required()
   .description("String representation of the module version.")
 
-const dirtyTimestampSchema = Joi.number()
-  .allow(null)
-  .required()
-  .description(
-    "Set to the last modified time (as UNIX timestamp) if the module contains uncommitted changes, otherwise null.",
-  )
+const fileNamesSchema = joiArray(Joi.string())
+  .description("List of file paths included in the version.")
 
 export const treeVersionSchema = Joi.object()
   .keys({
-    latestCommit: Joi.string()
+    contentHash: Joi.string()
       .required()
-      .description("The latest commit hash of the module source."),
-    dirtyTimestamp: dirtyTimestampSchema,
+      .description("The hash of all files in the directory, after filtering."),
+    files: fileNamesSchema,
   })
 
 export const moduleVersionSchema = Joi.object()
   .keys({
     versionString: versionStringSchema,
-    dirtyTimestamp: dirtyTimestampSchema,
     dependencyVersions: Joi.object()
       .pattern(/.+/, treeVersionSchema)
       .default(() => ({}), "{}")
       .description("The version of each of the dependencies of the module."),
+    files: fileNamesSchema,
   })
 
 export interface RemoteSourceParams {
@@ -79,49 +71,35 @@ export interface RemoteSourceParams {
   log: LogNode,
 }
 
+export interface VcsFile {
+  path: string
+  hash: string
+}
+
 export abstract class VcsHandler {
   constructor(protected projectRoot: string) { }
 
   abstract name: string
-  abstract async getLatestCommit(path: string): Promise<string>
-  abstract async getDirtyFiles(path: string): Promise<string[]>
+  abstract async getFiles(path: string, include?: string[]): Promise<VcsFile[]>
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
 
-  async getTreeVersion(path: string) {
-    const commitHash = await this.getLatestCommit(path)
-    const dirtyFiles = await this.getDirtyFiles(path)
-
-    let latestDirty = 0
-
-    // for dirty trees, we append the last modified time of last modified or added file
-    if (dirtyFiles.length) {
-      const stats = await Bluebird.filter(dirtyFiles, (file: string) => pathExists(file))
-        .map((file: string) => stat(file))
-
-      let mtimes = stats.map((s) => Math.round(s.mtime.getTime() / 1000))
-      let latest = mtimes.sort().slice(-1)[0]
-
-      if (latest > latestDirty) {
-        latestDirty = latest
-      }
-    }
-
-    return {
-      latestCommit: commitHash,
-      dirtyTimestamp: latestDirty || null,
-    }
+  // Note: explicitly requiring the include variable or null, to make sure it's specified
+  async getTreeVersion(path: string, include: string[] | null): Promise<TreeVersion> {
+    const files = await this.getFiles(path, include || undefined)
+    const contentHash = files.length > 0 ? hashFileHashes(files.map(f => f.hash)) : NEW_MODULE_VERSION
+    return { contentHash, files: files.map(f => f.path) }
   }
 
-  async resolveTreeVersion(path: string): Promise<TreeVersion> {
+  async resolveTreeVersion(path: string, include: string[] | null): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(path, GARDEN_VERSIONFILE_NAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || this.getTreeVersion(path)
+    return fileVersion || this.getTreeVersion(path, include)
   }
 
   async resolveVersion(moduleConfig: ModuleConfig, dependencies: ModuleConfig[]): Promise<ModuleVersion> {
-    const treeVersion = await this.resolveTreeVersion(moduleConfig.path)
+    const treeVersion = await this.resolveTreeVersion(moduleConfig.path, moduleConfig.include || null)
 
     validate(treeVersion, treeVersionSchema, {
       context: `${this.name} tree version for module at ${moduleConfig.path}`,
@@ -131,29 +109,28 @@ export abstract class VcsHandler {
       const versionString = getVersionString(
         moduleConfig,
         [{ ...treeVersion, name: moduleConfig.name }],
-        treeVersion.dirtyTimestamp)
+      )
       return {
         versionString,
-        dirtyTimestamp: treeVersion.dirtyTimestamp,
         dependencyVersions: {},
+        files: treeVersion.files,
       }
     }
 
     const namedDependencyVersions = await Bluebird.map(
       dependencies,
-      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(m.path) }),
+      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(m.path, m.include || null) }),
     )
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), v => omit(v, "name"))
 
     // keep the module at the top of the chain, dependencies sorted by name
     const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }]
       .concat(namedDependencyVersions)
-    const dirtyTimestamp = getLatestDirty(allVersions)
 
     return {
-      dirtyTimestamp,
       dependencyVersions,
-      versionString: getVersionString(moduleConfig, allVersions, dirtyTimestamp),
+      versionString: getVersionString(moduleConfig, allVersions),
+      files: treeVersion.files,
     }
   }
 
@@ -214,31 +191,23 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
  * when the version string is used in template variables in configuration files.
  */
 export function getVersionString(
-  moduleConfig: ModuleConfig, treeVersions: NamedTreeVersion[], dirtyTimestamp: number | null,
+  moduleConfig: ModuleConfig, treeVersions: NamedTreeVersion[],
 ) {
-  const hashed = `v-${hashVersions(moduleConfig, treeVersions)}`
-  return dirtyTimestamp ? `${hashed}-${dirtyTimestamp}` : hashed
-}
-
-/**
- * Returns the latest (i.e. numerically largest) dirty timestamp found in versions, or null if none of versions
- * has a dirty timestamp.
- */
-export function getLatestDirty(versions: TreeVersion[]): number | null {
-  const latest = last(sortBy(
-    versions.filter(v => !!v.dirtyTimestamp), v => v.dirtyTimestamp)
-    .map(v => v.dirtyTimestamp))
-  return latest || null
+  return `v-${hashVersions(moduleConfig, treeVersions)}`
 }
 
 /**
  * The versions argument should consist of moduleConfig's tree version, and the tree versions of its dependencies.
  */
 export function hashVersions(moduleConfig: ModuleConfig, versions: NamedTreeVersion[]) {
-  const versionHash = createHash("sha256")
   const configString = serializeConfig(moduleConfig)
   const versionStrings = sortBy(versions, "name")
-    .map(v => `${v.name}_${v.latestCommit}`)
-  versionHash.update([configString, ...versionStrings].join("."))
+    .map(v => `${v.name}_${v.contentHash}`)
+  return hashFileHashes([configString, ...versionStrings])
+}
+
+export function hashFileHashes(hashes: string[]) {
+  const versionHash = createHash("sha256")
+  versionHash.update(hashes.join("."))
   return versionHash.digest("hex").slice(0, 10)
 }

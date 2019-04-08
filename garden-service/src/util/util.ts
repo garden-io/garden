@@ -9,22 +9,17 @@
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
 import * as exitHook from "async-exit-hook"
-import * as klaw from "klaw"
 import * as yaml from "js-yaml"
 import * as Cryo from "cryo"
 import * as _spawn from "cross-spawn"
-import { pathExists, readFile, writeFile } from "fs-extra"
-import { join, basename, win32, posix } from "path"
+import { readFile, writeFile } from "fs-extra"
 import { find, pick, difference, fromPairs, uniqBy } from "lodash"
 import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
 import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 import { safeDump } from "js-yaml"
-import { GARDEN_DIR_NAME } from "../constants"
 import { createHash } from "crypto"
-// NOTE: Importing from ignore/ignore doesn't work on Windows
-const ignore = require("ignore")
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -66,85 +61,6 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
 export function getPackageVersion(): String {
   const version = require("../../package.json").version
   return version
-}
-
-/*
-  Warning: Don't make any async calls in the loop body when using this function, since this may cause
-  funky concurrency behavior.
-  */
-export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIterableIterator<klaw.Item> {
-  let done = false
-  let resolver
-  let rejecter
-
-  klaw(path, opts)
-    .on("data", (item) => {
-      if (item.path !== path) {
-        resolver(item)
-      }
-    })
-    .on("error", (err) => {
-      rejecter(err)
-    })
-    .on("end", () => {
-      done = true
-      resolver()
-    })
-
-  // a nice little trick to turn the stream into an async generator
-  while (!done) {
-    const promise: Promise<klaw.Item> = new Promise((resolve, reject) => {
-      resolver = resolve
-      rejecter = reject
-    })
-
-    yield await promise
-  }
-}
-
-export async function getChildDirNames(parentDir: string): Promise<string[]> {
-  let dirNames: string[] = []
-  // Filter on hidden dirs by default. We could make the filter function a param if needed later
-  const filter = (item: string) => !basename(item).startsWith(".")
-
-  for await (const item of scanDirectory(parentDir, { depthLimit: 0, filter })) {
-    if (!item || !item.stats.isDirectory()) {
-      continue
-    }
-    dirNames.push(basename(item.path))
-  }
-  return dirNames
-}
-
-export interface Ignorer {
-  ignores: (path: string) => boolean
-}
-
-export async function getIgnorer(rootPath: string): Promise<Ignorer> {
-  // TODO: this doesn't handle nested .gitignore files, we should revisit
-  const gitignorePath = join(rootPath, ".gitignore")
-  const gardenignorePath = join(rootPath, ".gardenignore")
-  const ig = ignore()
-
-  if (await pathExists(gitignorePath)) {
-    ig.add((await readFile(gitignorePath)).toString())
-  }
-
-  if (await pathExists(gardenignorePath)) {
-    ig.add((await readFile(gardenignorePath)).toString())
-  }
-
-  // should we be adding this (or more) by default?
-  ig.add([
-    "node_modules",
-    ".git",
-    "*.log",
-    GARDEN_DIR_NAME,
-    // TODO Take a better look at the temp files mutagen creates
-    ".mutagen-*",
-  ])
-
-  return ig
 }
 
 export async function sleep(msec) {
@@ -428,19 +344,6 @@ export function findByName<T extends ObjectWithName>(array: T[], name: string): 
 
 export function uniqByName<T extends ObjectWithName>(array: T[]): T[] {
   return uniqBy(array, item => item.name)
-}
-
-/**
- * Converts a Windows-style path to a cygwin style path (e.g. C:\some\folder -> /cygdrive/c/some/folder).
- */
-export function toCygwinPath(path: string) {
-  const parsed = win32.parse(path)
-  const drive = parsed.root.split(":")[0].toLowerCase()
-  const dirs = parsed.dir.split(win32.sep).slice(1)
-  const cygpath = posix.join("/cygdrive", drive, ...dirs, parsed.base)
-
-  // make sure trailing slash is retained
-  return path.endsWith(win32.sep) ? cygpath + posix.sep : cygpath
 }
 
 /**

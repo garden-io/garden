@@ -6,6 +6,7 @@ import { Garden } from "../../../../src/garden"
 import { dataDir, makeTestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/config-graph"
+import { ModuleVersion } from "../../../../src/vcs/vcs"
 
 describe("TestTask", () => {
   let garden: Garden
@@ -23,22 +24,32 @@ describe("TestTask", () => {
 
     const resolveVersion = td.replace(garden, "resolveVersion")
 
-    const version = {
+    const versionA: ModuleVersion = {
       versionString: "v6fb19922cd",
-      dirtyTimestamp: null,
       dependencyVersions: {
         "module-b": {
-          latestCommit: "abcdefg1234",
-          dirtyTimestamp: null,
+          contentHash: "abcdefg1234",
+          files: [],
         },
       },
+      files: [],
     }
+
+    const versionB: ModuleVersion = {
+      versionString: "abcdefg1234",
+      dependencyVersions: {},
+      files: [],
+    }
+
+    td.when(resolveVersion("module-a", [])).thenResolve(versionA)
+    td.when(resolveVersion("module-b", [])).thenResolve(versionB)
 
     const moduleB = await graph.getModule("module-b")
 
-    td.when(resolveVersion("module-a", [moduleB])).thenResolve(version)
+    td.when(resolveVersion("module-a", [moduleB])).thenResolve(versionA)
 
     const moduleA = await graph.getModule("module-a")
+
     const testConfig = moduleA.testConfigs[0]
 
     const task = await TestTask.factory({
@@ -51,6 +62,6 @@ describe("TestTask", () => {
       forceBuild: false,
     })
 
-    expect(task.version).to.eql(version)
+    expect(task.version).to.eql(versionA)
   })
 })

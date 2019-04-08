@@ -2,14 +2,11 @@ import chalk from "chalk"
 import { it } from "mocha"
 import { join } from "path"
 import { expect } from "chai"
-import * as td from "testdouble"
 import { Garden } from "../../../../src/garden"
 import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { PublishCommand } from "../../../../src/commands/publish"
 import { makeTestGardenA, configureTestModule } from "../../../helpers"
-import { expectError, taskResultOutputs } from "../../../helpers"
-import { ModuleVersion } from "../../../../src/vcs/base"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { taskResultOutputs } from "../../../helpers"
 
 const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
 
@@ -175,60 +172,6 @@ describe("PublishCommand", () => {
         published: false,
         message: chalk.yellow("No publish handler available for module type test"),
       },
-    })
-  })
-
-  context("module is dirty", () => {
-    let garden
-    let log: LogEntry
-
-    beforeEach(async () => {
-      td.replace(Garden.prototype, "resolveVersion", async (): Promise<ModuleVersion> => {
-        return {
-          versionString: "012345",
-          dirtyTimestamp: 12345,
-          dependencyVersions: {},
-        }
-      })
-      garden = await getTestGarden()
-      log = garden.log
-    })
-
-    it("should throw if module is dirty", async () => {
-      const command = new PublishCommand()
-
-      await expectError(() => command.action({
-        garden,
-        log,
-        args: {
-          modules: ["module-a"],
-        },
-        opts: {
-          "allow-dirty": false,
-          "force-build": false,
-        },
-      }), "runtime")
-    })
-
-    it("should optionally allow publishing dirty commits", async () => {
-      const command = new PublishCommand()
-
-      const { result } = await command.action({
-        garden,
-        log,
-        args: {
-          modules: ["module-a"],
-        },
-        opts: {
-          "allow-dirty": true,
-          "force-build": true,
-        },
-      })
-
-      expect(taskResultOutputs(result!)).to.eql({
-        "build.module-a": { fresh: true },
-        "publish.module-a": { published: true },
-      })
     })
   })
 })

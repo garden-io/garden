@@ -40,8 +40,8 @@ class TestTask extends BaseTask {
       log: garden.log,
       version: {
         versionString: "12345-6789",
-        dirtyTimestamp: 6789,
         dependencyVersions: {},
+        files: [],
       },
       force,
     })
