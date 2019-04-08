@@ -422,6 +422,7 @@ interface ComparisonResult {
  */
 export async function compareDeployedObjects(
   ctx: KubernetesPluginContext, api: KubeApi, namespace: string, resources: KubernetesResource[], log: LogEntry,
+  skipDiff: boolean,
 ): Promise<ComparisonResult> {
 
   // First check if any resources are missing from the cluster.
@@ -453,33 +454,36 @@ export async function compareDeployedObjects(
 
   // From here, the state can only be "ready" or "outdated", so we proceed to compare the old & new specs.
 
-  // First we try using `kubectl diff`, to avoid potential normalization issues (i.e. false negatives). This errors
-  // with exit code 1 if there is a mismatch, but may also fail with the same exit code for a number of other reasons,
-  // including the cluster not supporting dry-runs, certain CRDs not supporting dry-runs etc.
-  const yamlResources = await encodeYamlMulti(resources)
+  // TODO: The skipDiff parameter is a temporary workaround until we finish implementing diffing in a more reliable way.
+  if (!skipDiff) {
+    // First we try using `kubectl diff`, to avoid potential normalization issues (i.e. false negatives). This errors
+    // with exit code 1 if there is a mismatch, but may also fail with the same exit code for a number of other reasons,
+    // including the cluster not supporting dry-runs, certain CRDs not supporting dry-runs etc.
+    const yamlResources = await encodeYamlMulti(resources)
 
-  try {
-    await kubectl(ctx.provider.config.context, namespace)
-      .call(["diff", "-f", "-"], { data: Buffer.from(yamlResources) })
+    try {
+      await kubectl(ctx.provider.config.context, namespace)
+        .call(["diff", "-f", "-"], { data: Buffer.from(yamlResources) })
 
-    // If the commands exits succesfully, the check was successful and the diff is empty.
-    log.verbose(`kubectl diff indicates all resources match the deployed resources.`)
-    result.state = "ready"
-    return result
-  } catch (err) {
-    // Exited with non-zero code. Check for error messages on stderr. If one is there, the command was unable to
-    // complete the check, so we fall back to our own mechanism. Otherwise the command worked, but one or more resources
-    // are missing or outdated.
-    if (
-      !err.detail || !err.detail.result
-      || (!!err.detail.result.stderr && err.detail.result.stderr.trim() !== "exit status 1")
-    ) {
-      log.verbose(`kubectl diff failed: ${err.message}`)
-    } else {
-      log.verbose(`kubectl diff indicates one or more resources are outdated.`)
-      log.silly(err.detail.result.stdout)
-      result.state = "outdated"
+      // If the commands exits succesfully, the check was successful and the diff is empty.
+      log.verbose(`kubectl diff indicates all resources match the deployed resources.`)
+      result.state = "ready"
       return result
+    } catch (err) {
+      // Exited with non-zero code. Check for error messages on stderr. If one is there, the command was unable to
+      // complete the check, so we fall back to our own mechanism. Otherwise the command worked, but one or more
+      // resources are missing or outdated.
+      if (
+        !err.detail || !err.detail.result
+        || (!!err.detail.result.stderr && err.detail.result.stderr.trim() !== "exit status 1")
+      ) {
+        log.verbose(`kubectl diff failed: ${err.message}`)
+      } else {
+        log.verbose(`kubectl diff indicates one or more resources are outdated.`)
+        log.silly(err.detail.result.stdout)
+        result.state = "outdated"
+        return result
+      }
     }
   }
 
