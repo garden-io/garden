@@ -29,7 +29,6 @@ const colStyle = `
 
 const Td = styled.td`
   ${colStyle}
-  font-size: 0.9rem;
 `
 
 const Tr = styled.tr`

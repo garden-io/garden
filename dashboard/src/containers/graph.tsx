@@ -14,7 +14,7 @@ import { EventContext } from "../context/events";
 import LoadWrapper from "../components/load-wrapper";
 import { DataContext } from "../context/data";
 import { UiStateContext } from "../context/ui";
-import { TestPane } from "./TestPane";
+import { NodeInfoPane } from "./node-info-pane";
 
 export default () => {
   const {
@@ -37,7 +37,7 @@ export default () => {
 
   return (
     <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
-      <div className="row pl-1 pr-1">
+      <div className="row">
         <div className={selectedGraphNode !== null ? 'col-xs-8' : 'col-xs'}>
           <Graph
             message={message}
@@ -48,7 +48,7 @@ export default () => {
         </div>
         {selectedGraphNode !== null && (
           <div className="col-xs-4">
-            <TestPane selectedGraphNode={selectedGraphNode} />
+            <NodeInfoPane selectedGraphNodeId={selectedGraphNode} />
           </div>
         )}
       </div>
@@ -57,5 +57,5 @@ export default () => {
 };
 
 export interface PaneProps {
-  selectedGraphNode: string;
+  selectedGraphNodeId: string;
 }

@@ -22,6 +22,7 @@ import { colors } from "./styles/variables";
 import "flexboxgrid/dist/flexboxgrid.min.css";
 import "./styles/padding-margin-mixin.scss";
 import "./styles/custom-flexboxgrid.scss";
+import "./styles/icons.scss";
 
 
 import { EventProvider } from "./context/events";
@@ -51,7 +52,7 @@ const SidebarContainer = styled.div`
 `;
 const SidebarToggleButton = styled.div`
   position: absolute;
-  right: -2.5rem;
+  right: -2rem;
   top: 2rem;
   width: 1.5rem;
   cursor: pointer;

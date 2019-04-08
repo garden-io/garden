@@ -58,7 +58,6 @@ const useUiState = () => {
     })
   }
 
-  console.log("ui", uiState)
   return {
     state: uiState,
     actions: {
