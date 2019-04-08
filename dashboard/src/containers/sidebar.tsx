@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cls from "classnames"
-import { css } from "emotion/macro"
 import { kebabCase, flatten, entries } from "lodash"
 import React, { useContext, useEffect } from "react"
 
@@ -46,7 +44,6 @@ const builtinPages: Page[] = [
 interface SidebarProps {
   isOpen: boolean
 }
-
 const SidebarContainer: React.SFC<SidebarProps> = () => {
   const {
     actions: { loadStatus },
@@ -55,24 +52,17 @@ const SidebarContainer: React.SFC<SidebarProps> = () => {
 
   useEffect(loadStatus, [])
 
-  const isLoading = !status.data || status.loading
-  if (isLoading) {
-    return (
-      <div className={cls(css`
-      text-align: center;
-    `)}>
-        <p>Loading sidebar...</p>
-      </div>
-    )
-  }
+  let pages: Page[] = []
 
-  const pages: Page[] = flatten(entries(status.data.providers).map(([providerName, providerStatus]) => {
-    return providerStatus.dashboardPages.map(p => ({
-      ...p,
-      path: `/provider/${providerName}/${kebabCase(p.title)}`,
-      description: p.description + ` (from provider ${providerName})`,
+  if (status.data) {
+    pages = flatten(entries(status.data.providers).map(([providerName, providerStatus]) => {
+      return providerStatus.dashboardPages.map(p => ({
+        ...p,
+        path: `/provider/${providerName}/${kebabCase(p.title)}`,
+        description: p.description + ` (from provider ${providerName})`,
+      }))
     }))
-  }))
+  }
 
   return <Sidebar pages={[...builtinPages, ...pages]} />
 }
