@@ -27,7 +27,7 @@ import { colors, fontMedium } from "../../styles/variables";
 import Spinner from "../spinner";
 import CheckBox from "../checkbox";
 import { SelectGraphNode } from "../../context/ui";
-import { getEmojiByType } from "../../util/helpers";
+import { getIconClassNameByType } from "../../util/helpers";
 
 interface Node {
   name: string;
@@ -172,15 +172,20 @@ const makeLabel = (name: string, type: string) => {
   if (type === "test") {
     type += ` (${nameParts[1]})`;
   }
-  return (
-    "<div class='label-wrap'><span class='name'>" +
-    nameParts[0] +
-    "</span><br /><span>" +
-    getEmojiByType(type) +
-    "&nbsp</span><span class='type'>" +
-    type +
-    "</span></div>"
-  );
+  return `
+    <div class='label-wrap'>
+      <span class='name'>${nameParts[0]}</span>
+      
+      <div class="pt-1" style="display: flex; justify-content: center; align-items: center;">
+        <span style="margin-right: .5rem;" class='garden-icon 
+          garden-icon--${getIconClassNameByType(type)}'>
+        </span>
+
+        <span class='type'>
+          ${type}
+        </span>
+      </div>
+    </div>`;
 };
 
 const Span = styled.span`

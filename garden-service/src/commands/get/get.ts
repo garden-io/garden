@@ -12,6 +12,8 @@ import { GetConfigCommand } from "./get-config"
 import { GetSecretCommand } from "./get-secret"
 import { GetStatusCommand } from "./get-status"
 import { GetTasksCommand } from "./get-tasks"
+import { GetTaskResultCommand } from "./get-task-result";
+import { GetTestResultCommand } from "./get-test-result";
 
 export class GetCommand extends Command {
   name = "get"
@@ -23,6 +25,8 @@ export class GetCommand extends Command {
     GetSecretCommand,
     GetStatusCommand,
     GetTasksCommand,
+    GetTaskResultCommand,
+    GetTestResultCommand,
   ]
 
   async action() { return {} }

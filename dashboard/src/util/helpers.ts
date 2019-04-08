@@ -13,19 +13,20 @@ export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
 }
 
-export function getEmojiByType(type: string) : string{
+export function getIconClassNameByType(type: string) : string{
   switch (type) {
     case "deploy":
-      return "🚀";
+      return "deploy";
     case "build":
-      return "🔧";
+      return "build";
     case "integ":
     case "unit":
     case "test (integ)":
     case "test (unit)":
-      return "✅";
+      return "test";
     case "task":
-      return "🏃";
+    case "run":
+      return "task";
     default:
       return "";
   }
