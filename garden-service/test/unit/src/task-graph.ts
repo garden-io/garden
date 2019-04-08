@@ -127,7 +127,7 @@ describe("task-graph", () => {
 
       const result = await graph.process([task])
 
-      expect(garden.events.log).to.eql([
+      expect(garden.events.eventLog).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskComplete", payload: result["a"] },
@@ -144,13 +144,13 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false)
       await graph.process([task])
 
-      garden.events.log = []
+      garden.events.eventLog = []
 
       // repeatedTask has the same baseKey and version as task, so its result is already cached
       const repeatedTask = new TestTask(garden, "a", false)
       await graph.process([repeatedTask])
 
-      expect(garden.events.log).to.eql([
+      expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -165,7 +165,7 @@ describe("task-graph", () => {
 
       const result = await graph.process([task])
 
-      expect(garden.events.log).to.eql([
+      expect(garden.events.eventLog).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskError", payload: result["a"] },
