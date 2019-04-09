@@ -97,13 +97,23 @@ export class GitHandler extends VcsHandler {
 
     return Bluebird.map(filtered, async (f) => {
       const resolvedPath = resolve(path, f.path)
+
       if (!f.hash || modified.has(f.path)) {
-        const hash = (await git("hash-object", resolvedPath))[0]
+        // If we can't compute the hash, i.e. the file is gone, we filter it out below
+        let hash = ""
+        try {
+          hash = (await git("hash-object", resolvedPath))[0]
+        } catch (err) {
+          // 128 = File no longer exists
+          if (err.code !== 128) {
+            throw err
+          }
+        }
         return { path: resolvedPath, hash }
       } else {
         return { path: resolvedPath, hash: f.hash }
       }
-    })
+    }).filter(f => f.hash !== "")
   }
 
   // TODO Better auth handling
