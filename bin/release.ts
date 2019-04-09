@@ -49,6 +49,38 @@ async function release() {
     "version", "--no-git-tag-version", releaseType,
   ], { cwd: gardenServiceRoot })
 
+  const branchName = `release-${version}`
+
+  // Check if branch already exists locally
+  let localBranch
+  try {
+    localBranch = await execa("git", ["rev-parse", "--verify", branchName], { cwd: gardenRoot })
+  } catch (_) {
+    // no op
+  } finally {
+    if (localBranch) {
+      await rollBack(gardenRoot)
+      throw new Error(`Branch ${branchName} already exists locally. Aborting.`)
+    }
+  }
+
+  // Check if branch already exists remotely
+  let remoteBranch
+  try {
+    remoteBranch = await execa(
+      "git",
+      ["ls-remote", "--exit-code", "--heads", "origin", branchName],
+      { cwd: gardenRoot },
+    )
+  } catch (_) {
+    // no op
+  } finally {
+    if (remoteBranch) {
+      await rollBack(gardenRoot)
+      throw new Error(`Branch ${branchName} already exists remotely. Aborting.`)
+    }
+  }
+
   // Check if user wants to continue
   const proceed = await prompt(version)
   if (!proceed) {
@@ -68,7 +100,6 @@ async function release() {
   }
 
   // Checkout to a release branch
-  const branchName = `release-${version}`
   console.log(`Checking out to branch ${branchName}...`)
   await execa("git", ["checkout", "-b", branchName], { cwd: gardenRoot })
 
