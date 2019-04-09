@@ -71,7 +71,7 @@ export class GitHandler extends VcsHandler {
     let ignored: string[] = []
 
     try {
-      lines = await git("ls-files", "-s", "--other", path)
+      lines = await git("ls-files", "-s", "--other", "--exclude=.garden", path)
       ignored = await git("ls-files", "--ignored", "--exclude-per-directory=.gardenignore", path)
     } catch (err) {
       // if we get 128 we're not in a repo root, so we get no files
