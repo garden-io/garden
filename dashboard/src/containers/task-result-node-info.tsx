@@ -1,16 +1,17 @@
-import React, { useContext, useEffect } from "react";
-import cls from "classnames";
-import { css } from "emotion/macro";
-import styled from "@emotion/styled/macro";
-import LoadWrapper from "../components/load-wrapper";
-import { DataContext } from "../context/data";
-import Card from "../components/card";
-import Spinner from "../components/spinner";
-import { colors } from "../styles/variables";
-import { timeConversion } from "../util/helpers";
+import React, { useContext, useEffect } from "react"
+import cls from "classnames"
+import { css } from "emotion/macro"
+import styled from "@emotion/styled/macro"
+import LoadWrapper from "../components/load-wrapper"
+import { DataContext } from "../context/data"
+import Card from "../components/card"
+import Spinner from "../components/spinner"
+import { colors } from "../styles/variables"
+import { timeConversion } from "../util/helpers"
+import { Tag } from "../components/tag"
 
-const TestPaneErrorMsg = () => <p>Error!</p>;
-const TestPaneSpinner = () => <Spinner fontSize="3px" />;
+const TestPaneErrorMsg = () => <p>Error!</p>
+const TestPaneSpinner = () => <Spinner fontSize="3px" />
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
@@ -19,10 +20,10 @@ const Term = styled.div`
   max-height: 45rem;
   overflow-y: auto;
   padding: 1rem;
-`;
+`
 const Code = styled.code`
   word-break: break-word;
-`;
+`
 
 const NoResults = styled.div`
   color: #721c24;
@@ -30,30 +31,30 @@ const NoResults = styled.div`
   border-color: #f5c6cb;
   position: relative;
   padding: 0.75rem 1.25rem;
-  margin-bottom: 1rem;
   border: 1px solid transparent;
   border-radius: 0.25rem;
-`;
+`
 
 interface TaskResultInfo {
-  name: string;
-  output: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
-  duration: string;
+  name: string
+  output: string | null
+  startedAt: string | null
+  completedAt: string | null
+  duration: string
 }
 
 export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
-  name
+  name,
 }) => {
   const {
     actions: { loadTaskResult },
-    store: { taskResult }
-  } = useContext(DataContext);
-  useEffect(() => loadTaskResult({ name }, true), [name]);
-  const isLoading = !taskResult.data || taskResult.loading;
+    store: { taskResult },
+  } = useContext(DataContext)
 
-  let info: TaskResultInfo = null;
+  useEffect(() => loadTaskResult({ name }, true), [name])
+  const isLoading = !taskResult.data || taskResult.loading
+
+  let info: TaskResultInfo = null
 
   if (!isLoading && taskResult.data) {
     info = {
@@ -63,7 +64,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
         taskResult.data.completedAt &&
         timeConversion(
           new Date(taskResult.data.completedAt).valueOf() -
-            new Date(taskResult.data.startedAt).valueOf()
+            new Date(taskResult.data.startedAt).valueOf(),
         ),
       startedAt:
         taskResult.data.startedAt &&
@@ -71,8 +72,8 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
       completedAt:
         taskResult.data.completedAt &&
         new Date(taskResult.data.completedAt).toLocaleString(),
-      output: taskResult.data.output
-    };
+      output: taskResult.data.output,
+    }
   }
 
   return (
@@ -103,32 +104,35 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
                 </h2>
               </div>
             </div>
-            <div>
-              <h4>type: Run</h4>
+            <div className="row pt-1">
+              <div className="col-xs-12">
+                <Tag>Run</Tag>
+              </div>
             </div>
 
+            {info.duration && (
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Time took:</div>
+                <div className="col-xs col-lg">{info.duration}</div>
+              </div>
+            )}
+
             {info.startedAt && (
-              <div className="row">
-                <div className="col-xs-6 pr-1">Started At:</div>
-                <div className="col-xs-6">{info.startedAt}</div>
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Started At:</div>
+                <div className="col-xs col-lg">{info.startedAt}</div>
               </div>
             )}
             {info.completedAt && (
-              <div className="row mt-1">
-                <div className="col-xs-6 pr-1">Completed At:</div>
-                <div className="col-xs-6">{info.completedAt}</div>
-              </div>
-            )}
-            {info.duration && (
-              <div className="row mt-1">
-                <div className="col-xs-6 pr-1">Duration:</div>
-                <div className="col-xs-6">{info.duration}</div>
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Completed At:</div>
+                <div className="col-xs col-lg">{info.completedAt}</div>
               </div>
             )}
 
-            <div className="row mt-1">
+            <div className="row pt-1">
               <div className="col-xs-12 pb-1">Output:</div>
-              <div className="col-xs-12 pb-1">
+              <div className="col-xs-12">
                 {info.output ? (
                   <Term>
                     <Code>{info.output}</Code>
@@ -142,9 +146,9 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
         </Card>
       )}
     </LoadWrapper>
-  );
-};
+  )
+}
 
 export interface TaskResultNodeInfoProps {
-  name: string; // task name
+  name: string // task name
 }

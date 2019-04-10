@@ -9,7 +9,17 @@
 import { useState } from "react"
 import React from "react"
 
-import { fetchConfig, fetchLogs, fetchTaskResult, fetchStatus, fetchGraph, FetchLogsParam, FetchTaskResultParam, fetchTestResult, FetchTestResultParam } from "../api"
+import {
+  fetchConfig,
+  fetchLogs,
+  fetchTaskResult,
+  fetchStatus,
+  fetchGraph,
+  FetchLogsParam,
+  FetchTaskResultParam,
+  fetchTestResult,
+  FetchTestResultParam,
+} from "../api"
 import {
   FetchConfigResponse,
   FetchStatusResponse,
@@ -24,26 +34,44 @@ interface StoreSlice {
   loading: boolean
 }
 
-interface Config extends StoreSlice { data: FetchConfigResponse | null }
-interface Status extends StoreSlice { data: FetchStatusResponse | null }
-interface Graph extends StoreSlice { data: FetchGraphResponse | null }
-interface Logs extends StoreSlice { data: FetchLogsResponse | null }
-interface TaskResult extends StoreSlice { data: FetchTaskResultResponse | null }
-interface TestResult extends StoreSlice { data: FetchTestResultResponse | null }
+interface Config extends StoreSlice {
+  data: FetchConfigResponse | null
+}
+interface Status extends StoreSlice {
+  data: FetchStatusResponse | null
+}
+interface Graph extends StoreSlice {
+  data: FetchGraphResponse | null
+}
+interface Logs extends StoreSlice {
+  data: FetchLogsResponse | null
+}
+interface TaskResult extends StoreSlice {
+  data: FetchTaskResultResponse | null
+}
+interface TestResult extends StoreSlice {
+  data: FetchTestResultResponse | null
+}
 
 // This is the global data store
 interface Store {
   config: Config
   status: Status
   graph: Graph
-  logs: Logs,
-  taskResult: TaskResult,
-  testResult: TestResult,
+  logs: Logs
+  taskResult: TaskResult
+  testResult: TestResult
 }
 
 export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
-export type loadTaskResult = (param: FetchTaskResultParam, force?: boolean) => void
-export type loadTestResult = (param: FetchTestResultParam, force?: boolean) => void
+export type loadTaskResultType = (
+  param: FetchTaskResultParam,
+  force?: boolean,
+) => void
+export type loadTestResultType = (
+  param: FetchTestResultParam,
+  force?: boolean,
+) => void
 
 type Loader = (force?: boolean) => void
 
@@ -52,25 +80,32 @@ interface Actions {
   loadConfig: Loader
   loadStatus: Loader
   loadGraph: Loader
-  loadTaskResult: loadTaskResult
-  loadTestResult: loadTestResult
+  loadTaskResult: loadTaskResultType
+  loadTestResult: loadTestResultType
 }
 
 type KeyActionPair =
-  ["config", (arg0?: any) => Promise<FetchConfigResponse>] |
-  ["logs", (arg0?: any) => Promise<FetchLogsResponse>] |
-  ["status", (arg0?: any) => Promise<FetchStatusResponse>] |
-  ["taskResult", (arg0?: any) => Promise<FetchTaskResultResponse>] |
-  ["testResult", (arg0?: any) => Promise<FetchTestResultResponse>] |
-  ["graph", (arg0?: any) => Promise<FetchGraphResponse>]
+  |["config", (arg0?: any) => Promise<FetchConfigResponse>]
+  | ["logs", (arg0?: any) => Promise<FetchLogsResponse>]
+  | ["status", (arg0?: any) => Promise<FetchStatusResponse>]
+  | ["taskResult", (arg0?: any) => Promise<FetchTaskResultResponse>]
+  | ["testResult", (arg0?: any) => Promise<FetchTestResultResponse>]
+  | ["graph", (arg0?: any) => Promise<FetchGraphResponse>]
 
 type Context = {
-  store: Store,
-  actions: Actions,
+  store: Store;
+  actions: Actions;
 }
 
 type SliceName = keyof Store
-const sliceNames: SliceName[] = ["config", "status", "graph", "logs", "taskResult", "testResult"]
+const sliceNames: SliceName[] = [
+  "config",
+  "status",
+  "graph",
+  "logs",
+  "taskResult",
+  "testResult",
+]
 
 // TODO Fix type cast
 const initialState: Store = sliceNames.reduce((acc, key) => {
@@ -82,7 +117,11 @@ const initialState: Store = sliceNames.reduce((acc, key) => {
 export const DataContext = React.createContext<Context | null>(null)
 
 // Updates slices of the store based on the slice key
-function updateSlice(prevState: Store, key: SliceName, sliceState: Object): Store {
+function updateSlice(
+  prevState: Store,
+  key: SliceName,
+  sliceState: Object,
+): Store {
   const prevSliceState = prevState[key]
   return {
     ...prevState,
@@ -102,7 +141,9 @@ function useApi() {
 
     try {
       const res = args ? await fetchFn(...args) : await fetchFn()
-      setData(prevState => updateSlice(prevState, key, { data: res, error: null }))
+      setData(prevState =>
+        updateSlice(prevState, key, { data: res, error: null }),
+      )
     } catch (error) {
       setData(prevState => updateSlice(prevState, key, { error }))
     }
@@ -110,34 +151,44 @@ function useApi() {
     setData(prevState => updateSlice(prevState, key, { loading: false }))
   }
 
-  const fetchOrReadFromStore = (keyActionPair: KeyActionPair, force: boolean, args: any = []) => {
+  const fetchOrReadFromStore = (
+    keyActionPair: KeyActionPair,
+    force: boolean,
+    args: any = [],
+  ) => {
     const key = keyActionPair[0]
     const { data, loading } = store[key]
     if (!force && (data || loading)) {
       return
     }
-    fetch(keyActionPair, args).catch(error => setData(prevState => updateSlice(prevState, key, { error })))
+    fetch(keyActionPair, args).catch(error =>
+      setData(prevState => updateSlice(prevState, key, { error })),
+    )
   }
 
-  const loadLogs: LoadLogs = (args: FetchLogsParam, force: boolean = false) => (
+  const loadLogs: LoadLogs = (args: FetchLogsParam, force: boolean = false) =>
     fetchOrReadFromStore(["logs", fetchLogs], force, [args])
-  )
-  const loadConfig: Loader = (force: boolean = false) => (
+  const loadConfig: Loader = (force: boolean = false) =>
     fetchOrReadFromStore(["config", fetchConfig], force)
-  )
-  const loadGraph: Loader = (force: boolean = false) => (
+  const loadGraph: Loader = (force: boolean = false) =>
     fetchOrReadFromStore(["graph", fetchGraph], force)
-  )
-  const loadStatus: Loader = (force: boolean = false) => (
+  const loadStatus: Loader = (force: boolean = false) =>
     fetchOrReadFromStore(["status", fetchStatus], force)
-  )
-  const loadTaskResult: loadTaskResult = (args: FetchTaskResultParam, force: boolean = false) => {
+
+  const loadTaskResult: loadTaskResult = (
+    args: FetchTaskResultParam,
+    force: boolean = false,
+  ) => {
     return fetchOrReadFromStore(["taskResult", fetchTaskResult], force, [args])
   }
-  const loadTestResult: loadTestResult = (args: FetchTestResultParam, force: boolean = false) => {
+
+  const loadTestResult: loadTestResult = (
+    args: FetchTestResultParam,
+    force: boolean = false,
+  ) => {
     return fetchOrReadFromStore(["testResult", fetchTestResult], force, [args])
   }
-console.log(store)
+  console.log(store)
   return {
     store,
     actions: {

@@ -1,16 +1,17 @@
-import React, { useContext, useEffect } from "react";
-import cls from "classnames";
-import { css } from "emotion/macro";
-import styled from "@emotion/styled/macro";
-import LoadWrapper from "../components/load-wrapper";
-import { DataContext } from "../context/data";
-import Card from "../components/card";
-import Spinner from "../components/spinner";
-import { colors } from "../styles/variables";
-import { timeConversion } from "../util/helpers";
+import React, { useContext, useEffect } from "react"
+import cls from "classnames"
+import { css } from "emotion/macro"
+import styled from "@emotion/styled/macro"
+import LoadWrapper from "../components/load-wrapper"
+import { DataContext } from "../context/data"
+import Card from "../components/card"
+import Spinner from "../components/spinner"
+import { colors } from "../styles/variables"
+import { timeConversion } from "../util/helpers"
+import { Tag } from "../components/tag"
 
-const TestPaneErrorMsg = () => <p>Error!</p>;
-const TestPaneSpinner = () => <Spinner fontSize="3px" />;
+const TestPaneErrorMsg = () => <p>Error!</p>
+const TestPaneSpinner = () => <Spinner fontSize="3px" />
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
   color: white;
@@ -18,10 +19,10 @@ const Term = styled.div`
   max-height: 45rem;
   overflow-y: auto;
   padding: 1rem;
-`;
+`
 const Code = styled.code`
   word-break: break-word;
-`;
+`
 
 const NoResults = styled.div`
   color: #721c24;
@@ -29,10 +30,9 @@ const NoResults = styled.div`
   border-color: #f5c6cb;
   position: relative;
   padding: 0.75rem 1.25rem;
-  margin-bottom: 1rem;
   border: 1px solid transparent;
   border-radius: 0.25rem;
-`;
+`
 
 interface TestResultInfo {
   name: string
@@ -44,18 +44,18 @@ interface TestResultInfo {
 
 export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
   name,
-  module
+  module,
 }) => {
   const {
     actions: { loadTestResult },
-    store: { testResult }
-  } = useContext(DataContext);
-  useEffect(() => loadTestResult({ name, module }, true), []);
-  const isLoading = !testResult.data || testResult.loading;
+    store: { testResult },
+  } = useContext(DataContext)
+  useEffect(() => loadTestResult({ name, module }, true), [])
+  const isLoading = !testResult.data || testResult.loading
 
-  let info: TestResultInfo = null;
+  let info: TestResultInfo = null
 
-  if (!isLoading && testResult.data ) {
+  if (!isLoading && testResult.data) {
     info = {
       name,
       duration:
@@ -63,7 +63,7 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
         testResult.data.completedAt &&
         timeConversion(
           new Date(testResult.data.completedAt).valueOf() -
-          new Date(testResult.data.startedAt).valueOf()
+          new Date(testResult.data.startedAt).valueOf(),
         ),
       startedAt:
         testResult.data.startedAt &&
@@ -71,8 +71,8 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
       completedAt:
         testResult.data.completedAt &&
         new Date(testResult.data.completedAt).toLocaleString(),
-      output: testResult.data.output
-    };
+      output: testResult.data.output,
+    }
   }
 
   return (
@@ -103,48 +103,51 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
                 </h2>
               </div>
             </div>
-            <div>
-              <h4>type: Test</h4>
+            <div className="row pt-1">
+              <div className="col-xs-12">
+                <Tag>Test</Tag>
+              </div>
             </div>
-            {info.startedAt && (
-              <div className="row">
-                <div className="col-xs-6 pr-1">Started At:</div>
-                <div className="col-xs-6">{info.startedAt}</div>
-              </div>
-            )}
-            {info.completedAt && (
-              <div className="row mt-1">
-                <div className="col-xs-6 pr-1">Completed At:</div>
-                <div className="col-xs-6">{info.completedAt}</div>
-              </div>
-            )}
+
             {info.duration && (
-              <div className="row mt-1">
-                <div className="col-xs-6 pr-1">Duration:</div>
-                <div className="col-xs-6">{info.duration}</div>
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Time took:</div>
+                <div className="col-xs col-lg">{info.duration}</div>
               </div>
             )}
 
-            <div className="row mt-1">
+            {info.startedAt && (
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Started At:</div>
+                <div className="col-xs col-lg">{info.startedAt}</div>
+              </div>
+            )}
+            {info.completedAt && (
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Completed At:</div>
+                <div className="col-xs col-lg">{info.completedAt}</div>
+              </div>
+            )}
+            <div className="row pt-1">
               <div className="col-xs-12 pb-1">Output:</div>
-              <div className="col-xs-12 pb-1">
+              <div className="col-xs-12">
                 {info.output ? (
                   <Term>
                     <Code>{info.output}</Code>
                   </Term>
                 ) : (
-                  <NoResults>No test output</NoResults>
-                )}
+                    <NoResults>No test output</NoResults>
+                  )}
               </div>
             </div>
           </div>
         </Card>
       )}
     </LoadWrapper>
-  );
-};
+  )
+}
 
 export interface TestResultNodeInfoProps {
-  name: string; // test name
-  module: string;
+  name: string // test name
+  module: string
 }
