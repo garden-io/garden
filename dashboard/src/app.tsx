@@ -74,7 +74,7 @@ const AppContainer = () => {
 
 const App = () => {
   const {
-    state: { isSidebarOpen },
+    state: { isSidebarOpen,  },
     actions: { toggleSidebar }
   } = useContext(UiStateContext);
 
@@ -116,7 +116,7 @@ const App = () => {
             `, 
             "pl-3",
             "pt-2",
-            "pr-1"
+            "pr-2"
           )}
         >
           <Route exact path="/" component={Overview} />

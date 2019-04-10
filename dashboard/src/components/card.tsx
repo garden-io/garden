@@ -13,11 +13,12 @@ import { colors, fontMedium } from "../styles/variables"
 
 interface CardProps {
   children: JSX.Element
-  title?: string
+  title?: string,
+  backgroundColor?: string
 }
 
 const Wrapper = styled.div`
-  background-color: ${colors.gardenWhite};
+  background-color: ${props => props.backgroundColor || colors.gardenWhite};
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   width: 100%;
@@ -31,7 +32,7 @@ export const CardTitle = styled.h3`
   margin: 0;
 `
 
-const Card: React.SFC<CardProps> = ({ children, title }) => {
+const Card: React.SFC<CardProps> = ({ children, title, backgroundColor }) => {
   const titleEl = title
     ? (
       <div className="pl-1 pr-1 pb-1">
@@ -40,7 +41,7 @@ const Card: React.SFC<CardProps> = ({ children, title }) => {
     )
     : null
   return (
-    <Wrapper className="mb-2">
+    <Wrapper className="mb-2" backgroundColor={backgroundColor}>
       {titleEl}
       {children}
     </Wrapper>

@@ -6,10 +6,8 @@ import LoadWrapper from "../components/load-wrapper";
 import { DataContext } from "../context/data";
 import Card from "../components/card";
 import Spinner from "../components/spinner";
-import graph, { PaneProps } from "./graph";
-import { getIconClassNameByType } from "../util/helpers";
-import { clearScreenDown } from "readline";
 import { colors } from "../styles/variables";
+import { timeConversion } from "../util/helpers";
 
 const TestPaneErrorMsg = () => <p>Error!</p>;
 const TestPaneSpinner = () => <Spinner fontSize="3px" />;
@@ -35,15 +33,47 @@ const NoResults = styled.div`
   border: 1px solid transparent;
   border-radius: 0.25rem;
 `;
+
+interface TestResultInfo {
+  name: string
+  output: string | null
+  startedAt: string | null
+  completedAt: string | null
+  duration: string
+}
+
 export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
-  name
+  name,
+  module
 }) => {
   const {
     actions: { loadTestResult },
     store: { testResult }
   } = useContext(DataContext);
-  useEffect(() => loadTestResult({ name }, true), []);
+  useEffect(() => loadTestResult({ name, module }, true), []);
   const isLoading = !testResult.data || testResult.loading;
+
+  let info: TestResultInfo = null;
+
+  if (!isLoading && testResult.data ) {
+    info = {
+      name,
+      duration:
+        testResult.data.startedAt &&
+        testResult.data.completedAt &&
+        timeConversion(
+          new Date(testResult.data.completedAt).valueOf() -
+          new Date(testResult.data.startedAt).valueOf()
+        ),
+      startedAt:
+        testResult.data.startedAt &&
+        new Date(testResult.data.startedAt).toLocaleString(),
+      completedAt:
+        testResult.data.completedAt &&
+        new Date(testResult.data.completedAt).toLocaleString(),
+      output: testResult.data.output
+    };
+  }
 
   return (
     <LoadWrapper
@@ -52,53 +82,69 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
       ErrorComponent={TestPaneErrorMsg}
       LoadComponent={TestPaneSpinner}
     >
-      <Card>
-        <div className="p-1">
-          <div className="row middle-xs col-xs-12">
-            <div>
-              <span
-                className={cls(
-                  `garden-icon`,
-                  `garden-icon--test`
-                )}
-              />
-            </div>
-            <div
-              className={css`
-                padding-left: 0.5rem;
-              `}
-            >
-              <h3
+      {info && (
+        <Card backgroundColor={colors.gardenGrayLighter}>
+          <div className="p-1">
+            <div className="row middle-xs col-xs-12">
+              <div>
+                <span className={cls(`garden-icon`, `garden-icon--test`)} />
+              </div>
+              <div
                 className={css`
-                  margin-block-end: 0;
+                  padding-left: 0.5rem;
                 `}
               >
-                {name}
-              </h3>
+                <h2
+                  className={css`
+                    margin-block-end: 0;
+                  `}
+                >
+                  {info.name}
+                </h2>
+              </div>
             </div>
-          </div>
-          <div>
-            <h4>type: Run</h4>
-          </div>
-          {testResult.data && testResult.data.output ? (
             <div>
-              <div className="pb-1">Test result:</div>
-              <Term>
-                <Code>{testResult.data.output}</Code>
-              </Term>
+              <h4>type: Test</h4>
             </div>
-          ) : (
-            <NoResults>
-              No test result were found, run test in order to get its result
-            </NoResults>
-          )}
-        </div>
-      </Card>
+            {info.startedAt && (
+              <div className="row">
+                <div className="col-xs-6 pr-1">Started At:</div>
+                <div className="col-xs-6">{info.startedAt}</div>
+              </div>
+            )}
+            {info.completedAt && (
+              <div className="row mt-1">
+                <div className="col-xs-6 pr-1">Completed At:</div>
+                <div className="col-xs-6">{info.completedAt}</div>
+              </div>
+            )}
+            {info.duration && (
+              <div className="row mt-1">
+                <div className="col-xs-6 pr-1">Duration:</div>
+                <div className="col-xs-6">{info.duration}</div>
+              </div>
+            )}
+
+            <div className="row mt-1">
+              <div className="col-xs-12 pb-1">Output:</div>
+              <div className="col-xs-12 pb-1">
+                {info.output ? (
+                  <Term>
+                    <Code>{info.output}</Code>
+                  </Term>
+                ) : (
+                  <NoResults>No test output</NoResults>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
     </LoadWrapper>
   );
 };
 
 export interface TestResultNodeInfoProps {
-  name: string // test name
-  module: string
+  name: string; // test name
+  module: string;
 }

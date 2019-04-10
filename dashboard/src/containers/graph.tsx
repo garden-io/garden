@@ -14,7 +14,8 @@ import { EventContext } from "../context/events";
 import LoadWrapper from "../components/load-wrapper";
 import { DataContext } from "../context/data";
 import { UiStateContext } from "../context/ui";
-import { NodeInfoPane } from "./node-info-pane";
+import { TaskResultNodeInfo } from "./task-result-node-info";
+import { TestResultNodeInfo } from "./test-result-node-info";
 
 export default () => {
   const {
@@ -35,10 +36,26 @@ export default () => {
     !config.data || !graph.data || config.loading || graph.loading;
   const error = config.error || graph.error;
 
+  let moreInfoPane = null;
+  if (selectedGraphNode) {
+    const [name, taskType] = selectedGraphNode.split("."); // TODO: replace with extracting this data from hashmap
+    switch (taskType) {
+      case "run": // task
+        moreInfoPane = <TaskResultNodeInfo name={name} />;
+        break;
+      case "test":
+        moreInfoPane = <TestResultNodeInfo name={"unit"} module={"hello"} />;
+        break;
+      case "build":
+      default:
+        break;
+    }
+  }
+
   return (
     <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
       <div className="row">
-        <div className={selectedGraphNode !== null ? 'col-xs-8' : 'col-xs'}>
+        <div className={moreInfoPane !== null ? "col-xs-8" : "col-xs"}>
           <Graph
             message={message}
             selectGraphNode={selectGraphNode}
@@ -46,16 +63,11 @@ export default () => {
             graph={graph.data}
           />
         </div>
-        {selectedGraphNode !== null && (
-          <div className="col-xs-4">
-            <NodeInfoPane selectedGraphNodeId={selectedGraphNode} />
-          </div>
+
+        {moreInfoPane !== null && (
+          <div className="col-xs-4">{moreInfoPane}</div>
         )}
       </div>
     </LoadWrapper>
   );
 };
-
-export interface PaneProps {
-  selectedGraphNodeId: string;
-}
