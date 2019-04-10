@@ -75,11 +75,11 @@ interface IngressesProp {
   ingresses: ServiceIngress[]
 }
 
-const start_and_end = (str) => {
+const startAndEnd = (str) => {
   if (str.length > 35) {
-    return str.substr(0, 16) + '...' + str.substr(str.length - 16, str.length);
+    return str.substr(0, 16) + "..." + str.substr(str.length - 16, str.length)
   }
-  return str;
+  return str
 }
 
 const LinkContainer = styled.div`
@@ -88,7 +88,7 @@ const LinkContainer = styled.div`
   &:last-of-type{
     padding-bottom: 0;
   }
-`;
+`
 const Ingresses: React.SFC<IngressesProp> = ({ ingresses }) => {
   return (
     <div>
@@ -97,7 +97,7 @@ const Ingresses: React.SFC<IngressesProp> = ({ ingresses }) => {
         return (
           <LinkContainer key={i.path}>
             <ExternalLink href={url} target="_blank">
-              {start_and_end(url)}
+              {startAndEnd(url)}
             </ExternalLink>
             <br />
           </LinkContainer>

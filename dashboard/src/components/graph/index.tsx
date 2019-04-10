@@ -6,62 +6,62 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cls from "classnames";
-import { css } from "emotion/macro";
-import React, { Component, ChangeEvent } from "react";
-import styled from "@emotion/styled/macro";
-import { capitalize, uniq } from "lodash";
-import * as d3 from "d3";
-import dagreD3 from "dagre-d3";
+import cls from "classnames"
+import { css } from "emotion/macro"
+import React, { Component, ChangeEvent } from "react"
+import styled from "@emotion/styled/macro"
+import { capitalize, uniq } from "lodash"
+import * as d3 from "d3"
+import dagreD3 from "dagre-d3"
 
 import {
   FetchConfigResponse,
   FetchGraphResponse,
   WsMessage,
-  NodeTask
-} from "../../api/types";
-import Card from "../card";
+  NodeTask,
+} from "../../api/types"
+import Card from "../card"
 
-import "./graph.scss";
-import { colors, fontMedium } from "../../styles/variables";
-import Spinner from "../spinner";
-import CheckBox from "../checkbox";
-import { SelectGraphNode } from "../../context/ui";
-import { getIconClassNameByType } from "../../util/helpers";
+import "./graph.scss"
+import { colors, fontMedium } from "../../styles/variables"
+import Spinner from "../spinner"
+import CheckBox from "../checkbox"
+import { SelectGraphNode } from "../../context/ui"
+import { getIconClassNameByType } from "../../util/helpers"
 
 interface Node {
-  name: string;
-  label: string;
-  id: string;
+  name: string
+  label: string
+  id: string
 }
 
 interface Edge {
-  source: string;
-  target: string;
-  type: string;
-  since?: number;
+  source: string
+  target: string
+  type: string
+  since?: number
 }
 
 export interface Graph {
-  nodes: Node[];
-  edges: Edge[];
+  nodes: Node[]
+  edges: Edge[]
 }
 
-const MIN_CHART_WIDTH = 200;
-const MIN_CHART_HEIGHT = 200;
+const MIN_CHART_WIDTH = 200
+const MIN_CHART_HEIGHT = 200
 
 function drawChart(
   graph: Graph,
   width: number,
   height: number,
-  onNodeSelected: (string) => void
+  onNodeSelected: (string) => void,
 ) {
   // Create the input graph
   const g = new dagreD3.graphlib.Graph()
     .setGraph({})
     .setDefaultEdgeLabel(function() {
-      return {};
-    });
+      return {}
+    })
 
   // Here we"re setting nodeclass, which is used by our custom drawNodes function
   // below.
@@ -70,56 +70,56 @@ function drawChart(
       label: node.label,
       class: "",
       id: node.id,
-      labelType: "html"
-    });
+      labelType: "html",
+    })
   }
 
   g.nodes().forEach(function(v) {
-    const node = g.node(v);
+    const node = g.node(v)
     // Round the corners of the nodes
-    node.rx = node.ry = 5;
+    node.rx = node.ry = 5
     // Add more padding
-    node.paddingBottom = 20;
-    node.paddingTop = 20;
-    node.paddingLeft = 20;
-    node.paddingRight = 20;
-  });
+    node.paddingBottom = 20
+    node.paddingTop = 20
+    node.paddingLeft = 20
+    node.paddingRight = 20
+  })
 
   // Set up edges, no special attributes.
   for (const edge of graph.edges) {
-    g.setEdge(edge.source, edge.target);
+    g.setEdge(edge.source, edge.target)
   }
 
   // Create the renderer
-  const render = new dagreD3.render();
+  const render = new dagreD3.render()
 
   // Clear previous content if any (for updating)
-  d3.selectAll("#chart svg").remove();
+  d3.selectAll("#chart svg").remove()
 
   // Set width and height. Height gets updated once graph is rendered
-  width = Math.max(width, MIN_CHART_WIDTH);
-  height = Math.max(height, MIN_CHART_HEIGHT);
+  width = Math.max(width, MIN_CHART_WIDTH)
+  height = Math.max(height, MIN_CHART_HEIGHT)
 
   const svg = d3
     .select("#chart")
     .append("svg")
     .attr("width", width)
-    .attr("height", height);
+    .attr("height", height)
 
   // Set up an SVG group so that we can translate the final graph.
-  const svgGroup = svg.append("g");
+  const svgGroup = svg.append("g")
 
   // Set up zoom support
   const zoom = d3.zoom().on("zoom", () => {
-    svgGroup.attr("transform", d3.event.transform);
-  });
-  svg.call(zoom);
+    svgGroup.attr("transform", d3.event.transform)
+  })
+  svg.call(zoom)
 
   // Run the renderer. This is what draws the final graph.
   // @ts-ignore
-  render(svgGroup, g);
+  render(svgGroup, g)
 
-  const initialScale = 0.75; // TODO: Make a function of number or services
+  const initialScale = 0.75 // TODO: Make a function of number or services
 
   // Re-set svg frame height after graph has been been drawn
   // const graphHeight = g.graph().height * initialScale + 40
@@ -127,57 +127,57 @@ function drawChart(
 
   // Center the graph
   const xCenterOffset =
-    (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2;
+    (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2
   const yCenterOffset =
-    (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2;
+    (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2
   const zoomTranslate = d3.zoomIdentity
     .translate(xCenterOffset, yCenterOffset)
-    .scale(initialScale);
-  svg.call(zoom.transform, zoomTranslate);
+    .scale(initialScale)
+  svg.call(zoom.transform, zoomTranslate)
 
-  const selections = svg.select("g").selectAll("g.node");
-  selections.on("click", evt => onNodeSelected(evt));
+  const selections = svg.select("g").selectAll("g.node")
+  selections.on("click", evt => onNodeSelected(evt))
 }
 
 interface Props {
-  config: FetchConfigResponse;
-  graph: FetchGraphResponse;
-  selectGraphNode: SelectGraphNode;
-  message?: WsMessage;
+  config: FetchConfigResponse
+  graph: FetchGraphResponse
+  selectGraphNode: SelectGraphNode
+  message?: WsMessage
 }
 
 interface State {
-  filters: { [key: string]: boolean };
-  nodes: Node[];
-  edges: Edge[];
+  filters: { [key: string]: boolean }
+  nodes: Node[]
+  edges: Edge[]
 }
 
-const makeId = (name: string, type: string) => `${name}.${type}`;
+const makeId = (name: string, type: string) => `${name}.${type}`
 
 // Key looks like:
 // test.node-service.integ.2bba2300-f97c-11e8-826f-594bd8a1f5e8
 // or:
 // test.node-service.2bba2300-f97c-11e8-826f-594bd8a1f5e8
 const getIdFromTaskKey = (key: string) => {
-  const parts = key.split(".");
-  const type = parts[0];
-  const name = parts.length === 4 ? `${parts[1]}.${parts[2]}` : parts[1];
-  return makeId(name, type);
-};
+  const parts = key.split(".")
+  const type = parts[0]
+  const name = parts.length === 4 ? `${parts[1]}.${parts[2]}` : parts[1]
+  return makeId(name, type)
+}
 
 // Renders as HTML
 const makeLabel = (name: string, type: string) => {
-  const nameParts = name.split(".");
+  const nameParts = name.split(".")
   // test names look like: name.test-name.type
   if (type === "test") {
-    type += ` (${nameParts[1]})`;
+    type += ` (${nameParts[1]})`
   }
   return `
     <div class='label-wrap'>
       <span class='name'>${nameParts[0]}</span>
-      
+
       <div class="pt-1" style="display: flex; justify-content: center; align-items: center;">
-        <span style="margin-right: .5rem;" class='garden-icon 
+        <span style="margin-right: .5rem;" class='garden-icon
           garden-icon--${getIconClassNameByType(type)}'>
         </span>
 
@@ -185,121 +185,121 @@ const makeLabel = (name: string, type: string) => {
           ${type}
         </span>
       </div>
-    </div>`;
-};
+    </div>`
+}
 
 const Span = styled.span`
   margin-left: 1rem;
-`;
+`
 
 const Status = styled.p`
   ${fontMedium}
   colors: grey;
-`;
+`
 
 const ProcessSpinner = styled(Spinner)`
   margin: 16px 0 0 20px;
-`;
+`
 
 class Chart extends Component<Props, State> {
-  _nodes: Node[];
-  _edges: Edge[];
-  _chartRef: React.RefObject<any>;
+  _nodes: Node[]
+  _edges: Edge[]
+  _chartRef: React.RefObject<any>
 
   state = {
     nodes: [],
     edges: [],
-    filters: {}
-  };
+    filters: {},
+  }
 
   constructor(props) {
-    super(props);
+    super(props)
 
-    this._chartRef = React.createRef();
-    this.onCheckboxChange = this.onCheckboxChange.bind(this);
+    this._chartRef = React.createRef()
+    this.onCheckboxChange = this.onCheckboxChange.bind(this)
 
-    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type));
+    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
     const filters = taskTypes.reduce((acc, type) => {
-      acc[type] = false;
-      return acc;
-    }, {});
+      acc[type] = false
+      return acc
+    }, {})
     this.state = {
       ...this.state,
-      filters
-    };
+      filters,
+    }
   }
 
   componentDidMount() {
-    this.drawChart();
+    this.drawChart()
 
     // Re-draw graph on **end** of window resize event (hence the timer)
-    let resizeTimer: NodeJS.Timeout;
+    let resizeTimer: NodeJS.Timeout
     window.onresize = () => {
-      clearTimeout(resizeTimer);
+      clearTimeout(resizeTimer)
       resizeTimer = setTimeout(() => {
-        this.drawChart();
-      }, 250);
-    };
+        this.drawChart()
+      }, 250)
+    }
   }
 
   componentWillUnmount() {
-    window.onresize = () => {};
+    window.onresize = () => { }
   }
 
   onCheckboxChange({ target }: ChangeEvent<HTMLInputElement>) {
     this.setState({
-      filters: { ...this.state.filters, [target.name]: !target.checked }
-    });
+      filters: { ...this.state.filters, [target.name]: !target.checked },
+    })
   }
 
   drawChart() {
-    const graph = this.makeGraph();
-    this._nodes = graph.nodes;
-    this._edges = graph.edges;
-    const width = this._chartRef.current.offsetWidth;
-    const height = this._chartRef.current.offsetHeight;
-    drawChart(graph, width, height, this.props.selectGraphNode);
+    const graph = this.makeGraph()
+    this._nodes = graph.nodes
+    this._edges = graph.edges
+    const width = this._chartRef.current.offsetWidth
+    const height = this._chartRef.current.offsetHeight
+    drawChart(graph, width, height, this.props.selectGraphNode)
   }
 
   makeGraph() {
-    const { filters } = this.state;
+    const { filters } = this.state
     const nodes: Node[] = this.props.graph.nodes
       .filter(n => !filters[n.type])
       .map(n => {
         return {
           id: makeId(n.name, n.type),
           name: n.name,
-          label: makeLabel(n.name, n.type)
-        };
-      });
+          label: makeLabel(n.name, n.type),
+        }
+      })
     const edges: Edge[] = this.props.graph.relationships
       .filter(n => !filters[n.dependant.type] && !filters[n.dependency.type])
       .map(r => {
-        const source = r.dependency;
-        const target = r.dependant;
+        const source = r.dependency
+        const target = r.dependant
         return {
           source: makeId(source.name, source.type),
           target: makeId(target.name, target.type),
-          type: source.type
-        };
-      });
-    return { edges, nodes };
+          type: source.type,
+        }
+      })
+    return { edges, nodes }
   }
 
   componentDidUpdate(_prevProps, prevState: State) {
-    const message = this.props.message;
+    const message = this.props.message
     if (message && message.type === "event") {
-      this.updateNodeClass(message);
+      this.updateNodeClass(message)
     }
     if (prevState.filters !== this.state.filters) {
-      this.drawChart();
+      this.drawChart()
     }
   }
 
   clearClasses(el: HTMLElement) {
-    const classList: NodeTask[] = ["taskComplete", "taskPending", "taskError"];
+    const classList: NodeTask[] = ["taskComplete", "taskPending", "taskError"]
     for (const className of classList) {
-      el.classList.remove(className);
+      el.classList.remove(className)
     }
   }
 
@@ -310,31 +310,31 @@ class Chart extends Component<Props, State> {
         message.payload.key &&
         node.id === getIdFromTaskKey(message.payload.key)
       ) {
-        const nodeEl = document.getElementById(node.id);
-        this.clearClasses(nodeEl);
+        const nodeEl = document.getElementById(node.id)
+        this.clearClasses(nodeEl)
         if (message.name === "taskPending") {
-          nodeEl.classList.add("taskPending");
+          nodeEl.classList.add("taskPending")
         } else if (message.name === "taskError") {
-          nodeEl.classList.add("taskError");
+          nodeEl.classList.add("taskError")
         } else if (message.name === "taskComplete") {
-          nodeEl.classList.add("taskComplete");
+          nodeEl.classList.add("taskComplete")
         }
       }
     }
   }
 
   render() {
-    const { message } = this.props;
-    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type));
-    const chartHeightEstimate = `100vh - 15rem`;
+    const { message } = this.props
+    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
+    const chartHeightEstimate = `100vh - 15rem`
 
-    let spinner = null;
-    let status = "";
+    let spinner = null
+    let status = ""
     if (message && message.name !== "taskGraphComplete") {
-      status = "Processing...";
+      status = "Processing..."
       spinner = (
         <ProcessSpinner background={colors.gardenWhite} fontSize="2px" />
-      );
+      )
     }
 
     return (
@@ -370,7 +370,7 @@ class Chart extends Component<Props, State> {
                 display: flex;
                 justify-content: space-between;
               `,
-              "ml-1 mr-1 pb-1"
+              "ml-1 mr-1 pb-1",
             )}
           >
             <div
@@ -416,8 +416,8 @@ class Chart extends Component<Props, State> {
           </div>
         </div>
       </Card>
-    );
+    )
   }
 }
 
-export default Chart;
+export default Chart

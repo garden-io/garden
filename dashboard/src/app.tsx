@@ -6,57 +6,56 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cls from "classnames";
-import { css } from "emotion/macro";
-import React, { useContext } from "react";
-import styled from "@emotion/styled/macro";
-import { Route } from "react-router-dom";
+import cls from "classnames"
+import { css } from "emotion/macro"
+import React, { useContext } from "react"
+import styled from "@emotion/styled/macro"
+import { Route } from "react-router-dom"
 
-import Graph from "./containers/graph";
-import Logs from "./containers/logs";
-import Overview from "./containers/overview";
-import Sidebar from "./containers/sidebar";
-import Provider from "./components/provider";
+import Graph from "./containers/graph"
+import Logs from "./containers/logs"
+import Overview from "./containers/overview"
+import Sidebar from "./containers/sidebar"
+import Provider from "./components/provider"
 
-import { colors } from "./styles/variables";
-import "flexboxgrid/dist/flexboxgrid.min.css";
-import "./styles/padding-margin-mixin.scss";
-import "./styles/custom-flexboxgrid.scss";
-import "./styles/icons.scss";
+import { colors } from "./styles/variables"
+import "flexboxgrid/dist/flexboxgrid.min.css"
+import "./styles/padding-margin-mixin.scss"
+import "./styles/custom-flexboxgrid.scss"
+import "./styles/icons.scss"
 
+import { EventProvider } from "./context/events"
+import { DataProvider } from "./context/data"
+import { NavLink } from "./components/links"
 
-import { EventProvider } from "./context/events";
-import { DataProvider } from "./context/data";
-import { NavLink } from "./components/links";
+import logo from "./assets/logo.png"
+import { ReactComponent as Hamburger } from "./assets/hamburger.svg"
 
-import logo from "./assets/logo.png";
-import { ReactComponent as Hamburger } from "./assets/hamburger.svg";
-
-import { UiStateProvider, UiStateContext } from "./context/ui";
+import { UiStateProvider, UiStateContext } from "./context/ui"
 
 // Style and align properly
 const Logo = styled.img`
   height: 67px;
   width: 160px;
   max-width: 10rem;
-`;
+`
 
 const SidebarWrapper = styled.div`
   border-right: 1px solid ${colors.border}
   height: 100vh;
   position: relative;
-`;
+`
 const SidebarContainer = styled.div`
   display: ${props => (props.visible ? `block` : "none")};
   width: ${props => (props.visible ? `13rem` : "0")};
-`;
+`
 const SidebarToggleButton = styled.div`
   position: absolute;
   right: -2rem;
   top: 2rem;
   width: 1.5rem;
   cursor: pointer;
-`;
+`
 
 const AppContainer = () => {
   return (
@@ -69,14 +68,14 @@ const AppContainer = () => {
         </EventProvider>
       </DataProvider>
     </div>
-  );
-};
+  )
+}
 
 const App = () => {
   const {
-    state: { isSidebarOpen,  },
-    actions: { toggleSidebar }
-  } = useContext(UiStateContext);
+    state: { isSidebarOpen },
+    actions: { toggleSidebar },
+  } = useContext(UiStateContext)
 
   return (
     <div
@@ -113,10 +112,10 @@ const App = () => {
             css`
               background-color: ${colors.grayLight}
               flex-grow: 1;
-            `, 
+            `,
             "pl-3",
             "pt-2",
-            "pr-2"
+            "pr-2",
           )}
         >
           <Route exact path="/" component={Overview} />
@@ -126,7 +125,7 @@ const App = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AppContainer;
+export default AppContainer

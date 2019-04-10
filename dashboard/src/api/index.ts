@@ -19,9 +19,8 @@ import {
 } from "./types"
 
 export type FetchLogsParam = string[]
-export type FetchTaskResultParam = {name : string}
+export type FetchTaskResultParam = { name: string }
 export type FetchTestResultParam = { name: string, module: string }
-
 
 const MAX_LOG_LINES = 5000
 
@@ -44,11 +43,6 @@ export async function fetchTaskResult(params: FetchTaskResultParam): Promise<Fet
 export async function fetchTestResult(params: FetchTestResultParam): Promise<FetchTestResultResponse> {
   return apiPost<FetchTestResultResponse>("get.test-result", params)
 }
-
-// todo
-// export async function fetchTasks(): Promise<FetchStatusResponse> {
-//   return apiPost<FetchTasksResponse>("get.tasks")
-// }
 
 export async function fetchLogs(services: FetchLogsParam): Promise<FetchLogsResponse> {
   const tail = Math.floor(MAX_LOG_LINES / services.length)
