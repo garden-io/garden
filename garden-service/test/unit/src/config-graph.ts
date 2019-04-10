@@ -2,7 +2,7 @@ import { resolve } from "path"
 import { expect } from "chai"
 import { makeTestGardenA, makeTestGarden, dataDir, expectError } from "../../helpers"
 import { getNames } from "../../../src/util/util"
-import { ConfigGraph } from "../../../src/config-graph"
+import { ConfigGraph, DependencyGraphNode } from "../../../src/config-graph"
 import { Garden } from "../../../src/garden"
 
 describe("ConfigGraph", () => {
@@ -180,6 +180,163 @@ describe("ConfigGraph", () => {
     it("should combine module and service dependencies", async () => {
       const modules = await graphA.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
+    })
+  })
+
+  describe("render", () => {
+    it("should render config graph nodes with test names", () => {
+      const rendered = graphA.render()
+      expect(rendered.nodes).to.have.deep.members([
+        {
+          type: "build",
+          name: "module-a",
+          moduleName: "module-a",
+          key: "build.module-a",
+        },
+        {
+          type: "build",
+          name: "module-b",
+          moduleName: "module-b",
+          key: "build.module-b",
+        },
+        {
+          type: "build",
+          name: "module-c",
+          moduleName: "module-c",
+          key: "build.module-c",
+        },
+        {
+          type: "test",
+          testName: "unit",
+          name: "module-c.unit",
+          moduleName: "module-c",
+          key: "test.module-c.unit",
+        },
+        {
+          type: "run",
+          taskName: "task-c",
+          name: "task-c",
+          moduleName: "module-c",
+          key: "task.task-c",
+        },
+        {
+          type: "deploy",
+          serviceName: "service-c",
+          name: "service-c",
+          moduleName: "module-c",
+          key: "service.service-c",
+        },
+        {
+          type: "test",
+          testName: "unit",
+          name: "module-a.unit",
+          moduleName: "module-a",
+          key: "test.module-a.unit",
+        },
+        {
+          type: "run",
+          taskName: "task-a",
+          name: "task-a",
+          moduleName: "module-a",
+          key: "task.task-a",
+        },
+        {
+          type: "test",
+          testName: "unit",
+          name: "module-b.unit",
+          moduleName: "module-b",
+          key: "test.module-b.unit",
+        },
+        {
+          type: "run",
+          taskName: "task-b",
+          name: "task-b",
+          moduleName: "module-b",
+          key: "task.task-b",
+        },
+        {
+          type: "deploy",
+          serviceName: "service-a",
+          name: "service-a",
+          moduleName: "module-a",
+          key: "service.service-a",
+        },
+        {
+          type: "deploy",
+          serviceName: "service-b",
+          name: "service-b",
+          moduleName: "module-b",
+          key: "service.service-b",
+        },
+      ])
+    })
+  })
+})
+
+describe("DependencyGraphNode", () => {
+  describe("render", () => {
+    it("should render a build node", () => {
+      const node = new DependencyGraphNode("build", "module-a", "module-a")
+      const res = node.render()
+      expect(res).to.eql({
+        type: "build",
+        name: "module-a",
+        moduleName: "module-a",
+        key: "build.module-a",
+      })
+    })
+    it("should render a deploy node", () => {
+      const node = new DependencyGraphNode("service", "service-a", "module-a")
+      const res = node.render()
+      expect(res).to.eql({
+        type: "deploy",
+        name: "service-a",
+        moduleName: "module-a",
+        serviceName: "service-a",
+        key: "service.service-a",
+      })
+    })
+    it("should render a run node", () => {
+      const node = new DependencyGraphNode("task", "task-a", "module-a")
+      const res = node.render()
+      expect(res).to.eql({
+        type: "run",
+        name: "task-a",
+        moduleName: "module-a",
+        taskName: "task-a",
+        key: "task.task-a",
+      })
+    })
+    it("should render a test node", () => {
+      const node = new DependencyGraphNode("test", "module-a.test-a", "module-a")
+      const res = node.render()
+      expect(res).to.eql({
+        type: "test",
+        name: "module-a.test-a",
+        moduleName: "module-a",
+        testName: "test-a",
+        key: "test.module-a.test-a",
+      })
+    })
+    it("should render a push node", () => {
+      const node = new DependencyGraphNode("push", "module-a", "module-a")
+      const res = node.render()
+      expect(res).to.eql({
+        type: "push",
+        name: "module-a",
+        moduleName: "module-a",
+        key: "push.module-a",
+      })
+    })
+    it("should render a publish node", () => {
+      const node = new DependencyGraphNode("publish", "module-a", "module-a")
+      const res = node.render()
+      expect(res).to.eql({
+        type: "publish",
+        name: "module-a",
+        moduleName: "module-a",
+        key: "publish.module-a",
+      })
     })
   })
 })

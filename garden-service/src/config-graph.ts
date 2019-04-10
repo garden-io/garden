@@ -46,8 +46,36 @@ export type DependencyRelationFilterFn = (DependencyGraphNode) => boolean
 // Output types for rendering/logging
 export type RenderedGraph = { nodes: RenderedNode[], relationships: RenderedEdge[] }
 export type RenderedEdge = { dependant: RenderedNode, dependency: RenderedNode }
-export type RenderedNode = { type: RenderedNodeType, name: string }
 export type RenderedNodeType = "build" | "deploy" | "run" | "test" | "push" | "publish"
+export interface RenderedNodeBase {
+  type: RenderedNodeType
+  name: string
+  moduleName: string
+  key: string
+}
+export interface RenderedBuildNode extends RenderedNodeBase {
+  type: "build"
+}
+export interface RenderedPushNode extends RenderedNodeBase {
+  type: "push"
+}
+export interface RenderedPublishNode extends RenderedNodeBase {
+  type: "publish"
+}
+export interface RenderedServiceNode extends RenderedNodeBase {
+  type: "deploy"
+  serviceName: string
+}
+export interface RenderedTaskNode extends RenderedNodeBase {
+  type: "run"
+  taskName: string
+}
+export interface RenderedTestNode extends RenderedNodeBase {
+  type: "test"
+  testName: string
+}
+export type RenderedNode = RenderedBuildNode | RenderedPushNode | RenderedPublishNode
+  | RenderedServiceNode | RenderedTaskNode | RenderedTestNode
 
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
@@ -172,7 +200,7 @@ export class ConfigGraph {
 
       // Test dependencies
       for (const testConfig of moduleConfig.testConfigs) {
-        const testConfigName = `${moduleConfig.name}.${testConfig.name}`
+        const testConfigName = testKey(moduleConfig.name, testConfig.name)
 
         this.testConfigs[testConfigName] = { moduleKey, config: testConfig }
 
@@ -524,9 +552,47 @@ export class DependencyGraphNode {
   }
 
   render(): RenderedNode {
-    return {
-      type: <RenderedNodeType>renderedNodeTypeMap[this.type],
+    const type = <RenderedNodeType>renderedNodeTypeMap[this.type]
+    const renderedNode = {
       name: this.name,
+      moduleName: this.moduleName,
+      key: nodeKey(this.type, this.name),
+    }
+    switch (type) {
+      case "build":
+        return {
+          type,
+          ...renderedNode,
+        }
+      case "deploy":
+        return {
+          type,
+          serviceName: this.name,
+          ...renderedNode,
+        }
+      case "run":
+        return {
+          type,
+          taskName: this.name,
+          ...renderedNode,
+        }
+      case "test":
+        const { testName } = parseTestKey(this.name)
+        return {
+          type,
+          testName,
+          ...renderedNode,
+        }
+      case "push":
+        return {
+          type,
+          ...renderedNode,
+        }
+      case "publish":
+        return {
+          type,
+          ...renderedNode,
+        }
     }
   }
 
@@ -574,6 +640,15 @@ export class DependencyGraphNode {
  */
 function nodeKey(type: DependencyGraphNodeType, name: string) {
   return `${type}.${name}`
+}
+
+function testKey(moduleName: string, testName: string) {
+  return `${moduleName}.${testName}`
+}
+
+function parseTestKey(key: string) {
+  const [moduleName, testName] = key.split(".")
+  return { moduleName, testName }
 }
 
 function serviceTaskConflict(conflictingName: string, moduleWithTask: string, moduleWithService: string) {
