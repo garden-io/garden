@@ -84,6 +84,7 @@ const App = () => {
         height: 100vh;
         max-height: 100vh;
         overflow-y: hidden;
+        background: ${colors.gardenGrayLighter};
       `}
     >
       <SidebarWrapper>
