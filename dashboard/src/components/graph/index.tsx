@@ -338,12 +338,13 @@ class Chart extends Component<Props, State> {
     }
 
     return (
-      <Card backgroundColor={colors.gardenGrayLighter}>
+      <Card>
         <div>
           <div
-            className={css`
+            className={cls(css`
               display: flex;
-            `}
+              padding-top: .5rem;
+            `)}
           >
             {taskTypes.map(type => (
               <div className="ml-1" key={type}>

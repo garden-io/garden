@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 import React, { useContext, useEffect } from "react"
 import cls from "classnames"
 import { css } from "emotion/macro"
@@ -64,7 +72,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
         taskResult.data.completedAt &&
         timeConversion(
           new Date(taskResult.data.completedAt).valueOf() -
-            new Date(taskResult.data.startedAt).valueOf(),
+          new Date(taskResult.data.startedAt).valueOf(),
         ),
       startedAt:
         taskResult.data.startedAt &&
@@ -84,7 +92,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
       LoadComponent={TestPaneSpinner}
     >
       {info && (
-        <Card backgroundColor={colors.gardenGrayLighter}>
+        <Card>
           <div className="p-1">
             <div className="row middle-xs col-xs-12">
               <div>
@@ -138,8 +146,8 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
                     <Code>{info.output}</Code>
                   </Term>
                 ) : (
-                  <NoResults>No task output</NoResults>
-                )}
+                    <NoResults>No task output</NoResults>
+                  )}
               </div>
             </div>
           </div>
