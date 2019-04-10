@@ -34,7 +34,7 @@ export const CardTitle = styled.h3`
 const Card: React.SFC<CardProps> = ({ children, title, backgroundColor }) => {
   const titleEl = title
     ? (
-      <div className="pl-1 pr-1 pb-1">
+      <div className="p-1">
         <CardTitle>{title}</CardTitle>
       </div>
     )

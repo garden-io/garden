@@ -360,7 +360,6 @@ class Chart extends Component<Props, State> {
           <div
             className={css`
               height: calc(${chartHeightEstimate});
-              padding-top: 1rem;
             `}
             ref={this._chartRef}
             id="chart"

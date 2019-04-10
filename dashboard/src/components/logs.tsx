@@ -34,10 +34,11 @@ interface State {
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
 `
 
 const Button = styled.div`
-  padding: 0.5em;
+  padding: 0.3em;
   border-radius: 10%;
   border: 2px solid ${colors.gardenGrayLight};
   cursor: pointer;
@@ -147,7 +148,7 @@ class Logs extends Component<Props, State> {
         </div>
         <Card>
           <div>
-            <Header className="pl-1 pr-1 pb-1">
+            <Header className="p-1">
               <CardTitle>{title}</CardTitle>
               <Button onClick={this.refresh}>
                 <IconComp className={"fas fa-redo-alt"} />
