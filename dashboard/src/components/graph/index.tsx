@@ -338,7 +338,7 @@ class Chart extends Component<Props, State> {
     }
 
     return (
-      <Card>
+      <Card backgroundColor={colors.gardenGrayLighter}>
         <div>
           <div
             className={css`

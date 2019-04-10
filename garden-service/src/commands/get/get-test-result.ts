@@ -6,32 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigGraph } from "../../config-graph";
 import {
   Command,
   CommandResult,
   CommandParams,
   StringParameter
 } from "../base";
+import * as yaml from "js-yaml";
 import { NotFoundError, ParameterError } from "../../exceptions";
 import { TestResult } from "../../types/plugin/outputs";
 import { getTestVersion } from "../../tasks/test";
-
-import chalk from "chalk";
-import { RunResult } from "../../types/plugin/outputs";
-import { findByName, getNames } from "../../util/util";
-
-import { prepareRuntimeContext } from "../../types/service";
+import { findByName, getNames, highlightYaml } from "../../util/util";
 import { logHeader } from "../../logger/util";
-import { PushTask } from "../../tasks/push";
+import chalk from "chalk";
 
 interface TestResultOutput {
+  module: string;
   name: string;
-  moduleName: string;
-  startedAt: Date;
-  completedAt: Date;
-  version: string;
-  output: string;
+  version: string | null;
+  output: string | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
 }
 
 const getTestResultArgs = {
@@ -39,7 +34,7 @@ const getTestResultArgs = {
     help: "The name of the module where the test runs.",
     required: true
   }),
-  test: new StringParameter({
+  name: new StringParameter({
     help: "The name of the test.",
     required: true
   })
@@ -49,7 +44,7 @@ type Args = typeof getTestResultArgs;
 
 export class GetTestResultCommand extends Command<Args> {
   name = "test-result";
-  help = "Outputs the execution result of a provided test.";
+  help = "Outputs the latest execution result of a provided test.";
 
   arguments = getTestResultArgs;
 
@@ -58,7 +53,7 @@ export class GetTestResultCommand extends Command<Args> {
     log,
     args
   }: CommandParams<Args>): Promise<CommandResult<TestResultOutput>> {
-    const testName = args.test;
+    const testName = args.name;
     const moduleName = args.module;
 
     if (!testName) {
@@ -95,8 +90,8 @@ export class GetTestResultCommand extends Command<Args> {
 
     logHeader({
       log,
-      emoji: "runner",
-      command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(
+      emoji: "heavy_check_mark",
+      command: `Test result for ${chalk.cyan(testName)} in module ${chalk.cyan(
         moduleName
       )}`
     });
@@ -113,18 +108,26 @@ export class GetTestResultCommand extends Command<Args> {
     if (testResult !== null) {
       const output: TestResultOutput = {
         name: testResult.testName,
-        moduleName: testResult.moduleName,
+        module: testResult.moduleName,
         startedAt: testResult.startedAt,
         completedAt: testResult.completedAt,
         version: testResult.version.versionString,
         output: testResult.output
       };
-      
+      const yamlStatus = yaml.safeDump(testResult, {
+        noRefs: true,
+        skipInvalid: true
+      });
+
+      log.info(highlightYaml(yamlStatus));
       return { result: output };
     }
 
+    const errorMessage = `Test '${testName}' was found but failed to load test result for it`
+    log.info(errorMessage);
+
     const error = new NotFoundError(
-      `failed to load test result for test '${testName}'`,
+      errorMessage,
       { testName }
     );
     return { errors: [error] };

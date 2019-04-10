@@ -137,9 +137,14 @@ export interface FetchTaskResultResponse {
     name: string;
     version: string;
     output: string;
+    startedAt: Date,
+    completedAt: Date,
 }
 export interface FetchTestResultResponse {
     name: string;
     version: string;
     output: string;
+    module: string,
+    startedAt: Date,
+    completedAt: Date,
 }

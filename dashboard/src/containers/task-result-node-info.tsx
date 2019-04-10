@@ -6,13 +6,12 @@ import LoadWrapper from "../components/load-wrapper";
 import { DataContext } from "../context/data";
 import Card from "../components/card";
 import Spinner from "../components/spinner";
-import graph, { PaneProps } from "./graph";
-import { getIconClassNameByType } from "../util/helpers";
-import { clearScreenDown } from "readline";
 import { colors } from "../styles/variables";
+import { timeConversion } from "../util/helpers";
 
 const TestPaneErrorMsg = () => <p>Error!</p>;
 const TestPaneSpinner = () => <Spinner fontSize="3px" />;
+
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
   color: white;
@@ -35,6 +34,15 @@ const NoResults = styled.div`
   border: 1px solid transparent;
   border-radius: 0.25rem;
 `;
+
+interface TaskResultInfo {
+  name: string;
+  output: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  duration: string;
+}
+
 export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
   name
 }) => {
@@ -45,6 +53,28 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
   useEffect(() => loadTaskResult({ name }, true), [name]);
   const isLoading = !taskResult.data || taskResult.loading;
 
+  let info: TaskResultInfo = null;
+
+  if (!isLoading && taskResult.data) {
+    info = {
+      name,
+      duration:
+        taskResult.data.startedAt &&
+        taskResult.data.completedAt &&
+        timeConversion(
+          new Date(taskResult.data.completedAt).valueOf() -
+            new Date(taskResult.data.startedAt).valueOf()
+        ),
+      startedAt:
+        taskResult.data.startedAt &&
+        new Date(taskResult.data.startedAt).toLocaleString(),
+      completedAt:
+        taskResult.data.completedAt &&
+        new Date(taskResult.data.completedAt).toLocaleString(),
+      output: taskResult.data.output
+    };
+  }
+
   return (
     <LoadWrapper
       loading={isLoading}
@@ -52,48 +82,65 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
       ErrorComponent={TestPaneErrorMsg}
       LoadComponent={TestPaneSpinner}
     >
-      <Card>
-        <div className="p-1">
-          <div className="row middle-xs col-xs-12">
-            <div>
-              <span
-                className={cls(
-                  `garden-icon`,
-                  `garden-icon--task`
-                )}
-              />
-            </div>
-            <div
-              className={css`
-                padding-left: 0.5rem;
-              `}
-            >
-              <h3
+      {info && (
+        <Card backgroundColor={colors.gardenGrayLighter}>
+          <div className="p-1">
+            <div className="row middle-xs col-xs-12">
+              <div>
+                <span className={cls(`garden-icon`, `garden-icon--task`)} />
+              </div>
+              <div
                 className={css`
-                  margin-block-end: 0;
+                  padding-left: 0.5rem;
                 `}
               >
-                {name}
-              </h3>
+                <h2
+                  className={css`
+                    margin-block-end: 0;
+                  `}
+                >
+                  {name}
+                </h2>
+              </div>
             </div>
-          </div>
-          <div>
-            <h4>type: Run</h4>
-          </div>
-          {taskResult.data && taskResult.data.output ? (
             <div>
-              <div className="pb-1">Task result:</div>
-              <Term>
-                <Code>{taskResult.data.output}</Code>
-              </Term>
+              <h4>type: Run</h4>
             </div>
-          ) : (
-            <NoResults>
-              No task result output were found
-            </NoResults>
-          )}
-        </div>
-      </Card>
+
+            {info.startedAt && (
+              <div className="row">
+                <div className="col-xs-6 pr-1">Started At:</div>
+                <div className="col-xs-6">{info.startedAt}</div>
+              </div>
+            )}
+            {info.completedAt && (
+              <div className="row mt-1">
+                <div className="col-xs-6 pr-1">Completed At:</div>
+                <div className="col-xs-6">{info.completedAt}</div>
+              </div>
+            )}
+            {info.duration && (
+              <div className="row mt-1">
+                <div className="col-xs-6 pr-1">Duration:</div>
+                <div className="col-xs-6">{info.duration}</div>
+              </div>
+            )}
+
+            <div className="row mt-1">
+              <div className="col-xs-12 pb-1">Output:</div>
+              <div className="col-xs-12 pb-1">
+                {info.output ? (
+                  <Term>
+                    <Code>{info.output}</Code>
+                  </Term>
+                ) : (
+                  <NoResults>No task output</NoResults>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
     </LoadWrapper>
   );
 };

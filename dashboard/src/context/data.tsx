@@ -9,7 +9,7 @@
 import { useState } from "react"
 import React from "react"
 
-import { fetchConfig, fetchLogs, fetchTaskResult, fetchStatus, fetchGraph, FetchLogsParam, FetchTaskResultParam } from "../api"
+import { fetchConfig, fetchLogs, fetchTaskResult, fetchStatus, fetchGraph, FetchLogsParam, FetchTaskResultParam, fetchTestResult, FetchTestResultParam } from "../api"
 import {
   FetchConfigResponse,
   FetchStatusResponse,
@@ -43,7 +43,7 @@ interface Store {
 
 export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
 export type loadTaskResult = (param: FetchTaskResultParam, force?: boolean) => void
-export type loadTestResult = (param: FetchTaskResultParam, force?: boolean) => void
+export type loadTestResult = (param: FetchTestResultParam, force?: boolean) => void
 
 type Loader = (force?: boolean) => void
 
@@ -70,7 +70,7 @@ type Context = {
 }
 
 type SliceName = keyof Store
-const sliceNames: SliceName[] = ["config", "status", "graph", "logs", "taskResult"]
+const sliceNames: SliceName[] = ["config", "status", "graph", "logs", "taskResult", "testResult"]
 
 // TODO Fix type cast
 const initialState: Store = sliceNames.reduce((acc, key) => {
@@ -134,8 +134,8 @@ function useApi() {
   const loadTaskResult: loadTaskResult = (args: FetchTaskResultParam, force: boolean = false) => {
     return fetchOrReadFromStore(["taskResult", fetchTaskResult], force, [args])
   }
-  const loadTestResult: loadTaskResult = (args: FetchTaskResultParam, force: boolean = false) => {
-    return fetchOrReadFromStore(["testResult", fetchTaskResult], force, [args])
+  const loadTestResult: loadTestResult = (args: FetchTestResultParam, force: boolean = false) => {
+    return fetchOrReadFromStore(["testResult", fetchTestResult], force, [args])
   }
 console.log(store)
   return {

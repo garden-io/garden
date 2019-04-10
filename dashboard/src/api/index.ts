@@ -15,10 +15,13 @@ import {
   ApiRequest,
   FetchGraphResponse,
   FetchTaskResultResponse,
+  FetchTestResultResponse,
 } from "./types"
 
 export type FetchLogsParam = string[]
 export type FetchTaskResultParam = {name : string}
+export type FetchTestResultParam = { name: string, module: string }
+
 
 const MAX_LOG_LINES = 5000
 
@@ -38,7 +41,11 @@ export async function fetchTaskResult(params: FetchTaskResultParam): Promise<Fet
   return apiPost<FetchTaskResultResponse>("get.task-result", params)
 }
 
+export async function fetchTestResult(params: FetchTestResultParam): Promise<FetchTestResultResponse> {
+  return apiPost<FetchTestResultResponse>("get.test-result", params)
+}
 
+// todo
 // export async function fetchTasks(): Promise<FetchStatusResponse> {
 //   return apiPost<FetchTasksResponse>("get.tasks")
 // }
