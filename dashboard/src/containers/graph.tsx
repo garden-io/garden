@@ -36,18 +36,21 @@ export default () => {
     !config.data || !graph.data || config.loading || graph.loading
   const error = config.error || graph.error
 
-  let moreInfoPane = null
+  let moreInfoPane
   if (selectedGraphNode) {
-    const [name, taskType] = selectedGraphNode.split(".") // TODO: replace with extracting this data from hashmap
-    switch (taskType) {
+    const { name, type, moduleName } = graph.data.nodes.find(
+      node => node.key === selectedGraphNode,
+    )
+    switch (type) {
       case "run": // task
         moreInfoPane = <TaskResultNodeInfo name={name} />
         break
       case "test":
-        moreInfoPane = <TestResultNodeInfo name={"unit"} module={"hello"} />
+        moreInfoPane = <TestResultNodeInfo name={name} module={moduleName} />
         break
       case "build":
       default:
+        moreInfoPane = null
         break
     }
   }
@@ -55,7 +58,7 @@ export default () => {
   return (
     <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
       <div className="row">
-        <div className={moreInfoPane !== null ? "col-xs-8" : "col-xs"}>
+        <div className={moreInfoPane ? "col-xs-8" : "col-xs"}>
           <Graph
             message={message}
             selectGraphNode={selectGraphNode}
@@ -64,7 +67,7 @@ export default () => {
           />
         </div>
 
-        {moreInfoPane !== null && (
+        {moreInfoPane && (
           <div className="col-xs-4">{moreInfoPane}</div>
         )}
       </div>

@@ -72,7 +72,7 @@ export class GetTaskResultCommand extends Command<Args> {
     logHeader({
       log,
       emoji: "rocket",
-      command: `Task result for ${chalk.cyan(taskName)}`,
+      command: `Task result for task ${chalk.cyan(taskName)}`,
     })
 
     if (taskResult !== null) {

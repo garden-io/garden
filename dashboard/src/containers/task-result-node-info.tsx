@@ -18,8 +18,12 @@ import { colors } from "../styles/variables"
 import { timeConversion } from "../util/helpers"
 import { Tag } from "../components/tag"
 
-const TestPaneErrorMsg = () => <p>Error!</p>
-const TestPaneSpinner = () => <Spinner fontSize="3px" />
+const TaskPaneErrorMsg = ({ error }) => (
+  <NoResults>
+    Error occured while trying to get task result: {error.message}
+  </NoResults>
+)
+const TaskPaneSpinner = () => <Spinner fontSize="3px" />
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
@@ -72,7 +76,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
         taskResult.data.completedAt &&
         timeConversion(
           new Date(taskResult.data.completedAt).valueOf() -
-          new Date(taskResult.data.startedAt).valueOf(),
+            new Date(taskResult.data.startedAt).valueOf(),
         ),
       startedAt:
         taskResult.data.startedAt &&
@@ -88,8 +92,8 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
     <LoadWrapper
       loading={isLoading}
       error={taskResult.error}
-      ErrorComponent={TestPaneErrorMsg}
-      LoadComponent={TestPaneSpinner}
+      ErrorComponent={TaskPaneErrorMsg}
+      LoadComponent={TaskPaneSpinner}
     >
       {info && (
         <Card>
@@ -146,8 +150,8 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
                     <Code>{info.output}</Code>
                   </Term>
                 ) : (
-                    <NoResults>No task output</NoResults>
-                  )}
+                  <NoResults>No task output</NoResults>
+                )}
               </div>
             </div>
           </div>

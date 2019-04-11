@@ -13,7 +13,7 @@ import {
   StringParameter,
 } from "../base"
 import * as yaml from "js-yaml"
-import { NotFoundError, ParameterError } from "../../exceptions"
+import { ParameterError } from "../../exceptions"
 import { TestResult } from "../../types/plugin/outputs"
 import { getTestVersion } from "../../tasks/test"
 import { findByName, getNames, highlightYaml } from "../../util/util"
@@ -56,6 +56,14 @@ export class GetTestResultCommand extends Command<Args> {
     const testName = args.name
     const moduleName = args.module
 
+    logHeader({
+      log,
+      emoji: "heavy_check_mark",
+      command: `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(
+        moduleName,
+      )}`,
+    })
+
     if (!testName) {
       const missingTestNameError = new ParameterError(
         `Failed to find test result, provided 'test' argument (test name) is cannot be empty.`,
@@ -65,11 +73,10 @@ export class GetTestResultCommand extends Command<Args> {
     }
 
     if (!moduleName) {
-      const missingModuleNameError = new ParameterError(
+      throw new ParameterError(
         `Failed to find test result, provided 'module' argument (module name) is cannot be empty.`,
         {},
       )
-      return { errors: [missingModuleNameError] }
     }
 
     const graph = await garden.getConfigGraph()
@@ -79,7 +86,7 @@ export class GetTestResultCommand extends Command<Args> {
 
     if (!testConfig) {
       throw new ParameterError(
-        `Could not find test "${testName}" in module ${moduleName}`,
+        `Could not find test "${testName}" in module "${moduleName}"`,
         {
           moduleName,
           testName,
@@ -87,14 +94,6 @@ export class GetTestResultCommand extends Command<Args> {
         },
       )
     }
-
-    logHeader({
-      log,
-      emoji: "heavy_check_mark",
-      command: `Test result for ${chalk.cyan(testName)} in module ${chalk.cyan(
-        moduleName,
-      )}`,
-    })
 
     const testVersion = await getTestVersion(garden, graph, module, testConfig)
 
@@ -121,12 +120,20 @@ export class GetTestResultCommand extends Command<Args> {
 
       log.info(highlightYaml(yamlStatus))
       return { result: output }
+    } else {
+      const errorMessage = `Test '${testName}' was found but failed to load test result for it`
+
+      log.info(errorMessage)
+
+      const output: TestResultOutput = {
+        name: testName,
+        module: moduleName,
+        version: null,
+        output: null,
+        startedAt: null,
+        completedAt: null,
+      }
+      return { result: output }
     }
-
-    const errorMessage = `Test '${testName}' was found but failed to load test result for it`
-    log.info(errorMessage)
-
-    const error = new NotFoundError(errorMessage, { testName })
-    return { errors: [error] }
   }
 }

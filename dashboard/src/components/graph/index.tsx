@@ -136,7 +136,9 @@ function drawChart(
   svg.call(zoom.transform, zoomTranslate)
 
   const selections = svg.select("g").selectAll("g.node")
-  selections.on("click", evt => onNodeSelected(evt))
+  selections.on("click", evt => {
+    onNodeSelected(evt)
+  })
 }
 
 interface Props {
@@ -150,19 +152,6 @@ interface State {
   filters: { [key: string]: boolean }
   nodes: Node[]
   edges: Edge[]
-}
-
-const makeId = (name: string, type: string) => `${name}.${type}`
-
-// Key looks like:
-// test.node-service.integ.2bba2300-f97c-11e8-826f-594bd8a1f5e8
-// or:
-// test.node-service.2bba2300-f97c-11e8-826f-594bd8a1f5e8
-const getIdFromTaskKey = (key: string) => {
-  const parts = key.split(".")
-  const type = parts[0]
-  const name = parts.length === 4 ? `${parts[1]}.${parts[2]}` : parts[1]
-  return makeId(name, type)
 }
 
 // Renders as HTML
@@ -267,7 +256,7 @@ class Chart extends Component<Props, State> {
       .filter(n => !filters[n.type])
       .map(n => {
         return {
-          id: makeId(n.name, n.type),
+          id: n.key,
           name: n.name,
           label: makeLabel(n.name, n.type),
         }
@@ -278,8 +267,8 @@ class Chart extends Component<Props, State> {
         const source = r.dependency
         const target = r.dependant
         return {
-          source: makeId(source.name, source.type),
-          target: makeId(target.name, target.type),
+          source: source.key,
+          target: target.key,
           type: source.type,
         }
       })
@@ -308,7 +297,7 @@ class Chart extends Component<Props, State> {
     for (const node of this._nodes) {
       if (
         message.payload.key &&
-        node.id === getIdFromTaskKey(message.payload.key)
+        node.id === message.payload.key
       ) {
         const nodeEl = document.getElementById(node.id)
         this.clearClasses(nodeEl)
@@ -360,6 +349,7 @@ class Chart extends Component<Props, State> {
           <div
             className={css`
               height: calc(${chartHeightEstimate});
+              padding-top: 1rem;
             `}
             ref={this._chartRef}
             id="chart"

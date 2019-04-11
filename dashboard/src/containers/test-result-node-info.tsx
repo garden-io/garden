@@ -18,7 +18,11 @@ import { colors } from "../styles/variables"
 import { timeConversion } from "../util/helpers"
 import { Tag } from "../components/tag"
 
-const TestPaneErrorMsg = () => <p>Error!</p>
+const TestPaneErrorMsg = ({ error }) => (
+  <NoResults>
+    Error occured while trying to get test result: {error.message}
+  </NoResults>
+)
 const TestPaneSpinner = () => <Spinner fontSize="3px" />
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
@@ -44,6 +48,7 @@ const NoResults = styled.div`
 
 interface TestResultInfo {
   name: string
+  module: string
   output: string | null
   startedAt: string | null
   completedAt: string | null
@@ -61,7 +66,7 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
   useEffect(() => loadTestResult({ name, module }, true), [])
   const isLoading = !testResult.data || testResult.loading
 
-  let info: TestResultInfo = null
+  let info: TestResultInfo | null = null
 
   if (!isLoading && testResult.data) {
     info = {
@@ -71,7 +76,7 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
         testResult.data.completedAt &&
         timeConversion(
           new Date(testResult.data.completedAt).valueOf() -
-          new Date(testResult.data.startedAt).valueOf(),
+            new Date(testResult.data.startedAt).valueOf(),
         ),
       startedAt:
         testResult.data.startedAt &&
@@ -117,6 +122,13 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
               </div>
             </div>
 
+            {info.module && (
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Module:</div>
+                <div className="col-xs col-lg">{info.module}</div>
+              </div>
+            )}
+
             {info.duration && (
               <div className="row pt-1">
                 <div className="col-xs-5 col-lg-3 pr-1">Time took:</div>
@@ -144,8 +156,8 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
                     <Code>{info.output}</Code>
                   </Term>
                 ) : (
-                    <NoResults>No test output</NoResults>
-                  )}
+                  <NoResults>No test output</NoResults>
+                )}
               </div>
             </div>
           </div>
@@ -156,6 +168,6 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
 }
 
 export interface TestResultNodeInfoProps {
-  name: string // test name
+  name: string// test name
   module: string
 }
