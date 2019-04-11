@@ -85,13 +85,8 @@ export default () => {
           />
         </div>
 
-<<<<<<< HEAD
         {moreInfoPane && (
           <div className="col-xs-5">{moreInfoPane}</div>
-=======
-        {moreInfoPane !== null && (
-          <div className="col-xs-4">{moreInfoPane}</div>
->>>>>>> 96dfd2e0b269263b33e030bc9a8e1811f9de8d13
         )}
       </div>
     </LoadWrapper>
