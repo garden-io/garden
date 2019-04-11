@@ -1,4 +1,22 @@
 
+<a name="v0.9.9-0"></a>
+## [v0.9.9-0](https://github.com/garden-io/garden/compare/v0.9.9...v0.9.9-0) (2019-04-11)
+
+### Bug Fixes
+
+* **config-graph:** remove superfluous data from rendered graph nodes ([fa0d820](https://github.com/garden-io/garden/commit/fa0d820))
+* **vcs:** fixed path handling for modified files ([ec82c22](https://github.com/garden-io/garden/commit/ec82c22))
+* **vcs:** handle case when file is removed while listing VCS files ([7aeec2f](https://github.com/garden-io/garden/commit/7aeec2f))
+
+
+<a name="v0.9.9"></a>
+## [v0.9.9](https://github.com/garden-io/garden/compare/v0.9.8...v0.9.9) (2019-04-09)
+
+### Bug Fixes
+
+* **vcs:** exclude .garden from version hashing ([0dc1208](https://github.com/garden-io/garden/commit/0dc1208))
+
+
 <a name="v0.9.8"></a>
 ## [v0.9.8](https://github.com/garden-io/garden/compare/v0.9.7...v0.9.8) (2019-04-08)
 
