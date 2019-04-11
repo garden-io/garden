@@ -93,9 +93,9 @@ export class Watcher {
     const _this = this
 
     return (path: string) => {
+      // Make sure Promise errors are handled appropriately.
       listener(path)
         .catch(err => {
-          console.log("catch", err)
           _this.watcher.emit("error", err)
         })
     }
