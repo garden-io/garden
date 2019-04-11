@@ -207,63 +207,54 @@ describe("ConfigGraph", () => {
         },
         {
           type: "test",
-          testName: "unit",
-          name: "module-c.unit",
+          name: "unit",
           moduleName: "module-c",
           key: "test.module-c.unit",
         },
         {
           type: "run",
-          taskName: "task-c",
           name: "task-c",
           moduleName: "module-c",
           key: "task.task-c",
         },
         {
           type: "deploy",
-          serviceName: "service-c",
           name: "service-c",
           moduleName: "module-c",
           key: "service.service-c",
         },
         {
           type: "test",
-          testName: "unit",
-          name: "module-a.unit",
+          name: "unit",
           moduleName: "module-a",
           key: "test.module-a.unit",
         },
         {
           type: "run",
-          taskName: "task-a",
           name: "task-a",
           moduleName: "module-a",
           key: "task.task-a",
         },
         {
           type: "test",
-          testName: "unit",
-          name: "module-b.unit",
+          name: "unit",
           moduleName: "module-b",
           key: "test.module-b.unit",
         },
         {
           type: "run",
-          taskName: "task-b",
           name: "task-b",
           moduleName: "module-b",
           key: "task.task-b",
         },
         {
           type: "deploy",
-          serviceName: "service-a",
           name: "service-a",
           moduleName: "module-a",
           key: "service.service-a",
         },
         {
           type: "deploy",
-          serviceName: "service-b",
           name: "service-b",
           moduleName: "module-b",
           key: "service.service-b",
@@ -292,7 +283,6 @@ describe("DependencyGraphNode", () => {
         type: "deploy",
         name: "service-a",
         moduleName: "module-a",
-        serviceName: "service-a",
         key: "service.service-a",
       })
     })
@@ -303,7 +293,6 @@ describe("DependencyGraphNode", () => {
         type: "run",
         name: "task-a",
         moduleName: "module-a",
-        taskName: "task-a",
         key: "task.task-a",
       })
     })
@@ -312,9 +301,8 @@ describe("DependencyGraphNode", () => {
       const res = node.render()
       expect(res).to.eql({
         type: "test",
-        name: "module-a.test-a",
+        name: "test-a",
         moduleName: "module-a",
-        testName: "test-a",
         key: "test.module-a.test-a",
       })
     })
