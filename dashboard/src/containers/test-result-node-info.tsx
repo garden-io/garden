@@ -77,7 +77,7 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
         testResult.data.completedAt &&
         timeConversion(
           new Date(testResult.data.completedAt).valueOf() -
-            new Date(testResult.data.startedAt).valueOf(),
+          new Date(testResult.data.startedAt).valueOf(),
         ),
       startedAt:
         testResult.data.startedAt &&
@@ -157,8 +157,8 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
                     <Code>{info.output}</Code>
                   </Term>
                 ) : (
-                  <NoResults>No test output</NoResults>
-                )}
+                    <NoResults>No test output</NoResults>
+                  )}
               </div>
             </div>
           </div>

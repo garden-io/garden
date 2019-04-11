@@ -86,7 +86,7 @@ export interface FetchConfigResponse {
   moduleConfigs: ModuleConfig[]
 }
 
-export type RenderedNode = {key: string, type: RenderedNodeType, name: string, moduleName: string }
+export type RenderedNode = { key: string, type: RenderedNodeType, name: string, moduleName: string }
 
 export type RenderedNodeType =
   | "build"

@@ -222,7 +222,7 @@ class Chart extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    window.onresize = () => {}
+    window.onresize = () => { }
   }
 
   onCheckboxChange({ target }: ChangeEvent<HTMLInputElement>) {

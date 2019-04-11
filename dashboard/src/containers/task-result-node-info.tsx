@@ -78,7 +78,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
         taskResult.data.completedAt &&
         timeConversion(
           new Date(taskResult.data.completedAt).valueOf() -
-            new Date(taskResult.data.startedAt).valueOf(),
+          new Date(taskResult.data.startedAt).valueOf(),
         ),
       startedAt:
         taskResult.data.startedAt &&
@@ -159,8 +159,8 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
                     <Code>{info.output}</Code>
                   </Term>
                 ) : (
-                  <NoResults>No task output.</NoResults>
-                )}
+                    <NoResults>No task output.</NoResults>
+                  )}
               </div>
             </div>
           </div>
