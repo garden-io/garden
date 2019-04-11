@@ -31,21 +31,34 @@
   }
 
   .edgePath path {
-    stroke: rgba(0,0,0,0.32);
+    stroke: rgba(0, 0, 0, 0.32);
     stroke-width: 1.5px;
+  }
+  
+  .label-container{
+    cursor: pointer;
+  }
+
+  .label-container {
+    cursor: pointer;
   }
 
   div.label-wrap {
     text-align: center;
+    cursor: pointer;
 
     span.name {
       font-weight: 700;
-      font-size: 0.9rem;
     }
-    span.type {
-      display: inline-block;
-      margin-top: 0.5em
+    div.icon-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding-top: 0.5rem;
+
+      .garden-icon {
+        margin-right: .5rem;
+      }
     }
   }
-
 }

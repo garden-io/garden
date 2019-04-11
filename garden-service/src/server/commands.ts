@@ -46,8 +46,8 @@ export async function resolveRequest(
   // Perform basic validation and find command.
   try {
     request = validate(request, baseRequestSchema, { context: "API request" })
-  } catch {
-    ctx.throw(400, "Invalid request format")
+  } catch (ex) {
+    ctx.throw(400, ex)
   }
 
   const commandSpec = commands[request.command]

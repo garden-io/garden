@@ -21,6 +21,9 @@ import Provider from "./components/provider"
 import { colors } from "./styles/variables"
 import "flexboxgrid/dist/flexboxgrid.min.css"
 import "./styles/padding-margin-mixin.scss"
+import "./styles/custom-flexboxgrid.scss"
+import "./styles/icons.scss"
+
 import { EventProvider } from "./context/events"
 import { DataProvider } from "./context/data"
 import { NavLink } from "./components/links"
@@ -32,8 +35,8 @@ import { UiStateProvider, UiStateContext } from "./context/ui"
 
 // Style and align properly
 const Logo = styled.img`
-  height: auto;
-  width: 100%;
+  height: 67px;
+  width: 160px;
   max-width: 10rem;
 `
 
@@ -43,13 +46,13 @@ const SidebarWrapper = styled.div`
   position: relative;
 `
 const SidebarContainer = styled.div`
-  display: ${props => (props.visible ? `block` : "none")}
-  width: ${props => (props.visible ? `19rem` : "0")}
+  display: ${props => (props.visible ? `block` : "none")};
+  width: ${props => (props.visible ? `13rem` : "0")};
 `
 const SidebarToggleButton = styled.div`
   position: absolute;
-  right: -2.5rem;
-  top: 1rem;
+  right: -2rem;
+  top: 2rem;
   width: 1.5rem;
   cursor: pointer;
 `
@@ -81,6 +84,7 @@ const App = () => {
         height: 100vh;
         max-height: 100vh;
         overflow-y: hidden;
+        background: ${colors.gardenGrayLighter};
       `}
     >
       <SidebarWrapper>
@@ -111,8 +115,8 @@ const App = () => {
               flex-grow: 1;
             `,
             "pl-3",
-            "pt-4",
-            "pr-1",
+            "pt-2",
+            "pr-2",
           )}
         >
           <Route exact path="/" component={Overview} />

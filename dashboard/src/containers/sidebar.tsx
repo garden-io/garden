@@ -41,10 +41,7 @@ const builtinPages: Page[] = [
   },
 ]
 
-interface SidebarProps {
-  isOpen: boolean
-}
-const SidebarContainer: React.SFC<SidebarProps> = () => {
+const SidebarContainer = () => {
   const {
     actions: { loadStatus },
     store: { status },

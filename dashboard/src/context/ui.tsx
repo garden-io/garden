@@ -10,14 +10,20 @@ import React, { useState } from "react"
 
 interface UiState {
   isSidebarOpen: boolean
+  selectedGraphNode: string
 }
+
+export type SelectGraphNode = (node: string) => void
 
 interface UiActions {
   toggleSidebar: () => void
+  selectGraphNode: SelectGraphNode
+  clearGraphNodeSelection: () => void
 }
 
 const INITIAL_UI_STATE: UiState = {
   isSidebarOpen: true,
+  selectedGraphNode: null,
 }
 
 interface UiStateAndActions {
@@ -37,10 +43,27 @@ const useUiState = () => {
     })
   }
 
+  const selectGraphNode = (node: string) => {
+    console.log("selecting graph node")
+    setState({
+      ...uiState,
+      selectedGraphNode: node,
+    })
+  }
+
+  const clearGraphNodeSelection = () => {
+    setState({
+      ...uiState,
+      selectedGraphNode: null,
+    })
+  }
+
   return {
     state: uiState,
     actions: {
       toggleSidebar,
+      selectGraphNode,
+      clearGraphNodeSelection,
     },
   }
 }
