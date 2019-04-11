@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa = require("execa")
+import * as execa from "execa"
 import { join, resolve } from "path"
 import { ensureDir, pathExists } from "fs-extra"
 
-import { VcsHandler, RemoteSourceParams } from "./vcs"
+import { VcsHandler, RemoteSourceParams, VcsFile } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import * as Bluebird from "bluebird"
 import { matchGlobs } from "../util/fs"
+import { deline } from "../util/string"
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -28,8 +29,9 @@ export function parseGitUrl(url: string) {
   const parsed = { repositoryUrl: parts[0], hash: parts[1] }
   if (!parsed.hash) {
     throw new ConfigurationError(
-      "Repository URLs must contain a hash part pointing to a specific branch or tag" +
-      " (e.g. https://github.com/org/repo.git#master)",
+      deline`
+        Repository URLs must contain a hash part pointing to a specific branch or tag
+        (e.g. https://github.com/org/repo.git#master)`,
       { repositoryUrl: url },
     )
   }
@@ -64,13 +66,23 @@ export class GitHandler extends VcsHandler {
     }
   }
 
-  async getFiles(path: string, include?: string[]) {
+  async getFiles(path: string, include?: string[]): Promise<VcsFile[]> {
     const git = this.gitCli(path)
 
     let lines: string[] = []
     let ignored: string[] = []
 
+    /**
+     * TODO: Replace the relative path handling in this function with a generic convertible path object
+     * once that's been implemented.
+     */
+    const gitRoot = (await git("rev-parse", "--show-toplevel"))[0]
+
     try {
+      /**
+       * We need to exclude .garden to avoid errors when path is the project root. This happens e.g. for modules
+       * whose config is colocated with the project config, and that don't specify include paths/patterns.
+       */
       lines = await git("ls-files", "-s", "--other", "--exclude=.garden", path)
       ignored = await git("ls-files", "--ignored", "--exclude-per-directory=.gardenignore", path)
     } catch (err) {
@@ -90,15 +102,16 @@ export class GitHandler extends VcsHandler {
       }
     })
 
-    const modified = new Set(await this.getModifiedFiles(git, path))
+    const modifiedArr = ((await this.getModifiedFiles(git, path)) || [])
+      .map(modifiedRelPath => resolve(gitRoot, modifiedRelPath))
+    const modified = new Set(modifiedArr)
     const filtered = files
       .filter(f => !include || matchGlobs(f.path, include))
       .filter(f => !ignored.includes(f.path))
 
     return Bluebird.map(filtered, async (f) => {
       const resolvedPath = resolve(path, f.path)
-
-      if (!f.hash || modified.has(f.path)) {
+      if (!f.hash || modified.has(resolvedPath)) {
         // If we can't compute the hash, i.e. the file is gone, we filter it out below
         let hash = ""
         try {

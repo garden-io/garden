@@ -59,14 +59,42 @@ describe("GitHandler", () => {
       ])
     })
 
-    it("should return untracked files as absolute paths with hash", async () => {
-      await createFile(join(tmpPath, "foo.txt"))
-      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    const dirContexts = [
+      { ctx: "when called from repo root", pathFn: (tp) => tp },
+      { ctx: "when called from project root", pathFn: (tp) => resolve(tp, "somedir") },
+    ]
 
-      expect(await handler.getFiles(tmpPath)).to.eql([
-        { path: resolve(tmpPath, "foo.txt"), hash },
-      ])
-    })
+    for (const { ctx, pathFn } of dirContexts) {
+      context(ctx, () => {
+        it("should return different hashes before and after a file is modified", async () => {
+          const dirPath = pathFn(tmpPath)
+          const filePath = resolve(tmpPath, "somedir", "foo.txt")
+
+          await createFile(filePath)
+          await writeFile(filePath, "original content")
+          await git("add", ".")
+          await git("commit", "-m", "foo")
+
+          await writeFile(filePath, "my change")
+          const beforeHash = (await handler.getFiles(dirPath))[0].hash
+
+          await writeFile(filePath, "ch-ch-ch-ch-changes")
+          const afterHash = (await handler.getFiles(dirPath))[0].hash
+
+          expect(beforeHash).to.not.eql(afterHash)
+        })
+
+        it("should return untracked files as absolute paths with hash", async () => {
+          const dirPath = pathFn(tmpPath)
+          await createFile(join(dirPath, "foo.txt"))
+          const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+
+          expect(await handler.getFiles(dirPath)).to.eql([
+            { path: resolve(dirPath, "foo.txt"), hash },
+          ])
+        })
+      })
+    }
 
     it("should return untracked files in untracked directory", async () => {
       const dirPath = join(tmpPath, "dir")
