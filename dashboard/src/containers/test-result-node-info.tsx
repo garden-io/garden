@@ -71,6 +71,7 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
   if (!isLoading && testResult.data) {
     info = {
       name,
+      module,
       duration:
         testResult.data.startedAt &&
         testResult.data.completedAt &&
@@ -116,7 +117,7 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
                 </h2>
               </div>
             </div>
-            <div className="row pt-1">
+            <div className="row pt-1 pb-1">
               <div className="col-xs-12">
                 <Tag>Test</Tag>
               </div>
@@ -124,14 +125,14 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
 
             {info.module && (
               <div className="row pt-1">
-                <div className="col-xs-5 col-lg-3 pr-1">Module:</div>
+                <div className="col-xs-5 col-lg-3 pr-1">Module Name:</div>
                 <div className="col-xs col-lg">{info.module}</div>
               </div>
             )}
 
             {info.duration && (
               <div className="row pt-1">
-                <div className="col-xs-5 col-lg-3 pr-1">Time took:</div>
+                <div className="col-xs-5 col-lg-3 pr-1">Duration:</div>
                 <div className="col-xs col-lg">{info.duration}</div>
               </div>
             )}

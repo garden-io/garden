@@ -49,6 +49,7 @@ const NoResults = styled.div`
 
 interface TaskResultInfo {
   name: string
+  module: string
   output: string | null
   startedAt: string | null
   completedAt: string | null
@@ -71,6 +72,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
   if (!isLoading && taskResult.data) {
     info = {
       name,
+      module: taskResult.data.module,
       duration:
         taskResult.data.startedAt &&
         taskResult.data.completedAt &&
@@ -100,7 +102,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
           <div className="p-1">
             <div className="row middle-xs col-xs-12">
               <div>
-                <span className={cls(`garden-icon`, `garden-icon--task`)} />
+                <span className={cls(`garden-icon`, `garden-icon--run`)} />
               </div>
               <div
                 className={css`
@@ -116,15 +118,22 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
                 </h2>
               </div>
             </div>
-            <div className="row pt-1">
+            <div className="row pt-1 pb-1">
               <div className="col-xs-12">
                 <Tag>Run</Tag>
               </div>
             </div>
 
+            {info.module && (
+              <div className="row pt-1">
+                <div className="col-xs-5 col-lg-3 pr-1">Module Name:</div>
+                <div className="col-xs col-lg">{info.module}</div>
+              </div>
+            )}
+
             {info.duration && (
               <div className="row pt-1">
-                <div className="col-xs-5 col-lg-3 pr-1">Time took:</div>
+                <div className="col-xs-5 col-lg-3 pr-1">Duration:</div>
                 <div className="col-xs col-lg">{info.duration}</div>
               </div>
             )}
@@ -150,7 +159,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
                     <Code>{info.output}</Code>
                   </Term>
                 ) : (
-                  <NoResults>No task output</NoResults>
+                  <NoResults>No task output.</NoResults>
                 )}
               </div>
             </div>

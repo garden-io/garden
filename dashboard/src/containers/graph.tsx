@@ -58,7 +58,7 @@ export default () => {
   return (
     <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
       <div className="row">
-        <div className={moreInfoPane ? "col-xs-8" : "col-xs"}>
+        <div className={moreInfoPane ? "col-xs-7" : "col-xs"}>
           <Graph
             message={message}
             selectGraphNode={selectGraphNode}
@@ -68,7 +68,7 @@ export default () => {
         </div>
 
         {moreInfoPane && (
-          <div className="col-xs-4">{moreInfoPane}</div>
+          <div className="col-xs-5">{moreInfoPane}</div>
         )}
       </div>
     </LoadWrapper>

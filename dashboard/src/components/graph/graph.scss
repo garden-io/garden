@@ -31,11 +31,11 @@
   }
 
   .edgePath path {
-    stroke: rgba(0,0,0,0.32);
+    stroke: rgba(0, 0, 0, 0.32);
     stroke-width: 1.5px;
   }
-  
-  .label-container{
+
+  .label-container {
     cursor: pointer;
   }
 
@@ -44,10 +44,17 @@
     cursor: pointer;
 
     span.name {
-      font-weight: 700;;
+      font-weight: 700;
     }
-    span.type {
+    div.icon-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding-top: 0.5rem;
+
+      .garden-icon {
+        margin-right: .5rem;
+      }
     }
   }
-
 }

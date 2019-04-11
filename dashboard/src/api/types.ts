@@ -135,6 +135,7 @@ export interface WsMessage {
 
 export interface FetchTaskResultResponse {
   name: string
+  module: string
   version: string
   output: string
   startedAt: Date

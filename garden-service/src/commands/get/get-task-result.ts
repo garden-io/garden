@@ -23,6 +23,7 @@ import chalk from "chalk"
 
 interface TaskResultOutput {
   name: string
+  module: string | null
   version: string | null
   output: string | null
   startedAt: Date | null
@@ -78,6 +79,7 @@ export class GetTaskResultCommand extends Command<Args> {
     if (taskResult !== null) {
       const output: TaskResultOutput = {
         name: taskResult.taskName,
+        module: taskResult.moduleName,
         version: taskResult.version.versionString,
         output: taskResult.output,
         startedAt: taskResult.startedAt,
@@ -97,6 +99,7 @@ export class GetTaskResultCommand extends Command<Args> {
       )
       const output: TaskResultOutput = {
         name: taskName,
+        module: null,
         version: null,
         output: null,
         startedAt: null,

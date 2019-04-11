@@ -13,25 +13,6 @@ export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
 }
 
-export function getIconClassNameByType(type: string): string {
-  switch (type) {
-    case "deploy":
-      return "deploy"
-    case "build":
-      return "build"
-    case "integ":
-    case "unit":
-    case "test (integ)":
-    case "test (unit)":
-      return "test"
-    case "task":
-    case "run":
-      return "task"
-    default:
-      return ""
-  }
-}
-
 export function timeConversion(millisec) {
   const seconds = +(millisec / 1000).toFixed(1)
   const minutes = +(millisec / (1000 * 60)).toFixed(1)

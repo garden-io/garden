@@ -27,7 +27,6 @@ import { colors, fontMedium } from "../../styles/variables"
 import Spinner from "../spinner"
 import CheckBox from "../checkbox"
 import { SelectGraphNode } from "../../context/ui"
-import { getIconClassNameByType } from "../../util/helpers"
 
 interface Node {
   name: string
@@ -155,23 +154,14 @@ interface State {
 }
 
 // Renders as HTML
-const makeLabel = (name: string, type: string) => {
-  const nameParts = name.split(".")
-  // test names look like: name.test-name.type
-  if (type === "test") {
-    type += ` (${nameParts[1]})`
-  }
+const makeLabel = (name: string, type: string, moduleName: string) => {
   return `
     <div class='label-wrap'>
-      <span class='name'>${nameParts[0]}</span>
+      <span class='name'>${moduleName === name ? `${moduleName}` : `${moduleName} - ${name}`}</span>
 
-      <div class="pt-1" style="display: flex; justify-content: center; align-items: center;">
-        <span style="margin-right: .5rem;" class='garden-icon
-          garden-icon--${getIconClassNameByType(type)}'>
-        </span>
-
-        <span class='type'>
-          ${type}
+      <div class='icon-container'>
+        <span class='garden-icon
+          garden-icon--${type}'>
         </span>
       </div>
     </div>`
@@ -232,7 +222,7 @@ class Chart extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    window.onresize = () => { }
+    window.onresize = () => {}
   }
 
   onCheckboxChange({ target }: ChangeEvent<HTMLInputElement>) {
@@ -258,7 +248,7 @@ class Chart extends Component<Props, State> {
         return {
           id: n.key,
           name: n.name,
-          label: makeLabel(n.name, n.type),
+          label: makeLabel(n.name, n.type, n.moduleName),
         }
       })
     const edges: Edge[] = this.props.graph.relationships
@@ -295,10 +285,7 @@ class Chart extends Component<Props, State> {
   // Update the node class instead of re-rendering the graph for perf reasons
   updateNodeClass(message: WsMessage) {
     for (const node of this._nodes) {
-      if (
-        message.payload.key &&
-        node.id === message.payload.key
-      ) {
+      if (message.payload.key && node.id === message.payload.key) {
         const nodeEl = document.getElementById(node.id)
         this.clearClasses(nodeEl)
         if (message.name === "taskPending") {
@@ -332,7 +319,7 @@ class Chart extends Component<Props, State> {
           <div
             className={cls(css`
               display: flex;
-              padding-top: .5rem;
+              padding-top: 0.5rem;
             `)}
           >
             {taskTypes.map(type => (
