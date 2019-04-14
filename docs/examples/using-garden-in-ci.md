@@ -3,8 +3,8 @@
 In this guide we'll demonstrate how Garden can fit into your continuous integration (CI) pipeline. Simply by adding extra environments to the project configuration, you can use Garden for local development _and_ for testing and deploying your project in CI. This approach has several benefits:
 
 * Use the same tool and the same set of commands for the entire development cycle, from source to finish.
-* No need to change your CI configuration when you change your stack since Garden holds the entire stack graph.
-* The only thing you need to install in CI is the Garden CLI and its dependencies.
+* No need to update your CI configuration when you change your stack since Garden holds the entire stack graph.
+* Simpler CI config. An entire job can be reduced to a single Garden command.
 
 To use Garden in a CI pipeline you need the following:
 
@@ -18,8 +18,8 @@ The guide is based on the [Remote Kubernetes](https://docs.garden.io/using-garde
 
 ## Prerequisites
 
-* A [CircleCI account](https://circleci.com/)
-* A running Kubernetes cluster that you have API access to
+* If you want to follow the steps in this guide you'll need a [CircleCI account](https://circleci.com/).
+* A running Kubernetes cluster that you have API access to.
 
 ## Project overview
 
@@ -28,6 +28,8 @@ The project is based on our [demo-project](https://github.com/garden-io/garden/t
 The CI pipeline in configured so that Garden tests the project and deploys it to a **preview** environment on every pull request. Additionally, it tests the project and deploys it to a separate **staging** environment on every merge to the `master` branch.
 
 To see it in action, you can fork the repository and follow the set-up steps below. Once you've set everything up, you can submit a pull request to the fork to trigger a CircleCI job which in turns deploys the project to your remote Kubernetes cluster.
+
+For this example we're using CircleCI and deploying to a Google Kubernetes Engine (GKE) cluster. As a result, some of the steps that follow are particular to those platforms.
 
 ## Configure remote environments
 
@@ -56,7 +58,7 @@ environments:
           namespace: my-registry-namespace
 ```
 
-Notice that we're using the `CIRCLE_BRANCH` environment variable to label the project namespace. This ensures that each pull request gets deployed into its own namespace.
+Notice that we're using the `CIRCLE_BRANCH` environment variable, to label the project namespace. This ensures that each pull request gets deployed into its own namespace. The variable name is specific to CircleCI and will need to be adapted to other CI platforms.
 
 The `staging` environment is configured in a similar manner. The relevant CI job is triggered on merges to the `master` branch.
 
@@ -64,55 +66,50 @@ You'll find the rest of the config [here](https://github.com/garden-io/ci-demo-p
 
 ## Install Garden on your CI agent
 
-As of CircleCI 2.1, you can define your own re-usable commands. That's what we've done for the `install_garden` command, which, as the name suggests, installs Garden and it's dependencies:
+On CircleCI, we can simply use the official Garden Docker image in the job like so:
 
 ```yaml
-# .circleci/config
-commands:
-  install_garden:
-    description: Installs the Garden CLI and it's dependencies
-    steps:
-      - run:
-          name: Install Garden dependencies
-          command: |
-            sudo apt-get update && sudo apt-get install rsync
-            mkdir $HOME/kubectl
-            curl -L -o $HOME/kubectl/kubectl "https://storage.googleapis.com/kubernetes-release/release/v1.11.3/bin/linux/amd64/kubectl"
-            chmod +x $HOME/kubectl/kubectl
-      - run:
-          name: Install the Garden CLI
-          command: |
-            mkdir $HOME/garden
-            curl -L https://github.com/garden-io/garden/releases/download/v0.9.6/garden-v0.9.6-linux-amd64.tar.gz | tar xvz -C $HOME/garden --strip-components=1
-      - run:
-           name: Add Garden and Kubectl to the CircleCI agent path
-          command: |
-            echo 'export PATH=$HOME/garden:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/kubectl:$PATH' >> $BASH_ENV
-```
-
-Although the YAML is specific to CircleCI, the commands can be adjusted to most Linux distributions. For Alpine, use our [Alpine release](https://github.com/garden-io/garden/releases/). The first two steps install Garden and dependencies. The last one adds these to the CircleCI agent path (this might look differently on other CI platforms).
-
-You can also find installation instructions in our [documentation](https://docs.garden.io/basics/installation#linux-manual-installation). Note that we do not install Docker since it's already enabled on the CircleCI agent when the `setup_remote_docker` flag is used:
-
-```yaml
-# .circleci/config
 jobs:
   preview:
-    steps:
-      - setup_remote_docker
+    docker:
+      - image: gardendev/garden:latest
 ```
 
-> Garden Enterprise users can skip this step as the Enterprise version features in-cluster builds and layer caching out of the box. Please [reach out](https://garden.io/#request-demo) to learn more.
+On other platforms, you might need to install Garden manually. Here's what the steps look like in Docker syntax:
+
+```dockerfile
+# Install Garden dependencies
+RUN apt-get update && apt-get install \
+  curl \
+  docker \
+  git \
+  rsync \
+  # tar is for unzipping the Garden binary
+  tar \
+  && curl -L -o /usr/local/bin/kubectl "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/linux/amd64/kubectl" \
+  && chmod +x /usr/local/bin/kubectl
+
+# Install Garden
+RUN curl -L https://github.com/garden-io/garden/releases/download/v0.9.7/garden-v0.9.7-linux-amd64.tar.gz | tar xvz -C /usr/local/garden --strip-components=1
+
+# Add Garden to path
+ENV PATH="/usr/local/garden:${PATH}"
+```
+
+For Alpine Linux, use our [Alpine release](https://github.com/garden-io/garden/releases/).
+
+You'll also find detailed installation instructions in our [documentation](https://docs.garden.io/basics/installation#linux-manual-installation).
+
+> Garden Enterprise users won't have to install Docker as the Enterprise version features in-cluster builds and layer caching out of the box. [Reach out](https://garden.io/#request-demo) to learn more.
 
 ## Configure the kubectl context
 
-With Garden installed, we need to make sure that it can access our remote cluster. We do this by setting up a [kubectl context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) on the CI agent. How you set this up will vary by how and where you have deployed your cluster. What follows is specific to GKE users.
+With Garden installed, we need to make sure that it can access our remote cluster. We do this by setting up a [kubectl context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) on the CI agent. How you set this up will vary by how and where you have deployed your cluster. **What follows is specific to GKE users.**
 
-As before, we create a re-usable command for configuring the kubectl context:
+We create a re-usable command for configuring the kubectl context:
 
 ```yaml
-# .circleci/config
+# .circleci/config.yml
 commands:
   configure_kubectl_context:
     description: Configure the kubectl context so that we can access our remote cluster
@@ -127,7 +124,7 @@ commands:
           name: Add GCloud to the CircleCI agent path
           command: echo 'export PATH=$HOME/gcloud/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - run:
-          name: Configure kubectl context via gloud
+          name: Configure kubectl context via gcloud
           command: |
             gcloud --quiet components update
             echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
@@ -139,7 +136,7 @@ commands:
 The commands use the following environment variables that you can set on the **Project Environment Variables** page (see [here](https://circleci.com/docs/2.0/env-vars/#setting-an-environment-variable-in-a-project)) in the CircleCI dashboard:
 
 * `GCLOUD_SERVICE_KEY`: Follow [these instructions](https://cloud.google.com/sdk/docs/authorizing#authorizing_with_a_service_account) to get a service account key.
-* `GCLOUD_PROJECT_ID`, `GOOGLE_COMPUTE_ZONE`,  and `GCLOUD_CLUSTER_ID`: These you'll find under the relevant project in your Google Cloud Platform console.
+* `GOOGLE_PROJECT_ID`, `GOOGLE_COMPUTE_ZONE`,  and `GCLOUD_CLUSTER_ID`: These you'll find under the relevant project in your Google Cloud Platform console.
 
 Please refer to this [doc](https://circleci.com/docs/2.0/google-auth/) for more information on using the Google Cloud SDK in CircleCI.
 
@@ -152,7 +149,7 @@ Now that we have everything set up, we can [add the project](https://circleci.co
 Here's what our preview job looks like:
 
 ```yaml
-# .circleci/config
+# .circleci/config.yml
 jobs:
   preview:
     <<: *image-config
