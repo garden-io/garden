@@ -46,6 +46,7 @@ describe("loadConfig", () => {
 
     expect(parsed!.project).to.eql({
       apiVersion: "garden.io/v0",
+      kind: "Project",
       name: "test-project-a",
       defaultEnvironment: "local",
       sources: [],
@@ -77,6 +78,7 @@ describe("loadConfig", () => {
     expect(parsed!.modules).to.eql([
       {
         apiVersion: "garden.io/v0",
+        kind: "Module",
         name: "module-a",
         type: "test",
         description: undefined,
@@ -115,6 +117,7 @@ describe("loadConfig", () => {
 
     expect(parsed!.project).to.eql({
       apiVersion: "garden.io/v0",
+      kind: "Project",
       defaultEnvironment: "local",
       environmentDefaults: {
         providers: [],
@@ -143,6 +146,7 @@ describe("loadConfig", () => {
 
     expect(parsed!.modules).to.eql([{
       apiVersion: "garden.io/v0",
+      kind: "Module",
       name: "module-from-project-config",
       type: "test",
       description: undefined,
@@ -170,6 +174,7 @@ describe("loadConfig", () => {
     expect(parsed!.modules).to.eql([
       {
         apiVersion: "garden.io/v0",
+        kind: "Module",
         name: "module-a1",
         type: "test",
         allowPublish: true,
@@ -200,6 +205,7 @@ describe("loadConfig", () => {
       },
       {
         apiVersion: "garden.io/v0",
+        kind: "Module",
         name: "module-a2",
         type: "test",
         allowPublish: true,
@@ -230,6 +236,7 @@ describe("loadConfig", () => {
 
     expect(parsed!.project).to.eql({
       apiVersion: "garden.io/v0",
+      kind: "Project",
       defaultEnvironment: "local",
       environmentDefaults: {
         providers: [],
@@ -256,6 +263,7 @@ describe("loadConfig", () => {
 
     expect(parsed!.modules).to.eql([{
       apiVersion: "garden.io/v0",
+      kind: "Module",
       name: "module-from-project-config",
       type: "test",
       description: undefined,

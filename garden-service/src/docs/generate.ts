@@ -9,21 +9,15 @@
 import { resolve } from "path"
 import { writeCommandReferenceDocs } from "./commands"
 import { writeConfigReferenceDocs } from "./config"
-import { argv } from "process"
 import { writeTemplateStringReferenceDocs } from "./template-strings"
 
-export function generateDocs(targetDir: string) {
-  const write = false
+export async function generateDocs(targetDir: string) {
   const docsRoot = resolve(process.cwd(), targetDir)
-  if (write) {
-    writeCommandReferenceDocs(docsRoot)
-    writeConfigReferenceDocs(docsRoot)
-    writeTemplateStringReferenceDocs(docsRoot)
-  } else {
-    writeConfigReferenceDocs(docsRoot)
-  }
-}
 
-if (require.main === module) {
-  generateDocs(argv[2])
+  console.log("Updating command references...")
+  writeCommandReferenceDocs(docsRoot)
+  console.log("Updating config references...")
+  await writeConfigReferenceDocs(docsRoot)
+  console.log("Updating template string reference...")
+  writeTemplateStringReferenceDocs(docsRoot)
 }

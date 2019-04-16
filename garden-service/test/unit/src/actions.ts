@@ -11,6 +11,7 @@ import { Task } from "../../../src/types/task"
 import Stream from "ts-stream"
 import { ServiceLogEntry } from "../../../src/types/plugin/outputs"
 import { LogEntry } from "../../../src/logger/log-entry"
+import * as Joi from "joi"
 import {
   describeModuleTypeParamsSchema,
   configureModuleParamsSchema,
@@ -450,7 +451,8 @@ const testPlugin: PluginFactory = async () => ({
         validate(params, describeModuleTypeParamsSchema)
         return {
           docs: "bla bla bla",
-          schema: {},
+          schema: Joi.object(),
+          title: "Bla",
         }
       },
 

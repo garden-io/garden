@@ -1,6 +1,8 @@
 # Module Types
 
-* [Container](./container.md)
 * [Exec](./exec.md)
+* [Container](./container.md)
 * [Helm](./helm.md)
-* [OpenFaaS](./openfaas.md)
+* [Kubernetes](./kubernetes.md)
+* [Maven Container](./maven-container.md)
+* [Openfaas](./openfaas.md)

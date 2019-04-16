@@ -13,7 +13,7 @@ import { STATIC_DIR } from "../../constants"
 import { PluginError, ConfigurationError } from "../../exceptions"
 import { Garden } from "../../garden"
 import { PluginContext } from "../../plugin-context"
-import { joiArray, validate, PrimitiveMap, joiProviderName } from "../../config/common"
+import { joiArray, PrimitiveMap, joiProviderName } from "../../config/common"
 import { Module } from "../../types/module"
 import { ConfigureModuleResult } from "../../types/plugin/outputs"
 import {
@@ -108,6 +108,16 @@ export const configSchema = providerConfigBaseSchema
 type OpenFaasProvider = Provider<OpenFaasConfig>
 type OpenFaasPluginContext = PluginContext<OpenFaasConfig>
 
+async function describeType() {
+  return {
+    docs: dedent`
+      Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`kubernetes\` or
+      \`local-kubernetes\` provider to be configured. Everything else is installed automatically.
+    `,
+    schema: openfaasModuleSpecSchema,
+  }
+}
+
 export function gardenPlugin(): GardenPlugin {
   return {
     configSchema,
@@ -165,13 +175,9 @@ export function gardenPlugin(): GardenPlugin {
     },
     moduleActions: {
       openfaas: {
-        async configure({ ctx, moduleConfig }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
-          moduleConfig.spec = validate(
-            moduleConfig.spec,
-            openfaasModuleSpecSchema,
-            { context: `module ${moduleConfig.name}` },
-          )
+        describeType,
 
+        async configure({ ctx, moduleConfig }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
           moduleConfig.build.dependencies.push({
             name: "templates",
             plugin: "openfaas",

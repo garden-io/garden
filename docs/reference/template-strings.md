@@ -43,18 +43,6 @@ lookups of keys. However, it is possible to do nested templating. For a somewhat
 There the name of the module is pulled from the project/environment configuration, and used to find the
 appropriate key under the `modules` configuration context.
 
-You can also do simple OR statements:
-
-
-```yaml
-      # ...
-      env:
-        PROFILE_NAME: ${local.env.PROFILE || "default"}
-        LOG_LEVEL: ${local.env.LOG_LEVEL || variables.default-log-level}
-```
-
-This allows you to easily set default values when certain template keys are not available.
-
 ## Reference
 
 ### Project configuration context
@@ -62,14 +50,20 @@ This allows you to easily set default values when certain template keys are not 
 The following keys are available in template strings under the `project` key in `garden.yml` files:
 
 ```yaml
-
+# Type: object
+#
 local:
   # A map of all local environment variables (see
   # https://nodejs.org/api/process.html#process_process_env).
-  env: {}
+  #
+  # Type: object
+  #
+  env:
 
   # A string indicating the platform that the framework is running on (see
   # https://nodejs.org/api/process.html#process_process_platform)
+  #
+  # Type: string
   #
   # Example: "posix"
   #
@@ -81,22 +75,33 @@ local:
 The following keys are available in template strings under the `module` key in `garden.yml` files:
 
 ```yaml
-
+# Type: object
+#
 local:
   # A map of all local environment variables (see
   # https://nodejs.org/api/process.html#process_process_env).
-  env: {}
+  #
+  # Type: object
+  #
+  env:
 
   # A string indicating the platform that the framework is running on (see
   # https://nodejs.org/api/process.html#process_process_platform)
+  #
+  # Type: string
   #
   # Example: "posix"
   #
   platform:
 
 # Information about the environment that Garden is running against.
+#
+# Type: object
+#
 environment:
   # The name of the environment Garden is running against.
+  #
+  # Type: string
   #
   # Example: "local"
   #
@@ -104,30 +109,39 @@ environment:
 
 # Retrieve information about modules that are defined in the project.
 #
+# Type: object
+#
 # Example:
 #   my-module:
 #     path: /home/me/code/my-project/my-module
-#     version: v17ad4cb3fd
+#     version: v-v17ad4cb3fd
 #
-modules:
-  {}
+modules: {}
 
 # A map of all configured plugins/providers for this environment and their configuration.
+#
+# Type: object
 #
 # Example:
 #   kubernetes:
 #     name: local-kubernetes
 #     context: my-kube-context
 #
-providers:
-  {}
+providers: {}
 
 # A map of all variables defined in the project configuration.
+#
+# Type: object
 #
 # Example:
 #   team-name: bananaramallama
 #   some-service-endpoint: 'https://someservice.com/api/v2'
 #
-variables:
-  {}
+variables: {}
+
+# Alias for the variables field.
+#
+# Type: object
+#
+var: {}
 ```

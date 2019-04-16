@@ -15,23 +15,21 @@ Please refer to those for more details on provider and module configuration.
 
 ## Project configuration keys
 
-### `project`
-
-Configuration for a Garden project. This should be specified in the garden.yml file in your project root.
-
-| Type | Required |
-| ---- | -------- |
-| `object` | Yes
-### `project.apiVersion`
-[project](#project) > apiVersion
+### `apiVersion`
 
 The schema version of this project's config (currently not used).
 
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "garden.io/v0"
-### `project.name`
-[project](#project) > name
+### `kind`
+
+
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "Project"
+### `name`
 
 The name of the project.
 
@@ -41,20 +39,16 @@ The name of the project.
 
 Example:
 ```yaml
-project:
-  ...
-  name: "my-sweet-project"
+name: "my-sweet-project"
 ```
-### `project.defaultEnvironment`
-[project](#project) > defaultEnvironment
+### `defaultEnvironment`
 
 The default environment to use when calling commands without the `--env` parameter.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `project.environmentDefaults`
-[project](#project) > environmentDefaults
+### `environmentDefaults`
 
 Default environment settings. These are inherited (but can be overridden) by each configured environment.
 
@@ -64,22 +58,20 @@ Default environment settings. These are inherited (but can be overridden) by eac
 
 Example:
 ```yaml
-project:
-  ...
-  environmentDefaults:
-    providers: []
-    variables: {}
+environmentDefaults:
+  providers: []
+  variables: {}
 ```
-### `project.environmentDefaults.providers[]`
-[project](#project) > [environmentDefaults](#project.environmentdefaults) > providers
+### `environmentDefaults.providers[]`
+[environmentDefaults](#environmentdefaults) > providers
 
 A list of providers that should be used for this environment, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `project.environmentDefaults.providers[].name`
-[project](#project) > [environmentDefaults](#project.environmentdefaults) > [providers](#project.environmentdefaults.providers[]) > name
+### `environmentDefaults.providers[].name`
+[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaults.providers[]) > name
 
 The name of the provider plugin to use.
 
@@ -89,25 +81,22 @@ The name of the provider plugin to use.
 
 Example:
 ```yaml
-project:
+environmentDefaults:
+  providers: []
+  variables: {}
   ...
-  environmentDefaults:
-    providers: []
-    variables: {}
-    ...
-    providers:
-      - name: "local-kubernetes"
+  providers:
+    - name: "local-kubernetes"
 ```
-### `project.environmentDefaults.variables`
-[project](#project) > [environmentDefaults](#project.environmentdefaults) > variables
+### `environmentDefaults.variables`
+[environmentDefaults](#environmentdefaults) > variables
 
 A key/value map of variables that modules can reference when using this environment.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `project.environments[]`
-[project](#project) > environments
+### `environments`
 
 A list of environments to configure for the project.
 
@@ -117,24 +106,22 @@ A list of environments to configure for the project.
 
 Example:
 ```yaml
-project:
-  ...
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
-      variables: {}
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+    variables: {}
 ```
-### `project.environments[].providers[]`
-[project](#project) > [environments](#project.environments[]) > providers
+### `environments[].providers[]`
+[environments](#environments) > providers
 
 A list of providers that should be used for this environment, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `project.environments[].providers[].name`
-[project](#project) > [environments](#project.environments[]) > [providers](#project.environments[].providers[]) > name
+### `environments[].providers[].name`
+[environments](#environments) > [providers](#environments[].providers[]) > name
 
 The name of the provider plugin to use.
 
@@ -144,50 +131,47 @@ The name of the provider plugin to use.
 
 Example:
 ```yaml
-project:
-  ...
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
-      variables: {}
-    - providers:
-        - name: "local-kubernetes"
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+    variables: {}
+  - providers:
+      - name: "local-kubernetes"
 ```
-### `project.environments[].variables`
-[project](#project) > [environments](#project.environments[]) > variables
+### `environments[].variables`
+[environments](#environments) > variables
 
 A key/value map of variables that modules can reference when using this environment.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `project.environments[].name`
-[project](#project) > [environments](#project.environments[]) > name
+### `environments[].name`
+[environments](#environments) > name
 
 Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `project.sources[]`
-[project](#project) > sources
+### `sources`
 
 A list of remote sources to import into project.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `project.sources[].name`
-[project](#project) > [sources](#project.sources[]) > name
+### `sources[].name`
+[sources](#sources) > name
 
 The name of the source to import
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `project.sources[].repositoryUrl`
-[project](#project) > [sources](#project.sources[]) > repositoryUrl
+### `sources[].repositoryUrl`
+[sources](#sources) > repositoryUrl
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -197,52 +181,48 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Example:
 ```yaml
-project:
-  ...
-  sources:
-    - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
+sources:
+  - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
 
 ## Project YAML schema
 ```yaml
-project:
-  apiVersion: garden.io/v0
-  name:
-  defaultEnvironment: ''
-  environmentDefaults:
-    providers:
+apiVersion: garden.io/v0
+kind: Project
+name:
+defaultEnvironment: ''
+environmentDefaults:
+  providers:
+    - name:
+  variables: {}
+environments:
+  - providers:
       - name:
     variables: {}
-  environments:
-    - providers:
-        - name:
-      variables: {}
-      name:
-  sources:
-    - name:
-      repositoryUrl:
+    name:
+sources:
+  - name:
+    repositoryUrl:
 ```
 
 ## Module configuration keys
 
-### `module`
-
-Configure a module whose sources are located in this directory.
-
-| Type | Required |
-| ---- | -------- |
-| `object` | Yes
-### `module.apiVersion`
-[module](#module) > apiVersion
+### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "garden.io/v0"
-### `module.type`
-[module](#module) > type
+### `kind`
+
+
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "Module"
+### `type`
 
 The type of this module.
 
@@ -252,12 +232,9 @@ The type of this module.
 
 Example:
 ```yaml
-module:
-  ...
-  type: "container"
+type: "container"
 ```
-### `module.name`
-[module](#module) > name
+### `name`
 
 The name of this module.
 
@@ -267,20 +244,16 @@ The name of this module.
 
 Example:
 ```yaml
-module:
-  ...
-  name: "my-sweet-module"
+name: "my-sweet-module"
 ```
-### `module.description`
-[module](#module) > description
+### `description`
 
 
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.include[]`
-[module](#module) > include
+### `include`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
 module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
@@ -297,14 +270,11 @@ Also note that specifying an empty list here means _no sources_ should be includ
 
 Example:
 ```yaml
-module:
-  ...
-  include:
-    - Dockerfile
-    - my-app.js
+include:
+  - Dockerfile
+  - my-app.js
 ```
-### `module.repositoryUrl`
-[module](#module) > repositoryUrl
+### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -317,28 +287,24 @@ config from the local garden.yml file.
 
 Example:
 ```yaml
-module:
-  ...
-  repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
+repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
-### `module.allowPublish`
-[module](#module) > allowPublish
+### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
 | Type | Required |
 | ---- | -------- |
 | `boolean` | No
-### `module.build`
-[module](#module) > build
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.build.dependencies[]`
-[module](#module) > [build](#module.build) > dependencies
+### `build.dependencies[]`
+[build](#build) > dependencies
 
 A list of modules that must be built before this module is built.
 
@@ -348,39 +314,37 @@ A list of modules that must be built before this module is built.
 
 Example:
 ```yaml
-module:
+build:
   ...
-  build:
-    ...
-    dependencies:
-      - name: some-other-module-name
+  dependencies:
+    - name: some-other-module-name
 ```
-### `module.build.dependencies[].name`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > name
+### `build.dependencies[].name`
+[build](#build) > [dependencies](#build.dependencies[]) > name
 
 Module name to build ahead of this module.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.build.dependencies[].copy[]`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > copy
+### `build.dependencies[].copy[]`
+[build](#build) > [dependencies](#build.dependencies[]) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.build.dependencies[].copy[].source`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > source
+### `build.dependencies[].copy[].source`
+[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.build.dependencies[].copy[].target`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > target
+### `build.dependencies[].copy[].target`
+[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
 POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
 
@@ -391,19 +355,19 @@ POSIX-style path or filename to copy the directory or file(s) to (defaults to sa
 
 ## Module YAML schema
 ```yaml
-module:
-  apiVersion: garden.io/v0
-  type:
-  name:
-  description:
-  include:
-  repositoryUrl:
-  allowPublish: true
-  build:
-    dependencies:
-      - name:
-        copy:
-          - source:
-            target: ''
+apiVersion: garden.io/v0
+kind: Module
+type:
+name:
+description:
+include:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
+    - name:
+      copy:
+        - source:
+          target: ''
 ```
 

@@ -7,7 +7,7 @@
  */
 
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
-import { HelmModule, validateHelmModule as configureHelmModule } from "./config"
+import { HelmModule, validateHelmModule as configureHelmModule, helmModuleSpecSchema } from "./config"
 import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"
 import { deployService, deleteService } from "./deployment"
@@ -16,6 +16,17 @@ import { runHelmTask, runHelmModule } from "./run"
 import { hotReloadHelmChart } from "./hot-reload"
 import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
+import { dedent } from "../../../util/string"
+
+async function describeType() {
+  return {
+    docs: dedent`
+      Specify a Helm chart (either in your repository or remote from a registry) to deploy.
+      Refer to the [Helm guide](https://docs.garden.io/using-garden/using-helm-charts) for usage instructions.
+    `,
+    schema: helmModuleSpecSchema,
+  }
+}
 
 export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
   build: buildHelmModule,
@@ -23,6 +34,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
   // TODO: add execInService handler
   deleteService,
   deployService,
+  describeType,
   getServiceLogs,
   getServiceStatus,
   getTestResult,

@@ -7,26 +7,17 @@
  */
 
 import dedent = require("dedent")
+import { keyBy } from "lodash"
 
-import { validateWithPath } from "../../config/common"
 import { ConfigurationError } from "../../exceptions"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { ConfigureModuleParams, HotReloadServiceParams, PublishModuleParams } from "../../types/plugin/params"
-import { keyBy } from "lodash"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
 import { KubernetesProvider } from "../kubernetes/kubernetes"
 
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
-  moduleConfig.spec = validateWithPath({
-    config: moduleConfig.spec,
-    schema: containerModuleSpecSchema,
-    name: moduleConfig.name,
-    path: moduleConfig.path,
-    projectRoot: ctx.projectRoot,
-  })
-
   // validate hot reload configuration
   // TODO: validate this when validating this action's output
   const hotReloadConfig = moduleConfig.spec.hotReload
@@ -136,6 +127,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
     container: {
+      describeType,
       configure: configureContainerModule,
       getBuildStatus: getContainerBuildStatus,
       build: buildContainerModule,
@@ -170,3 +162,18 @@ export const gardenPlugin = (): GardenPlugin => ({
     },
   },
 })
+
+async function describeType() {
+  return {
+    docs: dedent`
+      Specify a container image to build or pull from a remote registry.
+      You may also optionally specify services to deploy, tasks or tests to run inside the container.
+
+      Note that the runtime services have somewhat limited features in this module type. For example, you cannot
+      specify replicas for redundancy, and various platform-specific options are not included. For those, look at
+      other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
+      [kubernetes](https://docs.garden.io/reference/module-types/kubernetes).
+    `,
+    schema: containerModuleSpecSchema,
+  }
+}

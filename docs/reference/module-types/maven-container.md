@@ -1,28 +1,122 @@
 # `maven-container` reference
 
-Below is the schema reference for the `maven-container` module type. For an introduction to configuring Garden modules, please look at our [Configuration guide](../../using-garden/configuration-files.md).
+A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
+that has special semantics for JAR files built with Maven.
 
-The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+Rather than build the JAR inside the container (or in a multi-stage build) this plugin runs `mvn package`
+ahead of building the container, which tends to be much more performant, especially when building locally
+with a warm artifact cache.
+
+A default Dockerfile is also provided for convenience, but you may override it by including one in the module
+directory.
+
+To use it, make sure to add the `maven-container` provider to your project configuration.
+The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
+
+Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
+guide](../../using-garden/configuration-files.md).
+The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available
+schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
 ## Configuration keys
 
-### `module`
+### `apiVersion`
 
-Configuration for a container module.
+The schema version of this module's config (currently not used).
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "garden.io/v0"
+### `kind`
+
+
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "Module"
+### `type`
+
+The type of this module.
 
 | Type | Required |
 | ---- | -------- |
-| `object` | No
-### `module.build`
-[module](#module) > build
+| `string` | Yes
+
+Example:
+```yaml
+type: "container"
+```
+### `name`
+
+The name of this module.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+Example:
+```yaml
+name: "my-sweet-module"
+```
+### `description`
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+### `include`
+
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
+as well as when responding to filesystem watch events.
+
+Note that you can also _exclude_ files by placing `.gardenignore` files in your source tree, which use the
+same format as `.gitignore` files.
+
+Also note that specifying an empty list here means _no sources_ should be included.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+include:
+  - Dockerfile
+  - my-app.js
+```
+### `repositoryUrl`
+
+A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+
+Garden will import the repository source code into this module, but read the module's
+config from the local garden.yml file.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+
+Example:
+```yaml
+repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
+```
+### `allowPublish`
+
+When false, disables pushing this module to remote registries.
+
+| Type | Required |
+| ---- | -------- |
+| `boolean` | No
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.build.dependencies[]`
-[module](#module) > [build](#module.build) > dependencies
+### `build.dependencies[]`
+[build](#build) > dependencies
 
 A list of modules that must be built before this module is built.
 
@@ -32,87 +126,82 @@ A list of modules that must be built before this module is built.
 
 Example:
 ```yaml
-module:
+build:
   ...
-  build:
-    ...
-    dependencies:
-      - name: some-other-module-name
+  dependencies:
+    - name: some-other-module-name
 ```
-### `module.build.dependencies[].name`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > name
+### `build.dependencies[].name`
+[build](#build) > [dependencies](#build.dependencies[]) > name
 
 Module name to build ahead of this module.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.build.dependencies[].copy[]`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > copy
+### `build.dependencies[].copy[]`
+[build](#build) > [dependencies](#build.dependencies[]) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.build.dependencies[].copy[].source`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > source
+### `build.dependencies[].copy[].source`
+[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.build.dependencies[].copy[].target`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > target
+### `build.dependencies[].copy[].target`
+[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
 POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.build.targetImage`
-[module](#module) > [build](#module.build) > targetImage
+### `build.targetImage`
+[build](#build) > targetImage
 
 For multi-stage Dockerfiles, specify which image to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.buildArgs`
-[module](#module) > buildArgs
+### `buildArgs`
 
 Specify build arguments to use when building the container image.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.image`
-[module](#module) > image
+### `image`
 
 Specify the image name for the container. Should be a valid Docker image identifier. If specified and the module does not contain a Dockerfile, this image will be used to deploy services for this module. If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.hotReload`
-[module](#module) > hotReload
+### `hotReload`
 
 Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled services when those files or directories are modified. Applies to this module's services, and to services with this module as their `sourceModule`.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.hotReload.sync[]`
-[module](#module) > [hotReload](#module.hotreload) > sync
+### `hotReload.sync[]`
+[hotReload](#hotreload) > sync
 
 Specify one or more source files or directories to automatically sync into the running container.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | Yes
-### `module.hotReload.sync[].source`
-[module](#module) > [hotReload](#module.hotreload) > [sync](#module.hotreload.sync[]) > source
+### `hotReload.sync[].source`
+[hotReload](#hotreload) > [sync](#hotreload.sync[]) > source
 
 POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.
 
@@ -122,15 +211,13 @@ POSIX-style path of the directory to sync to the target, relative to the module'
 
 Example:
 ```yaml
-module:
+hotReload:
   ...
-  hotReload:
-    ...
-    sync:
-      - source: "src"
+  sync:
+    - source: "src"
 ```
-### `module.hotReload.sync[].target`
-[module](#module) > [hotReload](#module.hotreload) > [sync](#module.hotreload.sync[]) > target
+### `hotReload.sync[].target`
+[hotReload](#hotreload) > [sync](#hotreload.sync[]) > target
 
 POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
 
@@ -140,71 +227,67 @@ POSIX-style absolute path to sync the directory to inside the container. The roo
 
 Example:
 ```yaml
-module:
+hotReload:
   ...
-  hotReload:
-    ...
-    sync:
-      - target: "/app/src"
+  sync:
+    - target: "/app/src"
 ```
-### `module.dockerfile`
-[module](#module) > dockerfile
+### `dockerfile`
 
 POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.services[]`
-[module](#module) > services
+### `services`
 
 The list of services to deploy from this container module.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.services[].name`
-[module](#module) > [services](#module.services[]) > name
+### `services[].name`
+[services](#services) > name
 
 Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.services[].dependencies[]`
-[module](#module) > [services](#module.services[]) > dependencies
+### `services[].dependencies[]`
+[services](#services) > dependencies
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.services[].annotations`
-[module](#module) > [services](#module.services[]) > annotations
+### `services[].annotations`
+[services](#services) > annotations
 
 Annotations to attach to the service (Note: May not be applicable to all providers)
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.services[].args[]`
-[module](#module) > [services](#module.services[]) > args
+### `services[].args[]`
+[services](#services) > args
 
 The arguments to run the container with when starting the service.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.services[].daemon`
-[module](#module) > [services](#module.services[]) > daemon
+### `services[].daemon`
+[services](#services) > daemon
 
 Whether to run the service as a daemon (to ensure only one runs per node).
 
 | Type | Required |
 | ---- | -------- |
 | `boolean` | No
-### `module.services[].ingresses[]`
-[module](#module) > [services](#module.services[]) > ingresses
+### `services[].ingresses[]`
+[services](#services) > ingresses
 
 List of ingress endpoints that the service exposes.
 
@@ -214,23 +297,21 @@ List of ingress endpoints that the service exposes.
 
 Example:
 ```yaml
-module:
-  ...
-  services:
-    - ingresses:
-      - path: /api
-        port: http
+services:
+  - ingresses:
+    - path: /api
+      port: http
 ```
-### `module.services[].ingresses[].annotations`
-[module](#module) > [services](#module.services[]) > [ingresses](#module.services[].ingresses[]) > annotations
+### `services[].ingresses[].annotations`
+[services](#services) > [ingresses](#services[].ingresses[]) > annotations
 
 Annotations to attach to the ingress (Note: May not be applicable to all providers)
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.services[].ingresses[].hostname`
-[module](#module) > [services](#module.services[]) > [ingresses](#module.services[].ingresses[]) > hostname
+### `services[].ingresses[].hostname`
+[services](#services) > [ingresses](#services[].ingresses[]) > hostname
 
 The hostname that should route to this service. Defaults to the default hostname
 configured in the provider configuration.
@@ -240,120 +321,120 @@ Note that if you're developing locally you may need to add this hostname to your
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.services[].ingresses[].path`
-[module](#module) > [services](#module.services[]) > [ingresses](#module.services[].ingresses[]) > path
+### `services[].ingresses[].path`
+[services](#services) > [ingresses](#services[].ingresses[]) > path
 
 The path which should be routed to the service.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.services[].ingresses[].port`
-[module](#module) > [services](#module.services[]) > [ingresses](#module.services[].ingresses[]) > port
+### `services[].ingresses[].port`
+[services](#services) > [ingresses](#services[].ingresses[]) > port
 
 The name of the container port where the specified paths should be routed.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.services[].env`
-[module](#module) > [services](#module.services[]) > env
+### `services[].env`
+[services](#services) > env
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.services[].healthCheck`
-[module](#module) > [services](#module.services[]) > healthCheck
+### `services[].healthCheck`
+[services](#services) > healthCheck
 
 Specify how the service's health should be checked after deploying.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.services[].healthCheck.httpGet`
-[module](#module) > [services](#module.services[]) > [healthCheck](#module.services[].healthcheck) > httpGet
+### `services[].healthCheck.httpGet`
+[services](#services) > [healthCheck](#services[].healthcheck) > httpGet
 
 Set this to check the service's health by making an HTTP request.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.services[].healthCheck.httpGet.path`
-[module](#module) > [services](#module.services[]) > [healthCheck](#module.services[].healthcheck) > [httpGet](#module.services[].healthcheck.httpget) > path
+### `services[].healthCheck.httpGet.path`
+[services](#services) > [healthCheck](#services[].healthcheck) > [httpGet](#services[].healthcheck.httpget) > path
 
 The path of the service's health check endpoint.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.services[].healthCheck.httpGet.port`
-[module](#module) > [services](#module.services[]) > [healthCheck](#module.services[].healthcheck) > [httpGet](#module.services[].healthcheck.httpget) > port
+### `services[].healthCheck.httpGet.port`
+[services](#services) > [healthCheck](#services[].healthcheck) > [httpGet](#services[].healthcheck.httpget) > port
 
 The name of the port where the service's health check endpoint should be available.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.services[].healthCheck.httpGet.scheme`
-[module](#module) > [services](#module.services[]) > [healthCheck](#module.services[].healthcheck) > [httpGet](#module.services[].healthcheck.httpget) > scheme
+### `services[].healthCheck.httpGet.scheme`
+[services](#services) > [healthCheck](#services[].healthcheck) > [httpGet](#services[].healthcheck.httpget) > scheme
 
 
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.services[].healthCheck.command[]`
-[module](#module) > [services](#module.services[]) > [healthCheck](#module.services[].healthcheck) > command
+### `services[].healthCheck.command[]`
+[services](#services) > [healthCheck](#services[].healthcheck) > command
 
 Set this to check the service's health by running a command in its container.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.services[].healthCheck.tcpPort`
-[module](#module) > [services](#module.services[]) > [healthCheck](#module.services[].healthcheck) > tcpPort
+### `services[].healthCheck.tcpPort`
+[services](#services) > [healthCheck](#services[].healthcheck) > tcpPort
 
 Set this to check the service's health by checking if this TCP port is accepting connections.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.services[].hotReloadArgs[]`
-[module](#module) > [services](#module.services[]) > hotReloadArgs
+### `services[].hotReloadArgs[]`
+[services](#services) > hotReloadArgs
 
 If this module uses the `hotReload` field, the container will be run with these arguments instead of those in `args` when the service is deployed with hot reloading enabled.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.services[].ports[]`
-[module](#module) > [services](#module.services[]) > ports
+### `services[].ports[]`
+[services](#services) > ports
 
 List of ports that the service container exposes.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.services[].ports[].name`
-[module](#module) > [services](#module.services[]) > [ports](#module.services[].ports[]) > name
+### `services[].ports[].name`
+[services](#services) > [ports](#services[].ports[]) > name
 
 The name of the port (used when referencing the port elsewhere in the service configuration).
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.services[].ports[].protocol`
-[module](#module) > [services](#module.services[]) > [ports](#module.services[].ports[]) > protocol
+### `services[].ports[].protocol`
+[services](#services) > [ports](#services[].ports[]) > protocol
 
 The protocol of the port.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.services[].ports[].containerPort`
-[module](#module) > [services](#module.services[]) > [ports](#module.services[].ports[]) > containerPort
+### `services[].ports[].containerPort`
+[services](#services) > [ports](#services[].ports[]) > containerPort
 
 The port exposed on the container by the running process. This will also be the default value for `servicePort`.
 `servicePort:80 -> containerPort:8080 -> process:8080`
@@ -364,14 +445,12 @@ The port exposed on the container by the running process. This will also be the 
 
 Example:
 ```yaml
-module:
-  ...
-  services:
-    - ports:
-        - containerPort: "8080"
+services:
+  - ports:
+      - containerPort: "8080"
 ```
-### `module.services[].ports[].servicePort`
-[module](#module) > [services](#module.services[]) > [ports](#module.services[].ports[]) > servicePort
+### `services[].ports[].servicePort`
+[services](#services) > [ports](#services[].ports[]) > servicePort
 
 The port exposed on the service. Defaults to `containerPort` if not specified.
 `servicePort:80 -> containerPort:8080 -> process:8080`
@@ -382,94 +461,91 @@ The port exposed on the service. Defaults to `containerPort` if not specified.
 
 Example:
 ```yaml
-module:
-  ...
-  services:
-    - ports:
-        - servicePort: "80"
+services:
+  - ports:
+      - servicePort: "80"
 ```
-### `module.services[].ports[].hostPort`
-[module](#module) > [services](#module.services[]) > [ports](#module.services[].ports[]) > hostPort
+### `services[].ports[].hostPort`
+[services](#services) > [ports](#services[].ports[]) > hostPort
 
 
 
 | Type | Required |
 | ---- | -------- |
 | `number` | No
-### `module.services[].ports[].nodePort`
-[module](#module) > [services](#module.services[]) > [ports](#module.services[].ports[]) > nodePort
+### `services[].ports[].nodePort`
+[services](#services) > [ports](#services[].ports[]) > nodePort
 
 Set this to expose the service on the specified port on the host node (may not be supported by all providers).
 
 | Type | Required |
 | ---- | -------- |
 | `number` | No
-### `module.services[].volumes[]`
-[module](#module) > [services](#module.services[]) > volumes
+### `services[].volumes[]`
+[services](#services) > volumes
 
 List of volumes that should be mounted when deploying the container.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.services[].volumes[].name`
-[module](#module) > [services](#module.services[]) > [volumes](#module.services[].volumes[]) > name
+### `services[].volumes[].name`
+[services](#services) > [volumes](#services[].volumes[]) > name
 
 The name of the allocated volume.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.services[].volumes[].containerPath`
-[module](#module) > [services](#module.services[]) > [volumes](#module.services[].volumes[]) > containerPath
+### `services[].volumes[].containerPath`
+[services](#services) > [volumes](#services[].volumes[]) > containerPath
 
 The path where the volume should be mounted in the container.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.services[].volumes[].hostPath`
-[module](#module) > [services](#module.services[]) > [volumes](#module.services[].volumes[]) > hostPath
+### `services[].volumes[].hostPath`
+[services](#services) > [volumes](#services[].volumes[]) > hostPath
 
 
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.tests[]`
-[module](#module) > tests
+### `tests`
 
 A list of tests to run in the module.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.tests[].name`
-[module](#module) > [tests](#module.tests[]) > name
+### `tests[].name`
+[tests](#tests) > name
 
 The name of the test.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.tests[].dependencies[]`
-[module](#module) > [tests](#module.tests[]) > dependencies
+### `tests[].dependencies[]`
+[tests](#tests) > dependencies
 
 The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.tests[].timeout`
-[module](#module) > [tests](#module.tests[]) > timeout
+### `tests[].timeout`
+[tests](#tests) > timeout
 
 Maximum duration (in seconds) of the test run.
 
 | Type | Required |
 | ---- | -------- |
 | `number` | No
-### `module.tests[].args[]`
-[module](#module) > [tests](#module.tests[]) > args
+### `tests[].args[]`
+[tests](#tests) > args
 
 The arguments used to run the test inside the container.
 
@@ -479,63 +555,60 @@ The arguments used to run the test inside the container.
 
 Example:
 ```yaml
-module:
-  ...
-  tests:
-    - args:
-      - npm
-      - test
+tests:
+  - args:
+    - npm
+    - test
 ```
-### `module.tests[].env`
-[module](#module) > [tests](#module.tests[]) > env
+### `tests[].env`
+[tests](#tests) > env
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.tasks[]`
-[module](#module) > tasks
+### `tasks`
 
 A list of tasks that can be run from this container module. These can be used as dependencies for services (executed before the service is deployed) or for other tasks.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.tasks[].name`
-[module](#module) > [tasks](#module.tasks[]) > name
+### `tasks[].name`
+[tasks](#tasks) > name
 
 The name of the task.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.tasks[].description`
-[module](#module) > [tasks](#module.tasks[]) > description
+### `tasks[].description`
+[tasks](#tasks) > description
 
 A description of the task.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.tasks[].dependencies[]`
-[module](#module) > [tasks](#module.tasks[]) > dependencies
+### `tasks[].dependencies[]`
+[tasks](#tasks) > dependencies
 
 The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.tasks[].timeout`
-[module](#module) > [tasks](#module.tasks[]) > timeout
+### `tasks[].timeout`
+[tasks](#tasks) > timeout
 
 Maximum duration (in seconds) of the task's execution.
 
 | Type | Required |
 | ---- | -------- |
 | `number` | No
-### `module.tasks[].args[]`
-[module](#module) > [tasks](#module.tasks[]) > args
+### `tasks[].args[]`
+[tasks](#tasks) > args
 
 The arguments used to run the task inside the container.
 
@@ -545,23 +618,20 @@ The arguments used to run the task inside the container.
 
 Example:
 ```yaml
-module:
-  ...
-  tasks:
-    - args:
-      - rake
-      - 'db:migrate'
+tasks:
+  - args:
+    - rake
+    - 'db:migrate'
 ```
-### `module.tasks[].env`
-[module](#module) > [tasks](#module.tasks[]) > env
+### `tasks[].env`
+[tasks](#tasks) > env
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.jarPath`
-[module](#module) > jarPath
+### `jarPath`
 
 The path to the packaged JAR artifact, relative to the module directory.
 
@@ -571,20 +641,16 @@ The path to the packaged JAR artifact, relative to the module directory.
 
 Example:
 ```yaml
-module:
-  ...
-  jarPath: "target/my-module.jar"
+jarPath: "target/my-module.jar"
 ```
-### `module.jdkVersion`
-[module](#module) > jdkVersion
+### `jdkVersion`
 
 The JDK version to use.
 
 | Type | Required |
 | ---- | -------- |
 | `number` | No
-### `module.mvnOpts[]`
-[module](#module) > mvnOpts
+### `mvnOpts`
 
 Options to add to the `mvn package` command when building.
 
@@ -595,66 +661,73 @@ Options to add to the `mvn package` command when building.
 
 ## Complete YAML schema
 ```yaml
-module:
-  build:
-    dependencies:
+apiVersion: garden.io/v0
+kind: Module
+type:
+name:
+description:
+include:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
+    - name:
+      copy:
+        - source:
+          target: ''
+  targetImage:
+buildArgs: {}
+image:
+hotReload:
+  sync:
+    - source: .
+      target:
+dockerfile:
+services:
+  - name:
+    dependencies: []
+    annotations: {}
+    args:
+    daemon: false
+    ingresses:
+      - annotations: {}
+        hostname:
+        path: /
+        port:
+    env: {}
+    healthCheck:
+      httpGet:
+        path:
+        port:
+        scheme: HTTP
+      command:
+      tcpPort:
+    hotReloadArgs:
+    ports:
       - name:
-        copy:
-          - source:
-            target: ''
-    targetImage:
-  buildArgs: {}
-  image:
-  hotReload:
-    sync:
-      - source: .
-        target:
-  dockerfile:
-  services:
-    - name:
-      dependencies: []
-      annotations: {}
-      args:
-      daemon: false
-      ingresses:
-        - annotations: {}
-          hostname:
-          path: /
-          port:
-      env: {}
-      healthCheck:
-        httpGet:
-          path:
-          port:
-          scheme: HTTP
-        command:
-        tcpPort:
-      hotReloadArgs:
-      ports:
-        - name:
-          protocol: TCP
-          containerPort:
-          servicePort: <containerPort>
-          hostPort:
-          nodePort:
-      volumes:
-        - name:
-          containerPath:
-          hostPath:
-  tests:
-    - name:
-      dependencies: []
-      timeout: null
-      args:
-      env: {}
-  tasks:
-    - name:
-      description:
-      dependencies: []
-      timeout: null
-      args:
-      env: {}
-  jarPath:
-  jdkVersion: 8
-  mvnOpts: []
+        protocol: TCP
+        containerPort:
+        servicePort: <containerPort>
+        hostPort:
+        nodePort:
+    volumes:
+      - name:
+        containerPath:
+        hostPath:
+tests:
+  - name:
+    dependencies: []
+    timeout: null
+    args:
+    env: {}
+tasks:
+  - name:
+    description:
+    dependencies: []
+    timeout: null
+    args:
+    env: {}
+jarPath:
+jdkVersion: 8
+mvnOpts: []
 ```

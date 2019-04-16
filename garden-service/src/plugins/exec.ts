@@ -39,6 +39,7 @@ import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema } from "../config/module"
 import execa = require("execa")
 import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
+import { dedent } from "../util/string"
 
 export const name = "exec"
 
@@ -235,9 +236,20 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
   }
 }
 
+async function describeType() {
+  return {
+    docs: dedent`
+      A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
+      type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
+    `,
+    schema: execModuleSpecSchema,
+  }
+}
+
 export const execPlugin: GardenPlugin = {
   moduleActions: {
     exec: {
+      describeType,
       configure: configureExecModule,
       getBuildStatus: getExecModuleBuildStatus,
       build: buildExecModule,

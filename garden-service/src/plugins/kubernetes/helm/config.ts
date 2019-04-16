@@ -16,7 +16,6 @@ import {
   joiArray,
   joiIdentifier,
   joiEnvVars,
-  validateWithPath,
   joiUserIdentifier,
 } from "../../../config/common"
 import { Module, FileCopySpec } from "../../../types/module"
@@ -210,16 +209,8 @@ export const helmModuleSpecSchema = Joi.object().keys({
     ),
 })
 
-export async function validateHelmModule({ ctx, moduleConfig }: ConfigureModuleParams<HelmModule>)
+export async function validateHelmModule({ moduleConfig }: ConfigureModuleParams<HelmModule>)
   : Promise<ConfigureModuleResult<HelmModule>> {
-  moduleConfig.spec = validateWithPath({
-    config: moduleConfig.spec,
-    schema: helmModuleSpecSchema,
-    name: moduleConfig.name,
-    path: moduleConfig.path,
-    projectRoot: ctx.projectRoot,
-  })
-
   const {
     base, chart, dependencies, serviceResource, skipDeploy, tasks, tests,
   } = moduleConfig.spec
