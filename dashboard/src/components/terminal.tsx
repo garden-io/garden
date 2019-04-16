@@ -16,7 +16,6 @@ import { ServiceLogEntry } from "../api/types"
 interface Props {
   entries: ServiceLogEntry[]
   sectionPad: number
-  title: string
   showServiceName: boolean
 }
 

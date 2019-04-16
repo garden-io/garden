@@ -22,12 +22,14 @@ serviceWorker.unregister()
 // Hoist Router for smoother hot reloading (hot module replacement).
 const rootEl = document.getElementById("root")
 const render = Component => ReactDOM.render(
-  <Router>
-    <div>
-      <GlobalStyle />
-      <Component />
-    </div>
-  </Router>,
+  (
+    <Router>
+      <div>
+        <GlobalStyle />
+        <Component />
+      </div>
+    </Router>
+  ),
   rootEl,
 )
 

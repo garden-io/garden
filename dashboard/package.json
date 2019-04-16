@@ -14,6 +14,8 @@
     "@types/react-select": "^2.0.11",
     "react-scripts": "2.1.1",
     "ts-node": "^7.0.1",
+    "tslint-microsoft-contrib": "^6.1.1",
+    "tslint-react": "^4.0.0",
     "typescript": "^3.2.2"
   },
   "dependencies": {

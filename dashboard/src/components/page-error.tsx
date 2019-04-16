@@ -31,9 +31,11 @@ const PageError: React.SFC<any> = ({ error }) => {
     )
   }
   return (
-    <div className={cls(css`
-      text-align: center;
-    `, "p-2")}>
+    <div
+      className={cls(css`
+        text-align: center;
+      `, "p-2")}
+    >
       <H3 color={colors.gardenPink}>
         Whoops, something went wrong.
       </H3>

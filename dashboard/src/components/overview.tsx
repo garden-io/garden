@@ -49,8 +49,8 @@ export const Modules: React.SFC<ModulesProps> = ({ moduleConfigs }) => {
     <Table
       title="Modules"
       rowHeaders={rowHeaders}
-      rows={rows}>
-    </Table>
+      rows={rows}
+    />
   )
 }
 
@@ -66,8 +66,8 @@ export const Services: React.SFC<ServicesProps> = ({ moduleConfigs, services }) 
     <Table
       title="Services"
       rowHeaders={rowHeaders}
-      rows={rows}>
-    </Table>
+      rows={rows}
+    />
   )
 }
 

@@ -63,18 +63,23 @@ class Sidebar extends Component<Props, State> {
         <nav>
           <ul className="pt-2">
             {this.props.pages.map(page => {
-              const link = page.url
-                ? <A href={page.url} target="_blank" title={page.description}>
+              let link: JSX.Element
+              if (page.url) {
+                link = <A href={page.url} target="_blank" title={page.description}>
                   {page.title}
-                  <i className={`${css("color: #ccc; margin-left: 0.5em;")} fas fa-external-link-alt`}></i>
+                  <i className={`${css("color: #ccc; margin-left: 0.5em;")} fas fa-external-link-alt`} />
                 </A>
-                : <Link
-                  exact
-                  to={{ pathname: page.path, state: page }}
-                  title={page.description}>
-                  {page.title}
-                </Link>
-
+              } else {
+                link = (
+                  <Link
+                    exact
+                    to={{ pathname: page.path, state: page }}
+                    title={page.description}
+                  >
+                    {page.title}
+                  </Link>
+                )
+              }
               return (
                 <Button tabName={name} key={page.title}>
                   {link}
