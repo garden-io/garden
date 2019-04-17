@@ -4,9 +4,10 @@ import { cloneDeep } from "lodash"
 
 import { TestGarden, dataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
-import { validateHelmModule } from "../../../../../../src/plugins/kubernetes/helm/config"
+import { validateHelmModule, helmModuleSpecSchema } from "../../../../../../src/plugins/kubernetes/helm/config"
 import { deline } from "../../../../../../src/util/string"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { validate } from "../../../../../../src/config/common"
 
 describe("validateHelmModule", () => {
   let garden: TestGarden
@@ -27,6 +28,7 @@ describe("validateHelmModule", () => {
 
   function getModuleConfig(name: string) {
     const config = cloneDeep((<any>garden).moduleConfigs[name])
+    config.spec = validate(config.spec, helmModuleSpecSchema)
     config.serviceConfigs = []
     config.taskConfigs = []
     config.testConfigs = []
@@ -40,12 +42,13 @@ describe("validateHelmModule", () => {
     const { versionString } = imageModule.version
 
     expect(config).to.eql({
+      apiVersion: "garden.io/v0",
+      kind: "Module",
       allowPublish: true,
       build: {
         dependencies: [],
       },
       description: "The API backend for the voting UI",
-      apiVersion: "garden.io/v0",
       include: undefined,
       name: "api",
       outputs: {

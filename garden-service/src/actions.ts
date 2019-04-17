@@ -83,6 +83,7 @@ import { CleanupEnvironmentParams } from "./types/plugin/params"
 import { ConfigurationError, PluginError, ParameterError } from "./exceptions"
 import { defaultProvider } from "./config/project"
 import { validate } from "./config/common"
+import * as Joi from "joi"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -233,6 +234,19 @@ export class ActionHelper implements TypeGuard {
   //===========================================================================
   //region Module Actions
   //===========================================================================
+
+  async describeType(moduleType: string) {
+    const handler = await this.getModuleActionHandler({
+      actionType: "describeType",
+      moduleType,
+      defaultHandler: async ({ }) => ({
+        docs: "",
+        schema: Joi.object().options({ allowUnknown: true }),
+      }),
+    })
+
+    return handler({})
+  }
 
   async getBuildStatus<T extends Module>(
     params: ModuleActionHelperParams<GetBuildStatusParams<T>>,

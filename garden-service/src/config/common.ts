@@ -44,6 +44,7 @@ export const joiIdentifier = () => Joi.string()
 
 export const joiProviderName = (name: string) => joiIdentifier().required()
   .description("The name of the provider plugin to use.")
+  .default(name)
   .example(name)
 
 export const joiStringMap = (valueSchema: JoiObject) => Joi

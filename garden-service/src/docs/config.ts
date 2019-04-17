@@ -18,54 +18,44 @@ import {
   get,
   flatten,
   padEnd,
+  uniq,
+  startCase,
 } from "lodash"
-import { containerModuleSpecSchema } from "../plugins/container/config"
-import { execModuleSpecSchema } from "../plugins/exec"
 import { projectSchema } from "../config/project"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { configSchema as localK8sConfigSchema } from "../plugins/kubernetes/local/config"
 import { configSchema as k8sConfigSchema } from "../plugins/kubernetes/kubernetes"
 import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/openfaas"
-import { openfaasModuleSpecSchema } from "../plugins/openfaas/openfaas"
-import { helmModuleSpecSchema } from "../plugins/kubernetes/helm/config"
 import { joiArray } from "../config/common"
-import { mavenContainerModuleSpecSchema, mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
-import { kubernetesModuleSpecSchema } from "../plugins/kubernetes/kubernetes-module/config"
+import { mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
+import { Garden } from "../garden"
 
-const baseProjectSchema = Joi.object().keys({
-  project: projectSchema,
-})
-const baseModuleSchema = Joi.object().keys({
-  module: baseModuleSpecSchema,
-})
+const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema
+  .concat(schema)
 
-const populateModuleSchema = (schema: Joi.Schema) => Joi.object().keys({ module: schema })
-const populateProviderSchema = (schema: Joi.Schema) => (
-  Joi.object({
-    project: Joi.object({
-      environments: joiArray(Joi.object().keys({
-        providers: joiArray(schema),
-      })),
-    }),
+const populateProviderSchema = (schema: Joi.Schema) => projectSchema
+  .keys({
+    environments: joiArray(Joi.object().keys({
+      providers: joiArray(schema),
+    })),
   })
-)
 
 const maxWidth = 100
 const moduleTypes = [
-  { name: "exec", schema: populateModuleSchema(execModuleSpecSchema) },
-  { name: "container", schema: populateModuleSchema(containerModuleSpecSchema) },
-  { name: "openfaas", schema: populateModuleSchema(openfaasModuleSpecSchema) },
-  { name: "helm", schema: populateModuleSchema(helmModuleSpecSchema) },
-  { name: "maven-container", schema: populateModuleSchema(mavenContainerModuleSpecSchema) },
-  { name: "kubernetes", schema: populateModuleSchema(kubernetesModuleSpecSchema) },
+  { name: "exec" },
+  { name: "container" },
+  { name: "helm", pluginName: "local-kubernetes" },
+  { name: "kubernetes", pluginName: "local-kubernetes" },
+  { name: "maven-container" },
+  { name: "openfaas" },
 ]
 
 const providers = [
   { name: "local-kubernetes", schema: populateProviderSchema(localK8sConfigSchema) },
   { name: "kubernetes", schema: populateProviderSchema(k8sConfigSchema) },
-  { name: "openfaas", schema: populateProviderSchema(openfaasConfigSchema) },
   { name: "maven-container", schema: populateProviderSchema(mavenContainerConfigSchema) },
+  { name: "openfaas", schema: populateProviderSchema(openfaasConfigSchema) },
 ]
 
 interface RenderOpts {
@@ -393,11 +383,11 @@ function renderProviderReference(schema: Joi.ObjectSchema, name: string) {
  * Generates the module types reference from the module-type.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderModuleTypeReference(schema: Joi.ObjectSchema, name: string) {
+function renderModuleTypeReference(schema: Joi.ObjectSchema, name: string, docs: string) {
   const moduleTemplatePath = resolve(__dirname, "templates", "module-type.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
-  return template({ name, markdownReference, yaml })
+  return template({ name, docs, markdownReference, yaml })
 }
 
 /**
@@ -407,31 +397,65 @@ function renderModuleTypeReference(schema: Joi.ObjectSchema, name: string) {
  */
 function renderBaseConfigReference() {
   const baseTemplatePath = resolve(__dirname, "templates", "base-config.hbs")
-  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(baseProjectSchema)
-  const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSchema)
+  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(projectSchema)
+  const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema)
 
   const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
   return template({ projectMarkdownReference, projectYaml, moduleMarkdownReference, moduleYaml })
 }
 
-export function writeConfigReferenceDocs(docsRoot: string) {
+export async function writeConfigReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const configPath = resolve(referenceDir, "config.md")
+
+  const moduleProviders = uniq(moduleTypes.map(m => m.pluginName || m.name)).map(name => ({ name }))
+  const garden = await Garden.factory(__dirname, {
+    config: {
+      dirname: "generate-docs",
+      path: __dirname,
+      project: {
+        apiVersion: "garden.io/v0",
+        name: "generate-docs",
+        defaultEnvironment: "default",
+        environmentDefaults: {
+          providers: [],
+          variables: {},
+        },
+        environments: [
+          {
+            name: "default",
+            providers: moduleProviders,
+            variables: {},
+          },
+        ],
+      },
+    },
+  })
 
   // Render provider docs
   const providerDir = resolve(referenceDir, "providers")
   for (const { name, schema } of providers) {
     const path = resolve(providerDir, `${name}.md`)
+    console.log("->", path)
     writeFileSync(path, renderProviderReference(schema, name))
   }
 
   // Render module type docs
   const moduleTypeDir = resolve(referenceDir, "module-types")
-  for (const { name, schema } of moduleTypes) {
+  const readme = ["# Module Types", ""]
+  for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
-    writeFileSync(path, renderModuleTypeReference(schema, name))
+    const { docs, schema, title } = await garden.actions.describeType(name)
+
+    console.log("->", path)
+    writeFileSync(path, renderModuleTypeReference(populateModuleSchema(schema), name, docs))
+
+    readme.push(`* [${title || startCase(name.replace("-", " "))}](./${name}.md)`)
   }
 
+  writeFileSync(resolve(moduleTypeDir, `README.md`), readme.join("\n"))
+
   // Render base config docs
+  console.log("->", configPath)
   writeFileSync(configPath, renderBaseConfigReference())
 }

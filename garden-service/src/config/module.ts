@@ -94,6 +94,7 @@ export const baseModuleSpecSchema = Joi.object()
       .default("garden.io/v0")
       .only("garden.io/v0")
       .description("The schema version of this module's config (currently not used)."),
+    kind: Joi.string().default("Module").only("Module"),
     type: joiIdentifier()
       .required()
       .description("The type of this module.")

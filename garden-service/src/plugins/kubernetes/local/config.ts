@@ -14,6 +14,7 @@ import { readFile } from "fs-extra"
 import { homedir } from "os"
 import { KubernetesBaseConfig, kubernetesConfigBase } from "../kubernetes"
 import { ConfigureProviderParams } from "../../../types/plugin/params"
+import { joiProviderName } from "../../../config/common"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -51,6 +52,7 @@ export interface LocalKubernetesConfig extends KubernetesBaseConfig {
 
 export const configSchema = kubernetesConfigBase
   .keys({
+    name: joiProviderName("local-kubernetes"),
     namespace: Joi.string()
       .default(undefined, "<project name>")
       .description(

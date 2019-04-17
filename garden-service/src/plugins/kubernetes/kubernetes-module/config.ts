@@ -9,7 +9,7 @@
 import Joi = require("joi")
 
 import { ServiceSpec } from "../../../config/service"
-import { joiArray, joiIdentifier, validateWithPath } from "../../../config/common"
+import { joiArray, joiIdentifier } from "../../../config/common"
 import { Module } from "../../../types/module"
 import { ConfigureModuleParams } from "../../../types/plugin/params"
 import { ConfigureModuleResult } from "../../../types/plugin/outputs"
@@ -17,7 +17,7 @@ import { Service } from "../../../types/service"
 import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"
-import { deline } from "../../../util/string"
+import { deline, dedent } from "../../../util/string"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -52,7 +52,7 @@ const kubernetesResourceSchema = Joi.object()
   })
   .unknown(true)
 
-export const kubernetesModuleSpecSchema = Joi.object()
+const kubernetesModuleSpecSchema = Joi.object()
   .keys({
     build: baseBuildSpecSchema,
     dependencies: joiArray(joiIdentifier())
@@ -66,16 +66,26 @@ export const kubernetesModuleSpecSchema = Joi.object()
       .description("POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."),
   })
 
-export async function configureKubernetesModule({ ctx, moduleConfig }: ConfigureModuleParams<KubernetesModule>)
-  : Promise<ConfigureModuleResult<KubernetesModule>> {
-  moduleConfig.spec = validateWithPath({
-    config: moduleConfig.spec,
-    schema: kubernetesModuleSpecSchema,
-    name: moduleConfig.name,
-    path: moduleConfig.path,
-    projectRoot: ctx.projectRoot,
-  })
+export async function describeType() {
+  return {
+    docs: dedent`
+      Specify one or more Kubernetes manifests to deploy.
 
+      You can either (or both) specify the manifests as part of the \`garden.yml\` configuration, or you can refer to
+      one or more files with existing manifests.
+
+      Note that if you include the manifests in the \`garden.yml\` file, you can use
+      [template strings](https://docs.garden.io/reference/template-strings) to interpolate values into the manifests.
+
+      If you need more advanced templating features you can use the
+      [helm](https://docs.garden.io/reference/module-types/helm) module type.
+    `,
+    schema: kubernetesModuleSpecSchema,
+  }
+}
+
+export async function configureKubernetesModule({ moduleConfig }: ConfigureModuleParams<KubernetesModule>)
+  : Promise<ConfigureModuleResult<KubernetesModule>> {
   moduleConfig.serviceConfigs = [{
     name: moduleConfig.name,
     dependencies: moduleConfig.spec.dependencies,

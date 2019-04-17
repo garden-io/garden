@@ -445,7 +445,7 @@ describe("plugins.container", () => {
                   SOME_ENV_VAR: "value",
                 },
                 healthCheck:
-                  { httpGet: { path: "/health", port: "http", scheme: "HTTP" } },
+                  { httpGet: { path: "/health", port: "http" } },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 outputs: {},
                 volumes: [],
@@ -492,7 +492,7 @@ describe("plugins.container", () => {
                   SOME_ENV_VAR: "value",
                 },
                 healthCheck:
-                  { httpGet: { path: "/health", port: "http", scheme: "HTTP" } },
+                  { httpGet: { path: "/health", port: "http" } },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 outputs: {},
                 volumes: [],

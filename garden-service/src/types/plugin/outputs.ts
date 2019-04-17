@@ -133,7 +133,9 @@ export const getServiceLogsResultSchema = Joi.object().keys({})
 
 export interface ModuleTypeDescription {
   docs: string
-  schema: object
+  // TODO: specify the schema using primitives and not Joi objects
+  schema: Joi.ObjectSchema
+  title?: string
 }
 
 export const moduleTypeDescriptionSchema = Joi.object()
@@ -144,7 +146,12 @@ export const moduleTypeDescriptionSchema = Joi.object()
     schema: Joi.object()
       .required()
       .description(
-        "A valid OpenAPI schema describing the configuration keys for the `module` field in the module's `garden.yml`.",
+        "A valid Joi schema describing the configuration keys for the `module` " +
+        "field in the module's `garden.yml`.",
+      ),
+    title: Joi.string()
+      .description(
+        "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces.",
       ),
   })
 

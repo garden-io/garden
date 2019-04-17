@@ -1,28 +1,112 @@
 # `openfaas` reference
 
-Below is the schema reference for the `openfaas` module type. For an introduction to configuring Garden modules, please look at our [Configuration guide](../../using-garden/configuration-files.md).
+Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the `kubernetes` or
+`local-kubernetes` provider to be configured. Everything else is installed automatically.
 
-The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
+guide](../../using-garden/configuration-files.md).
+The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available
+schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
 ## Configuration keys
 
-### `module`
+### `apiVersion`
 
-The module specification for an OpenFaaS module.
+The schema version of this module's config (currently not used).
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "garden.io/v0"
+### `kind`
+
+
+
+| Type | Required | Allowed Values |
+| ---- | -------- | -------------- |
+| `string` | Yes | "Module"
+### `type`
+
+The type of this module.
 
 | Type | Required |
 | ---- | -------- |
-| `object` | No
-### `module.build`
-[module](#module) > build
+| `string` | Yes
+
+Example:
+```yaml
+type: "container"
+```
+### `name`
+
+The name of this module.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+Example:
+```yaml
+name: "my-sweet-module"
+```
+### `description`
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+### `include`
+
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
+as well as when responding to filesystem watch events.
+
+Note that you can also _exclude_ files by placing `.gardenignore` files in your source tree, which use the
+same format as `.gitignore` files.
+
+Also note that specifying an empty list here means _no sources_ should be included.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+include:
+  - Dockerfile
+  - my-app.js
+```
+### `repositoryUrl`
+
+A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+
+Garden will import the repository source code into this module, but read the module's
+config from the local garden.yml file.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+
+Example:
+```yaml
+repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
+```
+### `allowPublish`
+
+When false, disables pushing this module to remote registries.
+
+| Type | Required |
+| ---- | -------- |
+| `boolean` | No
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.build.dependencies[]`
-[module](#module) > [build](#module.build) > dependencies
+### `build.dependencies[]`
+[build](#build) > dependencies
 
 A list of modules that must be built before this module is built.
 
@@ -32,47 +116,45 @@ A list of modules that must be built before this module is built.
 
 Example:
 ```yaml
-module:
+build:
   ...
-  build:
-    ...
-    dependencies:
-      - name: some-other-module-name
+  dependencies:
+    - name: some-other-module-name
 ```
-### `module.build.dependencies[].name`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > name
+### `build.dependencies[].name`
+[build](#build) > [dependencies](#build.dependencies[]) > name
 
 Module name to build ahead of this module.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.build.dependencies[].copy[]`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > copy
+### `build.dependencies[].copy[]`
+[build](#build) > [dependencies](#build.dependencies[]) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.build.dependencies[].copy[].source`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > source
+### `build.dependencies[].copy[].source`
+[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.build.dependencies[].copy[].target`
-[module](#module) > [build](#module.build) > [dependencies](#module.build.dependencies[]) > [copy](#module.build.dependencies[].copy[]) > target
+### `build.dependencies[].copy[].target`
+[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
 POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.build.command[]`
-[module](#module) > [build](#module.build) > command
+### `build.command[]`
+[build](#build) > command
 
 The command to run inside the module's directory to perform the build.
 
@@ -82,145 +164,136 @@ The command to run inside the module's directory to perform the build.
 
 Example:
 ```yaml
-module:
+build:
   ...
-  build:
-    ...
-    command:
-      - npm
-      - run
-      - build
+  command:
+    - npm
+    - run
+    - build
 ```
-### `module.env`
-[module](#module) > env
+### `env`
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.tasks[]`
-[module](#module) > tasks
+### `tasks`
 
 A list of tasks that can be run in this module.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.tasks[].name`
-[module](#module) > [tasks](#module.tasks[]) > name
+### `tasks[].name`
+[tasks](#tasks) > name
 
 The name of the task.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.tasks[].description`
-[module](#module) > [tasks](#module.tasks[]) > description
+### `tasks[].description`
+[tasks](#tasks) > description
 
 A description of the task.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.tasks[].dependencies[]`
-[module](#module) > [tasks](#module.tasks[]) > dependencies
+### `tasks[].dependencies[]`
+[tasks](#tasks) > dependencies
 
 The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.tasks[].timeout`
-[module](#module) > [tasks](#module.tasks[]) > timeout
+### `tasks[].timeout`
+[tasks](#tasks) > timeout
 
 Maximum duration (in seconds) of the task's execution.
 
 | Type | Required |
 | ---- | -------- |
 | `number` | No
-### `module.tasks[].command[]`
-[module](#module) > [tasks](#module.tasks[]) > command
+### `tasks[].command[]`
+[tasks](#tasks) > command
 
 The command to run in the module build context.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.tests[]`
-[module](#module) > tests
+### `tests`
 
 A list of tests to run in the module.
 
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
-### `module.tests[].name`
-[module](#module) > [tests](#module.tests[]) > name
+### `tests[].name`
+[tests](#tests) > name
 
 The name of the test.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
-### `module.tests[].dependencies[]`
-[module](#module) > [tests](#module.tests[]) > dependencies
+### `tests[].dependencies[]`
+[tests](#tests) > dependencies
 
 The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.tests[].timeout`
-[module](#module) > [tests](#module.tests[]) > timeout
+### `tests[].timeout`
+[tests](#tests) > timeout
 
 Maximum duration (in seconds) of the test run.
 
 | Type | Required |
 | ---- | -------- |
 | `number` | No
-### `module.tests[].command[]`
-[module](#module) > [tests](#module.tests[]) > command
+### `tests[].command[]`
+[tests](#tests) > command
 
 The command to run in the module build context in order to test it.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.tests[].env`
-[module](#module) > [tests](#module.tests[]) > env
+### `tests[].env`
+[tests](#tests) > env
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
-### `module.dependencies[]`
-[module](#module) > dependencies
+### `dependencies`
 
 The names of services/functions that this function depends on at runtime.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
-### `module.handler`
-[module](#module) > handler
+### `handler`
 
 Specify which directory under the module contains the handler file/function.
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.image`
-[module](#module) > image
+### `image`
 
 The image name to use for the built OpenFaaS container (defaults to the module name)
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `module.lang`
-[module](#module) > lang
+### `lang`
 
 The OpenFaaS language template to use to build this function.
 
@@ -231,30 +304,37 @@ The OpenFaaS language template to use to build this function.
 
 ## Complete YAML schema
 ```yaml
-module:
-  build:
-    dependencies:
-      - name:
-        copy:
-          - source:
-            target: ''
+apiVersion: garden.io/v0
+kind: Module
+type:
+name:
+description:
+include:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
+    - name:
+      copy:
+        - source:
+          target: ''
+  command:
+    []
+env: {}
+tasks:
+  - name:
+    description:
+    dependencies: []
+    timeout: null
     command:
-      []
-  env: {}
-  tasks:
-    - name:
-      description:
-      dependencies: []
-      timeout: null
-      command:
-  tests:
-    - name:
-      dependencies: []
-      timeout: null
-      command:
-      env: {}
-  dependencies: []
-  handler: .
-  image:
-  lang:
+tests:
+  - name:
+    dependencies: []
+    timeout: null
+    command:
+    env: {}
+dependencies: []
+handler: .
+image:
+lang:
 ```

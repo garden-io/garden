@@ -17,7 +17,7 @@ import {
   ContainerModuleConfig,
   ContainerTaskSpec,
 } from "../container/config"
-import { validateWithPath, joiArray } from "../../config/common"
+import { joiArray, joiProviderName } from "../../config/common"
 import { BuildModuleParams, ConfigureModuleParams, GetBuildStatusParams } from "../../types/plugin/params"
 import { Module } from "../../types/module"
 import { configureContainerModule, gardenPlugin as containerPlugin } from "../container/container"
@@ -32,6 +32,7 @@ import { providerConfigBaseSchema } from "../../config/project"
 import { openJdks } from "./openjdk"
 import { maven } from "./maven"
 import { LogEntry } from "../../logger/log-entry"
+import { dedent } from "../../util/string"
 import AsyncLock = require("async-lock")
 
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile")
@@ -66,11 +67,11 @@ const mavenKeys = {
     .description("Options to add to the `mvn package` command when building."),
 }
 
-const mavenFieldsSchema = Joi.object()
-  .keys(mavenKeys)
-
-export const mavenContainerModuleSpecSchema = containerModuleSpecSchema.keys(mavenKeys)
+const mavenContainerModuleSpecSchema = containerModuleSpecSchema.keys(mavenKeys)
 export const mavenContainerConfigSchema = providerConfigBaseSchema
+  .keys({
+    name: joiProviderName("maven-container"),
+  })
 
 export const gardenPlugin = (): GardenPlugin => {
   const basePlugin = containerPlugin()
@@ -80,6 +81,7 @@ export const gardenPlugin = (): GardenPlugin => {
     moduleActions: {
       "maven-container": {
         ...basePlugin.moduleActions!.container,
+        describeType,
         configure: configureMavenContainerModule,
         getBuildStatus,
         build,
@@ -88,21 +90,33 @@ export const gardenPlugin = (): GardenPlugin => {
   }
 }
 
-export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
-  const { ctx, moduleConfig } = params
+async function describeType() {
+  return {
+    docs: dedent`
+      A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
+      that has special semantics for JAR files built with Maven.
 
-  const mavenFields = validateWithPath({
-    config: pick(params.moduleConfig.spec, Object.keys(mavenKeys)),
-    schema: mavenFieldsSchema,
-    name: moduleConfig.name,
-    path: moduleConfig.path,
-    projectRoot: ctx.projectRoot,
-  })
+      Rather than build the JAR inside the container (or in a multi-stage build) this plugin runs \`mvn package\`
+      ahead of building the container, which tends to be much more performant, especially when building locally
+      with a warm artifact cache.
+
+      A default Dockerfile is also provided for convenience, but you may override it by including one in the module
+      directory.
+
+      To use it, make sure to add the \`maven-container\` provider to your project configuration.
+      The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
+    `,
+    schema: mavenContainerModuleSpecSchema,
+  }
+}
+
+export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
+  const { moduleConfig } = params
 
   let containerConfig: ContainerModuleConfig = { ...moduleConfig }
   containerConfig.spec = <ContainerModuleSpec>omit(moduleConfig.spec, Object.keys(mavenKeys))
 
-  const jdkVersion = mavenFields.jdkVersion!
+  const jdkVersion = moduleConfig.spec.jdkVersion!
 
   containerConfig.spec.buildArgs = {
     JAR_PATH: "app.jar",
@@ -122,7 +136,7 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
     ...configured,
     spec: {
       ...configured.spec,
-      ...mavenFields,
+      ...pick(moduleConfig.spec, Object.keys(mavenKeys)),
     },
   }
 }

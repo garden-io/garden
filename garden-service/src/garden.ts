@@ -46,7 +46,7 @@ import { ConfigGraph } from "./config-graph"
 import { TaskGraph, TaskResults } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { pluginActionNames, PluginActions, PluginFactory, GardenPlugin } from "./types/plugin/plugin"
-import { joiIdentifier, validate, PrimitiveMap } from "./config/common"
+import { joiIdentifier, validate, PrimitiveMap, validateWithPath } from "./config/common"
 import { resolveTemplateStrings } from "./template-string"
 import {
   configSchema,
@@ -504,6 +504,15 @@ export class Garden {
 
     return Bluebird.map(configs, async (config) => {
       config = await resolveTemplateStrings(cloneDeep(config), opts.configContext!, opts)
+      const description = await this.actions.describeType(config.type)
+
+      config.spec = validateWithPath({
+        config: config.spec,
+        schema: description.schema,
+        name: config.name,
+        path: config.path,
+        projectRoot: this.projectRoot,
+      })
 
       const configureHandler = await this.actions.getModuleActionHandler({
         actionType: "configure",

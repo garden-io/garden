@@ -19,7 +19,7 @@ import {
   DeleteServiceParams,
   GetServiceLogsParams,
 } from "../../../types/plugin/params"
-import { KubernetesModule, configureKubernetesModule, KubernetesService } from "./config"
+import { KubernetesModule, configureKubernetesModule, KubernetesService, describeType } from "./config"
 import { BuildResult } from "../../../types/plugin/outputs"
 import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../kubernetes"
@@ -37,6 +37,7 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModul
   configure: configureKubernetesModule,
   deleteService,
   deployService,
+  describeType,
   getServiceLogs,
   getServiceStatus,
 }

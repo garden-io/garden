@@ -287,7 +287,7 @@ export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescri
 
 export const moduleActionDescriptions:
   { [P in ModuleActionName | ServiceActionName | TaskActionName]: PluginActionDescription } = {
-  // TODO: implement this method (it is currently not defined or used)
+  // TODO: specify the schema using primitives and not Joi objects
   describeType: {
     description: dedent`
       Return documentation and a schema description of the module type.
@@ -295,9 +295,8 @@ export const moduleActionDescriptions:
       The documentation should be in markdown format. A reference for the module type is automatically
       generated based on the provided schema, and a section appended to the provided documentation.
 
-      The schema should be a valid OpenAPI schema describing the configuration keys that the user
-      should use under the \`module\` key in a \`garden.yml\` configuration file. Note that the schema
-      should not specify the built-in fields (such as \`name\`, \`type\` and \`description\`).
+      The schema should be a valid Joi schema describing the configuration keys that the user
+      should use under the \`module\` key in a \`garden.yml\` configuration file.
 
       Used when auto-generating framework documentation.
 

@@ -16,6 +16,7 @@ The following option flags can be used with any of the CLI commands:
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
+  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type: fancy: updates log lines in-place when their status changes (e.g. when tasks complete), basic: appends a new log line when a log line&#x27;s status changes, json: same as basic, but renders log lines as JSON, quiet: uppresses all log output,
   | `--loglevel` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
@@ -170,7 +171,7 @@ Examples:
   | `--force` |  | boolean | Force redeploy of service(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
-  | `--hot-reload` |  | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
+  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
 
 ### garden dev
 
@@ -183,7 +184,8 @@ as you modify the code.
 Examples:
 
     garden dev
-    garden dev --hot-reload=foo-service,bar-service # enable hot reloading for foo-service and bar-service
+    garden dev --hot-reload=foo-service       # enable hot reloading for foo-service
+    garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
 
 ##### Usage
 
@@ -193,7 +195,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--hot-reload` |  | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services.
+  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services.
 
 ### garden exec
 
@@ -739,13 +741,4 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 ##### Usage
 
     garden validate 
-
-### garden version
-
-Show&#x27;s the current cli version.
-
-
-##### Usage
-
-    garden version 
 
