@@ -12,6 +12,7 @@ import { KubernetesProvider } from "./kubernetes"
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError } from "../../exceptions"
 import { getPackageVersion } from "../../util/util"
+import { LogEntry } from "../../logger/log-entry"
 
 const GARDEN_VERSION = getPackageVersion()
 const created: { [name: string]: boolean } = {}
@@ -51,8 +52,8 @@ export async function createNamespace(api: KubeApi, namespace: string) {
 }
 
 export async function getNamespace(
-  { ctx, provider, suffix, skipCreate }:
-    { ctx: PluginContext, provider: KubernetesProvider, suffix?: string, skipCreate?: boolean },
+  { ctx, log, provider, suffix, skipCreate }:
+    { ctx: PluginContext, log: LogEntry, provider: KubernetesProvider, suffix?: string, skipCreate?: boolean },
 ): Promise<string> {
   let namespace
 
@@ -85,19 +86,19 @@ export async function getNamespace(
   }
 
   if (!skipCreate) {
-    const api = new KubeApi(provider.config.context)
+    const api = await KubeApi.factory(log, provider.config.context)
     await ensureNamespace(api, namespace)
   }
 
   return namespace
 }
 
-export async function getAppNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  return getNamespace({ ctx, provider })
+export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
+  return getNamespace({ ctx, log, provider })
 }
 
-export function getMetadataNamespace(ctx: PluginContext, provider: KubernetesProvider) {
-  return getNamespace({ ctx, provider, suffix: "metadata" })
+export function getMetadataNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
+  return getNamespace({ ctx, log, provider, suffix: "metadata" })
 }
 
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {

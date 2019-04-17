@@ -55,6 +55,7 @@ import { CleanupEnvironmentParams } from "../../types/plugin/params"
 import dedent = require("dedent")
 import { getAllLogs } from "../kubernetes/logs"
 import { installTiller, checkTillerStatus } from "../kubernetes/helm/tiller"
+import { LogEntry } from "../../logger/log-entry"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 export const stackFilename = "stack.yml"
@@ -125,7 +126,7 @@ export function gardenPlugin(): GardenPlugin {
     actions: {
       async getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams) {
         const openFaasCtx = <OpenFaasPluginContext>ctx
-        const ofGarden = await getOpenFaasGarden(openFaasCtx)
+        const ofGarden = await getOpenFaasGarden(openFaasCtx, log)
         const status = await ofGarden.actions.getStatus({ log })
         const envReady = every(values(status.providers).map(s => s.ready))
         const servicesReady = every(values(status.services).map(s => s.state === "ready"))
@@ -145,7 +146,7 @@ export function gardenPlugin(): GardenPlugin {
       async prepareEnvironment({ ctx, force, log }: PrepareEnvironmentParams) {
         const openFaasCtx = <OpenFaasPluginContext>ctx
         // TODO: refactor to dedupe similar code in local-kubernetes
-        const ofGarden = await getOpenFaasGarden(openFaasCtx)
+        const ofGarden = await getOpenFaasGarden(openFaasCtx, log)
 
         await ofGarden.actions.prepareEnvironment({ force, log })
 
@@ -168,7 +169,7 @@ export function gardenPlugin(): GardenPlugin {
       },
 
       async cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams) {
-        const ofGarden = await getOpenFaasGarden(<OpenFaasPluginContext>ctx)
+        const ofGarden = await getOpenFaasGarden(<OpenFaasPluginContext>ctx, log)
         await ofGarden.actions.cleanupEnvironment({ log })
         return {}
       },
@@ -177,7 +178,9 @@ export function gardenPlugin(): GardenPlugin {
       openfaas: {
         describeType,
 
-        async configure({ ctx, moduleConfig }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
+        async configure(
+          { ctx, log, moduleConfig }: ConfigureModuleParams<OpenFaasModule>,
+        ): Promise<ConfigureModuleResult> {
           moduleConfig.build.dependencies.push({
             name: "templates",
             plugin: "openfaas",
@@ -206,7 +209,7 @@ export function gardenPlugin(): GardenPlugin {
           }))
 
           moduleConfig.outputs = {
-            endpoint: await getInternalServiceUrl(<OpenFaasPluginContext>ctx, moduleConfig),
+            endpoint: await getInternalServiceUrl(<OpenFaasPluginContext>ctx, log, moduleConfig),
           }
 
           return moduleConfig
@@ -232,12 +235,12 @@ export function gardenPlugin(): GardenPlugin {
         getServiceStatus,
 
         async getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
-          const { ctx, service } = params
+          const { ctx, log, service } = params
           const k8sProvider = getK8sProvider(<OpenFaasPluginContext>ctx)
           const context = k8sProvider.config.context
-          const namespace = await getAppNamespace(ctx, k8sProvider)
+          const namespace = await getAppNamespace(ctx, log, k8sProvider)
 
-          const api = new KubeApi(k8sProvider.config.context)
+          const api = await KubeApi.factory(log, k8sProvider.config.context)
           const resources = await getResources(api, service, namespace)
 
           return getAllLogs({ ...params, context, namespace, resources })
@@ -260,8 +263,8 @@ export function gardenPlugin(): GardenPlugin {
 
           // wait until deployment is ready
           const k8sProvider = getK8sProvider(openFaasCtx)
-          const namespace = await getAppNamespace(openFaasCtx, k8sProvider)
-          const api = new KubeApi(k8sProvider.config.context)
+          const namespace = await getAppNamespace(openFaasCtx, log, k8sProvider)
+          const api = await KubeApi.factory(log, k8sProvider.config.context)
           const resources = await getResources(api, service, namespace)
 
           await waitForResources({
@@ -354,8 +357,8 @@ async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusP
     protocol: "http",
   }]
 
-  const namespace = await getAppNamespace(openFaasCtx, k8sProvider)
-  const api = new KubeApi(k8sProvider.config.context)
+  const namespace = await getAppNamespace(openFaasCtx, log, k8sProvider)
+  const api = await KubeApi.factory(log, k8sProvider.config.context)
 
   let deployment
 
@@ -435,9 +438,9 @@ function getServicePath(config: OpenFaasModuleConfig) {
   return join("/", "function", config.name)
 }
 
-async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>) {
+async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>, log: LogEntry) {
   const k8sProvider = getK8sProvider(ctx)
-  const namespace = await getOpenfaasNamespace(ctx, k8sProvider, true)
+  const namespace = await getOpenfaasNamespace(ctx, log, k8sProvider, true)
   return `http://gateway.${namespace}.svc.cluster.local:8080`
 }
 
@@ -463,22 +466,22 @@ function getExternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>) {
   return `http://${hostname}:${ingressPort}`
 }
 
-async function getInternalServiceUrl(ctx: PluginContext<OpenFaasConfig>, config: OpenFaasModuleConfig) {
-  return urlResolve(await getInternalGatewayUrl(ctx), getServicePath(config))
+async function getInternalServiceUrl(ctx: PluginContext<OpenFaasConfig>, log: LogEntry, config: OpenFaasModuleConfig) {
+  return urlResolve(await getInternalGatewayUrl(ctx, log), getServicePath(config))
 }
 
 async function getOpenfaasNamespace(
-  ctx: PluginContext<OpenFaasConfig>, k8sProvider: KubernetesProvider, skipCreate?: boolean,
+  ctx: PluginContext<OpenFaasConfig>, log: LogEntry, k8sProvider: KubernetesProvider, skipCreate?: boolean,
 ) {
-  return getNamespace({ ctx, provider: k8sProvider, skipCreate, suffix: "openfaas" })
+  return getNamespace({ ctx, log, provider: k8sProvider, skipCreate, suffix: "openfaas" })
 }
 
-export async function getOpenFaasGarden(ctx: PluginContext<OpenFaasConfig>): Promise<Garden> {
+export async function getOpenFaasGarden(ctx: PluginContext<OpenFaasConfig>, log: LogEntry): Promise<Garden> {
   // TODO: figure out good way to retrieve namespace from kubernetes plugin through an exposed interface
   // (maybe allow plugins to expose arbitrary data on the Provider object?)
   const k8sProvider = getK8sProvider(ctx)
-  const namespace = await getOpenfaasNamespace(ctx, k8sProvider, true)
-  const functionNamespace = await getAppNamespace(ctx, k8sProvider)
+  const namespace = await getOpenfaasNamespace(ctx, log, k8sProvider, true)
+  const functionNamespace = await getAppNamespace(ctx, log, k8sProvider)
 
   const hostname = getExternalGatewayHostname(ctx.provider, k8sProvider)
 

@@ -285,7 +285,7 @@ async function getLocalRsyncPort(ctx: PluginContext, log: LogEntry, targetDeploy
   }
 
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // Forward random free local port to the remote rsync container.
   rsyncLocalPort = await getPort()

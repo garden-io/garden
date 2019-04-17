@@ -84,7 +84,7 @@ export async function deleteObjectsByLabel(
 
 interface KubectlParams extends ExecParams {
   log: LogEntry
-  context: string
+  context?: string
   namespace?: string
   configPath?: string
   args: string[]
@@ -129,7 +129,11 @@ class Kubectl extends BinaryCmd {
   private prepareArgs(params: KubectlParams) {
     const { context, namespace, configPath, args } = params
 
-    const opts: string[] = [`--context=${context}`]
+    const opts: string[] = []
+
+    if (context) {
+      opts.push(`--context=${context}`)
+    }
 
     if (namespace) {
       opts.push(`--namespace=${namespace}`)

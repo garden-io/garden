@@ -22,8 +22,8 @@ import chalk from "chalk"
 const serviceAccountName = "garden-tiller"
 
 export async function checkTillerStatus(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
-  const api = new KubeApi(provider.config.context)
-  const namespace = await getAppNamespace(ctx, provider)
+  const api = await KubeApi.factory(log, provider.config.context)
+  const namespace = await getAppNamespace(ctx, log, provider)
 
   const resources = [
     ...getRoleResources(namespace),
@@ -36,7 +36,7 @@ export async function checkTillerStatus(ctx: PluginContext, provider: Kubernetes
 }
 
 export async function installTiller(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
-  const namespace = await getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, log, provider)
   const context = provider.config.context
 
   const entry = log.info({
@@ -61,7 +61,7 @@ export async function installTiller(ctx: PluginContext, provider: KubernetesProv
 async function getTillerResources(
   ctx: PluginContext, provider: KubernetesProvider, log: LogEntry,
 ): Promise<KubernetesResource[]> {
-  const namespace = await getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, log, provider)
   const context = provider.config.context
 
   const tillerManifests = await helm(namespace, context, log,

@@ -61,8 +61,8 @@ export async function getServiceStatus(
   }
 
   const provider = k8sCtx.provider
-  const api = new KubeApi(provider.config.context)
-  const namespace = await getAppNamespace(k8sCtx, provider)
+  const api = await KubeApi.factory(log, provider.config.context)
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
   let { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, chartResources, log, false)
   const detail = { remoteObjects }
 

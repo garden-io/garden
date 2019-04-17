@@ -7,29 +7,17 @@
  */
 
 import * as execa from "execa"
-import { safeLoad } from "js-yaml"
 import * as Joi from "joi"
-import { join } from "path"
-import { readFile } from "fs-extra"
-import { homedir } from "os"
 import { KubernetesBaseConfig, kubernetesConfigBase } from "../kubernetes"
 import { ConfigureProviderParams } from "../../../types/plugin/params"
 import { joiProviderName } from "../../../config/common"
+import { getKubeConfig } from "../api"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
 const supportedContexts = ["docker-for-desktop", "minikube"]
-const kubeConfigPath = join(homedir(), ".kube", "config")
-
-async function getKubeConfig(): Promise<any> {
-  try {
-    return safeLoad((await readFile(kubeConfigPath)).toString())
-  } catch {
-    return {}
-  }
-}
 
 /**
  * Automatically set docker environment variables for minikube
@@ -74,7 +62,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
-    const kubeConfig = await getKubeConfig()
+    const kubeConfig = await getKubeConfig(log)
     const currentContext = kubeConfig["current-context"]
 
     if (currentContext && supportedContexts.includes(currentContext)) {
@@ -92,11 +80,16 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
         }
       }
     }
+
+    if (!context && kubeConfig.contexts.length > 0) {
+      context = kubeConfig.contexts[0].name
+      log.debug({ section: config.name, msg: `No kubectl context auto-detected, using first available: ${context}` })
+    }
   }
 
   if (!context) {
     context = supportedContexts[0]
-    log.debug({ section: config.name, msg: `No kubectl context auto-detected, using default: ${context}` })
+    log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${context}` })
   }
 
   if (context === "minikube") {

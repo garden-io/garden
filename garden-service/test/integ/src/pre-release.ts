@@ -13,16 +13,18 @@ import {
   taskCompletedStep,
 } from "../../run-garden"
 import { deleteExampleNamespaces, searchLog, removeExampleDotGardenDirs } from "../../integ-helpers"
+import { getLogger } from "../../../src/logger/logger"
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command
 
 describe("PreReleaseTests", () => {
 
   const simpleProjectPath = resolve(examplesDir, "simple-project")
+  const log = getLogger().placeholder()
 
   before(async () => {
     mlog.log("deleting example project namespaces and .garden folders")
-    await deleteExampleNamespaces(false)
+    await deleteExampleNamespaces(log, false)
     await removeExampleDotGardenDirs()
   })
 

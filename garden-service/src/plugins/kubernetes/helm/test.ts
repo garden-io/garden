@@ -27,7 +27,7 @@ export async function testHelmModule(
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const chartResources = await getChartResources(k8sCtx, module, log)
   const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module)
@@ -48,5 +48,5 @@ export async function testHelmModule(
     log,
   })
 
-  return storeTestResult({ ctx: k8sCtx, module, testName, testVersion, result })
+  return storeTestResult({ ctx: k8sCtx, log, module, testName, testVersion, result })
 }

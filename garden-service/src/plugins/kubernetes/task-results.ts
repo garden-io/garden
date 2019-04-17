@@ -16,13 +16,14 @@ import { getMetadataNamespace } from "./namespace"
 import { RunTaskResult } from "../../types/plugin/outputs"
 import { deserializeValues, serializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
+import { LogEntry } from "../../logger/log-entry"
 
 export async function getTaskResult(
-  { ctx, task, taskVersion }: GetTaskResultParams<ContainerModule | HelmModule>,
+  { ctx, log, task, taskVersion }: GetTaskResultParams<ContainerModule | HelmModule>,
 ): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = new KubeApi(k8sCtx.provider.config.context)
-  const ns = await getMetadataNamespace(k8sCtx, k8sCtx.provider)
+  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
   const resultKey = getTaskResultKey(task.name, taskVersion)
 
   try {
@@ -41,18 +42,25 @@ export function getTaskResultKey(taskName: string, version: ModuleVersion) {
   return `task-result--${taskName}--${version.versionString}`
 }
 
+interface StoreTaskResultParams {
+  ctx: PluginContext,
+  log: LogEntry,
+  taskName: string,
+  taskVersion: ModuleVersion,
+  result: RunTaskResult,
+}
+
 /**
  * Store a task run result as a ConfigMap in the cluster.
  *
  * TODO: Implement a CRD for this.
  */
 export async function storeTaskResult(
-  { ctx, taskName, taskVersion, result }:
-    { ctx: PluginContext, taskName: string, taskVersion: ModuleVersion, result: RunTaskResult },
+  { ctx, log, taskName, taskVersion, result }: StoreTaskResultParams,
 ): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const api = new KubeApi(provider.config.context)
-  const ns = await getMetadataNamespace(ctx, provider)
+  const api = await KubeApi.factory(log, provider.config.context)
+  const ns = await getMetadataNamespace(ctx, log, provider)
   const resultKey = getTaskResultKey(taskName, taskVersion)
 
   const body = {

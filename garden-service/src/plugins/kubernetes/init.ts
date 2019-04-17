@@ -63,8 +63,8 @@ async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams) {
   }
 
   await Bluebird.all([
-    getMetadataNamespace(k8sCtx, k8sCtx.provider),
-    getAppNamespace(k8sCtx, k8sCtx.provider),
+    getMetadataNamespace(k8sCtx, log, k8sCtx.provider),
+    getAppNamespace(k8sCtx, log, k8sCtx.provider),
   ])
 }
 
@@ -85,7 +85,7 @@ export async function getRemoteEnvironmentStatus({ ctx, log }: GetEnvironmentSta
 
   // Note: We don't need the system namespaces for remote k8s for now
 
-  // const api = new KubeApi(k8sCtx.provider.config.context)
+  // const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
   // const contextForLog = `Checking environment status for plugin "kubernetes"`
   // const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, contextForLog)
   // if (!sysNamespaceUpToDate) {
@@ -118,7 +118,7 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
 
     const serviceStatuses = pick(sysStatus.services, getSystemServices(provider))
 
-    const api = new KubeApi(provider.config.context)
+    const api = await KubeApi.factory(log, provider.config.context)
 
     const servicesReady = every(values(serviceStatuses).map(s => s.state === "ready"))
     const contextForLog = `Checking environment status for plugin "local-kubernetes"`
@@ -141,7 +141,7 @@ export async function getLocalEnvironmentStatus({ ctx, log }: GetEnvironmentStat
     }
 
     // Add the Kubernetes dashboard to the Garden dashboard
-    const namespace = await getAppNamespace(k8sCtx, provider)
+    const namespace = await getAppNamespace(k8sCtx, log, provider)
     const defaultHostname = provider.config.defaultHostname
 
     const dashboardStatus = sysStatus.services["kubernetes-dashboard"]
@@ -182,7 +182,7 @@ export async function prepareRemoteEnvironment({ ctx, log }: PrepareEnvironmentP
 
   // Note: We don't need the system namespaces for remote k8s for now
 
-  // const api = new KubeApi(provider.config.context)
+  // const api = await KubeApi.factory(log, provider.config.context)
   // const contextForLog = `Preparing environment for plugin "kubernetes"`
   // if (!await systemNamespaceUpToDate(api, log, contextForLog)) {
   //   await recreateSystemNamespaces(api, log)
@@ -197,7 +197,7 @@ export async function prepareLocalEnvironment({ ctx, log }: PrepareEnvironmentPa
   // make sure system services are deployed
   const k8sCtx = <KubernetesPluginContext>ctx
   if (!isSystemGarden(k8sCtx.provider)) {
-    const api = new KubeApi(k8sCtx.provider.config.context)
+    const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
     const contextForLog = `Preparing environment for plugin "local-kubernetes"`
     const outdated = !(await systemNamespaceUpToDate(api, log, contextForLog))
     if (outdated) {
@@ -256,8 +256,8 @@ export async function recreateSystemNamespaces(api: KubeApi, log: LogEntry) {
 
 export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = new KubeApi(k8sCtx.provider.config.context)
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const entry = log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace} (this may take a while)`,
