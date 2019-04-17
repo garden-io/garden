@@ -460,10 +460,10 @@ export async function compareDeployedObjects(
     // with exit code 1 if there is a mismatch, but may also fail with the same exit code for a number of other reasons,
     // including the cluster not supporting dry-runs, certain CRDs not supporting dry-runs etc.
     const yamlResources = await encodeYamlMulti(resources)
+    const context = ctx.provider.config.context
 
     try {
-      await kubectl(ctx.provider.config.context, namespace)
-        .call(["diff", "-f", "-"], { data: Buffer.from(yamlResources) })
+      await kubectl.exec({ log, context, namespace, args: ["diff", "-f", "-"], input: Buffer.from(yamlResources) })
 
       // If the commands exits succesfully, the check was successful and the diff is empty.
       log.verbose(`kubectl diff indicates all resources match the deployed resources.`)

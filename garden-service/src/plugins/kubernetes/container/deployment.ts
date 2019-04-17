@@ -13,7 +13,7 @@ import { ContainerModule, ContainerService } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources } from "../status"
-import { applyMany, deleteObjectsByLabel } from "../kubectl"
+import { apply, deleteObjectsByLabel } from "../kubectl"
 import { getAppNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../../constants"
@@ -36,16 +36,19 @@ export async function deployContainerService(params: DeployServiceParams<Contain
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
-  const objects = await createContainerObjects(k8sCtx, service, runtimeContext, hotReload)
+  const manifests = await createContainerObjects(k8sCtx, service, runtimeContext, hotReload)
 
   // TODO: use Helm instead of kubectl apply
+  const context = k8sCtx.provider.config.context
   const pruneSelector = "service=" + service.name
-  await applyMany(k8sCtx.provider.config.context, objects, { force, namespace, pruneSelector })
+
+  await apply({ log, context, manifests, force, namespace, pruneSelector })
+
   await waitForResources({
     ctx: k8sCtx,
     provider: k8sCtx.provider,
     serviceName: service.name,
-    resources: objects,
+    resources: manifests,
     log,
   })
 
@@ -384,6 +387,7 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
   const context = provider.config.context
   await deleteContainerDeployment({ namespace, context, serviceName: service.name, log })
   await deleteObjectsByLabel({
+    log,
     context,
     namespace,
     labelKey: "service",

@@ -15,7 +15,7 @@ import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import { checkResourceStatuses, waitForResources } from "../status"
 import { combineStates } from "../../../types/service"
-import { applyMany } from "../kubectl"
+import { apply } from "../kubectl"
 import { KubernetesProvider } from "../kubernetes"
 import chalk from "chalk"
 
@@ -47,12 +47,12 @@ export async function installTiller(ctx: PluginContext, provider: KubernetesProv
 
   // Need to install the RBAC stuff ahead of Tiller
   const roleResources = getRoleResources(namespace)
-  await applyMany(context, roleResources, { namespace })
+  await apply({ log, context, manifests: roleResources, namespace })
   await waitForResources({ ctx, provider, serviceName: "tiller", resources: roleResources, log })
 
   const tillerResources = await getTillerResources(ctx, provider, log)
   const pruneSelector = "app=helm,name=tiller"
-  await applyMany(context, tillerResources, { namespace, pruneSelector })
+  await apply({ log, context, manifests: tillerResources, namespace, pruneSelector })
   await waitForResources({ ctx, provider, serviceName: "tiller", resources: tillerResources, log })
 
   entry.setSuccess({ msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`), append: true })

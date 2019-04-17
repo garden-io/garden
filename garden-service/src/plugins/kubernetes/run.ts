@@ -61,12 +61,16 @@ export async function runPod(
     commandStr,
   ]
 
-  log.verbose(`Running kubectl ${kubecmd.join(" ")}`)
+  log.verbose(`Running kubectl ${args.join(" ")}`)
 
   const startedAt = new Date()
 
-  const res = await kubectl(context, namespace).call(kubecmd, {
-    ignoreError,
+  const res = await kubectl.spawnAndWait({
+    log,
+    context,
+    namespace,
+    args: kubecmd,
+    reject: !ignoreError,
     timeout,
     tty: interactive,
   })

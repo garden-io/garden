@@ -19,7 +19,8 @@ import { LogEntry } from "../logger/log-entry"
 import { Extract } from "unzipper"
 import { createHash } from "crypto"
 import * as uuid from "uuid"
-import * as spawn from "cross-spawn"
+import * as crossSpawn from "cross-spawn"
+import { spawn } from "./util"
 const AsyncLock = require("async-lock")
 
 const globalGardenPath = join(homedir(), ".garden")
@@ -206,12 +207,22 @@ export class Library {
   }
 }
 
-interface ExecParams {
+interface BinarySpec extends LibrarySpec {
+  defaultTimeout?: number
+}
+
+export interface ExecParams {
   args?: string[]
   cwd?: string
   env?: { [key: string]: string }
   log: LogEntry
   timeout?: number
+  input?: Buffer | string
+  reject?: boolean
+}
+
+export interface SpawnParams extends ExecParams {
+  tty?: boolean
 }
 
 /**
@@ -227,10 +238,12 @@ export class BinaryCmd extends Library {
   spec: LibraryPlatformSpec
 
   private chmodDone: boolean
+  private defaultTimeout: number
 
-  constructor(spec: LibrarySpec) {
+  constructor(spec: BinarySpec) {
     super(spec)
     this.chmodDone = false
+    this.defaultTimeout = 60
   }
 
   async getPath(log: LogEntry) {
@@ -243,9 +256,14 @@ export class BinaryCmd extends Library {
     return path
   }
 
-  async exec({ args, cwd, env, log, timeout }: ExecParams) {
+  async exec({ args, cwd, env, log, timeout, input }: ExecParams) {
     const path = await this.getPath(log)
-    return execa(path, args || [], { cwd: cwd || dirname(path), timeout, env })
+    return execa(path, args || [], {
+      cwd: cwd || dirname(path),
+      timeout: this.getTimeout(timeout) * 1000,
+      env,
+      input,
+    })
   }
 
   async stdout(params: ExecParams) {
@@ -255,6 +273,20 @@ export class BinaryCmd extends Library {
 
   async spawn({ args, cwd, env, log }: ExecParams) {
     const path = await this.getPath(log)
-    return spawn(path, args || [], { cwd: cwd || dirname(path), env })
+    return crossSpawn(path, args || [], { cwd: cwd || dirname(path), env })
+  }
+
+  async spawnAndWait({ args, cwd, env, log, timeout, tty }: SpawnParams) {
+    const path = await this.getPath(log)
+    return spawn(path, args || [], {
+      cwd: cwd || dirname(path),
+      timeout: this.getTimeout(timeout),
+      env,
+      tty,
+    })
+  }
+
+  private getTimeout(timeout?: number) {
+    return timeout === undefined ? this.defaultTimeout : timeout
   }
 }

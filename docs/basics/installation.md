@@ -22,7 +22,8 @@ If you haven't already set up Homebrew, please follow [their installation instru
 
 #### Step 2: Docker and local Kubernetes
 
-To install Docker, Kubernetes and kubectl, we strongly recommend Docker for Mac.
+To install Docker, Kubernetes and kubectl, we strongly recommend Docker for Mac. Garden itself doesn't require a local
+installation of Kubernetes, but it is in most cases the preferred way of using it.
 
 _Note: If you have an older version installed, you may need to update it in
 order to enable Kubernetes support._
@@ -73,7 +74,7 @@ You need the following dependencies on your local machine to use Garden:
 * [Docker](https://docs.docker.com/)
 * Git
 * rsync
-* Local installation of Kubernetes and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+* (in most cases) A local installation of Kubernetes and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 #### Step 1: Docker
 
@@ -135,8 +136,8 @@ environments:
 ```
 
 If you happen to have installed both Minikube and a version of Docker for Mac with Kubernetes support enabled,
-`garden` will choose whichever one is configured as the current context in your `kubectl` configuration, and if neither
-is set as the current context, Docker for Mac is preferred by default.
+`garden` will choose whichever one is configured as the current context in your `kubectl` configuration. If neither
+is set as the current context, the first available context is used.
 
 (If you're not yet familiar with Garden configuration files, see: [Configuration files](../using-garden/configuration-files.md))
 

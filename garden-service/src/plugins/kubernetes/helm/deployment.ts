@@ -89,7 +89,7 @@ export async function deployService(
       containerName: resourceSpec && resourceSpec.containerName,
     })
 
-    await apply(provider.config.context, hotReloadTarget, { namespace })
+    await apply({ log, context: provider.config.context, manifests: [hotReloadTarget], namespace })
   }
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because

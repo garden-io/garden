@@ -44,26 +44,22 @@ const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
 /**
  * Used by both the remote and local plugin
  */
-async function prepareNamespaces({ ctx }: GetEnvironmentStatusParams) {
+async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const kubeContext = k8sCtx.provider.config.context
 
   try {
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
-    await kubectl(kubeContext).call(["version"])
+    await kubectl.exec({ log, context: kubeContext, args: ["version"] })
   } catch (err) {
-    // TODO: catch error properly
-    if (err.detail.output) {
-      throw new DeploymentError(
-        `Unable to connect to Kubernetes cluster. ` +
-        `Please make sure it is running, reachable and that you have the right context configured.`,
-        {
-          kubeContext,
-          kubectlOutput: err.detail.output,
-        },
-      )
-    }
-    throw err
+    throw new DeploymentError(
+      `Unable to connect to Kubernetes cluster. ` +
+      `Please make sure it is running, reachable and that you have the right context configured.`,
+      {
+        kubeContext,
+        ...err,
+      },
+    )
   }
 
   await Bluebird.all([
