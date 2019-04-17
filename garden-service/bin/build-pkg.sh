@@ -30,8 +30,6 @@ mv garden-cli-linux linux-amd64/garden
 cp -r ../tmp/dist/static linux-amd64
 echo "    -> tar"
 tar -czf garden-${version}-linux-amd64.tar.gz linux-amd64
-echo "    -> cleaning up tmp files"
-rm -rf linux-amd64
 
 echo "  -> alpine-amd64"
 rm -rf alpine-amd64
@@ -40,8 +38,6 @@ mv garden-cli-alpine alpine-amd64/garden
 cp -r ../tmp/dist/static alpine-amd64
 echo "    -> tar"
 tar -czf garden-${version}-alpine-amd64.tar.gz alpine-amd64
-echo "    -> cleaning up tmp files"
-rm -rf alpine-amd64
 
 echo "  -> macos-amd64"
 rm -rf macos-amd64
@@ -52,8 +48,6 @@ cp -r ../tmp/dist/static macos-amd64
 cp ../lib/fsevents/node-v64-darwin-x64/fse.node macos-amd64
 echo "    -> tar"
 tar -czf garden-${version}-macos-amd64.tar.gz macos-amd64
-echo "    -> cleaning up tmp files"
-rm -rf macos-amd64
 
 echo "  -> windows-amd64"
 rm -rf windows-amd64
@@ -63,5 +57,3 @@ mv garden-cli-win.exe windows-amd64/garden.exe
 cp -r ../tmp/dist/static windows-amd64
 echo "    -> zip"
 zip -q -r garden-${version}-windows-amd64.zip windows-amd64
-echo "    -> cleaning up tmp files"
-rm -rf windows-amd64
