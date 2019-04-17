@@ -93,6 +93,33 @@ Use your preferred method or package manager to install `git` and `rsync`. On Ub
 
 Once you have the dependencies set up, download the Garden CLI for your platform from our [latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH. E.g. by extracting to `~/.garden/bin` and adding `export PATH=$PATH:~/.garden/bin` to your `.bashrc` or `.zshrc` file.
 
+## MicroK8s
+
+Garden can be used with [MicroK8s](https://microk8s.io) on supported Linux platforms.
+
+To install it, please follow [their instructions](https://microk8s.io/docs/).
+
+Once installed, note that you need to make sure Garden can access the cluster by either aliasing `microk8s.kubectl` to
+`kubectl`:
+
+```sh
+alias kubectl='microk8s.kubectl'
+```
+
+_Or_ if you already have `kubectl` installed (or wish to install it separately), you need to add the `microk8s`
+configuration to your `~/.kube/config` so that Garden knows how to access your cluster. We recommend exporting the
+config like this:
+
+```sh
+microk8s.kubectl config view --raw > $HOME/.kube/microk8s.config
+```
+
+And then adding this to your `.bashrc`/`.zshrc`:
+
+```sh
+export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}:$HOME/.kube/microk8s.config
+```
+
 ## Minikube
 
 Garden can be used with [Minikube](https://github.com/kubernetes/minikube) on supported platforms.

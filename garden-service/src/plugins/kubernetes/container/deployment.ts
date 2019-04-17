@@ -111,7 +111,7 @@ export async function createDeployment(
     valueFrom: { fieldRef: { fieldPath: "status.podIP" } },
   })
 
-  const registryConfig = provider.name === "local-kubernetes" ? undefined : provider.config.deploymentRegistry
+  const registryConfig = provider.config.deploymentRegistry
   const imageId = await containerHelpers.getDeploymentImageId(service.module, registryConfig)
 
   const container: any = {
@@ -423,8 +423,11 @@ export async function deleteContainerDeployment(
 }
 
 export async function pushModule({ ctx, module, log }: PushModuleParams<ContainerModule>) {
+  if (!ctx.provider.config.deploymentRegistry) {
+    return { pushed: false }
+  }
+
   if (!(await containerHelpers.hasDockerfile(module))) {
-    log.setState({ msg: `Nothing to push` })
     return { pushed: false }
   }
 

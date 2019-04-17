@@ -12,26 +12,15 @@ import { KubernetesBaseConfig, kubernetesConfigBase } from "../kubernetes"
 import { ConfigureProviderParams } from "../../../types/plugin/params"
 import { joiProviderName } from "../../../config/common"
 import { getKubeConfig } from "../api"
+import { configureMicrok8sAddons } from "./microk8s"
+import { setMinikubeDockerEnv } from "./minikube"
+import { ContainerRegistryConfig } from "../../container/config"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
-const supportedContexts = ["docker-for-desktop", "minikube"]
-
-/**
- * Automatically set docker environment variables for minikube
- * TODO: it would be better to explicitly provide those to docker instead of using process.env
- */
-async function setMinikubeDockerEnv() {
-  const minikubeEnv = await execa.stdout("minikube", ["docker-env", "--shell=bash"])
-  for (const line of minikubeEnv.split("\n")) {
-    const matched = line.match(/^export (\w+)="(.+)"$/)
-    if (matched) {
-      process.env[matched[1]] = matched[2]
-    }
-  }
-}
+const supportedContexts = ["docker-for-desktop", "microk8s", "minikube"]
 
 export interface LocalKubernetesConfig extends KubernetesBaseConfig {
   _system?: Symbol
@@ -58,7 +47,9 @@ export const configSchema = kubernetesConfigBase
 export async function configureProvider({ config, log, projectName }: ConfigureProviderParams<LocalKubernetesConfig>) {
   let context = config.context
   let defaultHostname = config.defaultHostname
+  let deploymentRegistry: ContainerRegistryConfig | undefined = undefined
   let setupIngressController = config.setupIngressController
+  const namespace = config.namespace || projectName
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
@@ -69,7 +60,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
       // prefer current context if set and supported
       context = currentContext
       log.debug({ section: config.name, msg: `Using current context: ${context}` })
-    } else if (kubeConfig.contexts) {
+    } else {
       const availableContexts = kubeConfig.contexts.map(c => c.name)
 
       for (const supportedContext of supportedContexts) {
@@ -102,7 +93,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     }
 
     if (config.setupIngressController === "nginx") {
-      log.silly("Using minikube's ingress addon")
+      log.debug("Using minikube's ingress addon")
       await execa("minikube", ["addons", "enable", "ingress"])
       // make sure the prepare handler doesn't also set up the ingress controller
       setupIngressController = null
@@ -110,10 +101,27 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
 
     await setMinikubeDockerEnv()
 
-  } else {
-    if (!defaultHostname) {
-      defaultHostname = `${projectName}.local.app.garden`
+  } else if (context === "microk8s") {
+    const addons = ["dns", "dashboard", "registry", "storage"]
+
+    if (config.setupIngressController === "nginx") {
+      log.debug("Using microk8s's ingress addon")
+      addons.push("ingress")
+      // make sure the prepare handler doesn't also set up the ingress controller
+      setupIngressController = null
     }
+
+    await configureMicrok8sAddons(log, addons)
+
+    // Need to push to the built-in registry
+    deploymentRegistry = {
+      hostname: "localhost:32000",
+      namespace,
+    }
+  }
+
+  if (!defaultHostname) {
+    defaultHostname = `${projectName}.local.app.garden`
   }
 
   const ingressClass = config.ingressClass || config.setupIngressController || undefined
@@ -122,12 +130,13 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     name: config.name,
     context,
     defaultHostname,
+    deploymentRegistry,
     forceSsl: false,
     imagePullSecrets: config.imagePullSecrets,
     ingressHttpPort: 80,
     ingressHttpsPort: 443,
     ingressClass,
-    namespace: config.namespace || projectName,
+    namespace,
     setupIngressController,
     tlsCertificates: config.tlsCertificates,
     _system: config._system,

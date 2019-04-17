@@ -24,9 +24,5 @@ export function gardenPlugin(): GardenPlugin {
   plugin.actions!.getEnvironmentStatus = getLocalEnvironmentStatus
   plugin.actions!.prepareEnvironment = prepareLocalEnvironment
 
-  // no need to push before deploying locally
-  delete plugin.moduleActions!.container.pushModule
-  delete plugin.moduleActions!["maven-container"].pushModule
-
   return plugin
 }
