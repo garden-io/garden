@@ -294,8 +294,12 @@ async function getLocalRsyncPort(ctx: PluginContext, log: LogEntry, targetDeploy
   log.debug(`Forwarding local port ${rsyncLocalPort} to ${targetDeployment} sync container port ${RSYNC_PORT}`)
 
   // TODO: use the API directly instead of kubectl (need to reverse engineer kubectl a bit to get how that works)
-  const proc = kubectl(k8sCtx.provider.config.context, namespace)
-    .spawn(["port-forward", targetDeployment, portMapping])
+  const proc = await kubectl.spawn({
+    log,
+    context: k8sCtx.provider.config.context,
+    namespace,
+    args: ["port-forward", targetDeployment, portMapping],
+  })
 
   return new Promise((resolve) => {
     proc.on("error", (error) => {

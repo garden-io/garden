@@ -26,7 +26,7 @@ import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes"
 import { storeTaskResult } from "../task-results"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
-  const { ctx, service, command, interactive } = params
+  const { ctx, log, service, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = new KubeApi(provider.config.context)
@@ -68,8 +68,12 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   }
 
   const kubecmd = ["exec", ...opts, pod.metadata.name, "--", ...command]
-  const res = await kubectl(api.context, namespace).call(kubecmd, {
-    ignoreError: true,
+  const res = await kubectl.spawnAndWait({
+    log,
+    context: api.context,
+    namespace,
+    args: kubecmd,
+    reject: false,
     timeout: 999999,
     tty: interactive,
   })

@@ -6,11 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcess } from "child_process"
 import * as _spawn from "cross-spawn"
-import { encodeYamlMulti, spawn, SpawnOpts } from "../../util/util"
+import { encodeYamlMulti } from "../../util/util"
+import { BinaryCmd, ExecParams } from "../../util/ext-tools"
+import { LogEntry } from "../../logger/log-entry"
 
-export interface ApplyOptions {
+export interface ApplyParams {
+  log: LogEntry,
+  context: string,
+  manifests: object[],
   dryRun?: boolean,
   force?: boolean,
   pruneSelector?: string,
@@ -19,66 +23,10 @@ export interface ApplyOptions {
 
 export const KUBECTL_DEFAULT_TIMEOUT = 300
 
-export class Kubectl {
-  public context: string
-  public namespace?: string
-  public configPath?: string
-
-  // TODO: namespace should always be required
-  constructor({ context, namespace, configPath }: { context: string, namespace?: string, configPath?: string }) {
-    this.context = context
-    this.namespace = namespace
-    this.configPath = configPath
-  }
-
-  async call(args: string[], opts: SpawnOpts = {}) {
-    const { data, ignoreError = false, timeout = KUBECTL_DEFAULT_TIMEOUT, tty } = opts
-    const preparedArgs = this.prepareArgs(args)
-    return spawn("kubectl", preparedArgs, { ignoreError, data, timeout, tty })
-  }
-
-  async json(args: string[], opts: SpawnOpts = {}): Promise<any> {
-    if (!args.includes("--output=json")) {
-      args.push("--output=json")
-    }
-
-    const result = await this.call(args, opts)
-
-    return JSON.parse(result.output)
-  }
-
-  spawn(args: string[]): ChildProcess {
-    return _spawn("kubectl", this.prepareArgs(args))
-  }
-
-  private prepareArgs(args: string[]) {
-    const opts: string[] = [`--context=${this.context}`]
-
-    if (this.namespace) {
-      opts.push(`--namespace=${this.namespace}`)
-    }
-
-    if (this.configPath) {
-      opts.push(`--kubeconfig=${this.configPath}`)
-    }
-
-    return opts.concat(args)
-  }
-}
-
-export function kubectl(context: string, namespace?: string) {
-  return new Kubectl({ context, namespace })
-}
-
-export async function apply(context: string, obj: object, params: ApplyOptions) {
-  return applyMany(context, [obj], params)
-}
-
-export async function applyMany(
-  context: string, objects: object[],
-  { dryRun = false, force = false, namespace, pruneSelector }: ApplyOptions = {},
+export async function apply(
+  { log, context, manifests: objects, dryRun = false, force = false, namespace, pruneSelector }: ApplyParams,
 ) {
-  const data = Buffer.from(encodeYamlMulti(objects))
+  const input = Buffer.from(encodeYamlMulti(objects))
 
   let args = ["apply"]
   dryRun && args.push("--dry-run")
@@ -86,16 +34,17 @@ export async function applyMany(
   pruneSelector && args.push("--prune", "--selector", pruneSelector)
   args.push("--output=json", "-f", "-")
 
-  const result = await kubectl(context, namespace).call(args, { data })
+  const result = await kubectl.stdout({ log, context, namespace, args, input })
 
   try {
-    return JSON.parse(result.output)
+    return JSON.parse(result)
   } catch (_) {
-    return result.output
+    return result
   }
 }
 
 export interface DeleteObjectsParams {
+  log: LogEntry,
   context: string,
   namespace: string,
   labelKey: string,
@@ -106,6 +55,7 @@ export interface DeleteObjectsParams {
 
 export async function deleteObjectsByLabel(
   {
+    log,
     context,
     namespace,
     labelKey,
@@ -123,11 +73,91 @@ export async function deleteObjectsByLabel(
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  const result = await kubectl(context, namespace).call(args)
+  const result = await kubectl.stdout({ context, namespace, args, log })
 
   try {
-    return JSON.parse(result.output)
+    return JSON.parse(result)
   } catch (_) {
-    return result.output
+    return result
   }
 }
+
+interface KubectlParams extends ExecParams {
+  log: LogEntry
+  context: string
+  namespace?: string
+  configPath?: string
+  args: string[]
+}
+
+interface KubectlSpawnParams extends KubectlParams {
+  tty?: boolean
+  wait?: boolean
+}
+
+class Kubectl extends BinaryCmd {
+  async exec(params: KubectlParams) {
+    this.prepareArgs(params)
+    return super.exec(params)
+  }
+
+  async stdout(params: KubectlParams) {
+    this.prepareArgs(params)
+    return super.stdout(params)
+  }
+
+  async spawn(params: KubectlParams) {
+    this.prepareArgs(params)
+    return super.spawn(params)
+  }
+
+  async spawnAndWait(params: KubectlSpawnParams) {
+    this.prepareArgs(params)
+    return super.spawnAndWait(params)
+  }
+
+  async json(params: KubectlParams): Promise<any> {
+    if (!params.args.includes("--output=json")) {
+      params.args.push("--output=json")
+    }
+
+    const result = await this.stdout(params)
+
+    return JSON.parse(result)
+  }
+
+  private prepareArgs(params: KubectlParams) {
+    const { context, namespace, configPath, args } = params
+
+    const opts: string[] = [`--context=${context}`]
+
+    if (namespace) {
+      opts.push(`--namespace=${namespace}`)
+    }
+
+    if (configPath) {
+      opts.push(`--kubeconfig=${configPath}`)
+    }
+
+    params.args = opts.concat(args)
+  }
+}
+
+export const kubectl = new Kubectl({
+  name: "kubectl",
+  defaultTimeout: KUBECTL_DEFAULT_TIMEOUT,
+  specs: {
+    darwin: {
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/darwin/amd64/kubectl",
+      sha256: "26bb69f6ac819700d12be3339c19887a2e496ef3e487e896af2375bf1455cb9f",
+    },
+    linux: {
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/linux/amd64/kubectl",
+      sha256: "99ade995156c1f2fcb01c587fd91be7aae9009c4a986f43438e007265ca112e8",
+    },
+    win32: {
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/windows/amd64/kubectl.exe",
+      sha256: "427fd942e356ce44d6c396674bba486ace99f99e45f9121c513c7dd98ff999f0",
+    },
+  },
+})

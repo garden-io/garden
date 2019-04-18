@@ -25,12 +25,12 @@ import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../kubernetes"
 import { KubernetesResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
-import { applyMany, deleteObjectsByLabel } from "../kubectl"
 import { GARDEN_ANNOTATION_KEYS_SERVICE } from "../../../constants"
 import { compareDeployedObjects, waitForResources } from "../status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
 import { getAllLogs } from "../logs"
+import { deleteObjectsByLabel, apply } from "../kubectl"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModule>> = {
   build,
@@ -77,7 +77,7 @@ async function deployService(
   const manifests = await getManifests(module)
 
   const pruneSelector = getSelector(service)
-  await applyMany(context, manifests, { force, namespace, pruneSelector })
+  await apply({ log, context, manifests, force, namespace, pruneSelector })
 
   await waitForResources({
     ctx: k8sCtx,
@@ -91,7 +91,7 @@ async function deployService(
 }
 
 async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
-  const { ctx, service, module } = params
+  const { ctx, log, service, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
   const provider = k8sCtx.provider
@@ -99,6 +99,7 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
 
   const context = provider.config.context
   await deleteObjectsByLabel({
+    log,
     context,
     namespace,
     labelKey: GARDEN_ANNOTATION_KEYS_SERVICE,

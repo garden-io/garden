@@ -160,7 +160,9 @@ export class ActionHelper implements TypeGuard {
     // FIXME: We're calling getEnvironmentStatus before preparing the environment.
     // Results in 404 errors for unprepared/missing services.
     // See: https://github.com/garden-io/garden/issues/353
-    const statuses = await this.getEnvironmentStatus({ pluginName, log })
+
+    const entry = log.info({ section: "providers", msg: "Getting status...", status: "active" })
+    const statuses = await this.getEnvironmentStatus({ pluginName, log: entry })
 
     const needUserInput = Object.entries(statuses)
       .map(([name, status]) => ({ ...status, name }))
@@ -172,36 +174,47 @@ export class ActionHelper implements TypeGuard {
         ? `Plugin ${names} has been updated or hasn't been configured, and requires user input.`
         : `Plugins ${names} have been updated or haven't been configured, and require user input.`
 
+      entry.setError()
+
       throw new ConfigurationError(
         `${msgPrefix}. Please run \`garden init\` and then re-run this command.`,
         { statuses },
       )
     }
 
+    const needPrep = Object.entries(handlers).filter(([name]) => {
+      const status = statuses[name] || { ready: false }
+      const needForce = status.detail && !!status.detail.needForce
+      const forcePrep = force || needForce
+      return forcePrep || !status.ready
+    })
+
     const output = {}
 
+    if (needPrep.length > 0) {
+      entry.setState(`Preparing environment...`)
+    }
+
     // sequentially go through the preparation steps, to allow plugins to request user input
-    for (const [name, handler] of Object.entries(handlers)) {
+    for (const [name, handler] of needPrep) {
       const status = statuses[name] || { ready: false }
       const needForce = status.detail && !!status.detail.needForce
       const forcePrep = force || needForce
 
-      if (status.ready && !forcePrep) {
-        continue
-      }
-
-      const envLogEntry = log.info({
+      const envLogEntry = entry.info({
         status: "active",
         section: name,
-        msg: "Preparing environment...",
+        msg: "Configuring...",
       })
 
       await handler({ ...this.commonParams(handler, log), force: forcePrep, status, log: envLogEntry })
 
-      envLogEntry.setSuccess("Configured")
+      envLogEntry.setSuccess({ msg: chalk.green("Ready"), append: true })
 
       output[name] = true
     }
+
+    entry.setSuccess({ msg: chalk.green("Ready"), append: true })
 
     return output
   }

@@ -74,6 +74,7 @@ export interface SpawnOpts {
   ignoreError?: boolean
   env?: { [key: string]: string | undefined }
   tty?: boolean
+  wait?: boolean
 }
 
 export interface SpawnOutput {
@@ -100,7 +101,7 @@ function naivelyTruncateBytes(str: string) {
 
 // TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
-  const { timeout = 0, cwd, data, ignoreError = false, env, tty } = opts
+  const { timeout = 0, cwd, data, ignoreError = false, env, tty, wait = true } = opts
 
   const stdio = tty ? "inherit" : "pipe"
   const proc = _spawn(cmd, args, { cwd, env, stdio })
@@ -146,6 +147,11 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   return new Promise<SpawnOutput>((resolve, reject) => {
     let _timeout: NodeJS.Timeout
+
+    if (!wait) {
+      resolve(result)
+      return
+    }
 
     const _reject = (err: GardenError) => {
       extend(err.detail, <any>result)
