@@ -1,4 +1,20 @@
 
+<a name="v0.9.10-0"></a>
+## [v0.9.10-0](https://github.com/garden-io/garden/compare/v0.9.9...v0.9.10-0) (2019-04-18)
+
+### Bug Fixes
+
+* **cli:** detect missing services in --hot option ([9209ac4](https://github.com/garden-io/garden/commit/9209ac4))
+* **k8s:** allow multiple paths in KUBECONFIG env var ([9cc6130](https://github.com/garden-io/garden/commit/9cc6130))
+
+### Features
+
+* **cli:** allow --hot=* in dev/deploy commands ([15db6ed](https://github.com/garden-io/garden/commit/15db6ed))
+* **dashboard:** added taskProcessing state ([10bc275](https://github.com/garden-io/garden/commit/10bc275))
+* **k8s:** add microk8s support ([e113c69](https://github.com/garden-io/garden/commit/e113c69))
+* **k8s:** automatically fetch kubectl when needed ([d79f7a4](https://github.com/garden-io/garden/commit/d79f7a4))
+
+
 <a name="v0.9.9"></a>
 ## [v0.9.9](https://github.com/garden-io/garden/compare/v0.9.8...v0.9.9) (2019-04-11)
 
