@@ -31,7 +31,7 @@ interface UiStateAndActions {
   actions: UiActions,
 }
 
-export const UiStateContext = React.createContext<UiStateAndActions>(null)
+export const UiStateContext = React.createContext<UiStateAndActions>({} as UiStateAndActions)
 
 const useUiState = () => {
   const [uiState, setState] = useState<UiState>(INITIAL_UI_STATE)

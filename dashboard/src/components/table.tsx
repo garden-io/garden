@@ -13,7 +13,7 @@ import Card from "./card"
 
 import { colors, fontMedium } from "../styles/variables"
 
-export type ColEl = string | React.ReactElement<any>
+export type ColEl = JSX.Element | string | null
 
 interface Props {
   title: string

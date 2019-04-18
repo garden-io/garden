@@ -123,7 +123,7 @@ class Logs extends Component<Props, State> {
     const { config, logs } = this.props
     const { loading, selectedService } = this.state
     const serviceNames = getServiceNames(config.moduleConfigs)
-    const maxServiceName = max(serviceNames).length
+    const maxServiceName = (max(serviceNames) || []).length
     const options = [{ value: "all", label: "All service logs" }]
       .concat(serviceNames.map(name => ({ value: name, label: name })))
 
@@ -159,7 +159,6 @@ class Logs extends Component<Props, State> {
             <Terminal
               entries={filteredLogs}
               sectionPad={maxServiceName}
-              title={title}
               showServiceName={value === "all"}
             />
           </div>

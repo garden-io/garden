@@ -58,9 +58,7 @@ function drawChart(
   // Create the input graph
   const g = new dagreD3.graphlib.Graph()
     .setGraph({})
-    .setDefaultEdgeLabel(function() {
-      return {}
-    })
+    .setDefaultEdgeLabel(function () { return {} })
 
   // Here we"re setting nodeclass, which is used by our custom drawNodes function
   // below.
@@ -73,7 +71,7 @@ function drawChart(
     })
   }
 
-  g.nodes().forEach(function(v) {
+  g.nodes().forEach(function (v) {
     const node = g.node(v)
     // Round the corners of the nodes
     node.rx = node.ry = 5
@@ -109,7 +107,7 @@ function drawChart(
   const svgGroup = svg.append("g")
 
   // Set up zoom support
-  const zoom = d3.zoom().on("zoom", () => {
+  const zoom = d3.zoom<SVGSVGElement, {}>().on("zoom", () => {
     svgGroup.attr("transform", d3.event.transform)
   })
   svg.call(zoom)
@@ -215,6 +213,8 @@ class Chart extends Component<Props, State> {
 
     this._chartRef = React.createRef()
     this.onCheckboxChange = this.onCheckboxChange.bind(this)
+    this._nodes = []
+    this._edges = []
 
     const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
     const filters = taskTypes.reduce((acc, type) => {
@@ -309,9 +309,11 @@ class Chart extends Component<Props, State> {
     for (const node of this._nodes) {
       if (message.payload.key && node.id === message.payload.key) {
         const nodeEl = document.getElementById(node.id)
-        this.clearClasses(nodeEl)
-        if (nodeTaskTypes.find(t => t === message.name)) {
-          nodeEl.classList.add(message.name) // message.name is of type NodeTask
+        if (nodeEl) {
+          this.clearClasses(nodeEl)
+          if (nodeTaskTypes.find(t => t === message.name)) {
+            nodeEl.classList.add(message.name) // message.name is of type NodeTask
+          }
         }
       }
     }
@@ -322,7 +324,7 @@ class Chart extends Component<Props, State> {
     const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
     const chartHeightEstimate = `100vh - 15rem`
 
-    let spinner = null
+    let spinner: JSX.Element | null = null
     let status = ""
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."

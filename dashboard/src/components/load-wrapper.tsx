@@ -11,7 +11,7 @@ import React from "react"
 import Spinner from "./spinner"
 
 interface LoadContainerProps {
-  error: Error
+  error: Error | null
   loading: boolean
   ErrorComponent: React.SFC<any> | React.ComponentClass<any>
   LoadComponent?: React.SFC<any> | React.ComponentClass<any>

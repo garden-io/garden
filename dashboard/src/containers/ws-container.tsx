@@ -61,7 +61,7 @@ class WsContainer extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    this._ws.close()
+    this._ws && this._ws.close()
   }
 
   render() {

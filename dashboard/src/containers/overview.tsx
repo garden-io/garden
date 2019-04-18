@@ -40,12 +40,12 @@ export default () => {
   const isLoadingServices = !status.data || status.loading
 
   // Only show when load component for Modules is no longer visible
-  const ServiceLoadMsg = isLoadingModules ? null : LoadingServices
+  const ServiceLoadMsg = isLoadingModules ? undefined : LoadingServices
 
   return (
     <div>
       <LoadWrapper error={config.error} ErrorComponent={PageError} loading={isLoadingModules}>
-        <Modules moduleConfigs={config.data && config.data.moduleConfigs} />
+        {config.data && <Modules moduleConfigs={config.data && config.data.moduleConfigs} />}
       </LoadWrapper>
       <LoadWrapper
         error={status.error}
@@ -53,10 +53,10 @@ export default () => {
         ErrorComponent={PageError}
         loading={isLoadingServices}
       >
-        <Services
-          moduleConfigs={config.data && config.data.moduleConfigs}
-          services={status.data && status.data.services}
-        />
+        {status.data && config.data && <Services
+          moduleConfigs={config.data.moduleConfigs}
+          services={status.data.services}
+        />}
       </LoadWrapper>
     </div>
   )

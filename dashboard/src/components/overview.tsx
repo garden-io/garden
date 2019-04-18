@@ -56,12 +56,17 @@ export const Modules: React.SFC<ModulesProps> = ({ moduleConfigs }) => {
 
 export const Services: React.SFC<ServicesProps> = ({ moduleConfigs, services }) => {
   const rowHeaders = ["Name", "Status", "Module", "Ingresses"]
-  const rows = Object.keys(services).map(service => [
-    service,
-    services[service].state,
-    moduleConfigs.find(m => m.serviceConfigs.map(s => s.name).includes(service)).name,
-    services[service].ingresses ? <Ingresses ingresses={services[service].ingresses} /> : null,
-  ])
+  const rows = Object.keys(services).map(serviceName => {
+    const service = services[serviceName]
+    const moduleConfig = moduleConfigs.find(m => m.serviceConfigs.map(s => s.name).includes(serviceName))
+    const moduleName = moduleConfig ? moduleConfig.name : ""
+    return [
+      serviceName,
+      service.state || "",
+      moduleName,
+      service.ingresses ? <Ingresses ingresses={service.ingresses} /> : null,
+    ]
+  })
   return (
     <Table
       title="Services"

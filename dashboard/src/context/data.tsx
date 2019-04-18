@@ -64,11 +64,11 @@ interface Store {
 }
 
 export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
-export type loadTaskResultType = (
+export type LoadTaskResult = (
   param: FetchTaskResultParam,
   force?: boolean,
 ) => void
-export type loadTestResultType = (
+export type LoadTestResult = (
   param: FetchTestResultParam,
   force?: boolean,
 ) => void
@@ -80,8 +80,8 @@ interface Actions {
   loadConfig: Loader
   loadStatus: Loader
   loadGraph: Loader
-  loadTaskResult: loadTaskResultType
-  loadTestResult: loadTestResultType
+  loadTaskResult: LoadTaskResult
+  loadTestResult: LoadTestResult
 }
 
 type KeyActionPair =
@@ -114,7 +114,9 @@ const initialState: Store = sliceNames.reduce((acc, key) => {
   return acc
 }, {}) as Store
 
-export const DataContext = React.createContext<Context | null>(null)
+// We type cast the initial value to avoid having to check whether the context exists in every context consumer.
+// Context is only undefined if the provider is missing which we assume is not the case.
+export const DataContext = React.createContext<Context>({} as Context)
 
 // Updates slices of the store based on the slice key
 function updateSlice(
@@ -141,21 +143,13 @@ function useApi() {
 
     try {
       const res = args ? await fetchFn(...args) : await fetchFn()
-      setData(prevState =>
-        updateSlice(prevState, key, { data: res, error: null }),
-      )
+      setData(prevState => updateSlice(prevState, key, { data: res, error: null, loading: false }))
     } catch (error) {
-      setData(prevState => updateSlice(prevState, key, { error }))
+      setData(prevState => updateSlice(prevState, key, { error, loading: false }))
     }
-
-    setData(prevState => updateSlice(prevState, key, { loading: false }))
   }
 
-  const fetchOrReadFromStore = (
-    keyActionPair: KeyActionPair,
-    force: boolean,
-    args: any = [],
-  ) => {
+  const fetchOrReadFromStore = (keyActionPair: KeyActionPair, force: boolean, args: any[] = []) => {
     const key = keyActionPair[0]
     const { data, loading } = store[key]
     if (!force && (data || loading)) {
@@ -175,14 +169,14 @@ function useApi() {
   const loadStatus: Loader = (force: boolean = false) =>
     fetchOrReadFromStore(["status", fetchStatus], force)
 
-  const loadTaskResult: loadTaskResult = (
+  const loadTaskResult: LoadTaskResult = (
     args: FetchTaskResultParam,
     force: boolean = false,
   ) => {
     return fetchOrReadFromStore(["taskResult", fetchTaskResult], force, [args])
   }
 
-  const loadTestResult: loadTestResult = (
+  const loadTestResult: LoadTestResult = (
     args: FetchTestResultParam,
     force: boolean = false,
   ) => {

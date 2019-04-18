@@ -14,13 +14,13 @@ import { WsMessage } from "../api/types"
 
 type Context = { message?: WsMessage }
 
-export const EventContext = React.createContext<Context | null>(null)
+export const EventContext = React.createContext<Context>({} as Context)
 
 interface WsOutput {
-  message: WsMessage | null
+  message?: WsMessage
 }
 function useWs(): WsOutput {
-  const [data, setData] = useState<WsOutput | null>(null)
+  const [data, setData] = useState<WsOutput>()
   useEffect(() => {
     const url = getApiUrl()
     const ws = new WebSocket(`ws://${url}/ws`)
@@ -33,16 +33,16 @@ function useWs(): WsOutput {
       console.log("ws close", event)
     }
     ws.onmessage = msg => {
-      const message = JSON.parse(msg.data) as WsMessage
+      const parsedMsg = JSON.parse(msg.data) as WsMessage
 
       // TOOD
-      if (message.type === "error") {
-        console.error(message)
+      if (parsedMsg.type === "error") {
+        console.error(parsedMsg)
       }
 
-      if (message.type === "event") {
-        console.log(message)
-        setData({ message })
+      if (parsedMsg.type === "event") {
+        console.log(parsedMsg)
+        setData({ message: parsedMsg })
       }
     }
     return function cleanUp() {
@@ -51,9 +51,8 @@ function useWs(): WsOutput {
     }
   }, [])
 
-  const wsMessage = data ? data.message : null
-
-  return { message: wsMessage }
+  const message = data ? data.message : undefined
+  return { message }
 }
 
 export const EventProvider: React.SFC = ({ children }) => {

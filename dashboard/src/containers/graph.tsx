@@ -36,7 +36,7 @@ export default () => {
     !config.data || !graph.data || config.loading || graph.loading
   const error = config.error || graph.error
 
-  let moreInfoPane: JSX.Element
+  let moreInfoPane: JSX.Element | null = null
   if (selectedGraphNode) {
     const { name, type, moduleName } = graph.data.nodes.find(
       node => node.key === selectedGraphNode,
@@ -59,13 +59,13 @@ export default () => {
     <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
       <div className="row">
         <div className={moreInfoPane ? "col-xs-7" : "col-xs"}>
-          <Graph
+          {config.data && graph.data && <Graph
             message={message}
             selectGraphNode={selectGraphNode}
             selectedGraphNode={selectedGraphNode}
             config={config.data}
             graph={graph.data}
-          />
+          />}}
         </div>
 
         {moreInfoPane && (

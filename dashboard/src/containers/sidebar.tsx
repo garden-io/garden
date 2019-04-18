@@ -53,7 +53,7 @@ const SidebarContainer = () => {
 
   if (status.data) {
     pages = flatten(entries(status.data.providers).map(([providerName, providerStatus]) => {
-      return providerStatus.dashboardPages.map(p => ({
+      return (providerStatus.dashboardPages || []).map(p => ({
         ...p,
         path: `/provider/${providerName}/${kebabCase(p.title)}`,
         description: p.description + ` (from provider ${providerName})`,
