@@ -8,6 +8,8 @@ For example, services that can be run with a file system watcher that automatica
 
 Currently, services are only deployed with hot reloading enabled when their names are passed to the `--hot` option via `garden deploy` or `garden dev` commands (e.g. `garden dev --hot=foo-service,bar-service`). If these services don't belong to a module defining a `hotReload` configuration (see below for an example), an error will be thrown if their names are passed to the `--hot` option.
 
+You can also pass `*` (e.g. `--hot=*`/`--hot-reload=*`) to deploy all compatible services with hot reloading enabled (i.e. all services belonging to a module that defines a `hotReload` configuration).
+
 Subsequently deploying a service belonging to a module configured for hot reloading via `garden deploy` (without the watch flag) results in the service being redeployed in standard configuration.
 
 Since hot reloading is triggered via Garden's file system watcher, hot reloading only occurs while a watch-mode Garden command is running.

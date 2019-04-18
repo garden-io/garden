@@ -23,6 +23,7 @@ import { processServices } from "../process"
 import { logHeader } from "../logger/util"
 import { HotReloadTask } from "../tasks/hot-reload"
 import { BaseTask } from "../tasks/base"
+import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 
 const deployArgs = {
   services: new StringsParameter({
@@ -41,7 +42,9 @@ const deployOpts = {
   }),
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
-      Use comma as a separator to specify multiple services. When this option is used,
+      Use comma as a separator to specify multiple services. Use * to deploy all
+      services with hot reloading enabled (ignores services belonging to modules that
+      don't support or haven't configured hot reloading). When this option is used,
       the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
     `,
     alias: "hot",
@@ -64,13 +67,14 @@ export class DeployCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden deploy                         # deploy all modules in the project
-        garden deploy my-service              # only deploy my-service
-        garden deploy service-a,service-b     # only deploy service-a and service-b
-        garden deploy --force                 # force re-deploy of modules, even if they're already deployed
-        garden deploy --watch                 # watch for changes to code
-        garden deploy --watch --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
-        garden deploy --env stage             # deploy your services to an environment called stage
+        garden deploy                      # deploy all modules in the project
+        garden deploy my-service           # only deploy my-service
+        garden deploy service-a,service-b  # only deploy service-a and service-b
+        garden deploy --force              # force re-deploy of modules, even if they're already deployed
+        garden deploy --watch              # watch for changes to code
+        garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
+        garden deploy --hot=*              # deploys all compatible services with hot reloading enabled
+        garden deploy --env stage          # deploy your services to an environment called stage
   `
 
   arguments = deployArgs
@@ -89,11 +93,15 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: {} }
     }
 
-    const hotReloadServiceNames = opts["hot-reload"] || []
-
+    const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
     let watch
     if (hotReloadServiceNames.length > 0) {
       await initGraph.getServices(hotReloadServiceNames) // validate the existence of these services
+      const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
+      if (errMsg) {
+        log.error({ msg: errMsg })
+        return { result: {} }
+      }
       watch = true
     } else {
       watch = opts.watch

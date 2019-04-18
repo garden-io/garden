@@ -30,6 +30,7 @@ import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { HotReloadTask } from "../tasks/hot-reload"
 import { ConfigGraph } from "../config-graph"
+import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -38,7 +39,9 @@ const devArgs = {}
 const devOpts = {
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
-      Use comma as a separator to specify multiple services.
+      Use comma as a separator to specify multiple services. Use * to deploy all
+      services with hot reloading enabled (ignores services belonging to modules that
+      don't support or haven't configured hot reloading).
     `,
     alias: "hot",
   }),
@@ -65,6 +68,7 @@ export class DevCommand extends Command<Args, Opts> {
         garden dev
         garden dev --hot-reload=foo-service       # enable hot reloading for foo-service
         garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
+        garden dev --hot=*                        # enable hot reloading for all compatible services
   `
 
   options = devOpts
@@ -88,9 +92,13 @@ export class DevCommand extends Command<Args, Opts> {
       return {}
     }
 
-    const hotReloadServiceNames = opts["hot-reload"] || []
+    const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], graph)
     if (hotReloadServiceNames.length > 0) {
-      await graph.getServices(hotReloadServiceNames) // validate the existence of these services
+      const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, graph)
+      if (errMsg) {
+        log.error({ msg: errMsg })
+        return { result: {} }
+      }
     }
 
     await garden.actions.prepareEnvironment({ log })
