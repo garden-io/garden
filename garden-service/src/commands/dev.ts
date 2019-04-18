@@ -78,8 +78,6 @@ export class DevCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, logFooter, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
-    await garden.actions.prepareEnvironment({ log })
-
     const graph = await garden.getConfigGraph()
     const modules = await graph.getModules()
 
@@ -91,6 +89,11 @@ export class DevCommand extends Command<Args, Opts> {
     }
 
     const hotReloadServiceNames = opts["hot-reload"] || []
+    if (hotReloadServiceNames.length > 0) {
+      await graph.getServices(hotReloadServiceNames) // validate the existence of these services
+    }
+
+    await garden.actions.prepareEnvironment({ log })
 
     const tasksForModule = (watch: boolean) => {
       return async (updatedGraph: ConfigGraph, module: Module) => {

@@ -90,7 +90,14 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const hotReloadServiceNames = opts["hot-reload"] || []
-    const watch = opts.watch || hotReloadServiceNames.length > 0
+
+    let watch
+    if (hotReloadServiceNames.length > 0) {
+      await initGraph.getServices(hotReloadServiceNames) // validate the existence of these services
+      watch = true
+    } else {
+      watch = opts.watch
+    }
 
     // TODO: make this a task
     await garden.actions.prepareEnvironment({ log })
