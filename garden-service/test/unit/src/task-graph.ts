@@ -130,6 +130,7 @@ describe("task-graph", () => {
       expect(garden.events.eventLog).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
+        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskComplete", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -168,6 +169,7 @@ describe("task-graph", () => {
       expect(garden.events.eventLog).to.eql([
         { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
+        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskError", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])

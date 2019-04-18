@@ -1,6 +1,10 @@
 #chart {
   g.taskPending > rect {
     stroke: #f17fcd;
+  }
+
+  g.taskProcessing > rect {
+    stroke: #f17fcd;
     stroke-dasharray: 8;
     animation: dash 15s linear infinite;
   }

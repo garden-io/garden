@@ -114,7 +114,8 @@ export interface WsPayload {
   version: any
 }
 
-export type NodeTask = "taskPending" | "taskComplete" | "taskError"
+export type NodeTask = "taskPending" | "taskProcessing" | "taskComplete" | "taskError"
+export const nodeTaskTypes: NodeTask[] = ["taskPending", "taskProcessing", "taskComplete", "taskError"]
 
 export interface WsMessage {
   type: "event" | "error" | "commandResult"

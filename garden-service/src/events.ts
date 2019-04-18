@@ -80,6 +80,11 @@ export interface Events {
     key: string,
     version: ModuleVersion,
   },
+  taskProcessing: {
+    startedAt: Date,
+    key: string,
+    version: ModuleVersion,
+  },
   taskComplete: TaskResult,
   taskError: TaskResult,
   taskGraphProcessing: {
