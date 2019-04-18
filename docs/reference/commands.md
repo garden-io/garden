@@ -146,13 +146,14 @@ Optionally stays running and automatically re-builds and re-deploys services if 
 
 Examples:
 
-    garden deploy                         # deploy all modules in the project
-    garden deploy my-service              # only deploy my-service
-    garden deploy service-a,service-b     # only deploy service-a and service-b
-    garden deploy --force                 # force re-deploy of modules, even if they're already deployed
-    garden deploy --watch                 # watch for changes to code
-    garden deploy --watch --hot-reload=my-service # deploys all services, with hot reloading enabled for my-service
-    garden deploy --env stage             # deploy your services to an environment called stage
+    garden deploy                      # deploy all modules in the project
+    garden deploy my-service           # only deploy my-service
+    garden deploy service-a,service-b  # only deploy service-a and service-b
+    garden deploy --force              # force re-deploy of modules, even if they're already deployed
+    garden deploy --watch              # watch for changes to code
+    garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
+    garden deploy --hot=*              # deploys all compatible services with hot reloading enabled
+    garden deploy --env stage          # deploy your services to an environment called stage
 
 ##### Usage
 
@@ -171,7 +172,7 @@ Examples:
   | `--force` |  | boolean | Force redeploy of service(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
+  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
 
 ### garden dev
 
@@ -186,6 +187,7 @@ Examples:
     garden dev
     garden dev --hot-reload=foo-service       # enable hot reloading for foo-service
     garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
+    garden dev --hot=*                        # enable hot reloading for all compatible services
 
 ##### Usage
 
@@ -195,7 +197,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services.
+  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
 
 ### garden exec
 
