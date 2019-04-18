@@ -354,8 +354,8 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
     msg: `Waiting for service to be ready...`,
   })
 
-  const api = new KubeApi(provider.config.context)
-  const namespace = await getAppNamespace(ctx, provider)
+  const api = await KubeApi.factory(log, provider.config.context)
+  const namespace = await getAppNamespace(ctx, log, provider)
   let prevStatuses: WorkloadStatus[] = objects.map((obj) => ({
     state: <ServiceState>"unknown",
     obj,
@@ -568,8 +568,8 @@ export async function compareDeployedObjects(
 async function getDeployedObject(
   ctx: PluginContext, provider: KubernetesProvider, obj: KubernetesResource, log: LogEntry,
 ): Promise<KubernetesResource | null> {
-  const api = new KubeApi(provider.config.context)
-  const namespace = obj.metadata.namespace || await getAppNamespace(ctx, provider)
+  const api = await KubeApi.factory(log, provider.config.context)
+  const namespace = obj.metadata.namespace || await getAppNamespace(ctx, log, provider)
 
   try {
     const res = await api.readBySpec(namespace, obj, log)

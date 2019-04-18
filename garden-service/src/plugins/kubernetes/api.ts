@@ -16,22 +16,16 @@ import {
   V1Secret,
   Policy_v1beta1Api,
 } from "@kubernetes/client-node"
-import { join } from "path"
 import request = require("request-promise")
-import { readFileSync, pathExistsSync } from "fs-extra"
-import { safeLoad } from "js-yaml"
+import { safeLoad, safeDump } from "js-yaml"
 import { zip, omitBy, isObject } from "lodash"
-import { GardenBaseError } from "../../exceptions"
-import { homedir } from "os"
+import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
 import { KubernetesResource } from "./types"
-import * as dedent from "dedent"
 import { LogEntry } from "../../logger/log-entry"
 import { splitLast, findByName } from "../../util/util"
+import { kubectl } from "./kubectl"
 
-let kubeConfigStr: string
-let kubeConfig: any
-
-const configs: { [context: string]: KubeConfig } = {}
+const cachedConfigs: { [context: string]: KubeConfig } = {}
 
 // NOTE: be warned, the API of the client library is very likely to change
 
@@ -73,8 +67,6 @@ export class KubernetesError extends GardenBaseError {
 }
 
 export class KubeApi {
-  private config: KubeConfig
-
   public apiExtensions: Apiextensions_v1beta1Api
   public apps: Apps_v1Api
   public core: Core_v1Api
@@ -82,13 +74,25 @@ export class KubeApi {
   public policy: Policy_v1beta1Api
   public rbac: RbacAuthorization_v1Api
 
-  constructor(public context: string) {
-    this.config = getConfig(this.context)
+  constructor(public context: string, private config: KubeConfig) {
+    const cluster = this.config.getCurrentCluster()
+
+    if (!cluster) {
+      throw new ConfigurationError(`Could not read cluster from kubeconfig for context ${context}`, {
+        context,
+        config,
+      })
+    }
 
     for (const [name, cls] of Object.entries(apiTypes)) {
-      const api = new cls(this.config.getCurrentCluster()!.server)
+      const api = new cls(cluster.server)
       this[name] = this.proxyApi(api, this.config)
     }
+  }
+
+  static async factory(log: LogEntry, context: string) {
+    const config = await getContextConfig(log, context)
+    return new KubeApi(context, config)
   }
 
   async readBySpec(namespace: string, spec: KubernetesResource, log: LogEntry) {
@@ -245,7 +249,7 @@ export class KubeApi {
   /**
    * Wrapping the API objects to deal with bugs.
    */
-  private proxyApi<T extends K8sApi>(api: T, config): T {
+  private proxyApi<T extends K8sApi>(api: T, config: KubeConfig): T {
     api.setDefaultAuthentication(config)
 
     return new Proxy(api, {
@@ -277,41 +281,42 @@ export class KubeApi {
   }
 }
 
-function getConfig(context: string): KubeConfig {
-  const kubeConfigPath = process.env.KUBECONFIG || join(homedir(), ".kube", "config")
+export async function getKubeConfig(log: LogEntry) {
+  let kubeConfigStr: string
 
-  if (pathExistsSync(kubeConfigPath)) {
-    kubeConfigStr = readFileSync(kubeConfigPath).toString()
-  } else {
-    // Fall back to a blank kubeconfig if none is found
-    kubeConfigStr = dedent`
-      apiVersion: v1
-      kind: Config
-      clusters: []
-      contexts: []
-      preferences: {}
-      users: []
-    `
+  try {
+    // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
+    kubeConfigStr = await kubectl.stdout({ log, args: ["config", "view", "--raw"] })
+    return safeLoad(kubeConfigStr)
+  } catch (error) {
+    throw new RuntimeError(`Unable to load kubeconfig: ${error}`, {
+      error,
+    })
   }
-  kubeConfig = safeLoad(kubeConfigStr)
+}
 
-  if (!configs[context]) {
-    const kc = new KubeConfig()
+async function getContextConfig(log: LogEntry, context: string): Promise<KubeConfig> {
+  if (cachedConfigs[context]) {
+    return cachedConfigs[context]
+  }
 
-    kc.loadFromString(kubeConfigStr)
-    kc.setCurrentContext(context)
+  const rawConfig = await getKubeConfig(log)
+  const kc = new KubeConfig()
 
-    // FIXME: need to patch a bug in the library here (https://github.com/kubernetes-client/javascript/pull/54)
-    for (const [a, b] of zip(kubeConfig["clusters"] || [], kc.clusters)) {
-      if (a && a["cluster"]["insecure-skip-tls-verify"] === true) {
-        (<any>b).skipTLSVerify = true
-      }
+  // There doesn't appear to be a method to just load the parsed config :/
+  kc.loadFromString(safeDump(rawConfig))
+  kc.setCurrentContext(context)
+
+  // FIXME: need to patch a bug in the library here (https://github.com/kubernetes-client/javascript/pull/54)
+  for (const [a, b] of zip(rawConfig["clusters"] || [], kc.clusters)) {
+    if (a && a["cluster"]["insecure-skip-tls-verify"] === true) {
+      (<any>b).skipTLSVerify = true
     }
-
-    configs[context] = kc
   }
 
-  return configs[context]
+  cachedConfigs[context] = kc
+
+  return kc
 }
 
 function wrapError(err) {

@@ -29,9 +29,9 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   const { ctx, log, service, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const api = new KubeApi(provider.config.context)
+  const api = await KubeApi.factory(log, provider.config.context)
   const status = await getContainerServiceStatus({ ...params, hotReload: false })
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // TODO: this check should probably live outside of the plugin
   if (!includes(["ready", "outdated"], status.state)) {
@@ -88,7 +88,7 @@ export async function runContainerModule(
 ): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const context = provider.config.context
-  const namespace = await getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, log, provider)
   const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
   return runPod({
@@ -126,7 +126,7 @@ export async function runContainerTask(
 
   const provider = <KubernetesProvider>ctx.provider
   const context = provider.config.context
-  const namespace = await getAppNamespace(ctx, provider)
+  const namespace = await getAppNamespace(ctx, log, provider)
   const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
   const res = await runPod({
@@ -148,6 +148,7 @@ export async function runContainerTask(
 
   await storeTaskResult({
     ctx,
+    log,
     result,
     taskVersion,
     taskName: task.name,

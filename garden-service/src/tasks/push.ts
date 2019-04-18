@@ -93,7 +93,7 @@ export class PushTask extends BaseTask {
 
     const log = this.log.info({
       section: this.module.name,
-      msg: "Pushing",
+      msg: "Pushing...",
       status: "active",
     })
 
@@ -105,10 +105,10 @@ export class PushTask extends BaseTask {
       throw err
     }
 
-    if (result.pushed) {
-      log.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
-    } else if (result.message) {
+    if (result.message) {
       log.setWarn({ msg: result.message, append: true })
+    } else {
+      log.setSuccess({ msg: chalk.green(result.message || `Done (took ${log.getDuration(1)} sec)`), append: true })
     }
 
     return result

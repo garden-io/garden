@@ -45,7 +45,7 @@ export async function deployService(
   const provider = k8sCtx.provider
   const chartPath = await getChartPath(module)
   const valuesPath = getValuesPath(chartPath)
-  const namespace = await getAppNamespace(k8sCtx, provider)
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
   const context = provider.config.context
   const releaseName = getReleaseName(module)
 
@@ -103,7 +103,7 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
   const { ctx, log, module } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const context = k8sCtx.provider.config.context
   const releaseName = getReleaseName(module)
 

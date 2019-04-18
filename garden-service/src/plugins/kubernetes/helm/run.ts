@@ -25,7 +25,7 @@ export async function runHelmModule(
 ): Promise<RunResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const serviceResourceSpec = getServiceResourceSpec(module)
 
   if (!serviceResourceSpec) {
@@ -57,7 +57,7 @@ export async function runHelmTask(
 ): Promise<RunTaskResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const args = task.spec.args
   const image = await getImage(k8sCtx, module, log, task.spec.resource || getServiceResourceSpec(module))
@@ -79,6 +79,7 @@ export async function runHelmTask(
 
   await storeTaskResult({
     ctx,
+    log,
     result,
     taskVersion,
     taskName: task.name,

@@ -6,7 +6,7 @@ import { resolve } from "path"
 import { GARDEN_DIR_NAME } from "../src/constants"
 import { KubeApi } from "../src/plugins/kubernetes/api"
 import { deleteNamespaces } from "../src/plugins/kubernetes/init"
-import { TaskLogStatus } from "../src/logger/log-entry"
+import { TaskLogStatus, LogEntry } from "../src/logger/log-entry"
 import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { getAllNamespaces } from "../src/plugins/kubernetes/namespace"
 import { getExampleProjects } from "./helpers"
@@ -19,7 +19,7 @@ export async function removeExampleDotGardenDirs() {
   })
 }
 
-export async function deleteExampleNamespaces(includeSystemNamespaces = false) {
+export async function deleteExampleNamespaces(log: LogEntry, includeSystemNamespaces = false) {
   const namespacesToDelete: string[] = []
 
   const exampleProjectNames = Object.keys(getExampleProjects())
@@ -33,7 +33,7 @@ export async function deleteExampleNamespaces(includeSystemNamespaces = false) {
   }
 
   // TODO: Accept context parameter in integ script.
-  const api = new KubeApi("docker-for-desktop")
+  const api = await KubeApi.factory(log, "docker-for-desktop")
   const existingNamespaces = await getAllNamespaces(api)
   await deleteNamespaces(intersection(existingNamespaces, namespacesToDelete), api)
 

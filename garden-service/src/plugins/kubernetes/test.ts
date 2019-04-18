@@ -17,14 +17,15 @@ import { HelmModule } from "./helm/config"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./kubernetes"
 import { systemMetadataNamespace } from "./system"
+import { LogEntry } from "../../logger/log-entry"
 
 const testResultNamespace = systemMetadataNamespace
 
 export async function getTestResult(
-  { ctx, module, testName, testVersion }: GetTestResultParams<ContainerModule | HelmModule>,
+  { ctx, log, module, testName, testVersion }: GetTestResultParams<ContainerModule | HelmModule>,
 ): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = new KubeApi(k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
   const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
 
   try {
@@ -43,17 +44,25 @@ export function getTestResultKey(ctx: PluginContext, module: Module, testName: s
   return `test-result--${ctx.projectName}--${module.name}--${testName}--${version.versionString}`
 }
 
+interface StoreTestResultParams {
+  ctx: PluginContext,
+  log: LogEntry,
+  module: Module,
+  testName: string,
+  testVersion: ModuleVersion,
+  result: RunResult,
+}
+
 /**
  * Store a test run result as a ConfigMap in the cluster.
  *
  * TODO: Implement a CRD for this.
  */
 export async function storeTestResult(
-  { ctx, module, testName, testVersion, result }:
-    { ctx: PluginContext, module: Module, testName: string, testVersion: ModuleVersion, result: RunResult },
+  { ctx, log, module, testName, testVersion, result }: StoreTestResultParams,
 ): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = new KubeApi(k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
 
   const testResult: TestResult = {
     ...result,

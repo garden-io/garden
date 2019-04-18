@@ -52,9 +52,9 @@ async function getServiceStatus(
   { ctx, module, log }: GetServiceStatusParams<KubernetesModule>,
 ): Promise<ServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({ ctx: k8sCtx, provider: k8sCtx.provider, skipCreate: true })
+  const namespace = await getNamespace({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
   const context = ctx.provider.config.context
-  const api = new KubeApi(context)
+  const api = await KubeApi.factory(log, context)
   const manifests = await getManifests(module)
 
   const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
@@ -72,7 +72,7 @@ async function deployService(
   const { ctx, force, module, service, log } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({ ctx: k8sCtx, provider: k8sCtx.provider, skipCreate: true })
+  const namespace = await getNamespace({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
   const context = ctx.provider.config.context
   const manifests = await getManifests(module)
 
@@ -93,7 +93,7 @@ async function deployService(
 async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
   const { ctx, log, service, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const provider = k8sCtx.provider
   const manifests = await getManifests(module)
 
@@ -112,10 +112,10 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
 }
 
 async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
-  const { ctx, module } = params
+  const { ctx, log, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const manifests = await getManifests(module)
 
   return getAllLogs({ ...params, context, namespace, resources: manifests })

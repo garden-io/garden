@@ -35,8 +35,8 @@ export async function deployContainerService(params: DeployServiceParams<Contain
   const { ctx, service, runtimeContext, force, log, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
-  const manifests = await createContainerObjects(k8sCtx, service, runtimeContext, hotReload)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const manifests = await createContainerObjects(k8sCtx, log, service, runtimeContext, hotReload)
 
   // TODO: use Helm instead of kubectl apply
   const context = k8sCtx.provider.config.context
@@ -57,6 +57,7 @@ export async function deployContainerService(params: DeployServiceParams<Contain
 
 export async function createContainerObjects(
   ctx: PluginContext,
+  log: LogEntry,
   service: ContainerService,
   runtimeContext: RuntimeContext,
   enableHotReload: boolean,
@@ -64,8 +65,8 @@ export async function createContainerObjects(
   const k8sCtx = <KubernetesPluginContext>ctx
   const version = service.module.version
   const provider = k8sCtx.provider
-  const namespace = await getAppNamespace(k8sCtx, provider)
-  const api = new KubeApi(provider.config.context)
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const api = await KubeApi.factory(log, provider.config.context)
   const ingresses = await createIngressResources(api, provider, namespace, service)
   const deployment = await createDeployment(provider, service, runtimeContext, namespace, enableHotReload)
   const kubeservices = await createServiceResources(service, namespace)
@@ -110,7 +111,7 @@ export async function createDeployment(
     valueFrom: { fieldRef: { fieldPath: "status.podIP" } },
   })
 
-  const registryConfig = provider.name === "local-kubernetes" ? undefined : provider.config.deploymentRegistry
+  const registryConfig = provider.config.deploymentRegistry
   const imageId = await containerHelpers.getDeploymentImageId(service.module, registryConfig)
 
   const container: any = {
@@ -381,7 +382,7 @@ export function rsyncTargetPath(path: string) {
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
   const { ctx, log, service } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const provider = k8sCtx.provider
 
   const context = provider.config.context
@@ -404,7 +405,7 @@ export async function deleteContainerDeployment(
 ) {
 
   let found = true
-  const api = new KubeApi(context)
+  const api = await KubeApi.factory(log, context)
 
   try {
     await api.extensions.deleteNamespacedDeployment(serviceName, namespace, <any>{})
@@ -422,8 +423,11 @@ export async function deleteContainerDeployment(
 }
 
 export async function pushModule({ ctx, module, log }: PushModuleParams<ContainerModule>) {
+  if (!ctx.provider.config.deploymentRegistry) {
+    return { pushed: false }
+  }
+
   if (!(await containerHelpers.hasDockerfile(module))) {
-    log.setState({ msg: `Nothing to push` })
     return { pushed: false }
   }
 

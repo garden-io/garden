@@ -42,7 +42,7 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
   const k8sCtx = <KubernetesPluginContext>ctx
   const chartPath = await getChartPath(module)
   const valuesPath = getValuesPath(chartPath)
-  const namespace = await getNamespace({ ctx: k8sCtx, provider: k8sCtx.provider, skipCreate: true })
+  const namespace = await getNamespace({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
   const context = ctx.provider.config.context
   const releaseName = getReleaseName(module)
 
@@ -269,7 +269,7 @@ async function renderHelmTemplateString(
   const tempFilePath = join(chartPath, "templates", cryptoRandomString(16))
   const valuesPath = getValuesPath(chartPath)
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({ ctx: k8sCtx, provider: k8sCtx.provider, skipCreate: true })
+  const namespace = await getNamespace({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
   const releaseName = getReleaseName(module)
   const context = ctx.provider.config.context
 

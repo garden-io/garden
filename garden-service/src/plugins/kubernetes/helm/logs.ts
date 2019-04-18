@@ -17,7 +17,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
   const { ctx, module, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, k8sCtx.provider)
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const resources = await getChartResources(k8sCtx, module, log)
 

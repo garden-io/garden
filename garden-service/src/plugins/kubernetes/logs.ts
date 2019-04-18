@@ -64,7 +64,7 @@ export async function getPodLogs(params: GetPodLogsParams) {
  * Stream all logs for the given resources and service.
  */
 export async function getAllLogs(params: GetAllLogsParams) {
-  const api = new KubeApi(params.context)
+  const api = await KubeApi.factory(params.log, params.context)
   const podNames = await getAllPodNames(api, params.namespace, params.resources)
   return getPodLogs({ ...params, podNames })
 }

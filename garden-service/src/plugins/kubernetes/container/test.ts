@@ -32,5 +32,5 @@ export async function testContainerModule(
     log,
   })
 
-  return storeTestResult({ ctx, module, testName, testVersion, result })
+  return storeTestResult({ ctx, log, module, testName, testVersion, result })
 }

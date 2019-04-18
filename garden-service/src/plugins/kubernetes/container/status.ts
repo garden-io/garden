@@ -29,11 +29,11 @@ export async function getContainerServiceStatus(
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const version = module.version
   const provider = k8sCtx.provider
-  const api = new KubeApi(provider.config.context)
-  const namespace = await getAppNamespace(k8sCtx, provider)
+  const api = await KubeApi.factory(log, provider.config.context)
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
-  const objects = await createContainerObjects(k8sCtx, service, runtimeContext, hotReload)
+  const objects = await createContainerObjects(k8sCtx, log, service, runtimeContext, hotReload)
   const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, objects, log, true)
   const ingresses = await getIngresses(service, api, provider)
 
