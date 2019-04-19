@@ -15,22 +15,24 @@ import { getPackageVersion } from "../../util/util"
 import { LogEntry } from "../../logger/log-entry"
 
 const GARDEN_VERSION = getPackageVersion()
-const created: { [name: string]: boolean } = {}
+type CreateNamespaceStatus = "pending" | "created"
+const created: { [name: string]: CreateNamespaceStatus } = {}
 
 export async function ensureNamespace(api: KubeApi, namespace: string) {
   if (!created[namespace]) {
+    created[namespace] = "pending"
     const namespacesStatus = await api.core.listNamespace()
 
     for (const n of namespacesStatus.body.items) {
       if (n.status.phase === "Active") {
-        created[n.metadata.name] = true
+        created[n.metadata.name] = "created"
       }
     }
 
-    if (!created[namespace]) {
+    if (created[namespace] !== "created") {
       // TODO: the types for all the create functions in the library are currently broken
       await createNamespace(api, namespace)
-      created[namespace] = true
+      created[namespace] = "created"
     }
   }
 }
