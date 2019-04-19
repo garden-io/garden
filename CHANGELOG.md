@@ -1,6 +1,14 @@
 
+<a name="v0.9.10-2"></a>
+## [v0.9.10-2](https://github.com/garden-io/garden/compare/v0.9.10-1...v0.9.10-2) (2019-04-19)
+
+### Bug Fixes
+
+* **k8s:** deduplicate ns creation during init ([316f9a6](https://github.com/garden-io/garden/commit/316f9a6))
+
+
 <a name="v0.9.10-1"></a>
-## [v0.9.10-1](https://github.com/garden-io/garden/compare/v0.9.10-0...v0.9.10-1) (0001-01-01)
+## [v0.9.10-1](https://github.com/garden-io/garden/compare/v0.9.10-0...v0.9.10-1) (2019-04-19)
 
 
 <a name="v0.9.10-0"></a>
