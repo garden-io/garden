@@ -24,11 +24,11 @@ export function dashboardUpStep(): WatchTestStep {
   }
 }
 
-export function taskCompletedStep(baseKey: string, completedCount: number, description?: string): WatchTestStep {
+export function taskCompletedStep(key: string, completedCount: number, description?: string): WatchTestStep {
   return {
-    description: description || baseKey,
+    description: description || key,
     condition: async (logEntries: JsonLogEntry[]) => {
-      const tasks = findTasks(logEntries, baseKey)
+      const tasks = findTasks(logEntries, key)
       if (tasks.filter(t => t.completedIndex).length === completedCount) {
         return "passed"
       }
@@ -78,6 +78,9 @@ export function commandReloadedStep(): WatchTestStep {
  */
 export async function runGarden(dir: string, command: string[]): Promise<JsonLogEntry[]> {
   const out = (await execa(gardenBinPath, [...command, "--logger-type", "json", "-l", "4"], { cwd: dir })).stdout
+  if (showLog) {
+    console.log(out)
+  }
   return parseLogEntries(out.split("\n").filter(Boolean))
 }
 

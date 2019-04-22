@@ -18,15 +18,15 @@ describe("integ-helpers", () => {
     })
 
     const specs = [
-      { taskType: "build", baseKey: "build.result" },
-      { taskType: "deploy", baseKey: "deploy.redis" },
-      { taskType: "test", baseKey: "test.api.unit" },
+      { taskType: "build", key: "build.result" },
+      { taskType: "deploy", key: "deploy.redis" },
+      { taskType: "test", key: "test.api.unit" },
     ]
 
-    for (const { taskType, baseKey } of specs) {
+    for (const { taskType, key } of specs) {
       it(`should find a ${taskType} task`, () => {
-        const found = findTasks(testEntries, baseKey)[0]
-        expect(found, "entries not found").to.be.ok
+        const found = findTasks(testEntries, key)[0]
+        expect(found, `entries for ${key} not found`).to.be.ok
         const { startedIndex, completedIndex, executionTimeMs } = found
         expect([startedIndex, completedIndex, executionTimeMs]).to.not.include([null, undefined])
       })
@@ -39,8 +39,8 @@ describe("integ-helpers", () => {
     it("should run and produce the expected output for a test command in the vote example project", async () => {
       const logEntries = await runGarden(voteExamplePath, ["test"])
       expect(logEntries.length).to.be.greaterThan(0)
-      const found = findTasks(logEntries, "build.result")[0]
-      expect(found, "entries not found").to.be.ok
+      const found = findTasks(logEntries, "test.api.unit")[0]
+      expect(found, "entries for not test.api.unit found").to.be.ok
       const { startedIndex, completedIndex, executionTimeMs } = found
       expect([startedIndex, completedIndex, executionTimeMs]).to.not.include([null, undefined])
     })

@@ -76,7 +76,7 @@ export async function getDependantTasksForModule(
 
   const outputTasks = [...pushTasks, ...deployTasks]
   log.silly(`getDependantTasksForModule called for module ${module.name}, returning the following tasks:`)
-  log.silly(`  ${outputTasks.map(t => t.getBaseKey()).join(", ")}`)
+  log.silly(`  ${outputTasks.map(t => t.getKey()).join(", ")}`)
 
   return outputTasks
 }

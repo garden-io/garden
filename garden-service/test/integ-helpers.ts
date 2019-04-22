@@ -68,7 +68,7 @@ export type TaskLogEntryResult = {
 }
 
 /**
- * Searches a log entry array for entries pertaining to tasks with baseKey, optionally filtered the task status
+ * Searches a log entry array for entries pertaining to tasks with key, optionally filtered the task status
  * indicated by the log entry.
  *
  * An example use would be to search for occurrences of "build.some-module" with the "success" status in the log,
@@ -76,14 +76,14 @@ export type TaskLogEntryResult = {
  * e.g. indicate that the module was rebuilt when one of its files changed during the execution of a GardenWatch
  * instance).
  */
-export function findTasks(entries: JsonLogEntry[], baseKey: string, status?: TaskLogStatus): TaskLogEntryResult[] {
+export function findTasks(entries: JsonLogEntry[], key: string, status?: TaskLogStatus): TaskLogEntryResult[] {
 
-  const matching: FilteredTasks = filterTasks(entries, baseKey, status)
+  const matching: FilteredTasks = filterTasks(entries, key, status)
 
   const taskIds: string[] = [] // List of task ids, ordered by their first appearance in the log.
 
   for (const match of matching) {
-    const taskId = match.entry.metadata!.task!.id
+    const taskId = match.entry.metadata!.task!.uid
     if (!taskIds.find(id => id === taskId)) {
       taskIds.push(taskId)
     }
@@ -91,7 +91,7 @@ export function findTasks(entries: JsonLogEntry[], baseKey: string, status?: Tas
 
   return taskIds.map((taskId) => {
 
-    const matchesForKey = matching.filter(m => m.entry.metadata!.task!.id === taskId)
+    const matchesForKey = matching.filter(m => m.entry.metadata!.task!.uid === taskId)
 
     const startedMatch = matchesForKey.find(m => m.entry.metadata!.task!.status === "active")
     const errorMatch = matchesForKey.find(m => m.entry.metadata!.task!.status === "error")
@@ -111,17 +111,17 @@ export function findTasks(entries: JsonLogEntry[], baseKey: string, status?: Tas
 /**
  * Returns the index of the matching log entry (in entries), or null if no matching entry was found.
  */
-export function findTask(entries: JsonLogEntry[], baseKey: string, status?: TaskLogStatus): number | null {
-  const index = entries.findIndex(e => matchTask(e, baseKey, status))
+export function findTask(entries: JsonLogEntry[], key: string, status?: TaskLogStatus): number | null {
+  const index = entries.findIndex(e => matchTask(e, key, status))
   return index === -1 ? null : index
 }
 
 export type FilteredTasks = { entry: JsonLogEntry, index: number }[]
 
-export function filterTasks(entries: JsonLogEntry[], baseKey: string, status?: TaskLogStatus): FilteredTasks {
+export function filterTasks(entries: JsonLogEntry[], key: string, status?: TaskLogStatus): FilteredTasks {
   const filtered: FilteredTasks = []
   for (const [index, entry] of entries.entries()) {
-    if (matchTask(entry, baseKey, status)) {
+    if (matchTask(entry, key, status)) {
       filtered.push({ index, entry })
     }
   }
@@ -129,7 +129,7 @@ export function filterTasks(entries: JsonLogEntry[], baseKey: string, status?: T
   return filtered
 }
 
-export function matchTask(entry: JsonLogEntry, baseKey: string, status?: TaskLogStatus): boolean {
+export function matchTask(entry: JsonLogEntry, key: string, status?: TaskLogStatus): boolean {
   const meta = get(entry, ["metadata", "task"])
-  return !!meta && meta.baseKey === baseKey && (!status || status === meta.status)
+  return !!meta && meta.key === key && (!status || status === meta.status)
 }

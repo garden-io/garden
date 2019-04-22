@@ -17,7 +17,7 @@ type TestTaskCallback = (name: string, result: any) => Promise<void>
 interface TestTaskOptions {
   callback?: TestTaskCallback
   dependencies?: BaseTask[],
-  id?: string
+  uid?: string
   throwError?: boolean
 }
 
@@ -26,7 +26,7 @@ class TestTask extends BaseTask {
   depType: DependencyGraphNodeType = "test"
   name: string
   callback: TestTaskCallback | null
-  id: string
+  uid: string
   throwError: boolean
 
   constructor(
@@ -52,7 +52,7 @@ class TestTask extends BaseTask {
 
     this.name = name
     this.callback = options.callback || null
-    this.id = options.id || ""
+    this.uid = options.uid || ""
     this.throwError = !!options.throwError
     this.dependencies = options.dependencies || []
   }
@@ -61,23 +61,23 @@ class TestTask extends BaseTask {
     return this.name
   }
 
-  getBaseKey(): string {
+  getKey(): string {
     return this.name
   }
 
-  getKey(): string {
-    return this.id ? `${this.name}.${this.id}` : this.name
+  getId(): string {
+    return this.uid ? `${this.name}.${this.uid}` : this.name
   }
 
   getDescription() {
-    return this.getKey()
+    return this.getId()
   }
 
   async process(dependencyResults: TaskResults) {
-    const result = { result: "result-" + this.getKey(), dependencyResults }
+    const result = { result: "result-" + this.getId(), dependencyResults }
 
     if (this.callback) {
-      await this.callback(this.getKey(), result.result)
+      await this.callback(this.getId(), result.result)
     }
 
     if (this.throwError) {
@@ -128,9 +128,9 @@ describe("task-graph", () => {
       const result = await graph.process([task])
 
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getBaseKey(), version: task.version } },
+        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getBaseKey(), version: task.version } },
+        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskComplete", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -147,7 +147,7 @@ describe("task-graph", () => {
 
       garden.events.eventLog = []
 
-      // repeatedTask has the same baseKey and version as task, so its result is already cached
+      // repeatedTask has the same key and version as task, so its result is already cached
       const repeatedTask = new TestTask(garden, "a", false)
       await graph.process([repeatedTask])
 
@@ -167,9 +167,9 @@ describe("task-graph", () => {
       const result = await graph.process([task])
 
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getBaseKey(), version: task.version } },
+        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getBaseKey(), version: task.version } },
+        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
         { name: "taskError", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -189,10 +189,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask(garden, "a", false, { ...opts, dependencies: [], id: "a1" })
-      const taskB = new TestTask(garden, "b", false, { ...opts, dependencies: [taskA], id: "b1" })
-      const taskC = new TestTask(garden, "c", false, { ...opts, dependencies: [taskB], id: "c1" })
-      const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC], id: "d1" })
+      const taskA = new TestTask(garden, "a", false, { ...opts, dependencies: [], uid: "a1" })
+      const taskB = new TestTask(garden, "b", false, { ...opts, dependencies: [taskA], uid: "b1" })
+      const taskC = new TestTask(garden, "c", false, { ...opts, dependencies: [taskB], uid: "c1" })
+      const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC], uid: "d1" })
 
       // we should be able to add tasks multiple times and in any order
       const results = await graph.process([
@@ -220,13 +220,13 @@ describe("task-graph", () => {
 
       const repeatOpts = { callback: repeatCallback }
 
-      const repeatTaskA = new TestTask(garden, "a", false, { ...repeatOpts, dependencies: [], id: "a2" })
-      const repeatTaskB = new TestTask(garden, "b", false, { ...repeatOpts, dependencies: [repeatTaskA], id: "b2" })
-      const repeatTaskC = new TestTask(garden, "c", true, { ...repeatOpts, dependencies: [repeatTaskB], id: "c2" })
+      const repeatTaskA = new TestTask(garden, "a", false, { ...repeatOpts, dependencies: [], uid: "a2" })
+      const repeatTaskB = new TestTask(garden, "b", false, { ...repeatOpts, dependencies: [repeatTaskA], uid: "b2" })
+      const repeatTaskC = new TestTask(garden, "c", true, { ...repeatOpts, dependencies: [repeatTaskB], uid: "c2" })
 
-      const repeatTaskAforced = new TestTask(garden, "a", true, { ...repeatOpts, dependencies: [], id: "a2f" })
+      const repeatTaskAforced = new TestTask(garden, "a", true, { ...repeatOpts, dependencies: [], uid: "a2f" })
       const repeatTaskBforced = new TestTask(garden, "b", true,
-        { ...repeatOpts, dependencies: [repeatTaskA], id: "b2f" })
+        { ...repeatOpts, dependencies: [repeatTaskA], uid: "b2f" })
 
       await graph.process([
         repeatTaskBforced,
