@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
 import { PushResult } from "../types/plugin/outputs"
-import { BaseTask } from "../tasks/base"
+import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
@@ -26,7 +26,7 @@ export interface PushTaskParams {
 }
 
 export class PushTask extends BaseTask {
-  type = "push"
+  type: TaskType = "push"
   depType: DependencyGraphNodeType = "push"
 
   force: boolean
