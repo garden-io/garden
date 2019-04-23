@@ -21,6 +21,8 @@ import { deline } from "./util/string"
 import { validateDependencies } from "./util/validate-dependencies"
 import { ServiceConfig } from "./config/service"
 import { TaskConfig } from "./config/task"
+import { makeTestTaskName } from "./tasks/helpers"
+import { TaskType, makeBaseKey } from "./tasks/base"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 export type DependencyGraphNodeType = "build" | "service" | "task" | "test"
@@ -53,6 +55,8 @@ export interface RenderedNode {
   moduleName: string
   key: string
 }
+type DepNodeTaskTypeMap = { [key in DependencyGraphNodeType]: TaskType }
+type RenderedNodeTypeMap = { [key in DependencyGraphNodeType]: RenderedNodeType }
 
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
@@ -177,7 +181,7 @@ export class ConfigGraph {
 
       // Test dependencies
       for (const testConfig of moduleConfig.testConfigs) {
-        const testConfigName = testKey(moduleConfig.name, testConfig.name)
+        const testConfigName = makeTestTaskName(moduleConfig.name, testConfig.name)
 
         this.testConfigs[testConfigName] = { moduleKey, config: testConfig }
 
@@ -503,10 +507,19 @@ export class ConfigGraph {
 
 }
 
-const renderedNodeTypeMap = {
+const renderedNodeTypeMap: RenderedNodeTypeMap = {
   build: "build",
   service: "deploy",
   task: "run",
+  test: "test",
+  push: "push",
+  publish: "publish",
+}
+
+const depNodeTaskTypeMap: DepNodeTaskTypeMap = {
+  build: "build",
+  service: "deploy",
+  task: "task",
   test: "test",
   push: "push",
   publish: "publish",
@@ -530,11 +543,13 @@ export class DependencyGraphNode {
 
   render(): RenderedNode {
     const name = this.type === "test" ? parseTestKey(this.name).testName : this.name
+    const renderNodeType = <RenderedNodeType>renderedNodeTypeMap[this.type]
+    const taskType = <TaskType>depNodeTaskTypeMap[this.type]
     return {
       name,
-      type: <RenderedNodeType>renderedNodeTypeMap[this.type],
+      type: renderNodeType,
       moduleName: this.moduleName,
-      key: nodeKey(this.type, this.name),
+      key: makeBaseKey(taskType, this.name),
     }
   }
 
@@ -582,10 +597,6 @@ export class DependencyGraphNode {
  */
 function nodeKey(type: DependencyGraphNodeType, name: string) {
   return `${type}.${name}`
-}
-
-function testKey(moduleName: string, testName: string) {
-  return `${moduleName}.${testName}`
 }
 
 function parseTestKey(key: string) {

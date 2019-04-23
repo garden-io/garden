@@ -10,7 +10,7 @@ import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
-import { BaseTask } from "./base"
+import { BaseTask, TaskType } from "./base"
 import { Service, ServiceStatus, getServiceRuntimeContext, getIngressUrl } from "../types/service"
 import { Garden } from "../garden"
 import { PushTask } from "./push"
@@ -29,7 +29,7 @@ export interface DeployTaskParams {
 }
 
 export class DeployTask extends BaseTask {
-  type = "deploy"
+  type: TaskType = "deploy"
   depType: DependencyGraphNodeType = "service"
 
   private graph: ConfigGraph

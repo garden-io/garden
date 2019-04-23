@@ -97,7 +97,7 @@ export class TaskGraph {
     if (this.index.getNode(task)) {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
-        key: task.getKey(),
+        key: task.getBaseKey(),
         version: task.version,
       })
     }
@@ -165,7 +165,7 @@ export class TaskGraph {
         const baseKey = node.getBaseKey()
         const description = node.getDescription()
 
-        let result: TaskResult = { type, description, key: task.getKey() }
+        let result: TaskResult = { type, description, key: task.getBaseKey() }
 
         try {
           this.logTask(node)
@@ -181,7 +181,7 @@ export class TaskGraph {
           try {
             this.garden.events.emit("taskProcessing", {
               startedAt: new Date(),
-              key: task.getKey(),
+              key: task.getBaseKey(),
               version: task.version,
             })
             result = await node.process(dependencyResults)
@@ -454,7 +454,7 @@ class TaskNode {
 
     return {
       type: this.getType(),
-      key: this.getKey(),
+      key: this.getBaseKey(),
       description: this.getDescription(),
       output,
       dependencyResults,
