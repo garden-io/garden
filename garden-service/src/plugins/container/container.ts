@@ -172,7 +172,7 @@ async function describeType() {
       Note that the runtime services have somewhat limited features in this module type. For example, you cannot
       specify replicas for redundancy, and various platform-specific options are not included. For those, look at
       other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
-      [kubernetes](https://docs.garden.io/reference/module-types/kubernetes).
+      [kubernetes](https://github.com/garden-io/garden/blob/master/docs/reference/module-types/kubernetes.md).
     `,
     schema: containerModuleSpecSchema,
   }
