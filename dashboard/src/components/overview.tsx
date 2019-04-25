@@ -7,7 +7,7 @@
  */
 
 import React from "react"
-import { truncate } from "lodash"
+import styled from "@emotion/styled"
 import { format } from "url"
 import normalizeUrl from "normalize-url"
 
@@ -75,17 +75,32 @@ interface IngressesProp {
   ingresses: ServiceIngress[]
 }
 
+const truncateMiddle = (str) => {
+  if (str.length > 35) {
+    return str.substr(0, 16) + "..." + str.substr(str.length - 16, str.length)
+  }
+  return str
+}
+
+const LinkContainer = styled.div`
+  padding-bottom: 1rem;
+
+  &:last-of-type{
+    padding-bottom: 0;
+  }
+`
 const Ingresses: React.SFC<IngressesProp> = ({ ingresses }) => {
   return (
     <div>
       {ingresses.map(i => {
         const url = getIngressUrl(i)
         return (
-          <p key={i.path}>
+          <LinkContainer key={i.path}>
             <ExternalLink href={url} target="_blank">
-              {truncate(url, { length: 30 })}
+              {truncateMiddle(url)}
             </ExternalLink>
-          </p>
+            <br />
+          </LinkContainer>
         )
       })}
     </div>

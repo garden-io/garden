@@ -23,11 +23,6 @@
     stroke: red;
   }
 
-  text {
-    font-weight: 700;
-    font-size: 1em;
-  }
-
   .node rect {
     fill: #fff;
     stroke: #02f2b4;
@@ -35,21 +30,37 @@
   }
 
   .edgePath path {
-    stroke: rgba(0,0,0,0.32);
+    stroke: rgba(0, 0, 0, 0.32);
     stroke-width: 1.5px;
   }
 
-  div.label-wrap {
-    text-align: center;
-
-    span.name {
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-    span.type {
-      display: inline-block;
-      margin-top: 0.5em
-    }
+  .label-container {
+    cursor: pointer;
   }
 
+  .label-container {
+    cursor: pointer;
+  }
+
+  div.node-container {
+    text-align: center;
+    padding: 1rem;
+    background-repeat: no-repeat;
+    background-position: left;
+    background-position-x: -0.5rem;
+    background-size: 4rem;
+    &--run,
+    &--test {
+      cursor: pointer;
+    }
+    .type {
+      color: gray;
+      padding-bottom: 0.2rem;
+    }
+
+    .module-name {
+      color: #343434;
+      font-weight: bold;
+    }
+  }
 }

@@ -28,6 +28,7 @@ export const colors = {
   grayLight: "#fafafa",
   gardenGray: "#555656",
   gardenGrayLight: "#cdcfd1",
+  gardenGrayLighter: "#f6f8f9",
   gardenBlack: "#010101",
   gardenBlue: "#00adef",
   gardenBlueDark: "#01569a",

@@ -26,6 +26,7 @@ import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner from "../spinner"
 import CheckBox from "../checkbox"
+import { SelectGraphNode } from "../../context/ui"
 
 interface Node {
   name: string
@@ -48,11 +49,18 @@ export interface Graph {
 const MIN_CHART_WIDTH = 200
 const MIN_CHART_HEIGHT = 200
 
-function drawChart(graph: Graph, width: number, height: number) {
+function drawChart(
+  graph: Graph,
+  width: number,
+  height: number,
+  onNodeSelected: (string) => void,
+) {
   // Create the input graph
   const g = new dagreD3.graphlib.Graph()
     .setGraph({})
-    .setDefaultEdgeLabel(function() { return {} })
+    .setDefaultEdgeLabel(function() {
+      return {}
+    })
 
   // Here we"re setting nodeclass, which is used by our custom drawNodes function
   // below.
@@ -69,11 +77,11 @@ function drawChart(graph: Graph, width: number, height: number) {
     const node = g.node(v)
     // Round the corners of the nodes
     node.rx = node.ry = 5
-    // Add more padding
-    node.paddingBottom = 20
-    node.paddingTop = 20
-    node.paddingLeft = 20
-    node.paddingRight = 20
+    // Remove node padding
+    node.paddingBottom = 0
+    node.paddingTop = 0
+    node.paddingLeft = 0
+    node.paddingRight = 0
   })
 
   // Set up edges, no special attributes.
@@ -91,7 +99,9 @@ function drawChart(graph: Graph, width: number, height: number) {
   width = Math.max(width, MIN_CHART_WIDTH)
   height = Math.max(height, MIN_CHART_HEIGHT)
 
-  const svg = d3.select("#chart").append("svg")
+  const svg = d3
+    .select("#chart")
+    .append("svg")
     .attr("width", width)
     .attr("height", height)
 
@@ -120,11 +130,17 @@ function drawChart(graph: Graph, width: number, height: number) {
   const zoomTranslate = d3.zoomIdentity.translate(xCenterOffset, yCenterOffset).scale(initialScale)
   svg.call(zoom.transform, zoomTranslate)
 
+  const selections = svg.select("g").selectAll("g.node")
+  selections.on("click", evt => {
+    onNodeSelected(evt)
+  })
 }
 
 interface Props {
   config: FetchConfigResponse
   graph: FetchGraphResponse
+  selectGraphNode: SelectGraphNode
+  selectedGraphNode: string
   message?: WsMessage
 }
 
@@ -136,12 +152,29 @@ interface State {
 
 // Renders as HTML
 const makeLabel = (name: string, type: string, moduleName: string) => {
-  if (type === "test") {
-    type = `${type} (${name})`
-    name = moduleName
-  }
-  return "<div class='label-wrap'><span class='name'>" +
-    name + "</span><br /><span class='type'>" + type + "</span></div>"
+  return `
+    <div class='node-container node-container--${type}'>
+        <div class='type'>${type}</div>
+    <span>
+      <span class='module-name'>${moduleName}</span>
+        ${
+    moduleName !== name
+      ? `<span> / </span>
+           <span>${name}</span>`
+      : ``
+    }
+    </div>`
+  // return `
+  //   <div class='node-container node-container--${type} garden-icon--${type}'>
+  //   <span>
+  //     <span class='module-name'>${moduleName}</span>
+  //       ${
+  //   moduleName !== name
+  //     ? `<span> / </span>
+  //          <span>${name}</span>`
+  //     : ``
+  //   }
+  //   </div>`
 }
 
 const Span = styled.span`
@@ -157,8 +190,16 @@ const ProcessSpinner = styled(Spinner)`
   margin: 16px 0 0 20px;
 `
 
-class Chart extends Component<Props, State> {
+// const IconContainer = styled.span`
+//   display: inline-block;
+//   width: 3rem;
+//   height: 3rem;
+//   background-size: contain;
+//   background-repeat: no-repeat;
+//   vertical-align: middle;
+// `
 
+class Chart extends Component<Props, State> {
   _nodes: Node[]
   _edges: Edge[]
   _chartRef: React.RefObject<any>
@@ -215,7 +256,7 @@ class Chart extends Component<Props, State> {
     this._edges = graph.edges
     const width = this._chartRef.current.offsetWidth
     const height = this._chartRef.current.offsetHeight
-    drawChart(graph, width, height)
+    drawChart(graph, width, height, this.props.selectGraphNode)
   }
 
   makeGraph() {
@@ -243,12 +284,16 @@ class Chart extends Component<Props, State> {
     return { edges, nodes }
   }
 
-  componentDidUpdate(_prevProps, prevState: State) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const message = this.props.message
     if (message && message.type === "event") {
       this.updateNodeClass(message)
     }
     if (prevState.filters !== this.state.filters) {
+      this.drawChart()
+    }
+
+    if (prevProps.selectedGraphNode !== this.props.selectedGraphNode) {
       this.drawChart()
     }
   }
@@ -281,47 +326,99 @@ class Chart extends Component<Props, State> {
     let status = ""
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."
-      spinner = <ProcessSpinner background={colors.gardenWhite} fontSize="2px" />
+      spinner = (
+        <ProcessSpinner background={colors.gardenWhite} fontSize="2px" />
+      )
     }
 
     return (
       <Card>
-        <div className="mt-1">
-          <div className={css`display: flex;`}>
-            {taskTypes.map(type => (
-              <div className="ml-1" key={type}>
+        <div>
+          <div
+            className={cls(
+              css`
+                position: absolute;
+                background: white;
+              `,
+              "pt-1",
+            )}
+          >
+            {taskTypes.map(type => {
+              return <div className="ml-1 pr-1" key={type}>
                 <CheckBox
-                  label={capitalize(type)}
                   name={type}
                   checked={!this.state.filters[type]}
                   onChange={this.onCheckboxChange}
-                />
+                >
+                  {/* <IconContainer className={`garden-icon--${type}`}/>  {capitalize(type)} */}
+                  {capitalize(type)}
+
+                </CheckBox>
               </div>
-            ))}
+            })}
           </div>
-          <div className={css`
-            height: calc(${chartHeightEstimate});
-          `} ref={this._chartRef} id="chart">
-          </div>
-          <div className={cls(css`
-            display: flex;
-            justify-content: space-between;
-          `, "ml-1 mr-1 pb-1")}>
-            <div className={css`display: flex;`}>
+          <div
+            className={css`
+              height: calc(${chartHeightEstimate});
+              padding-top: 1rem;
+            `}
+            ref={this._chartRef}
+            id="chart"
+          />
+          <div
+            className={cls(
+              css`
+                display: flex;
+                justify-content: space-between;
+              `,
+              "ml-1 mr-1 pb-1",
+            )}
+          >
+            <div
+              className={css`
+                display: flex;
+              `}
+            >
               <Status>{status}</Status>
               {spinner}
             </div>
             <p>
-              <Span><span className={css`color: ${colors.gardenGreen};`}>—  </span>Ready</Span>
-              <Span><span className={css`color: ${colors.gardenPink};`}>--  </span>Pending</Span>
-              <Span><span className={css`color: red;`}>—  </span>Error</Span>
+              <Span>
+                <span
+                  className={css`
+                    color: ${colors.gardenGreen};
+                  `}
+                >
+                  —{" "}
+                </span>
+                Ready
+              </Span>
+              <Span>
+                <span
+                  className={css`
+                    color: ${colors.gardenPink};
+                  `}
+                >
+                  --{" "}
+                </span>
+                Pending
+              </Span>
+              <Span>
+                <span
+                  className={css`
+                    color: red;
+                  `}
+                >
+                  —{" "}
+                </span>
+                Error
+              </Span>
             </p>
           </div>
         </div>
       </Card>
     )
   }
-
 }
 
 export default Chart
