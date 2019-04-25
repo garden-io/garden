@@ -21,20 +21,25 @@ import Provider from "./components/provider"
 import { colors } from "./styles/variables"
 import "flexboxgrid/dist/flexboxgrid.min.css"
 import "./styles/padding-margin-mixin.scss"
+import "./styles/custom-flexboxgrid.scss"
+import "./styles/icons.scss"
+
 import { EventProvider } from "./context/events"
 import { DataProvider } from "./context/data"
 import { NavLink } from "./components/links"
 
 import logo from "./assets/logo.png"
-import { ReactComponent as Hamburger } from "./assets/hamburger.svg"
+import { ReactComponent as OpenSidebarIcon } from "./assets/open-pane.svg"
+import { ReactComponent as CloseSidebarIcon } from "./assets/close-pane.svg"
 
 import { UiStateProvider, UiStateContext } from "./context/ui"
 
 // Style and align properly
 const Logo = styled.img`
+  width: 10rem;
   height: auto;
-  width: 100%;
   max-width: 10rem;
+  margin-top: .7rem;
 `
 
 const SidebarWrapper = styled.div`
@@ -43,13 +48,14 @@ const SidebarWrapper = styled.div`
   position: relative;
 `
 const SidebarContainer = styled.div`
-  display: ${props => (props.visible ? `block` : "none")}
-  width: ${props => (props.visible ? `19rem` : "0")}
+  display: ${props => (props.visible ? `block` : "none")};
+  width: ${props => (props.visible ? `12rem` : "0")};
 `
+
 const SidebarToggleButton = styled.div`
   position: absolute;
-  right: -2.5rem;
-  top: 1rem;
+  right: -2.2rem;
+  top: 3rem;
   width: 1.5rem;
   cursor: pointer;
 `
@@ -81,11 +87,16 @@ const App = () => {
         height: 100vh;
         max-height: 100vh;
         overflow-y: hidden;
+        background: ${colors.gardenGrayLighter};
       `}
     >
       <SidebarWrapper>
         <SidebarToggleButton onClick={toggleSidebar}>
-          <Hamburger width="24px" />
+          {isSidebarOpen ? (
+            <CloseSidebarIcon />
+          ) : (
+              <OpenSidebarIcon />
+            )}
         </SidebarToggleButton>
         <SidebarContainer visible={isSidebarOpen}>
           <div className={"ml-1"}>
@@ -111,7 +122,7 @@ const App = () => {
               flex-grow: 1;
             `,
             "pl-3",
-            "pt-4",
+            "pt-2",
             "pr-1",
           )}
         >

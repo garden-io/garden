@@ -299,7 +299,6 @@ export async function handleTaskResults(
     return { errors: [error] }
   }
 
-  log.info("")
   if (!results.restartRequired) {
     logHeader({ log, emoji: "heavy_check_mark", command: `Done!` })
   }

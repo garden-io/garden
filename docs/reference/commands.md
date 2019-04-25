@@ -293,6 +293,37 @@ Lists the tasks defined in your project&#x27;s modules.
 | -------- | -------- | ----------- |
   | `tasks` | No | Specify task(s) to list. Use comma as a separator to specify multiple tasks.
 
+### garden get task-result
+
+Outputs the latest execution result of a provided task.
+
+
+##### Usage
+
+    garden get task-result <name> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `name` | Yes | The name of the task
+
+### garden get test-result
+
+Outputs the latest execution result of a provided test.
+
+
+##### Usage
+
+    garden get test-result <module> <name> 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `module` | Yes | Module name of where the test runs.
+  | `name` | Yes | Test name.
+
 ### garden init
 
 Initialize system, environment or other runtime components.

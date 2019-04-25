@@ -12,3 +12,23 @@ import { ModuleConfig } from "../api/types"
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
 }
+
+export function timeConversion(millisec) {
+  const seconds = +(millisec / 1000).toFixed(1)
+  const minutes = +(millisec / (1000 * 60)).toFixed(1)
+  const hours = +(millisec / (1000 * 60 * 60)).toFixed(1)
+  const days = +(millisec / (1000 * 60 * 60 * 24)).toFixed(1)
+  let formatTime = (num, prefix) => `${num} ${prefix}`
+  let timeFormatted: string | null = null
+  if (seconds < 60) {
+    timeFormatted = formatTime(seconds, "Sec")
+  } else if (minutes < 60) {
+    timeFormatted = formatTime(minutes, "Min")
+  } else if (hours < 24) {
+    timeFormatted = formatTime(hours, "Hrs")
+  } else {
+    timeFormatted = formatTime(days, "Days")
+  }
+
+  return timeFormatted
+}
