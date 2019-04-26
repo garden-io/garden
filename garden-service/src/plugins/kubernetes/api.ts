@@ -16,7 +16,10 @@ import {
   V1Secret,
   Policy_v1beta1Api,
 } from "@kubernetes/client-node"
+
 import request = require("request-promise")
+import requestErrors = require("request-promise/errors")
+
 import { safeLoad, safeDump } from "js-yaml"
 import { zip, omitBy, isObject } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
@@ -193,7 +196,7 @@ export class KubeApi {
         try {
           return await request(opts)
         } catch (err) {
-          wrapError(err)
+          handleRequestPromiseError(err)
         }
     }
   }
@@ -330,4 +333,17 @@ function wrapError(err) {
   } else {
     throw err
   }
+}
+
+function handleRequestPromiseError(err) {
+  if (err instanceof requestErrors.StatusCodeError) {
+    const wrapped = new KubernetesError(`StatusCodeError from Kubernetes API - ${err.message}`, {
+      body: err.error,
+    })
+    wrapped.code = err.statusCode
+
+    throw wrapped
+  }
+
+  return wrapError(err)
 }
