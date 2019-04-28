@@ -88,7 +88,11 @@ export function detectMissingDependencies(
     const errMsg = "Unknown dependencies detected.\n\n" +
       indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
 
-    return new ConfigurationError(errMsg, { "unknown-dependencies": missingDepDescriptions })
+    return new ConfigurationError(errMsg, {
+      unknownDependencies: missingDepDescriptions,
+      availableModules: Array.from(moduleNames),
+      availableServicesAndTasks: Array.from(runtimeNames),
+    })
   } else {
     return null
   }

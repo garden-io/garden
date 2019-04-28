@@ -105,7 +105,9 @@ export class PushTask extends BaseTask {
       throw err
     }
 
-    if (result.message) {
+    if (result.pushed) {
+      log.setSuccess({ msg: chalk.green(result.message || `Done (took ${log.getDuration(1)} sec)`), append: true })
+    } else if (result.message) {
       log.setWarn({ msg: result.message, append: true })
     } else {
       log.setSuccess({ msg: chalk.green(result.message || `Done (took ${log.getDuration(1)} sec)`), append: true })

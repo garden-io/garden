@@ -69,7 +69,7 @@ export class BuildTask extends BaseTask {
 
     const log = this.log.info({
       section: this.getName(),
-      msg: `Syncing sources...`,
+      msg: `Staging build...`,
       status: "active",
     })
 
