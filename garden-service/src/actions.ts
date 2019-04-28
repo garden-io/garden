@@ -371,10 +371,10 @@ export class ActionHelper implements TypeGuard {
   //region Helper Methods
   //===========================================================================
 
-  async getStatus({ log }: { log: LogEntry }): Promise<EnvironmentStatus> {
+  async getStatus({ log, serviceNames }: { log: LogEntry, serviceNames?: string[] }): Promise<EnvironmentStatus> {
     const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
     const graph = await this.garden.getConfigGraph()
-    const services = keyBy(await graph.getServices(), "name")
+    const services = keyBy(await graph.getServices(serviceNames), "name")
 
     const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
       const runtimeContext = await getServiceRuntimeContext(this.garden, graph, service)

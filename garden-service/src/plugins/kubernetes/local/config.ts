@@ -8,7 +8,7 @@
 
 import * as execa from "execa"
 import * as Joi from "joi"
-import { KubernetesBaseConfig, kubernetesConfigBase } from "../kubernetes"
+import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../kubernetes"
 import { ConfigureProviderParams } from "../../../types/plugin/params"
 import { joiProviderName } from "../../../config/common"
 import { getKubeConfig } from "../api"
@@ -30,6 +30,8 @@ export interface LocalKubernetesConfig extends KubernetesBaseConfig {
 export const configSchema = kubernetesConfigBase
   .keys({
     name: joiProviderName("local-kubernetes"),
+    context: k8sContextSchema
+      .optional(),
     namespace: Joi.string()
       .default(undefined, "<project name>")
       .description(
@@ -48,8 +50,9 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
   let context = config.context
   let defaultHostname = config.defaultHostname
   let deploymentRegistry: ContainerRegistryConfig | undefined = undefined
-  let setupIngressController = config.setupIngressController
+
   const namespace = config.namespace || projectName
+  const _systemServices: string[] = ["kubernetes-dashboard"]
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
@@ -95,8 +98,6 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     if (config.setupIngressController === "nginx") {
       log.debug("Using minikube's ingress addon")
       await execa("minikube", ["addons", "enable", "ingress"])
-      // make sure the prepare handler doesn't also set up the ingress controller
-      setupIngressController = null
     }
 
     await setMinikubeDockerEnv()
@@ -107,8 +108,6 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     if (config.setupIngressController === "nginx") {
       log.debug("Using microk8s's ingress addon")
       addons.push("ingress")
-      // make sure the prepare handler doesn't also set up the ingress controller
-      setupIngressController = null
     }
 
     await configureMicrok8sAddons(log, addons)
@@ -118,6 +117,9 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
       hostname: "localhost:32000",
       namespace,
     }
+  } else if (config.setupIngressController === "nginx") {
+    // Install nginx on init
+    _systemServices.push("ingress-controller", "default-backend")
   }
 
   if (!defaultHostname) {
@@ -137,9 +139,10 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     ingressHttpsPort: 443,
     ingressClass,
     namespace,
-    setupIngressController,
+    setupIngressController: config.setupIngressController,
     tlsCertificates: config.tlsCertificates,
     _system: config._system,
+    _systemServices,
   }
 
   return { name: config.name, config }

@@ -6,12 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
+import { intersection } from "lodash"
+
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
-import { KubernetesProvider } from "./kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
 import { name as providerName } from "./kubernetes"
-import { AuthenticationError } from "../../exceptions"
-import { getPackageVersion } from "../../util/util"
+import { AuthenticationError, DeploymentError, TimeoutError } from "../../exceptions"
+import { getPackageVersion, sleep } from "../../util/util"
+import { GetEnvironmentStatusParams } from "../../types/plugin/params"
+import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -107,4 +112,72 @@ export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
   const allNamespaces = await api.core.listNamespace()
   return allNamespaces.body.items
     .map(n => n.metadata.name)
+}
+
+/**
+ * Used by both the remote and local plugin
+ */
+export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams) {
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const kubeContext = k8sCtx.provider.config.context
+
+  try {
+    // TODO: use API instead of kubectl (I just couldn't find which API call to make)
+    await kubectl.exec({ log, context: kubeContext, args: ["version"] })
+  } catch (err) {
+    // TODO: catch error properly
+    if (err.detail.output) {
+      throw new DeploymentError(
+        `Unable to connect to Kubernetes cluster. ` +
+        `Please make sure it is running, reachable and that you have the right context configured.`,
+        {
+          kubeContext,
+          kubectlOutput: err.detail.output,
+        },
+      )
+    }
+    throw err
+  }
+
+  await Bluebird.all([
+    getMetadataNamespace(k8sCtx, log, k8sCtx.provider),
+    getAppNamespace(k8sCtx, log, k8sCtx.provider),
+  ])
+}
+
+export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?: LogEntry) {
+  for (const ns of namespaces) {
+    try {
+      // Note: Need to call the delete method with an empty object
+      // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
+      await api.core.deleteNamespace(ns, <any>{})
+    } catch (err) {
+      // Ignore not found errors.
+      if (err.code !== 404) {
+        throw err
+      }
+    }
+  }
+
+  // Wait until namespaces have been deleted
+  const startTime = new Date().getTime()
+  while (true) {
+    await sleep(2000)
+
+    const nsNames = await getAllNamespaces(api)
+    if (intersection(nsNames, namespaces).length === 0) {
+      if (log) {
+        log.setSuccess()
+      }
+      break
+    }
+
+    const now = new Date().getTime()
+    if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
+      throw new TimeoutError(
+        `Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`,
+        { namespaces },
+      )
+    }
+  }
 }

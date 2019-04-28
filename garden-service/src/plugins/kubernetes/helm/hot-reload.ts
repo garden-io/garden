@@ -14,6 +14,7 @@ import { ContainerModule } from "../../container/config"
 import { HotReloadServiceResult } from "../../../types/plugin/outputs"
 import { getChartResources, findServiceResource, getServiceResourceSpec } from "./common"
 import { syncToService, HotReloadableKind } from "../hot-reload"
+import { KubernetesPluginContext } from "../kubernetes"
 
 /**
  * The hot reload action handler for Helm charts.
@@ -34,7 +35,14 @@ export async function hotReloadHelmChart(
     resourceSpec,
   })
 
-  await syncToService(ctx, service, hotReloadSpec, <HotReloadableKind>target.kind, target.metadata.name!, log)
+  await syncToService(
+    <KubernetesPluginContext>ctx,
+    service,
+    hotReloadSpec,
+    <HotReloadableKind>target.kind,
+    target.metadata.name!,
+    log,
+  )
 
   return {}
 }

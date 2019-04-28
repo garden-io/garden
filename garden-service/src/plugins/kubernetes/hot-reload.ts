@@ -7,28 +7,25 @@
  */
 
 import * as Bluebird from "bluebird"
-import { ChildProcess } from "child_process"
 import * as execa from "execa"
 import { V1Deployment, V1DaemonSet, V1StatefulSet, V1ObjectMeta } from "@kubernetes/client-node"
 import { HotReloadServiceParams } from "../../types/plugin/params"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { HotReloadServiceResult } from "../../types/plugin/outputs"
-import { getAppNamespace } from "./namespace"
-import { kubectl } from "./kubectl"
-import getPort = require("get-port")
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { resolve as resolvePath, normalize, dirname } from "path"
-import { Omit, registerCleanupFunction } from "../../util/util"
+import { Omit } from "../../util/util"
 import { deline } from "../../util/string"
 import { set } from "lodash"
 import { Service } from "../../types/service"
-import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
 import { waitForContainerService } from "./container/status"
+import { getPortForward } from "./util"
+import { RSYNC_PORT } from "./constants"
+import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./kubernetes"
 
-export const RSYNC_PORT = 873
 export const RSYNC_PORT_NAME = "garden-rsync"
 
 export type HotReloadableResource = Omit<V1Deployment | V1DaemonSet | V1StatefulSet, "status" | "metadata">
@@ -169,7 +166,7 @@ export async function hotReloadContainer(
   }
 
   await waitForContainerService(ctx, log, runtimeContext, service, true)
-  await syncToService(ctx, service, hotReloadConfig, "Deployment", service.name, log)
+  await syncToService(<KubernetesPluginContext>ctx, service, hotReloadConfig, "Deployment", service.name, log)
 
   return {}
 }
@@ -216,106 +213,39 @@ export function rsyncTargetPath(path: string) {
 }
 
 /**
- * Below is the logic that manages syncing into a service's running container.
+ * Ensure a tunnel is set up for connecting to the target service's sync container, and perform a sync.
  *
  * Before performing a sync, we set up a port-forward from a randomly allocated local port to the rsync sidecar
  * container attached to the target service's container.
  *
  * Since hot-reloading is a time-sensitive operation for the end-user, and because setting up this port-forward
- * can take several tens of milliseconds, we maintain a simple in-process cache of previously allocated ports
- * (registeredPortForwards below). Therefore, subsequent hot reloads after the initial one (during the execution
+ * can take several tens of milliseconds, we maintain a simple in-process cache of previously allocated ports.
+ * Therefore, subsequent hot reloads after the initial one (during the execution
  * of the enclosing Garden command) finish more quickly.
  */
-
-type PortForward = {
-  rsyncLocalPort: number,
-  proc: ChildProcess,
-}
-
-const registeredPortForwards: { [targetDeployment: string]: PortForward } = {}
-
-registerCleanupFunction("kill-hot-reload-port-forward-procs", () => {
-  for (const { proc } of Object.values(registeredPortForwards)) {
-    !proc.killed && proc.kill()
-  }
-})
-
-/**
- * Ensure a tunnel is set up for connecting to the target service's sync container, and perform a sync.
- */
 export async function syncToService(
-  ctx: PluginContext,
+  ctx: KubernetesPluginContext,
   service: Service,
   hotReloadSpec: ContainerHotReloadSpec,
   targetKind: HotReloadableKind,
   targetName: string,
   log: LogEntry,
 ) {
-
-  let rsyncLocalPort
   const targetDeployment = `${targetKind.toLowerCase()}/${targetName}`
+  const namespace = await getAppNamespace(ctx, log, ctx.provider)
 
   try {
-    rsyncLocalPort = await getLocalRsyncPort(ctx, log, targetDeployment)
+    const portForward = await getPortForward(ctx, log, namespace, targetDeployment, RSYNC_PORT)
+
+    return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
+      const src = rsyncSourcePath(service.sourceModule.path, source)
+      const destination = `rsync://localhost:${portForward.localPort}/volume/${rsyncTargetPath(target)}`
+      return execa("rsync", ["-vrpztgo", src, destination])
+    })
   } catch (error) {
     throw new RuntimeError(`Unexpected error while synchronising to service ${service.name}: ${error.message}`, {
       error,
       serviceName: service.name,
     })
   }
-
-  return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
-    const src = rsyncSourcePath(service.sourceModule.path, source)
-    const destination = `rsync://localhost:${rsyncLocalPort}/volume/${rsyncTargetPath(target)}`
-    return execa("rsync", ["-vrptgo", src, destination])
-  })
-
-}
-
-async function getLocalRsyncPort(ctx: PluginContext, log: LogEntry, targetDeployment: string): Promise<number> {
-
-  let rsyncLocalPort
-
-  const registered = registeredPortForwards[targetDeployment]
-
-  if (registered && !registered.proc.killed) {
-    rsyncLocalPort = registered.rsyncLocalPort
-    log.debug(`Reusing local port ${rsyncLocalPort} for ${targetDeployment} sync container`)
-    return rsyncLocalPort
-  }
-
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-
-  // Forward random free local port to the remote rsync container.
-  rsyncLocalPort = await getPort()
-  const portMapping = `${rsyncLocalPort}:${RSYNC_PORT}`
-
-  log.debug(`Forwarding local port ${rsyncLocalPort} to ${targetDeployment} sync container port ${RSYNC_PORT}`)
-
-  // TODO: use the API directly instead of kubectl (need to reverse engineer kubectl a bit to get how that works)
-  const proc = await kubectl.spawn({
-    log,
-    context: k8sCtx.provider.config.context,
-    namespace,
-    args: ["port-forward", targetDeployment, portMapping],
-  })
-
-  return new Promise((resolve) => {
-    proc.on("error", (error) => {
-      !proc.killed && proc.kill()
-      throw error
-    })
-
-    proc.stdout!.on("data", (line) => {
-      // This is unfortunately the best indication that we have that the connection is up...
-      log.silly(`[${targetDeployment} port forwarder] ${line}`)
-
-      if (line.toString().includes("Forwarding from ")) {
-        const portForward = { proc, rsyncLocalPort }
-        registeredPortForwards[targetDeployment] = portForward
-        resolve(rsyncLocalPort)
-      }
-    })
-  })
 }
