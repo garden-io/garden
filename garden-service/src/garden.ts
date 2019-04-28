@@ -525,6 +525,18 @@ export class Garden {
       // FIXME: We should be able to avoid this
       config.name = getModuleKey(config.name, config.plugin)
 
+      if (config.plugin) {
+        for (const serviceConfig of config.serviceConfigs) {
+          serviceConfig.name = getModuleKey(serviceConfig.name, config.plugin)
+        }
+        for (const taskConfig of config.taskConfigs) {
+          taskConfig.name = getModuleKey(taskConfig.name, config.plugin)
+        }
+        for (const testConfig of config.testConfigs) {
+          testConfig.name = getModuleKey(testConfig.name, config.plugin)
+        }
+      }
+
       return config
     })
   }
