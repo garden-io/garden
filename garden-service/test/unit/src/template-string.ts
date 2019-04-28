@@ -204,10 +204,18 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("123")
   })
 
-  it("should handle a conditional between two identifiers without spaces", async () => {
+  it("should handle a conditional between two identifiers without spaces with first value undefined", async () => {
     const res = await resolveTemplateString(
       "${a||b}",
       new TestContext({ a: undefined, b: 123 }),
+    )
+    expect(res).to.equal("123")
+  })
+
+  it("should handle a conditional between two identifiers without spaces with first value set", async () => {
+    const res = await resolveTemplateString(
+      "${a||b}",
+      new TestContext({ a: 123, b: undefined }),
     )
     expect(res).to.equal("123")
   })
