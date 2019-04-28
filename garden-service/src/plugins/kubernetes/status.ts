@@ -131,6 +131,7 @@ export async function checkWorkloadStatus(
   } catch (err) {
     if (err.code && err.code === 404) {
       // service is not running
+      out.lastError = `Could not find ${obj.kind} ${obj.metadata.name}`
       return out
     } else {
       throw err
@@ -143,45 +144,44 @@ export async function checkWorkloadStatus(
 
   // TODO: try to come up with something more efficient. may need to wait for newer k8s version.
   // note: the resourceVersion parameter does not appear to work...
-  const eventsRes = await api.core.listNamespacedEvent(namespace)
+  const eventsRes = await api.core.listNamespacedEvent(
+    namespace,
+    undefined,
+    undefined,
+    undefined,
+    true,
+  )
 
-  // const eventsRes = await this.kubeApi(
-  //   "GET",
-  //   [
-  //     "apis", apiSection, "v1beta1",
-  //     "watch",
-  //     "namespaces", namespace,
-  //     type + "s", service.fullName,
-  //   ],
-  //   { resourceVersion, watch: "false" },
-  // )
-
-  // look for errors and warnings in the events for the service, abort if we find any
+  // look for errors and warnings in the events for the service, abort if we find any fatal errors
   const events = eventsRes.body.items
 
   for (let event of events) {
-    const eventVersion = parseInt(event.metadata.resourceVersion, 10)
+    const eventVersion = parseInt(event.involvedObject.resourceVersion || "0", 10)
 
     if (
-      eventVersion <= <number>resourceVersion ||
-      (
-        !event.metadata.name.startsWith(obj.metadata.name + ".")
-        &&
-        !event.metadata.name.startsWith(obj.metadata.name + "-")
-      )
+      !(event.involvedObject.kind === obj.kind && event.involvedObject.name === obj.metadata.name)
+      &&
+      !event.metadata.name.startsWith(obj.metadata.name + ".")
+      &&
+      !event.metadata.name.startsWith(obj.metadata.name + "-")
     ) {
       continue
     }
 
-    if (eventVersion > <number>resourceVersion) {
-      out.resourceVersion = eventVersion
+    // TODO: this isn't working right
+    if (eventVersion !== 0 && eventVersion <= <number>resourceVersion) {
+      continue
     }
 
-    if (event.type === "Warning") {
-      out.warning = true
-    }
-
-    if (event.type === "Error" || event.type === "Failed") {
+    if (
+      event.type === "Error" ||
+      event.type === "Failed" ||
+      (event.type === "Warning" && (
+        event.message.includes("CrashLoopBackOff") ||
+        event.message.includes("ImagePullBackOff") ||
+        event.reason === "BackOff"
+      ))
+    ) {
       out.state = "unhealthy"
       out.lastError = `${event.reason} - ${event.message}`
 
@@ -197,19 +197,12 @@ export async function checkWorkloadStatus(
           ` + logs
         }
       } else {
-        const pods = await getWorkloadPods(api, namespace, statusRes)
-        const logs = await getPodLogs(api, namespace, pods.map(pod => pod.metadata.name))
-
-        if (logs) {
-          out.logs = dedent`
-            <Showing last ${podLogLines} lines per pod in this ${obj.kind}. Run the following command for complete logs>
-            kubectl -n ${namespace} --context=${api.context} logs ${obj.kind.toLowerCase()}/${obj.metadata.name}
-
-          ` + logs
-        }
+        out.logs = await getWorkloadLogs(api, namespace, statusRes)
       }
 
       return out
+    } else if (event.type === "Warning") {
+      out.warning = true
     }
 
     let message = event.message
@@ -292,6 +285,18 @@ export async function checkWorkloadStatus(
 
   if (!out.lastMessage) {
     out.lastMessage = statusMsg
+  }
+
+  // Catch timeout conditions here
+  if (out.state !== "ready") {
+    for (const condition of statusRes.status.conditions || []) {
+      if (condition.status === "False" && condition.reason === "ProgressDeadlineExceeded") {
+        out.state = "unhealthy"
+        out.lastError = `${condition.reason} - ${condition.message}`
+        out.logs = await getWorkloadLogs(api, namespace, statusRes)
+        break
+      }
+    }
   }
 
   return out
@@ -387,11 +392,6 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
         statusLine.setState({
           symbol,
           msg: `${status.obj.kind}/${status.obj.metadata.name}: ${status.lastMessage}`,
-        })
-        log.verbose({
-          symbol,
-          section: serviceName,
-          msg: `Waiting for service to be ready...`,
         })
       }
     }
@@ -633,4 +633,19 @@ async function getPodLogs(api: KubeApi, namespace: string, podNames: string[]): 
     }
   })
   return allLogs.filter(l => l !== "").join("\n\n")
+}
+
+async function getWorkloadLogs(api: KubeApi, namespace: string, obj: Workload) {
+  const pods = await getWorkloadPods(api, namespace, obj)
+  const logs = await getPodLogs(api, namespace, pods.map(pod => pod.metadata.name))
+
+  if (logs) {
+    return dedent`
+      <Showing last ${podLogLines} lines per pod in this ${obj.kind}. Run the following command for complete logs>
+      kubectl -n ${namespace} --context=${api.context} logs ${obj.kind.toLowerCase()}/${obj.metadata.name}
+
+    ` + logs
+  } else {
+    return undefined
+  }
 }
