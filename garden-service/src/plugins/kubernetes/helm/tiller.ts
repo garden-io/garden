@@ -36,6 +36,10 @@ export async function checkTillerStatus(ctx: PluginContext, provider: Kubernetes
 }
 
 export async function installTiller(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
+  if (await checkTillerStatus(ctx, provider, log) === "ready") {
+    return
+  }
+
   const namespace = await getAppNamespace(ctx, log, provider)
   const context = provider.config.context
 
