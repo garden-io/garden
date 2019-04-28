@@ -10,8 +10,8 @@ import { kebabCase, flatten, entries } from "lodash"
 import React, { useContext, useEffect } from "react"
 
 import Sidebar from "../components/sidebar"
-import { DashboardPage } from "../api/types"
 import { DataContext } from "../context/data"
+import { DashboardPage } from "garden-cli/src/config/dashboard"
 
 export interface Page extends DashboardPage {
   path: string

@@ -40,7 +40,7 @@ export default () => {
   const isLoadingServices = !status.data || status.loading
 
   // Only show when load component for Modules is no longer visible
-  const ServiceLoadMsg = isLoadingModules ? undefined : LoadingServices
+  const ServiceLoadMsg = isLoadingModules ? null : LoadingServices
 
   return (
     <div>

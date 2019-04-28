@@ -12,69 +12,53 @@ import React from "react"
 import {
   fetchConfig,
   fetchLogs,
-  fetchTaskResult,
   fetchStatus,
   fetchGraph,
   FetchLogsParam,
   FetchTaskResultParam,
-  fetchTestResult,
   FetchTestResultParam,
-} from "../api"
-import {
-  FetchConfigResponse,
-  FetchStatusResponse,
-  FetchGraphResponse,
-  FetchLogsResponse,
-  FetchTaskResultResponse,
-  FetchTestResultResponse,
-} from "../api/types"
+  fetchTaskResult,
+  fetchTestResult,
+} from "../api/api"
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
+import { ConfigDump } from "garden-cli/src/garden"
+import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
+import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
+import { EnvironmentStatus } from "garden-cli/src/actions"
+import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
 
-interface StoreSlice {
+interface StoreCommon {
   error: Error | null
   loading: boolean
 }
 
-interface Config extends StoreSlice {
-  data: FetchConfigResponse | null
-}
-interface Status extends StoreSlice {
-  data: FetchStatusResponse | null
-}
-interface Graph extends StoreSlice {
-  data: FetchGraphResponse | null
-}
-interface Logs extends StoreSlice {
-  data: FetchLogsResponse | null
-}
-interface TaskResult extends StoreSlice {
-  data: FetchTaskResultResponse | null
-}
-interface TestResult extends StoreSlice {
-  data: FetchTestResultResponse | null
-}
-
 // This is the global data store
 interface Store {
-  config: Config
-  status: Status
-  graph: Graph
-  logs: Logs
-  taskResult: TaskResult
-  testResult: TestResult
+  config: StoreCommon & {
+    data?: ConfigDump,
+  },
+  status: StoreCommon & {
+    data?: EnvironmentStatus,
+  },
+  graph: StoreCommon & {
+    data?: GraphOutput,
+  },
+  logs: StoreCommon & {
+    data?: ServiceLogEntry[],
+  },
+  taskResult: StoreCommon & {
+    data?: TaskResultOutput,
+  },
+  testResult: StoreCommon & {
+    data?: TestResultOutput,
+  },
 }
 
 export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
-export type LoadTaskResult = (
-  param: FetchTaskResultParam,
-  force?: boolean,
-) => void
-export type LoadTestResult = (
-  param: FetchTestResultParam,
-  force?: boolean,
-) => void
+export type LoadTaskResult = (param: FetchTaskResultParam, force?: boolean) => void
+export type LoadTestResult = (param: FetchTestResultParam, force?: boolean) => void
 
 type Loader = (force?: boolean) => void
-
 interface Actions {
   loadLogs: LoadLogs
   loadConfig: Loader
@@ -84,21 +68,13 @@ interface Actions {
   loadTestResult: LoadTestResult
 }
 
-type KeyActionPair =
-  |["config", (arg0?: any) => Promise<FetchConfigResponse>]
-  | ["logs", (arg0?: any) => Promise<FetchLogsResponse>]
-  | ["status", (arg0?: any) => Promise<FetchStatusResponse>]
-  | ["taskResult", (arg0?: any) => Promise<FetchTaskResultResponse>]
-  | ["testResult", (arg0?: any) => Promise<FetchTestResultResponse>]
-  | ["graph", (arg0?: any) => Promise<FetchGraphResponse>]
-
 type Context = {
   store: Store;
   actions: Actions;
 }
 
-type SliceName = keyof Store
-const sliceNames: SliceName[] = [
+type StoreKey = keyof Store
+const storeKeys: StoreKey[] = [
   "config",
   "status",
   "graph",
@@ -107,22 +83,19 @@ const sliceNames: SliceName[] = [
   "testResult",
 ]
 
-// TODO Fix type cast
-const initialState: Store = sliceNames.reduce((acc, key) => {
-  const state = { data: null, loading: false, error: null }
+const initialState: Store = storeKeys.reduce<Store>((acc, key) => {
+  const state = { loading: false, error: null }
   acc[key] = state
   return acc
-}, {}) as Store
+}, {} as Store)
 
-// We type cast the initial value to avoid having to check whether the context exists in every context consumer.
-// Context is only undefined if the provider is missing which we assume is not the case.
-export const DataContext = React.createContext<Context>({} as Context)
-
-// Updates slices of the store based on the slice key
+/**
+ * Updates slices of the store based on the slice key
+ */
 function updateSlice(
   prevState: Store,
-  key: SliceName,
-  sliceState: Object,
+  key: StoreKey,
+  sliceState: Partial<Store[StoreKey]>,
 ): Store {
   const prevSliceState = prevState[key]
   return {
@@ -134,11 +107,15 @@ function updateSlice(
   }
 }
 
-// Creates the actions needed for fetching data from the API and updates the store state as the actions are called.
+/**
+ * Creates the actions needed for fetching data from the API and updates the store state as the actions are called.
+ *
+ * TODO: Improve type safety
+ */
 function useApi() {
-  const [store, setData] = useState<Store>(initialState)
+  const [store, setData] = useState(initialState)
 
-  const fetch = async ([key, fetchFn]: KeyActionPair, args?: any[]) => {
+  const fetch = async (key: StoreKey, fetchFn: Function, args?: any[]) => {
     setData(prevState => updateSlice(prevState, key, { loading: true }))
 
     try {
@@ -149,38 +126,31 @@ function useApi() {
     }
   }
 
-  const fetchOrReadFromStore = (keyActionPair: KeyActionPair, force: boolean, args: any[] = []) => {
-    const key = keyActionPair[0]
+  const fetchOrReadFromStore = <T extends Function>(key: StoreKey, action: T, force: boolean, args: any[] = []) => {
     const { data, loading } = store[key]
     if (!force && (data || loading)) {
       return
     }
-    fetch(keyActionPair, args).catch(error =>
-      setData(prevState => updateSlice(prevState, key, { error })),
-    )
+    fetch(key, action, args).catch(error => setData(prevState => updateSlice(prevState, key, { error })))
   }
 
-  const loadLogs: LoadLogs = (args: FetchLogsParam, force: boolean = false) =>
-    fetchOrReadFromStore(["logs", fetchLogs], force, [args])
-  const loadConfig: Loader = (force: boolean = false) =>
-    fetchOrReadFromStore(["config", fetchConfig], force)
-  const loadGraph: Loader = (force: boolean = false) =>
-    fetchOrReadFromStore(["graph", fetchGraph], force)
-  const loadStatus: Loader = (force: boolean = false) =>
-    fetchOrReadFromStore(["status", fetchStatus], force)
-
-  const loadTaskResult: LoadTaskResult = (
-    args: FetchTaskResultParam,
-    force: boolean = false,
-  ) => {
-    return fetchOrReadFromStore(["taskResult", fetchTaskResult], force, [args])
+  const loadLogs: LoadLogs = (args: FetchLogsParam, force: boolean = false) => (
+    fetchOrReadFromStore("logs", fetchLogs, force, [args])
+  )
+  const loadConfig: Loader = (force: boolean = false) => (
+    fetchOrReadFromStore("config", fetchConfig, force)
+  )
+  const loadGraph: Loader = (force: boolean = false) => (
+    fetchOrReadFromStore("graph", fetchGraph, force)
+  )
+  const loadStatus: Loader = (force: boolean = false) => (
+    fetchOrReadFromStore("status", fetchStatus, force)
+  )
+  const loadTaskResult: LoadTaskResult = (args: FetchTaskResultParam, force: boolean = false) => {
+    return fetchOrReadFromStore("taskResult", fetchTaskResult, force, [args])
   }
-
-  const loadTestResult: LoadTestResult = (
-    args: FetchTestResultParam,
-    force: boolean = false,
-  ) => {
-    return fetchOrReadFromStore(["testResult", fetchTestResult], force, [args])
+  const loadTestResult: LoadTestResult = (args: FetchTestResultParam, force: boolean = false) => {
+    return fetchOrReadFromStore("testResult", fetchTestResult, force, [args])
   }
 
   return {
@@ -195,6 +165,10 @@ function useApi() {
     },
   }
 }
+
+// We type cast the initial value to avoid having to check whether the context exists in every context consumer.
+// Context is only undefined if the provider is missing which we assume is not the case.
+export const DataContext = React.createContext<Context>({} as Context)
 
 /**
  * This component manages the "rest" API data state (not the websockets) for the entire application.

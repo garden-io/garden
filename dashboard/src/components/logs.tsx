@@ -14,15 +14,17 @@ import React, { Component } from "react"
 import Select from "react-select"
 
 import Terminal from "./terminal"
-import { FetchConfigResponse, FetchLogsResponse } from "../api/types"
 import Card, { CardTitle } from "./card"
 import { colors } from "../styles/variables"
 import { LoadLogs } from "../context/data"
 import { getServiceNames } from "../util/helpers"
 
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
+import { ConfigDump } from "garden-cli/src/garden"
+
 interface Props {
-  config: FetchConfigResponse
-  logs: FetchLogsResponse
+  config: ConfigDump
+  logs: ServiceLogEntry[]
   loadLogs: LoadLogs
 }
 

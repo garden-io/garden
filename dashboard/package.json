@@ -14,6 +14,7 @@
     "@types/react-select": "^2.0.17",
     "react-scripts": "^2.1.8",
     "ts-node": "^7.0.1",
+    "tslint": "^5.16.0",
     "tslint-microsoft-contrib": "^6.1.1",
     "tslint-react": "^4.0.0",
     "typescript": "^3.4.3"
@@ -41,9 +42,9 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "npm run build-ci && ./bin/copy-to-static",
-    "build-ci": "react-scripts build",
-    "dev2": "node_modules/garden-react-scripts/bin/react-scripts.js start",
-    "dev": "npm run start",
+    "build-ci": "npm run link-garden-cli && react-scripts build",
+    "link-garden-cli": "npm link ../garden-service",
+    "dev": "npm run link-garden-cli && npm run start",
     "test-watch": "react-scripts test",
     "test": "CI=true react-scripts test",
     "eject": "react-scripts eject"

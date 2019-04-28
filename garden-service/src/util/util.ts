@@ -30,6 +30,8 @@ export type HookCallback = (callback?: () => void) => void
 
 const exitHookNames: string[] = [] // For debugging/testing/inspection purposes
 
+// For creating a subset of a union type, see: https://stackoverflow.com/a/53637746
+export type Extends<T, U extends T> = U
 export type ValueOf<T> = T[keyof T]
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 export type Diff<T, U> = T extends U ? never : T

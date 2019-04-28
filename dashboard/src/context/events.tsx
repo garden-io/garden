@@ -9,16 +9,42 @@
 import React from "react"
 
 import { useEffect, useState } from "react"
-import getApiUrl from "../api/get-api-url"
-import { WsMessage } from "../api/types"
+import { ServerWebsocketMessage } from "garden-cli/src/server/websocket"
+import { Events, EventName } from "garden-cli/src/events"
 
-type Context = { message?: WsMessage }
+import getApiUrl from "../api/get-api-url"
+import { Extends } from "garden-cli/src/util/util"
+
+// FIXME: We shouldn't repeat the keys for both the type and the set below
+export type SupportedEventName = Extends<
+  EventName, "taskPending" | "taskProcessing" | "taskComplete" | "taskGraphComplete"
+>
+
+export const supportedEventNames: Set<SupportedEventName> = new Set(
+  ["taskPending", "taskProcessing", "taskComplete", "taskGraphComplete"],
+)
+
+export type WsEventMessage = ServerWebsocketMessage & {
+  type: "event",
+  name: SupportedEventName,
+  payload: Events[SupportedEventName],
+}
+
+/**
+ * Type guard to check whether websocket message is a type supported by the Dashboard
+ */
+function isSupportedEvent(data: ServerWebsocketMessage): data is WsEventMessage {
+  return data.type === "event" && supportedEventNames.has((data as WsEventMessage).name)
+}
+
+type Context = { message?: WsEventMessage }
 
 export const EventContext = React.createContext<Context>({} as Context)
 
 interface WsOutput {
-  message?: WsMessage
+  message?: WsEventMessage
 }
+
 function useWs(): WsOutput {
   const [data, setData] = useState<WsOutput>()
   useEffect(() => {
@@ -33,14 +59,14 @@ function useWs(): WsOutput {
       console.log("ws close", event)
     }
     ws.onmessage = msg => {
-      const parsedMsg = JSON.parse(msg.data) as WsMessage
+      const parsedMsg = JSON.parse(msg.data) as ServerWebsocketMessage
 
-      // TOOD
+      // TODO
       if (parsedMsg.type === "error") {
         console.error(parsedMsg)
       }
 
-      if (parsedMsg.type === "event") {
+      if (isSupportedEvent(parsedMsg)) {
         console.log(parsedMsg)
         setData({ message: parsedMsg })
       }

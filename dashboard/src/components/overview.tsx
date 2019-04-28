@@ -14,11 +14,8 @@ import normalizeUrl from "normalize-url"
 import Table from "./table"
 import { ExternalLink } from "./links"
 
-import {
-  ServiceStatus,
-  ModuleConfig,
-  ServiceIngress,
-} from "../api/types"
+import { ModuleConfig } from "garden-cli/src/config/module"
+import { ServiceStatus, ServiceIngress } from "garden-cli/src/types/service"
 
 export function getIngressUrl(ingress: ServiceIngress) {
   return normalizeUrl(format({

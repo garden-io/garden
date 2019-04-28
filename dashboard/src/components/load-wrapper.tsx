@@ -14,7 +14,7 @@ interface LoadContainerProps {
   error: Error | null
   loading: boolean
   ErrorComponent: React.SFC<any> | React.ComponentClass<any>
-  LoadComponent?: React.SFC<any> | React.ComponentClass<any>
+  LoadComponent?: React.SFC<any> | React.ComponentClass<any> | null
 }
 
 const LoadWrapper: React.SFC<LoadContainerProps> = props => {

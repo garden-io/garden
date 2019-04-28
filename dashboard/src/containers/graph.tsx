@@ -32,26 +32,26 @@ export default () => {
     state: { selectedGraphNode },
   } = useContext(UiStateContext)
 
-  const isLoading =
-    !config.data || !graph.data || config.loading || graph.loading
+  const isLoading = !config.data || !graph.data || config.loading || graph.loading
   const error = config.error || graph.error
 
   let moreInfoPane: JSX.Element | null = null
-  if (selectedGraphNode) {
-    const { name, type, moduleName } = graph.data.nodes.find(
-      node => node.key === selectedGraphNode,
-    )
-    switch (type) {
-      case "run": // task
-        moreInfoPane = <TaskResultNodeInfo name={name} />
-        break
-      case "test":
-        moreInfoPane = <TestResultNodeInfo name={name} module={moduleName} />
-        break
-      case "build":
-      default:
-        moreInfoPane = null
-        break
+  if (selectedGraphNode && graph.data) {
+    const node = graph.data.nodes.find(n => n.key === selectedGraphNode)
+    if (node) {
+      const { name, type, moduleName } = node
+      switch (type) {
+        case "run": // task
+          moreInfoPane = <TaskResultNodeInfo name={name} />
+          break
+        case "test":
+          moreInfoPane = <TestResultNodeInfo name={name} module={moduleName} />
+          break
+        case "build":
+        default:
+          moreInfoPane = null
+          break
+      }
     }
   }
 
@@ -65,9 +65,8 @@ export default () => {
             selectedGraphNode={selectedGraphNode}
             config={config.data}
             graph={graph.data}
-          />}}
+          />}
         </div>
-
         {moreInfoPane && (
           <div className="col-xs-5">{moreInfoPane}</div>
         )}

@@ -10,7 +10,7 @@ import React, { useState } from "react"
 
 interface UiState {
   isSidebarOpen: boolean
-  selectedGraphNode: string
+  selectedGraphNode: string | null
 }
 
 export type SelectGraphNode = (node: string) => void

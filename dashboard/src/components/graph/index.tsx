@@ -14,12 +14,6 @@ import { capitalize, uniq } from "lodash"
 import * as d3 from "d3"
 import dagreD3 from "dagre-d3"
 
-import {
-  FetchConfigResponse,
-  FetchGraphResponse,
-  WsMessage,
-  nodeTaskTypes,
-} from "../../api/types"
 import Card from "../card"
 
 import "./graph.scss"
@@ -27,6 +21,15 @@ import { colors, fontMedium } from "../../styles/variables"
 import Spinner from "../spinner"
 import CheckBox from "../checkbox"
 import { SelectGraphNode } from "../../context/ui"
+import {
+  WsEventMessage,
+  SupportedEventName,
+  supportedEventNames,
+} from "../../context/events"
+import { Events } from "garden-cli/src/events"
+import { Extends } from "garden-cli/src/util/util"
+import { ConfigDump } from "garden-cli/src/garden"
+import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 
 interface Node {
   name: string
@@ -46,6 +49,23 @@ export interface Graph {
   edges: Edge[]
 }
 
+// FIXME: We shouldn't repeat the keys for both the type and the set below
+type TaskNodeEventName = Extends<SupportedEventName, "taskPending" | "taskProcessing" | "taskComplete">
+
+type WsTaskNodeMessage = WsEventMessage & {
+  name: TaskNodeEventName,
+  payload: Events[TaskNodeEventName],
+}
+
+const taskNodeEventNames: Set<TaskNodeEventName> = new Set(["taskPending", "taskProcessing", "taskComplete"])
+
+/**
+ * Type guard to check whether WsEventMessage is of type WsTaskNodeMessage
+ */
+function isTaskNodeMessage(message: WsEventMessage): message is WsTaskNodeMessage {
+  return taskNodeEventNames.has((message as WsTaskNodeMessage).name)
+}
+
 const MIN_CHART_WIDTH = 200
 const MIN_CHART_HEIGHT = 200
 
@@ -58,7 +78,7 @@ function drawChart(
   // Create the input graph
   const g = new dagreD3.graphlib.Graph()
     .setGraph({})
-    .setDefaultEdgeLabel(function () { return {} })
+    .setDefaultEdgeLabel(function() { return {} })
 
   // Here we"re setting nodeclass, which is used by our custom drawNodes function
   // below.
@@ -71,7 +91,7 @@ function drawChart(
     })
   }
 
-  g.nodes().forEach(function (v) {
+  g.nodes().forEach(function(v) {
     const node = g.node(v)
     // Round the corners of the nodes
     node.rx = node.ry = 5
@@ -113,6 +133,7 @@ function drawChart(
   svg.call(zoom)
 
   // Run the renderer. This is what draws the final graph.
+  // FIXME: ts-ignore
   // @ts-ignore
   render(svgGroup, g)
 
@@ -135,11 +156,11 @@ function drawChart(
 }
 
 interface Props {
-  config: FetchConfigResponse
-  graph: FetchGraphResponse
+  config: ConfigDump
+  graph: GraphOutput
   selectGraphNode: SelectGraphNode
-  selectedGraphNode: string
-  message?: WsMessage
+  selectedGraphNode: string | null
+  message?: WsEventMessage
 }
 
 interface State {
@@ -299,20 +320,24 @@ class Chart extends Component<Props, State> {
   }
 
   clearClasses(el: HTMLElement) {
-    for (const className of nodeTaskTypes) {
-      el.classList.remove(className)
+    // we use the event name as the class name
+    for (const name of supportedEventNames) {
+      el.classList.remove(name)
     }
   }
 
   // Update the node class instead of re-rendering the graph for perf reasons
-  updateNodeClass(message: WsMessage) {
+  updateNodeClass(message: WsEventMessage) {
+    if (!isTaskNodeMessage(message)) {
+      return
+    }
     for (const node of this._nodes) {
       if (message.payload.key && node.id === message.payload.key) {
         const nodeEl = document.getElementById(node.id)
         if (nodeEl) {
           this.clearClasses(nodeEl)
-          if (nodeTaskTypes.find(t => t === message.name)) {
-            nodeEl.classList.add(message.name) // message.name is of type NodeTask
+          if (supportedEventNames.has(message.name)) {
+            nodeEl.classList.add(message.name) // we use the event name as the class name
           }
         }
       }

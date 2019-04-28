@@ -29,7 +29,8 @@ export function addWebsocketEndpoint(app: websockify.App, garden: Garden, log: L
   ws.get("/ws", async (ctx) => {
     // Helper to make JSON messages, make them type-safe, and to log errors.
     const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
-      ctx.websocket.send(JSON.stringify({ type, ...<object>payload }), (err) => {
+      const msg: ServerWebsocketMessages[T] = { type, ...payload }
+      ctx.websocket.send(JSON.stringify(msg), (err) => {
         if (err) {
           const error = toGardenError(err)
           log.error({ error })
@@ -106,3 +107,7 @@ interface ServerWebsocketMessages {
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
+
+export type ServerWebsocketMessage = ServerWebsocketMessages[ServerWebsocketMessageType] & {
+  type: ServerWebsocketMessageType,
+}

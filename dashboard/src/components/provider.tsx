@@ -7,6 +7,7 @@
  */
 
 import { RouteComponentProps } from "react-router-dom"
+import React from "react"
 import * as H from "history"
 
 import { Page } from "../containers/sidebar"

@@ -15,7 +15,7 @@ import {
   CommandParams,
 } from "../base"
 
-interface GraphOutput {
+export interface GraphOutput {
   nodes: RenderedNode[],
   relationships: RenderedEdge[],
 }
