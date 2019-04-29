@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { css } from "emotion/macro"
-import styled from "@emotion/styled/macro"
+import { css } from "emotion"
+import styled from "@emotion/styled"
 import React, { Component } from "react"
 
 import { NavLink } from "./links"
@@ -24,12 +24,12 @@ interface State {
 }
 
 const Button = styled.li`
-  ${fontMedium}
+  ${fontMedium};
   border-radius: 2px;
   cursor: pointer;
   width: 100%;
   transition: all 0.3s ease;
-  &: hover {
+  &:hover {
     background-color: ${colors.gardenGreenLight};
     border-color: ${colors.gardenGreenLight};
   }
@@ -81,7 +81,7 @@ class Sidebar extends Component<Props, State> {
                 )
               }
               return (
-                <Button tabName={name} key={page.title}>
+                <Button key={page.title}>
                   {link}
                 </Button>
               )

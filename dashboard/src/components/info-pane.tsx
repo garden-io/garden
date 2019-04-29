@@ -9,22 +9,13 @@
 import React from "react"
 import cls from "classnames"
 import { capitalize } from "lodash"
-import { css } from "emotion/macro"
-import styled from "@emotion/styled/macro"
+import { css } from "emotion"
+import styled from "@emotion/styled"
 import Card from "../components/card"
 import { colors } from "../styles/variables"
 import { RenderedNode } from "garden-cli/src/config-graph"
 import { RefreshButton } from "./RefreshButton"
-
-export const ErrorTxt = styled.div`
-  color: #721c24;
-  background-color: #f8d7da;
-  border-color: #f5c6cb;
-  position: relative;
-  padding: 0.75rem 1.25rem;
-  border: 1px solid transparent;
-  border-radius: 0.25rem;
-`
+import { ErrorNotification } from "./notifications"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
@@ -35,7 +26,7 @@ const Term = styled.div`
   padding: 1rem;
 `
 const Code = styled.code`
-  font-size: 0.8rem;
+  font-size: .8rem;
   white-space: pre-wrap;
 `
 
@@ -103,7 +94,7 @@ export const InfoPane: React.FC<Props> = ({
     )
   } else if (output === null) {
     // Output explictly set to null means that the data was  fetched but the result was empty
-    outputEl = <ErrorTxt>No test output</ErrorTxt>
+    outputEl = <ErrorNotification>No test output</ErrorNotification>
   }
 
   return (
@@ -115,7 +106,7 @@ export const InfoPane: React.FC<Props> = ({
           </div>
           <div
             className={css`
-              padding-left: 0.5rem;
+              padding-left: .5rem;
             `}
           >
             <h2

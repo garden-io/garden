@@ -7,7 +7,7 @@
  */
 
 import React from "react"
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import { NavLink as ReactRouterNavLink } from "react-router-dom"
 
 import { colors } from "../styles/variables"
@@ -15,7 +15,7 @@ import { colors } from "../styles/variables"
 export const ExternalLink = styled.a`
   text-decoration: underline;
   &:visited {
-    color: ${colors.gardenGreen}
+    color: ${colors.gardenGreenDark}
   }
   &:hover {
     color: ${colors.gardenPink}

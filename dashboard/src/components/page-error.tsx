@@ -7,17 +7,22 @@
  */
 
 import cls from "classnames"
-import { css } from "emotion/macro"
+import { css } from "emotion"
 import React from "react"
 
 import { H3 } from "../components/text"
 
 import { colors } from "../styles/variables"
+import { AxiosError } from "axios"
+
+interface Props {
+  error?: AxiosError
+}
 
 // TODO Style me + add prop interface
-const PageError: React.FC<any> = ({ error }) => {
+const PageError: React.FC<Props> = ({ error }) => {
   let suggestion
-  const status = error.response && error.response.status
+  const status = error && error.response && error.response.status
   if (status === 500) {
     suggestion = (
       <div>
@@ -39,7 +44,9 @@ const PageError: React.FC<any> = ({ error }) => {
       <H3 color={colors.gardenPink}>
         Whoops, something went wrong.
       </H3>
-      <p>Messsage: {error.message}</p>
+      {error && error.message &&
+        <p>Messsage: {error.message}</p>
+      }
       {suggestion}
     </div>
   )

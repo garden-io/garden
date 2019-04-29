@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import { padEnd } from "lodash"
 import React from "react"
 
@@ -29,7 +29,7 @@ const Term = styled.div`
 
 const P = styled.p`
   color: ${colors.gardenWhite};
-  font-size: 0.8rem;
+  font-size: .8rem;
 `
 
 const Service = styled.span`

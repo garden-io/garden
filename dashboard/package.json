@@ -34,6 +34,7 @@
     "node-sass": "^4.10.0",
     "normalize-url": "^4.3.0",
     "react": "^16.8.6",
+    "react-content-loader": "^4.2.1",
     "react-dom": "^16.8.6",
     "react-router-dom": "^5.0.0",
     "react-select": "^2.3.0",

@@ -32,7 +32,7 @@ export default () => {
   } = useContext(UiStateContext)
 
   if (config.error || graph.error) {
-    return <PageError />
+    return <PageError error={config.error || graph.error} />
   }
 
   if (!config.data || !graph.data || config.loading || graph.loading) {
