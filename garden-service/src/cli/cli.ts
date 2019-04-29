@@ -271,8 +271,14 @@ export class GardenCli {
         contextOpts.config = MOCK_CONFIG
       }
       let garden: Garden
-      let result
-      await command.printHeader(log)
+      let result: any
+
+      await command.prepare({
+        log,
+        logFooter,
+        args: parsedArgs,
+        opts: parsedOpts,
+      })
 
       do {
         garden = await Garden.factory(root, contextOpts)

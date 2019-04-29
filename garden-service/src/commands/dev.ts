@@ -23,6 +23,7 @@ import {
   CommandParams,
   StringsParameter,
   handleTaskResults,
+  PrepareParams,
 } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
@@ -31,6 +32,7 @@ import { getTestTasks } from "../tasks/test"
 import { HotReloadTask } from "../tasks/hot-reload"
 import { ConfigGraph } from "../config-graph"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import { GardenServer, startServer } from "../server/server"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -73,15 +75,21 @@ export class DevCommand extends Command<Args, Opts> {
 
   options = devOpts
 
-  async printHeader(log) {
+  private server: GardenServer
+
+  async prepare({ log, logFooter }: PrepareParams<Args, Opts>) {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
 
     log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
+
+    this.server = await startServer(logFooter)
   }
 
   async action({ garden, log, logFooter, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
+    this.server.setGarden(garden)
+
     const graph = await garden.getConfigGraph()
     const modules = await graph.getModules()
 

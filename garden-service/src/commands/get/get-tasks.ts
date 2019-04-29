@@ -14,6 +14,7 @@ import {
   CommandResult,
   CommandParams,
   StringsParameter,
+  PrepareParams,
 } from "../base"
 import { logHeader } from "../../logger/util"
 import { Task } from "../../types/task"
@@ -24,7 +25,7 @@ const getTasksArgs = {
   }),
 }
 
-type GetTasksArguments = typeof getTasksArgs
+type Args = typeof getTasksArgs
 
 export function prettyPrintTask(task: Task): string {
   let out = `${chalk.cyan.bold(task.name)}`
@@ -54,17 +55,17 @@ function printField(name: string, value: string | null) {
   return `${chalk.gray(name)}: ${value || ""}`
 }
 
-export class GetTasksCommand extends Command<GetTasksArguments> {
+export class GetTasksCommand extends Command<Args> {
   name = "tasks"
   help = "Lists the tasks defined in your project's modules."
 
   arguments = getTasksArgs
 
-  async printHeader(log) {
+  async prepare({ log }: PrepareParams<Args>) {
     logHeader({ log, emoji: "open_book", command: "Tasks" })
   }
 
-  async action({ args, garden, log }: CommandParams<GetTasksArguments>): Promise<CommandResult> {
+  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph()
     const tasks = await graph.getTasks(args.tasks)
     const taskModuleNames = uniq(tasks.map(t => t.module.name))

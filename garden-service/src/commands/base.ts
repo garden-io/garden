@@ -205,12 +205,15 @@ export interface CommandResult<T = any> {
   errors?: GardenError[]
 }
 
-export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> {
+export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> {
   args: ParameterValues<T>
   opts: ParameterValues<U>
-  garden: Garden
   log: LogEntry
-  logFooter?: LogEntry
+  logFooter: LogEntry
+}
+
+export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
+  garden: Garden
 }
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
@@ -277,7 +280,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
    * Called by the CLI before the command's action is run, but is not called again
    * if the command restarts. Useful for commands in watch mode.
    */
-  async printHeader(_: LogEntry) {
+  async prepare(_: PrepareParams<T, U>) {
   }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),

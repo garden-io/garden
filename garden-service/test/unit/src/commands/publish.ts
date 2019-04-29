@@ -53,6 +53,7 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: {
         modules: undefined,
       },
@@ -80,6 +81,7 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: {
         modules: undefined,
       },
@@ -107,6 +109,7 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: {
         modules: ["module-a"],
       },
@@ -130,6 +133,7 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: {
         modules: ["module-c"],
       },
@@ -154,6 +158,7 @@ describe("PublishCommand", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: {
         modules: ["module-a"],
       },

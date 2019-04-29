@@ -25,6 +25,7 @@ describe("RunModuleCommand", () => {
     const { result } = await cmd.action({
       garden,
       log,
+      logFooter: log,
       args: { module: "module-a", command: [] },
       opts: { "interactive": false, "force-build": false },
     })
@@ -47,6 +48,7 @@ describe("RunModuleCommand", () => {
     const { result } = await cmd.action({
       garden,
       log,
+      logFooter: log,
       args: { module: "module-a", command: ["my", "command"] },
       opts: { "interactive": false, "force-build": false },
     })

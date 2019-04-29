@@ -9,7 +9,7 @@
 import React from "react"
 
 import { useEffect, useState } from "react"
-import { ServerWebsocketMessage } from "garden-cli/src/server/websocket"
+import { ServerWebsocketMessage } from "garden-cli/src/server/server"
 import { Events, EventName } from "garden-cli/src/events"
 
 import getApiUrl from "../api/get-api-url"

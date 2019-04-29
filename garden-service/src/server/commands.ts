@@ -10,7 +10,6 @@ import Joi = require("joi")
 import Koa = require("koa")
 import { Command, Parameters } from "../commands/base"
 import { validate } from "../config/common"
-import { coreCommands } from "../commands/commands"
 import { mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
 import { LogLevel } from "../logger/log-node"
@@ -108,6 +107,8 @@ export async function prepareCommands(): Promise<CommandMap> {
     command.getSubCommands().forEach(addCommand)
   }
 
+  // Need to import this here to avoid circular import issues
+  const { coreCommands } = require("../commands/commands")
   coreCommands.forEach(addCommand)
 
   return commands

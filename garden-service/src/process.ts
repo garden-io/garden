@@ -17,7 +17,6 @@ import { TaskResults } from "./task-graph"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
-import { startServer } from "./server/server"
 import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
@@ -168,11 +167,6 @@ export async function processModules(
       await garden.processTasks(moduleTasks)
     })
   })
-
-  // Start HTTP API and dashboard server.
-  // allow overriding automatic port picking
-  const port = Number(process.env.GARDEN_SERVER_PORT) || undefined
-  await startServer(garden, log, port)
 
   await restartPromise
 

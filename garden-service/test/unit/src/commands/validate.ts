@@ -14,6 +14,7 @@ describe("commands.validate", () => {
       await command.action({
         garden,
         log,
+        logFooter: log,
         args: {},
         opts: {},
       })
@@ -35,6 +36,7 @@ describe("commands.validate", () => {
     await expectError(async () => await command.action({
       garden,
       log,
+      logFooter: log,
       args: {},
       opts: {},
     }), "configuration")

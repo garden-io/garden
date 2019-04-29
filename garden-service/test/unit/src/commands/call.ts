@@ -69,6 +69,7 @@ describe("commands.call", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: { serviceAndPath: "service-a/path-a" },
       opts: {},
     })
@@ -93,6 +94,7 @@ describe("commands.call", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: { serviceAndPath: "service-a" },
       opts: {},
     })
@@ -116,6 +118,7 @@ describe("commands.call", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: { serviceAndPath: "service-b" },
       opts: {},
     })
@@ -136,6 +139,7 @@ describe("commands.call", () => {
       await command.action({
         garden,
         log,
+        logFooter: log,
         args: { serviceAndPath: "service-d/path-d" },
         opts: {},
       })
@@ -156,6 +160,7 @@ describe("commands.call", () => {
       await command.action({
         garden,
         log,
+        logFooter: log,
         args: { serviceAndPath: "service-c/path-c" },
         opts: {},
       })
@@ -176,6 +181,7 @@ describe("commands.call", () => {
       await command.action({
         garden,
         log,
+        logFooter: log,
         args: { serviceAndPath: "service-a/bla" },
         opts: {},
       })

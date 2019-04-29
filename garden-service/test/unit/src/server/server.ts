@@ -7,8 +7,8 @@
  */
 
 import { makeTestGardenA, taskResultOutputs } from "../../../helpers"
-import { startServer } from "../../../../src/server/server"
 import { Server } from "http"
+import { startServer, GardenServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
 import { expect } from "chai"
 import { deepOmitUndefined } from "../../../../src/util/util"
@@ -19,17 +19,23 @@ import WebSocket = require("ws")
 
 describe("startServer", () => {
   let garden: Garden
+  let gardenServer: GardenServer
   let server: Server
   let port: number
 
   before(async () => {
     port = await getPort()
     garden = await makeTestGardenA()
-    server = await startServer(garden, garden.log, port)
+    gardenServer = await startServer(garden.log, port)
+    server = (<any>gardenServer).server
   })
 
   after(async () => {
-    server.close()
+    await server.close()
+  })
+
+  beforeEach(() => {
+    gardenServer.setGarden(garden)
   })
 
   describe("GET /", () => {
@@ -47,6 +53,11 @@ describe("startServer", () => {
 
     it("should 404 on invalid command", async () => {
       await request(server).post("/api").send({ command: "foo" }).expect(404)
+    })
+
+    it("should 503 when Garden instance is not set", async () => {
+      gardenServer.setGarden()
+      await request(server).post("/api").send({ command: "get.config" }).expect(503)
     })
 
     it("should execute a command and return its results", async () => {
@@ -106,6 +117,27 @@ describe("startServer", () => {
         done()
       })
       ws.send("ijdgkasdghlasdkghals")
+    })
+
+    it("should send error when Garden instance is not set", (done) => {
+      const id = uuid.v4()
+
+      onMessage((req) => {
+        expect(req).to.eql({
+          type: "error",
+          message: "Waiting for Garden instance to initialize",
+          requestId: id,
+        })
+        done()
+      })
+
+      gardenServer.setGarden()
+
+      ws.send(JSON.stringify({
+        type: "command",
+        id,
+        command: "get.config",
+      }))
     })
 
     it("should error when a request is missing an ID", (done) => {

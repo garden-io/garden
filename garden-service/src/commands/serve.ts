@@ -8,10 +8,10 @@
 
 import dedent = require("dedent")
 import { LoggerType } from "../logger/logger"
-import { IntegerParameter } from "./base"
+import { IntegerParameter, PrepareParams } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
 import { sleep } from "../util/util"
-import { startServer, DEFAULT_PORT } from "../server/server"
+import { DEFAULT_PORT, GardenServer, startServer } from "../server/server"
 
 const serveArgs = {}
 
@@ -41,8 +41,14 @@ export class ServeCommand extends Command<Args, Opts> {
   arguments = serveArgs
   options = serveOpts
 
-  async action({ garden, log, opts }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    await startServer(garden, log, opts.port)
+  private server: GardenServer
+
+  async prepare({ logFooter, opts }: PrepareParams<Args, Opts>) {
+    this.server = await startServer(logFooter, opts.port)
+  }
+
+  async action({ garden }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+    this.server.setGarden(garden)
 
     // The server doesn't block, so we need to loop indefinitely here.
     while (true) {

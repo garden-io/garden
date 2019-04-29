@@ -13,12 +13,14 @@ import {
   CommandParams,
   handleTaskResults,
   StringsParameter,
+  PrepareParams,
 } from "./base"
 import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 import { processModules } from "../process"
 import { logHeader } from "../logger/util"
+import { startServer, GardenServer } from "../server/server"
 
 const buildArguments = {
   modules: new StringsParameter({
@@ -35,10 +37,10 @@ const buildOptions = {
   }),
 }
 
-type BuildArguments = typeof buildArguments
-type BuildOptions = typeof buildOptions
+type Args = typeof buildArguments
+type Opts = typeof buildOptions
 
-export class BuildCommand extends Command<BuildArguments, BuildOptions> {
+export class BuildCommand extends Command<Args, Opts> {
   name = "build"
   help = "Build your modules."
 
@@ -57,13 +59,23 @@ export class BuildCommand extends Command<BuildArguments, BuildOptions> {
   arguments = buildArguments
   options = buildOptions
 
-  async printHeader(log) {
+  private server: GardenServer
+
+  async prepare({ log, logFooter, opts }: PrepareParams<Args, Opts>) {
     logHeader({ log, emoji: "hammer", command: "Build" })
+
+    if (!!opts.watch) {
+      this.server = await startServer(logFooter)
+    }
   }
 
   async action(
-    { args, opts, garden, log, logFooter }: CommandParams<BuildArguments, BuildOptions>,
+    { args, opts, garden, log, logFooter }: CommandParams<Args, Opts>,
   ): Promise<CommandResult<TaskResults>> {
+    if (this.server) {
+      this.server.setGarden(garden)
+    }
+
     await garden.clearBuilds()
 
     const graph = await garden.getConfigGraph()
