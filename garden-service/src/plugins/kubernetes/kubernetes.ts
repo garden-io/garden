@@ -120,7 +120,6 @@ export const kubernetesConfigBase = providerConfigBaseSchema
     _systemServices: joiArray(joiIdentifier())
       .meta({ internal: true }),
   })
-  .unknown(false)
 
 export const configSchema = kubernetesConfigBase
   .keys({
