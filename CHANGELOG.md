@@ -1,4 +1,12 @@
 
+<a name="v0.9.11-1"></a>
+## [v0.9.11-1](https://github.com/garden-io/garden/compare/v0.9.11-0...v0.9.11-1) (2019-04-29)
+
+### Bug Fixes
+
+* **k8s:** allow unknown fields in provider config ([921243df](https://github.com/garden-io/garden/commit/921243df))
+
+
 <a name="v0.9.11-0"></a>
 ## [v0.9.11-0](https://github.com/garden-io/garden/compare/v0.9.10...v0.9.11-0) (2019-04-29)
 
