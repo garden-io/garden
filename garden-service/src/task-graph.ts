@@ -30,11 +30,11 @@ export interface TaskResult {
 }
 
 /**
- * When multiple tasks with the same baseKey are completed during a call to processTasks,
- * the result from the last processed is used (hence only one key-value pair here per baseKey).
+ * When multiple tasks with the same key are completed during a call to processTasks,
+ * the result from the last processed is used (hence only one key-value pair here per key).
  */
 export interface TaskResults {
-  [baseKey: string]: TaskResult
+  [key: string]: TaskResult
 }
 
 export const DEFAULT_CONCURRENCY = 4
@@ -47,10 +47,10 @@ export class TaskGraph {
   private logEntryMap: LogEntryMap
 
   /**
-   * A given task instance (uniquely identified by its key) should always return the same
-   * list of dependencies (by baseKey) from its getDependencies method.
+   * A given task instance (uniquely identified by its id) should always return the same
+   * list of dependencies (by key) from its getDependencies method.
    */
-  private taskDependencyCache: { [key: string]: Set<string> } // sets of baseKeys
+  private taskDependencyCache: { [id: string]: Set<string> } // sets of keys
 
   private resultCache: ResultCache
   private opQueue: PQueue
@@ -82,8 +82,8 @@ export class TaskGraph {
        * the node's task's dependencies (from configuration).
        */
       node.clear()
-      const taskDeps = this.taskDependencyCache[node.getKey()] || new Set()
-      node.setDependencies(taskNodes.filter(n => taskDeps.has(n.getBaseKey())))
+      const taskDeps = this.taskDependencyCache[node.getId()] || new Set()
+      node.setDependencies(taskNodes.filter(n => taskDeps.has(n.getKey())))
     }
 
     const newRootNodes = taskNodes.filter(n => n.getDependencies().length === 0)
@@ -97,24 +97,24 @@ export class TaskGraph {
     if (this.index.getNode(task)) {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
-        key: task.getBaseKey(),
+        key: task.getKey(),
         version: task.version,
       })
     }
   }
 
   private getNode(task: BaseTask): TaskNode | null {
+    const id = task.getId()
     const key = task.getKey()
-    const baseKey = task.getBaseKey()
     const existing = this.index.getNodes()
-      .filter(n => n.getBaseKey() === baseKey && n.getKey() !== key)
+      .filter(n => n.getKey() === key && n.getId() !== id)
       .reverse()[0]
 
     if (existing) {
-      // A task with the same baseKey is already pending.
+      // A task with the same key is already pending.
       return existing
     } else {
-      const cachedResultExists = !!this.resultCache.get(task.getBaseKey(), task.version.versionString)
+      const cachedResultExists = !!this.resultCache.get(task.getKey(), task.version.versionString)
       if (cachedResultExists && !task.force) {
         // No need to add task or its dependencies.
         return null
@@ -162,17 +162,17 @@ export class TaskGraph {
       return Bluebird.map(batch, async (node: TaskNode) => {
         const task = node.task
         const type = node.getType()
-        const baseKey = node.getBaseKey()
+        const key = node.getKey()
         const description = node.getDescription()
 
-        let result: TaskResult = { type, description, key: task.getBaseKey() }
+        let result: TaskResult = { type, description, key: task.getKey() }
 
         try {
           this.logTask(node)
           this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
           const dependencyBaseKeys = (await task.getDependencies())
-            .map(dep => dep.getBaseKey())
+            .map(dep => dep.getKey())
 
           const dependencyResults = merge(
             this.resultCache.pick(dependencyBaseKeys),
@@ -181,7 +181,7 @@ export class TaskGraph {
           try {
             this.garden.events.emit("taskProcessing", {
               startedAt: new Date(),
-              key: task.getBaseKey(),
+              key: task.getKey(),
               version: task.version,
             })
             result = await node.process(dependencyResults)
@@ -192,8 +192,8 @@ export class TaskGraph {
             this.logTaskError(node, error)
             this.cancelDependants(node)
           } finally {
-            results[baseKey] = result
-            this.resultCache.put(baseKey, task.version.versionString, result)
+            results[key] = result
+            this.resultCache.put(key, task.version.versionString, result)
           }
         } finally {
           this.completeTask(node, !result.error)
@@ -223,7 +223,7 @@ export class TaskGraph {
 
     if (node) {
       const depTasks = await node.task.getDependencies()
-      this.taskDependencyCache[node.getKey()] = new Set(depTasks.map(d => d.getBaseKey()))
+      this.taskDependencyCache[node.getId()] = new Set(depTasks.map(d => d.getKey()))
       for (const dep of depTasks) {
         await this.addNodeWithDependencies(dep)
       }
@@ -232,7 +232,7 @@ export class TaskGraph {
 
   private completeTask(node: TaskNode, success: boolean) {
     if (node.getDependencies().length > 0) {
-      throw new TaskGraphError(`Task ${node.getKey()} still has unprocessed dependencies`)
+      throw new TaskGraphError(`Task ${node.getId()} still has unprocessed dependencies`)
     }
 
     this.remove(node)
@@ -256,7 +256,7 @@ export class TaskGraph {
 
   private getDependants(node: TaskNode): TaskNode[] {
     const dependants = this.index.getNodes().filter(n => n.getDependencies()
-      .find(d => d.getBaseKey() === node.getBaseKey()))
+      .find(d => d.getKey() === node.getKey()))
     return dependants.concat(flatten(dependants.map(d => this.getDependants(d))))
   }
 
@@ -264,25 +264,25 @@ export class TaskGraph {
   private logTask(node: TaskNode) {
     const entry = this.log.debug({
       section: "tasks",
-      msg: `Processing task ${taskStyle(node.getKey())}`,
+      msg: `Processing task ${taskStyle(node.getId())}`,
       status: "active",
       metadata: metadataForLog(node.task, "active"),
     })
-    this.logEntryMap[node.getKey()] = entry
+    this.logEntryMap[node.getId()] = entry
   }
 
   private logTaskComplete(node: TaskNode, success: boolean) {
-    const entry = this.logEntryMap[node.getKey()]
+    const entry = this.logEntryMap[node.getId()]
     if (entry) {
-      const keyStr = taskStyle(node.getKey())
+      const idStr = taskStyle(node.getId())
       if (success) {
         const durationSecs = entry.getDuration(3)
         const metadata = metadataForLog(node.task, "success")
         metadata.task!.durationMs = durationSecs * 1000
-        entry.setSuccess({ msg: `Completed task ${keyStr} (took ${durationSecs} sec)`, metadata })
+        entry.setSuccess({ msg: `Completed task ${idStr} (took ${durationSecs} sec)`, metadata })
       } else {
         const metadata = metadataForLog(node.task, "error")
-        entry.setError({ msg: `Failed task ${keyStr}`, metadata })
+        entry.setError({ msg: `Failed task ${idStr}`, metadata })
       }
     }
     this.logEntryMap.counter.setState(remainingTasksToStr(this.index.length))
@@ -319,23 +319,23 @@ export class TaskGraph {
   }
 }
 
-function getIndexKey(task: BaseTask) {
-  const key = task.getKey()
+function getIndexId(task: BaseTask) {
+  const id = task.getId()
 
-  if (!task.type || !key || task.type.length === 0 || key.length === 0) {
-    throw new TaskDefinitionError("Tasks must define a type and a key")
+  if (!task.type || !id || task.type.length === 0 || id.length === 0) {
+    throw new TaskDefinitionError("Tasks must define a type and an id")
   }
 
-  return key
+  return id
 }
 
 function metadataForLog(task: BaseTask, status: TaskLogStatus): LogEntryMetadata {
   return {
     task: {
       type: task.type,
-      baseKey: task.getBaseKey(),
+      key: task.getKey(),
       status,
-      id: task.id,
+      uid: task.uid,
       versionString: task.version.versionString,
     },
   }
@@ -352,22 +352,22 @@ class TaskNodeMap {
   }
 
   getNode(task: BaseTask) {
-    const indexKey = getIndexKey(task)
-    const element = this.index.get(indexKey)
+    const taskId = getIndexId(task)
+    const element = this.index.get(taskId)
     return element
   }
 
   addNode(node: TaskNode): void {
-    const indexKey = node.getKey()
+    const taskId = node.getId()
 
-    if (!this.index.get(indexKey)) {
-      this.index.set(indexKey, node)
+    if (!this.index.get(taskId)) {
+      this.index.set(taskId, node)
       this.length++
     }
   }
 
   removeNode(node: TaskNode): void {
-    if (this.index.delete(node.getKey())) {
+    if (this.index.delete(node.getId())) {
       this.length--
     }
   }
@@ -383,7 +383,7 @@ class TaskNodeMap {
   }
 
   contains(node: TaskNode): boolean {
-    return this.index.has(node.getKey())
+    return this.index.has(node.getId())
   }
 
   clear() {
@@ -394,8 +394,8 @@ class TaskNodeMap {
   // For testing/debugging purposes
   inspect(): object {
     const out = {}
-    this.index.forEach((node, key) => {
-      out[key] = node.inspect()
+    this.index.forEach((node, id) => {
+      out[id] = node.inspect()
     })
     return out
   }
@@ -425,12 +425,12 @@ class TaskNode {
     return this.dependencies.getNodes()
   }
 
-  getBaseKey() {
-    return this.task.getBaseKey()
+  getKey() {
+    return this.task.getKey()
   }
 
-  getKey() {
-    return getIndexKey(this.task)
+  getId() {
+    return getIndexId(this.task)
   }
 
   getDescription() {
@@ -444,7 +444,7 @@ class TaskNode {
   // For testing/debugging purposes
   inspect(): object {
     return {
-      key: this.getKey(),
+      id: this.getId(),
       dependencies: this.getDependencies().map(d => d.inspect()),
     }
   }
@@ -454,7 +454,7 @@ class TaskNode {
 
     return {
       type: this.getType(),
-      key: this.getBaseKey(),
+      key: this.getKey(),
       description: this.getDescription(),
       output,
       dependencyResults,
@@ -469,7 +469,7 @@ interface CachedResult {
 
 class ResultCache {
   /**
-   * By design, at most one TaskResult (the most recently processed) is cached for a given baseKey.
+   * By design, at most one TaskResult (the most recently processed) is cached for a given key.
    *
    * Invariant: No concurrent calls are made to this class' instance methods, since they
    * only happen within TaskGraph's addTaskInternal and processTasksInternal methods,
@@ -482,28 +482,28 @@ class ResultCache {
     this.cache = {}
   }
 
-  put(baseKey: string, versionString: string, result: TaskResult): void {
-    this.cache[baseKey] = { result, versionString }
+  put(key: string, versionString: string, result: TaskResult): void {
+    this.cache[key] = { result, versionString }
   }
 
-  get(baseKey: string, versionString: string): TaskResult | null {
-    const r = this.cache[baseKey]
+  get(key: string, versionString: string): TaskResult | null {
+    const r = this.cache[key]
     return (r && r.versionString === versionString && !r.result.error) ? r.result : null
   }
 
-  getNewest(baseKey: string): TaskResult | null {
-    const r = this.cache[baseKey]
+  getNewest(key: string): TaskResult | null {
+    const r = this.cache[key]
     return (r && !r.result.error) ? r.result : null
   }
 
-  // Returns newest cached results, if any, for baseKeys
-  pick(baseKeys: string[]): TaskResults {
+  // Returns newest cached results, if any, for keys
+  pick(keys: string[]): TaskResults {
     const results: TaskResults = {}
 
-    for (const baseKey of baseKeys) {
-      const cachedResult = this.getNewest(baseKey)
+    for (const key of keys) {
+      const cachedResult = this.getNewest(key)
       if (cachedResult) {
-        results[baseKey] = cachedResult
+        results[key] = cachedResult
       }
     }
 
@@ -517,7 +517,7 @@ interface LogEntryMap { [key: string]: LogEntry }
 const taskStyle = chalk.cyan.bold
 
 function inProgressToStr(nodes) {
-  return `Currently in progress [${nodes.map(n => taskStyle(n.getKey())).join(", ")}]`
+  return `Currently in progress [${nodes.map(n => taskStyle(n.getId())).join(", ")}]`
 }
 
 function remainingTasksToStr(num) {

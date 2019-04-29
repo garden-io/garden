@@ -177,7 +177,7 @@ export async function processModules(
   await restartPromise
 
   return {
-    taskResults: {}, // TODO: Return latest results for each task baseKey processed between restarts?
+    taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
     restartRequired: true,
   }
 

@@ -25,9 +25,9 @@ export interface LogEntryMetadata { task?: TaskMetadata }
 
 export interface TaskMetadata {
   type: string,
-  baseKey: string,
+  key: string,
   status: TaskLogStatus,
-  id: string,
+  uid: string,
   versionString: string,
   durationMs?: number,
 }

@@ -64,6 +64,10 @@ describe("PreReleaseTests", () => {
       await gardenWatch.run({ testSteps })
     })
 
+    after(async () => {
+      await deleteExampleNamespaces(log, false)
+    })
+
   })
 
   describe("tasks", () => {
@@ -82,6 +86,10 @@ describe("PreReleaseTests", () => {
       const logEntries = await runGarden(tasksProjectPath, ["call", "hello"])
       expect(searchLog(logEntries, /John, Paul, George, Ringo/), "expected to find populated usernames in log output")
         .to.eql("passed")
+    })
+
+    after(async () => {
+      await deleteExampleNamespaces(log, false)
     })
 
   })
@@ -124,6 +132,10 @@ describe("PreReleaseTests", () => {
 
     })
 
+    after(async () => {
+      await deleteExampleNamespaces(log, false)
+    })
+
   })
 
   describe("vote-helm: helm & dependency calculations", () => {
@@ -145,6 +157,10 @@ describe("PreReleaseTests", () => {
 
     })
 
+    after(async () => {
+      await deleteExampleNamespaces(log, false)
+    })
+
   })
 
   describe("remote sources", () => {
@@ -160,6 +176,10 @@ describe("PreReleaseTests", () => {
       expect(searchLog(logEntries, /200 OK/), "expected to find '200 OK' in log output").to.eql("passed")
       expect(searchLog(logEntries, /Cats/), "expected to find 'Cats' in log output").to.eql("passed")
     })
+  })
+
+  after(async () => {
+    await deleteExampleNamespaces(log, false)
   })
 
 })

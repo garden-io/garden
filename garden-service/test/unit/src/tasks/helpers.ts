@@ -16,7 +16,7 @@ async function sortedBaseKeysdependencyTasks(tasks: BaseTask[]): Promise<string[
 }
 
 function sortedBaseKeys(tasks: BaseTask[]): string[] {
-  return uniq(tasks.map(t => t.getBaseKey())).sort()
+  return uniq(tasks.map(t => t.getKey())).sort()
 }
 
 describe("TaskHelpers", () => {

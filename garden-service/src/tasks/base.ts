@@ -33,7 +33,7 @@ export abstract class BaseTask {
   abstract depType: DependencyGraphNodeType
   garden: Garden
   log: LogEntry
-  id: string
+  uid: string
   force: boolean
   version: ModuleVersion
 
@@ -42,7 +42,7 @@ export abstract class BaseTask {
   constructor(initArgs: TaskParams) {
     this.garden = initArgs.garden
     this.dependencies = []
-    this.id = uuidv1() // uuidv1 is timestamp-based
+    this.uid = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
     this.version = initArgs.version
     this.log = initArgs.log
@@ -54,12 +54,12 @@ export abstract class BaseTask {
 
   protected abstract getName(): string
 
-  getBaseKey(): string {
+  getKey(): string {
     return makeBaseKey(this.type, this.getName())
   }
 
-  getKey(): string {
-    return `${this.getBaseKey()}.${this.id}`
+  getId(): string {
+    return `${this.getKey()}.${this.uid}`
   }
 
   abstract getDescription(): string
