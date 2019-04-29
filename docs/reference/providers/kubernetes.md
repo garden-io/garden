@@ -320,7 +320,7 @@ The registry where built containers should be pushed to, and then pulled to the 
 
 | Type | Required |
 | ---- | -------- |
-| `object` | Yes
+| `object` | No
 ### `environments[].providers[].deploymentRegistry.hostname`
 [environments](#environments) > [providers](#environments[].providers[]) > [deploymentRegistry](#environments[].providers[].deploymentregistry) > hostname
 
@@ -391,7 +391,7 @@ The external HTTPS port of the cluster's ingress controller.
 ### `environments[].providers[].namespace`
 [environments](#environments) > [providers](#environments[].providers[]) > namespace
 
-Specify which namespace to deploy services to (defaults to <username>--<project name>). Note that the framework generates other namespaces as well with this name as a prefix.
+Specify which namespace to deploy services to (defaults to <project name>). Note that the framework generates other namespaces as well with this name as a prefix.
 
 | Type | Required |
 | ---- | -------- |

@@ -40,6 +40,7 @@ const basicConfig: KubernetesConfig = {
   ingressHttpPort: 80,
   ingressHttpsPort: 443,
   tlsCertificates: [],
+  _systemServices: [],
 }
 
 const basicProvider: KubernetesProvider = {

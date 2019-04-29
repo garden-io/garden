@@ -7,7 +7,7 @@
  */
 
 import * as Joi from "joi"
-import { omit, pick, get } from "lodash"
+import { omit, get } from "lodash"
 import { copy, pathExists, readFile } from "fs-extra"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import {
@@ -33,18 +33,19 @@ import { openJdks } from "./openjdk"
 import { maven } from "./maven"
 import { LogEntry } from "../../logger/log-entry"
 import { dedent } from "../../util/string"
+import { ModuleConfig } from "../../config/module"
 import AsyncLock = require("async-lock")
 
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile")
 const buildLock = new AsyncLock()
 
-interface MavenContainerModuleSpec extends ContainerModuleSpec {
+export interface MavenContainerModuleSpec extends ContainerModuleSpec {
   jarPath: string
   jdkVersion: number
   mvnOpts: string[]
 }
 
-// type MavenContainerModuleConfig = ModuleConfig<MavenContainerModuleSpec>
+export type MavenContainerModuleConfig = ModuleConfig<MavenContainerModuleSpec>
 
 export interface MavenContainerModule<
   M extends MavenContainerModuleSpec = MavenContainerModuleSpec,
@@ -136,7 +137,9 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
     ...configured,
     spec: {
       ...configured.spec,
-      ...pick(moduleConfig.spec, Object.keys(mavenKeys)),
+      jarPath: moduleConfig.spec.jarPath,
+      jdkVersion,
+      mvnOpts: moduleConfig.spec.mvnOpts,
     },
   }
 }

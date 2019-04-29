@@ -8,7 +8,6 @@
 
 import { GardenPlugin } from "../../../types/plugin/plugin"
 import { gardenPlugin as k8sPlugin } from "../kubernetes"
-import { getLocalEnvironmentStatus, prepareLocalEnvironment } from "../init"
 import { configureProvider, configSchema } from "./config"
 
 export const name = "local-kubernetes"
@@ -19,10 +18,6 @@ export function gardenPlugin(): GardenPlugin {
   plugin.configSchema = configSchema
 
   plugin.actions!.configureProvider = configureProvider
-
-  // override the environment configuration steps
-  plugin.actions!.getEnvironmentStatus = getLocalEnvironmentStatus
-  plugin.actions!.prepareEnvironment = prepareLocalEnvironment
 
   return plugin
 }

@@ -7,8 +7,7 @@
  */
 
 import * as Bluebird from "bluebird"
-import { certpem } from "certpem"
-import { find, extend } from "lodash"
+import { extend } from "lodash"
 import { findByName } from "../../../util/util"
 import { ContainerService, ContainerIngressSpec } from "../../container/config"
 import { IngressTlsCertificate, KubernetesProvider } from "../kubernetes"
@@ -16,6 +15,7 @@ import { ServiceIngress, ServiceProtocol } from "../../../types/service"
 import { KubeApi } from "../api"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
+import { getHostnamesFromPem } from "../../../util/tls"
 
 interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
@@ -162,28 +162,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     const crtData = Buffer.from(secret.data["tls.crt"], "base64").toString()
 
     try {
-      // Note: Can't use the certpem.info() method here because of multiple bugs.
-      // And yes, this API is insane. Crypto people are bonkers. Seriously. - JE
-      const certInfo = certpem.debug(crtData)
-
-      const hostnames: string[] = []
-
-      const commonNameField = find(certInfo.subject.types_and_values, ["type", "2.5.4.3"])
-      if (commonNameField) {
-        hostnames.push(commonNameField.value.value_block.value)
-      }
-
-      for (const ext of certInfo.extensions || []) {
-        if (ext.parsedValue && ext.parsedValue.altNames) {
-          for (const alt of ext.parsedValue.altNames) {
-            hostnames.push(alt.Name)
-          }
-        }
-      }
-
-      certificateHostnames[cert.name] = hostnames
-
-      return hostnames
+      return getHostnamesFromPem(crtData)
     } catch (error) {
       throw new ConfigurationError(
         `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate`,

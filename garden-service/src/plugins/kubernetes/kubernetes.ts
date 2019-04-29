@@ -15,10 +15,11 @@ import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config
 import { helmHandlers } from "./helm/handlers"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
-import { getRemoteEnvironmentStatus, prepareRemoteEnvironment, cleanupEnvironment } from "./init"
+import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers, mavenContainerHandlers } from "./container/handlers"
 import { PluginContext } from "../../plugin-context"
 import { kubernetesHandlers } from "./kubernetes-module/handlers"
+import { ConfigureProviderParams } from "../../types/plugin/params"
 
 export const name = "kubernetes"
 
@@ -44,6 +45,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   ingressClass?: string
   namespace?: string
   tlsCertificates: IngressTlsCertificate[]
+  _systemServices: string[]
 }
 
 export interface KubernetesConfig extends KubernetesBaseConfig {
@@ -115,7 +117,10 @@ export const kubernetesConfigBase = providerConfigBaseSchema
     tlsCertificates: joiArray(tlsCertificateSchema)
       .unique("name")
       .description("One or more certificates to use for ingress."),
+    _systemServices: joiArray(joiIdentifier())
+      .meta({ internal: true }),
   })
+  .unknown(false)
 
 export const configSchema = kubernetesConfigBase
   .keys({
@@ -135,20 +140,29 @@ export const configSchema = kubernetesConfigBase
       .default(443)
       .description("The external HTTPS port of the cluster's ingress controller."),
     namespace: Joi.string()
-      .default(undefined, "<username>--<project name>")
+      .default(undefined, "<project name>")
       .description(
-        "Specify which namespace to deploy services to (defaults to <username>--<project name>). " +
+        "Specify which namespace to deploy services to (defaults to <project name>). " +
         "Note that the framework generates other namespaces as well with this name as a prefix.",
       ),
     _system: Joi.any().meta({ internal: true }),
   })
 
+export async function configureProvider({ projectName, config }: ConfigureProviderParams<KubernetesConfig>) {
+  if (!config.namespace) {
+    config.namespace = projectName
+  }
+
+  return { name: config.name, config }
+}
+
 export function gardenPlugin(): GardenPlugin {
   return {
     configSchema,
     actions: {
-      getEnvironmentStatus: getRemoteEnvironmentStatus,
-      prepareEnvironment: prepareRemoteEnvironment,
+      configureProvider,
+      getEnvironmentStatus,
+      prepareEnvironment,
       cleanupEnvironment,
       getSecret,
       setSecret,

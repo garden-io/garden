@@ -298,6 +298,21 @@ environments:
   - providers:
       - name: "local-kubernetes"
 ```
+### `environments[].providers[].context`
+[environments](#environments) > [providers](#environments[].providers[]) > context
+
+The kubectl context to use to connect to the Kubernetes cluster.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - context: "my-dev-context"
+```
 ### `environments[].providers[].namespace`
 [environments](#environments) > [providers](#environments[].providers[]) > namespace
 
@@ -344,6 +359,7 @@ environments:
               name:
               namespace: default
         name: local-kubernetes
+        context:
         namespace:
         setupIngressController: nginx
 ```

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deployContainerService, pushModule, deleteService } from "./deployment"
+import { deployContainerService, deleteService, pushModule } from "./deployment"
 import { hotReloadContainer } from "../hot-reload"
 import { getServiceLogs } from "./logs"
 import { execInService, runContainerModule, runContainerService, runContainerTask } from "./run"
@@ -20,25 +20,26 @@ import { getTestResult } from "../test"
 import { ContainerModule } from "../../container/config"
 import { configureMavenContainerModule, MavenContainerModule } from "../../maven-container/maven-container"
 import { getTaskResult } from "../task-results"
+import { buildContainerModule, getContainerBuildStatus } from "../../container/build"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
-  const config = await configureContainerModule(params)
-  await validateConfig(params)
-  return config
+  params.moduleConfig = await configureContainerModule(params)
+  return validateConfig(params)
 }
 
 // TODO: avoid having to special-case this (needs framework improvements)
-async function configureMaven(params: ConfigureModuleParams<MavenContainerModule>) {
-  const config = await configureMavenContainerModule(params)
-  await validateConfig(params)
-  return config
+export async function configureMaven(params: ConfigureModuleParams<MavenContainerModule>) {
+  params.moduleConfig = await configureMavenContainerModule(params)
+  return validateConfig(params)
 }
 
 export const containerHandlers = {
   configure,
+  build: buildContainerModule,
   deployService: deployContainerService,
   deleteService,
   execInService,
+  getBuildStatus: getContainerBuildStatus,
   getServiceLogs,
   getServiceStatus: getContainerServiceStatus,
   getTestResult,
@@ -56,7 +57,7 @@ export const mavenContainerHandlers = {
   configure: configureMaven,
 }
 
-async function validateConfig(params: ConfigureModuleParams<ContainerModule>) {
+async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
   // validate ingress specs
   const config = params.moduleConfig
   const provider = <KubernetesProvider>params.ctx.provider
@@ -80,4 +81,6 @@ async function validateConfig(params: ConfigureModuleParams<ContainerModule>) {
       ingressSpec.hostname = hostname
     }
   }
+
+  return config
 }

@@ -247,7 +247,6 @@ export const containerRegistryConfigSchema = Joi.object()
       .description("The namespace in the registry where images should be pushed.")
       .example("my-project"),
   })
-  .required()
   .description(deline`
     The registry where built containers should be pushed to, and then pulled to the cluster when deploying
     services.
