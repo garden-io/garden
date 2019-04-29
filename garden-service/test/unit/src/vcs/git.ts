@@ -124,6 +124,17 @@ describe("GitHandler", () => {
       ])
     })
   })
+
+  describe("hashObject", () => {
+    it("should return the same result as `git hash-object` for a file", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+      await createFile(path)
+
+      const expected = (await git("hash-object", path))[0]
+
+      expect(await handler.hashObject(path)).to.equal(expected)
+    })
+  })
 })
 
 describe("git", () => {

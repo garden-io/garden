@@ -8,7 +8,9 @@
 
 import * as execa from "execa"
 import { join, resolve } from "path"
-import { ensureDir, pathExists } from "fs-extra"
+import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
+import { PassThrough } from "stream"
+import * as hasha from "hasha"
 
 import { VcsHandler, RemoteSourceParams, VcsFile } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
@@ -115,7 +117,7 @@ export class GitHandler extends VcsHandler {
         // If we can't compute the hash, i.e. the file is gone, we filter it out below
         let hash = ""
         try {
-          hash = (await git("hash-object", resolvedPath))[0]
+          hash = await this.hashObject(resolvedPath) || ""
         } catch (err) {
           // 128 = File no longer exists
           if (err.code !== 128) {
@@ -191,4 +193,15 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  /**
+   * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
+   */
+  async hashObject(path: string) {
+    const info = await stat(path)
+    const stream = new PassThrough()
+    const output = hasha.fromStream(stream, { algorithm: "sha1" })
+    stream.push(`blob ${info.size}\0`)
+    createReadStream(path).pipe(stream)
+    return output
+  }
 }

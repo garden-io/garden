@@ -26,6 +26,7 @@ import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner from "../spinner"
 import CheckBox from "../checkbox"
+import { SelectGraphNode } from "../../context/ui"
 
 interface Node {
   name: string
@@ -48,11 +49,18 @@ export interface Graph {
 const MIN_CHART_WIDTH = 200
 const MIN_CHART_HEIGHT = 200
 
-function drawChart(graph: Graph, width: number, height: number) {
+function drawChart(
+  graph: Graph,
+  width: number,
+  height: number,
+  onNodeSelected: (string) => void,
+) {
   // Create the input graph
   const g = new dagreD3.graphlib.Graph()
     .setGraph({})
-    .setDefaultEdgeLabel(function() { return {} })
+    .setDefaultEdgeLabel(function() {
+      return {}
+    })
 
   // Here we"re setting nodeclass, which is used by our custom drawNodes function
   // below.
@@ -69,11 +77,11 @@ function drawChart(graph: Graph, width: number, height: number) {
     const node = g.node(v)
     // Round the corners of the nodes
     node.rx = node.ry = 5
-    // Add more padding
-    node.paddingBottom = 20
-    node.paddingTop = 20
-    node.paddingLeft = 20
-    node.paddingRight = 20
+    // Remove node padding
+    node.paddingBottom = 0
+    node.paddingTop = 0
+    node.paddingLeft = 0
+    node.paddingRight = 0
   })
 
   // Set up edges, no special attributes.
@@ -91,7 +99,9 @@ function drawChart(graph: Graph, width: number, height: number) {
   width = Math.max(width, MIN_CHART_WIDTH)
   height = Math.max(height, MIN_CHART_HEIGHT)
 
-  const svg = d3.select("#chart").append("svg")
+  const svg = d3
+    .select("#chart")
+    .append("svg")
     .attr("width", width)
     .attr("height", height)
 
@@ -120,11 +130,17 @@ function drawChart(graph: Graph, width: number, height: number) {
   const zoomTranslate = d3.zoomIdentity.translate(xCenterOffset, yCenterOffset).scale(initialScale)
   svg.call(zoom.transform, zoomTranslate)
 
+  const selections = svg.select("g").selectAll("g.node")
+  selections.on("click", evt => {
+    onNodeSelected(evt)
+  })
 }
 
 interface Props {
   config: FetchConfigResponse
   graph: FetchGraphResponse
+  selectGraphNode: SelectGraphNode
+  selectedGraphNode: string
   message?: WsMessage
 }
 
@@ -134,28 +150,31 @@ interface State {
   edges: Edge[]
 }
 
-const makeId = (name: string, type: string) => `${name}.${type}`
-
-// Key looks like:
-// test.node-service.integ.2bba2300-f97c-11e8-826f-594bd8a1f5e8
-// or:
-// test.node-service.2bba2300-f97c-11e8-826f-594bd8a1f5e8
-const getIdFromTaskKey = (key: string) => {
-  const parts = key.split(".")
-  const type = parts[0]
-  const name = parts.length === 4 ? `${parts[1]}.${parts[2]}` : parts[1]
-  return makeId(name, type)
-}
-
 // Renders as HTML
-const makeLabel = (name: string, type: string) => {
-  const nameParts = name.split(".")
-  // test names look like: name.test-name.type
-  if (type === "test") {
-    type += ` (${nameParts[1]})`
-  }
-  return "<div class='label-wrap'><span class='name'>" +
-    nameParts[0] + "</span><br /><span class='type'>" + type + "</span></div>"
+const makeLabel = (name: string, type: string, moduleName: string) => {
+  return `
+    <div class='node-container node-container--${type}'>
+        <div class='type'>${type}</div>
+    <span>
+      <span class='module-name'>${moduleName}</span>
+        ${
+    moduleName !== name
+      ? `<span> / </span>
+           <span>${name}</span>`
+      : ``
+    }
+    </div>`
+  // return `
+  //   <div class='node-container node-container--${type} garden-icon--${type}'>
+  //   <span>
+  //     <span class='module-name'>${moduleName}</span>
+  //       ${
+  //   moduleName !== name
+  //     ? `<span> / </span>
+  //          <span>${name}</span>`
+  //     : ``
+  //   }
+  //   </div>`
 }
 
 const Span = styled.span`
@@ -171,8 +190,16 @@ const ProcessSpinner = styled(Spinner)`
   margin: 16px 0 0 20px;
 `
 
-class Chart extends Component<Props, State> {
+// const IconContainer = styled.span`
+//   display: inline-block;
+//   width: 3rem;
+//   height: 3rem;
+//   background-size: contain;
+//   background-repeat: no-repeat;
+//   vertical-align: middle;
+// `
 
+class Chart extends Component<Props, State> {
   _nodes: Node[]
   _edges: Edge[]
   _chartRef: React.RefObject<any>
@@ -229,7 +256,7 @@ class Chart extends Component<Props, State> {
     this._edges = graph.edges
     const width = this._chartRef.current.offsetWidth
     const height = this._chartRef.current.offsetHeight
-    drawChart(graph, width, height)
+    drawChart(graph, width, height, this.props.selectGraphNode)
   }
 
   makeGraph() {
@@ -238,9 +265,9 @@ class Chart extends Component<Props, State> {
       .filter(n => !filters[n.type])
       .map(n => {
         return {
-          id: makeId(n.name, n.type),
+          id: n.key,
           name: n.name,
-          label: makeLabel(n.name, n.type),
+          label: makeLabel(n.name, n.type, n.moduleName),
         }
       })
     const edges: Edge[] = this.props.graph.relationships
@@ -249,20 +276,24 @@ class Chart extends Component<Props, State> {
         const source = r.dependency
         const target = r.dependant
         return {
-          source: makeId(source.name, source.type),
-          target: makeId(target.name, target.type),
+          source: source.key,
+          target: target.key,
           type: source.type,
         }
       })
     return { edges, nodes }
   }
 
-  componentDidUpdate(_prevProps, prevState: State) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const message = this.props.message
     if (message && message.type === "event") {
       this.updateNodeClass(message)
     }
     if (prevState.filters !== this.state.filters) {
+      this.drawChart()
+    }
+
+    if (prevProps.selectedGraphNode !== this.props.selectedGraphNode) {
       this.drawChart()
     }
   }
@@ -276,7 +307,7 @@ class Chart extends Component<Props, State> {
   // Update the node class instead of re-rendering the graph for perf reasons
   updateNodeClass(message: WsMessage) {
     for (const node of this._nodes) {
-      if (message.payload.key && node.id === getIdFromTaskKey(message.payload.key)) {
+      if (message.payload.key && node.id === message.payload.key) {
         const nodeEl = document.getElementById(node.id)
         this.clearClasses(nodeEl)
         if (nodeTaskTypes.find(t => t === message.name)) {
@@ -295,47 +326,99 @@ class Chart extends Component<Props, State> {
     let status = ""
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."
-      spinner = <ProcessSpinner background={colors.gardenWhite} fontSize="2px" />
+      spinner = (
+        <ProcessSpinner background={colors.gardenWhite} fontSize="2px" />
+      )
     }
 
     return (
       <Card>
-        <div className="mt-1">
-          <div className={css`display: flex;`}>
-            {taskTypes.map(type => (
-              <div className="ml-1" key={type}>
+        <div>
+          <div
+            className={cls(
+              css`
+                position: absolute;
+                background: white;
+              `,
+              "pt-1",
+            )}
+          >
+            {taskTypes.map(type => {
+              return <div className="ml-1 pr-1" key={type}>
                 <CheckBox
-                  label={capitalize(type)}
                   name={type}
                   checked={!this.state.filters[type]}
                   onChange={this.onCheckboxChange}
-                />
+                >
+                  {/* <IconContainer className={`garden-icon--${type}`}/>  {capitalize(type)} */}
+                  {capitalize(type)}
+
+                </CheckBox>
               </div>
-            ))}
+            })}
           </div>
-          <div className={css`
-            height: calc(${chartHeightEstimate});
-          `} ref={this._chartRef} id="chart">
-          </div>
-          <div className={cls(css`
-            display: flex;
-            justify-content: space-between;
-          `, "ml-1 mr-1 pb-1")}>
-            <div className={css`display: flex;`}>
+          <div
+            className={css`
+              height: calc(${chartHeightEstimate});
+              padding-top: 1rem;
+            `}
+            ref={this._chartRef}
+            id="chart"
+          />
+          <div
+            className={cls(
+              css`
+                display: flex;
+                justify-content: space-between;
+              `,
+              "ml-1 mr-1 pb-1",
+            )}
+          >
+            <div
+              className={css`
+                display: flex;
+              `}
+            >
               <Status>{status}</Status>
               {spinner}
             </div>
             <p>
-              <Span><span className={css`color: ${colors.gardenGreen};`}>—  </span>Ready</Span>
-              <Span><span className={css`color: ${colors.gardenPink};`}>--  </span>Pending</Span>
-              <Span><span className={css`color: red;`}>—  </span>Error</Span>
+              <Span>
+                <span
+                  className={css`
+                    color: ${colors.gardenGreen};
+                  `}
+                >
+                  —{" "}
+                </span>
+                Ready
+              </Span>
+              <Span>
+                <span
+                  className={css`
+                    color: ${colors.gardenPink};
+                  `}
+                >
+                  --{" "}
+                </span>
+                Pending
+              </Span>
+              <Span>
+                <span
+                  className={css`
+                    color: red;
+                  `}
+                >
+                  —{" "}
+                </span>
+                Error
+              </Span>
             </p>
           </div>
         </div>
       </Card>
     )
   }
-
 }
 
 export default Chart

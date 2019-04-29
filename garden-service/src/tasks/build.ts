@@ -10,7 +10,7 @@ import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { Module, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/outputs"
-import { BaseTask } from "../tasks/base"
+import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
@@ -26,7 +26,7 @@ export interface BuildTaskParams {
 }
 
 export class BuildTask extends BaseTask {
-  type = "build"
+  type: TaskType = "build"
   depType: DependencyGraphNodeType = "build"
 
   private module: Module

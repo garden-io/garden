@@ -11,7 +11,9 @@
 
 export type Primitive = string | number | boolean
 
-export interface PrimitiveMap { [key: string]: Primitive }
+export interface PrimitiveMap {
+  [key: string]: Primitive
+}
 
 export interface DashboardPage {
   title: string
@@ -58,7 +60,7 @@ export interface ServiceStatus {
   version?: string
   state?: string
   runningReplicas?: number
-  ingresses?: ServiceIngress[],
+  ingresses?: ServiceIngress[]
   lastMessage?: string
   lastError?: string
   createdAt?: string
@@ -84,11 +86,25 @@ export interface FetchConfigResponse {
   moduleConfigs: ModuleConfig[]
 }
 
-export type RenderedNode = { type: RenderedNodeType, name: string }
+export type RenderedNode = {
+  type: RenderedNodeType,
+  name: string,
+  key: string,
+  moduleName: string,
+}
 
-export type RenderedNodeType = "build" | "deploy" | "run" | "test" | "push" | "publish"
+export type RenderedNodeType =
+  | "build"
+  | "deploy"
+  | "run"
+  | "test"
+  | "push"
+  | "publish"
 
-export type RenderedEdge = { dependant: RenderedNode, dependency: RenderedNode }
+export type RenderedEdge = {
+  dependant: RenderedNode,
+  dependency: RenderedNode,
+}
 
 export interface FetchGraphResponse {
   nodes: RenderedNode[],
@@ -121,4 +137,21 @@ export interface WsMessage {
   type: "event" | "error" | "commandResult"
   name: NodeTask | "taskGraphProcessing" | "taskGraphComplete"
   payload: WsPayload
+}
+
+export interface FetchTaskResultResponse {
+  name: string
+  module: string
+  version: string
+  output: string
+  startedAt: Date
+  completedAt: Date
+}
+export interface FetchTestResultResponse {
+  name: string
+  version: string
+  output: string
+  module: string
+  startedAt: Date
+  completedAt: Date
 }

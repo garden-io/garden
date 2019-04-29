@@ -1,6 +1,6 @@
 import { join } from "path"
 import { expect } from "chai"
-import { BaseTask } from "../../../src/tasks/base"
+import { BaseTask, TaskType } from "../../../src/tasks/base"
 import {
   TaskGraph,
   TaskResult,
@@ -22,7 +22,7 @@ interface TestTaskOptions {
 }
 
 class TestTask extends BaseTask {
-  type = "test"
+  type: TaskType = "test"
   depType: DependencyGraphNodeType = "test"
   name: string
   callback: TestTaskCallback | null
@@ -128,9 +128,9 @@ describe("task-graph", () => {
       const result = await graph.process([task])
 
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskPending", payload: { addedAt: now, key: task.getBaseKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskProcessing", payload: { startedAt: now, key: task.getBaseKey(), version: task.version } },
         { name: "taskComplete", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -167,9 +167,9 @@ describe("task-graph", () => {
       const result = await graph.process([task])
 
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskPending", payload: { addedAt: now, key: task.getBaseKey(), version: task.version } },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
+        { name: "taskProcessing", payload: { startedAt: now, key: task.getBaseKey(), version: task.version } },
         { name: "taskError", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -237,7 +237,7 @@ describe("task-graph", () => {
       const resultA: TaskResult = {
         type: "test",
         description: "a.a1",
-        key: "a.a1",
+        key: "a",
         output: {
           result: "result-a.a1",
           dependencyResults: {},
@@ -246,7 +246,7 @@ describe("task-graph", () => {
       }
       const resultB: TaskResult = {
         type: "test",
-        key: "b.b1",
+        key: "b",
         description: "b.b1",
         output: {
           result: "result-b.b1",
@@ -257,7 +257,7 @@ describe("task-graph", () => {
       const resultC: TaskResult = {
         type: "test",
         description: "c.c1",
-        key: "c.c1",
+        key: "c",
         output: {
           result: "result-c.c1",
           dependencyResults: { b: resultB },
@@ -272,7 +272,7 @@ describe("task-graph", () => {
         d: {
           type: "test",
           description: "d.d1",
-          key: "d.d1",
+          key: "d",
           output: {
             result: "result-d.d1",
             dependencyResults: {

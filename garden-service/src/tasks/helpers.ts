@@ -85,3 +85,7 @@ async function getModuleNames(dg: ConfigGraph, hotReloadServiceNames: string[]) 
   const services = await dg.getServices(hotReloadServiceNames)
   return uniq(services.map(s => s.module.name))
 }
+
+export function makeTestTaskName(moduleName: string, testConfigName: string) {
+  return `${moduleName}.${testConfigName}`
+}

@@ -15,15 +15,10 @@ const Label = styled.label`
   display: block;
   position: relative;
   padding-left: 35px;
-  margin-bottom: 12px;
   cursor: pointer;
   font-size: 1.1rem;
   user-select: none;
-  :hover {
-    input, span {
-      background-color: ${colors.gray};
-    }
-  }
+  margin-bottom: 1rem;
 `
 
 const Input = styled.input`
@@ -39,8 +34,8 @@ const Input = styled.input`
 
 const Checkmark = styled.span`
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0rem;
+  left: 0rem;
   height: 21px;
   width: 21px;
   border: 1px solid ${colors.gardenGrayLight};
@@ -68,16 +63,15 @@ const CheckmarkChecked = styled(Checkmark)`
 
 interface Props {
   name: string
-  label: string
   checked?: boolean
   onChange: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
-const CheckBox: React.SFC<Props> = ({ name, label, onChange, checked = false }) => {
+const CheckBox: React.SFC<Props> = ({ name, onChange, checked = false, children }) => {
   const Mark = checked ? CheckmarkChecked : Checkmark
   return (
     <Label>
-      {label}
+      {children}
       <Input type={"checkbox"} name={name} checked={checked} onChange={onChange} />
       <Mark />
     </Label>

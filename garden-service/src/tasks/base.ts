@@ -13,7 +13,13 @@ import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
+export type TaskType = "build" | "deploy" | "publish" | "hot-reload" | "push" | "task" | "test"
+
 export class TaskDefinitionError extends Error { }
+
+export function makeBaseKey(type: TaskType, name: string) {
+  return `${type}.${name}`
+}
 
 export interface TaskParams {
   garden: Garden
@@ -23,7 +29,7 @@ export interface TaskParams {
 }
 
 export abstract class BaseTask {
-  abstract type: string
+  abstract type: TaskType
   abstract depType: DependencyGraphNodeType
   garden: Garden
   log: LogEntry
@@ -49,7 +55,7 @@ export abstract class BaseTask {
   protected abstract getName(): string
 
   getBaseKey(): string {
-    return `${this.type}.${this.getName()}`
+    return makeBaseKey(this.type, this.getName())
   }
 
   getKey(): string {

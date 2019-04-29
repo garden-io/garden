@@ -8,7 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { BaseTask, TaskParams } from "../tasks/base"
+import { BaseTask, TaskParams, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { Task } from "../types/task"
 import { PushTask } from "./push"
@@ -29,7 +29,7 @@ export interface TaskTaskParams {
 }
 
 export class TaskTask extends BaseTask { // ... to be renamed soon.
-  type = "task"
+  type: TaskType = "task"
   depType: DependencyGraphNodeType = "task"
 
   private graph: ConfigGraph

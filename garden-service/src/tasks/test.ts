@@ -14,11 +14,12 @@ import { ModuleVersion } from "../vcs/vcs"
 import { PushTask } from "./push"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
-import { BaseTask, TaskParams } from "../tasks/base"
+import { BaseTask, TaskParams, TaskType } from "../tasks/base"
 import { prepareRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
+import { makeTestTaskName } from "./helpers"
 
 class TestError extends Error {
   toString() {
@@ -37,7 +38,7 @@ export interface TestTaskParams {
 }
 
 export class TestTask extends BaseTask {
-  type = "test"
+  type: TaskType = "test"
   depType: DependencyGraphNodeType = "test"
 
   private module: Module
@@ -92,7 +93,7 @@ export class TestTask extends BaseTask {
   }
 
   getName() {
-    return `${this.module.name}.${this.testConfig.name}`
+    return makeTestTaskName(this.module.name, this.testConfig.name)
   }
 
   getDescription() {

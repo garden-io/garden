@@ -13,6 +13,9 @@ import PageError from "../components/page-error"
 import { EventContext } from "../context/events"
 import LoadWrapper from "../components/load-wrapper"
 import { DataContext } from "../context/data"
+import { UiStateContext } from "../context/ui"
+import { TaskResultNodeInfo } from "./task-result-node-info"
+import { TestResultNodeInfo } from "./test-result-node-info"
 
 export default () => {
   const {
@@ -24,12 +27,51 @@ export default () => {
   useEffect(loadConfig, [])
   useEffect(loadGraph, [])
 
-  const isLoading = !config.data || !graph.data || config.loading || graph.loading
+  const {
+    actions: { selectGraphNode },
+    state: { selectedGraphNode },
+  } = useContext(UiStateContext)
+
+  const isLoading =
+    !config.data || !graph.data || config.loading || graph.loading
   const error = config.error || graph.error
+
+  let moreInfoPane: JSX.Element
+  if (selectedGraphNode) {
+    const { name, type, moduleName } = graph.data.nodes.find(
+      node => node.key === selectedGraphNode,
+    )
+    switch (type) {
+      case "run": // task
+        moreInfoPane = <TaskResultNodeInfo name={name} />
+        break
+      case "test":
+        moreInfoPane = <TestResultNodeInfo name={name} module={moduleName} />
+        break
+      case "build":
+      default:
+        moreInfoPane = null
+        break
+    }
+  }
 
   return (
     <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
-      <Graph message={message} config={config.data} graph={graph.data} />
+      <div className="row">
+        <div className={moreInfoPane ? "col-xs-7" : "col-xs"}>
+          <Graph
+            message={message}
+            selectGraphNode={selectGraphNode}
+            selectedGraphNode={selectedGraphNode}
+            config={config.data}
+            graph={graph.data}
+          />
+        </div>
+
+        {moreInfoPane && (
+          <div className="col-xs-5">{moreInfoPane}</div>
+        )}
+      </div>
     </LoadWrapper>
   )
 }

@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { LogEntry } from "../logger/log-entry"
-import { BaseTask } from "./base"
+import { BaseTask, TaskType } from "./base"
 import { Service, getServiceRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
@@ -22,7 +22,7 @@ interface Params {
 }
 
 export class HotReloadTask extends BaseTask {
-  type = "hot-reload"
+  type: TaskType = "hot-reload"
   depType: DependencyGraphNodeType = "service"
 
   private graph: ConfigGraph

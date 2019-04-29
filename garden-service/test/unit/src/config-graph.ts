@@ -221,7 +221,7 @@ describe("ConfigGraph", () => {
           type: "deploy",
           name: "service-c",
           moduleName: "module-c",
-          key: "service.service-c",
+          key: "deploy.service-c",
         },
         {
           type: "test",
@@ -251,13 +251,13 @@ describe("ConfigGraph", () => {
           type: "deploy",
           name: "service-a",
           moduleName: "module-a",
-          key: "service.service-a",
+          key: "deploy.service-a",
         },
         {
           type: "deploy",
           name: "service-b",
           moduleName: "module-b",
-          key: "service.service-b",
+          key: "deploy.service-b",
         },
       ])
     })
@@ -283,7 +283,7 @@ describe("DependencyGraphNode", () => {
         type: "deploy",
         name: "service-a",
         moduleName: "module-a",
-        key: "service.service-a",
+        key: "deploy.service-a",
       })
     })
     it("should render a run node", () => {

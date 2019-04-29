@@ -6,7 +6,7 @@ You may also optionally specify services to deploy, tasks or tests to run inside
 Note that the runtime services have somewhat limited features in this module type. For example, you cannot
 specify replicas for redundancy, and various platform-specific options are not included. For those, look at
 other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
-[kubernetes](https://docs.garden.io/reference/module-types/kubernetes).
+[kubernetes](https://github.com/garden-io/garden/blob/master/docs/reference/module-types/kubernetes.md).
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-files.md).
