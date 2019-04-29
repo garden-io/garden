@@ -81,7 +81,7 @@ function useWs(): WsOutput {
   return { message }
 }
 
-export const EventProvider: React.SFC = ({ children }) => {
+export const EventProvider: React.FC = ({ children }) => {
   const { message } = useWs()
 
   return (

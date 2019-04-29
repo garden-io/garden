@@ -35,7 +35,7 @@ export default () => {
   const isLoading = !config.data || !graph.data || config.loading || graph.loading
   const error = config.error || graph.error
 
-  let moreInfoPane: JSX.Element | null = null
+  let moreInfoPane: React.ReactNode = null
   if (selectedGraphNode && graph.data) {
     const node = graph.data.nodes.find(n => n.key === selectedGraphNode)
     if (node) {

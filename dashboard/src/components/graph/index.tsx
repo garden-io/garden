@@ -349,7 +349,7 @@ class Chart extends Component<Props, State> {
     const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
     const chartHeightEstimate = `100vh - 15rem`
 
-    let spinner: JSX.Element | null = null
+    let spinner: React.ReactNode = null
     let status = ""
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."

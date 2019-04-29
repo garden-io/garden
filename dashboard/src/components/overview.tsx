@@ -35,7 +35,7 @@ interface ModulesProps {
   moduleConfigs: ModuleConfig[]
 }
 
-export const Modules: React.SFC<ModulesProps> = ({ moduleConfigs }) => {
+export const Modules: React.FC<ModulesProps> = ({ moduleConfigs }) => {
   const rowHeaders = ["Name", "Type", "Services"]
   const rows = moduleConfigs.map(moduleConfig => [
     moduleConfig.name,
@@ -51,7 +51,7 @@ export const Modules: React.SFC<ModulesProps> = ({ moduleConfigs }) => {
   )
 }
 
-export const Services: React.SFC<ServicesProps> = ({ moduleConfigs, services }) => {
+export const Services: React.FC<ServicesProps> = ({ moduleConfigs, services }) => {
   const rowHeaders = ["Name", "Status", "Module", "Ingresses"]
   const rows = Object.keys(services).map(serviceName => {
     const service = services[serviceName]
@@ -91,7 +91,7 @@ const LinkContainer = styled.div`
     padding-bottom: 0;
   }
 `
-const Ingresses: React.SFC<IngressesProp> = ({ ingresses }) => {
+const Ingresses: React.FC<IngressesProp> = ({ ingresses }) => {
   return (
     <div>
       {ingresses.map(i => {

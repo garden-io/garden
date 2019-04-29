@@ -12,7 +12,7 @@ import React from "react"
 import { colors, fontMedium } from "../styles/variables"
 
 interface CardProps {
-  children: JSX.Element
+  children: React.ReactNode
   title?: string,
   backgroundColor?: string
 }
@@ -31,7 +31,7 @@ export const CardTitle = styled.h3`
   margin: 0;
 `
 
-const Card: React.SFC<CardProps> = ({ children, title, backgroundColor }) => {
+const Card: React.FC<CardProps> = ({ children, title, backgroundColor }) => {
   const titleEl = title
     ? (
       <div className="p-1">

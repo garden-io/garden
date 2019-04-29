@@ -13,11 +13,11 @@ import Spinner from "./spinner"
 interface LoadContainerProps {
   error: Error | null
   loading: boolean
-  ErrorComponent: React.SFC<any> | React.ComponentClass<any>
-  LoadComponent?: React.SFC<any> | React.ComponentClass<any> | null
+  ErrorComponent: React.FC<any> | React.ComponentClass<any>
+  LoadComponent?: React.FC<any> | React.ComponentClass<any> | null
 }
 
-const LoadWrapper: React.SFC<LoadContainerProps> = props => {
+const LoadWrapper: React.FC<LoadContainerProps> = props => {
   const { error, children, loading, ErrorComponent, LoadComponent } = props
   if (error) {
     return <ErrorComponent error={error} />

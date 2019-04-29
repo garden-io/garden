@@ -63,7 +63,7 @@ class Sidebar extends Component<Props, State> {
         <nav>
           <ul className="pt-2">
             {this.props.pages.map(page => {
-              let link: JSX.Element
+              let link: React.ReactNode
               if (page.url) {
                 link = <A href={page.url} target="_blank" title={page.description}>
                   {page.title}

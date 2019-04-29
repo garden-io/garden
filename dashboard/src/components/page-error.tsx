@@ -15,7 +15,7 @@ import { H3 } from "../components/text"
 import { colors } from "../styles/variables"
 
 // TODO Style me + add prop interface
-const PageError: React.SFC<any> = ({ error }) => {
+const PageError: React.FC<any> = ({ error }) => {
   let suggestion
   const status = error.response && error.response.status
   if (status === 500) {

@@ -174,7 +174,7 @@ export const DataContext = React.createContext<Context>({} as Context)
  * This component manages the "rest" API data state (not the websockets) for the entire application.
  * We use the new React Hooks API to pass store data and actions down the component tree.
  */
-export const DataProvider: React.SFC = ({ children }) => {
+export const DataProvider: React.FC = ({ children }) => {
   const storeAndActions = useApi()
 
   return (

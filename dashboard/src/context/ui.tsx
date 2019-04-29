@@ -67,7 +67,7 @@ const useUiState = () => {
   }
 }
 
-export const UiStateProvider: React.SFC = ({ children }) => {
+export const UiStateProvider: React.FC = ({ children }) => {
   const storeAndActions = useUiState()
 
   return (

@@ -77,7 +77,7 @@ interface TaskResultInfo {
   duration: string | null
 }
 
-export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
+export const TaskResultNodeInfo: React.FC<TaskResultNodeInfoProps> = ({
   name,
 }) => {
   const {

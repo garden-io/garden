@@ -13,7 +13,7 @@ import Card from "./card"
 
 import { colors, fontMedium } from "../styles/variables"
 
-export type ColEl = JSX.Element | string | null
+export type ColEl = React.ReactNode
 
 interface Props {
   title: string
@@ -53,7 +53,7 @@ const TableEl = styled.table`
   width: 100%;
 `
 
-const Table: React.SFC<Props> = props => (
+const Table: React.FC<Props> = props => (
   <Card title={props.title}>
     <TableEl>
       <THead>

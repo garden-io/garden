@@ -76,7 +76,7 @@ interface TestResultInfo {
 
 const LoadComp = () => <Spinner fontSize="3px" />
 
-export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
+export const TestResultNodeInfo: React.FC<TestResultNodeInfoProps> = ({
   name,
   module,
 }) => {

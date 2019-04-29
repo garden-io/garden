@@ -41,7 +41,7 @@ const Timestamp = styled.span`
   color: ${colors.gardenGrayLight};
 `
 
-const Terminal: React.SFC<Props> = ({ entries, sectionPad, showServiceName }) => {
+const Terminal: React.FC<Props> = ({ entries, sectionPad, showServiceName }) => {
   return (
     <Term className="p-1">
       <code>
