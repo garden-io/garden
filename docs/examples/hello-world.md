@@ -6,9 +6,9 @@ In this example, we'll have a practical look at the main characteristics of a Ga
 - Ports, endpoints, and health check settings
 - Tests
 
-This project contains four configuration files. [This one](https://github.com/garden-io/garden/tree/v0.9.10/examples/hello-world/garden.yml) for project-wide settings, and three separate ones for each of the modules: [`hello-container`](https://github.com/garden-io/garden/tree/v0.9.10/examples/hello-world/services/hello-container/garden.yml), [`hello-function`](https://github.com/garden-io/garden/tree/v0.9.10/examples/hello-world/services/hello-function/garden.yml), and [`hello-npm-package`](https://github.com/garden-io/garden/tree/v0.9.10/examples/hello-world/libraries/hello-npm-package/garden.yml).
+This project contains four configuration files. [This one](https://github.com/garden-io/garden/tree/v0.9.11/examples/hello-world/garden.yml) for project-wide settings, and three separate ones for each of the modules: [`hello-container`](https://github.com/garden-io/garden/tree/v0.9.11/examples/hello-world/services/hello-container/garden.yml), [`hello-function`](https://github.com/garden-io/garden/tree/v0.9.11/examples/hello-world/services/hello-function/garden.yml), and [`hello-npm-package`](https://github.com/garden-io/garden/tree/v0.9.11/examples/hello-world/libraries/hello-npm-package/garden.yml).
 
-_Note: The source code for this project can be found at: [https://github.com/garden-io/garden/tree/v0.9.10/examples/hello-world](https://github.com/garden-io/garden/tree/v0.9.10/examples/hello-world)._
+_Note: The source code for this project can be found at: [https://github.com/garden-io/garden/tree/v0.9.11/examples/hello-world](https://github.com/garden-io/garden/tree/v0.9.11/examples/hello-world)._
 
 # Configuring dependencies
 
