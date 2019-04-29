@@ -52,9 +52,8 @@ module.exports = (gulp) => {
       .pipe(gulp.dest(destDir)),
   )
 
-  gulp.task("build", gulp.series(
-    gulp.parallel("add-version-files", "generate-docs", "pegjs", "tsc"),
-    "build-container",
+  gulp.task("build", gulp.parallel(
+    "add-version-files", "generate-docs", "pegjs", "tsc",
   ))
 
   gulp.task("build-ci", gulp.parallel(
