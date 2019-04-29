@@ -372,6 +372,8 @@ export class ActionHelper implements TypeGuard {
   //===========================================================================
 
   async getStatus({ log, serviceNames }: { log: LogEntry, serviceNames?: string[] }): Promise<EnvironmentStatus> {
+    log.verbose(`Getting environment status (${this.garden.projectName})`)
+
     const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
     const graph = await this.garden.getConfigGraph()
     const services = keyBy(await graph.getServices(serviceNames), "name")
@@ -450,7 +452,10 @@ export class ActionHelper implements TypeGuard {
       { params: ModuleActionHelperParams<ModuleActionParams[T]>, actionType: T, defaultHandler?: ModuleActions[T] },
   ): Promise<ModuleActionOutputs[T]> {
     // the type system is messing me up here, not sure why I need the any cast... - j.e.
-    const { module, pluginName } = <any>params
+    const { module, pluginName, log } = <any>params
+
+    log.verbose(`Getting ${actionType} handler for module ${module.name}`)
+
     const handler = await this.getModuleActionHandler({
       moduleType: module.type,
       actionType,
@@ -463,6 +468,9 @@ export class ActionHelper implements TypeGuard {
       ...<object>params,
       module: omit(module, ["_ConfigType"]),
     }
+
+    log.verbose(`Calling ${actionType} handler for module ${module.name}`)
+
     // TODO: figure out why this doesn't compile without the function cast
     return (<Function>handler)(handlerParams)
   }
@@ -473,6 +481,8 @@ export class ActionHelper implements TypeGuard {
   ): Promise<ServiceActionOutputs[T]> {
     const { log, service, runtimeContext } = <any>params
     const module = service.module
+
+    log.verbose(`Getting ${actionType} handler for service ${service.name}`)
 
     const handler = await this.getModuleActionHandler({
       moduleType: module.type,
@@ -488,6 +498,8 @@ export class ActionHelper implements TypeGuard {
       runtimeContext,
     }
 
+    log.verbose(`Calling ${actionType} handler for service ${service.name}`)
+
     return (<Function>handler)(handlerParams)
   }
 
@@ -499,8 +511,10 @@ export class ActionHelper implements TypeGuard {
       },
   ): Promise<TaskActionOutputs[T]> {
 
-    const { task } = <any>params
+    const { task, log } = <any>params
     const module = task.module
+
+    log.verbose(`Getting ${actionType} handler for task ${module.name}.${task.name}`)
 
     const handler = await this.getModuleActionHandler({
       moduleType: module.type,
@@ -515,6 +529,8 @@ export class ActionHelper implements TypeGuard {
       module,
       task,
     }
+
+    log.verbose(`Calling ${actionType} handler for task ${module.name}.${task.name}`)
 
     return (<Function>handler)(handlerParams)
   }
