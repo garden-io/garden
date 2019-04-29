@@ -11,7 +11,7 @@ import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { getAllNamespaces } from "../src/plugins/kubernetes/namespace"
 import { getExampleProjects } from "./helpers"
 import { WatchTestConditionState } from "./run-garden"
-import { systemNamespace, systemMetadataNamespace } from "../src/plugins/kubernetes/system"
+import { systemMetadataNamespace } from "../src/plugins/kubernetes/system"
 
 export async function removeExampleDotGardenDirs() {
   await Bluebird.map(Object.values(getExampleProjects()), (projectRoot) => {
@@ -19,24 +19,27 @@ export async function removeExampleDotGardenDirs() {
   })
 }
 
-export async function deleteExampleNamespaces(log: LogEntry, includeSystemNamespaces = false) {
+export async function deleteExampleNamespaces(log: LogEntry, projectNames?: string[]) {
   const namespacesToDelete: string[] = []
 
-  const exampleProjectNames = Object.keys(getExampleProjects())
+  let exampleProjectNames = projectNames || Object.keys(getExampleProjects())
 
   for (const exampleProjectName of exampleProjectNames) {
     namespacesToDelete.push(exampleProjectName, `${exampleProjectName}--metadata`)
   }
 
-  if (includeSystemNamespaces) {
-    namespacesToDelete.push(systemNamespace, systemMetadataNamespace)
-  }
+  await deleteExistingNamespaces(log, namespacesToDelete)
+}
 
+export async function deleteSystemMetadataNamespace(log: LogEntry) {
+  await deleteExistingNamespaces(log, [systemMetadataNamespace])
+}
+
+export async function deleteExistingNamespaces(log: LogEntry, namespaces: string[]) {
   // TODO: Accept context parameter in integ script.
   const api = await KubeApi.factory(log, "docker-for-desktop")
   const existingNamespaces = await getAllNamespaces(api)
-  await deleteNamespaces(intersection(existingNamespaces, namespacesToDelete), api)
-
+  await deleteNamespaces(intersection(existingNamespaces, namespaces), api)
 }
 
 export async function touchFile(path: string): Promise<void> {

@@ -1,9 +1,10 @@
 import { resolve } from "path"
 import { expect } from "chai"
-import { findTasks } from "../../integ-helpers"
+import { findTasks, deleteExampleNamespaces, deleteSystemMetadataNamespace } from "../../integ-helpers"
 import { examplesDir } from "../../helpers"
 import { runGarden, GardenWatch, dashboardUpStep, touchFileStep, taskCompletedStep } from "../../run-garden"
 import { JsonLogEntry } from "../../../src/logger/writers/json-terminal-writer"
+import { getLogger } from "../../../src/logger/logger"
 
 const voteExamplePath = resolve(examplesDir, "vote")
 
@@ -13,7 +14,11 @@ describe("integ-helpers", () => {
 
   describe("findTasks", () => {
 
+    const log = getLogger().placeholder()
+
     before(async () => {
+      await deleteSystemMetadataNamespace(log)
+      await deleteExampleNamespaces(log)
       testEntries = await runGarden(voteExamplePath, ["test"])
     })
 

@@ -12,7 +12,13 @@ import {
   runGarden,
   taskCompletedStep,
 } from "../../run-garden"
-import { deleteExampleNamespaces, searchLog, removeExampleDotGardenDirs } from "../../integ-helpers"
+import {
+  deleteExampleNamespaces,
+  searchLog,
+  removeExampleDotGardenDirs,
+  deleteSystemMetadataNamespace,
+  deleteExistingNamespaces,
+} from "../../integ-helpers"
 import { getLogger } from "../../../src/logger/logger"
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command
@@ -24,7 +30,8 @@ describe("PreReleaseTests", () => {
 
   before(async () => {
     mlog.log("deleting example project namespaces and .garden folders")
-    await deleteExampleNamespaces(log, false)
+    await deleteSystemMetadataNamespace(log)
+    await deleteExampleNamespaces(log)
     await removeExampleDotGardenDirs()
   })
 
@@ -65,7 +72,7 @@ describe("PreReleaseTests", () => {
     })
 
     after(async () => {
-      await deleteExampleNamespaces(log, false)
+      await deleteExistingNamespaces(log, ["simple-project"])
     })
 
   })
@@ -89,7 +96,7 @@ describe("PreReleaseTests", () => {
     })
 
     after(async () => {
-      await deleteExampleNamespaces(log, false)
+      await deleteExampleNamespaces(log, ["tasks"])
     })
 
   })
@@ -133,7 +140,7 @@ describe("PreReleaseTests", () => {
     })
 
     after(async () => {
-      await deleteExampleNamespaces(log, false)
+      await deleteExampleNamespaces(log, ["hot-reload"])
     })
 
   })
@@ -158,7 +165,7 @@ describe("PreReleaseTests", () => {
     })
 
     after(async () => {
-      await deleteExampleNamespaces(log, false)
+      await deleteExampleNamespaces(log, ["vote-helm"])
     })
 
   })
@@ -179,7 +186,7 @@ describe("PreReleaseTests", () => {
   })
 
   after(async () => {
-    await deleteExampleNamespaces(log, false)
+    await deleteExampleNamespaces(log, ["remote-sources"])
   })
 
 })
