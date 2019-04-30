@@ -27,6 +27,7 @@ export async function testContainerModule(
     module,
     command,
     interactive,
+    ignoreError: true, // to ensure results get stored when an error occurs
     runtimeContext,
     timeout,
     log,

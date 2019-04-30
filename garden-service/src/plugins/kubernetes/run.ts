@@ -69,8 +69,8 @@ export async function runPod(
     log,
     context,
     namespace,
+    ignoreError,
     args: kubecmd,
-    reject: !ignoreError,
     timeout,
     tty: interactive,
   })

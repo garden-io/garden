@@ -73,7 +73,7 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
     context: api.context,
     namespace,
     args: kubecmd,
-    reject: false,
+    ignoreError: true,
     timeout: 999999,
     tty: interactive,
   })
