@@ -18,12 +18,14 @@ import {
   handleTaskResults,
   StringOption,
   StringsParameter,
+  PrepareParams,
 } from "./base"
 import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { logHeader } from "../logger/util"
+import { GardenServer, startServer } from "../server/server"
 
 const testArgs = {
   modules: new StringsParameter({
@@ -72,16 +74,27 @@ export class TestCommand extends Command<Args, Opts> {
   arguments = testArgs
   options = testOpts
 
-  async printHeader(log) {
+  private server: GardenServer
+
+  async prepare({ log, logFooter, opts }: PrepareParams<Args, Opts>) {
     logHeader({
       log,
       emoji: "thermometer",
       command: `Running tests`,
     })
+
+    if (!!opts.watch) {
+      this.server = await startServer(logFooter)
+    }
   }
 
   async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    if (this.server) {
+      this.server.setGarden(garden)
+    }
+
     const graph = await garden.getConfigGraph()
+
     let modules: Module[]
     if (args.modules) {
       modules = await graph.withDependantModules(await graph.getModules(args.modules))

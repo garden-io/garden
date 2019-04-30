@@ -11,8 +11,9 @@ describe("RunTaskCommand", () => {
     const cmd = new RunTaskCommand()
 
     const { result } = await cmd.action({
-      log,
       garden,
+      log,
+      logFooter: log,
       args: { task: "task-a" },
       opts: { "force-build": false },
     })

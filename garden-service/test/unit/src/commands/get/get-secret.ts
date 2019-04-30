@@ -21,6 +21,7 @@ describe("GetSecretCommand", () => {
     const res = await command.action({
       garden,
       log,
+      logFooter: log,
       args: { provider, key: "project.mykey" },
       opts: {},
     })
@@ -37,6 +38,7 @@ describe("GetSecretCommand", () => {
       async () => await command.action({
         garden,
         log,
+        logFooter: log,
         args: { provider, key: "project.mykey" },
         opts: {},
       }),

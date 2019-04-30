@@ -34,6 +34,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
+        logFooter: log,
         args: { sources: undefined },
         opts: {},
       })
@@ -44,6 +45,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
+        logFooter: log,
         args: { sources: ["source-a"] },
         opts: {},
       })
@@ -56,6 +58,7 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
+        logFooter: log,
         args: { sources: undefined },
         opts: {},
       })
@@ -68,6 +71,7 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
+            logFooter: log,
             args: { sources: ["banana"] },
             opts: {},
           })
@@ -94,6 +98,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
+        logFooter: log,
         args: { modules: undefined },
         opts: {},
       })
@@ -104,6 +109,7 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
+        logFooter: log,
         args: { modules: ["module-a"] },
         opts: {},
       })
@@ -116,6 +122,7 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
+        logFooter: log,
         args: { modules: undefined },
         opts: {},
       })
@@ -128,6 +135,7 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
+            logFooter: log,
             args: { modules: ["banana"] },
             opts: {},
           })

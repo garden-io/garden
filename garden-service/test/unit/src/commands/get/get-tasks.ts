@@ -13,6 +13,7 @@ describe("GetTasksCommand", () => {
     await command.action({
       garden,
       log,
+      logFooter: log,
       args: { tasks: undefined },
       opts: {},
     })
@@ -26,6 +27,7 @@ describe("GetTasksCommand", () => {
     await command.action({
       garden,
       log,
+      logFooter: log,
       args: { tasks: ["task-a"] },
       opts: {},
     })

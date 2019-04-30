@@ -25,7 +25,13 @@ describe("DeleteSecretCommand", () => {
 
     await garden.actions.setSecret({ log, key, value, pluginName })
 
-    await command.action({ garden, log, args: { provider, key }, opts: {} })
+    await command.action({
+      garden,
+      log,
+      logFooter: log,
+      args: { provider, key },
+      opts: {},
+    })
 
     expect(await garden.actions.getSecret({ log, pluginName, key })).to.eql({ value: null })
   })
@@ -36,7 +42,13 @@ describe("DeleteSecretCommand", () => {
     const command = new DeleteSecretCommand()
 
     await expectError(
-      async () => await command.action({ garden, log, args: { provider, key: "foo" }, opts: {} }),
+      async () => await command.action({
+        garden,
+        log,
+        logFooter: log,
+        args: { provider, key: "foo" },
+        opts: {},
+      }),
       "not-found",
     )
   })
@@ -73,7 +85,7 @@ describe("DeleteEnvironmentCommand", () => {
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
 
-    const { result } = await command.action({ garden, log, args: {}, opts: {} })
+    const { result } = await command.action({ garden, log, logFooter: log, args: {}, opts: {} })
 
     expect(result!["test-plugin"]["ready"]).to.be.false
   })
@@ -115,7 +127,13 @@ describe("DeleteServiceCommand", () => {
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
 
-    const { result } = await command.action({ garden, log, args: { services: ["service-a"] }, opts: {} })
+    const { result } = await command.action({
+      garden,
+      log,
+      logFooter: log,
+      args: { services: ["service-a"] },
+      opts: {},
+    })
     expect(result).to.eql({
       "service-a": { state: "unknown", ingresses: [] },
     })
@@ -128,6 +146,7 @@ describe("DeleteServiceCommand", () => {
     const { result } = await command.action({
       garden,
       log,
+      logFooter: log,
       args: { services: ["service-a", "service-b"] },
       opts: {},
     })

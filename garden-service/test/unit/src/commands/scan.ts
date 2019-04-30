@@ -12,6 +12,7 @@ describe("ScanCommand", () => {
       await command.action({
         garden,
         log,
+        logFooter: log,
         args: {},
         opts: {},
       })

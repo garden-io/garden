@@ -16,6 +16,7 @@ import {
   CommandResult,
   handleTaskResults,
   StringsParameter,
+  PrepareParams,
 } from "./base"
 import { getDependantTasksForModule } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
@@ -24,6 +25,7 @@ import { logHeader } from "../logger/util"
 import { HotReloadTask } from "../tasks/hot-reload"
 import { BaseTask } from "../tasks/base"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import { startServer, GardenServer } from "../server/server"
 
 const deployArgs = {
   services: new StringsParameter({
@@ -80,11 +82,21 @@ export class DeployCommand extends Command<Args, Opts> {
   arguments = deployArgs
   options = deployOpts
 
-  async printHeader(log) {
+  private server: GardenServer
+
+  async prepare({ log, logFooter, opts }: PrepareParams<Args, Opts>) {
     logHeader({ log, emoji: "rocket", command: "Deploy" })
+
+    if (!!opts.watch) {
+      this.server = await startServer(logFooter)
+    }
   }
 
   async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    if (this.server) {
+      this.server.setGarden(garden)
+    }
+
     const initGraph = await garden.getConfigGraph()
     const services = await initGraph.getServices(args.services)
 
@@ -94,7 +106,8 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
-    let watch
+    let watch: boolean
+
     if (hotReloadServiceNames.length > 0) {
       await initGraph.getServices(hotReloadServiceNames) // validate the existence of these services
       const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
