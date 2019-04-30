@@ -14,11 +14,8 @@ import normalizeUrl from "normalize-url"
 import Table from "./table"
 import { ExternalLink } from "./links"
 
-import {
-  ServiceStatus,
-  ModuleConfig,
-  ServiceIngress,
-} from "../api/types"
+import { ModuleConfig } from "garden-cli/src/config/module"
+import { ServiceStatus, ServiceIngress } from "garden-cli/src/types/service"
 
 export function getIngressUrl(ingress: ServiceIngress) {
   return normalizeUrl(format({
@@ -38,7 +35,7 @@ interface ModulesProps {
   moduleConfigs: ModuleConfig[]
 }
 
-export const Modules: React.SFC<ModulesProps> = ({ moduleConfigs }) => {
+export const Modules: React.FC<ModulesProps> = ({ moduleConfigs }) => {
   const rowHeaders = ["Name", "Type", "Services"]
   const rows = moduleConfigs.map(moduleConfig => [
     moduleConfig.name,
@@ -49,25 +46,30 @@ export const Modules: React.SFC<ModulesProps> = ({ moduleConfigs }) => {
     <Table
       title="Modules"
       rowHeaders={rowHeaders}
-      rows={rows}>
-    </Table>
+      rows={rows}
+    />
   )
 }
 
-export const Services: React.SFC<ServicesProps> = ({ moduleConfigs, services }) => {
+export const Services: React.FC<ServicesProps> = ({ moduleConfigs, services }) => {
   const rowHeaders = ["Name", "Status", "Module", "Ingresses"]
-  const rows = Object.keys(services).map(service => [
-    service,
-    services[service].state,
-    moduleConfigs.find(m => m.serviceConfigs.map(s => s.name).includes(service)).name,
-    services[service].ingresses ? <Ingresses ingresses={services[service].ingresses} /> : null,
-  ])
+  const rows = Object.keys(services).map(serviceName => {
+    const service = services[serviceName]
+    const moduleConfig = moduleConfigs.find(m => m.serviceConfigs.map(s => s.name).includes(serviceName))
+    const moduleName = moduleConfig ? moduleConfig.name : ""
+    return [
+      serviceName,
+      service.state || "",
+      moduleName,
+      service.ingresses ? <Ingresses ingresses={service.ingresses} /> : null,
+    ]
+  })
   return (
     <Table
       title="Services"
       rowHeaders={rowHeaders}
-      rows={rows}>
-    </Table>
+      rows={rows}
+    />
   )
 }
 
@@ -89,7 +91,7 @@ const LinkContainer = styled.div`
     padding-bottom: 0;
   }
 `
-const Ingresses: React.SFC<IngressesProp> = ({ ingresses }) => {
+const Ingresses: React.FC<IngressesProp> = ({ ingresses }) => {
   return (
     <div>
       {ingresses.map(i => {

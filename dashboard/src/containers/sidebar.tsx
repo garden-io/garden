@@ -10,8 +10,8 @@ import { kebabCase, flatten, entries } from "lodash"
 import React, { useContext, useEffect } from "react"
 
 import Sidebar from "../components/sidebar"
-import { DashboardPage } from "../api/types"
 import { DataContext } from "../context/data"
+import { DashboardPage } from "garden-cli/src/config/dashboard"
 
 export interface Page extends DashboardPage {
   path: string
@@ -53,7 +53,7 @@ const SidebarContainer = () => {
 
   if (status.data) {
     pages = flatten(entries(status.data.providers).map(([providerName, providerStatus]) => {
-      return providerStatus.dashboardPages.map(p => ({
+      return (providerStatus.dashboardPages || []).map(p => ({
         ...p,
         path: `/provider/${providerName}/${kebabCase(p.title)}`,
         description: p.description + ` (from provider ${providerName})`,

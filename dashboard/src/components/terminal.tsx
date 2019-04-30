@@ -11,12 +11,11 @@ import { padEnd } from "lodash"
 import React from "react"
 
 import { colors } from "../styles/variables"
-import { ServiceLogEntry } from "../api/types"
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
 
 interface Props {
   entries: ServiceLogEntry[]
   sectionPad: number
-  title: string
   showServiceName: boolean
 }
 
@@ -42,7 +41,7 @@ const Timestamp = styled.span`
   color: ${colors.gardenGrayLight};
 `
 
-const Terminal: React.SFC<Props> = ({ entries, sectionPad, showServiceName }) => {
+const Terminal: React.FC<Props> = ({ entries, sectionPad, showServiceName }) => {
   return (
     <Term className="p-1">
       <code>

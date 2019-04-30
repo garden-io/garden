@@ -1,0 +1,30 @@
+{
+  "extends": [
+    "../tslint.base.json",
+    "tslint-react"
+  ],
+  "rulesDirectory": [
+    "node_modules/tslint-microsoft-contrib"
+  ],
+  "rules": {
+    // Override tslint-react rules here
+    "jsx-no-multiline-js": false,
+    "jsx-boolean-value": [
+      true,
+      "never"
+    ],
+    "jsx-no-lambda": true,
+    "jsx-space-before-trailing-slash": true,
+    "jsx-wrap-multiline": true,
+    "jsx-key": true,
+    "jsx-no-bind": true,
+    "jsx-curly-spacing": [
+      true,
+      "never"
+    ],
+    // From tslint-microsoft-contrib rules directory
+    "react-unused-props-and-state": true,
+    "react-anchor-blank-noopener": true,
+    "react-this-binding-issue": true
+  }
+}

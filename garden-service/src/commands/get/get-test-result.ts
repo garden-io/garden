@@ -20,7 +20,7 @@ import { findByName, getNames, highlightYaml } from "../../util/util"
 import { logHeader } from "../../logger/util"
 import chalk from "chalk"
 
-interface TestResultOutput {
+export interface TestResultOutput {
   module: string
   name: string
   version: string | null

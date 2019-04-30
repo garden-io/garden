@@ -38,14 +38,16 @@ const LogsContainer = () => {
   } = useContext(DataContext)
 
   useEffect(() => {
-    loadLogs(getServiceNames(config.data.moduleConfigs))
+    if (config.data) {
+      loadLogs(getServiceNames(config.data.moduleConfigs))
+    }
   }, [])
 
   const isLoading = !logs.data
 
   return (
     <LoadWrapper error={logs.error} ErrorComponent={PageError} loading={isLoading}>
-      <Logs loadLogs={loadLogs} config={config.data} logs={logs.data} />
+      {config.data && logs.data && <Logs loadLogs={loadLogs} config={config.data} logs={logs.data} />}
     </LoadWrapper>
   )
 

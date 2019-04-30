@@ -7,6 +7,7 @@
  */
 
 import { RouteComponentProps } from "react-router-dom"
+import React from "react"
 import * as H from "history"
 
 import { Page } from "../containers/sidebar"
@@ -15,7 +16,7 @@ interface RoutePropsWithState extends RouteComponentProps {
   location: H.Location<Page>
 }
 
-const Provider: React.SFC<RoutePropsWithState> = props => {
+const Provider: React.FC<RoutePropsWithState> = props => {
   const page = props.location.state
   return (
     <div>

@@ -70,14 +70,14 @@ const IconContainer = styled.span`
 
 interface TaskResultInfo {
   name: string
-  module: string
+  module: string | null
   output: string | null
   startedAt: string | null
   completedAt: string | null
-  duration: string
+  duration: string | null
 }
 
-export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
+export const TaskResultNodeInfo: React.FC<TaskResultNodeInfoProps> = ({
   name,
 }) => {
   const {
@@ -92,7 +92,7 @@ export const TaskResultNodeInfo: React.SFC<TaskResultNodeInfoProps> = ({
   useEffect(() => loadTaskResult({ name }, true), [name])
   const isLoading = !taskResult.data || taskResult.loading
 
-  let info: TaskResultInfo = null
+  let info: TaskResultInfo | null = null
 
   if (!isLoading && taskResult.data) {
     info = {

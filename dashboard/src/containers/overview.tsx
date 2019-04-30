@@ -16,9 +16,11 @@ import { DataContext } from "../context/data"
 import LoadWrapper from "../components/load-wrapper"
 
 const LoadingServices = () => (
-  <div className={cls(css`
+  <div
+    className={cls(css`
       text-align: center;
-    `, "mt-2")}>
+    `, "mt-2")}
+  >
     <p>Loading services...</p>
   </div>
 )
@@ -43,17 +45,18 @@ export default () => {
   return (
     <div>
       <LoadWrapper error={config.error} ErrorComponent={PageError} loading={isLoadingModules}>
-        <Modules moduleConfigs={config.data && config.data.moduleConfigs} />
+        {config.data && <Modules moduleConfigs={config.data && config.data.moduleConfigs} />}
       </LoadWrapper>
       <LoadWrapper
         error={status.error}
         LoadComponent={ServiceLoadMsg}
         ErrorComponent={PageError}
-        loading={isLoadingServices}>
-        <Services
-          moduleConfigs={config.data && config.data.moduleConfigs}
-          services={status.data && status.data.services}
-        />
+        loading={isLoadingServices}
+      >
+        {status.data && config.data && <Services
+          moduleConfigs={config.data.moduleConfigs}
+          services={status.data.services}
+        />}
       </LoadWrapper>
     </div>
   )

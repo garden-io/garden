@@ -14,15 +14,17 @@ import React, { Component } from "react"
 import Select from "react-select"
 
 import Terminal from "./terminal"
-import { FetchConfigResponse, FetchLogsResponse } from "../api/types"
 import Card, { CardTitle } from "./card"
 import { colors } from "../styles/variables"
 import { LoadLogs } from "../context/data"
 import { getServiceNames } from "../util/helpers"
 
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
+import { ConfigDump } from "garden-cli/src/garden"
+
 interface Props {
-  config: FetchConfigResponse
-  logs: FetchLogsResponse
+  config: ConfigDump
+  logs: ServiceLogEntry[]
   loadLogs: LoadLogs
 }
 
@@ -123,7 +125,7 @@ class Logs extends Component<Props, State> {
     const { config, logs } = this.props
     const { loading, selectedService } = this.state
     const serviceNames = getServiceNames(config.moduleConfigs)
-    const maxServiceName = max(serviceNames).length
+    const maxServiceName = (max(serviceNames) || []).length
     const options = [{ value: "all", label: "All service logs" }]
       .concat(serviceNames.map(name => ({ value: name, label: name })))
 
@@ -135,10 +137,12 @@ class Logs extends Component<Props, State> {
 
     return (
       <div>
-        <div className={cls(css`
-          min-width: 12rem;
-          width: 30%;
-        `, "mb-1")}>
+        <div
+          className={cls(css`
+            min-width: 12rem;
+            width: 30%;
+          `, "mb-1")}
+        >
           <Select
             value={this.state.selectedService}
             options={options}
@@ -157,7 +161,6 @@ class Logs extends Component<Props, State> {
             <Terminal
               entries={filteredLogs}
               sectionPad={maxServiceName}
-              title={title}
               showServiceName={value === "all"}
             />
           </div>

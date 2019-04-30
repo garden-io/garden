@@ -7,7 +7,7 @@
  */
 
 import { flatten } from "lodash"
-import { ModuleConfig } from "../api/types"
+import { ModuleConfig } from "garden-cli/src/config/module"
 
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))

@@ -15,7 +15,7 @@ import { H3 } from "../components/text"
 import { colors } from "../styles/variables"
 
 // TODO Style me + add prop interface
-const PageError: React.SFC<any> = ({ error }) => {
+const PageError: React.FC<any> = ({ error }) => {
   let suggestion
   const status = error.response && error.response.status
   if (status === 500) {
@@ -31,9 +31,11 @@ const PageError: React.SFC<any> = ({ error }) => {
     )
   }
   return (
-    <div className={cls(css`
-      text-align: center;
-    `, "p-2")}>
+    <div
+      className={cls(css`
+        text-align: center;
+      `, "p-2")}
+    >
       <H3 color={colors.gardenPink}>
         Whoops, something went wrong.
       </H3>

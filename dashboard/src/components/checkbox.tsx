@@ -67,7 +67,7 @@ interface Props {
   onChange: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
-const CheckBox: React.SFC<Props> = ({ name, onChange, checked = false, children }) => {
+const CheckBox: React.FC<Props> = ({ name, onChange, checked = false, children }) => {
   const Mark = checked ? CheckmarkChecked : Checkmark
   return (
     <Label>

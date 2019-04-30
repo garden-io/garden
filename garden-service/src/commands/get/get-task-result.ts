@@ -20,7 +20,7 @@ import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/outputs"
 import chalk from "chalk"
 
-interface TaskResultOutput {
+export interface TaskResultOutput {
   name: string
   module: string | null
   version: string | null

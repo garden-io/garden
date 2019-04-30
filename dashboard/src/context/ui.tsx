@@ -10,7 +10,7 @@ import React, { useState } from "react"
 
 interface UiState {
   isSidebarOpen: boolean
-  selectedGraphNode: string
+  selectedGraphNode: string | null
 }
 
 export type SelectGraphNode = (node: string) => void
@@ -31,7 +31,7 @@ interface UiStateAndActions {
   actions: UiActions,
 }
 
-export const UiStateContext = React.createContext<UiStateAndActions>(null)
+export const UiStateContext = React.createContext<UiStateAndActions>({} as UiStateAndActions)
 
 const useUiState = () => {
   const [uiState, setState] = useState<UiState>(INITIAL_UI_STATE)
@@ -67,7 +67,7 @@ const useUiState = () => {
   }
 }
 
-export const UiStateProvider: React.SFC = ({ children }) => {
+export const UiStateProvider: React.FC = ({ children }) => {
   const storeAndActions = useUiState()
 
   return (

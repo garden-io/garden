@@ -67,14 +67,16 @@ const IconContainer = styled.span`
 `
 interface TestResultInfo {
   name: string
-  module: string
+  module: string | null
   output: string | null
   startedAt: string | null
   completedAt: string | null
-  duration: string
+  duration: string | null
 }
 
-export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
+const LoadComp = () => <Spinner fontSize="3px" />
+
+export const TestResultNodeInfo: React.FC<TestResultNodeInfoProps> = ({
   name,
   module,
 }) => {
@@ -117,7 +119,7 @@ export const TestResultNodeInfo: React.SFC<TestResultNodeInfoProps> = ({
       loading={isLoading}
       error={testResult.error}
       ErrorComponent={TestPaneErrorMsg}
-      LoadComponent={() => <Spinner fontSize="3px" />}
+      LoadComponent={LoadComp}
     >
       {info && (
         <Card>
