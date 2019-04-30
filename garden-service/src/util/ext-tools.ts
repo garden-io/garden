@@ -218,7 +218,7 @@ export interface ExecParams {
   log: LogEntry
   timeout?: number
   input?: Buffer | string
-  reject?: boolean
+  ignoreError?: boolean
 }
 
 export interface SpawnParams extends ExecParams {
@@ -276,11 +276,12 @@ export class BinaryCmd extends Library {
     return crossSpawn(path, args || [], { cwd: cwd || dirname(path), env })
   }
 
-  async spawnAndWait({ args, cwd, env, log, timeout, tty }: SpawnParams) {
+  async spawnAndWait({ args, cwd, env, log, ignoreError, timeout, tty }: SpawnParams) {
     const path = await this.getPath(log)
     return spawn(path, args || [], {
       cwd: cwd || dirname(path),
       timeout: this.getTimeout(timeout),
+      ignoreError,
       env,
       tty,
     })

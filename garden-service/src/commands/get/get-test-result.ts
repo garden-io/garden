@@ -106,7 +106,7 @@ export class GetTestResultCommand extends Command<Args> {
       log.info(highlightYaml(yamlStatus))
       return { result: output }
     } else {
-      const errorMessage = `Could not find results for task '${testName}'`
+      const errorMessage = `Could not find results for test '${testName}'`
 
       log.info(errorMessage)
 

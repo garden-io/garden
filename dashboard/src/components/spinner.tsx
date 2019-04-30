@@ -6,17 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 
 import { colors } from "../styles/variables"
 
+export interface SpinnerProps {
+  fontSize?: string
+  size?: string
+  background?: string
+}
+
 // From https://projects.lukehaas.me/css-loaders/
-export default styled.div`
+const Spinner = styled<any, SpinnerProps>("div")`
   font-size: ${props => props.fontSize || "6px"};
   margin: 50px auto;
   text-indent: -9999em;
-  width: 11em;
-  height: 11em;
+  width: ${props => props.size || "4.5rem"};
+  height: ${props => props.size || "4.5rem"};
   border-radius: 50%;
   background: ${colors.gardenPink};
   background: linear-gradient(to right, ${colors.gardenPink} 10%, ${colors.gardenPinkRgba} 42%);
@@ -70,3 +76,5 @@ export default styled.div`
     }
   }
 `
+
+export default Spinner

@@ -43,7 +43,7 @@ export async function testHelmModule(
     args,
     image,
     interactive,
-    ignoreError: true,
+    ignoreError: true, // to ensure results get stored when an error occurs
     timeout,
     log,
   })
