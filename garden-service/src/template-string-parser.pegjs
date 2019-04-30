@@ -12,16 +12,6 @@ TemplateString
   / InvalidFormatString
   / $(.*) { return [text()] }
 
-NestedTemplateString
-  = a:(FormatString)+ b:NestedTemplateString? {
-    return [...a, ...(b || [])]
-  }
-  / a:Prefix b:(FormatString)+ c:NestedTemplateString? {
-    return [a, ...b, ...(c || [])]
-  }
-  / InvalidFormatString
-  / Suffix { return [text()] }
-
 FormatString
   = FormatStart key:Key FormatEnd {
       return options.getKey(key)
@@ -44,9 +34,6 @@ FormatString
   }
   / FormatStart a:StringLiteral FormatEnd {
       return a
-  }
-  / FormatStart s:NestedTemplateString FormatEnd {
-      return options.resolve(s)
   }
 
 InvalidFormatString

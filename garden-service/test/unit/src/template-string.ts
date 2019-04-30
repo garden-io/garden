@@ -43,33 +43,6 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("value")
   })
 
-  // it("should resolve a key via a resolver function", async () => {
-  //   const resolver = (parts) => {
-  //     expect(parts).to.eql(["nested", "key"])
-  //     return "value"
-  //   }
-  //   const res = await resolveTemplateString("${some.nested.key}", new TestContext({ some: resolver }))
-  //   expect(res).to.equal("value")
-  // })
-
-  // it("should resolve a key via a resolver function that returns a promise", async () => {
-  //   const resolver = async (parts) => {
-  //     expect(parts).to.eql(["nested", "key"])
-  //     return "value"
-  //   }
-  //   const res = await resolveTemplateString("${some.nested.key}", { some: resolver }))
-  //   expect(res).to.equal("value")
-  // })
-
-  // it("should resolve a key via a resolver function in a nested key", async () => {
-  //   const resolver = (parts) => {
-  //     expect(parts).to.eql(["key"])
-  //     return "value"
-  //   }
-  //   const res = await resolveTemplateString("${some.nested.key}", { some: { nested: resolver } }))
-  //   expect(res).to.equal("value")
-  // })
-
   it("should handle multiple format strings", async () => {
     const res = await resolveTemplateString("prefix-${a}-${b}-suffix", new TestContext({ a: "value", b: "other" }))
     expect(res).to.equal("prefix-value-other-suffix")
@@ -134,28 +107,14 @@ describe("resolveTemplateString", async () => {
     throw new Error("Expected error")
   })
 
-  it("should handle nested format strings", async () => {
-    const res = await resolveTemplateString("${resol${part}ed}", new TestContext({ resolved: 123, part: "v" }))
-    expect(res).to.equal("123")
-  })
-
-  it("should handle nested format strings with nested keys", async () => {
-    const res = await resolveTemplateString(
-      "${resol${part}ed.nested}", new TestContext({ resolved: { nested: 123 }, part: "v" }),
+  it("should throw on nested format strings", async () => {
+    return expectError(
+      () => resolveTemplateString(
+        "${resol${part}ed}",
+        new TestContext({}),
+      ),
+      (err) => (expect(err.message).to.equal("Invalid template string: ${resol${part}ed}")),
     )
-    expect(res).to.equal("123")
-  })
-
-  it("should handle nested format strings with format string at end", async () => {
-    const res = await resolveTemplateString("${resolv${part}}", new TestContext({ resolved: 123, part: "ed" }))
-    expect(res).to.equal("123")
-  })
-
-  it("should handle deeply nested format strings", async () => {
-    const res = await resolveTemplateString(
-      "${resol${pa${deep}t}ed}", new TestContext({ resolved: 123, deep: "r", part: "v" }),
-    )
-    expect(res).to.equal("123")
   })
 
   it("should handle a single-quoted string", async () => {
@@ -172,6 +131,26 @@ describe("resolveTemplateString", async () => {
       new TestContext({}),
     )
     expect(res).to.equal("foo")
+  })
+
+  it("should throw on invalid single-quoted string", async () => {
+    return expectError(
+      () => resolveTemplateString(
+        "${'foo}",
+        new TestContext({}),
+      ),
+      (err) => (expect(err.message).to.equal("Invalid template string: ${'foo}")),
+    )
+  })
+
+  it("should throw on invalid double-quoted string", async () => {
+    return expectError(
+      () => resolveTemplateString(
+        "${\"foo}",
+        new TestContext({}),
+      ),
+      (err) => (expect(err.message).to.equal("Invalid template string: ${\"foo}")),
+    )
   })
 
   it("should handle a conditional between two identifiers", async () => {
@@ -212,6 +191,22 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("123")
   })
 
+  it("should handle a conditional between two identifiers with first value undefined and string fallback", async () => {
+    const res = await resolveTemplateString(
+      "${a || \"foo\"}",
+      new TestContext({ a: undefined }),
+    )
+    expect(res).to.equal("foo")
+  })
+
+  it("should handle a conditional with undefined nested value and string fallback", async () => {
+    const res = await resolveTemplateString(
+      "${a.b || 'foo'}",
+      new TestContext({ a: {} }),
+    )
+    expect(res).to.equal("foo")
+  })
+
   it("should handle a conditional between two identifiers without spaces with first value set", async () => {
     const res = await resolveTemplateString(
       "${a||b}",
@@ -227,6 +222,16 @@ describe("resolveTemplateString", async () => {
         new TestContext({}),
       ),
       "configuration",
+    )
+  })
+
+  it("should throw on invalid conditional string", async () => {
+    return expectError(
+      () => resolveTemplateString(
+        "${a || 'b}",
+        new TestContext({}),
+      ),
+      (err) => (expect(err.message).to.equal("Invalid template string: ${a || 'b}")),
     )
   })
 

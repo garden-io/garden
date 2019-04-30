@@ -477,7 +477,7 @@ export async function compareDeployedObjects(
         !err.detail || !err.detail.result
         || (!!err.detail.result.stderr && err.detail.result.stderr.trim() !== "exit status 1")
       ) {
-        log.verbose(`kubectl diff failed: ${err.message}`)
+        log.verbose(`kubectl diff failed: ${err.message}\n${err.stderr}`)
       } else {
         log.verbose(`kubectl diff indicates one or more resources are outdated.`)
         log.silly(err.detail.result.stdout)
@@ -489,6 +489,8 @@ export async function compareDeployedObjects(
 
   // Using kubectl diff didn't work, so we fall back to our own comparison check, which works in _most_ cases,
   // but doesn't exhaustively handle normalization issues.
+  log.verbose(`Getting currently deployed resources...`)
+
   const deployedObjectStatuses: WorkloadStatus[] = await Bluebird.map(
     deployedObjects,
     async (obj) => checkResourceStatus(api, namespace, obj, log, undefined))
@@ -508,6 +510,8 @@ export async function compareDeployedObjects(
     result.state = combineStates(deployedStates)
     return result
   }
+
+  log.verbose(`Comparing expected and deployed resources...`)
 
   for (let [newSpec, existingSpec] of zip(resources, deployedObjects) as KubernetesResource[][]) {
     // the API version may implicitly change when deploying
@@ -560,6 +564,8 @@ export async function compareDeployedObjects(
       return result
     }
   }
+
+  log.verbose(`All resources match. Environment is ready.`)
 
   result.state = "ready"
   return result
