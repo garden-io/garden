@@ -9,7 +9,7 @@
 import cls from "classnames"
 import { css } from "emotion/macro"
 import React, { Component, ChangeEvent } from "react"
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import { capitalize, uniq } from "lodash"
 import * as d3 from "d3"
 import dagreD3 from "dagre-d3"
@@ -18,13 +18,12 @@ import Card from "../card"
 
 import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
-import Spinner from "../spinner"
+import Spinner, { SpinnerProps } from "../spinner"
 import CheckBox from "../checkbox"
 import { SelectGraphNode } from "../../context/ui"
 import {
   WsEventMessage,
   SupportedEventName,
-  supportedEventNames,
 } from "../../context/events"
 import { Events } from "garden-cli/src/events"
 import { Extends } from "garden-cli/src/util/util"
@@ -50,14 +49,16 @@ export interface Graph {
 }
 
 // FIXME: We shouldn't repeat the keys for both the type and the set below
-type TaskNodeEventName = Extends<SupportedEventName, "taskPending" | "taskProcessing" | "taskComplete">
+type TaskNodeEventName = Extends<SupportedEventName, "taskPending" | "taskProcessing" | "taskComplete" | "taskError">
 
 type WsTaskNodeMessage = WsEventMessage & {
   name: TaskNodeEventName,
   payload: Events[TaskNodeEventName],
 }
 
-const taskNodeEventNames: Set<TaskNodeEventName> = new Set(["taskPending", "taskProcessing", "taskComplete"])
+const taskNodeEventNames: Set<TaskNodeEventName> = new Set(
+  ["taskPending", "taskProcessing", "taskComplete", "taskError"],
+)
 
 /**
  * Type guard to check whether WsEventMessage is of type WsTaskNodeMessage
@@ -205,7 +206,7 @@ const Status = styled.p`
   colors: grey;
 `
 
-const ProcessSpinner = styled(Spinner)`
+const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`
   margin: 16px 0 0 20px;
 `
 
@@ -321,7 +322,7 @@ class Chart extends Component<Props, State> {
 
   clearClasses(el: HTMLElement) {
     // we use the event name as the class name
-    for (const name of supportedEventNames) {
+    for (const name of taskNodeEventNames) {
       el.classList.remove(name)
     }
   }
@@ -336,7 +337,7 @@ class Chart extends Component<Props, State> {
         const nodeEl = document.getElementById(node.id)
         if (nodeEl) {
           this.clearClasses(nodeEl)
-          if (supportedEventNames.has(message.name)) {
+          if (taskNodeEventNames.has(message.name)) {
             nodeEl.classList.add(message.name) // we use the event name as the class name
           }
         }
@@ -354,7 +355,7 @@ class Chart extends Component<Props, State> {
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."
       spinner = (
-        <ProcessSpinner background={colors.gardenWhite} fontSize="2px" />
+        <ProcessSpinner background={colors.gardenWhite} size="2rem" />
       )
     }
 

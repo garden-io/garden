@@ -33,6 +33,7 @@ const Term = styled.div`
   padding: 1rem;
 `
 const Code = styled.code`
+  font-size: 0.8rem;
   word-break: break-word;
 `
 
