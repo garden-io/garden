@@ -3,7 +3,6 @@ module.exports = {
   rules: {
     // Extend to add improvement key
     "type-enum": [2, "always", [
-      "build",
       "chore",
       "ci",
       "docs",

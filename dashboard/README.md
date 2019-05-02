@@ -1,22 +1,22 @@
 # Garden Dashboard _(experimental)_
 
-This directory contains an experimental web dashboard for the Garden CLI. The dashboard is available on `localhost` when either the `garden dev` or `garden serve` commands are running.
+This directory contains an experimental web dashboard for the Garden CLI. The dashboard is available on `localhost` when Garden is running in watch mode, e.g. `garden dev` or `garden build -w`, or when the `garden serve` command is run.
 
 All commands below assume that the current directory is root.
 
 ## Usage
 
-To use with the Garden CLI, simply run:
+To use with the Garden CLI, simply run a Garden command in watch mode inside some Garden project. E.g:
 
 ```sh
-cd garden-service
+cd examples/simple-project
 garden serve
 ```
 
 or alternatively
 
 ```sh
-cd garden-service
+cd examples/simple-project
 garden dev
 ```
 
@@ -27,8 +27,8 @@ and follow the dashboard link printed by the command.
 To develop the dashboard, first run:
 
 ```sh
-cd garden-service
-garden serve # (or garden dev)
+cd examples/simple-project # (or some other Garden project)
+garden serve # (or some watch mode command)
 ```
 
 to start the `garden-service` API server. Then run:
@@ -67,11 +67,15 @@ REACT_APP_GARDEN_SERVICE_PORT=my_port npm start
 
 See also `src/setupProxy.js` and [Adding Custom Environment Variables](https://facebook.github.io/create-react-app/docs/adding-custom-environment-variables).
 
+## Linking `garden-cli`
+
+To be able to import type definitions from the `garden-cli` package, we first link it to the `dashboard` package with the `npm link` command. This step happens automatically when running `npm run dev`.
+
 ## Build
 
 To build the dashboard, run:
 
-```
+```sh
 cd dashboard
 npm run build
 ```
