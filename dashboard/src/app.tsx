@@ -36,10 +36,9 @@ import { UiStateProvider, UiStateContext } from "./context/ui"
 
 // Style and align properly
 const Logo = styled.img`
-  width: 10rem;
-  height: auto;
-  max-width: 10rem;
-  margin-top: .7rem;
+  width: 144px;
+  height: 60px;
+  max-width: 9rem;
 `
 
 const SidebarWrapper = styled.div`
@@ -49,15 +48,16 @@ const SidebarWrapper = styled.div`
 `
 const SidebarContainer = styled.div`
   display: ${props => (props.visible ? `block` : "none")};
-  width: ${props => (props.visible ? `12rem` : "0")};
+  width: ${props => (props.visible ? `10.5rem` : "0")};
 `
 
 const SidebarToggleButton = styled.div`
   position: absolute;
   right: -2.2rem;
-  top: 3rem;
+  top: 2rem;
   width: 1.5rem;
   cursor: pointer;
+  font-size: 1.25rem;
 `
 
 const AppContainer = () => {
@@ -92,11 +92,7 @@ const App = () => {
     >
       <SidebarWrapper>
         <SidebarToggleButton onClick={toggleSidebar}>
-          {isSidebarOpen ? (
-            <CloseSidebarIcon />
-          ) : (
-              <OpenSidebarIcon />
-            )}
+          {isSidebarOpen ? <CloseSidebarIcon /> : <OpenSidebarIcon />}
         </SidebarToggleButton>
         <SidebarContainer visible={isSidebarOpen}>
           <div className={"ml-1"}>
@@ -120,10 +116,8 @@ const App = () => {
             css`
               background-color: ${colors.grayLight}
               flex-grow: 1;
+              padding: 1rem 1rem 1rem 3rem;
             `,
-            "pl-3",
-            "pt-2",
-            "pr-1",
           )}
         >
           <Route exact path="/" component={Overview} />

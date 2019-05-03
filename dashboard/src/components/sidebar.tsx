@@ -37,7 +37,7 @@ const Button = styled.li`
 
 const linkStyle = `
   display: inline-block;
-  font-size: 1.025rem;
+  font-size: 1rem;
   margin-left: 1.5rem;
   padding: 0.5em 0.5em 0.5em 0;
   width: 100%;
@@ -61,7 +61,7 @@ class Sidebar extends Component<Props, State> {
     return (
       <div className="pb-1">
         <nav>
-          <ul className="pt-2">
+          <ul className="pt-1">
             {this.props.pages.map(page => {
               let link: React.ReactNode
               if (page.url) {

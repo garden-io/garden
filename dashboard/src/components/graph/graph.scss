@@ -27,6 +27,11 @@
     fill: #fff;
     stroke: #02f2b4;
     stroke-width: 2.5px;
+
+  }
+
+  .node:hover rect, .node.selected rect {
+        stroke-width: 4.5px;
   }
 
   .edgePath path {
@@ -45,6 +50,9 @@
     background-position: left;
     background-position-x: -0.5rem;
     background-size: 4rem;
+    border-radius: 5px;
+    border:none;
+
     &--run,
     &--test {
       cursor: pointer;

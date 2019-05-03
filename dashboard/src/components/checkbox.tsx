@@ -14,11 +14,13 @@ import { colors } from "../styles/variables"
 const Label = styled.label`
   display: block;
   position: relative;
-  padding-left: 35px;
+  padding-left: 1.5rem;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1rem;
   user-select: none;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  height: 1rem;
+  line-height: 1rem;
 `
 
 const Input = styled.input`
@@ -36,16 +38,16 @@ const Checkmark = styled.span`
   position: absolute;
   top: 0rem;
   left: 0rem;
-  height: 21px;
-  width: 21px;
+  height: 1rem;
+  width: 1rem;
   border: 1px solid ${colors.gardenGrayLight};
   :after {
     content: "";
     position: absolute;
     display: none;
-    left: 7px;
-    top: 3px;
-    width: 7px;
+    left: 5px;
+    top: 1px;
+    width: 6px;
     height: 12px;
     border: solid white;
     border-width: 0 3px 3px 0;
@@ -67,12 +69,22 @@ interface Props {
   onChange: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
-const CheckBox: React.FC<Props> = ({ name, onChange, checked = false, children }) => {
+const CheckBox: React.FC<Props> = ({
+  name,
+  onChange,
+  checked = false,
+  children,
+}) => {
   const Mark = checked ? CheckmarkChecked : Checkmark
   return (
     <Label>
       {children}
-      <Input type={"checkbox"} name={name} checked={checked} onChange={onChange} />
+      <Input
+        type={"checkbox"}
+        name={name}
+        checked={checked}
+        onChange={onChange}
+      />
       <Mark />
     </Label>
   )
