@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { useState } from "react"
+import { useReducer } from "react"
 import React from "react"
 
 import {
@@ -54,20 +54,6 @@ interface Store {
   },
 }
 
-export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
-export type LoadTaskResult = (param: FetchTaskResultParam, force?: boolean) => void
-export type LoadTestResult = (param: FetchTestResultParam, force?: boolean) => void
-
-type Loader = (force?: boolean) => void
-interface Actions {
-  loadLogs: LoadLogs
-  loadConfig: Loader
-  loadStatus: Loader
-  loadGraph: Loader
-  loadTaskResult: LoadTaskResult
-  loadTestResult: LoadTestResult
-}
-
 type Context = {
   store: Store;
   actions: Actions;
@@ -82,6 +68,41 @@ const storeKeys: StoreKey[] = [
   "taskResult",
   "testResult",
 ]
+
+interface ActionBase {
+  type: "fetchStart" | "fetchSuccess" | "fetchFailure"
+  key: StoreKey
+}
+
+interface ActionStart extends ActionBase {
+  type: "fetchStart"
+}
+
+interface ActionSuccess extends ActionBase {
+  type: "fetchSuccess"
+  data: any
+}
+
+interface ActionError extends ActionBase {
+  type: "fetchFailure"
+  error: Error
+}
+
+type Action = ActionStart | ActionError | ActionSuccess
+
+export type LoadLogs = (param: FetchLogsParam, force?: boolean) => void
+export type LoadTaskResult = (param: FetchTaskResultParam, force?: boolean) => void
+export type LoadTestResult = (param: FetchTestResultParam, force?: boolean) => void
+
+type Loader = (force?: boolean) => void
+interface Actions {
+  loadLogs: LoadLogs
+  loadConfig: Loader
+  loadStatus: Loader
+  loadGraph: Loader
+  loadTaskResult: LoadTaskResult
+  loadTestResult: LoadTestResult
+}
 
 const initialState: Store = storeKeys.reduce<Store>((acc, key) => {
   const state = { loading: false, error: null }
@@ -108,21 +129,35 @@ function updateSlice(
 }
 
 /**
+ * The reducer for the useApi hook. Sets the state for a given slice of the store on fetch events.
+ */
+function reducer(store: Store, action: Action) {
+  switch (action.type) {
+    case "fetchStart":
+      return updateSlice(store, action.key, { loading: true, error: null })
+    case "fetchSuccess":
+      return updateSlice(store, action.key, { loading: false, data: action.data, error: null })
+    case "fetchFailure":
+      return updateSlice(store, action.key, { loading: false, error: action.error })
+  }
+}
+
+/**
  * Creates the actions needed for fetching data from the API and updates the store state as the actions are called.
  *
  * TODO: Improve type safety
  */
 function useApi() {
-  const [store, setData] = useState(initialState)
+  const [store, dispatch] = useReducer(reducer, initialState)
 
   const fetch = async (key: StoreKey, fetchFn: Function, args?: any[]) => {
-    setData(prevState => updateSlice(prevState, key, { loading: true }))
+    dispatch({ key, type: "fetchStart" })
 
     try {
       const res = args ? await fetchFn(...args) : await fetchFn()
-      setData(prevState => updateSlice(prevState, key, { data: res, error: null, loading: false }))
+      dispatch({ key, type: "fetchSuccess", data: res })
     } catch (error) {
-      setData(prevState => updateSlice(prevState, key, { error, loading: false }))
+      dispatch({ key, error, type: "fetchFailure" })
     }
   }
 
@@ -131,7 +166,7 @@ function useApi() {
     if (!force && (data || loading)) {
       return
     }
-    fetch(key, action, args).catch(error => setData(prevState => updateSlice(prevState, key, { error })))
+    fetch(key, action, args).catch(error => dispatch({ key, error, type: "fetchFailure" }))
   }
 
   const loadLogs: LoadLogs = (args: FetchLogsParam, force: boolean = false) => (
