@@ -21,10 +21,7 @@ import { colors, fontMedium } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
 import CheckBox from "../checkbox"
 import { SelectGraphNode } from "../../context/ui"
-import {
-  WsEventMessage,
-  SupportedEventName,
-} from "../../context/events"
+import { WsEventMessage, SupportedEventName } from "../../context/events"
 import { Events } from "garden-cli/src/events"
 import { Extends } from "garden-cli/src/util/util"
 import { ConfigDump } from "garden-cli/src/garden"
@@ -49,21 +46,37 @@ export interface Graph {
 }
 
 // FIXME: We shouldn't repeat the keys for both the type and the set below
-type TaskNodeEventName = Extends<SupportedEventName, "taskPending" | "taskProcessing" | "taskComplete" | "taskError">
+type TaskNodeEventName = Extends<
+  SupportedEventName,
+  "taskPending" | "taskProcessing" | "taskComplete" | "taskError"
+>
 
 type WsTaskNodeMessage = WsEventMessage & {
-  name: TaskNodeEventName,
-  payload: Events[TaskNodeEventName],
+  name: TaskNodeEventName;
+  payload: Events[TaskNodeEventName];
 }
 
-const taskNodeEventNames: Set<TaskNodeEventName> = new Set(
-  ["taskPending", "taskProcessing", "taskComplete", "taskError"],
-)
+const taskNodeEventNames: Set<TaskNodeEventName> = new Set([
+  "taskPending",
+  "taskProcessing",
+  "taskComplete",
+  "taskError",
+])
+
+const selectedClassName = "selected"
+let selectedNodeId: string | null = null
+function clearGraphNodeSelection() {
+  const selectedNode =
+    selectedNodeId && document.getElementById(selectedNodeId)
+  selectedNode && selectedNode.classList.remove(selectedClassName)
+}
 
 /**
  * Type guard to check whether WsEventMessage is of type WsTaskNodeMessage
  */
-function isTaskNodeMessage(message: WsEventMessage): message is WsTaskNodeMessage {
+function isTaskNodeMessage(
+  message: WsEventMessage,
+): message is WsTaskNodeMessage {
   return taskNodeEventNames.has((message as WsTaskNodeMessage).name)
 }
 
@@ -74,19 +87,22 @@ function drawChart(
   graph: Graph,
   width: number,
   height: number,
-  onNodeSelected: (string) => void,
+  onGraphNodeSelected: (string) => void,
 ) {
   // Create the input graph
   const g = new dagreD3.graphlib.Graph()
     .setGraph({})
-    .setDefaultEdgeLabel(function() { return {} })
+    .setDefaultEdgeLabel(function() {
+      return {}
+    })
 
   // Here we"re setting nodeclass, which is used by our custom drawNodes function
   // below.
+
   for (const node of graph.nodes) {
     g.setNode(node.id, {
       label: node.label,
-      class: "",
+      class: node.id === selectedNodeId ? selectedClassName : "",
       id: node.id,
       labelType: "html",
     })
@@ -138,28 +154,41 @@ function drawChart(
   // @ts-ignore
   render(svgGroup, g)
 
-  const initialScale = 0.75 // TODO: Make a function of number or services
+  const initialScale = 0.75
 
   // Re-set svg frame height after graph has been been drawn
   // const graphHeight = g.graph().height * initialScale + 40
   // svg.attr("height", Math.max(graphHeight, MIN_CHART_HEIGHT))
 
   // Center the graph
-  const xCenterOffset = (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2
-  const yCenterOffset = (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2
-  const zoomTranslate = d3.zoomIdentity.translate(xCenterOffset, yCenterOffset).scale(initialScale)
+  const xCenterOffset =
+    (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2
+  const yCenterOffset =
+    (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2
+  const zoomTranslate = d3.zoomIdentity
+    .translate(xCenterOffset, yCenterOffset)
+    .scale(initialScale)
   svg.call(zoom.transform, zoomTranslate)
 
   const selections = svg.select("g").selectAll("g.node")
-  selections.on("click", evt => {
-    onNodeSelected(evt)
+  selections.on("click", function(evt) {
+    // tslint:disable-next-line: no-invalid-this
+    const element = this as HTMLElement
+    if (element) {
+      clearGraphNodeSelection()
+
+      // remove selected class from old node and set in new
+      element.classList.add(selectedClassName)
+      selectedNodeId = element.id
+    }
+    onGraphNodeSelected(evt)
   })
 }
 
 interface Props {
   config: ConfigDump
   graph: GraphOutput
-  selectGraphNode: SelectGraphNode
+  onGraphNodeSelected: SelectGraphNode
   selectedGraphNode: string | null
   message?: WsEventMessage
 }
@@ -278,7 +307,7 @@ class Chart extends Component<Props, State> {
     this._edges = graph.edges
     const width = this._chartRef.current.offsetWidth
     const height = this._chartRef.current.offsetHeight
-    drawChart(graph, width, height, this.props.selectGraphNode)
+    drawChart(graph, width, height, this.props.onGraphNodeSelected)
   }
 
   makeGraph() {
@@ -315,8 +344,14 @@ class Chart extends Component<Props, State> {
       this.drawChart()
     }
 
-    if (prevProps.selectedGraphNode !== this.props.selectedGraphNode) {
+    if (
+      (!prevProps.selectedGraphNode && this.props.selectedGraphNode) ||
+      (prevProps.selectedGraphNode && !this.props.selectedGraphNode)
+    ) {
       this.drawChart()
+    }
+    if (!this.props.selectedGraphNode) {
+      clearGraphNodeSelection()
     }
   }
 
@@ -348,47 +383,51 @@ class Chart extends Component<Props, State> {
   render() {
     const { message } = this.props
     const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
-    const chartHeightEstimate = `100vh - 15rem`
+    const chartHeightEstimate = `100vh - 2rem`
 
     let spinner: React.ReactNode = null
     let status = ""
     if (message && message.name !== "taskGraphComplete") {
       status = "Processing..."
-      spinner = (
-        <ProcessSpinner background={colors.gardenWhite} size="2rem" />
-      )
+      spinner = <ProcessSpinner background={colors.gardenWhite} size="2rem" />
     }
 
     return (
       <Card>
-        <div>
+        <div
+          className={cls(
+            css`
+              position: relative;
+            `,
+          )}
+        >
           <div
             className={cls(
               css`
                 position: absolute;
-                background: white;
+                top: 1rem;
+                display: flex;
               `,
-              "pt-1",
             )}
           >
             {taskTypes.map(type => {
-              return <div className="ml-1 pr-1" key={type}>
-                <CheckBox
-                  name={type}
-                  checked={!this.state.filters[type]}
-                  onChange={this.onCheckboxChange}
-                >
-                  {/* <IconContainer className={`garden-icon--${type}`}/>  {capitalize(type)} */}
-                  {capitalize(type)}
-
-                </CheckBox>
-              </div>
+              return (
+                <div className="ml-1" key={type}>
+                  <CheckBox
+                    name={type}
+                    checked={!this.state.filters[type]}
+                    onChange={this.onCheckboxChange}
+                  >
+                    {/* <IconContainer className={`garden-icon--${type}`}/>  {capitalize(type)} */}
+                    {capitalize(type)}
+                  </CheckBox>
+                </div>
+              )
             })}
           </div>
           <div
             className={css`
               height: calc(${chartHeightEstimate});
-              padding-top: 1rem;
             `}
             ref={this._chartRef}
             id="chart"
@@ -396,10 +435,13 @@ class Chart extends Component<Props, State> {
           <div
             className={cls(
               css`
+                position: absolute;
+                right: 1rem;
+                bottom: 0;
                 display: flex;
-                justify-content: space-between;
+                justify-content: flex-end;
               `,
-              "ml-1 mr-1 pb-1",
+              "mr-1",
             )}
           >
             <div
@@ -410,38 +452,36 @@ class Chart extends Component<Props, State> {
               <Status>{status}</Status>
               {spinner}
             </div>
-            <p>
-              <Span>
-                <span
-                  className={css`
+            <Span>
+              <span
+                className={css`
                     color: ${colors.gardenGreen};
                   `}
-                >
-                  —{" "}
-                </span>
-                Ready
+              >
+                —{" "}
+              </span>
+              Ready
               </Span>
-              <Span>
-                <span
-                  className={css`
+            <Span>
+              <span
+                className={css`
                     color: ${colors.gardenPink};
                   `}
-                >
-                  --{" "}
-                </span>
-                Pending
+              >
+                --{" "}
+              </span>
+              Pending
               </Span>
-              <Span>
-                <span
-                  className={css`
+            <Span>
+              <span
+                className={css`
                     color: red;
                   `}
-                >
-                  —{" "}
-                </span>
-                Error
+              >
+                —{" "}
+              </span>
+              Error
               </Span>
-            </p>
           </div>
         </div>
       </Card>

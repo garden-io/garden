@@ -34,7 +34,8 @@ const Term = styled.div`
   padding: 1rem;
 `
 const Code = styled.code`
-  word-break: break-word;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
 `
 
 const NoResults = styled.div`

@@ -61,7 +61,7 @@ export default () => {
         <div className={moreInfoPane ? "col-xs-7" : "col-xs"}>
           {config.data && graph.data && <Graph
             message={message}
-            selectGraphNode={selectGraphNode}
+            onGraphNodeSelected={selectGraphNode}
             selectedGraphNode={selectedGraphNode}
             config={config.data}
             graph={graph.data}
