@@ -14,8 +14,7 @@ import { EventContext } from "../context/events"
 import LoadWrapper from "../components/load-wrapper"
 import { DataContext } from "../context/data"
 import { UiStateContext } from "../context/ui"
-import { TaskResultNodeInfo } from "./task-result-node-info"
-import { TestResultNodeInfo } from "./test-result-node-info"
+import { NodeInfo } from "./node-info"
 
 export default () => {
   const {
@@ -39,19 +38,7 @@ export default () => {
   if (selectedGraphNode && graph.data) {
     const node = graph.data.nodes.find(n => n.key === selectedGraphNode)
     if (node) {
-      const { name, type, moduleName } = node
-      switch (type) {
-        case "run": // task
-          moreInfoPane = <TaskResultNodeInfo name={name} />
-          break
-        case "test":
-          moreInfoPane = <TestResultNodeInfo name={name} module={moduleName} />
-          break
-        case "build":
-        default:
-          moreInfoPane = null
-          break
-      }
+      moreInfoPane = <NodeInfo node={node} />
     }
   }
 
