@@ -13,7 +13,7 @@ import React, { useContext, useEffect } from "react"
 import PageError from "../components/page-error"
 import { Modules, Services } from "../components/overview"
 import { DataContext } from "../context/data"
-import LoadWrapper from "../components/load-wrapper"
+import Spinner from "../components/spinner"
 
 const LoadingServices = () => (
   <div
@@ -36,28 +36,32 @@ export default () => {
   useEffect(loadConfig, [])
   useEffect(loadStatus, [])
 
-  const isLoadingModules = !config.data || config.loading
-  const isLoadingServices = !status.data || status.loading
+  const isLoadingConfig = !config.data || config.loading
 
-  // Only show when load component for Modules is no longer visible
-  const ServiceLoadMsg = isLoadingModules ? null : LoadingServices
+  let modules: React.ReactNode = null
+  let services: React.ReactNode = null
+
+  if (config.error) {
+    modules = <PageError />
+  } else if (isLoadingConfig) {
+    modules = <Spinner />
+  } else if (config.data) {
+    modules = <Modules moduleConfigs={config.data && config.data.moduleConfigs} />
+  }
+
+  if (status.error) {
+    services = <PageError />
+  } else if (!isLoadingConfig && (!status.data || status.loading)) {
+    // Only show when load component for Modules is no longer visible
+    services = <LoadingServices />
+  } else if (status.data && config.data) {
+    services = <Services moduleConfigs={config.data.moduleConfigs} services={status.data.services} />
+  }
 
   return (
     <div>
-      <LoadWrapper error={config.error} ErrorComponent={PageError} loading={isLoadingModules}>
-        {config.data && <Modules moduleConfigs={config.data && config.data.moduleConfigs} />}
-      </LoadWrapper>
-      <LoadWrapper
-        error={status.error}
-        LoadComponent={ServiceLoadMsg}
-        ErrorComponent={PageError}
-        loading={isLoadingServices}
-      >
-        {status.data && config.data && <Services
-          moduleConfigs={config.data.moduleConfigs}
-          services={status.data.services}
-        />}
-      </LoadWrapper>
+      {modules}
+      {services}
     </div>
   )
 }
