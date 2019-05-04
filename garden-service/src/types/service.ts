@@ -7,11 +7,10 @@
  */
 
 import * as Joi from "joi"
-import { getEnvVarName } from "../util/util"
+import { getEnvVarName, uniqByName } from "../util/util"
 import { PrimitiveMap, joiEnvVars, joiIdentifierMap, joiPrimitive, joiUserIdentifier } from "../config/common"
 import { Module, getModuleKey } from "./module"
-import { serviceOutputsSchema, ServiceConfig, serviceConfigSchema } from "../config/service"
-import { validate } from "../config/common"
+import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
 import { format } from "url"
 import { moduleVersionSchema } from "../vcs/vcs"
@@ -225,43 +224,31 @@ export async function prepareRuntimeContext(
     envVars[envVarName] = value
   }
 
-  const deps = {}
+  const output: RuntimeContext = {
+    envVars,
+    dependencies: {},
+  }
 
-  for (const m of buildDependencies) {
+  const deps = output.dependencies
+  const depModules = uniqByName([...buildDependencies, ...serviceDependencies.map(s => s.module)])
+
+  for (const m of depModules) {
     deps[m.name] = {
       version: m.version.versionString,
-      outputs: {},
+      outputs: m.outputs,
     }
   }
 
-  for (const dep of serviceDependencies) {
-    if (!deps[dep.name]) {
-      deps[dep.name] = {
-        version: dep.module.version.versionString,
-        outputs: {},
-      }
-    }
-    const depContext = deps[dep.name]
+  for (const [name, dep] of Object.entries(deps)) {
+    const moduleEnvName = getEnvVarName(name)
 
-    const outputs = {
-      ...dep.config.outputs,
-    }
-    const serviceEnvName = getEnvVarName(dep.name)
-
-    validate(outputs, serviceOutputsSchema, { context: `outputs for service ${dep.name}` })
-
-    for (const [key, value] of Object.entries(outputs)) {
-      const envVarName = `GARDEN_SERVICES_${serviceEnvName}_${key}`.toUpperCase()
-
+    for (const [key, value] of Object.entries(dep.outputs)) {
+      const envVarName = `GARDEN_MODULE_${moduleEnvName}__${key}`.toUpperCase()
       envVars[envVarName] = value
-      depContext.outputs[key] = value
     }
   }
 
-  return {
-    envVars,
-    dependencies: deps,
-  }
+  return output
 }
 
 export async function getServiceRuntimeContext(garden: Garden, graph: ConfigGraph, service: Service) {

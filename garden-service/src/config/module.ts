@@ -9,7 +9,7 @@
 import dedent = require("dedent")
 import stableStringify = require("json-stable-stringify")
 import * as Joi from "joi"
-import { ServiceConfig, ServiceSpec } from "./service"
+import { ServiceConfig, ServiceSpec, serviceConfigSchema } from "./service"
 import {
   joiArray,
   joiIdentifier,
@@ -19,8 +19,8 @@ import {
   joiIdentifierMap,
   joiPrimitive,
 } from "./common"
-import { TestConfig, TestSpec } from "./test"
-import { TaskConfig, TaskSpec } from "./task"
+import { TestConfig, TestSpec, testConfigSchema } from "./test"
+import { TaskConfig, TaskSpec, taskConfigSchema } from "./task"
 
 export interface BuildCopySpec {
   source: string
@@ -71,7 +71,6 @@ export interface BaseModuleSpec {
   description?: string
   include?: string[]
   name: string
-  path: string
   type: string
   repositoryUrl?: string
 }
@@ -142,9 +141,9 @@ export interface ModuleConfig
   >
   extends BaseModuleSpec {
 
-  plugin?: string   // used to identify modules that are bundled as part of a plugin
-
   outputs: PrimitiveMap
+  path: string
+  plugin?: string   // used to identify modules that are bundled as part of a plugin
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]
   taskConfigs: TaskConfig<W>[]
@@ -155,11 +154,27 @@ export interface ModuleConfig
 
 export const moduleConfigSchema = baseModuleSpecSchema
   .keys({
+    outputs: joiIdentifierMap(joiPrimitive())
+      .description("The outputs defined by the module (referenceable in other module configs)."),
+    path: Joi.string().uri({ relativeOnly: true })
+      .description("The filesystem path of the module."),
+    plugin: joiIdentifier()
+      .meta({ internal: true })
+      .description("The name of a the parent plugin of the module, if applicable."),
+    serviceConfigs: joiArray(serviceConfigSchema)
+      .description("List of services configured by this module."),
+    taskConfigs: joiArray(taskConfigSchema)
+      .description("List of tasks configured by this module."),
+    testConfigs: joiArray(testConfigSchema)
+      .description("List of tests configured by this module."),
     spec: Joi.object()
       .meta({ extendable: true })
       .description("The module spec, as defined by the provider plugin."),
+    _ConfigType: Joi.object()
+      .meta({ internal: true }),
   })
   .description("The configuration for a module.")
+  .unknown(false)
 
 export function serializeConfig(moduleConfig: ModuleConfig) {
   return stableStringify(moduleConfig)

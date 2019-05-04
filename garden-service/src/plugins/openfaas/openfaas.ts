@@ -194,11 +194,9 @@ export function gardenPlugin(): GardenPlugin {
             dependencies: [],
             hotReloadable: false,
             name: moduleConfig.name,
-            outputs: {},
             spec: {
               name: moduleConfig.name,
               dependencies: [],
-              outputs: {},
             },
           }]
 

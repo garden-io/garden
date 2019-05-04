@@ -60,7 +60,6 @@ describe("validateHelmModule", () => {
         {
           name: "api",
           dependencies: [],
-          outputs: {},
           hotReloadable: true,
           sourceModuleName: "api-image",
           spec: {

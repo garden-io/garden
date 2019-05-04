@@ -8,7 +8,7 @@
 
 import deline = require("deline")
 import * as Joi from "joi"
-import { PrimitiveMap, joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray, joiUserIdentifier } from "./common"
+import { joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray, joiUserIdentifier } from "./common"
 
 export interface ServiceSpec { }
 
@@ -19,12 +19,11 @@ export interface ServiceSpec { }
 export interface CommonServiceSpec extends ServiceSpec {
   name: string
   dependencies: string[]
-  outputs: PrimitiveMap
 }
 
 export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
 
-export const baseServiceSchema = Joi.object()
+export const baseServiceSpecSchema = Joi.object()
   .keys({
     name: joiUserIdentifier().required(),
     dependencies: joiArray(joiIdentifier())
@@ -45,7 +44,7 @@ export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends Comm
   spec: T
 }
 
-export const serviceConfigSchema = baseServiceSchema
+export const serviceConfigSchema = baseServiceSpecSchema
   .keys({
     hotReloadable: Joi.boolean()
       .default(false)
@@ -62,3 +61,4 @@ export const serviceConfigSchema = baseServiceSchema
       .description("The service's specification, as defined by its provider plugin."),
   })
   .description("The configuration for a module's service.")
+  .unknown(false)

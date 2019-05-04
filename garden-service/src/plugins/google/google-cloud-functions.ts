@@ -31,10 +31,10 @@ import {
   GOOGLE_CLOUD_DEFAULT_REGION,
 } from "./common"
 import { GardenPlugin } from "../../types/plugin/plugin"
-import { baseServiceSchema, CommonServiceSpec } from "../../config/service"
+import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema } from "../../config/project"
 
-const gcfModuleSpecSchema = baseServiceSchema
+const gcfModuleSpecSchema = baseServiceSpecSchema
   .keys({
     entrypoint: Joi.string()
       .description("The entrypoint for the function (exported name in the function's module)"),
@@ -88,7 +88,6 @@ export async function configureGcfModule(
   moduleConfig.serviceConfigs = [{
     name,
     dependencies: spec.dependencies,
-    outputs: spec.outputs,
     hotReloadable: false,
     spec,
   }]

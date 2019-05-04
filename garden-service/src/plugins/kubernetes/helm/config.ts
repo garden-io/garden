@@ -221,7 +221,6 @@ export async function validateHelmModule({ moduleConfig }: ConfigureModuleParams
     moduleConfig.serviceConfigs = [{
       name: moduleConfig.name,
       dependencies,
-      outputs: {},
       // Note: We can't tell here if the source module supports hot-reloading, so we catch it in the handler if need be.
       hotReloadable: !!sourceModuleName,
       sourceModuleName,
@@ -287,7 +286,6 @@ export async function validateHelmModule({ moduleConfig }: ConfigureModuleParams
       name: spec.name,
       dependencies: spec.dependencies,
       timeout: spec.timeout,
-      env: spec.env,
       spec,
     }
   })

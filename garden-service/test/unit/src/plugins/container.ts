@@ -385,7 +385,6 @@ describe("plugins.container", () => {
                 containerPort: 8080,
                 servicePort: 8080,
               }],
-              outputs: {},
               volumes: [],
             }],
             tasks: [{
@@ -447,7 +446,6 @@ describe("plugins.container", () => {
                 healthCheck:
                   { httpGet: { path: "/health", port: "http" } },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
-                outputs: {},
                 volumes: [],
               }],
             tasks:
@@ -475,7 +473,6 @@ describe("plugins.container", () => {
             [{
               name: "service-a",
               dependencies: [],
-              outputs: {},
               hotReloadable: false,
               spec:
               {
@@ -495,7 +492,6 @@ describe("plugins.container", () => {
                 healthCheck:
                   { httpGet: { path: "/health", port: "http" } },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
-                outputs: {},
                 volumes: [],
               },
             }],
@@ -566,7 +562,6 @@ describe("plugins.container", () => {
               ],
               env: {},
               ports: [],
-              outputs: {},
               volumes: [],
             }],
             tasks: [{
@@ -626,7 +621,6 @@ describe("plugins.container", () => {
                 },
               },
               ports: [],
-              outputs: {},
               volumes: [],
             }],
             tasks: [{
@@ -677,7 +671,6 @@ describe("plugins.container", () => {
                 tcpPort: "bla",
               },
               ports: [],
-              outputs: {},
               volumes: [],
             }],
             tasks: [{

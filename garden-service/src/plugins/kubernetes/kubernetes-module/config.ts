@@ -89,7 +89,6 @@ export async function configureKubernetesModule({ moduleConfig }: ConfigureModul
   moduleConfig.serviceConfigs = [{
     name: moduleConfig.name,
     dependencies: moduleConfig.spec.dependencies,
-    outputs: {},
     hotReloadable: false,
     spec: moduleConfig.spec,
   }]
