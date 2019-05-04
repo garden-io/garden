@@ -89,6 +89,7 @@ export async function configureGcfModule(
     name,
     dependencies: spec.dependencies,
     outputs: spec.outputs,
+    hotReloadable: false,
     spec,
   }]
 

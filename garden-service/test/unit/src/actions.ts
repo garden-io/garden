@@ -453,6 +453,7 @@ const testPlugin: PluginFactory = async () => ({
           name: spec.name,
           dependencies: spec.dependencies || [],
           outputs: {},
+          hotReloadable: false,
           spec,
         }))
 

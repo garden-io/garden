@@ -40,8 +40,6 @@ export async function validateHotReloadServiceNames(
   }
 }
 
-// TODO: Add hotReload to baseModuleSpecSchema. It's bad form to dig into module type-specific fields
-// outside the scope of its plugins.
 function supportsHotReloading(service: Service) {
-  return !!service.module.spec.hotReload
+  return service.config.hotReloadable
 }

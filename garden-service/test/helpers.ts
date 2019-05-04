@@ -242,6 +242,7 @@ const defaultModuleConfig: ModuleConfig = {
       name: "test-service",
       dependencies: [],
       outputs: {},
+      hotReloadable: false,
       spec: {},
     },
   ],

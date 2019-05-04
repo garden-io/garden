@@ -90,6 +90,7 @@ export async function configureKubernetesModule({ moduleConfig }: ConfigureModul
     name: moduleConfig.name,
     dependencies: moduleConfig.spec.dependencies,
     outputs: {},
+    hotReloadable: false,
     spec: moduleConfig.spec,
   }]
 

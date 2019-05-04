@@ -72,6 +72,7 @@ export const gardenPlugin = (): GardenPlugin => ({
           return {
             name: spec.name,
             dependencies: spec.dependencies,
+            hotReloadable: false,
             outputs: spec.outputs,
             spec,
           }

@@ -38,13 +38,18 @@ export const baseServiceSchema = Joi.object()
   .description("The required attributes of a service. This is generally further defined by plugins.")
 
 export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends CommonServiceSpec {
+  hotReloadable: boolean
   sourceModuleName?: string
+
   // Plugins can add custom fields that are kept here
   spec: T
 }
 
 export const serviceConfigSchema = baseServiceSchema
   .keys({
+    hotReloadable: Joi.boolean()
+      .default(false)
+      .description("Set this to true if the module and service configuration supports hot reloading."),
     sourceModuleName: joiIdentifier()
       .optional()
       .description(deline`

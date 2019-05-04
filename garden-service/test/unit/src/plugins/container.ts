@@ -476,6 +476,7 @@ describe("plugins.container", () => {
               name: "service-a",
               dependencies: [],
               outputs: {},
+              hotReloadable: false,
               spec:
               {
                 name: "service-a",
