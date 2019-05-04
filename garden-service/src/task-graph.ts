@@ -37,7 +37,7 @@ export interface TaskResults {
   [key: string]: TaskResult
 }
 
-export const DEFAULT_CONCURRENCY = 4
+export const DEFAULT_CONCURRENCY = 6
 
 export class TaskGraph {
   private roots: TaskNodeMap
