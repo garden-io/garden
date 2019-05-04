@@ -26,8 +26,11 @@ export const enumToArray = Enum => (
   Object.values(Enum).filter(k => typeof k === "string") as string[]
 )
 
-export const joiPrimitive = () => Joi.alternatives().try(Joi.number(), Joi.string(), Joi.boolean())
-  .description("Number, string or boolean")
+export const joiPrimitive = () => Joi.alternatives().try(
+  Joi.number(),
+  Joi.string().allow(""),
+  Joi.boolean(),
+).description("Number, string or boolean")
 
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
 // from https://stackoverflow.com/a/12311250/3290965
