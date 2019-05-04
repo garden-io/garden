@@ -66,7 +66,6 @@ describe("PublishCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "build.module-b": { fresh: false },
-      "push.module-a": { pushed: false },
       "publish.module-a": { published: true },
       "publish.module-b": { published: true },
       "publish.module-c": { published: false },
@@ -94,7 +93,6 @@ describe("PublishCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true },
       "build.module-b": { fresh: true },
-      "push.module-a": { pushed: false },
       "publish.module-a": { published: true },
       "publish.module-b": { published: true },
       "publish.module-c": { published: false },

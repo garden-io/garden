@@ -11,7 +11,6 @@ import chalk from "chalk"
 import { Module } from "../types/module"
 import { TestConfig } from "../config/test"
 import { ModuleVersion } from "../vcs/vcs"
-import { PushTask } from "./push"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/outputs"
 import { BaseTask, TaskParams, TaskType } from "../tasks/base"
@@ -20,6 +19,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
+import { BuildTask } from "./build"
 
 class TestError extends Error {
   toString() {
@@ -71,7 +71,7 @@ export class TestTask extends BaseTask {
     const dg = this.graph
     const services = (await dg.getDependencies(this.depType, this.getName(), false)).service
 
-    const deps: BaseTask[] = [new PushTask({
+    const deps: BaseTask[] = [new BuildTask({
       garden: this.garden,
       log: this.log,
       module: this.module,

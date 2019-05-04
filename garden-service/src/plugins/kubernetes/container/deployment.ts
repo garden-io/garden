@@ -7,7 +7,7 @@
  */
 
 import { extend, keyBy, set, toPairs } from "lodash"
-import { DeployServiceParams, PushModuleParams, DeleteServiceParams } from "../../../types/plugin/params"
+import { DeployServiceParams, DeleteServiceParams } from "../../../types/plugin/params"
 import { RuntimeContext, Service, ServiceStatus } from "../../../types/service"
 import { ContainerModule, ContainerService } from "../../container/config"
 import { createIngressResources } from "./ingress"
@@ -420,24 +420,4 @@ export async function deleteContainerDeployment(
   if (log) {
     found ? log.setSuccess("Service deleted") : log.setWarn("Service not deployed")
   }
-}
-
-export async function pushModule({ ctx, module, log }: PushModuleParams<ContainerModule>) {
-  if (!ctx.provider.config.deploymentRegistry) {
-    return { pushed: false }
-  }
-
-  if (!(await containerHelpers.hasDockerfile(module))) {
-    return { pushed: false }
-  }
-
-  const localId = await containerHelpers.getLocalImageId(module)
-  const remoteId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
-
-  log.setState({ msg: `Pushing image ${remoteId}...` })
-
-  await containerHelpers.dockerCli(module, ["tag", localId, remoteId])
-  await containerHelpers.dockerCli(module, ["push", remoteId])
-
-  return { pushed: true, message: `Pushed ${remoteId}` }
 }

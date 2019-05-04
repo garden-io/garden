@@ -13,9 +13,9 @@ import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
 import { Service, ServiceStatus, getServiceRuntimeContext, getIngressUrl } from "../types/service"
 import { Garden } from "../garden"
-import { PushTask } from "./push"
 import { TaskTask } from "./task"
 import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
+import { BuildTask } from "./build"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -83,7 +83,7 @@ export class DeployTask extends BaseTask {
         })
       })
 
-      const pushTask = new PushTask({
+      const buildTask = new BuildTask({
         garden: this.garden,
         log: this.log,
         module: this.service.module,
@@ -92,7 +92,7 @@ export class DeployTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
-      return [...deployTasks, ...taskTasks, pushTask]
+      return [...deployTasks, ...taskTasks, buildTask]
     }
   }
 

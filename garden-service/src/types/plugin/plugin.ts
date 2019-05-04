@@ -38,7 +38,6 @@ import {
   configureModuleParamsSchema,
   getBuildStatusParamsSchema,
   buildModuleParamsSchema,
-  pushModuleParamsSchema,
   hotReloadServiceParamsSchema,
   runModuleParamsSchema,
   testModuleParamsSchema,
@@ -62,7 +61,6 @@ import {
   ModuleActionOutputs,
   moduleTypeDescriptionSchema,
   PluginActionOutputs,
-  pushModuleResultSchema,
   hotReloadServiceResultSchema,
   runResultSchema,
   ServiceActionOutputs,
@@ -338,35 +336,15 @@ export const moduleActionDescriptions:
     description: dedent`
       Build the current version of a module. This must wait until the build is complete before returning.
 
-      Called ahead of a number of actions, including \`deployService\`, \`pushModule\` and \`publishModule\`.
+      Called ahead of a number of actions, including \`deployService\` and \`publishModule\`.
     `,
     paramsSchema: buildModuleParamsSchema,
     resultSchema: buildModuleResultSchema,
   },
 
-  pushModule: {
-    description: dedent`
-      Push the build for current version of a module to the deployment environment, making it accessible
-      to the development environment. An example being a container registry or artifact registry that's
-      available to the deployment environment when deploying.
-
-      Note the distinction to \`publishModule\` which may, depending on the module type, work similarly but
-      is only called when explicitly calling the \`garden publish\`.
-
-      This is usually not necessary for plugins that run locally.
-
-      Called before the \`deployService\` action.
-    `,
-    paramsSchema: pushModuleParamsSchema,
-    resultSchema: pushModuleResultSchema,
-  },
-
   publishModule: {
     description: dedent`
       Publish a built module to a remote registry.
-
-      Note the distinction to \`pushModule\` which may, depending on the module type, work similarly but
-      is automatically called ahead of \`deployService\`.
 
       Called by the \`garden publish\` command.
     `,
