@@ -44,7 +44,7 @@ export default () => {
     const node = graph.data.nodes.find(n => n.key === selectedGraphNode)
     if (node) {
       moreInfoPane = (
-        <div className="col-xs-5">
+        <div className="col-xs-3">
           <NodeInfo node={node} />
         </div>
       )
@@ -53,7 +53,7 @@ export default () => {
 
   return (
     <div className="row">
-      <div className={moreInfoPane ? "col-xs-7" : "col-xs"}>
+      <div className={moreInfoPane ? "col-xs-9" : "col-xs"}>
         <Graph
           message={message}
           onGraphNodeSelected={selectGraphNode}

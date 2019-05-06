@@ -21,7 +21,7 @@ import { getServiceNames } from "../util/helpers"
 
 import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
 import { ConfigDump } from "garden-cli/src/garden"
-import { RefreshButton } from "./RefreshButton"
+import { ActionIcon } from "./ActionIcon"
 
 interface Props {
   config: ConfigDump
@@ -119,7 +119,11 @@ class Logs extends Component<Props, State> {
           <div>
             <Header className="p-1">
               <CardTitle>{title}</CardTitle>
-              <RefreshButton onClick={this.refresh} loading={loading} />
+              <ActionIcon
+                onClick={this.refresh}
+                inProgress={loading}
+                iconClassName="redo-alt"
+              />
             </Header>
             <Terminal
               entries={filteredLogs}

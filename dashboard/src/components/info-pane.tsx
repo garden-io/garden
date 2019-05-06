@@ -14,13 +14,13 @@ import styled from "@emotion/styled"
 import Card from "../components/card"
 import { colors } from "../styles/variables"
 import { RenderedNode } from "garden-cli/src/config-graph"
-import { RefreshButton } from "./RefreshButton"
 import { ErrorNotification } from "./notifications"
+import { ActionIcon } from "./ActionIcon"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
   color: white;
-  border-radius: 2px;
+  border-radius: 0.125rem;
   max-height: 45rem;
   overflow-y: auto;
   padding: 1rem;
@@ -34,12 +34,6 @@ const ClosePaneContainer = styled.div`
   display: flex;
   margin-left: auto;
 `
-const ClosePane = styled.div`
-  cursor: pointer;
-  background-size: contain;
-  width: 2rem;
-  height: 2rem;
-`
 
 const IconContainer = styled.span`
   display: inline-block;
@@ -50,6 +44,50 @@ const IconContainer = styled.span`
   background-repeat: no-repeat;
   vertical-align: top;
 `
+
+const Key = ({ text }) => (
+  <div
+    className={cls(css`
+      font-weight: 500;
+      font-size: 0.6875rem;
+      line-height: 1rem;
+      letter-spacing: 0.01em;
+      color: #818E9B;
+    `,
+      "col-xs-12 pr-1")}
+  >
+    {text}
+  </div>
+)
+
+const Value = ({ children }) => (
+  <div
+    className={cls(css`
+      font-weight: normal;
+      font-size: 0.8125rem;
+      line-height: 1.1875rem;
+      letter-spacing: 0.01em;
+      color: #323C47;
+    `,
+      "col-xs-12")}
+  >
+    {children}
+  </div>
+)
+const Field = ({ children }) => (
+  <div className="row pt-1 ">
+    {children}
+  </div>
+)
+
+const Header = styled.div`
+  font-weight: 500;
+  font-size: 1.125rem;
+  line-height: 1.6875rem;
+
+  color: ${colors.black};
+`
+
 interface Props {
   node: RenderedNode
   clearGraphNodeSelection: () => void
@@ -60,17 +98,6 @@ interface Props {
   completedAt?: string | null
   duration?: string | null
 }
-
-const Key = ({ text }) => (
-  <div
-    className={cls(css`
-      font-weight: bold;
-    `,
-      "col-xs-5 col-lg-3 pr-1")}
-  >
-    {text}
-  </div>
-)
 
 // TODO: Split up into something InfoPane and InfoPaneWithResults. Props are kind of messy.
 export const InfoPane: React.FC<Props> = ({
@@ -109,67 +136,62 @@ export const InfoPane: React.FC<Props> = ({
               padding-left: .5rem;
             `}
           >
-            <h2
+            <Header
               className={css`
                 margin-block-end: 0;
               `}
             >
               {name}
-            </h2>
+            </Header>
           </div>
 
           <ClosePaneContainer>
             {onRefresh && (
-              <div className={css`margin-right: 1rem;`}>
-                <RefreshButton onClick={onRefresh} loading={loading || false} />
-              </div>
+              <ActionIcon onClick={onRefresh} inProgress={loading || false} iconClassName="redo-alt" />
             )}
-            <ClosePane
-              onClick={clearGraphNodeSelection}
-              className="garden-icon garden-icon--close"
-            />
+            <ActionIcon onClick={clearGraphNodeSelection} iconClassName="window-close" />
           </ClosePaneContainer>
         </div>
 
-        <div className="row pt-2">
+        <Field>
           <Key text="Type" />
-          <div className="col-xs col-lg">
+          <Value>
             {capitalize(type)}
-          </div>
-        </div>
+          </Value>
+        </Field>
 
-        <div className="row pt-1">
+        <Field>
           <Key text="Module" />
-          <div className="col-xs col-lg">{moduleName}</div>
-        </div>
+          <Value>{moduleName}</Value>
+        </Field>
 
         {duration && (
-          <div className="row pt-1">
+          <Field>
             <Key text="Duration" />
-            <div className="col-xs col-lg">{duration}</div>
-          </div>
+            <Value>{duration}</Value>
+          </Field>
         )}
 
         {startedAt && (
-          <div className="row pt-1">
+          <Field>
             <Key text="Started At" />
-            <div className="col-xs col-lg">{startedAt}</div>
-          </div>
+            <Value>{startedAt}</Value>
+          </Field>
         )}
 
         {completedAt && (
-          <div className="row pt-1">
+          <Field>
             <Key text="Completed At" />
-            <div className="col-xs col-lg">{completedAt}</div>
-          </div>
+            <Value>{completedAt}</Value>
+          </Field>
         )}
 
-        {(type === "test" || type === "run") && (
-          <div className="row pt-1">
+        {(type === "test" || type === "run") && outputEl !== null && (
+          <Field>
             <div className="col-xs-12">
               {outputEl}
             </div>
-          </div>
+          </Field>
         )}
       </div>
     </Card>

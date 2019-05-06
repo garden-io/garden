@@ -25,6 +25,7 @@ function gardenPinkLighten(pct: number) {
 export const colors = {
   border: "rgba(0,0,0,0.12)",
   gray: "#f0f0f0",
+  black: "#192A3E",
   grayLight: "#fafafa",
   gardenGray: "#555656",
   gardenGrayLight: "#cdcfd1",
