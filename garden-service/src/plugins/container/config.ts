@@ -21,7 +21,7 @@ import {
 import { Service, ingressHostnameSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
-import { CommonServiceSpec, ServiceConfig, baseServiceSchema } from "../../config/service"
+import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
@@ -194,7 +194,7 @@ const volumeSchema = Joi.object()
       .meta({ deprecated: true }),
   })
 
-const serviceSchema = baseServiceSchema
+const serviceSchema = baseServiceSpecSchema
   .keys({
     annotations: annotationsSchema
       .description("Annotations to attach to the service (Note: May not be applicable to all providers)"),

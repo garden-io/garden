@@ -192,12 +192,11 @@ export function gardenPlugin(): GardenPlugin {
 
           moduleConfig.serviceConfigs = [{
             dependencies: [],
+            hotReloadable: false,
             name: moduleConfig.name,
-            outputs: {},
             spec: {
               name: moduleConfig.name,
               dependencies: [],
-              outputs: {},
             },
           }]
 

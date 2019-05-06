@@ -16,7 +16,7 @@ import { Module, moduleSchema } from "../module"
 import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "../service"
 import { Task } from "../task"
 import { EnvironmentStatus, ServiceLogEntry, environmentStatusSchema } from "./outputs"
-import { moduleConfigSchema } from "../../config/module"
+import { baseModuleSpecSchema } from "../../config/module"
 import { testConfigSchema } from "../../config/test"
 import { taskSchema } from "../../config/task"
 import { ProviderConfig, projectNameSchema, providerConfigBaseSchema } from "../../config/project"
@@ -156,7 +156,7 @@ export const configureModuleParamsSchema = Joi.object()
     ctx: pluginContextSchema
       .required(),
     log: logEntrySchema,
-    moduleConfig: moduleConfigSchema
+    moduleConfig: baseModuleSpecSchema
       .required(),
   })
 

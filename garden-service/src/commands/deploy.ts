@@ -87,7 +87,7 @@ export class DeployCommand extends Command<Args, Opts> {
   async prepare({ log, logFooter, opts }: PrepareParams<Args, Opts>) {
     logHeader({ log, emoji: "rocket", command: "Deploy" })
 
-    if (!!opts.watch) {
+    if (!!opts.watch || !!opts["hot-reload"]) {
       this.server = await startServer(logFooter)
     }
   }

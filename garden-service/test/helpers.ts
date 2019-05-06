@@ -107,7 +107,6 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => ({
     name: spec.name,
     dependencies: spec.dependencies,
-    outputs: spec.outputs,
     sourceModuleName: spec.sourceModuleName,
     spec,
   }))
@@ -241,7 +240,7 @@ const defaultModuleConfig: ModuleConfig = {
     {
       name: "test-service",
       dependencies: [],
-      outputs: {},
+      hotReloadable: false,
       spec: {},
     },
   ],

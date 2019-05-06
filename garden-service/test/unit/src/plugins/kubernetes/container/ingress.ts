@@ -328,7 +328,6 @@ describe("createIngressResources", () => {
       dependencies: [],
       ingresses,
       env: {},
-      outputs: {},
       ports,
       volumes: [],
     }
@@ -367,7 +366,7 @@ describe("createIngressResources", () => {
       config: {
         name: spec.name,
         dependencies: [],
-        outputs: {},
+        hotReloadable: false,
         spec,
       },
       module,

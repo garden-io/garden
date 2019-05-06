@@ -551,7 +551,7 @@ export class ActionHelper implements TypeGuard {
     const plugin = this.garden.getPlugin(pluginName)
     const schema = moduleActionDescriptions[actionType].resultSchema
 
-    const wrapped = async (...args) => {
+    const wrapped = async (...args: any[]) => {
       const result = await handler.apply(plugin, args)
       return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
     }

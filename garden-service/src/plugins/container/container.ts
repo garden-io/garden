@@ -48,6 +48,8 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
     }
   }
 
+  const hotReloadable = !!moduleConfig.spec.hotReload
+
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => {
     // make sure ports are correctly configured
@@ -91,7 +93,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
     return {
       name,
       dependencies: spec.dependencies,
-      outputs: spec.outputs,
+      hotReloadable,
       spec,
     }
   })

@@ -452,7 +452,7 @@ const testPlugin: PluginFactory = async () => ({
         const serviceConfigs = params.moduleConfig.spec.services.map(spec => ({
           name: spec.name,
           dependencies: spec.dependencies || [],
-          outputs: {},
+          hotReloadable: false,
           spec,
         }))
 

@@ -27,6 +27,9 @@ export interface FileCopySpec {
   target: string
 }
 
+/**
+ * The Module interface adds several internally managed keys to the ModuleConfig type.
+ */
 export interface Module<
   M extends ModuleSpec = any,
   S extends ServiceSpec = any,
