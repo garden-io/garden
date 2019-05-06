@@ -10,9 +10,9 @@ import React, { useContext, useEffect } from "react"
 
 import PageError from "../components/page-error"
 import Logs from "../components/logs"
-import LoadWrapper from "../components/load-wrapper"
 import { DataContext } from "../context/data"
 import { getServiceNames } from "../util/helpers"
+import Spinner from "../components/spinner"
 
 export default () => {
   const {
@@ -22,13 +22,11 @@ export default () => {
 
   useEffect(loadConfig, [])
 
-  const isLoading = !config.data || config.loading
+  if (!config.data || config.loading) {
+    return <Spinner />
+  }
 
-  return (
-    <LoadWrapper error={config.error} ErrorComponent={PageError} loading={isLoading}>
-      <LogsContainer />
-    </LoadWrapper>
-  )
+  return <LogsContainer />
 }
 
 const LogsContainer = () => {
@@ -43,12 +41,13 @@ const LogsContainer = () => {
     }
   }, [])
 
-  const isLoading = !logs.data
+  if (!logs.data || !config.data) {
+    return <Spinner />
+  }
 
-  return (
-    <LoadWrapper error={logs.error} ErrorComponent={PageError} loading={isLoading}>
-      {config.data && logs.data && <Logs loadLogs={loadLogs} config={config.data} logs={logs.data} />}
-    </LoadWrapper>
-  )
+  if (logs.error || config.error) {
+    return <PageError />
+  }
 
+  return <Logs loadLogs={loadLogs} config={config.data} logs={logs.data} />
 }

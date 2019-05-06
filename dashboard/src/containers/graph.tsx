@@ -11,11 +11,10 @@ import React, { useContext, useEffect } from "react"
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
 import { EventContext } from "../context/events"
-import LoadWrapper from "../components/load-wrapper"
 import { DataContext } from "../context/data"
 import { UiStateContext } from "../context/ui"
-import { TaskResultNodeInfo } from "./task-result-node-info"
-import { TestResultNodeInfo } from "./test-result-node-info"
+import { NodeInfo } from "./node-info"
+import Spinner from "../components/spinner"
 
 export default () => {
   const {
@@ -32,45 +31,38 @@ export default () => {
     state: { selectedGraphNode },
   } = useContext(UiStateContext)
 
-  const isLoading = !config.data || !graph.data || config.loading || graph.loading
-  const error = config.error || graph.error
+  if (config.error || graph.error) {
+    return <PageError />
+  }
+
+  if (!config.data || !graph.data || config.loading || graph.loading) {
+    return <Spinner />
+  }
 
   let moreInfoPane: React.ReactNode = null
   if (selectedGraphNode && graph.data) {
     const node = graph.data.nodes.find(n => n.key === selectedGraphNode)
     if (node) {
-      const { name, type, moduleName } = node
-      switch (type) {
-        case "run": // task
-          moreInfoPane = <TaskResultNodeInfo name={name} />
-          break
-        case "test":
-          moreInfoPane = <TestResultNodeInfo name={name} module={moduleName} />
-          break
-        case "build":
-        default:
-          moreInfoPane = null
-          break
-      }
+      moreInfoPane = (
+        <div className="col-xs-5">
+          <NodeInfo node={node} />
+        </div>
+      )
     }
   }
 
   return (
-    <LoadWrapper error={error} ErrorComponent={PageError} loading={isLoading}>
-      <div className="row">
-        <div className={moreInfoPane ? "col-xs-7" : "col-xs"}>
-          {config.data && graph.data && <Graph
-            message={message}
-            onGraphNodeSelected={selectGraphNode}
-            selectedGraphNode={selectedGraphNode}
-            config={config.data}
-            graph={graph.data}
-          />}
-        </div>
-        {moreInfoPane && (
-          <div className="col-xs-5">{moreInfoPane}</div>
-        )}
+    <div className="row">
+      <div className={moreInfoPane ? "col-xs-7" : "col-xs"}>
+        <Graph
+          message={message}
+          onGraphNodeSelected={selectGraphNode}
+          selectedGraphNode={selectedGraphNode}
+          config={config.data}
+          graph={graph.data}
+        />
       </div>
-    </LoadWrapper>
+      {moreInfoPane}
+    </div>
   )
 }

@@ -21,6 +21,7 @@ import { getServiceNames } from "../util/helpers"
 
 import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
 import { ConfigDump } from "garden-cli/src/garden"
+import { RefreshButton } from "./RefreshButton"
 
 interface Props {
   config: ConfigDump
@@ -37,40 +38,6 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-`
-
-const Button = styled.div`
-  padding: 0.3em;
-  border-radius: 10%;
-  border: 2px solid ${colors.gardenGrayLight};
-  cursor: pointer;
-  :hover {
-    border: 2px solid ${colors.gardenGray};
-    transition: all 0.3s ease-out;
-  }
-  :active {
-    opacity: 0.5;
-  }
-`
-
-const Icon = styled.i`
-  color: ${colors.gardenGray};
-  font-size: 1.25rem;
-  :active {
-    opacity: 0.5;
-  }
-`
-
-const IconLoading = styled(Icon)`
-  animation spin 0.5s infinite linear;
-  @keyframes spin {
-    from {
-      transform:rotate(0deg);
-    }
-    to {
-      transform:rotate(360deg);
-    }
-  }
 `
 
 // TODO: Roll our own Select component instead of using react-select, it's an overkill.
@@ -133,8 +100,6 @@ class Logs extends Component<Props, State> {
     const title = value === "all" ? label : `${label} logs`
     const filteredLogs = value === "all" ? logs : logs.filter(l => l.serviceName === value)
 
-    const IconComp = loading ? IconLoading : Icon
-
     return (
       <div>
         <div
@@ -154,9 +119,7 @@ class Logs extends Component<Props, State> {
           <div>
             <Header className="p-1">
               <CardTitle>{title}</CardTitle>
-              <Button onClick={this.refresh}>
-                <IconComp className={"fas fa-redo-alt"} />
-              </Button>
+              <RefreshButton onClick={this.refresh} loading={loading} />
             </Header>
             <Terminal
               entries={filteredLogs}

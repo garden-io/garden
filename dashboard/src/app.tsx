@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cls from "classnames"
 import { css } from "emotion/macro"
 import React, { useContext } from "react"
 import styled from "@emotion/styled/macro"
@@ -112,13 +111,11 @@ const App = () => {
         `}
       >
         <div
-          className={cls(
-            css`
-              background-color: ${colors.grayLight}
-              flex-grow: 1;
-              padding: 1rem 1rem 1rem 3rem;
-            `,
-          )}
+          className={css`
+            background-color: ${colors.grayLight}
+            flex-grow: 1;
+            padding: 1rem 1rem 1rem 3rem;
+          `}
         >
           <Route exact path="/" component={Overview} />
           <Route path="/logs/" component={Logs} />
