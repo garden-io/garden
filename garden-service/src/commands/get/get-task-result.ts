@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as yaml from "js-yaml"
 import { ConfigGraph } from "../../config-graph"
 import {
   Command,
@@ -15,7 +14,6 @@ import {
   StringParameter,
 } from "../base"
 import { logHeader } from "../../logger/util"
-import { highlightYaml } from "../../util/util"
 import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/outputs"
 import chalk from "chalk"
@@ -75,13 +73,8 @@ export class GetTaskResultCommand extends Command<Args> {
         startedAt: taskResult.startedAt,
         completedAt: taskResult.completedAt,
       }
-      const yamlStatus = yaml.safeDump(taskResult, {
-        noRefs: true,
-        skipInvalid: true,
-      })
 
-      log.info(highlightYaml(yamlStatus))
-
+      log.info({ data: taskResult })
       return { result: output }
     } else {
       log.info(

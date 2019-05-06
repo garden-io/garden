@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as yaml from "js-yaml"
 import { RenderedEdge, RenderedNode } from "../../config-graph"
-import { highlightYaml } from "../../util/util"
 import {
   Command,
   CommandResult,
@@ -29,9 +27,7 @@ export class GetGraphCommand extends Command {
     const renderedGraph = graph.render()
     const output: GraphOutput = { nodes: renderedGraph.nodes, relationships: renderedGraph.relationships }
 
-    const yamlGraph = yaml.safeDump(renderedGraph, { noRefs: true, skipInvalid: true })
-
-    log.info(highlightYaml(yamlGraph))
+    log.info({ data: renderedGraph })
 
     return { result: output }
 

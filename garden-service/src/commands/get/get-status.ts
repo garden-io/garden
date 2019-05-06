@@ -6,8 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as yaml from "js-yaml"
-import { highlightYaml, deepFilter } from "../../util/util"
+import { deepFilter } from "../../util/util"
 import {
   Command,
   CommandResult,
@@ -25,10 +24,8 @@ export class GetStatusCommand extends Command {
     // TODO: we should change the status format because this will remove services called "detail"
     const withoutDetail = deepFilter(status, (_, key) => key !== "detail")
 
-    const yamlStatus = yaml.safeDump(withoutDetail, { noRefs: true, skipInvalid: true })
-
-    // TODO: do a nicer print of this by default and use --yaml/--json options for exporting
-    log.info(highlightYaml(yamlStatus))
+    // TODO: do a nicer print of this by default
+    log.info({ data: withoutDetail })
 
     return { result: status }
   }

@@ -34,6 +34,7 @@ export interface TaskMetadata {
 
 export interface UpdateOpts {
   msg?: string | string[]
+  data?: any // to be rendered as e.g. YAML or JSON
   section?: string
   emoji?: EmojiName
   symbol?: LogSymbol

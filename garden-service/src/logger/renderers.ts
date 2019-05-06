@@ -28,6 +28,7 @@ import hasAnsi = require("has-ansi")
 
 import { LogEntry, EmojiName } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
+import { highlightYaml } from "../util/util"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -133,6 +134,15 @@ export function renderMsg(entry: LogEntry): string {
   return msg ? styleFn(msg) : ""
 }
 
+export function renderData(entry: LogEntry): string {
+  const { data } = entry.opts
+  if (!data) {
+    return ""
+  }
+  const asYaml = yaml.safeDump(data, { noRefs: true, skipInvalid: true })
+  return highlightYaml(asYaml)
+}
+
 export function renderSection(entry: LogEntry): string {
   const { msg, section } = entry.opts
   if (section && msg) {
@@ -151,8 +161,8 @@ export function renderDuration(entry: LogEntry): string {
 }
 
 export function formatForTerminal(entry: LogEntry): string {
-  const { msg, section, emoji, showDuration, symbol } = entry.opts
-  const empty = [msg, section, emoji, showDuration, symbol].every(val => val === undefined)
+  const { msg, data, section, emoji, showDuration, symbol } = entry.opts
+  const empty = [msg, data, section, emoji, showDuration, symbol].every(val => val === undefined)
   if (empty) {
     return ""
   }
@@ -162,6 +172,7 @@ export function formatForTerminal(entry: LogEntry): string {
     [renderSection, [entry]],
     [renderEmoji, [entry]],
     [renderMsg, [entry]],
+    [renderData, [entry]],
     [renderDuration, [entry]],
     ["\n"],
   ])
@@ -186,9 +197,10 @@ export function cleanWhitespace(str) {
 }
 
 export function formatForJSON(entry: LogEntry): JsonLogEntry {
-  const { msg, section, showDuration, metadata } = entry.opts
+  const { msg, data, section, showDuration, metadata } = entry.opts
   return {
     msg: cleanForJSON(msg),
+    data,
     metadata,
     section: cleanForJSON(section),
     durationMs: showDuration ? entry.getDuration(3) * 1000 : undefined,

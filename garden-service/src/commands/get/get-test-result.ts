@@ -12,11 +12,10 @@ import {
   CommandParams,
   StringParameter,
 } from "../base"
-import * as yaml from "js-yaml"
 import { NotFoundError } from "../../exceptions"
 import { TestResult } from "../../types/plugin/outputs"
 import { getTestVersion } from "../../tasks/test"
-import { findByName, getNames, highlightYaml } from "../../util/util"
+import { findByName, getNames } from "../../util/util"
 import { logHeader } from "../../logger/util"
 import chalk from "chalk"
 
@@ -98,12 +97,8 @@ export class GetTestResultCommand extends Command<Args> {
         version: testResult.version.versionString,
         output: testResult.output,
       }
-      const yamlStatus = yaml.safeDump(testResult, {
-        noRefs: true,
-        skipInvalid: true,
-      })
 
-      log.info(highlightYaml(yamlStatus))
+      log.info({ data: testResult })
       return { result: output }
     } else {
       const errorMessage = `Could not find results for test '${testName}'`
