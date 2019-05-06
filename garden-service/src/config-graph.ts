@@ -25,8 +25,7 @@ import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
-export type DependencyGraphNodeType = "build" | "service" | "task" | "test"
-  | "push" | "publish" // these two types are currently not represented in the graph
+export type DependencyGraphNodeType = "build" | "service" | "task" | "test" | "publish"
 
 // The primary output type (for dependencies and dependants).
 export type DependencyRelations = {
@@ -48,7 +47,7 @@ export type DependencyRelationFilterFn = (DependencyGraphNode) => boolean
 // Output types for rendering/logging
 export type RenderedGraph = { nodes: RenderedNode[], relationships: RenderedEdge[] }
 export type RenderedEdge = { dependant: RenderedNode, dependency: RenderedNode }
-export type RenderedNodeType = "build" | "deploy" | "run" | "test" | "push" | "publish"
+export type RenderedNodeType = "build" | "deploy" | "run" | "test" | "publish"
 export interface RenderedNode {
   type: RenderedNodeType
   name: string
@@ -512,7 +511,6 @@ const renderedNodeTypeMap: RenderedNodeTypeMap = {
   service: "deploy",
   task: "run",
   test: "test",
-  push: "push",
   publish: "publish",
 }
 
@@ -521,7 +519,6 @@ const depNodeTaskTypeMap: DepNodeTaskTypeMap = {
   service: "deploy",
   task: "task",
   test: "test",
-  push: "push",
   publish: "publish",
 }
 

@@ -19,7 +19,7 @@ import {
 import { printRuntimeContext, runtimeContextForServiceDeps } from "./run"
 import dedent = require("dedent")
 import { logHeader } from "../../logger/util"
-import { PushTask } from "../../tasks/push"
+import { BuildTask } from "../../tasks/build"
 
 const runArgs = {
   module: new StringParameter({
@@ -85,8 +85,8 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     await garden.actions.prepareEnvironment({ log })
 
-    const pushTask = new PushTask({ garden, log, module, force: opts["force-build"] })
-    await garden.processTasks([pushTask])
+    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
+    await garden.processTasks([buildTask])
 
     const command = args.command || []
 

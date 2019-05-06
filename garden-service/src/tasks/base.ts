@@ -13,7 +13,7 @@ import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
-export type TaskType = "build" | "deploy" | "publish" | "hot-reload" | "push" | "task" | "test"
+export type TaskType = "build" | "deploy" | "publish" | "hot-reload" | "task" | "test"
 
 export class TaskDefinitionError extends Error { }
 

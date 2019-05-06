@@ -122,9 +122,6 @@ describe("DeployCommand", () => {
       "deploy.service-b": { version: "1", state: "ready" },
       "deploy.service-c": { version: "1", state: "ready" },
       "deploy.service-d": { version: "1", state: "ready" },
-      "push.module-a": { pushed: false },
-      "push.module-b": { pushed: false },
-      "push.module-c": { pushed: false },
     })
   })
 
@@ -160,9 +157,6 @@ describe("DeployCommand", () => {
       "task.task-c": taskResultC,
       "deploy.service-a": { version: "1", state: "ready" },
       "deploy.service-b": { version: "1", state: "ready" },
-      "push.module-a": { pushed: false },
-      "push.module-b": { pushed: false },
-      "push.module-c": { pushed: false },
     })
   })
 })

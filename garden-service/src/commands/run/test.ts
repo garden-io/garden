@@ -24,7 +24,7 @@ import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
 import { logHeader } from "../../logger/util"
-import { PushTask } from "../../tasks/push"
+import { BuildTask } from "../../tasks/build"
 import { getTestVersion } from "../../tasks/test"
 
 const runArgs = {
@@ -92,8 +92,8 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     await garden.actions.prepareEnvironment({ log })
 
-    const pushTask = new PushTask({ garden, log, module, force: opts["force-build"] })
-    await garden.processTasks([pushTask])
+    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
+    await garden.processTasks([buildTask])
 
     const interactive = opts.interactive
     const deps = await graph.getDependencies("test", testConfig.name, false)

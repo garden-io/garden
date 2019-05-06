@@ -166,9 +166,6 @@ export const getBuildStatusParamsSchema = moduleActionParamsSchema
 export interface BuildModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
 export const buildModuleParamsSchema = moduleActionParamsSchema
 
-export interface PushModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
-export const pushModuleParamsSchema = moduleActionParamsSchema
-
 export interface PublishModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
 export const publishModuleParamsSchema = moduleActionParamsSchema
 
@@ -366,7 +363,6 @@ export interface ModuleActionParams<T extends Module = Module> {
   configure: ConfigureModuleParams<T>
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
-  pushModule: PushModuleParams<T>
   publishModule: PublishModuleParams<T>
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deployContainerService, deleteService, pushModule } from "./deployment"
+import { deployContainerService, deleteService } from "./deployment"
 import { hotReloadContainer } from "../hot-reload"
 import { getServiceLogs } from "./logs"
 import { execInService, runContainerModule, runContainerService, runContainerTask } from "./run"
@@ -44,7 +44,6 @@ export const containerHandlers = {
   getServiceStatus: getContainerServiceStatus,
   getTestResult,
   hotReloadService: hotReloadContainer,
-  pushModule,
   runModule: runContainerModule,
   runService: runContainerService,
   runTask: runContainerTask,

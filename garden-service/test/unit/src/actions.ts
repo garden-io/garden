@@ -17,7 +17,6 @@ import {
   configureModuleParamsSchema,
   getBuildStatusParamsSchema,
   buildModuleParamsSchema,
-  pushModuleParamsSchema,
   runModuleParamsSchema,
   testModuleParamsSchema,
   getTestResultParamsSchema,
@@ -151,15 +150,6 @@ describe("ActionHelper", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.build({ log, module })
         expect(result).to.eql({})
-      })
-    })
-
-    describe("pushModule", () => {
-      it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.pushModule({ log, module })
-        expect(result).to.eql({
-          pushed: true,
-        })
       })
     })
 
@@ -492,11 +482,6 @@ const testPlugin: PluginFactory = async () => ({
       publishModule: async (params) => {
         validate(params, publishModuleParamsSchema)
         return { published: true }
-      },
-
-      pushModule: async (params) => {
-        validate(params, pushModuleParamsSchema)
-        return { pushed: true }
       },
 
       hotReloadService: async (params) => {

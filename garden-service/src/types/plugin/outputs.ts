@@ -190,19 +190,6 @@ export const buildModuleResultSchema = Joi.object()
 export interface HotReloadServiceResult { }
 export const hotReloadServiceResultSchema = Joi.object()
 
-export interface PushResult {
-  pushed: boolean
-  message?: string
-}
-export const pushModuleResultSchema = Joi.object()
-  .keys({
-    pushed: Joi.boolean()
-      .required()
-      .description("Set to true if the module was pushed."),
-    message: Joi.string()
-      .description("Optional result message."),
-  })
-
 export interface PublishResult {
   published: boolean
   message?: string
@@ -343,7 +330,6 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   configure: Promise<ConfigureModuleResult>
   getBuildStatus: Promise<BuildStatus>
   build: Promise<BuildResult>
-  pushModule: Promise<PushResult>
   publishModule: Promise<PublishResult>
   runModule: Promise<RunResult>
   testModule: Promise<TestResult>

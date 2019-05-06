@@ -9,9 +9,9 @@ import { BaseTask } from "../../../../src/tasks/base"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/config-graph"
 
-async function sortedBaseKeysdependencyTasks(tasks: BaseTask[]): Promise<string[]> {
+async function dependencyBaseKeys(tasks: BaseTask[]): Promise<string[]> {
   const dependencies = await Bluebird.map(tasks, async (t) => t.getDependencies(), { concurrency: 1 })
-  const tasksdependencyTasks = flatten([tasks].concat(dependencies))
+  const tasksdependencyTasks = flatten(dependencies)
   return sortedBaseKeys(tasksdependencyTasks)
 }
 
@@ -46,14 +46,13 @@ describe("TaskHelpers", () => {
       })
 
       expect(sortedBaseKeys(tasks)).to.eql([
-        "deploy.good-morning",
-        "push.good-morning",
-      ])
-
-      expect(await sortedBaseKeysdependencyTasks(tasks)).to.eql([
         "build.good-morning",
         "deploy.good-morning",
-        "push.good-morning",
+      ])
+
+      expect(await dependencyBaseKeys(tasks)).to.eql([
+        "build.build-dependency",
+        "build.good-morning",
         "task.good-morning-task",
       ].sort())
     })
@@ -62,170 +61,170 @@ describe("TaskHelpers", () => {
       const expectedBaseKeysByChangedModule = [
         {
           moduleName: "build-dependency",
-          expected: [
-            "push.build-dependency",
+          taskKeys: [
+            "build.build-dependency",
             "deploy.build-dependency",
-
-            "push.good-morning",
-            "deploy.good-morning",
-
-            "push.build-dependant",
-            "deploy.build-dependant",
-
-            "deploy.service-dependant",
-            "deploy.service-dependant2",
           ],
-          dependencyTasks: [
+          withDependants: [
             "build.build-dependant",
             "build.build-dependency",
             "build.good-morning",
-
-            "push.service-dependant",
-            "push.service-dependant2",
-
-            "task.good-morning-task",
+            "deploy.build-dependant",
+            "deploy.build-dependency",
+            "deploy.good-morning",
+            "deploy.service-dependant",
+            "deploy.service-dependant2",
           ],
         },
         {
           moduleName: "good-morning",
-          expected: [
-            "push.good-morning",
+          taskKeys: [
+            "build.good-morning",
             "deploy.good-morning",
-
-            "push.build-dependant",
-            "deploy.build-dependant",
-
-            "deploy.service-dependant",
-            "deploy.service-dependant2",
           ],
-          dependencyTasks: [
+          withDependants: [
             "build.build-dependant",
             "build.good-morning",
-
-            "push.service-dependant",
-            "push.service-dependant2",
-
-            "task.good-morning-task",
+            "deploy.build-dependant",
+            "deploy.good-morning",
+            "deploy.service-dependant",
+            "deploy.service-dependant2",
           ],
         },
         {
           moduleName: "good-evening",
-          expected: [
-            "deploy.good-evening",
-            "push.good-evening",
-          ],
-          dependencyTasks: [
+          taskKeys: [
             "build.good-evening",
+            "deploy.good-evening",
+          ],
+          withDependants: [
+            "build.good-evening",
+            "deploy.good-evening",
           ],
         },
         {
           moduleName: "build-dependant",
-          expected: [
-            "deploy.build-dependant",
-            "push.build-dependant",
-          ],
-          dependencyTasks: [
+          taskKeys: [
             "build.build-dependant",
+            "deploy.build-dependant",
+          ],
+          withDependants: [
+            "build.build-dependant",
+            "deploy.build-dependant",
           ],
         },
         {
           moduleName: "service-dependant",
-          expected: [
-            "deploy.service-dependant",
-            "push.service-dependant",
-          ],
-          dependencyTasks: [
+          taskKeys: [
             "build.service-dependant",
-            "deploy.good-morning",
+            "deploy.service-dependant",
+          ],
+          withDependants: [
+            "build.service-dependant",
+            "deploy.service-dependant",
           ],
         },
       ]
 
-      for (const { moduleName, expected, dependencyTasks } of expectedBaseKeysByChangedModule) {
-        it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
+      for (const { moduleName, taskKeys, withDependants } of expectedBaseKeysByChangedModule) {
+        it(`returns the correct set of tasks for ${moduleName}`, async () => {
+          const module = await graph.getModule(<string>moduleName)
+          const tasks = await getDependantTasksForModule({
+            garden, graph, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
+            fromWatch: true, includeDependants: false,
+          })
+          expect(sortedBaseKeys(tasks)).to.eql(taskKeys.sort())
+        })
+
+        it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
           const module = await graph.getModule(<string>moduleName)
           const tasks = await getDependantTasksForModule({
             garden, graph, log, module, hotReloadServiceNames: [], force: true, forceBuild: true,
             fromWatch: true, includeDependants: true,
           })
-          expect(sortedBaseKeys(tasks)).to.eql(expected.sort())
-          expect(await sortedBaseKeysdependencyTasks(tasks)).to.eql(expected.concat(dependencyTasks).sort())
+          expect(sortedBaseKeys(tasks)).to.eql(withDependants.sort())
         })
-
       }
-
     })
 
     context("with hot reloading enabled", () => {
       const expectedBaseKeysByChangedModule = [
         {
           moduleName: "build-dependency",
-          expected: [
-            "push.build-dependency",
+          taskKeys: [
+            "build.build-dependency",
             "deploy.build-dependency",
           ],
-          dependencyTasks: [
+          withDependants: [
             "build.build-dependency",
+            "deploy.build-dependency",
           ],
         },
         {
           moduleName: "good-morning",
-          expected: [
+          taskKeys: [
+            "build.good-morning",
+            "deploy.good-morning",
+          ],
+          withDependants: [
             "deploy.service-dependant",
             "deploy.service-dependant2",
-          ],
-          dependencyTasks: [
-            "push.service-dependant",
-            "push.service-dependant2",
           ],
         },
         {
           moduleName: "good-evening",
-          expected: [
-            "deploy.good-evening",
-            "push.good-evening",
-          ],
-          dependencyTasks: [
+          taskKeys: [
             "build.good-evening",
+            "deploy.good-evening",
+          ],
+          withDependants: [
+            "build.good-evening",
+            "deploy.good-evening",
           ],
         },
         {
           moduleName: "build-dependant",
-          expected: [
-            "deploy.build-dependant",
-            "push.build-dependant",
-          ],
-          dependencyTasks: [
+          taskKeys: [
             "build.build-dependant",
+            "deploy.build-dependant",
+          ],
+          withDependants: [
+            "build.build-dependant",
+            "deploy.build-dependant",
           ],
         },
         {
           moduleName: "service-dependant",
-          expected: [
-            "deploy.service-dependant",
-            "push.service-dependant",
-          ],
-          dependencyTasks: [
+          taskKeys: [
             "build.service-dependant",
+            "deploy.service-dependant",
+          ],
+          withDependants: [
+            "build.service-dependant",
+            "deploy.service-dependant",
           ],
         },
       ]
 
-      for (const { moduleName, expected, dependencyTasks } of expectedBaseKeysByChangedModule) {
-        it(`returns the correct set of tasks for ${moduleName} and its dependants`, async () => {
+      for (const { moduleName, taskKeys, withDependants } of expectedBaseKeysByChangedModule) {
+        it(`returns the correct set of tasks for ${moduleName}`, async () => {
+          const module = await graph.getModule(<string>moduleName)
+          const tasks = await getDependantTasksForModule({
+            garden, graph, log, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
+            fromWatch: true, includeDependants: false,
+          })
+          expect(sortedBaseKeys(tasks)).to.eql(taskKeys.sort())
+        })
+
+        it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
           const module = await graph.getModule(<string>moduleName)
           const tasks = await getDependantTasksForModule({
             garden, graph, log, module, hotReloadServiceNames: ["good-morning"], force: true, forceBuild: true,
             fromWatch: true, includeDependants: true,
           })
-          expect(sortedBaseKeys(tasks)).to.eql(expected.sort())
-          expect(await sortedBaseKeysdependencyTasks(tasks)).to.eql(expected.concat(dependencyTasks).sort())
+          expect(sortedBaseKeys(tasks)).to.eql(withDependants.sort())
         })
-
       }
-
     })
-
   })
-
 })

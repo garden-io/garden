@@ -30,7 +30,6 @@ import {
   GetSecretResult,
   GetServiceLogsResult,
   ModuleActionOutputs,
-  PushResult,
   RunResult,
   ServiceActionOutputs,
   SetSecretResult,
@@ -57,7 +56,6 @@ import {
   PluginActionParams,
   PluginActionParamsBase,
   PluginServiceActionParamsBase,
-  PushModuleParams,
   HotReloadServiceParams,
   RunModuleParams,
   RunServiceParams,
@@ -273,10 +271,6 @@ export class ActionHelper implements TypeGuard {
 
   async build<T extends Module>(params: ModuleActionHelperParams<BuildModuleParams<T>>): Promise<BuildResult> {
     return this.callModuleHandler({ params, actionType: "build" })
-  }
-
-  async pushModule<T extends Module>(params: ModuleActionHelperParams<PushModuleParams<T>>): Promise<PushResult> {
-    return this.callModuleHandler({ params, actionType: "pushModule", defaultHandler: dummyPushHandler })
   }
 
   async publishModule<T extends Module>(
@@ -685,10 +679,6 @@ const dummyLogStreamer = async ({ service, log }: GetServiceLogsParams) => {
     msg: chalk.yellow(`No handler for log retrieval available for module type ${service.module.type}`),
   })
   return {}
-}
-
-const dummyPushHandler = async () => {
-  return { pushed: false }
 }
 
 const dummyPublishHandler = async ({ module }) => {
