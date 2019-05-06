@@ -49,7 +49,8 @@ export default () => {
     modules = <Modules moduleConfigs={config.data && config.data.moduleConfigs} />
   }
 
-  if (status.error) {
+  if (status.error && !config.error) {
+    // Only render error if config does not error. No need to display it twice.
     services = <PageError />
   } else if (!isLoadingConfig && (!status.data || status.loading)) {
     // Only show when load component for Modules is no longer visible
