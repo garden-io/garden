@@ -14,6 +14,7 @@ import { formatForJSON } from "../renderers"
 
 export interface JsonLogEntry {
   msg: string,
+  data?: any,
   section?: string,
   durationMs?: number,
   metadata?: LogEntryMetadata,
@@ -26,7 +27,8 @@ export class JsonTerminalWriter extends Writer {
     const level = this.level || logger.level
     if (level >= entry.level) {
       const jsonEntry = formatForJSON(entry)
-      return jsonEntry.msg ? JSON.stringify(jsonEntry) : null
+      const empty = !(jsonEntry.msg || jsonEntry.data)
+      return empty ? null : JSON.stringify(jsonEntry)
     }
     return null
   }

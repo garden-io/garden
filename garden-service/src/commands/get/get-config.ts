@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as yaml from "js-yaml"
-import { highlightYaml } from "../../util/util"
 import { Command, CommandResult, CommandParams } from "../base"
 import { ConfigDump } from "../../garden"
 
@@ -18,10 +16,8 @@ export class GetConfigCommand extends Command {
   async action({ garden, log }: CommandParams): Promise<CommandResult<ConfigDump>> {
     const config = await garden.dumpConfig()
 
-    const yamlConfig = yaml.safeDump(config, { noRefs: true, skipInvalid: true })
-
-    // TODO: do a nicer print of this by default and use --yaml/--json options for exporting
-    log.info(highlightYaml(yamlConfig))
+    // TODO: do a nicer print of this by default
+    log.info({ data: config })
 
     return { result: config }
   }
