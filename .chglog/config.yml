@@ -11,6 +11,7 @@ options:
         - fix
         - perf
         - refactor
+        - improvement
     sort_by: Scope
   commit_groups:
     group_by: Type
