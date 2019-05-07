@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import { colors, fontRegular } from "../styles/variables"
 
 export const H2 = styled.h2`

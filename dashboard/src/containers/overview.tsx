@@ -6,24 +6,37 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cls from "classnames"
-import { css } from "emotion/macro"
 import React, { useContext, useEffect } from "react"
-
 import PageError from "../components/page-error"
-import { Modules, Services } from "../components/overview"
+import styled from "@emotion/styled"
+import { ServiceIngress } from "garden-cli/src/types/service"
+import Module from "../components/module"
 import { DataContext } from "../context/data"
 import Spinner from "../components/spinner"
+import { ServiceState } from "garden-cli/src/types/service"
 
-const LoadingServices = () => (
-  <div
-    className={cls(css`
-      text-align: center;
-    `, "mt-2")}
-  >
-    <p>Loading services...</p>
-  </div>
-)
+export const overviewConfig = {
+  service: {
+    height: "14rem",
+  },
+}
+
+const Modules = styled.div`
+  padding-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+`
+
+export type ModuleModel = {
+  name: string;
+  services: ServiceModel[];
+}
+export type ServiceModel = {
+  ingresses?: ServiceIngress[];
+  name: string;
+  state?: ServiceState;
+  isLoading: boolean;
+}
 
 // Note: We render the overview page components individually so we that we don't
 // have to wait for both API calls to return.
@@ -38,30 +51,53 @@ export default () => {
 
   const isLoadingConfig = !config.data || config.loading
 
-  let modules: React.ReactNode = null
-  let services: React.ReactNode = null
+  let modulesContainerComponent: React.ReactNode = null
+  let modules: ModuleModel[] = []
 
-  if (config.error) {
-    modules = <PageError />
+  if (config.error || status.error) {
+    modulesContainerComponent = <PageError error={config.error || status.error} />
   } else if (isLoadingConfig) {
-    modules = <Spinner />
-  } else if (config.data) {
-    modules = <Modules moduleConfigs={config.data && config.data.moduleConfigs} />
-  }
+    modulesContainerComponent = <Spinner />
+  } else if (config.data && config.data.moduleConfigs) {
 
-  if (status.error) {
-    services = <PageError />
-  } else if (!isLoadingConfig && (!status.data || status.loading)) {
-    // Only show when load component for Modules is no longer visible
-    services = <LoadingServices />
-  } else if (status.data && config.data) {
-    services = <Services moduleConfigs={config.data.moduleConfigs} services={status.data.services} />
+    // fill modules with services names
+    modules = config.data.moduleConfigs.map(moduleConfig => ({
+      name: moduleConfig.name,
+      services: moduleConfig.serviceConfigs.map(service => ({
+        name: service.name,
+        isLoading: true,
+      })),
+    }))
+
+    // fill missing data from status
+    if (status.data && status.data.services) {
+      const servicesStatus = status.data.services
+      for (let currModule of modules) {
+        for (let serviceName of Object.keys(servicesStatus)) {
+          const index = currModule.services.findIndex(s => s.name === serviceName)
+
+          if (index !== -1) {
+            currModule.services[index] = {
+              ...currModule.services[index],
+              state: servicesStatus[serviceName].state,
+              ingresses: servicesStatus[serviceName].ingresses,
+              isLoading: false,
+            } as ServiceModel
+          }
+        }
+      }
+    }
+
+    modulesContainerComponent = (
+      <Modules>
+        {modules.map(module => (
+          <Module module={module} key={module.name} />
+        ))}
+      </Modules>
+    )
   }
 
   return (
-    <div>
-      {modules}
-      {services}
-    </div>
+    <div>{modulesContainerComponent}</div>
   )
 }

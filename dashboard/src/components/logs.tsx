@@ -7,8 +7,8 @@
  */
 
 import cls from "classnames"
-import { css } from "emotion/macro"
-import styled from "@emotion/styled/macro"
+import { css } from "emotion"
+import styled from "@emotion/styled"
 import { max } from "lodash"
 import React, { Component } from "react"
 import Select from "react-select"

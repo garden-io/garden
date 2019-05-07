@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import React from "react"
 
 import { colors } from "../styles/variables"
@@ -37,7 +37,7 @@ const Icon = styled.i`
 `
 
 const IconLoading = styled(Icon)`
-  animation spin 0.5s infinite linear;
+  animation: spin 0.5s infinite linear;
   @keyframes spin {
     from {
       transform:rotate(0deg);

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import React from "react"
 
 import { colors, fontMedium } from "../styles/variables"
@@ -17,7 +17,11 @@ interface CardProps {
   backgroundColor?: string
 }
 
-const Wrapper = styled.div`
+type WrapperProps = {
+  backgroundColor?: string,
+}
+
+const Wrapper = styled.div<WrapperProps>`
   background-color: ${props => props.backgroundColor || colors.gardenWhite};
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);

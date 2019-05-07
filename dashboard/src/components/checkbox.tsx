@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import React, { ChangeEvent } from "react"
 
 import { colors } from "../styles/variables"
@@ -18,7 +18,7 @@ const Label = styled.label`
   cursor: pointer;
   font-size: 1rem;
   user-select: none;
-  margin-bottom: 0.75rem;
+  margin-bottom: .75rem;
   height: 1rem;
   line-height: 1rem;
 `

@@ -11,14 +11,15 @@ import { DataContext } from "../context/data"
 import { timeConversion } from "../util/helpers"
 import { UiStateContext } from "../context/ui"
 import { RenderedNode } from "garden-cli/src/config-graph"
-import { InfoPane, ErrorTxt } from "../components/info-pane"
+import { InfoPane } from "../components/info-pane"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
+import { ErrorNotification } from "../components/notifications"
 
 const ErrorMsg = ({ error, type }) => (
-  <ErrorTxt>
+  <ErrorNotification>
     Error occured while trying to get {type} result: {error.message}
-  </ErrorTxt>
+  </ErrorNotification>
 )
 
 export interface Props {

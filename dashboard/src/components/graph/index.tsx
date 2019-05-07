@@ -7,7 +7,7 @@
  */
 
 import cls from "classnames"
-import { css } from "emotion/macro"
+import { css } from "emotion"
 import React, { Component, ChangeEvent } from "react"
 import styled from "@emotion/styled"
 import { capitalize, uniq } from "lodash"
@@ -232,7 +232,7 @@ const Span = styled.span`
 
 const Status = styled.p`
   ${fontMedium}
-  colors: grey;
+  color: grey;
 `
 
 const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`

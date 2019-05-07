@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { css } from "emotion/macro"
+import { css } from "emotion"
 import React, { useContext } from "react"
-import styled from "@emotion/styled/macro"
+import styled from "@emotion/styled"
 import { Route } from "react-router-dom"
 
 import Graph from "./containers/graph"
@@ -41,18 +41,23 @@ const Logo = styled.img`
 `
 
 const SidebarWrapper = styled.div`
-  border-right: 1px solid ${colors.border}
+  border-right: 1px solid ${colors.border};
   height: 100vh;
   position: relative;
+  background: ${colors.gardenWhite};
 `
-const SidebarContainer = styled.div`
+
+type SidebarContainerProps = {
+  visible: boolean,
+}
+const SidebarContainer = styled.div<SidebarContainerProps>`
   display: ${props => (props.visible ? `block` : "none")};
-  width: ${props => (props.visible ? `10.5rem` : "0")};
+  width: ${props => (props.visible ? `11.5rem` : "0")};
 `
 
 const SidebarToggleButton = styled.div`
   position: absolute;
-  right: -2.2rem;
+  right: -2.3rem;
   top: 2rem;
   width: 1.5rem;
   cursor: pointer;
@@ -112,7 +117,7 @@ const App = () => {
       >
         <div
           className={css`
-            background-color: ${colors.grayLight}
+            background-color: ${colors.gardenGrayLighter};
             flex-grow: 1;
             padding: 1rem 1rem 1rem 3rem;
           `}

@@ -28,7 +28,7 @@ export const colors = {
   grayLight: "#fafafa",
   gardenGray: "#555656",
   gardenGrayLight: "#cdcfd1",
-  gardenGrayLighter: "#f6f8f9",
+  gardenGrayLighter: "#FBFCFD",
   gardenBlack: "#010101",
   gardenBlue: "#00adef",
   gardenBlueDark: "#01569a",
@@ -41,4 +41,28 @@ export const colors = {
   gardenPinkLighten,
   gardenPinkRgba: "rgba(237, 131, 204, 0)",
   gardenWhite: "#ffffff",
+  notifications: {
+    error: {
+      color: "#ce1126",
+      backgroundColor: "#FFBABA",
+    },
+    warning: {
+      color: "#9F6000",
+      backgroundColor: "#FEEFB3",
+    },
+    success: {
+      color: "#270",
+      backgroundColor: "#DFF2BF",
+    },
+    info: {
+      color: "#059",
+      backgroundColor: "#BEF",
+    },
+  },
+  status: {
+    ready: "#2ED47A",
+    deploying: "#FFB946",
+    missing: "#F7685B",
+    unhealthy: "#F7685B",
+  },
 }

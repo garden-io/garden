@@ -26,9 +26,10 @@ import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
 import { EnvironmentStatus } from "garden-cli/src/actions"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
+import { AxiosError } from "axios"
 
 interface StoreCommon {
-  error: Error | null
+  error?: AxiosError
   loading: boolean
 }
 
@@ -85,7 +86,7 @@ interface ActionSuccess extends ActionBase {
 
 interface ActionError extends ActionBase {
   type: "fetchFailure"
-  error: Error
+  error: AxiosError
 }
 
 type Action = ActionStart | ActionError | ActionSuccess
@@ -105,7 +106,7 @@ interface Actions {
 }
 
 const initialState: Store = storeKeys.reduce<Store>((acc, key) => {
-  const state = { loading: false, error: null }
+  const state = { loading: false }
   acc[key] = state
   return acc
 }, {} as Store)
@@ -134,9 +135,9 @@ function updateSlice(
 function reducer(store: Store, action: Action) {
   switch (action.type) {
     case "fetchStart":
-      return updateSlice(store, action.key, { loading: true, error: null })
+      return updateSlice(store, action.key, { loading: true, error: undefined })
     case "fetchSuccess":
-      return updateSlice(store, action.key, { loading: false, data: action.data, error: null })
+      return updateSlice(store, action.key, { loading: false, data: action.data, error: undefined })
     case "fetchFailure":
       return updateSlice(store, action.key, { loading: false, error: action.error })
   }
