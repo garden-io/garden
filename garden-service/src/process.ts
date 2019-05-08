@@ -20,6 +20,7 @@ import { LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
+import { uniqByName } from "./util/util"
 
 export type ProcessHandler = (graph: ConfigGraph, module: Module) => Promise<BaseTask[]>
 
@@ -109,7 +110,9 @@ export async function processModules(
     changeHandler = handler
   }
 
-  const modulesByName = keyBy(modules, "name")
+  const buildDependecies = (await graph.getDependenciesForMany("build", modules.map(m => m.name), true)).build
+  const modulesToWatch = uniqByName(buildDependecies.concat(modules))
+  const modulesByName = keyBy(modulesToWatch, "name")
 
   await garden.startWatcher(graph)
 
