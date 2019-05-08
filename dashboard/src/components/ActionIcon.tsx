@@ -13,12 +13,13 @@ import { colors } from "../styles/variables"
 
 interface Props {
   onClick: () => void
-  loading: boolean
+  inProgress?: boolean
+  iconClassName: "redo-alt" | "window-close"
 }
 
 const Button = styled.div`
-  padding: 0.3em;
   border-radius: 10%;
+  margin: .5rem;
   cursor: pointer;
   :active {
     opacity: 0.5;
@@ -27,7 +28,6 @@ const Button = styled.div`
 
 const Icon = styled.i`
   color: ${colors.gardenGray};
-  font-size: 1.25rem;
   :hover {
     color: ${colors.gardenPink}
   }
@@ -48,12 +48,12 @@ const IconLoading = styled(Icon)`
   }
 `
 
-export const RefreshButton: React.FC<Props> = ({ loading, onClick }) => {
-  const IconComp = loading ? IconLoading : Icon
+export const ActionIcon: React.FC<Props> = ({ inProgress, onClick, iconClassName }) => {
+  const IconComp = inProgress ? IconLoading : Icon
 
   return (
     <Button onClick={onClick}>
-      <IconComp className={"fas fa-redo-alt"} />
+      <IconComp className={`fas fa-${iconClassName}`} />
     </Button>
   )
 }
