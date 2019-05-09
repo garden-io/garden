@@ -156,6 +156,14 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           return { found: false }
         }
       },
+      async getDebugInfo() {
+        return {
+          info: {
+            exampleData: "data",
+            exampleData2: "data2",
+          },
+        }
+      },
     },
     moduleActions: {
       test: {

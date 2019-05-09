@@ -257,12 +257,20 @@ function prepareModuleConfig(moduleSpec: any, path: string): ModuleConfig {
   return module
 }
 
-export async function findProjectConfig(path: string): Promise<GardenConfig | undefined> {
+export async function findProjectConfig(path: string, allowInvalid = false): Promise<GardenConfig | undefined> {
   let config: GardenConfig | undefined
 
   let sepCount = path.split(sep).length - 1
   for (let i = 0; i < sepCount; i++) {
-    config = await loadConfig(path, path)
+    try {
+      config = await loadConfig(path, path)
+    } catch (err) {
+      if (!allowInvalid) {
+        throw err
+      } else {
+        continue
+      }
+    }
     if (!config || !config.project) {
       path = resolve(path, "..")
     } else if (config.project) {

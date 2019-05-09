@@ -308,7 +308,24 @@ export interface PluginActionOutputs {
   getSecret: Promise<GetSecretResult>
   setSecret: Promise<SetSecretResult>
   deleteSecret: Promise<DeleteSecretResult>
+
+  getDebugInfo: Promise<DebugInfo>
 }
+
+export interface DebugInfo {
+  info: any
+}
+
+export interface DebugInfoMap {
+  [key: string]: DebugInfo
+}
+
+export const getDebugInfoSchema = Joi.object()
+  .keys({
+    info: Joi.any()
+      .required()
+      .description("An object representing the debug info for the project."),
+  })
 
 export interface ServiceActionOutputs {
   getServiceStatus: Promise<ServiceStatus>

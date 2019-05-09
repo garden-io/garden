@@ -142,6 +142,7 @@
     "@types/unzipper": "^0.9.2",
     "@types/uuid": "^3.4.4",
     "@types/wrap-ansi": "^3.0.0",
+    "archiver": "^3.0.0",
     "chai": "^4.2.0",
     "gulp": "^4.0.2",
     "gulp-cached": "^1.1.1",

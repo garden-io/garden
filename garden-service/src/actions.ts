@@ -39,6 +39,7 @@ import {
   TaskActionOutputs,
   HotReloadServiceResult,
   RunTaskResult,
+  DebugInfoMap,
 } from "./types/plugin/outputs"
 import {
   BuildModuleParams,
@@ -417,6 +418,13 @@ export class ActionHelper implements TypeGuard {
         forceBuild,
       }),
     })
+  }
+
+  async getDebugInfo({ log }: { log: LogEntry }): Promise<DebugInfoMap> {
+    const handlers = this.getActionHandlers("getDebugInfo")
+    const res = await Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h, log) })))
+    log.setSuccess("Ready")
+    return res
   }
 
   //endregion
