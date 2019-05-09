@@ -58,6 +58,7 @@ project:
     providers:
     - name: kubernetes
       context: my-dev-context
+      defaultHostname: mydomain.com
       tlsCertificates:
       - name: main
         # Optionally set particular hostnames to use this certificate for
