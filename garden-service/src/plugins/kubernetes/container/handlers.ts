@@ -20,7 +20,7 @@ import { getTestResult } from "../test"
 import { ContainerModule } from "../../container/config"
 import { configureMavenContainerModule, MavenContainerModule } from "../../maven-container/maven-container"
 import { getTaskResult } from "../task-results"
-import { buildContainerModule, getContainerBuildStatus } from "../../container/build"
+import { buildModule, getBuildStatus } from "./build"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   params.moduleConfig = await configureContainerModule(params)
@@ -35,11 +35,11 @@ export async function configureMaven(params: ConfigureModuleParams<MavenContaine
 
 export const containerHandlers = {
   configure,
-  build: buildContainerModule,
+  build: buildModule,
   deployService: deployContainerService,
   deleteService,
   execInService,
-  getBuildStatus: getContainerBuildStatus,
+  getBuildStatus,
   getServiceLogs,
   getServiceStatus: getContainerServiceStatus,
   getTestResult,
