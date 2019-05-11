@@ -77,7 +77,7 @@ For developing the dashboard, please refer to the [dashboard docs](./dashboard/R
 To enable setting a breakpoint in the code, run the CLI with the `garden-service/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
 
 ```sh
-alias gd='/path/to/garden/garden-service/bin/static/garden-debug'
+alias gd='/path/to/garden/bin/garden-debug'
 ```
 
 You can e.g. use the Chrome DevTools to inspect the code at the breakpoint:
@@ -88,7 +88,7 @@ You can e.g. use the Chrome DevTools to inspect the code at the breakpoint:
 4. Run a CLI command that hits the breakpoint, e.g.:
 
 ```sh
-garden-service/bin/static/garden-debug deploy # or gd deploy, if you've set the alias
+/path/to/garden/bin/garden-debug deploy # or gd deploy, if you've set the alias
 ```
 
 You should now be able to inspect the code at run time in the **Console** tab of the DevTools window.
