@@ -1,19 +1,17 @@
 import { ChildProcess } from "child_process"
 import * as execa from "execa"
 import * as mlog from "mocha-logger"
-import parseArgs = require("minimist")
 import { resolve } from "path"
 import { sleep } from "../src/util/util"
 import { TimeoutError } from "bluebird"
-import { parseLogEntries, searchLog, findTasks, touchFile } from "./integ-helpers"
+import { parseLogEntries, searchLog, findTasks, touchFile, parsedArgs } from "./integ-helpers"
 import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { ParameterError } from "../src/exceptions"
 import { dedent, deline } from "../src/util/string"
 
-const argv = parseArgs(process.argv.slice(2))
+export const gardenBinPath = parsedArgs.binPath || resolve(__dirname, "..", "static", "bin", "garden")
 
-export const gardenBinPath = argv.binPath || resolve(__dirname, "..", "static", "bin", "garden")
-export const showLog = !!argv.showLog
+export const showLog = !!parsedArgs.showLog
 
 export function dashboardUpStep(): WatchTestStep {
   return {
@@ -24,11 +22,21 @@ export function dashboardUpStep(): WatchTestStep {
   }
 }
 
+export function waitingForChangesStep(): WatchTestStep {
+  return {
+    description: "tasks completed, waiting for code changes",
+    condition: async (logEntries: JsonLogEntry[]) => {
+      return searchLog(logEntries, /Waiting for code changes/)
+    },
+  }
+}
+
 export function taskCompletedStep(key: string, completedCount: number, description?: string): WatchTestStep {
   return {
     description: description || key,
     condition: async (logEntries: JsonLogEntry[]) => {
       const tasks = findTasks(logEntries, key)
+
       if (tasks.filter(t => t.completedIndex).length === completedCount) {
         return "passed"
       }
@@ -47,7 +55,7 @@ export function changeFileStep(path: string, description: string): WatchTestStep
   return {
     description, // Mandatory, because we don't want to print the absolute path
     action: async () => {
-      await execa.shell(`echo "" >> ${path}`)
+      await execa.shell(`echo "\n" >> ${path}`)
     },
   }
 }
@@ -219,6 +227,7 @@ export class GardenWatch {
     }
 
     mlog.error(`${description}`)
+
     console.error(dedent`
       Watch test failed. Here is the log for the command run:
 

@@ -1,0 +1,25 @@
+kind: Project
+name: integ-tests
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+  # TODO
+  # - name: remote
+  #   providers:
+  #     - name: kubernetes
+
+---
+
+kind: Module
+name: integ-tests
+type: exec
+tests:
+  - name: simple-project
+    command: [npm, run, integ-full, --, --only=simple-project, "--showlog=true"]
+  - name: tasks
+    command: [npm, run, integ-full, --, --only=tasks, "--showlog=true"]
+  - name: vote-helm
+    command: [npm, run, integ-full, --, --only=vote-helm, "--showlog=true"]
+  - name: remote-sources
+    command: [npm, run, integ-full, --, --only=remote-sources, "--showlog=true"]

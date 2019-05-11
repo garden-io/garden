@@ -13,6 +13,9 @@ try {
   Logger.initialize({ level: LogLevel.info })
 } catch (_) { }
 
+/**
+ * Write .garden-version files for modules in garden-system/static.
+ */
 async function addVersionFiles() {
   const staticPath = resolve(__dirname, "..", "static")
   const garden = await Garden.factory(staticPath)

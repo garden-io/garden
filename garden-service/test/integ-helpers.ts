@@ -2,44 +2,70 @@ import * as execa from "execa"
 import * as Bluebird from "bluebird"
 import { remove } from "fs-extra"
 import { get, intersection } from "lodash"
+import parseArgs = require("minimist")
 import { resolve } from "path"
 import { GARDEN_DIR_NAME } from "../src/constants"
-import { KubeApi } from "../src/plugins/kubernetes/api"
-import { TaskLogStatus, LogEntry } from "../src/logger/log-entry"
-import { deleteNamespaces } from "../src/plugins/kubernetes/namespace"
+import { TaskLogStatus } from "../src/logger/log-entry"
 import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
-import { getAllNamespaces } from "../src/plugins/kubernetes/namespace"
 import { getExampleProjects } from "./helpers"
 import { WatchTestConditionState } from "./run-garden"
 import { systemMetadataNamespace } from "../src/plugins/kubernetes/system"
 
+export const parsedArgs = parseArgs(process.argv.slice(2))
+
 export async function removeExampleDotGardenDirs() {
-  await Bluebird.map(Object.values(getExampleProjects()), (projectRoot) => {
-    return remove(resolve(projectRoot, GARDEN_DIR_NAME))
+  await Bluebird.map(Object.values(getExampleProjects()), async (projectRoot) => {
+    try {
+      await remove(resolve(projectRoot, GARDEN_DIR_NAME))
+    } catch (error) {
+      // No .garden directory found in projectRoot, so there's nothing to do here.
+    }
   })
 }
 
-export async function deleteExampleNamespaces(log: LogEntry, projectNames?: string[]) {
-  const namespacesToDelete: string[] = []
-
+export async function deleteExampleNamespaces(projectNames?: string[]) {
+  // TODO: Accept context parameter in integ script.
+  const existingNamespaces = await getAllNamespacesKubectl()
+  let namespacesToDelete: string[] = []
   let exampleProjectNames = projectNames || Object.keys(getExampleProjects())
 
   for (const exampleProjectName of exampleProjectNames) {
-    namespacesToDelete.push(exampleProjectName, `${exampleProjectName}--metadata`)
+    namespacesToDelete.push(exampleProjectName)
+    namespacesToDelete.push(
+      ...existingNamespaces.filter(n => n.startsWith(`${exampleProjectName}--`)))
   }
+  namespacesToDelete = intersection(namespacesToDelete, existingNamespaces)
 
-  await deleteExistingNamespaces(log, namespacesToDelete)
+  await deleteNamespacesKubectl(namespacesToDelete)
 }
 
-export async function deleteSystemMetadataNamespace(log: LogEntry) {
-  await deleteExistingNamespaces(log, [systemMetadataNamespace])
+export async function deleteSystemMetadataNamespace() {
+  await deleteExistingNamespacesKubectl([systemMetadataNamespace])
 }
 
-export async function deleteExistingNamespaces(log: LogEntry, namespaces: string[]) {
+/*
+ * The ...Kubectl suffixes on these two functions' names are tiresome, but they prevent accidental
+ * imports of the wrong functions (and these two are usually not the ones that should be used).
+ *
+ * The implementations here (which use kubetl instead of the JS API) are currently only used in a dev scripting
+ * context (not inside the framework proper, and outside of a Garden project).
+ */
+export async function getAllNamespacesKubectl() {
+  const out = await execa.stdout("kubectl", ["get", "ns", "-o", "name"])
+  const namespaces = out.split("\n").map(n => n.replace("namespace/", ""))
+  return namespaces
+}
+
+export async function deleteNamespacesKubectl(namespaces: string[]) {
+  if (namespaces.length > 0) {
+    await execa("kubectl", ["delete", "ns", ...namespaces])
+  }
+}
+
+export async function deleteExistingNamespacesKubectl(namespaces: string[]) {
   // TODO: Accept context parameter in integ script.
-  const api = await KubeApi.factory(log, "docker-for-desktop")
-  const existingNamespaces = await getAllNamespaces(api)
-  await deleteNamespaces(intersection(existingNamespaces, namespaces), api)
+  const existingNamespaces = await getAllNamespacesKubectl()
+  await deleteNamespacesKubectl(intersection(existingNamespaces, namespaces))
 }
 
 export async function touchFile(path: string): Promise<void> {
