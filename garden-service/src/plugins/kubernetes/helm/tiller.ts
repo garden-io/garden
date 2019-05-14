@@ -35,8 +35,15 @@ export async function checkTillerStatus(ctx: PluginContext, provider: Kubernetes
   return combineStates(statuses.map(s => s.state))
 }
 
-export async function installTiller(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
-  if (await checkTillerStatus(ctx, provider, log) === "ready") {
+interface InstallTillerParams {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  log: LogEntry
+  force?: boolean
+}
+
+export async function installTiller({ ctx, log, provider, force = false }: InstallTillerParams) {
+  if (!force && await checkTillerStatus(ctx, provider, log) === "ready") {
     return
   }
 

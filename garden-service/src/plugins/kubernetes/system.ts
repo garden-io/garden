@@ -10,21 +10,18 @@ import { join } from "path"
 import { every, values, find } from "lodash"
 import { V1Namespace } from "@kubernetes/client-node"
 import * as semver from "semver"
-import * as Bluebird from "bluebird"
 
 import { STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
 import { LogEntry } from "../../logger/log-entry"
 import { KubeApi } from "./api"
-import { checkTillerStatus, installTiller } from "./helm/tiller"
 import { createNamespace } from "./namespace"
 import { getPackageVersion } from "../../util/util"
 import { deline } from "../../util/string"
 import { deleteNamespaces } from "./namespace"
 import { PluginError } from "../../exceptions"
 import { DashboardPage } from "../../config/dashboard"
-import { EnvironmentStatus } from "../../types/plugin/outputs"
 import { PrimitiveMap } from "../../config/common"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -64,6 +61,7 @@ export async function getSystemGarden(provider: KubernetesProvider, variables: P
                 deploymentRegistry: undefined,
                 namespace: systemNamespace,
                 _system: systemSymbol,
+                _systemServices: [],
               },
             ],
             variables,
@@ -134,56 +132,21 @@ interface GetSystemServicesStatusParams {
   variables: PrimitiveMap,
 }
 
-export async function getSystemServicesStatus(
+export async function getSystemServiceStatuses(
   { ctx, log, namespace, serviceNames, variables }: GetSystemServicesStatusParams,
-): Promise<EnvironmentStatus> {
-  let ready = true
+) {
   let dashboardPages: DashboardPage[] = []
 
-  if (serviceNames.length === 0) {
-    return { ready, dashboardPages }
-  }
+  const sysGarden = await getSystemGarden(ctx.provider, variables)
 
-  const provider = ctx.provider
-  const sysGarden = await getSystemGarden(provider, variables)
-  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(provider.name)
-
-  // Need to stage the build directory before getting the status.
-  const graph = await sysGarden.getConfigGraph()
-  const modules = await graph.getModules()
-  await Bluebird.map(modules, module => sysGarden.buildDir.syncFromSrc(module, log))
-
-  const sysStatus = await sysGarden.actions.getStatus({ log, serviceNames })
-  const serviceStatuses = sysStatus.services
-
-  const api = await KubeApi.factory(log, provider.config.context)
-
-  const servicesReady = every(values(serviceStatuses).map(s => s.state === "ready"))
-  const contextForLog = `Checking environment status for plugin "${ctx.provider.name}"`
-  const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, namespace, contextForLog)
-  const systemReady = sysStatus.providers[provider.config.name].ready
-    && servicesReady
-    && sysNamespaceUpToDate
-
-  if (!systemReady) {
-    ready = false
-  }
-
-  // Check Tiller status
-  if (await checkTillerStatus(ctx, ctx.provider, log) !== "ready") {
-    ready = false
-  }
-
-  // Check Tiller status
-  if (await checkTillerStatus(sysCtx, sysCtx.provider, log) !== "ready") {
-    ready = false
-  }
+  const serviceStatuses = await sysGarden.actions.getServiceStatuses({ log, serviceNames })
+  const ready = every(values(serviceStatuses).map(s => s.state === "ready"))
 
   // Add the Kubernetes dashboard to the Garden dashboard
   if (serviceNames.includes("kubernetes-dashboard")) {
-    const defaultHostname = provider.config.defaultHostname
+    const defaultHostname = ctx.provider.config.defaultHostname
 
-    const dashboardStatus = sysStatus.services["kubernetes-dashboard"]
+    const dashboardStatus = serviceStatuses["kubernetes-dashboard"]
     const dashboardServiceResource = find(
       (dashboardStatus.detail || {}).remoteObjects || [],
       o => o.kind === "Service",
@@ -209,15 +172,13 @@ export async function getSystemServicesStatus(
   }
 }
 
-interface PrepareSystemServicesParams extends GetSystemServicesStatusParams { }
+interface PrepareSystemServicesParams extends GetSystemServicesStatusParams {
+  force: boolean
+}
 
 export async function prepareSystemServices(
-  { ctx, log, namespace, serviceNames, variables }: PrepareSystemServicesParams,
+  { ctx, log, namespace, serviceNames, force, variables }: PrepareSystemServicesParams,
 ) {
-  if (serviceNames.length === 0) {
-    return
-  }
-
   const api = await KubeApi.factory(log, ctx.provider.config.context)
 
   const contextForLog = `Preparing environment for plugin "${ctx.provider.name}"`
@@ -227,23 +188,9 @@ export async function prepareSystemServices(
     await recreateSystemNamespaces(api, log, namespace)
   }
 
-  await configureSystemServices({ ctx, log, force: true, namespace, serviceNames, variables })
-  await installTiller(ctx, ctx.provider, log)
-}
-
-interface ConfigureSystemServicesParams extends PrepareSystemServicesParams {
-  force: boolean,
-}
-
-export async function configureSystemServices(
-  { ctx, force, log, serviceNames, variables }: ConfigureSystemServicesParams,
-) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const sysGarden = await getSystemGarden(provider, variables)
-  const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(provider.name)
-
-  await installTiller(sysCtx, sysCtx.provider, log)
 
   // Deploy enabled system services
   if (serviceNames.length > 0) {

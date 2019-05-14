@@ -70,7 +70,7 @@ import {
   TaskActionParams,
   GetTaskResultParams,
 } from "./types/plugin/params"
-import { Service, ServiceStatus, getServiceRuntimeContext } from "./types/service"
+import { Service, ServiceStatus, getServiceRuntimeContext, ServiceStatusMap } from "./types/service"
 import { mapValues, values, keyBy, omit, pickBy, fromPairs } from "lodash"
 import { Omit } from "./util/util"
 import { processServices, ProcessResults } from "./process"
@@ -205,7 +205,12 @@ export class ActionHelper implements TypeGuard {
         msg: "Configuring...",
       })
 
-      await handler({ ...this.commonParams(handler, log), force: forcePrep, status, log: envLogEntry })
+      await handler({
+        ...this.commonParams(handler, log),
+        force: forcePrep,
+        status,
+        log: envLogEntry,
+      })
 
       envLogEntry.setSuccess({ msg: chalk.green("Ready"), append: true })
 
@@ -369,20 +374,25 @@ export class ActionHelper implements TypeGuard {
     log.verbose(`Getting environment status (${this.garden.projectName})`)
 
     const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
+    const serviceStatuses = await this.getServiceStatuses({ log, serviceNames })
+    return {
+      providers: envStatus,
+      services: serviceStatuses,
+    }
+  }
+
+  async getServiceStatuses(
+    { log, serviceNames }: { log: LogEntry, serviceNames?: string[] },
+  ): Promise<ServiceStatusMap> {
+
     const graph = await this.garden.getConfigGraph()
     const services = keyBy(await graph.getServices(serviceNames), "name")
-
-    const serviceStatus = await Bluebird.props(mapValues(services, async (service: Service) => {
+    return Bluebird.props(mapValues(services, async (service: Service) => {
       const runtimeContext = await getServiceRuntimeContext(this.garden, graph, service)
       // TODO: The status will be reported as "outdated" if the service was deployed with hot-reloading enabled.
       //       Once hot-reloading is a toggle, as opposed to an API/CLI flag, we can resolve that issue.
       return this.getServiceStatus({ log, service, runtimeContext, hotReload: false })
     }))
-
-    return {
-      providers: envStatus,
-      services: serviceStatus,
-    }
   }
 
   async deployServices(

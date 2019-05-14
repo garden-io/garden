@@ -13,39 +13,84 @@ import {
 } from "../../types/plugin/params"
 import { KubeApi } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces } from "./namespace"
-import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
+import { KubernetesPluginContext } from "./kubernetes"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
-import { isSystemGarden, prepareSystemServices, getSystemServicesStatus } from "./system"
+import {
+  prepareSystemServices,
+  getSystemServiceStatuses,
+  getSystemGarden,
+  systemNamespaceUpToDate,
+} from "./system"
 import { PrimitiveMap } from "../../config/common"
+import { DashboardPage } from "../../config/dashboard"
+import { EnvironmentStatus } from "../../types/plugin/outputs"
 
 interface GetK8sEnvironmentStatusParams extends GetEnvironmentStatusParams {
   variables?: PrimitiveMap
 }
 
-export async function getEnvironmentStatus({ ctx, log, variables }: GetK8sEnvironmentStatusParams) {
+/**
+ * Performs the following actions to check environment status:
+ *   1. Checks Tiller status in the project namespace
+ *   2. Checks Tiller status in the system namespace (if provider has system services)
+ *   3. Checks system service statuses (if provider has system services)
+ *
+ * Returns ready === true if all the above are ready.
+ */
+export async function getEnvironmentStatus(
+  { ctx, log, variables }: GetK8sEnvironmentStatusParams,
+): Promise<EnvironmentStatus> {
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
+  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
+
+  let systemReady = true
+  let projectReady = true
+  let dashboardPages: DashboardPage[] = []
+
+  // Ensure project and system namespaces. We need the system namespace independent of system services
+  // because we store test results in the system metadata namespace.
   await prepareNamespaces({ ctx, log })
+  await prepareNamespaces({ ctx: sysCtx, log })
 
-  const provider = <KubernetesProvider>ctx.provider
+  // Check Tiller status in project namespace
+  if (await checkTillerStatus(k8sCtx, k8sCtx.provider, log) !== "ready") {
+    projectReady = false
+  }
 
-  if (!isSystemGarden(provider)) {
-    const k8sCtx = <KubernetesPluginContext>ctx
+  const systemServiceNames = k8sCtx.provider.config._systemServices
+
+  if (systemServiceNames.length > 0) {
+    // Check Tiller status in system namespace
+    let systemTillerReady = true
+    if (await checkTillerStatus(sysCtx, sysCtx.provider, log) !== "ready") {
+      systemTillerReady = false
+    }
+
     const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-    const serviceNames = k8sCtx.provider.config._systemServices
-    return getSystemServicesStatus({
+    const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+    const contextForLog = `Checking environment status for plugin "${ctx.provider.name}"`
+    const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, namespace, contextForLog)
+
+    // Get system service statuses
+    const systemServiceStatuses = await getSystemServiceStatuses({
       ctx: k8sCtx,
       log,
       namespace,
-      serviceNames,
+      serviceNames: systemServiceNames,
       variables: variables || {},
     })
-  } else {
-    const ready = (await checkTillerStatus(ctx, provider, log)) === "ready"
 
-    return {
-      ready,
-      dashboardPages: [],
-      detail: {},
-    }
+    systemReady = systemTillerReady && systemServiceStatuses.ready && sysNamespaceUpToDate
+    dashboardPages = systemServiceStatuses.dashboardPages
+  }
+
+  const detail = { systemReady, projectReady }
+
+  return {
+    ready: projectReady && systemReady,
+    detail,
+    dashboardPages,
   }
 }
 
@@ -53,21 +98,38 @@ interface PrepareK8sEnvironmentParams extends PrepareEnvironmentParams {
   variables?: PrimitiveMap
 }
 
-export async function prepareEnvironment({ ctx, log, variables }: PrepareK8sEnvironmentParams) {
+/**
+ * Performs the following actions to prepare the environment
+ *  1. Installs Tiller in project namespace
+ *  2. Installs Tiller in system namespace (if provider has system services)
+ *  3. Deploys system services (if provider has system services)
+ */
+export async function prepareEnvironment({ ctx, log, force, status, variables }: PrepareK8sEnvironmentParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
+  const systemReady = status.detail && !!status.detail.systemReady && !force
 
-  if (!isSystemGarden(k8sCtx.provider)) {
+  // Install Tiller to project namespace
+  await installTiller({ ctx: k8sCtx, provider: k8sCtx.provider, log, force })
+
+  const systemServiceNames = k8sCtx.provider.config._systemServices
+
+  if (systemServiceNames.length > 0 && !systemReady) {
+    // Install Tiller to system namespace
+    const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
+    const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(k8sCtx.provider.name)
+    await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
+
     const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-    const serviceNames = k8sCtx.provider.config._systemServices
+
+    // Install system services
     await prepareSystemServices({
-      ctx: k8sCtx,
       log,
       namespace,
-      serviceNames,
+      force,
+      ctx: k8sCtx,
+      serviceNames: systemServiceNames,
       variables: variables || {},
     })
-  } else {
-    await installTiller(k8sCtx, k8sCtx.provider, log)
   }
 
   return {}
