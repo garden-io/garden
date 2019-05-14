@@ -40,7 +40,7 @@ const baseRequestSchema = Joi.object()
  * Validate and map a request body to a Command, execute its action, and return its result.
  */
 export async function resolveRequest(
-  ctx: Koa.Context, garden: Garden, log: LogEntry, commands: CommandMap, request: any,
+  ctx: Koa.ParameterizedContext, garden: Garden, log: LogEntry, commands: CommandMap, request: any,
 ) {
   // Perform basic validation and find command.
   try {
@@ -136,7 +136,7 @@ function paramsToJoi(params?: Parameters) {
 /**
  * Prepare the args or opts for a Command action, by mapping input values to the parameter specs.
  */
-function mapParams(ctx: Koa.Context, values: object, params?: Parameters) {
+function mapParams(ctx: Koa.ParameterizedContext, values: object, params?: Parameters) {
   if (!params) {
     return {}
   }

@@ -8,8 +8,8 @@
 
 import * as winston from "winston"
 import { join } from "path"
-import * as stripAnsi from "strip-ansi"
 import { ensureDir, truncate } from "fs-extra"
+import stripAnsi from "strip-ansi"
 
 import { LogLevel } from "../log-node"
 import { LogEntry } from "../log-entry"

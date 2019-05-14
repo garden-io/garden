@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import chalk from "chalk"
-import * as stripAnsi from "strip-ansi"
+import stripAnsi from "strip-ansi"
 
 import { LogLevel } from "../../../../../src/logger/log-node"
 import { getLogger } from "../../../../../src/logger/logger"

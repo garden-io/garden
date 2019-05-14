@@ -9,9 +9,8 @@
 import * as logSymbols from "log-symbols"
 import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
-import { chain } from "lodash"
 import chalk from "chalk"
-import * as stripAnsi from "strip-ansi"
+import stripAnsi from "strip-ansi"
 import {
   curryRight,
   flow,
@@ -107,7 +106,7 @@ export function renderError(entry: LogEntry) {
     }
     return out
   }
-  return msg || ""
+  return isArray(msg) ? msg.join(" ") : msg || ""
 }
 
 export function renderSymbol(entry: LogEntry): string {
@@ -184,12 +183,7 @@ export function cleanForJSON(input?: string | string[]): string {
   }
 
   const inputStr = isArray(input) ? input.join(" - ") : input
-  return chain(inputStr)
-    .thru(str => stripAnsi(str))
-    .thru(str => str.replace(/\s+/g, " ")) // clean up whitespace
-    .thru(str => str.replace(/\\"/g, "'")) // replace double quotes with single quotes
-    .value()
-    .trim()
+  return stripAnsi(inputStr).trim()
 }
 
 export function cleanWhitespace(str) {
