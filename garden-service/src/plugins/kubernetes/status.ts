@@ -146,9 +146,6 @@ export async function checkWorkloadStatus(
   // note: the resourceVersion parameter does not appear to work...
   const eventsRes = await api.core.listNamespacedEvent(
     namespace,
-    undefined,
-    undefined,
-    undefined,
     true,
   )
 

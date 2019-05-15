@@ -266,7 +266,7 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
 async function renderHelmTemplateString(
   ctx: PluginContext, log: LogEntry, module: Module, chartPath: string, value: string,
 ): Promise<string> {
-  const tempFilePath = join(chartPath, "templates", cryptoRandomString(16))
+  const tempFilePath = join(chartPath, "templates", cryptoRandomString({ length: 16 }))
   const valuesPath = getValuesPath(chartPath)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })

@@ -67,7 +67,7 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
 export async function getPods(api: KubeApi, namespace: string, selector: { [key: string]: string }): Promise<V1Pod[]> {
   const selectorString = Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
   const res = await api.core.listNamespacedPod(
-    namespace, undefined, undefined, undefined, true, selectorString,
+    namespace, true, undefined, undefined, undefined, selectorString,
   )
   return res.body.items
 }

@@ -167,7 +167,7 @@ export class GardenWatch {
     this.testSteps = testSteps
 
     this.proc = execa(gardenBinPath, [...this.command, "--logger-type", "json", "-l", "4"], { cwd: this.dir })
-    this.proc.stdout.on("data", (rawLine) => {
+    this.proc.stdout!.on("data", (rawLine) => {
       const lines = rawLine.toString().trim().split("\n")
       if (showLog) {
         console.log(lines)
