@@ -276,6 +276,7 @@ export class GardenCli {
       await command.prepare({
         log,
         logFooter,
+        output,
         args: parsedArgs,
         opts: parsedOpts,
       })
@@ -292,6 +293,7 @@ export class GardenCli {
           garden,
           log,
           logFooter,
+          output,
           args: parsedArgs,
           opts: parsedOpts,
         })

@@ -210,6 +210,7 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
   opts: ParameterValues<U>
   log: LogEntry
   logFooter: LogEntry
+  output?: string
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
