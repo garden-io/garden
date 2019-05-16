@@ -92,10 +92,6 @@ export interface EnvironmentStatus {
   services: { [name: string]: ServiceStatus }
 }
 
-export interface EnvironmentOverview {
-  modules: { [name: string]: ServiceStatus }[]
-}
-
 export interface DeployServicesParams {
   log: LogEntry
   serviceNames?: string[]
