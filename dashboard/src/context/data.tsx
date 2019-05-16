@@ -20,7 +20,7 @@ import {
   fetchTaskResult,
   fetchTestResult,
 } from "../api/api"
-import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
 import { ConfigDump } from "garden-cli/src/garden"
 import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"

@@ -15,7 +15,7 @@ import {
   BooleanParameter,
 } from "./base"
 import chalk from "chalk"
-import { ServiceLogEntry } from "../types/plugin/outputs"
+import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
 import { Service, getServiceRuntimeContext } from "../types/service"
 import Stream from "ts-stream"

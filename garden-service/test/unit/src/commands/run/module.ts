@@ -1,5 +1,5 @@
 import { RunModuleCommand } from "../../../../../src/commands/run/module"
-import { RunResult } from "../../../../../src/types/plugin/outputs"
+import { RunResult } from "../../../../../src/types/plugin/base"
 import {
   makeTestGardenA,
   testModuleVersion,

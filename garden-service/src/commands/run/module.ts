@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { RunResult } from "../../types/plugin/outputs"
+import { RunResult } from "../../types/plugin/base"
 import {
   BooleanParameter,
   Command,

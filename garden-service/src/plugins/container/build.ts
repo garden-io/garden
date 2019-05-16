@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BuildModuleParams, GetBuildStatusParams } from "../../types/plugin/params"
 import { containerHelpers } from "./helpers"
 import { ContainerModule } from "./config"
 import { ConfigurationError } from "../../exceptions"
+import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
+import { BuildModuleParams } from "../../types/plugin/module/build"
 
 export async function getContainerBuildStatus({ module, log }: GetBuildStatusParams<ContainerModule>) {
   const identifier = await containerHelpers.imageExistsLocally(module)

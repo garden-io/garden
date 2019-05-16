@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { ParameterError } from "../../exceptions"
-import { RunResult } from "../../types/plugin/outputs"
+import { RunResult } from "../../types/plugin/base"
 import {
   findByName,
   getNames,

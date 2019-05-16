@@ -15,19 +15,7 @@ import { Garden } from "../../garden"
 import { PluginContext } from "../../plugin-context"
 import { joiArray, PrimitiveMap, joiProviderName } from "../../config/common"
 import { Module } from "../../types/module"
-import { ConfigureModuleResult } from "../../types/plugin/outputs"
-import {
-  PrepareEnvironmentParams,
-  GetEnvironmentStatusParams,
-  ConfigureModuleParams,
-  DeleteServiceParams,
-  GetServiceLogsParams,
-} from "../../types/plugin/params"
-import {
-  ServiceStatus,
-  ServiceIngress,
-  Service,
-} from "../../types/service"
+import { ServiceStatus, ServiceIngress, Service } from "../../types/service"
 import {
   ExecModuleSpec,
   execModuleSpecSchema,
@@ -37,11 +25,6 @@ import {
 } from "../exec"
 import { KubernetesProvider } from "../kubernetes/kubernetes"
 import { getNamespace, getAppNamespace } from "../kubernetes/namespace"
-import {
-  DeployServiceParams,
-  GetServiceStatusParams,
-  BuildModuleParams,
-} from "../../types/plugin/params"
 import { every, values } from "lodash"
 import { dumpYaml, findByName } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
@@ -51,11 +34,19 @@ import { CommonServiceSpec } from "../../config/service"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema } from "../../config/project"
 import { faasCli } from "./faas-cli"
-import { CleanupEnvironmentParams } from "../../types/plugin/params"
+import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
 import dedent = require("dedent")
 import { getAllLogs } from "../kubernetes/logs"
 import { installTiller, checkTillerStatus } from "../kubernetes/helm/tiller"
 import { LogEntry } from "../../logger/log-entry"
+import { BuildModuleParams } from "../../types/plugin/module/build"
+import { DeployServiceParams } from "../../types/plugin/service/deployService"
+import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
+import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
+import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
+import { GetServiceLogsParams } from "../../types/plugin/service/getServiceLogs"
+import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 export const stackFilename = "stack.yml"

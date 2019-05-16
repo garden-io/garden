@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RunResult } from "../../types/plugin/outputs"
+import { RunResult } from "../../types/plugin/base"
 import { kubectl } from "./kubectl"
 import { PrimitiveMap } from "../../config/common"
 import { Module } from "../../types/module"

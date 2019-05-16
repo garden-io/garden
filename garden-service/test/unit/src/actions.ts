@@ -1,42 +1,25 @@
-import { Garden } from "../../../src/garden"
-import { makeTestGardenA, expectError } from "../../helpers"
-import { PluginFactory, PluginActions, ModuleAndRuntimeActions } from "../../../src/types/plugin/plugin"
-import { validate } from "../../../src/config/common"
+import * as Joi from "joi"
+
+import {
+  ModuleAndRuntimeActions,
+  PluginActions,
+  PluginFactory,
+  moduleActionDescriptions,
+  pluginActionDescriptions,
+} from "../../../src/types/plugin/plugin"
+import { RuntimeContext, Service, getServiceRuntimeContext } from "../../../src/types/service"
+import { expectError, makeTestGardenA } from "../../helpers"
+
 import { ActionHelper } from "../../../src/actions"
+import { Garden } from "../../../src/garden"
+import { LogEntry } from "../../../src/logger/log-entry"
+import { Module } from "../../../src/types/module"
+import { ServiceLogEntry } from "../../../src/types/plugin/service/getServiceLogs"
+import Stream from "ts-stream"
+import { Task } from "../../../src/types/task"
 import { expect } from "chai"
 import { omit } from "lodash"
-import { Module } from "../../../src/types/module"
-import { Service, RuntimeContext, getServiceRuntimeContext } from "../../../src/types/service"
-import { Task } from "../../../src/types/task"
-import Stream from "ts-stream"
-import { ServiceLogEntry } from "../../../src/types/plugin/outputs"
-import { LogEntry } from "../../../src/logger/log-entry"
-import * as Joi from "joi"
-import {
-  describeModuleTypeParamsSchema,
-  configureModuleParamsSchema,
-  getBuildStatusParamsSchema,
-  buildModuleParamsSchema,
-  runModuleParamsSchema,
-  testModuleParamsSchema,
-  getTestResultParamsSchema,
-  getServiceStatusParamsSchema,
-  deployServiceParamsSchema,
-  deleteServiceParamsSchema,
-  hotReloadServiceParamsSchema,
-  execInServiceParamsSchema,
-  getServiceLogsParamsSchema,
-  runServiceParamsSchema,
-  getTaskResultParamsSchema,
-  runTaskParamsSchema,
-  getEnvironmentStatusParamsSchema,
-  prepareEnvironmentParamsSchema,
-  cleanupEnvironmentParamsSchema,
-  getSecretParamsSchema,
-  setSecretParamsSchema,
-  deleteSecretParamsSchema,
-  publishModuleParamsSchema,
-} from "../../../src/types/plugin/params"
+import { validate } from "../../../src/config/common"
 
 const now = new Date()
 
@@ -404,41 +387,41 @@ describe("ActionHelper", () => {
 const testPlugin: PluginFactory = async () => ({
   actions: <PluginActions>{
     getEnvironmentStatus: async (params) => {
-      validate(params, getEnvironmentStatusParamsSchema)
+      validate(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
       return {
         ready: false,
       }
     },
 
     prepareEnvironment: async (params) => {
-      validate(params, prepareEnvironmentParamsSchema)
+      validate(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
       return {}
     },
 
     cleanupEnvironment: async (params) => {
-      validate(params, cleanupEnvironmentParamsSchema)
+      validate(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
       return {}
     },
 
     getSecret: async (params) => {
-      validate(params, getSecretParamsSchema)
+      validate(params, pluginActionDescriptions.getSecret.paramsSchema)
       return { value: params.key }
     },
 
     setSecret: async (params) => {
-      validate(params, setSecretParamsSchema)
+      validate(params, pluginActionDescriptions.setSecret.paramsSchema)
       return {}
     },
 
     deleteSecret: async (params) => {
-      validate(params, deleteSecretParamsSchema)
+      validate(params, pluginActionDescriptions.deleteSecret.paramsSchema)
       return { found: true }
     },
   },
   moduleActions: {
     test: <ModuleAndRuntimeActions>{
       describeType: async (params) => {
-        validate(params, describeModuleTypeParamsSchema)
+        validate(params, moduleActionDescriptions.describeType.paramsSchema)
         return {
           docs: "bla bla bla",
           schema: Joi.object(),
@@ -447,7 +430,7 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       configure: async (params) => {
-        validate(params, configureModuleParamsSchema)
+        validate(params, moduleActionDescriptions.configure.paramsSchema)
 
         const serviceConfigs = params.moduleConfig.spec.services.map(spec => ({
           name: spec.name,
@@ -470,27 +453,27 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       getBuildStatus: async (params) => {
-        validate(params, getBuildStatusParamsSchema)
+        validate(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
         return { ready: true }
       },
 
       build: async (params) => {
-        validate(params, buildModuleParamsSchema)
+        validate(params, moduleActionDescriptions.build.paramsSchema)
         return {}
       },
 
       publishModule: async (params) => {
-        validate(params, publishModuleParamsSchema)
+        validate(params, moduleActionDescriptions.publishModule.paramsSchema)
         return { published: true }
       },
 
       hotReloadService: async (params) => {
-        validate(params, hotReloadServiceParamsSchema)
+        validate(params, moduleActionDescriptions.hotReloadService.paramsSchema)
         return {}
       },
 
       runModule: async (params) => {
-        validate(params, runModuleParamsSchema)
+        validate(params, moduleActionDescriptions.runModule.paramsSchema)
         return {
           moduleName: params.module.name,
           command: params.command,
@@ -503,7 +486,7 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       testModule: async (params) => {
-        validate(params, testModuleParamsSchema)
+        validate(params, moduleActionDescriptions.testModule.paramsSchema)
         return {
           moduleName: params.module.name,
           command: [],
@@ -517,7 +500,7 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       getTestResult: async (params) => {
-        validate(params, getTestResultParamsSchema)
+        validate(params, moduleActionDescriptions.getTestResult.paramsSchema)
         return {
           moduleName: params.module.name,
           command: [],
@@ -531,22 +514,22 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       getServiceStatus: async (params) => {
-        validate(params, getServiceStatusParamsSchema)
+        validate(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
         return { state: "ready" }
       },
 
       deployService: async (params) => {
-        validate(params, deployServiceParamsSchema)
+        validate(params, moduleActionDescriptions.deployService.paramsSchema)
         return { state: "ready" }
       },
 
       deleteService: async (params) => {
-        validate(params, deleteServiceParamsSchema)
+        validate(params, moduleActionDescriptions.deleteService.paramsSchema)
         return { state: "ready" }
       },
 
       execInService: async (params) => {
-        validate(params, execInServiceParamsSchema)
+        validate(params, moduleActionDescriptions.execInService.paramsSchema)
         return {
           code: 0,
           output: "bla bla",
@@ -554,12 +537,12 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       getServiceLogs: async (params) => {
-        validate(params, getServiceLogsParamsSchema)
+        validate(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
         return {}
       },
 
       runService: async (params) => {
-        validate(params, runServiceParamsSchema)
+        validate(params, moduleActionDescriptions.runService.paramsSchema)
         return {
           moduleName: params.module.name,
           command: ["foo"],
@@ -572,7 +555,7 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       getTaskResult: async (params) => {
-        validate(params, getTaskResultParamsSchema)
+        validate(params, moduleActionDescriptions.getTaskResult.paramsSchema)
         const module = params.task.module
         return {
           moduleName: module.name,
@@ -587,7 +570,7 @@ const testPlugin: PluginFactory = async () => ({
       },
 
       runTask: async (params) => {
-        validate(params, runTaskParamsSchema)
+        validate(params, moduleActionDescriptions.runTask.paramsSchema)
         const module = params.task.module
         return {
           moduleName: module.name,

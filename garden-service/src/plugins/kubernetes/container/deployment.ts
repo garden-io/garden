@@ -7,7 +7,6 @@
  */
 
 import { extend, keyBy, set, toPairs } from "lodash"
-import { DeployServiceParams, DeleteServiceParams } from "../../../types/plugin/params"
 import { RuntimeContext, Service, ServiceStatus } from "../../../types/service"
 import { ContainerModule, ContainerService } from "../../container/config"
 import { createIngressResources } from "./ingress"
@@ -25,6 +24,8 @@ import { ConfigurationError } from "../../../exceptions"
 import { getContainerServiceStatus } from "./status"
 import { containerHelpers } from "../../container/helpers"
 import { LogEntry } from "../../../logger/log-entry"
+import { DeployServiceParams } from "../../../types/plugin/service/deployService"
+import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_CPU_LIMIT = "500m"

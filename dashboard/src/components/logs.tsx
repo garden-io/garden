@@ -19,7 +19,7 @@ import { colors } from "../styles/variables"
 import { LoadLogs } from "../context/data"
 import { getServiceNames } from "../util/helpers"
 
-import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
 import { ConfigDump } from "garden-cli/src/garden"
 import { ActionIcon } from "./ActionIcon"
 

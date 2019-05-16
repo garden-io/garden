@@ -11,7 +11,7 @@ import { padEnd } from "lodash"
 import React from "react"
 
 import { colors } from "../styles/variables"
-import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
 
 interface Props {
   entries: ServiceLogEntry[]

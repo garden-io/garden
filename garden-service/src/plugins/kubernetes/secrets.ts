@@ -11,8 +11,10 @@ import { V1Secret } from "@kubernetes/client-node"
 import { KubeApi } from "./api"
 import { SecretRef, KubernetesPluginContext } from "./kubernetes"
 import { ConfigurationError } from "../../exceptions"
-import { GetSecretParams, SetSecretParams, DeleteSecretParams } from "../../types/plugin/params"
 import { getMetadataNamespace } from "./namespace"
+import { GetSecretParams } from "../../types/plugin/provider/getSecret"
+import { SetSecretParams } from "../../types/plugin/provider/setSecret"
+import { DeleteSecretParams } from "../../types/plugin/provider/deleteSecret"
 
 export async function getSecret({ ctx, log, key }: GetSecretParams) {
   const k8sCtx = <KubernetesPluginContext>ctx

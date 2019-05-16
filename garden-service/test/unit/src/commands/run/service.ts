@@ -1,5 +1,5 @@
 import { RunServiceCommand } from "../../../../../src/commands/run/service"
-import { RunResult } from "../../../../../src/types/plugin/outputs"
+import { RunResult } from "../../../../../src/types/plugin/base"
 import {
   makeTestGardenA,
   testModuleVersion,

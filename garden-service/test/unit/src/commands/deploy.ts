@@ -4,14 +4,11 @@ import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
 import { buildExecModule } from "../../../../src/plugins/exec"
 import { PluginFactory } from "../../../../src/types/plugin/plugin"
-import {
-  DeployServiceParams,
-  GetServiceStatusParams,
-  RunTaskParams,
-} from "../../../../src/types/plugin/params"
 import { ServiceState, ServiceStatus } from "../../../../src/types/service"
 import { taskResultOutputs, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
-import { RunTaskResult } from "../../../../src/types/plugin/outputs"
+import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
+import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
+import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
 
 const placeholderTimestamp = new Date()
 

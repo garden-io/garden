@@ -9,29 +9,9 @@
 import * as Joi from "joi"
 import { mapValues } from "lodash"
 import { join } from "path"
-import {
-  joiArray,
-  joiEnvVars,
-  validateWithPath,
-} from "../config/common"
-import {
-  GardenPlugin,
-} from "../types/plugin/plugin"
+import { joiArray, joiEnvVars, validateWithPath } from "../config/common"
+import { GardenPlugin } from "../types/plugin/plugin"
 import { Module } from "../types/module"
-import {
-  BuildResult,
-  BuildStatus,
-  TestResult,
-  RunTaskResult,
-  ConfigureModuleResult,
-} from "../types/plugin/outputs"
-import {
-  BuildModuleParams,
-  GetBuildStatusParams,
-  TestModuleParams,
-  RunTaskParams,
-  ConfigureModuleParams,
-} from "../types/plugin/params"
 import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
 import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/vcs"
@@ -40,6 +20,12 @@ import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema } from "../config/module
 import execa = require("execa")
 import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
 import { dedent } from "../util/string"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../types/plugin/module/configure"
+import { GetBuildStatusParams, BuildStatus } from "../types/plugin/module/getBuildStatus"
+import { BuildModuleParams, BuildResult } from "../types/plugin/module/build"
+import { TestModuleParams } from "../types/plugin/module/testModule"
+import { TestResult } from "../types/plugin/module/getTestResult"
+import { RunTaskParams, RunTaskResult } from "../types/plugin/task/runTask"
 
 export const name = "exec"
 

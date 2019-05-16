@@ -13,7 +13,7 @@ import {
   StringParameter,
 } from "../base"
 import { NotFoundError } from "../../exceptions"
-import { TestResult } from "../../types/plugin/outputs"
+import { TestResult } from "../../types/plugin/module/getTestResult"
 import { getTestVersion } from "../../tasks/test"
 import { findByName, getNames } from "../../util/util"
 import { logHeader } from "../../logger/util"
