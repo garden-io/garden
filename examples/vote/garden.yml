@@ -12,3 +12,10 @@ environments:
         namespace: ${local.env.USER || "default"}-vote
         defaultHostname: ${local.env.USER || "default"}-vote.dev-1.sys.garden
         buildMode: cluster-docker
+  - name: testing
+    providers:
+      - name: kubernetes
+        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        namespace: ${local.env.NAMESPACE || "vote-testing"}
+        defaultHostname: testing.dev-1.sys.garden
+        buildMode: cluster-docker

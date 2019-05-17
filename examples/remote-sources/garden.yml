@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 kind: Project
 name: remote-sources
 sources:
@@ -5,3 +6,24 @@ sources:
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.0
   - name: db-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
+=======
+project:
+  name: remote-sources
+  sources:
+    - name: web-services
+      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.0
+    - name: db-services
+      repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
+  environments:
+    - name: testing
+      providers:
+        - name: kubernetes
+          context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+          namespace: ${local.env.NAMESPACE || "remote-sources-testing"}
+          defaultHostname: testing.dev-1.sys.garden
+          deploymentRegistry:
+            # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
+            hostname: eu.gcr.io
+            # Namespace to use in the registry for this project. For GCR, use the project ID where your cluster is.
+            namespace: garden-dev-200012
+>>>>>>> ci: run integ tests
