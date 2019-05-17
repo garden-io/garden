@@ -16,7 +16,6 @@ import {
   flow,
   isArray,
   isEmpty,
-  padStart,
   reduce,
   kebabCase,
   repeat,
@@ -75,7 +74,7 @@ export function printEmoji(emoji: EmojiName) {
 
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
-  return padStart("", (entry.opts.indent || 0) * 3)
+  return "".padStart((entry.opts.indent || 0) * 3)
 }
 
 export function renderEmoji(entry: LogEntry): string {
