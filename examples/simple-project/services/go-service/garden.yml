@@ -12,3 +12,7 @@ module:
       ingresses:
         - path: /hello-go
           port: http
+
+
+
+
