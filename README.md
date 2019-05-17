@@ -81,13 +81,13 @@ type: container
 name: go-service
 description: Go service container
 services:
-- name: go-service
-  ports:
-    - name: http
-      containerPort: 80
-  ingresses:
-    - path: /hello-go
-      port: http
+  - name: go-service
+    ports:
+      - name: http
+        containerPort: 80
+    ingresses:
+      - path: /hello-go
+        port: http
 tests:
 - name: integ
   command: [./test]
