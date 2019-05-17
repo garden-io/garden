@@ -130,6 +130,27 @@ commands:
             docker tag << parameters.context >>  << parameters.registry >>/<< parameters.image >>:$TAG
             docker push << parameters.registry >>/<< parameters.image >>:$TAG
 
+  configure_kubectl_context:
+    description: Configure the kubectl context so that we can access our remote cluster. Used for integration testing.
+    steps:
+      - run:
+          name: Install gcloud and kubectl and add to path
+          command: |
+            mkdir $HOME/kubectl
+            curl -L -o $HOME/kubectl/kubectl "https://storage.googleapis.com/kubernetes-release/release/v1.11.3/bin/linux/amd64/kubectl"
+            chmod +x $HOME/kubectl/kubectl
+            echo 'export PATH=$HOME/kubectl:$PATH' >> $BASH_ENV
+            mkdir $HOME/gcloud
+            curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz | tar xvz -C $HOME/gcloud
+            $HOME/gcloud/google-cloud-sdk/install.sh --quiet
+            echo 'export PATH=$HOME/gcloud/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Configure kubectl context via gcloud and authenticate to Google Container Registry
+          command: |
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID && gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
+            gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
+            gcloud --quiet auth configure-docker
 #
 # Jobs section
 #
@@ -182,6 +203,20 @@ jobs:
             npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
+  integ-test-service:
+    <<: *node-config
+    steps:
+      - checkout
+      - run: sudo apt-get update && sudo apt-get install rsync
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - npm_install
+      - configure_kubectl_context
+      - *attach-workspace
+      - run:
+          name: Run integration tests
+          # command: ./garden-service/static/bin/garden test integ-tests --root garden-service/test/integ --logger-type basic
+          command: cd garden-service && node_modules/.bin/ts-node ./bin/integ-full.ts --env testing
   build-dashboard:
     <<: *node-config
     steps:
@@ -251,6 +286,9 @@ workflows:
     jobs:
       - build-service
       - test-service:
+          requires:
+            - build-service
+      - integ-test-service:
           requires:
             - build-service
       - build-dashboard
