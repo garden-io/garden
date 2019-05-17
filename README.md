@@ -89,9 +89,9 @@ services:
       - path: /hello-go
         port: http
 tests:
-- name: integ
-  command: [./test]
-  dependencies: [my-other-service]
+  - name: integ
+    command: [./test]
+    dependencies: [my-other-service]
 ```
 
 Please browse our [examples directory](https://github.com/garden-io/garden/tree/v0.9.11/examples) for full project configurations and further context.
