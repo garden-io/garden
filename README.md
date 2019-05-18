@@ -81,17 +81,17 @@ type: container
 name: go-service
 description: Go service container
 services:
-- name: go-service
-  ports:
-    - name: http
-      containerPort: 80
-  ingresses:
-    - path: /hello-go
-      port: http
+  - name: go-service
+    ports:
+      - name: http
+        containerPort: 80
+    ingresses:
+      - path: /hello-go
+        port: http
 tests:
-- name: integ
-  command: [./test]
-  dependencies: [my-other-service]
+  - name: integ
+    command: [./test]
+    dependencies: [my-other-service]
 ```
 
 Please browse our [examples directory](https://github.com/garden-io/garden/tree/v0.9.11/examples) for full project configurations and further context.
