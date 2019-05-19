@@ -125,18 +125,21 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
     await kubectl.exec({ log, context: kubeContext, args: ["version"] })
   } catch (err) {
-    // TODO: catch error properly
-    if (err.detail.output) {
-      throw new DeploymentError(
-        `Unable to connect to Kubernetes cluster. ` +
-        `Please make sure it is running, reachable and that you have the right context configured.`,
-        {
-          kubeContext,
-          kubectlOutput: err.detail.output,
-        },
-      )
+    let message = err.message
+    if (err.stdout) {
+      message += err.stdout
     }
-    throw err
+    if (err.stderr) {
+      message += err.stderr
+    }
+    throw new DeploymentError(
+      `Unable to connect to Kubernetes cluster. ` +
+      `Please make sure it is running, reachable and that you have the right context configured.`,
+      {
+        kubeContext,
+        message,
+      },
+    )
   }
 
   await Bluebird.all([
