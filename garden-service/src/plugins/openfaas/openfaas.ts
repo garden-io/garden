@@ -154,7 +154,7 @@ export function gardenPlugin(): GardenPlugin {
         const k8sProviderName = getK8sProvider(openFaasCtx).name
         const ofCtx = <OpenFaasPluginContext>(await ofGarden.getPluginContext(k8sProviderName))
         const ofK8sProvider = getK8sProvider(ofCtx)
-        await installTiller(ctx, ofK8sProvider, log)
+        await installTiller({ ctx, provider: ofK8sProvider, log, force })
 
         const results = await ofGarden.actions.deployServices({ log, force })
         const failed = values(results.taskResults).filter(r => !!r.error).length

@@ -147,6 +147,10 @@ export interface ServiceStatus {
   detail?: any
 }
 
+export interface ServiceStatusMap {
+  [key: string]: ServiceStatus
+}
+
 export const serviceStatusSchema = Joi.object()
   .keys({
     providerId: Joi.string()
