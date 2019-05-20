@@ -8,7 +8,7 @@
 
 import React, { useContext, useEffect } from "react"
 import { DataContext } from "../context/data"
-import { timeConversion } from "../util/helpers"
+import { getDuration } from "../util/helpers"
 import { UiStateContext } from "../context/ui"
 import { RenderedNode } from "garden-cli/src/config-graph"
 import { InfoPane } from "../components/info-pane"
@@ -27,23 +27,14 @@ export interface Props {
 }
 
 function prepareData(data: TestResultOutput | TaskResultOutput) {
+  const startedAt = data.startedAt
+  const completedAt = data.completedAt
   const duration =
-    data.startedAt &&
-    data.completedAt &&
-    timeConversion(
-      new Date(data.completedAt).valueOf() -
-      new Date(data.startedAt).valueOf(),
-    )
-  const startedAt =
-    data.startedAt &&
-    new Date(data.startedAt).toLocaleString()
-
-  const completedAt =
-    data.completedAt &&
-    new Date(data.completedAt).toLocaleString()
+    startedAt &&
+    completedAt &&
+    getDuration(startedAt, completedAt)
 
   const output = data.output
-
   return { duration, startedAt, completedAt, output }
 }
 

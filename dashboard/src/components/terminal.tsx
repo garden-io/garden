@@ -22,8 +22,7 @@ interface Props {
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
   border-radius: 2px;
-  max-height: 45rem;
-  max-width: calc(18wv - 4rem);
+  max-height: calc(100vh - 9rem);
   overflow-y: auto;
 `
 

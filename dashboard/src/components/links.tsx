@@ -13,15 +13,15 @@ import { NavLink as ReactRouterNavLink } from "react-router-dom"
 import { colors } from "../styles/variables"
 
 export const ExternalLink = styled.a`
+  cursor: pointer;
   text-decoration: underline;
   &:visited {
-    color: ${colors.gardenGreenDark}
   }
   &:hover {
-    color: ${colors.gardenPink}
+    color: ${colors.gardenPink};
   }
 `
 
 export const NavLink = props => (
-  <ReactRouterNavLink {...props} activeStyle={{ color: colors.gardenPink }} />
+  <ReactRouterNavLink {...props} activeStyle={{ color: colors.gardenPink, fontWeight: 500 }} />
 )

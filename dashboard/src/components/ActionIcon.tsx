@@ -18,9 +18,11 @@ interface Props {
 }
 
 const Button = styled.div`
-  border-radius: 10%;
+  border-radius: 4px;
   margin: .5rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
   :active {
     opacity: 0.5;
   }

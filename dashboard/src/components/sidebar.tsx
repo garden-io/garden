@@ -13,7 +13,7 @@ import React, { Component } from "react"
 import { NavLink } from "./links"
 import { Page } from "../containers/sidebar"
 
-import { colors, fontMedium } from "../styles/variables"
+import { colors, fontRegular } from "../styles/variables"
 
 interface Props {
   pages: Page[]
@@ -24,7 +24,7 @@ interface State {
 }
 
 const Button = styled.li`
-  ${fontMedium};
+  ${fontRegular};
   border-radius: 2px;
   cursor: pointer;
   width: 100%;

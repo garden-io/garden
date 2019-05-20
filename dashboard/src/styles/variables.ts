@@ -27,6 +27,7 @@ export const colors = {
   gray: "#f0f0f0",
   black: "#192A3E",
   grayLight: "#fafafa",
+  grayUnselected: "#C2CFE0",
   gardenGray: "#555656",
   gardenGrayLight: "#cdcfd1",
   gardenGrayLighter: "#FBFCFD",
@@ -60,10 +61,19 @@ export const colors = {
       backgroundColor: "#BEF",
     },
   },
-  status: {
+  state: {
     ready: "#2ED47A",
+    succeeded: "#2ED47A",
+    failed: "#F7685B",
     deploying: "#FFB946",
+    stopped: "#FFB946",
+    unknown: "#FFB946",
     missing: "#F7685B",
     unhealthy: "#F7685B",
+  },
+  cardTypes: {
+    service: "",
+    test: "",
+    run: "",
   },
 }
