@@ -6,19 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React from "react"
+import React, { useContext } from "react"
 import styled from "@emotion/styled"
 import { ExternalLink } from "./links"
 import { ServiceIngress } from "garden-cli/src/types/service"
 import { truncateMiddle } from "../util/helpers"
 import normalizeUrl from "normalize-url"
 import { format } from "url"
+import { UiStateContext } from "../context/ui"
 
 const Ingresses = styled.div`
   font-size: 1rem;
   line-height: 1.4rem;
   color: #4f4f4f;
-  height: 5rem;
+  max-height: 5rem;
   overflow: hidden;
   overflow-y: auto;
 
@@ -41,11 +42,6 @@ const LinkContainer = styled.div`
   }
 `
 
-const NoIngresses = styled.div`
-  font-style: italic;
-  font-size: .75rem;
-`
-
 const getIngressUrl = (ingress: ServiceIngress) => {
   return normalizeUrl(format({
     protocol: ingress.protocol,
@@ -60,21 +56,39 @@ interface IngressesProp {
 }
 
 export default ({ ingresses }: IngressesProp) => {
+  const { actions: { selectIngress } } = useContext(UiStateContext)
+
+  const handleSelectIngress = (event) => {
+    if (ingresses && ingresses.length) {
+      const ingress = ingresses.find(i => i.path === event.target.id)
+      if (ingress) {
+        selectIngress(ingress)
+      }
+    }
+  }
+
   return (
     <Ingresses>
-      {ingresses && ingresses.map(i => {
-        const url = getIngressUrl(i)
-        return <LinkContainer key={i.path}>
-          <ExternalLink href={url} target="_blank">
-            {truncateMiddle(url)}
-          </ExternalLink>
-          <br />
-        </LinkContainer>
+      {(ingresses || []).map((ingress, index) => {
+        const url = getIngressUrl(ingress)
+        return (
+          <LinkContainer key={ingress.path}>
+            <div className="visible-xl-block">
+              <ExternalLink id={ingress.path} onClick={handleSelectIngress} >
+                {truncateMiddle(url)}
+              </ExternalLink>
+            </div>
+            <div className="hidden-xl">
+              <ExternalLink href={url} target="_blank">
+                {truncateMiddle(url)}
+              </ExternalLink>
+            </div>
+            {ingresses && (index < ingresses.length - 1) &&
+              <br />
+            }
+          </LinkContainer>
+        )
       })}
-      {(!ingresses || !ingresses.length) &&
-        <NoIngresses>
-          No ingresses found
-        </NoIngresses>}
     </Ingresses>
   )
 }

@@ -41,10 +41,10 @@ const Logo = styled.img`
 `
 
 const SidebarWrapper = styled.div`
-  border-right: 1px solid ${colors.border};
   height: 100vh;
   position: relative;
   background: ${colors.gardenWhite};
+  box-shadow: 6px 0px 18px rgba(0, 0, 0, 0.06);
 `
 
 type SidebarContainerProps = {
@@ -61,7 +61,7 @@ const SidebarToggleButton = styled.div`
   top: 2rem;
   width: 1.5rem;
   cursor: pointer;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
 `
 
 const AppContainer = () => {
@@ -112,14 +112,14 @@ const App = () => {
           display: flex;
           flex-direction: column;
           flex-grow: 1;
-          overflow-y: auto;
+          overflow-y: hidden;
         `}
       >
         <div
           className={css`
             background-color: ${colors.gardenGrayLighter};
             flex-grow: 1;
-            padding: 1rem 1rem 1rem 3rem;
+            padding: 1rem 1rem 1rem 2rem;
           `}
         >
           <Route exact path="/" component={Overview} />

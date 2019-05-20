@@ -35,7 +35,7 @@ export async function fetchGraph() {
 }
 
 export async function fetchStatus() {
-  return apiPost<EnvironmentStatus>("get.status")
+  return apiPost<EnvironmentStatus>("get.status", { output: "json" })
 }
 
 export async function fetchLogs(services: FetchLogsParam) {

@@ -101,7 +101,7 @@ class Logs extends Component<Props, State> {
     const filteredLogs = value === "all" ? logs : logs.filter(l => l.serviceName === value)
 
     return (
-      <div>
+      <div className="pl-1">
         <div
           className={cls(css`
             min-width: 12rem;

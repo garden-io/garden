@@ -24,7 +24,7 @@ import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
 import { ConfigDump } from "garden-cli/src/garden"
 import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
-import { EnvironmentStatus } from "garden-cli/src/actions"
+import { StatusCommandResult } from "garden-cli/src/commands/get/get-status"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
 import { AxiosError } from "axios"
 
@@ -39,7 +39,7 @@ interface Store {
     data?: ConfigDump,
   },
   status: StoreCommon & {
-    data?: EnvironmentStatus,
+    data?: StatusCommandResult,
   },
   graph: StoreCommon & {
     data?: GraphOutput,

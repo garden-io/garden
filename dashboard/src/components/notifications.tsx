@@ -13,7 +13,6 @@ import { colors } from "../styles/variables"
 const Notification = styled.div`
   border-radius: 3px 3px 3px 3px;
   padding: .5rem;
-  margin-top: .5rem;
   font-size: 0.75rem;
   display: flex;
   align-items: center;

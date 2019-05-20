@@ -7,7 +7,7 @@
  */
 
 import React, { useContext, useEffect } from "react"
-
+import styled from "@emotion/styled"
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
 import { EventContext } from "../context/events"
@@ -15,6 +15,10 @@ import { DataContext } from "../context/data"
 import { UiStateContext } from "../context/ui"
 import { NodeInfo } from "./node-info"
 import Spinner from "../components/spinner"
+
+const Wrapper = styled.div`
+padding-left: .75rem;
+`
 
 export default () => {
   const {
@@ -28,7 +32,7 @@ export default () => {
 
   const {
     actions: { selectGraphNode },
-    state: { selectedGraphNode },
+    state: { selectedGraphNode, isSidebarOpen },
   } = useContext(UiStateContext)
 
   if (config.error || graph.error) {
@@ -44,7 +48,7 @@ export default () => {
     const node = graph.data.nodes.find(n => n.key === selectedGraphNode)
     if (node) {
       moreInfoPane = (
-        <div className="col-xs-3">
+        <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
           <NodeInfo node={node} />
         </div>
       )
@@ -52,17 +56,18 @@ export default () => {
   }
 
   return (
-    <div className="row">
-      <div className={moreInfoPane ? "col-xs-9" : "col-xs"}>
+    <Wrapper className="row">
+      <div className={moreInfoPane ? "col-xs-7 col-sm-7 col-md-8 col-lg-8 col-xl-8" : "col-xs"}>
         <Graph
           message={message}
           onGraphNodeSelected={selectGraphNode}
           selectedGraphNode={selectedGraphNode}
+          layoutChanged={isSidebarOpen}
           config={config.data}
           graph={graph.data}
         />
       </div>
       {moreInfoPane}
-    </div>
+    </Wrapper>
   )
 }

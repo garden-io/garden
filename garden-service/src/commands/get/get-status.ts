@@ -20,16 +20,23 @@ import { ConfigGraph } from "../../config-graph"
 import { getTaskVersion } from "../../tasks/task"
 import { LogEntry } from "../../logger/log-entry"
 import { getTestVersion } from "../../tasks/test"
+import { RunResult } from "../../types/plugin/outputs"
 
-type RunStatus = "not-completed" | "completed"
+export type RunState = "outdated" | "succeeded" | "failed"
 
-interface TestStatuses { [testKey: string]: RunStatus }
-interface TaskStatuses { [taskKey: string]: RunStatus }
+export interface RunStatus {
+  state: RunState
+  startedAt?: Date
+  completedAt?: Date
+}
+
+export interface TestStatuses { [testKey: string]: RunStatus }
+export interface TaskStatuses { [taskKey: string]: RunStatus }
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult extends EnvironmentStatus {
-  testStatuses: TestStatuses
-  taskStatuses: TaskStatuses
+  tests: TestStatuses
+  tasks: TaskStatuses
 }
 
 export class GetStatusCommand extends Command {
@@ -44,8 +51,8 @@ export class GetStatusCommand extends Command {
       const graph = await garden.getConfigGraph()
       result = await Bluebird.props({
         ...status,
-        testStatuses: getTestStatuses(garden, graph, log),
-        taskStatuses: getTaskStatuses(garden, graph, log),
+        tests: getTestStatuses(garden, graph, log),
+        tasks: getTaskStatuses(garden, graph, log),
       })
     } else {
       result = status
@@ -66,10 +73,10 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
   return fromPairs(flatten(await Bluebird.map(modules, async (module) => {
     return Bluebird.map(module.testConfigs, async (testConfig) => {
       const testVersion = await getTestVersion(garden, configGraph, module, testConfig)
-      const done = !!(await garden.actions.getTestResult({
+      const result = await garden.actions.getTestResult({
         module, log, testVersion, testName: testConfig.name,
-      }))
-      return [`${module.name}.${testConfig.name}`, done ? "completed" : "not-completed"]
+      })
+      return [`${module.name}.${testConfig.name}`, runStatus(result)]
     })
   })))
 }
@@ -78,7 +85,16 @@ async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
   const tasks = await configGraph.getTasks()
   return fromPairs(await Bluebird.map(tasks, async (task) => {
     const taskVersion = await getTaskVersion(garden, configGraph, task)
-    const done = !!(await garden.actions.getTaskResult({ task, taskVersion, log }))
-    return [task.name, done ? "completed" : "not-completed"]
+    const result = await garden.actions.getTaskResult({ task, taskVersion, log })
+    return [task.name, runStatus(result)]
   }))
+}
+
+function runStatus<R extends RunResult>(result: R | null): RunStatus {
+  if (result) {
+    const { startedAt, completedAt } = result
+    return { startedAt, completedAt, state: result.success ? "succeeded" : "failed" }
+  } else {
+    return { state: "outdated" }
+  }
 }

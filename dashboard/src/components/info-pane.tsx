@@ -10,20 +10,22 @@ import React from "react"
 import cls from "classnames"
 import { capitalize } from "lodash"
 import { css } from "emotion"
+import moment from "moment"
 import styled from "@emotion/styled"
 import Card from "../components/card"
 import { colors } from "../styles/variables"
 import { RenderedNode } from "garden-cli/src/config-graph"
-import { ErrorNotification } from "./notifications"
+import { WarningNotification } from "./notifications"
 import { ActionIcon } from "./ActionIcon"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
   color: white;
   border-radius: 0.125rem;
-  max-height: 45rem;
+  flex: 1 1;
   overflow-y: auto;
   padding: 1rem;
+  margin-top: 1rem;
 `
 const Code = styled.code`
   font-size: .8rem;
@@ -48,11 +50,12 @@ const IconContainer = styled.span`
 const Key = ({ text }) => (
   <div
     className={cls(css`
-      font-weight: 500;
-      font-size: 0.6875rem;
-      line-height: 1rem;
-      letter-spacing: 0.01em;
-      color: #818E9B;
+    padding-right: .5rem;
+  font-size: 13px;
+  line-height: 19px;
+  letter-spacing: 0.01em;
+  color: #4C5862;
+  opacity: 0.5;
     `,
       "col-xs-12 pr-1")}
   >
@@ -63,11 +66,11 @@ const Key = ({ text }) => (
 const Value = ({ children }) => (
   <div
     className={cls(css`
-      font-weight: normal;
-      font-size: 0.8125rem;
-      line-height: 1.1875rem;
-      letter-spacing: 0.01em;
-      color: #323C47;
+  padding-right: .5rem;
+  font-size: 13px;
+  line-height: 19px;
+  letter-spacing: 0.01em;
+  color: #4C5862;
     `,
       "col-xs-12")}
   >
@@ -75,7 +78,15 @@ const Value = ({ children }) => (
   </div>
 )
 const Field = ({ children }) => (
-  <div className="row pt-1 ">
+  <div
+    className={cls(
+      "row",
+      "pt-1",
+      css`
+        flex: 0 0;
+      `,
+    )}
+  >
     {children}
   </div>
 )
@@ -94,8 +105,8 @@ interface Props {
   onRefresh?: () => void
   loading?: boolean
   output?: string | null
-  startedAt?: string | null
-  completedAt?: string | null
+  startedAt?: Date | null
+  completedAt?: Date | null
   duration?: string | null
 }
 
@@ -119,14 +130,29 @@ export const InfoPane: React.FC<Props> = ({
         <Code>{output}</Code>
       </Term>
     )
-  } else if (output === null) {
-    // Output explictly set to null means that the data was  fetched but the result was empty
-    outputEl = <ErrorNotification>No test output</ErrorNotification>
+  } else if (output === null || output === "") {
+    // Output explictly set to nullƒ means that the data was  fetched but the result was empty
+    outputEl = (
+      <div className="row pt-1">
+        <div className="col-xs-12">
+          <WarningNotification>No {type} output</WarningNotification>
+        </div>
+      </div>
+    )
   }
 
   return (
     <Card>
-      <div className="p-1">
+      <div
+        className={cls(
+          "p-1",
+          css`
+          display: flex;
+          flex-direction: column;
+          max-height: calc(100vh - 2rem);
+        `,
+        )}
+      >
         <div className="row">
           <div>
             <IconContainer className={cls(`garden-icon`, `garden-icon--${type}`)} />
@@ -174,25 +200,19 @@ export const InfoPane: React.FC<Props> = ({
 
         {startedAt && (
           <Field>
-            <Key text="Started At" />
-            <Value>{startedAt}</Value>
+            <Key text="Last run" />
+            <Value>{moment(startedAt).fromNow()}</Value>
           </Field>
         )}
 
         {completedAt && (
           <Field>
-            <Key text="Completed At" />
-            <Value>{completedAt}</Value>
+            <Key text="Completed" />
+            <Value>{moment(completedAt).fromNow()}</Value>
           </Field>
         )}
 
-        {(type === "test" || type === "run") && outputEl !== null && (
-          <Field>
-            <div className="col-xs-12">
-              {outputEl}
-            </div>
-          </Field>
-        )}
+        {(type === "test" || type === "run") && outputEl !== null && outputEl}
       </div>
     </Card>
   )

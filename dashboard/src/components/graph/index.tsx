@@ -8,7 +8,7 @@
 
 import cls from "classnames"
 import { css } from "emotion"
-import React, { Component, ChangeEvent } from "react"
+import React, { Component } from "react"
 import styled from "@emotion/styled"
 import { capitalize, uniq } from "lodash"
 import * as d3 from "d3"
@@ -19,13 +19,14 @@ import Card from "../card"
 import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
-import CheckBox from "../checkbox"
-import { SelectGraphNode } from "../../context/ui"
+import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../context/ui"
 import { WsEventMessage, SupportedEventName } from "../../context/events"
 import { Events } from "garden-cli/src/events"
 import { Extends } from "garden-cli/src/util/util"
 import { ConfigDump } from "garden-cli/src/garden"
 import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
+import { FiltersButton, Filters } from "../group-filter"
+import { RenderedNodeType } from "garden-cli/src/config-graph"
 
 interface Node {
   name: string
@@ -111,7 +112,7 @@ function drawChart(
   g.nodes().forEach(function(v) {
     const node = g.node(v)
     // Round the corners of the nodes
-    node.rx = node.ry = 5
+    node.rx = node.ry = 4
     // Remove node padding
     node.paddingBottom = 0
     node.paddingTop = 0
@@ -190,11 +191,12 @@ interface Props {
   graph: GraphOutput
   onGraphNodeSelected: SelectGraphNode
   selectedGraphNode: string | null
+  layoutChanged: boolean
   message?: WsEventMessage
 }
 
 interface State {
-  filters: { [key: string]: boolean }
+  filters: Filters<StackGraphSupportedFilterKeys>
   nodes: Node[]
   edges: Edge[]
 }
@@ -203,7 +205,7 @@ interface State {
 const makeLabel = (name: string, type: string, moduleName: string) => {
   return `
     <div class='node-container node-container--${type}'>
-        <div class='type'>${type}</div>
+        <div class='type'>${capitalize(type)}</div>
     <span>
       <span class='module-name'>${moduleName}</span>
         ${
@@ -213,17 +215,6 @@ const makeLabel = (name: string, type: string, moduleName: string) => {
       : ``
     }
     </div>`
-  // return `
-  //   <div class='node-container node-container--${type} garden-icon--${type}'>
-  //   <span>
-  //     <span class='module-name'>${moduleName}</span>
-  //       ${
-  //   moduleName !== name
-  //     ? `<span> / </span>
-  //          <span>${name}</span>`
-  //     : ``
-  //   }
-  //   </div>`
 }
 
 const Span = styled.span`
@@ -239,39 +230,48 @@ const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`
   margin: 16px 0 0 20px;
 `
 
-// const IconContainer = styled.span`
-//   display: inline-block;
-//   width: 3rem;
-//   height: 3rem;
-//   background-size: contain;
-//   background-repeat: no-repeat;
-//   vertical-align: middle;
-// `
+type ChartState = {
+  nodes: Node[],
+  edges: Edge[],
+  filters: Filters<StackGraphSupportedFilterKeys>,
+}
 
 class Chart extends Component<Props, State> {
   _nodes: Node[]
   _edges: Edge[]
   _chartRef: React.RefObject<any>
 
-  state = {
+  state: ChartState = {
     nodes: [],
     edges: [],
-    filters: {},
+    filters: {
+      run: { selected: true, label: "Run" },
+      deploy: { selected: true, label: "Deploy" },
+      test: { selected: true, label: "Test" },
+      build: { selected: true, label: "Build" },
+    },
   }
 
   constructor(props) {
     super(props)
 
     this._chartRef = React.createRef()
-    this.onCheckboxChange = this.onCheckboxChange.bind(this)
+    this.handleFilter = this.handleFilter.bind(this)
     this._nodes = []
     this._edges = []
 
-    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
-    const filters = taskTypes.reduce((acc, type) => {
-      acc[type] = false
-      return acc
-    }, {})
+    const createFiltersState =
+      (allGroupFilters, type): Filters<StackGraphSupportedFilterKeys> => {
+        return ({
+          ...allGroupFilters,
+          [type]: {
+            ...(allGroupFilters[type]),
+            visible: true,
+          },
+        })
+      }
+    const taskTypes: RenderedNodeType[] = uniq(this.props.graph.nodes.map(n => n.type))
+    const filters: Filters<StackGraphSupportedFilterKeys> = taskTypes.reduce(createFiltersState, this.state.filters)
     this.state = {
       ...this.state,
       filters,
@@ -279,6 +279,7 @@ class Chart extends Component<Props, State> {
   }
 
   componentDidMount() {
+
     this.drawChart()
 
     // Re-draw graph on **end** of window resize event (hence the timer)
@@ -295,9 +296,11 @@ class Chart extends Component<Props, State> {
     window.onresize = () => { }
   }
 
-  onCheckboxChange({ target }: ChangeEvent<HTMLInputElement>) {
+  handleFilter(key: string) {
+    const toggledFilters = this.state.filters
+    toggledFilters[key].selected = !toggledFilters[key].selected
     this.setState({
-      filters: { ...this.state.filters, [target.name]: !target.checked },
+      filters: toggledFilters,
     })
   }
 
@@ -313,7 +316,7 @@ class Chart extends Component<Props, State> {
   makeGraph() {
     const { filters } = this.state
     const nodes: Node[] = this.props.graph.nodes
-      .filter(n => !filters[n.type])
+      .filter(n => filters[n.type].selected)
       .map(n => {
         return {
           id: n.key,
@@ -322,7 +325,7 @@ class Chart extends Component<Props, State> {
         }
       })
     const edges: Edge[] = this.props.graph.relationships
-      .filter(n => !filters[n.dependant.type] && !filters[n.dependency.type])
+      .filter(n => filters[n.dependant.type].selected && filters[n.dependency.type].selected)
       .map(r => {
         const source = r.dependency
         const target = r.dependant
@@ -332,6 +335,7 @@ class Chart extends Component<Props, State> {
           type: source.type,
         }
       })
+
     return { edges, nodes }
   }
 
@@ -340,14 +344,14 @@ class Chart extends Component<Props, State> {
     if (message && message.type === "event") {
       this.updateNodeClass(message)
     }
-    if (prevState.filters !== this.state.filters) {
+    if (prevState !== this.state) {
       this.drawChart()
     }
 
     if (
       (!prevProps.selectedGraphNode && this.props.selectedGraphNode) ||
-      (prevProps.selectedGraphNode && !this.props.selectedGraphNode)
-    ) {
+      (prevProps.selectedGraphNode && !this.props.selectedGraphNode) ||
+      (prevProps.layoutChanged !== this.props.layoutChanged)) {
       this.drawChart()
     }
     if (!this.props.selectedGraphNode) {
@@ -382,7 +386,6 @@ class Chart extends Component<Props, State> {
 
   render() {
     const { message } = this.props
-    const taskTypes = uniq(this.props.graph.nodes.map(n => n.type))
     const chartHeightEstimate = `100vh - 2rem`
 
     let spinner: React.ReactNode = null
@@ -410,20 +413,20 @@ class Chart extends Component<Props, State> {
               `,
             )}
           >
-            {taskTypes.map(type => {
-              return (
-                <div className="ml-1" key={type}>
-                  <CheckBox
-                    name={type}
-                    checked={!this.state.filters[type]}
-                    onChange={this.onCheckboxChange}
-                  >
-                    {/* <IconContainer className={`garden-icon--${type}`}/>  {capitalize(type)} */}
-                    {capitalize(type)}
-                  </CheckBox>
-                </div>
-              )
-            })}
+            <div className="ml-1" >
+              <FiltersButton
+                filters={this.state.filters}
+                onFilter={this.handleFilter}
+              />
+              <div
+                className={css`
+                display: flex;
+              `}
+              >
+                <Status>{status}</Status>
+                {spinner}
+              </div>
+            </div>
           </div>
           <div
             className={css`
@@ -437,21 +440,13 @@ class Chart extends Component<Props, State> {
               css`
                 position: absolute;
                 right: 1rem;
-                bottom: 0;
+                bottom: 1rem;
                 display: flex;
                 justify-content: flex-end;
               `,
               "mr-1",
             )}
           >
-            <div
-              className={css`
-                display: flex;
-              `}
-            >
-              <Status>{status}</Status>
-              {spinner}
-            </div>
             <Span>
               <span
                 className={css`
@@ -468,9 +463,19 @@ class Chart extends Component<Props, State> {
                     color: ${colors.gardenPink};
                   `}
               >
-                --{" "}
+                —{" "}
               </span>
               Pending
+              </Span>
+            <Span>
+              <span
+                className={css`
+                    color: ${colors.gardenPink};
+                  `}
+              >
+                --{" "}
+              </span>
+              Processing
               </Span>
             <Span>
               <span

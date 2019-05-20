@@ -33,9 +33,18 @@ export function timeConversion(millisec) {
   return timeFormatted
 }
 
-export const truncateMiddle = (str) => {
-  if (str.length > 35) {
-    return str.substr(0, 16) + "..." + str.substr(str.length - 16, str.length)
+// function expects either a string in the form of "2019-05-18T08:30:08.601Z" or a Date
+export function getDuration(start: string | Date, end: string | Date): string {
+  const startValue = new Date(start).valueOf()
+  const endValue = new Date(end).valueOf()
+  const duration = timeConversion(endValue - startValue)
+  return duration
+}
+
+export const truncateMiddle = (str: string, resLength: number = 35) => {
+  if (str.length > resLength) {
+    const middle = Math.ceil(resLength / 2)
+    return str.substr(0, middle) + "..." + str.substr(str.length - middle, str.length)
   }
 
   return str
