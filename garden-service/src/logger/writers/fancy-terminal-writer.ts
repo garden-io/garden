@@ -93,12 +93,11 @@ export class FancyTerminalWriter extends Writer {
   private spin(entries: TerminalEntryWithSpinner[], totalLines: number): void {
     entries.forEach(e => {
       let out = ""
-      const [x, y] = e.spinnerCoords
-      const termX = x === 0 ? x : x + 1
-      const termY = -(totalLines - y - 1)
+      const x = e.spinnerCoords[0]
+      const y = -(totalLines - e.spinnerCoords[1] - 1)
       out += ansiEscapes.cursorSavePosition
       out += ansiEscapes.cursorTo(0) // Ensure cursor is to the left
-      out += ansiEscapes.cursorMove(termX, termY)
+      out += ansiEscapes.cursorMove(x, y)
       out += spinnerStyle(this.tickSpinner(e.key))
       out += ansiEscapes.cursorRestorePosition
       this.stream.write(out)
