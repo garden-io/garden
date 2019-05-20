@@ -18,6 +18,10 @@ export class BasicTerminalWriter extends Writer {
   render(entry: LogEntry, logger: Logger): string | null {
     const level = this.level || logger.level
     if (level >= entry.level) {
+      // Use info symbol for active entries because basic logger doesn't have a spinner
+      if (entry.opts.status === "active" && !entry.opts.symbol) {
+        entry.opts.symbol = "info"
+      }
       return formatForTerminal(entry)
     }
     return null
