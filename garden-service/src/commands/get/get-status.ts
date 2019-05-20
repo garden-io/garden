@@ -36,11 +36,11 @@ export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the status of your environment."
 
-  async action({ garden, log, output }: CommandParams): Promise<CommandResult<EnvironmentStatus>> {
+  async action({ garden, log, opts }: CommandParams): Promise<CommandResult<EnvironmentStatus>> {
     const status = await garden.actions.getStatus({ log })
 
     let result
-    if (output) {
+    if (opts.output) {
       const graph = await garden.getConfigGraph()
       result = await Bluebird.props({
         ...status,

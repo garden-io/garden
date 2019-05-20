@@ -1,6 +1,6 @@
 import { BuildCommand } from "../../../../src/commands/build"
 import { expect } from "chai"
-import { makeTestGardenA } from "../../../helpers"
+import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 
 describe("commands.build", () => {
@@ -15,7 +15,7 @@ describe("commands.build", () => {
       log,
       logFooter,
       args: { modules: undefined },
-      opts: { watch: false, force: true },
+      opts: withDefaultGlobalOpts({ watch: false, force: true }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -36,7 +36,7 @@ describe("commands.build", () => {
       log,
       logFooter,
       args: { modules: ["module-b"] },
-      opts: { watch: false, force: true },
+      opts: withDefaultGlobalOpts({ watch: false, force: true }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({

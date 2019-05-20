@@ -10,7 +10,14 @@ import { expect } from "chai"
 import { join } from "path"
 import { mkdirp, pathExists } from "fs-extra"
 
-import { getDataDir, expectError, stubExtSources, stubGitCli, makeTestGarden } from "../../../helpers"
+import {
+  getDataDir,
+  expectError,
+  stubExtSources,
+  stubGitCli,
+  makeTestGarden,
+  withDefaultGlobalOpts,
+} from "../../../helpers"
 import { UpdateRemoteSourcesCommand } from "../../../../src/commands/update-remote/sources"
 import { UpdateRemoteModulesCommand } from "../../../../src/commands/update-remote/modules"
 import { Garden } from "../../../../src/garden"
@@ -36,7 +43,7 @@ describe("UpdateRemoteCommand", () => {
         log,
         logFooter: log,
         args: { sources: undefined },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       expect(result!.map(s => s.name).sort()).to.eql(["source-a", "source-b", "source-c"])
     })
@@ -47,7 +54,7 @@ describe("UpdateRemoteCommand", () => {
         log,
         logFooter: log,
         args: { sources: ["source-a"] },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       expect(result!.map(s => s.name).sort()).to.eql(["source-a"])
     })
@@ -60,7 +67,7 @@ describe("UpdateRemoteCommand", () => {
         log,
         logFooter: log,
         args: { sources: undefined },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       expect(await pathExists(stalePath)).to.be.false
     })
@@ -73,7 +80,7 @@ describe("UpdateRemoteCommand", () => {
             log,
             logFooter: log,
             args: { sources: ["banana"] },
-            opts: {},
+            opts: withDefaultGlobalOpts({}),
           })
         ),
         "parameter",
@@ -100,7 +107,7 @@ describe("UpdateRemoteCommand", () => {
         log,
         logFooter: log,
         args: { modules: undefined },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       expect(result!.map(s => s.name).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
@@ -111,7 +118,7 @@ describe("UpdateRemoteCommand", () => {
         log,
         logFooter: log,
         args: { modules: ["module-a"] },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       expect(result!.map(s => s.name).sort()).to.eql(["module-a"])
     })
@@ -124,7 +131,7 @@ describe("UpdateRemoteCommand", () => {
         log,
         logFooter: log,
         args: { modules: undefined },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       expect(await pathExists(stalePath)).to.be.false
     })
@@ -137,7 +144,7 @@ describe("UpdateRemoteCommand", () => {
             log,
             logFooter: log,
             args: { modules: ["banana"] },
-            opts: {},
+            opts: withDefaultGlobalOpts({}),
           })
         ),
         "parameter",

@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import { omit } from "lodash"
 import { RunTaskCommand } from "../../../../../src/commands/run/task"
-import { makeTestGardenA } from "../../../../helpers"
+import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 
 describe("RunTaskCommand", () => {
 
@@ -15,7 +15,7 @@ describe("RunTaskCommand", () => {
       log,
       logFooter: log,
       args: { task: "task-a" },
-      opts: { "force-build": false },
+      opts: withDefaultGlobalOpts({ "force-build": false }),
     })
 
     const expected = {

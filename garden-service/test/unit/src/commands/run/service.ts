@@ -4,6 +4,7 @@ import {
   makeTestGardenA,
   testModuleVersion,
   testNow,
+  withDefaultGlobalOpts,
 } from "../../../../helpers"
 import { expect } from "chai"
 import { Garden } from "../../../../../src/garden"
@@ -28,7 +29,7 @@ describe("RunServiceCommand", () => {
       log,
       logFooter: log,
       args: { service: "service-a" },
-      opts: { "force-build": false },
+      opts: withDefaultGlobalOpts({ "force-build": false }),
     })
 
     const expected: RunResult = {

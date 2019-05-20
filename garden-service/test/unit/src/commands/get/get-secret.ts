@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { expectError, makeTestGardenA } from "../../../../helpers"
+import { expectError, makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetSecretCommand } from "../../../../../src/commands/get/get-secret"
 
 describe("GetSecretCommand", () => {
@@ -23,7 +23,7 @@ describe("GetSecretCommand", () => {
       log,
       logFooter: log,
       args: { provider, key: "project.mykey" },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     expect(res).to.eql({ "project.mykey": "myvalue" })
@@ -40,7 +40,7 @@ describe("GetSecretCommand", () => {
         log,
         logFooter: log,
         args: { provider, key: "project.mykey" },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       }),
       "not-found",
     )

@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { dataDir, makeTestGarden } from "../../../../helpers"
+import { dataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetGraphCommand } from "../../../../../src/commands/get/get-graph"
 import { resolve } from "path"
 
@@ -18,7 +18,7 @@ describe("GetGraphCommand", () => {
       log,
       logFooter: log,
       args: { provider },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     expect(Object.keys(res.result!).sort()).to.eql(["nodes", "relationships"])

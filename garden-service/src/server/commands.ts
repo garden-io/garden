@@ -8,12 +8,13 @@
 
 import Joi = require("joi")
 import Koa = require("koa")
-import { Command, Parameters } from "../commands/base"
+import { Command, Parameters, ParameterValues } from "../commands/base"
 import { validate } from "../config/common"
-import { mapValues, omitBy } from "lodash"
+import { extend, mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
 import { LogLevel } from "../logger/log-node"
 import { LogEntry } from "../logger/log-entry"
+import { GLOBAL_OPTIONS } from "../cli/cli"
 
 export interface CommandMap {
   [key: string]: {
@@ -73,7 +74,8 @@ export async function resolveRequest(
   const cmdLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
 
   const cmdArgs = mapParams(ctx, request.parameters, command.arguments)
-  const cmdOpts = mapParams(ctx, request.parameters, command.options)
+  const optParams = extend({ ...GLOBAL_OPTIONS, ...command.options })
+  const cmdOpts = mapParams(ctx, request.parameters, optParams)
 
   return command.action({
     garden: cmdGarden,
@@ -136,12 +138,14 @@ function paramsToJoi(params?: Parameters) {
 /**
  * Prepare the args or opts for a Command action, by mapping input values to the parameter specs.
  */
-function mapParams(ctx: Koa.ParameterizedContext, values: object, params?: Parameters) {
+function mapParams<P extends Parameters>(
+  ctx: Koa.ParameterizedContext, values: object, params?: P,
+): ParameterValues<P> {
   if (!params) {
-    return {}
+    return <ParameterValues<P>>{}
   }
 
-  const output = mapValues(params, (p, key) => {
+  const output = <ParameterValues<P>>mapValues(params, (p, key) => {
     if (p.cliOnly) {
       return p.defaultValue
     }

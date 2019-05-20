@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { SetSecretCommand } from "../../../../src/commands/set"
-import { makeTestGardenA } from "../../../helpers"
+import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 
 describe("SetSecretCommand", () => {
   const pluginName = "test-plugin"
@@ -16,7 +16,7 @@ describe("SetSecretCommand", () => {
       log,
       logFooter: log,
       args: { provider, key: "mykey", value: "myvalue" },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     expect(await garden.actions.getSecret({ log, pluginName, key: "mykey" })).to.eql({ value: "myvalue" })

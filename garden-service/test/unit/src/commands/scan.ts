@@ -1,6 +1,6 @@
 import { Garden } from "../../../../src/garden"
 import { ScanCommand } from "../../../../src/commands/scan"
-import { getExampleProjects } from "../../../helpers"
+import { getExampleProjects, withDefaultGlobalOpts } from "../../../helpers"
 
 describe("ScanCommand", () => {
   for (const [name, path] of Object.entries(getExampleProjects())) {
@@ -14,7 +14,7 @@ describe("ScanCommand", () => {
         log,
         logFooter: log,
         args: {},
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
     })
   }

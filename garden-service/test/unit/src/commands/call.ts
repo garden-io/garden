@@ -6,7 +6,7 @@ import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/params"
 import { ServiceStatus } from "../../../../src/types/service"
 import nock = require("nock")
-import { configureTestModule } from "../../../helpers"
+import { configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
 
 const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
@@ -71,7 +71,7 @@ describe("commands.call", () => {
       log,
       logFooter: log,
       args: { serviceAndPath: "service-a/path-a" },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
@@ -96,7 +96,7 @@ describe("commands.call", () => {
       log,
       logFooter: log,
       args: { serviceAndPath: "service-a" },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
@@ -120,7 +120,7 @@ describe("commands.call", () => {
       log,
       logFooter: log,
       args: { serviceAndPath: "service-b" },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     expect(result.url).to.equal("http://service-b.test-project-b.local.app.garden:32000/")
@@ -141,7 +141,7 @@ describe("commands.call", () => {
         log,
         logFooter: log,
         args: { serviceAndPath: "service-d/path-d" },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
     } catch (err) {
       expect(err.type).to.equal("runtime")
@@ -162,7 +162,7 @@ describe("commands.call", () => {
         log,
         logFooter: log,
         args: { serviceAndPath: "service-c/path-c" },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
     } catch (err) {
       expect(err.type).to.equal("parameter")
@@ -183,7 +183,7 @@ describe("commands.call", () => {
         log,
         logFooter: log,
         args: { serviceAndPath: "service-a/bla" },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
     } catch (err) {
       expect(err.type).to.equal("parameter")

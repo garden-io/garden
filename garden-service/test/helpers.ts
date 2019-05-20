@@ -9,6 +9,7 @@
 import * as td from "testdouble"
 import * as Joi from "joi"
 import { resolve, join } from "path"
+import { extend } from "lodash"
 import { remove, readdirSync, existsSync } from "fs-extra"
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
@@ -42,6 +43,7 @@ import { SourceConfig } from "../src/config/project"
 import { BuildDir } from "../src/build-dir"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
+import { GLOBAL_OPTIONS } from "../src/cli/cli"
 
 export const dataDir = resolve(__dirname, "unit", "data")
 export const examplesDir = resolve(__dirname, "..", "..", "examples")
@@ -384,6 +386,10 @@ export function stubExtSources(garden: Garden) {
 export function getExampleProjects() {
   const names = readdirSync(examplesDir).filter(n => existsSync(join(examplesDir, n, CONFIG_FILENAME)))
   return fromPairs(names.map(n => [n, join(examplesDir, n)]))
+}
+
+export function withDefaultGlobalOpts(opts: any) {
+  return extend(mapValues(GLOBAL_OPTIONS, (opt) => opt.defaultValue), opts)
 }
 
 export function freezeTime(date?: Date) {

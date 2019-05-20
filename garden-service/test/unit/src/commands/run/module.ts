@@ -4,6 +4,7 @@ import {
   makeTestGardenA,
   testModuleVersion,
   testNow,
+  withDefaultGlobalOpts,
 } from "../../../../helpers"
 import { expect } from "chai"
 import { Garden } from "../../../../../src/garden"
@@ -27,7 +28,7 @@ describe("RunModuleCommand", () => {
       log,
       logFooter: log,
       args: { module: "module-a", command: [] },
-      opts: { "interactive": false, "force-build": false },
+      opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false }),
     })
 
     const expected: RunResult = {
@@ -50,7 +51,7 @@ describe("RunModuleCommand", () => {
       log,
       logFooter: log,
       args: { module: "module-a", command: ["my", "command"] },
-      opts: { "interactive": false, "force-build": false },
+      opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false }),
     })
 
     const expected: RunResult = {

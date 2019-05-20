@@ -14,6 +14,7 @@ import { ProcessResults } from "../process"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { logHeader } from "../logger/util"
+import { GlobalOptions } from "../cli/cli"
 
 export class ValidationError extends Error { }
 
@@ -207,10 +208,9 @@ export interface CommandResult<T = any> {
 
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> {
   args: ParameterValues<T>
-  opts: ParameterValues<U>
+  opts: ParameterValues<GlobalOptions & U>
   log: LogEntry
   logFooter: LogEntry
-  output?: string
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
