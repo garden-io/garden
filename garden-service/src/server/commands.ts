@@ -96,7 +96,7 @@ export async function prepareCommands(): Promise<CommandMap> {
         parameters: Joi.object()
           .keys({
             ...paramsToJoi(command.arguments),
-            ...paramsToJoi(command.options),
+            ...paramsToJoi({ ...GLOBAL_OPTIONS, ...command.options }),
           })
           .unknown(false),
       })
