@@ -10,7 +10,7 @@ import {
   RunTaskParams,
 } from "../../../../src/types/plugin/params"
 import { ServiceState, ServiceStatus } from "../../../../src/types/service"
-import { taskResultOutputs, configureTestModule } from "../../../helpers"
+import { taskResultOutputs, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
 import { RunTaskResult } from "../../../../src/types/plugin/outputs"
 
 const placeholderTimestamp = new Date()
@@ -100,12 +100,12 @@ describe("DeployCommand", () => {
       args: {
         services: undefined,
       },
-      opts: {
+      opts: withDefaultGlobalOpts({
         "hot-reload": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
-      },
+      }),
     })
 
     if (errors) {
@@ -137,12 +137,12 @@ describe("DeployCommand", () => {
       args: {
         services: ["service-b"],
       },
-      opts: {
+      opts: withDefaultGlobalOpts({
         "hot-reload": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
-      },
+      }),
     })
 
     if (errors) {

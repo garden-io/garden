@@ -1,7 +1,7 @@
 import { join } from "path"
 import { Garden } from "../../../../src/garden"
 import { ValidateCommand } from "../../../../src/commands/validate"
-import { expectError, getExampleProjects } from "../../../helpers"
+import { expectError, getExampleProjects, withDefaultGlobalOpts } from "../../../helpers"
 
 describe("commands.validate", () => {
   // validate all of the example projects
@@ -16,7 +16,7 @@ describe("commands.validate", () => {
         log,
         logFooter: log,
         args: {},
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
     })
   }
@@ -38,7 +38,7 @@ describe("commands.validate", () => {
       log,
       logFooter: log,
       args: {},
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     }), "configuration")
   })
 })

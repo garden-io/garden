@@ -72,7 +72,7 @@ export type FalsifiedParams = { [key: string]: false }
 /**
  * Returns the params that need to be overridden set to false
  */
-export function falsifyConflictingParams(argv, params: ParameterValues<any>): FalsifiedParams {
+export function negateConflictingParams(argv, params: ParameterValues<any>): FalsifiedParams {
   return reduce(argv, (acc: {}, val: any, key: string) => {
     const param = params[key]
     const overrides = (param || {}).overrides || []

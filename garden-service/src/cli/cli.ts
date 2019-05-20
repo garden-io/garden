@@ -36,7 +36,7 @@ import { Writer } from "../logger/writers/base"
 import {
   envSupportsEmoji,
   failOnInvalidOptions,
-  falsifyConflictingParams,
+  negateConflictingParams,
   filterByKeys,
   getArgSynopsis,
   getKeys,
@@ -140,6 +140,8 @@ export const GLOBAL_OPTIONS = {
   }),
 }
 
+export type GlobalOptions = typeof GLOBAL_OPTIONS
+
 function initLogger({ level, logEnabled, loggerType, emoji }: {
   level: LogLevel, logEnabled: boolean, loggerType: LoggerType, emoji: boolean,
 }) {
@@ -182,7 +184,7 @@ export class GardenCli {
       .showHelpByDefault()
       .check((argv, _ctx) => {
         // NOTE: Need to mutate argv!
-        merge(argv, falsifyConflictingParams(argv, GLOBAL_OPTIONS))
+        merge(argv, negateConflictingParams(argv, GLOBAL_OPTIONS))
       })
       .style(styleConfig)
 
@@ -276,7 +278,6 @@ export class GardenCli {
       await command.prepare({
         log,
         logFooter,
-        output,
         args: parsedArgs,
         opts: parsedOpts,
       })
@@ -293,7 +294,6 @@ export class GardenCli {
           garden,
           log,
           logFooter,
-          output,
           args: parsedArgs,
           opts: parsedOpts,
         })

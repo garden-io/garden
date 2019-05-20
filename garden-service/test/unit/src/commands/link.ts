@@ -8,6 +8,7 @@ import {
   cleanProject,
   stubExtSources,
   makeTestGarden,
+  withDefaultGlobalOpts,
 } from "../../../helpers"
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { Garden } from "../../../../src/garden"
@@ -40,7 +41,7 @@ describe("LinkCommand", () => {
           module: "module-a",
           path: join(projectRoot, "mock-local-path", "module-a"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
 
       const { linkedModuleSources } = await garden.localConfigStore.get()
@@ -59,7 +60,7 @@ describe("LinkCommand", () => {
           module: "module-a",
           path: join("mock-local-path", "module-a"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
 
       const { linkedModuleSources } = await garden.localConfigStore.get()
@@ -80,7 +81,7 @@ describe("LinkCommand", () => {
               module: "banana",
               path: "",
             },
-            opts: {},
+            opts: withDefaultGlobalOpts({}),
           })
         ),
         "parameter",
@@ -111,7 +112,7 @@ describe("LinkCommand", () => {
           source: "source-a",
           path: join(projectRoot, "mock-local-path", "source-a"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
 
       const { linkedProjectSources } = await garden.localConfigStore.get()
@@ -130,7 +131,7 @@ describe("LinkCommand", () => {
           source: "source-a",
           path: join("mock-local-path", "source-a"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
 
       const { linkedProjectSources } = await garden.localConfigStore.get()

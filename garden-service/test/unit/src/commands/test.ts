@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import { TestCommand } from "../../../../src/commands/test"
 import * as isSubset from "is-subset"
-import { makeTestGardenA, taskResultOutputs } from "../../../helpers"
+import { makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
 
 describe("commands.test", () => {
   it("should run all tests in a simple project", async () => {
@@ -14,7 +14,7 @@ describe("commands.test", () => {
       log,
       logFooter: log,
       args: { modules: undefined },
-      opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
+      opts: withDefaultGlobalOpts({ "name": undefined, "force": true, "force-build": true, "watch": false }),
     })
 
     expect(isSubset(taskResultOutputs(result!), {
@@ -52,7 +52,7 @@ describe("commands.test", () => {
       log,
       logFooter: log,
       args: { modules: ["module-a"] },
-      opts: { "name": undefined, "force": true, "force-build": true, "watch": false },
+      opts: withDefaultGlobalOpts({ "name": undefined, "force": true, "force-build": true, "watch": false }),
     })
 
     expect(isSubset(taskResultOutputs(result!), {

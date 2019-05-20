@@ -5,7 +5,7 @@ import { expect } from "chai"
 import { Garden } from "../../../../src/garden"
 import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { makeTestGardenA, configureTestModule } from "../../../helpers"
+import { makeTestGardenA, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 
 const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
@@ -57,10 +57,10 @@ describe("PublishCommand", () => {
       args: {
         modules: undefined,
       },
-      opts: {
+      opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
-      },
+      }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -84,10 +84,10 @@ describe("PublishCommand", () => {
       args: {
         modules: undefined,
       },
-      opts: {
+      opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": true,
-      },
+      }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -111,10 +111,10 @@ describe("PublishCommand", () => {
       args: {
         modules: ["module-a"],
       },
-      opts: {
+      opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
-      },
+      }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -135,10 +135,10 @@ describe("PublishCommand", () => {
       args: {
         modules: ["module-c"],
       },
-      opts: {
+      opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
-      },
+      }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -160,10 +160,10 @@ describe("PublishCommand", () => {
       args: {
         modules: ["module-a"],
       },
-      opts: {
+      opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
-      },
+      }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({

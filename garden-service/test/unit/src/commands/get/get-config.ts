@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { makeTestGardenA } from "../../../../helpers"
+import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 
@@ -17,7 +17,7 @@ describe("GetConfigCommand", () => {
       log,
       logFooter: log,
       args: { provider },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     const config = {

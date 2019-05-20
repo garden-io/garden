@@ -1,5 +1,5 @@
 import { resolve } from "path"
-import { makeTestGarden, dataDir } from "../../../../helpers"
+import { makeTestGarden, dataDir, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetTasksCommand } from "../../../../../src/commands/get/get-tasks"
 
 describe("GetTasksCommand", () => {
@@ -15,7 +15,7 @@ describe("GetTasksCommand", () => {
       log,
       logFooter: log,
       args: { tasks: undefined },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
   })
 
@@ -29,7 +29,7 @@ describe("GetTasksCommand", () => {
       log,
       logFooter: log,
       args: { tasks: ["task-a"] },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
   })
 })

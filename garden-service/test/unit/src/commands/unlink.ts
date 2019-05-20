@@ -8,6 +8,7 @@ import {
   stubExtSources,
   cleanProject,
   makeTestGarden,
+  withDefaultGlobalOpts,
 } from "../../../helpers"
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { UnlinkSourceCommand } from "../../../../src/commands/unlink/source"
@@ -36,7 +37,7 @@ describe("UnlinkCommand", () => {
           module: "module-a",
           path: join(projectRoot, "mock-local-path", "module-a"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       await linkCmd.action({
         garden,
@@ -46,7 +47,7 @@ describe("UnlinkCommand", () => {
           module: "module-b",
           path: join(projectRoot, "mock-local-path", "module-b"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       await linkCmd.action({
         garden,
@@ -56,7 +57,7 @@ describe("UnlinkCommand", () => {
           module: "module-c",
           path: join(projectRoot, "mock-local-path", "module-c"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
     })
 
@@ -70,7 +71,7 @@ describe("UnlinkCommand", () => {
         log,
         logFooter: log,
         args: { modules: ["module-a", "module-b"] },
-        opts: { all: false },
+        opts: withDefaultGlobalOpts({ all: false }),
       })
       const { linkedModuleSources } = await garden.localConfigStore.get()
       expect(linkedModuleSources).to.eql([
@@ -84,7 +85,7 @@ describe("UnlinkCommand", () => {
         log,
         logFooter: log,
         args: { modules: undefined },
-        opts: { all: true },
+        opts: withDefaultGlobalOpts({ all: true }),
       })
       const { linkedModuleSources } = await garden.localConfigStore.get()
       expect(linkedModuleSources).to.eql([])
@@ -110,7 +111,7 @@ describe("UnlinkCommand", () => {
           source: "source-a",
           path: join(projectRoot, "mock-local-path", "source-a"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       await linkCmd.action({
         garden,
@@ -120,7 +121,7 @@ describe("UnlinkCommand", () => {
           source: "source-b",
           path: join(projectRoot, "mock-local-path", "source-b"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
       await linkCmd.action({
         garden,
@@ -130,7 +131,7 @@ describe("UnlinkCommand", () => {
           source: "source-c",
           path: join(projectRoot, "mock-local-path", "source-c"),
         },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       })
     })
 
@@ -144,7 +145,7 @@ describe("UnlinkCommand", () => {
         log,
         logFooter: log,
         args: { sources: ["source-a", "source-b"] },
-        opts: { all: false },
+        opts: withDefaultGlobalOpts({ all: false }),
       })
       const { linkedProjectSources } = await garden.localConfigStore.get()
       expect(linkedProjectSources).to.eql([
@@ -158,7 +159,7 @@ describe("UnlinkCommand", () => {
         log,
         logFooter: log,
         args: { sources: undefined },
-        opts: { all: true },
+        opts: withDefaultGlobalOpts({ all: true }),
       })
       const { linkedProjectSources } = await garden.localConfigStore.get()
       expect(linkedProjectSources).to.eql([])

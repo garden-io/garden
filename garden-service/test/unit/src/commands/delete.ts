@@ -6,7 +6,7 @@ import {
 import { Garden } from "../../../../src/garden"
 import { EnvironmentStatus } from "../../../../src/types/plugin/outputs"
 import { PluginFactory } from "../../../../src/types/plugin/plugin"
-import { expectError, makeTestGardenA, getDataDir, configureTestModule } from "../../../helpers"
+import { expectError, makeTestGardenA, getDataDir, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
 import { expect } from "chai"
 import { ServiceStatus } from "../../../../src/types/service"
 import { DeleteServiceParams } from "../../../../src/types/plugin/params"
@@ -30,7 +30,7 @@ describe("DeleteSecretCommand", () => {
       log,
       logFooter: log,
       args: { provider, key },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
 
     expect(await garden.actions.getSecret({ log, pluginName, key })).to.eql({ value: null })
@@ -47,7 +47,7 @@ describe("DeleteSecretCommand", () => {
         log,
         logFooter: log,
         args: { provider, key: "foo" },
-        opts: {},
+        opts: withDefaultGlobalOpts({}),
       }),
       "not-found",
     )
@@ -85,7 +85,7 @@ describe("DeleteEnvironmentCommand", () => {
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
 
-    const { result } = await command.action({ garden, log, logFooter: log, args: {}, opts: {} })
+    const { result } = await command.action({ garden, log, logFooter: log, args: {}, opts: withDefaultGlobalOpts({}) })
 
     expect(result!["test-plugin"]["ready"]).to.be.false
   })
@@ -132,7 +132,7 @@ describe("DeleteServiceCommand", () => {
       log,
       logFooter: log,
       args: { services: ["service-a"] },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
     expect(result).to.eql({
       "service-a": { state: "unknown", ingresses: [] },
@@ -148,7 +148,7 @@ describe("DeleteServiceCommand", () => {
       log,
       logFooter: log,
       args: { services: ["service-a", "service-b"] },
-      opts: {},
+      opts: withDefaultGlobalOpts({}),
     })
     expect(result).to.eql({
       "service-a": { state: "unknown", ingresses: [] },
