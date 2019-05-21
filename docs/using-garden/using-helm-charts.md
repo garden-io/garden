@@ -2,7 +2,7 @@
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container modules, via the `kubernetes` and `local-kubernetes` providers. This guide shows you how to configure and use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to set up tests, tasks and hot-reloading for your charts.
 
-In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/v0.9.11/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
+In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/v0.9.12/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
 You may also want to check out the full [helm module reference](../reference/config.md#helm).
 

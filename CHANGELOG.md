@@ -1,4 +1,55 @@
 
+<a name="v0.9.12"></a>
+## [v0.9.12](https://github.com/garden-io/garden/compare/v0.9.11...v0.9.12) (2019-05-21)
+
+### Bug Fixes
+
+* make global CLI opts available to commands ([70bce731](https://github.com/garden-io/garden/commit/70bce731))
+* build deps not watched when using -w flag ([36e8c67b](https://github.com/garden-io/garden/commit/36e8c67b))
+* **config:** recursion error with invalid template strings ([0cbcb988](https://github.com/garden-io/garden/commit/0cbcb988))
+* **config:** validation fix for template strings ([961dd707](https://github.com/garden-io/garden/commit/961dd707))
+* **dashboard:** add taskError event + small ui tweaks ([d308b89c](https://github.com/garden-io/garden/commit/d308b89c))
+* **docs:** update the path to run garden-debug ([0df0e849](https://github.com/garden-io/garden/commit/0df0e849))
+* **k8s:** use correct container handlers when building modules ([e150a990](https://github.com/garden-io/garden/commit/e150a990))
+* **k8s:** ensure env is prepared ([c2cd689d](https://github.com/garden-io/garden/commit/c2cd689d))
+* **k8s:** helm modules weren't identified as hot reloadable ([0b7ce98e](https://github.com/garden-io/garden/commit/0b7ce98e))
+* **k8s:** fix type error when Kubernetes is not running ([412fe573](https://github.com/garden-io/garden/commit/412fe573))
+* **k8s:** ensure test results get stored if test fails ([7ec1bae8](https://github.com/garden-io/garden/commit/7ec1bae8))
+* **logger:** fix spinner pos ([12d0dd4b](https://github.com/garden-io/garden/commit/12d0dd4b))
+* **logger:** add info symbol to active basic entries ([08bb5945](https://github.com/garden-io/garden/commit/08bb5945))
+
+### Code Refactoring
+
+* **core:** tighten config validation and clean up some cruft ([39fb3125](https://github.com/garden-io/garden/commit/39fb3125))
+* **core:** fold push task into build task ([733e2dbc](https://github.com/garden-io/garden/commit/733e2dbc))
+* **dashboard:** use useReducer in useApi hook ([8bc67d0b](https://github.com/garden-io/garden/commit/8bc67d0b))
+* **dashboard:** remove LoadWrapper ([29ddc83b](https://github.com/garden-io/garden/commit/29ddc83b))
+* **dashboard:** use a single generic node info container ([09d3d58c](https://github.com/garden-io/garden/commit/09d3d58c))
+
+### Features
+
+* add test/task statuses to get status command ([a1e2122b](https://github.com/garden-io/garden/commit/a1e2122b))
+* render results as JSON for json logger ([4ca179e6](https://github.com/garden-io/garden/commit/4ca179e6))
+* **dashboard:** overall dashboard improvements ([253316f2](https://github.com/garden-io/garden/commit/253316f2))
+* **dashboard:** implement new overview page ([d3ae347f](https://github.com/garden-io/garden/commit/d3ae347f))
+
+### Improvement
+
+* font sizes and header ([55f7d961](https://github.com/garden-io/garden/commit/55f7d961))
+* **commands:** added task/test fields to get-status response ([1f34f294](https://github.com/garden-io/garden/commit/1f34f294))
+* **dashboard:** fix ui issues ([488369ec](https://github.com/garden-io/garden/commit/488369ec))
+* **dashboard:** start dashboard before init and keep same port ([e3bc9ee1](https://github.com/garden-io/garden/commit/e3bc9ee1))
+* **task-graph:** raise concurrency limit ([a6343d51](https://github.com/garden-io/garden/commit/a6343d51))
+
+### BREAKING CHANGE
+
+
+This removes the previously deprecated ability to do nested formatting
+strings. It's not a helpful feature for most cases, and just complicates
+the parser logic. Also wasn't documented really, so it should be safe to
+remove without a minor version bump.
+
+
 <a name="v0.9.11"></a>
 ## [v0.9.11](https://github.com/garden-io/garden/compare/v0.9.10...v0.9.11) (2019-04-29)
 
@@ -19,6 +70,11 @@
 ### Features
 
 * **dashboard:** add 'more info' pane to stack graph ([bee72e65](https://github.com/garden-io/garden/commit/bee72e65))
+
+### Improvement
+
+* **k8s:** better status checks ([615c02aa](https://github.com/garden-io/garden/commit/615c02aa))
+* **tasks:** minor logging improvements ([18e04859](https://github.com/garden-io/garden/commit/18e04859))
 
 
 <a name="v0.9.10"></a>
@@ -48,6 +104,10 @@
 * **vcs:** handle case when file is removed while listing VCS files ([7aeec2fa](https://github.com/garden-io/garden/commit/7aeec2fa))
 * **vcs:** exclude .garden from version hashing ([0dc12082](https://github.com/garden-io/garden/commit/0dc12082))
 
+### Improvement
+
+* **config-graph:** add more data to rendered graph nodes ([05f32c33](https://github.com/garden-io/garden/commit/05f32c33))
+
 
 <a name="v0.9.8"></a>
 ## [v0.9.8](https://github.com/garden-io/garden/compare/v0.9.7...v0.9.8) (2019-04-08)
@@ -70,6 +130,10 @@
 * **config:** add var alias for variables template key ([ede49e5d](https://github.com/garden-io/garden/commit/ede49e5d))
 * **core:** add module include field and use content hash for versions ([8bd0b5bb](https://github.com/garden-io/garden/commit/8bd0b5bb))
 
+### Improvement
+
+* **k8s:** store test results cluster-wide ([61ea396a](https://github.com/garden-io/garden/commit/61ea396a))
+
 
 <a name="v0.9.7"></a>
 ## [v0.9.7](https://github.com/garden-io/garden/compare/v0.9.6...v0.9.7) (2019-03-28)
@@ -87,6 +151,10 @@
 ### Features
 
 * **k8s:** add kubernetes module type ([1488cd82](https://github.com/garden-io/garden/commit/1488cd82))
+
+### Improvement
+
+* **container:** check for Docker version on first use ([b898c403](https://github.com/garden-io/garden/commit/b898c403))
 
 
 <a name="v0.9.6"></a>
@@ -125,6 +193,12 @@
 * **maven-container:** add mvnOpts field and remove default option ([187dc7d9](https://github.com/garden-io/garden/commit/187dc7d9))
 * **maven-container:** automatically fetch Maven and OpenJDK ([5045cd34](https://github.com/garden-io/garden/commit/5045cd34))
 
+### Improvement
+
+* **k8s:** better deployment status checking ([d84c97e4](https://github.com/garden-io/garden/commit/d84c97e4))
+* **k8s:** don't require username input when namespace is set ([d61290ac](https://github.com/garden-io/garden/commit/d61290ac))
+* **k8s:** more granular status message while deploying ([c2c70609](https://github.com/garden-io/garden/commit/c2c70609))
+
 
 <a name="v0.9.5"></a>
 ## [v0.9.5](https://github.com/garden-io/garden/compare/v0.9.4...v0.9.5) (2019-03-12)
@@ -154,6 +228,11 @@
 
 * add maven-container plugin type ([74148980](https://github.com/garden-io/garden/commit/74148980))
 * **container:** add env field to task spec ([950536f0](https://github.com/garden-io/garden/commit/950536f0))
+
+### Improvement
+
+* **k8s:** better logging while deploying services ([4cd5d053](https://github.com/garden-io/garden/commit/4cd5d053))
+* **k8s:** update helm to v2.13.0 ([0685a9b7](https://github.com/garden-io/garden/commit/0685a9b7))
 
 
 <a name="v0.9.4"></a>
