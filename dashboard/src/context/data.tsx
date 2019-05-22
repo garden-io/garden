@@ -27,10 +27,19 @@ import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
 import { StatusCommandResult } from "garden-cli/src/commands/get/get-status"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
 import { AxiosError } from "axios"
+import { RenderedNode } from "garden-cli/src/config-graph"
+import { SupportedEventName } from "./events"
 
 interface StoreCommon {
   error?: AxiosError
   loading: boolean
+}
+
+export interface RenderedNodeWithStatus extends RenderedNode {
+  status?: SupportedEventName
+}
+export interface GraphOutputWithNodeStatus extends GraphOutput {
+  nodes: RenderedNodeWithStatus[],
 }
 
 // This is the global data store
@@ -42,7 +51,7 @@ interface Store {
     data?: StatusCommandResult,
   },
   graph: StoreCommon & {
-    data?: GraphOutput,
+    data?: GraphOutputWithNodeStatus,
   },
   logs: StoreCommon & {
     data?: ServiceLogEntry[],

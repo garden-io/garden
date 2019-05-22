@@ -42,6 +42,13 @@ export default () => {
   if (!config.data || !graph.data || config.loading || graph.loading) {
     return <Spinner />
   }
+  if (message && message.type === "event") {
+    const nodeToUpdate = graph.data.nodes.find(node => node.key === (message.payload && message.payload["key"]))
+    if (nodeToUpdate) {
+      nodeToUpdate.status = message.name
+      graph.data = { ...graph.data }
+    }
+  }
 
   let moreInfoPane: React.ReactNode = null
   if (selectedGraphNode && graph.data) {
@@ -59,7 +66,6 @@ export default () => {
     <Wrapper className="row">
       <div className={moreInfoPane ? "col-xs-7 col-sm-7 col-md-8 col-lg-8 col-xl-8" : "col-xs"}>
         <Graph
-          message={message}
           onGraphNodeSelected={selectGraphNode}
           selectedGraphNode={selectedGraphNode}
           layoutChanged={isSidebarOpen}

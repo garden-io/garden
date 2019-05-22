@@ -21,17 +21,17 @@ import { colors, fontMedium } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
 import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../context/ui"
 import { WsEventMessage, SupportedEventName } from "../../context/events"
-import { Events } from "garden-cli/src/events"
 import { Extends } from "garden-cli/src/util/util"
 import { ConfigDump } from "garden-cli/src/garden"
-import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { FiltersButton, Filters } from "../group-filter"
 import { RenderedNodeType } from "garden-cli/src/config-graph"
+import { GraphOutputWithNodeStatus } from "../../context/data"
 
 interface Node {
   name: string
   label: string
   id: string
+  status?: string
 }
 
 interface Edge {
@@ -52,11 +52,6 @@ type TaskNodeEventName = Extends<
   "taskPending" | "taskProcessing" | "taskComplete" | "taskError"
 >
 
-type WsTaskNodeMessage = WsEventMessage & {
-  name: TaskNodeEventName;
-  payload: Events[TaskNodeEventName];
-}
-
 const taskNodeEventNames: Set<TaskNodeEventName> = new Set([
   "taskPending",
   "taskProcessing",
@@ -72,17 +67,18 @@ function clearGraphNodeSelection() {
   selectedNode && selectedNode.classList.remove(selectedClassName)
 }
 
-/**
- * Type guard to check whether WsEventMessage is of type WsTaskNodeMessage
- */
-function isTaskNodeMessage(
-  message: WsEventMessage,
-): message is WsTaskNodeMessage {
-  return taskNodeEventNames.has((message as WsTaskNodeMessage).name)
-}
-
 const MIN_CHART_WIDTH = 200
 const MIN_CHART_HEIGHT = 200
+
+function getNodeClass(node) {
+  let className = ""
+  if (selectedNodeId === node.id) {
+    className += selectedClassName
+  }
+
+  className += (node.status && ` ${node.status}` || "")
+  return className
+}
 
 function drawChart(
   graph: Graph,
@@ -97,13 +93,10 @@ function drawChart(
       return {}
     })
 
-  // Here we"re setting nodeclass, which is used by our custom drawNodes function
-  // below.
-
   for (const node of graph.nodes) {
     g.setNode(node.id, {
       label: node.label,
-      class: node.id === selectedNodeId ? selectedClassName : "",
+      class: getNodeClass(node),
       id: node.id,
       labelType: "html",
     })
@@ -188,7 +181,7 @@ function drawChart(
 
 interface Props {
   config: ConfigDump
-  graph: GraphOutput
+  graph: GraphOutputWithNodeStatus
   onGraphNodeSelected: SelectGraphNode
   selectedGraphNode: string | null
   layoutChanged: boolean
@@ -322,6 +315,7 @@ class Chart extends Component<Props, State> {
           id: n.key,
           name: n.name,
           label: makeLabel(n.name, n.type, n.moduleName),
+          status: n.status,
         }
       })
     const edges: Edge[] = this.props.graph.relationships
@@ -340,20 +334,15 @@ class Chart extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const message = this.props.message
-    if (message && message.type === "event") {
-      this.updateNodeClass(message)
-    }
-    if (prevState !== this.state) {
-      this.drawChart()
-    }
-
     if (
+      (prevState !== this.state) ||
+      (prevProps.graph !== this.props.graph) ||
       (!prevProps.selectedGraphNode && this.props.selectedGraphNode) ||
       (prevProps.selectedGraphNode && !this.props.selectedGraphNode) ||
       (prevProps.layoutChanged !== this.props.layoutChanged)) {
       this.drawChart()
     }
+
     if (!this.props.selectedGraphNode) {
       clearGraphNodeSelection()
     }
@@ -363,24 +352,6 @@ class Chart extends Component<Props, State> {
     // we use the event name as the class name
     for (const name of taskNodeEventNames) {
       el.classList.remove(name)
-    }
-  }
-
-  // Update the node class instead of re-rendering the graph for perf reasons
-  updateNodeClass(message: WsEventMessage) {
-    if (!isTaskNodeMessage(message)) {
-      return
-    }
-    for (const node of this._nodes) {
-      if (message.payload.key && node.id === message.payload.key) {
-        const nodeEl = document.getElementById(node.id)
-        if (nodeEl) {
-          this.clearClasses(nodeEl)
-          if (taskNodeEventNames.has(message.name)) {
-            nodeEl.classList.add(message.name) // we use the event name as the class name
-          }
-        }
-      }
     }
   }
 
