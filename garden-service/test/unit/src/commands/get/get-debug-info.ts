@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { makeTestGardenA, cleanProject } from "../../../../helpers"
+import { makeTestGardenA, cleanProject, withDefaultGlobalOpts } from "../../../../helpers"
 import {
   generateBasicDebugInfoReport,
   TEMP_DEBUG_ROOT,
@@ -16,6 +16,7 @@ import {
   collectSystemDiagnostic,
   collectProviderDebugInfo,
   PROVIDER_INFO_FILENAME_NO_EXT,
+  GetDebugInfoCommand,
 } from "../../../../../src/commands/get/get-debug-info"
 import { readdirSync, remove, pathExists, readJSONSync } from "fs-extra"
 import { GARDEN_DIR_NAME, CONFIG_FILENAME, ERROR_LOG_FILENAME } from "../../../../../src/constants"
@@ -32,7 +33,6 @@ async function cleanupTmpDebugFiles(root: string) {
     return fileName.match(debugZipFileRegex)
   })
   for await (const name of deleteFilenames) {
-    console.log(join(root, name))
     await remove(join(root, name))
   }
 }
@@ -56,8 +56,31 @@ describe("GetDebugInfoCommand", () => {
     await cleanProject(garden.projectRoot)
   })
 
-  describe("collectBasicDebugInfo", () => {
-    it("should generate a zip file containing a basic debug info report in the root folder of the project",
+  describe("generateDebugInfoReport", () => {
+    it("should generate a zip file containing a debug info report in the root folder of the project",
+      async () => {
+        const command = new GetDebugInfoCommand()
+        const res = await command.action({
+          garden,
+          log,
+          logFooter: log,
+          args: {},
+          opts: withDefaultGlobalOpts({ format: "json" }),
+        })
+
+        expect(res.result).to.eql(0)
+
+        const gardenProjectRootFiles = readdirSync(garden.projectRoot)
+        const zipFiles = gardenProjectRootFiles.filter((fileName) => {
+          return fileName.match(debugZipFileRegex)
+        })
+        expect(zipFiles.length).to.equal(1)
+      },
+    )
+  })
+
+  describe("generateBasicDebugInfoReport", () => {
+    it("should generate a zip file containing a *basic* debug info report in the root folder of the project",
       async () => {
         await generateBasicDebugInfoReport(garden.projectRoot, log)
         const gardenProjectRootFiles = readdirSync(garden.projectRoot)
@@ -69,7 +92,7 @@ describe("GetDebugInfoCommand", () => {
     )
   })
 
-  describe("generateBasicDebugInfo", () => {
+  describe("collectBasicDebugInfo", () => {
     it("should create a basic debug info report in a temporary folder", async () => {
       await collectBasicDebugInfo(garden.projectRoot, log)
 
@@ -93,10 +116,6 @@ describe("GetDebugInfoCommand", () => {
           expect(await pathExists(join(gardenDebugTmp, moduleRelativePath, ERROR_LOG_FILENAME))).to.equal(true)
         }
       }
-
-      // Checks if system debug file is created
-      expect(await pathExists(join(gardenDebugTmp, SYSTEM_INFO_FILENAME))).to.equal(true)
-
     })
   })
 
@@ -126,7 +145,7 @@ describe("GetDebugInfoCommand", () => {
       const expectedProviderFolderName = "test-plugin"
       const providerInfoFilePath = join(expectedProviderFolderName, `${PROVIDER_INFO_FILENAME_NO_EXT}.${format}`)
 
-      await collectProviderDebugInfo(garden, log, gardenDebugTmp, format)
+      await collectProviderDebugInfo(garden, log, format)
 
       // Check if the temporary folder exists
       expect(await pathExists(gardenDebugTmp)).to.equal(true)

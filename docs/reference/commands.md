@@ -330,8 +330,8 @@ Outputs the status of your environment for debug purposes.
 
 Examples:
 
-garden get debug-info                # create a zip file on the root of the project with debug information
-garden get debug-info --format yaml  # outputs the provider info as yaml files (default as json)
+garden get debug-info                # create a zip file at the root of the project with debug information
+garden get debug-info --format yaml  # output the provider info as yaml files (default as json)
 
 ##### Usage
 

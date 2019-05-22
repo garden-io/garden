@@ -16,11 +16,11 @@ import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
 import { getPackageVersion } from "../../util/util"
 import { platform, release } from "os"
-import { join, parse, relative } from "path"
+import { join, relative } from "path"
 import execa = require("execa")
 import { LogEntry } from "../../logger/log-entry"
 import { deline } from "../../util/string"
-import { scanDirectory, getIgnorer } from "../../util/fs"
+import { getModulesPathsFromPath } from "../../util/fs"
 import {
   CONFIG_FILENAME,
   ERROR_LOG_FILENAME,
@@ -29,26 +29,23 @@ import {
 import dedent = require("dedent")
 import { Garden } from "../../garden"
 import { zipFolder } from "../../util/archive"
+import chalk from "chalk"
 
 export const TEMP_DEBUG_ROOT = "tmp"
-export const SYSTEM_INFO_FILENAME = "systemInfo.json"
+export const SYSTEM_INFO_FILENAME = "system-info.json"
 export const DEBUG_ZIP_FILENAME = "debug-info-TIMESTAMP.zip"
 export const PROVIDER_INFO_FILENAME_NO_EXT = "info"
 
-export async function generateBasicDebugInfoReport(root: string, log: LogEntry) {
-  const tempPath = join(root, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
-  await collectBasicDebugInfo(root, log)
-
-  log.info("Preparing archive.")
-  const outputFilename = DEBUG_ZIP_FILENAME.replace("TIMESTAMP", new Date().toISOString())
-  await zipFolder(tempPath, join(root, outputFilename), log)
-
-  await remove(tempPath)
-  log.info(`Done! Please find your report under ${root}.`)
-}
-
+/**
+ * Collects project and modules configuration files and error logs (in case they exist).
+ * The files are copied over a temporary folder and mantain the folder structure from where
+ * they are copied from.
+ *
+ * @export
+ * @param {string} root Project root path
+ * @param {LogEntry} log Logger
+ */
 export async function collectBasicDebugInfo(root: string, log: LogEntry) {
-  log.info("Collecting project configuration files.")
   // Find project definition
   const config = await findProjectConfig(root, true)
   if (!config) {
@@ -71,31 +68,7 @@ export async function collectBasicDebugInfo(root: string, log: LogEntry) {
   }
 
   // Find all services paths
-  const ignorer = await getIgnorer(root)
-  const scanOpts = {
-    filter: (path) => {
-      const relPath = relative(root, path)
-      return !ignorer.ignores(relPath)
-    },
-  }
-  const paths: string[] = []
-  for await (const item of scanDirectory(root, scanOpts)) {
-    if (!item) {
-      continue
-    }
-
-    const parsedPath = parse(item.path)
-
-    if (parsedPath.dir === root) {
-      continue
-    }
-
-    if (parsedPath.base !== CONFIG_FILENAME) {
-      continue
-    }
-
-    paths.push(parsedPath.dir)
-  }
+  const paths = await getModulesPathsFromPath(root)
 
   // Copy all the service configuration files
   for (const servicePath of paths) {
@@ -108,16 +81,17 @@ export async function collectBasicDebugInfo(root: string, log: LogEntry) {
       await copy(join(servicePath, ERROR_LOG_FILENAME), join(tempServicePath, ERROR_LOG_FILENAME))
     }
   }
-
-  // Run system diagnostic
-  await collectSystemDiagnostic(root, log)
-
 }
 
+/**
+ * Collects informations about garden, the OS and docker.
+ * Saves all the informations as json in a temporary folder.
+ *
+ * @export
+ * @param {string} root Project root path
+ * @param {LogEntry} log Logger
+ */
 export async function collectSystemDiagnostic(root: string, log: LogEntry) {
-
-  log.info("Collecting OS basic information.")
-
   const tempPath = join(root, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
 
@@ -140,12 +114,22 @@ export async function collectSystemDiagnostic(root: string, log: LogEntry) {
 
 }
 
-export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, tempPath: string, format: string) {
-
+/**
+ * Generates a report with debug information for each provider which implements the action
+ * The reports are saved in a temporary and follows the structure "tmp/provider-name/info.json".
+ *
+ * @export
+ * @param {Garden} garden The Garden instance
+ * @param {LogEntry} log  Logger
+ * @param {string} format The extension format dictating the extension of the report
+ */
+export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, format: string) {
+  const tempPath = join(garden.projectRoot, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
-
+  // Collect debug info from providers
   const providersDebugInfo = await garden.actions.getDebugInfo({ log })
 
+  // Create a provider folder and report for each provider.
   for (const [providerName, info] of Object.entries(providersDebugInfo)) {
     const prividerPath = join(tempPath, providerName)
     await ensureDir(prividerPath)
@@ -154,6 +138,50 @@ export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, te
   }
 }
 
+/**
+ * Collects information about the project and the system running garden.
+ * Creates a zip file with the debug information at the root of the project.
+ * Accepts an invalid project and it will always generate a report.
+ * THIS SHOULD ONLY BE CALLED FROM `cli.ts`.
+ *
+ * @export
+ * @param {string} root
+ * @param {LogEntry} log
+ */
+export async function generateBasicDebugInfoReport(root: string, log: LogEntry) {
+  const tempPath = join(root, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+  const entry = log.info({ msg: "Collecting basic debug info", status: "active" })
+  // Collect project info
+  const projectEntry = entry.info({ section: "Project", msg: "collecting info", status: "active" })
+  await collectBasicDebugInfo(root, log)
+  projectEntry.setSuccess({ msg: chalk.green(`Done (took ${projectEntry.getDuration(1)} sec)`), append: true })
+
+  // Run system diagnostic
+  const systemEntry = entry.info({ section: "System", msg: "collecting info", status: "active" })
+  await collectSystemDiagnostic(root, log)
+  systemEntry.setSuccess({ msg: chalk.green(`Done (took ${systemEntry.getDuration(1)} sec)`), append: true })
+
+  // Zip report folder
+  entry.setState("Preparing archive")
+  const outputFilename = DEBUG_ZIP_FILENAME.replace("TIMESTAMP", new Date().toISOString())
+  const outputFilePath = join(root, outputFilename)
+  await zipFolder(tempPath, outputFilePath, log)
+
+  // Cleanup temporary folders
+  await remove(tempPath)
+
+  entry.setSuccess({ msg: "Done", append: true })
+  log.info(`\nDone! Please find your report at  ${outputFilePath}.`)
+}
+
+/**
+ * Returns the input object as json or yaml string
+ * Defaults to yaml.
+ *
+ * @param {*} info The input data
+ * @param {string} format The format of the output. Default is yaml.
+ * @returns The info rendered in either json or yaml
+ */
 function renderInfo(info: any, format: string) {
   if (format === "json") {
     return JSON.stringify(info, null, 4)
@@ -168,13 +196,21 @@ const debugInfoOptions = {
   format: new ChoicesParameter({
     help: "The output format for plugin-generated debug info.",
     choices: ["json", "yaml"],
-    defaultValue: "yaml",
+    defaultValue: "json",
   }),
 }
 
 type Args = typeof debugInfoArguments
 type Opts = typeof debugInfoOptions
 
+/**
+ * Collects information about the project, the system running garden and the providers.
+ * Creates a zip file with the debug information at the root of the project.
+ *
+ * @export
+ * @class GetDebugInfoCommand
+ * @extends {Command<Args, Opts>}
+ */
 export class GetDebugInfoCommand extends Command<Args, Opts> {
   name = "debug-info"
   help = "Outputs the status of your environment for debug purposes."
@@ -182,27 +218,52 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
   description = dedent`
     Examples:
 
-    garden get debug-info                # create a zip file on the root of the project with debug information
-    garden get debug-info --format yaml  # outputs the provider info as yaml files (default as json)
+    garden get debug-info                # create a zip file at the root of the project with debug information
+    garden get debug-info --format yaml  # output the provider info as yaml files (default as json)
   `
 
   arguments = debugInfoArguments
   options = debugInfoOptions
 
   async action({ garden, log, opts }: CommandParams<Args, Opts>) {
-
     const tempPath = join(garden.projectRoot, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+
+    const entry = log.info({ msg: "Collecting debug info", status: "active" })
+
+    // Collect project info
+    const projectEntry = entry.info({ section: "Project", msg: "collecting info", status: "active" })
     await collectBasicDebugInfo(garden.projectRoot, log)
+    projectEntry.setSuccess({ msg: chalk.green(`Done (took ${projectEntry.getDuration(1)} sec)`), append: true })
 
-    await collectProviderDebugInfo(garden, log, tempPath, opts.format)
+    // Run system diagnostic
+    const systemEntry = entry.info({ section: "System", msg: "collecting info", status: "active" })
+    await collectSystemDiagnostic(garden.projectRoot, log)
+    systemEntry.setSuccess({ msg: chalk.green(`Done (took ${systemEntry.getDuration(1)} sec)`), append: true })
 
-    log.info("Preparing archive.")
+    // Collect providers info
+    const providerEntry = entry.info({ section: "Providers", msg: "collecting info", status: "active" })
+    try {
+      await collectProviderDebugInfo(garden, log, opts.format)
+      providerEntry.setSuccess({ msg: chalk.green(`Done (took ${systemEntry.getDuration(1)} sec)`), append: true })
+    } catch (err) {
+      // One or multiple providers threw an error while processing.
+      // Skip the step but still create a report.
+      providerEntry.setWarn({
+        msg: chalk.yellow(`Failed to collect providers info. Skipping this step.`), append: true,
+      })
+    }
+
+    // Zip report folder
+    entry.setState("Preparing archive")
     const outputFilename = DEBUG_ZIP_FILENAME.replace("TIMESTAMP", new Date().toISOString())
-    await zipFolder(tempPath, join(garden.projectRoot, outputFilename), log)
+    const outputFilePath = join(garden.projectRoot, outputFilename)
+    await zipFolder(tempPath, outputFilePath, log)
 
+    // Cleanup temporary folders
     await remove(tempPath)
 
-    log.info(`Done! Please find your report under ${garden.projectRoot}.`)
+    entry.setSuccess({ msg: "Done", append: true })
+    log.info(`\nDone! Please find your report at  ${outputFilePath}.`)
 
     return { result: 0 }
   }

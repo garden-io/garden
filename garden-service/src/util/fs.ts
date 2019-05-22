@@ -11,8 +11,8 @@ import * as _spawn from "cross-spawn"
 import { pathExists, readFile } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
-import { join, basename, win32, posix } from "path"
-import { GARDEN_DIR_NAME } from "../constants"
+import { join, basename, win32, posix, relative, parse } from "path"
+import { GARDEN_DIR_NAME, CONFIG_FILENAME } from "../constants"
 // NOTE: Importing from ignore/ignore doesn't work on Windows
 const ignore = require("ignore")
 
@@ -95,6 +95,40 @@ export async function getIgnorer(rootPath: string): Promise<Ignorer> {
   ])
 
   return ig
+}
+
+/**
+ * Given a path returns an array of module paths for the project.
+ *
+ * @export
+ * @param {string} dir Root of the project
+ * @returns
+ */
+export async function getModulesPathsFromPath(dir: string) {
+  const ignorer = await getIgnorer(dir)
+  const scanOpts = {
+    filter: (path) => {
+      const relPath = relative(dir, path)
+      return !ignorer.ignores(relPath)
+    },
+  }
+  const paths: string[] = []
+
+  for await (const item of scanDirectory(dir, scanOpts)) {
+    if (!item) {
+      continue
+    }
+
+    const parsedPath = parse(item.path)
+
+    if (parsedPath.base !== CONFIG_FILENAME) {
+      continue
+    }
+
+    paths.push(parsedPath.dir)
+  }
+
+  return paths
 }
 
 /**

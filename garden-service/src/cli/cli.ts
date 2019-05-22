@@ -51,7 +51,7 @@ import { GardenConfig } from "../config/base"
 import { defaultEnvironments } from "../config/project"
 import { ERROR_LOG_FILENAME } from "../constants"
 import stringify = require("json-stringify-safe")
-import { collectBasicDebugInfo } from "../commands/get/get-debug-info"
+import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -284,23 +284,6 @@ export class GardenCli {
       })
 
       do {
-        garden = await Garden.factory(root, contextOpts)
-
-        // Register log file writers. We need to do this after the Garden class is initialised because
-        // the file writers depend on the project root.
-        await this.initFileWriters(logger, garden.projectRoot)
-
-        // TODO: enforce that commands always output DeepPrimitiveMap
-        result = await command.action({
-          garden,
-          log,
-          logFooter,
-          args: parsedArgs,
-          opts: parsedOpts,
-        })
-
-        await garden.close()
-
         try {
           garden = await Garden.factory(root, contextOpts)
 
@@ -320,8 +303,10 @@ export class GardenCli {
           await garden.close()
 
         } catch (err) {
+          // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
+          // Other exceptions are handled within the implementation of "get debug-info".
           if (command.name === "debug-info") {
-            await collectBasicDebugInfo(root, log)
+            await generateBasicDebugInfoReport(root, log)
             return
           }
           throw err

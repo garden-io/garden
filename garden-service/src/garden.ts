@@ -67,7 +67,7 @@ import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import { getIgnorer, Ignorer, scanDirectory } from "./util/fs"
+import { getIgnorer, Ignorer, getModulesPathsFromPath } from "./util/fs"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -607,30 +607,7 @@ export class Garden {
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
       const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
-        const ignorer = await getIgnorer(dir)
-        const scanOpts = {
-          filter: (path) => {
-            const relPath = relative(dir, path)
-            return !ignorer.ignores(relPath)
-          },
-        }
-        const paths: string[] = []
-
-        for await (const item of scanDirectory(dir, scanOpts)) {
-          if (!item) {
-            continue
-          }
-
-          const parsedPath = parse(item.path)
-
-          if (parsedPath.base !== CONFIG_FILENAME) {
-            continue
-          }
-
-          paths.push(parsedPath.dir)
-        }
-
-        return paths
+        return await getModulesPathsFromPath(dir)
       })).filter(Boolean)
 
       const rawConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]

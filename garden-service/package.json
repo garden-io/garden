@@ -163,7 +163,7 @@
     "testdouble": "^3.11.0",
     "testdouble-chai": "^0.5.0",
     "timekeeper": "^2.2.0",
-    "tmp-promise": "^1.1.0",
+    "tmp-promise": "^2.0.1",
     "touch": "^3.1.0",
     "ts-node": "^8.1.0",
     "tslint": "^5.16.0",
