@@ -35,7 +35,8 @@ export type StackGraphSupportedFilterKeys = Exclude<RenderedNodeType, "publish">
 
 interface UiActions {
   toggleSidebar: () => void
-  overviewToggleItemsView: (itemToToggle: OverviewSupportedFilterKeys) => void
+  overviewToggleItemsView: (filterKey: OverviewSupportedFilterKeys) => void
+  stackGraphToggleItemsView: (filterKey: StackGraphSupportedFilterKeys) => void
   selectGraphNode: SelectGraphNode
   selectIngress: SelectIngress
   clearGraphNodeSelection: () => void
@@ -84,14 +85,27 @@ const useUiState = () => {
     })
   }
 
-  const overviewToggleItemsView = (itemToToggle: OverviewSupportedFilterKeys) => {
+  const overviewToggleItemsView = (filterKey: OverviewSupportedFilterKeys) => {
     setState({
       ...uiState,
       overview: {
         ...uiState.overview,
         filters: {
           ...uiState.overview.filters,
-          [itemToToggle]: !uiState.overview.filters[itemToToggle],
+          [filterKey]: !uiState.overview.filters[filterKey],
+        },
+      },
+    })
+  }
+
+  const stackGraphToggleItemsView = (filterKey: StackGraphSupportedFilterKeys) => {
+    setState({
+      ...uiState,
+      stackGraph: {
+        ...uiState.stackGraph,
+        filters: {
+          ...uiState.stackGraph.filters,
+          [filterKey]: !uiState.stackGraph.filters[filterKey],
         },
       },
     })
@@ -124,6 +138,7 @@ const useUiState = () => {
     actions: {
       toggleSidebar,
       overviewToggleItemsView,
+      stackGraphToggleItemsView,
       selectGraphNode,
       clearGraphNodeSelection,
       selectIngress,

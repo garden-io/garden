@@ -12,9 +12,11 @@ import Graph from "../components/graph"
 import PageError from "../components/page-error"
 import { EventContext } from "../context/events"
 import { DataContext } from "../context/data"
-import { UiStateContext } from "../context/ui"
+import { UiStateContext, StackGraphSupportedFilterKeys } from "../context/ui"
 import { NodeInfo } from "./node-info"
 import Spinner from "../components/spinner"
+import { Filters } from "../components/group-filter"
+import { capitalize } from "lodash"
 
 const Wrapper = styled.div`
 padding-left: .75rem;
@@ -31,8 +33,8 @@ export default () => {
   useEffect(loadGraph, [])
 
   const {
-    actions: { selectGraphNode },
-    state: { selectedGraphNode, isSidebarOpen },
+    actions: { selectGraphNode, stackGraphToggleItemsView },
+    state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
   } = useContext(UiStateContext)
 
   if (config.error || graph.error) {
@@ -62,6 +64,19 @@ export default () => {
     }
   }
 
+  const createFiltersState =
+    (allGroupFilters, type): Filters<StackGraphSupportedFilterKeys> => {
+      return ({
+        ...allGroupFilters,
+        [type]: {
+          label: capitalize(type),
+          selected: filters[type],
+        },
+      })
+    }
+
+  const graphFilters = Object.keys(filters).reduce(createFiltersState, {}) as Filters<StackGraphSupportedFilterKeys>
+
   return (
     <Wrapper className="row">
       <div className={moreInfoPane ? "col-xs-7 col-sm-7 col-md-8 col-lg-8 col-xl-8" : "col-xs"}>
@@ -71,6 +86,8 @@ export default () => {
           layoutChanged={isSidebarOpen}
           config={config.data}
           graph={graph.data}
+          filters={graphFilters}
+          onFilter={stackGraphToggleItemsView}
         />
       </div>
       {moreInfoPane}
