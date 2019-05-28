@@ -80,12 +80,12 @@ const Field = styled.div`
 `
 
 const Tag = styled.div`
-  display: flex;
-  align-items: center;
+  display: inline-block;
   font-weight: 500;
   font-size: 10px;
   letter-spacing: 0.01em;
   color: #90A0B7;
+  padding-left: .25rem;
 `
 const Name = styled.div`
   padding-right: .5rem;
@@ -155,8 +155,7 @@ export default ({
   return (
     <Module>
       <Header>
-        <Name>{name}</Name>
-        <Tag>{type && type.toUpperCase()} MODULE</Tag>
+        <Name>{name} <Tag>{type && type.toUpperCase()} MODULE</Tag></Name>
       </Header>
       <Fields visible={filters.modulesInfo}>
         {description && (
