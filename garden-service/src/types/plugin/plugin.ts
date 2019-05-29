@@ -46,6 +46,7 @@ import {
   getTaskResultParamsSchema,
   runTaskParamsSchema,
   configureProviderParamsSchema,
+  getDebugInfoParamsSchema,
 } from "./params"
 import {
   buildModuleResultSchema,
@@ -72,6 +73,7 @@ import {
   runTaskResultSchema,
   getTaskResultSchema,
   configureProviderResultSchema,
+  getDebugInfoSchema as getDebugInfoResultSchema,
 } from "./outputs"
 
 export type PluginActions = {
@@ -188,6 +190,13 @@ export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDe
     `,
     paramsSchema: deleteSecretParamsSchema,
     resultSchema: deleteSecretResultSchema,
+  },
+  getDebugInfo: {
+    description: dedent`
+      Collects debug info from the provider
+    `,
+    paramsSchema: getDebugInfoParamsSchema,
+    resultSchema: getDebugInfoResultSchema,
   },
 }
 

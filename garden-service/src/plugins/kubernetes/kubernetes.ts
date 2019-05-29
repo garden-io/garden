@@ -7,19 +7,24 @@
  */
 
 import * as Joi from "joi"
+import * as Bluebird from "bluebird"
 import dedent = require("dedent")
 
 import { joiArray, joiIdentifier, joiProviderName } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
 import { helmHandlers } from "./helm/handlers"
+import { getAppNamespace, getMetadataNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers, mavenContainerHandlers } from "./container/handlers"
 import { PluginContext } from "../../plugin-context"
 import { kubernetesHandlers } from "./kubernetes-module/handlers"
-import { ConfigureProviderParams } from "../../types/plugin/params"
+import { ConfigureProviderParams, GetDebugInfoParams } from "../../types/plugin/params"
+import { kubectl } from "./kubectl"
+import { systemNamespace, systemMetadataNamespace } from "./system"
+import { DebugInfo } from "../../types/plugin/outputs"
 
 export const name = "kubernetes"
 
@@ -155,6 +160,28 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
   return { name: config.name, config }
 }
 
+export async function debugInfo({ ctx, log }: GetDebugInfoParams): Promise<DebugInfo> {
+  const k8sContext = <KubernetesPluginContext>ctx
+  const { context } = k8sContext.provider.config
+  const appNamespace = await getAppNamespace(k8sContext, log, k8sContext.provider)
+  const appMetadataNamespace = await getMetadataNamespace(k8sContext, log, k8sContext.provider)
+
+  const namespacesList = [appNamespace, appMetadataNamespace, systemNamespace, systemMetadataNamespace]
+  const namespaces = await Bluebird.map(namespacesList, async (ns) => {
+    const out = await kubectl.stdout({ log, context, args: ["get", "all", "--namespace", ns, "--output", "json"] })
+    return {
+      namespace: ns,
+      output: JSON.parse(out),
+    }
+  })
+
+  const version = await kubectl.stdout({ log, context, args: ["version", "--output", "json"] })
+
+  return {
+    info: { version: JSON.parse(version), namespaces },
+  }
+}
+
 export function gardenPlugin(): GardenPlugin {
   return {
     configSchema,
@@ -166,6 +193,7 @@ export function gardenPlugin(): GardenPlugin {
       getSecret,
       setSecret,
       deleteSecret,
+      getDebugInfo: debugInfo,
     },
     moduleActions: {
       "container": containerHandlers,

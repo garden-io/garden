@@ -127,6 +127,9 @@ export interface DeleteSecretParams extends PluginActionParamsBase {
 }
 export const deleteSecretParamsSchema = getSecretParamsSchema
 
+export interface GetDebugInfoParams extends PluginActionParamsBase { }
+export const getDebugInfoParamsSchema = actionParamsSchema
+
 export interface PluginActionParams {
   configureProvider: ConfigureProviderParams
 
@@ -137,6 +140,8 @@ export interface PluginActionParams {
   getSecret: GetSecretParams
   setSecret: SetSecretParams
   deleteSecret: DeleteSecretParams
+
+  getDebugInfo: GetDebugInfoParams
 }
 
 /**

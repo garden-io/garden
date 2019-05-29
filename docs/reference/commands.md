@@ -324,6 +324,25 @@ Outputs the latest execution result of a provided test.
   | `module` | Yes | Module name of where the test runs.
   | `name` | Yes | Test name.
 
+### garden get debug-info
+
+Outputs the status of your environment for debug purposes.
+
+Examples:
+
+garden get debug-info                # create a zip file at the root of the project with debug information
+garden get debug-info --format yaml  # output the provider info as yaml files (default as json)
+
+##### Usage
+
+    garden get debug-info [options]
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--format` |  | `json` `yaml`  | The output format for plugin-generated debug info.
+
 ### garden init
 
 Initialize system, environment or other runtime components.
