@@ -107,6 +107,43 @@ describe("GitHandler", () => {
       ])
     })
 
+    it("should work with tracked files with spaces in the name", async () => {
+      const filePath = join(tmpPath, "my file.txt")
+      await createFile(filePath)
+      await git("add", filePath)
+      await git("commit", "-m", "foo")
+      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+
+      expect(await handler.getFiles(tmpPath)).to.eql([
+        { path: resolve(tmpPath, "my file.txt"), hash },
+      ])
+    })
+
+    it("should work with tracked+modified files with spaces in the name", async () => {
+      const filePath = join(tmpPath, "my file.txt")
+      await createFile(filePath)
+      await git("add", filePath)
+      await git("commit", "-m", "foo")
+
+      await writeFile(filePath, "fooooo")
+
+      const hash = "099673697c6cbf5c1a96c445ef3eab123740c778"
+
+      expect(await handler.getFiles(tmpPath)).to.eql([
+        { path: resolve(tmpPath, "my file.txt"), hash },
+      ])
+    })
+
+    it("should work with untracked files with spaces in the name", async () => {
+      const filePath = join(tmpPath, "my file.txt")
+      await createFile(filePath)
+      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+
+      expect(await handler.getFiles(tmpPath)).to.eql([
+        { path: resolve(tmpPath, "my file.txt"), hash },
+      ])
+    })
+
     it("should filter out files that don't match the include filter, if specified", async () => {
       const path = resolve(tmpPath, "foo.txt")
       await createFile(path)
