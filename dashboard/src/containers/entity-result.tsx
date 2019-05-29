@@ -9,22 +9,17 @@
 import React, { useContext, useEffect } from "react"
 import { DataContext } from "../context/data"
 import { getDuration } from "../util/helpers"
-import { UiStateContext } from "../context/ui"
-import { RenderedNode } from "garden-cli/src/config-graph"
-import { InfoPane } from "../components/info-pane"
+import EntityResult from "../components/entity-result"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
 import { ErrorNotification } from "../components/notifications"
+import { EntityResultSupportedTypes } from "../context/ui"
 
 const ErrorMsg = ({ error, type }) => (
   <ErrorNotification>
     Error occured while trying to get {type} result: {error.message}
   </ErrorNotification>
 )
-
-export interface Props {
-  node: RenderedNode
-}
 
 function prepareData(data: TestResultOutput | TaskResultOutput) {
   const startedAt = data.startedAt
@@ -38,25 +33,28 @@ function prepareData(data: TestResultOutput | TaskResultOutput) {
   return { duration, startedAt, completedAt, output }
 }
 
+interface Props {
+  type: EntityResultSupportedTypes
+  name: string
+  moduleName: string
+  onClose: () => void
+}
+
 /**
  * Returns the InfoPane for a given node type.
  *
  * If the node is of type "test" or "run", it loads the results as well.
  */
-export const NodeInfo: React.FC<Props> = ({ node }) => {
-  const { name, moduleName, type } = node
+export default ({ name, moduleName, type, onClose }: Props) => {
   const {
     actions: { loadTestResult, loadTaskResult },
     store: { testResult, taskResult },
   } = useContext(DataContext)
-  const {
-    actions: { clearGraphNodeSelection },
-  } = useContext(UiStateContext)
 
   const loadResults = () => {
     if (type === "test") {
       loadTestResult({ name, module: moduleName }, true)
-    } else if (type === "run") {
+    } else if (type === "run" || type === "task") {
       loadTaskResult({ name }, true)
     }
   }
@@ -64,8 +62,15 @@ export const NodeInfo: React.FC<Props> = ({ node }) => {
   useEffect(loadResults, [name, moduleName])
 
   // Here we just render the node data since only nodes of types test and run have results
-  if (!(type === "test" || type === "run")) {
-    return <InfoPane clearGraphNodeSelection={clearGraphNodeSelection} node={node} />
+  if (!(type === "test" || type === "run" || type === "task")) {
+    return (
+      <EntityResult
+        onClose={onClose}
+        name={name}
+        type={type}
+        moduleName={moduleName}
+      />
+    )
   }
 
   const result = type === "test" ? testResult : taskResult
@@ -76,16 +81,26 @@ export const NodeInfo: React.FC<Props> = ({ node }) => {
 
   // Loading. Either data hasn't been loaded at all or cache contains stale data
   if (!result.data || result.data.name !== name) {
-    return <InfoPane onRefresh={loadResults} clearGraphNodeSelection={clearGraphNodeSelection} node={node} />
+    return (
+      <EntityResult
+        onRefresh={loadResults}
+        onClose={onClose}
+        name={name}
+        type={type}
+        moduleName={moduleName}
+      />
+    )
   }
 
   // Render info pane with result data
   return (
-    <InfoPane
+    <EntityResult
       onRefresh={loadResults}
       loading={result.loading}
-      clearGraphNodeSelection={clearGraphNodeSelection}
-      node={node}
+      onClose={onClose}
+      name={name}
+      type={type}
+      moduleName={moduleName}
       {...prepareData(result.data)}
     />
   )

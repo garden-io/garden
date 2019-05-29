@@ -14,6 +14,7 @@ interface UiState {
   isSidebarOpen: boolean
   overview: {
     selectedIngress: ServiceIngress | null,
+    selectedEntity: SelectedEntity | null,
     filters: {
       [key in OverviewSupportedFilterKeys]: boolean
     },
@@ -27,17 +28,24 @@ interface UiState {
 }
 
 export type SelectGraphNode = (node: string) => void
+export type SelectEntity = (selectedEntity: SelectedEntity | null) => void
 export type SelectIngress = (ingress: ServiceIngress | null) => void
-
 export type OverviewSupportedFilterKeys = "modules" | "modulesInfo" | "services" | "servicesInfo" |
   "tasks" | "tasksInfo" | "tests" | "testsInfo"
 export type StackGraphSupportedFilterKeys = Exclude<RenderedNodeType, "publish">
+export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "task"
+export type SelectedEntity = {
+  type: EntityResultSupportedTypes,
+  name: string,
+  module: string,
+}
 
 interface UiActions {
   toggleSidebar: () => void
   overviewToggleItemsView: (filterKey: OverviewSupportedFilterKeys) => void
   stackGraphToggleItemsView: (filterKey: StackGraphSupportedFilterKeys) => void
   selectGraphNode: SelectGraphNode
+  selectEntity: SelectEntity
   selectIngress: SelectIngress
   clearGraphNodeSelection: () => void
 }
@@ -45,6 +53,7 @@ interface UiActions {
 const INITIAL_UI_STATE: UiState = {
   overview: {
     selectedIngress: null,
+    selectedEntity: null,
     filters: {
       modules: true,
       modulesInfo: true,
@@ -126,6 +135,17 @@ const useUiState = () => {
       },
     })
   }
+
+  const selectEntity = (selectedEntity: SelectedEntity | null) => {
+    setState({
+      ...uiState,
+      overview: {
+        ...uiState.overview,
+        selectedEntity,
+      },
+    })
+  }
+
   const clearGraphNodeSelection = () => {
     setState({
       ...uiState,
@@ -142,6 +162,7 @@ const useUiState = () => {
       selectGraphNode,
       clearGraphNodeSelection,
       selectIngress,
+      selectEntity,
     },
   }
 }
