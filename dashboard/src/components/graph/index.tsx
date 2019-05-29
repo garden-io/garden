@@ -10,22 +10,19 @@ import cls from "classnames"
 import { css } from "emotion"
 import React, { Component } from "react"
 import styled from "@emotion/styled"
-import { capitalize, uniq } from "lodash"
+import { capitalize } from "lodash"
 import * as d3 from "d3"
 import dagreD3 from "dagre-d3"
-
+import { Extends } from "garden-cli/src/util/util"
+import { ConfigDump } from "garden-cli/src/garden"
 import Card from "../card"
-
 import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
 import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../context/ui"
 import { WsEventMessage, SupportedEventName } from "../../context/events"
-import { Extends } from "garden-cli/src/util/util"
-import { ConfigDump } from "garden-cli/src/garden"
-import { FiltersButton, Filters } from "../group-filter"
-import { RenderedNodeType } from "garden-cli/src/config-graph"
 import { GraphOutputWithNodeStatus } from "../../context/data"
+import { FiltersButton, Filters } from "../group-filter"
 
 interface Node {
   name: string
@@ -179,21 +176,6 @@ function drawChart(
   })
 }
 
-interface Props {
-  config: ConfigDump
-  graph: GraphOutputWithNodeStatus
-  onGraphNodeSelected: SelectGraphNode
-  selectedGraphNode: string | null
-  layoutChanged: boolean
-  message?: WsEventMessage
-}
-
-interface State {
-  filters: Filters<StackGraphSupportedFilterKeys>
-  nodes: Node[]
-  edges: Edge[]
-}
-
 // Renders as HTML
 const makeLabel = (name: string, type: string, moduleName: string) => {
   return `
@@ -226,10 +208,20 @@ const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`
 type ChartState = {
   nodes: Node[],
   edges: Edge[],
-  filters: Filters<StackGraphSupportedFilterKeys>,
 }
 
-class Chart extends Component<Props, State> {
+interface Props {
+  config: ConfigDump
+  graph: GraphOutputWithNodeStatus
+  onGraphNodeSelected: SelectGraphNode
+  selectedGraphNode: string | null
+  layoutChanged: boolean
+  message?: WsEventMessage
+  filters: Filters<StackGraphSupportedFilterKeys>
+  onFilter: (filterKey: StackGraphSupportedFilterKeys) => void
+}
+
+class Chart extends Component<Props, ChartState> {
   _nodes: Node[]
   _edges: Edge[]
   _chartRef: React.RefObject<any>
@@ -237,38 +229,14 @@ class Chart extends Component<Props, State> {
   state: ChartState = {
     nodes: [],
     edges: [],
-    filters: {
-      run: { selected: true, label: "Run" },
-      deploy: { selected: true, label: "Deploy" },
-      test: { selected: true, label: "Test" },
-      build: { selected: true, label: "Build" },
-    },
   }
 
   constructor(props) {
     super(props)
 
     this._chartRef = React.createRef()
-    this.handleFilter = this.handleFilter.bind(this)
     this._nodes = []
     this._edges = []
-
-    const createFiltersState =
-      (allGroupFilters, type): Filters<StackGraphSupportedFilterKeys> => {
-        return ({
-          ...allGroupFilters,
-          [type]: {
-            ...(allGroupFilters[type]),
-            visible: true,
-          },
-        })
-      }
-    const taskTypes: RenderedNodeType[] = uniq(this.props.graph.nodes.map(n => n.type))
-    const filters: Filters<StackGraphSupportedFilterKeys> = taskTypes.reduce(createFiltersState, this.state.filters)
-    this.state = {
-      ...this.state,
-      filters,
-    }
   }
 
   componentDidMount() {
@@ -289,14 +257,6 @@ class Chart extends Component<Props, State> {
     window.onresize = () => { }
   }
 
-  handleFilter(key: string) {
-    const toggledFilters = this.state.filters
-    toggledFilters[key].selected = !toggledFilters[key].selected
-    this.setState({
-      filters: toggledFilters,
-    })
-  }
-
   drawChart() {
     const graph = this.makeGraph()
     this._nodes = graph.nodes
@@ -307,9 +267,8 @@ class Chart extends Component<Props, State> {
   }
 
   makeGraph() {
-    const { filters } = this.state
     const nodes: Node[] = this.props.graph.nodes
-      .filter(n => filters[n.type].selected)
+      .filter(n => this.props.filters[n.type].selected)
       .map(n => {
         return {
           id: n.key,
@@ -319,7 +278,10 @@ class Chart extends Component<Props, State> {
         }
       })
     const edges: Edge[] = this.props.graph.relationships
-      .filter(n => filters[n.dependant.type].selected && filters[n.dependency.type].selected)
+      .filter(n =>
+        this.props.filters[n.dependant.type].selected &&
+        this.props.filters[n.dependency.type].selected,
+      )
       .map(r => {
         const source = r.dependency
         const target = r.dependant
@@ -333,12 +295,13 @@ class Chart extends Component<Props, State> {
     return { edges, nodes }
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props, prevState: ChartState) {
     if (
       (prevState !== this.state) ||
       (prevProps.graph !== this.props.graph) ||
       (!prevProps.selectedGraphNode && this.props.selectedGraphNode) ||
       (prevProps.selectedGraphNode && !this.props.selectedGraphNode) ||
+      (prevProps.filters !== this.props.filters) ||
       (prevProps.layoutChanged !== this.props.layoutChanged)) {
       this.drawChart()
     }
@@ -386,8 +349,8 @@ class Chart extends Component<Props, State> {
           >
             <div className="ml-1" >
               <FiltersButton
-                filters={this.state.filters}
-                onFilter={this.handleFilter}
+                filters={this.props.filters}
+                onFilter={this.props.onFilter}
               />
               <div
                 className={css`
