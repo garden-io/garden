@@ -5,10 +5,10 @@ import { expect } from "chai"
 import { Garden } from "../../../../src/garden"
 import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { makeTestGardenA, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
+import { makeTestGardenA, configureTestModule, withDefaultGlobalOpts, dataDir } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 
-const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
+const projectRootB = join(dataDir, "test-project-b")
 
 const getBuildStatus = async () => {
   return { ready: true }

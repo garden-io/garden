@@ -1,0 +1,5 @@
+#!/usr/bin/env node --inspect
+
+const cli = require("../build/src/cli/cli")
+
+cli.run()

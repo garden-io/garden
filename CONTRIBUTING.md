@@ -184,6 +184,7 @@ Our release process generates the following packages:
 ### Process
 
 The release process is twofold, first a [release script](https://github.com/garden-io/garden/blob/master/bin/release.ts) is run. The script has the signature: `./bin/release.tsx <minor | patch | preminor | prepatch | prerelease> [--force]` and does the following:
+
 * Checks out a branch named `release-<version>`.
 * Updates `package.json` and `package-lock.json` for `garden-service` and the changelog.
 * Commits the changes, tags the commit and pushes the tag and branch, triggering a CI process the creates the release artifacts.
@@ -195,7 +196,7 @@ Second, we manually upload the artifacts generated in CI to our Github releases 
 To make a new release, set your current working directory to the garden root directory and follow the steps below.
 
 1. The first step depends on the release type:
-    * If you're making the first pre-release, run `./bin/release.tsx prerelease` from `master`.
+    * If you're making the first pre-release, run `./bin/release.ts prerelease` from `master`.
     * If you’ve already created a prerelease, e.g. `v1.2.3-0`, and want to create a new prerelease `v1.2.3-1` which includes changes made on master since `v1.2.3-0` was created, do the following:
         * `git checkout v1.2.3-0`
         * `git rebase master`

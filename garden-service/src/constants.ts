@@ -12,7 +12,8 @@ export const isPkg = !!(<any>process).pkg
 
 export const CONFIG_FILENAME = "garden.yml"
 export const LOCAL_CONFIG_FILENAME = "local-config.yml"
-export const STATIC_DIR = resolve(isPkg ? process.execPath : __dirname, "..", "static")
+export const GARDEN_SERVICE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
+export const STATIC_DIR = join(GARDEN_SERVICE_ROOT, "static")
 // We copy the built dashboard to the garden-service static directory (with gulp in development, otherwise in CI).
 // TODO: Use env vars to detect if Garden is running in dev mode and serve straight from the dashboard directory.
 export const DASHBOARD_STATIC_DIR = join(STATIC_DIR, "dashboard")

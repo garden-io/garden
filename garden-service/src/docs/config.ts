@@ -30,6 +30,9 @@ import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/openfa
 import { joiArray } from "../config/common"
 import { mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
 import { Garden } from "../garden"
+import { GARDEN_SERVICE_ROOT } from "../constants"
+
+export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 
 const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema
   .concat(schema)
@@ -358,7 +361,7 @@ export function renderSchemaDescriptionYaml(
  * and a YAML schema.
  */
 export function renderConfigReference(configSchema: Joi.ObjectSchema) {
-  const partialTemplatePath = resolve(__dirname, "../../src/docs", "templates", "config-partial.hbs")
+  const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
   const normalizedDescriptions = normalizeDescriptions(configSchema.describe())
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { showComment: false })
@@ -373,7 +376,7 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema) {
  * The reference includes the rendered output from the config-partial.hbs template.
  */
 function renderProviderReference(schema: Joi.ObjectSchema, name: string) {
-  const providerTemplatePath = resolve(__dirname, "templates", "provider.hbs")
+  const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
   return template({ name, markdownReference, yaml })
@@ -384,7 +387,7 @@ function renderProviderReference(schema: Joi.ObjectSchema, name: string) {
  * The reference includes the rendered output from the config-partial.hbs template.
  */
 function renderModuleTypeReference(schema: Joi.ObjectSchema, name: string, docs: string) {
-  const moduleTemplatePath = resolve(__dirname, "templates", "module-type.hbs")
+  const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
   return template({ name, docs, markdownReference, yaml })
@@ -396,7 +399,7 @@ function renderModuleTypeReference(schema: Joi.ObjectSchema, name: string, docs:
  * the base project and base module schemas.
  */
 function renderBaseConfigReference() {
-  const baseTemplatePath = resolve(__dirname, "templates", "base-config.hbs")
+  const baseTemplatePath = resolve(TEMPLATES_DIR, "base-config.hbs")
   const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(projectSchema)
   const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema)
 

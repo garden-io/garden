@@ -1,7 +1,7 @@
 import { join } from "path"
 import { Garden } from "../../../../src/garden"
 import { ValidateCommand } from "../../../../src/commands/validate"
-import { expectError, getExampleProjects, withDefaultGlobalOpts } from "../../../helpers"
+import { expectError, getExampleProjects, withDefaultGlobalOpts, dataDir } from "../../../helpers"
 
 describe("commands.validate", () => {
   // validate all of the example projects
@@ -22,13 +22,13 @@ describe("commands.validate", () => {
   }
 
   it("should fail validating the bad-project project", async () => {
-    const root = join(__dirname, "data", "validate", "bad-project")
+    const root = join(dataDir, "validate", "bad-project")
 
     await expectError(async () => await Garden.factory(root), "configuration")
   })
 
   it("should fail validating the bad-module project", async () => {
-    const root = join(__dirname, "data", "validate", "bad-module")
+    const root = join(dataDir, "validate", "bad-module")
     const garden = await Garden.factory(root)
     const log = garden.log
     const command = new ValidateCommand()

@@ -134,31 +134,11 @@ commands:
 # Jobs section
 #
 jobs:
-  build-service-docker:
-    <<: *node-config
-    steps:
-      - checkout
-      # This is to copy the pre-build build output from test-service (this should be a different step)
-      - *attach-workspace
-      - include_dashboard
-      - docker_build:
-          context: garden-service
-  release-service-docker:
-    <<: *node-config
-    steps:
-      - checkout
-      # This is to copy the pre-build build output from test-service (this should be a different step)
-      - *attach-workspace
-      - docker_release:
-          context: garden-service
-          image: $DOCKER_ORG/garden
   build-service:
     <<: *node-config
     steps:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
-      - setup_remote_docker:
-          docker_layer_caching: true
       - npm_install
       - run:
           name: build
@@ -202,24 +182,10 @@ jobs:
             npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
-  test-dashboard:
-    <<: *node-config
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - npm_install
-      - run:
-          name: Test dashboard
-          command: |
-            cd dashboard
-            npm test
   build-dashboard:
     <<: *node-config
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
       - npm_install
       - run:
           name: Build dashboard
@@ -235,6 +201,35 @@ jobs:
           paths:
             # Save the built output for future
             - dashboard/build/
+  test-dashboard:
+    <<: *node-config
+    steps:
+      - checkout
+      - npm_install
+      - *attach-workspace
+      - run:
+          name: Test dashboard
+          command: |
+            cd dashboard
+            npm test
+  build-service-docker:
+    <<: *node-config
+    steps:
+      - checkout
+      # This is to copy the pre-build build output from test-service (this should be a different step)
+      - *attach-workspace
+      - include_dashboard
+      - docker_build:
+          context: garden-service
+  release-service-docker:
+    <<: *node-config
+    steps:
+      - checkout
+      # This is to copy the pre-build build output from test-service (this should be a different step)
+      - *attach-workspace
+      - docker_release:
+          context: garden-service
+          image: $DOCKER_ORG/garden
   release-service-pkg:
     <<: *node-config
     steps:
@@ -255,9 +250,13 @@ workflows:
   commit:
     jobs:
       - build-service
-      - test-service
+      - test-service:
+          requires:
+            - build-service
       - build-dashboard
-      - test-dashboard
+      - test-dashboard:
+          requires:
+            - build-dashboard
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it

@@ -6,11 +6,11 @@ import {
   TaskResult,
   TaskResults,
 } from "../../../src/task-graph"
-import { makeTestGarden, freezeTime } from "../../helpers"
+import { makeTestGarden, freezeTime, dataDir } from "../../helpers"
 import { Garden } from "../../../src/garden"
 import { DependencyGraphNodeType } from "../../../src/config-graph"
 
-const projectRoot = join(__dirname, "..", "data", "test-project-empty")
+const projectRoot = join(dataDir, "test-project-empty")
 
 type TestTaskCallback = (name: string, result: any) => Promise<void>
 

@@ -7,10 +7,11 @@
  */
 
 import { resolve } from "path"
-import { renderSchemaDescriptionYaml, normalizeDescriptions } from "./config"
+import { renderSchemaDescriptionYaml, normalizeDescriptions, TEMPLATES_DIR } from "./config"
 import { ProjectConfigContext, ModuleConfigContext } from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
 import * as handlebars from "handlebars"
+import { GARDEN_SERVICE_ROOT } from "../constants"
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
@@ -21,7 +22,7 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const moduleDescriptions = normalizeDescriptions(ModuleConfigContext.getSchema().describe())
   const moduleContext = renderSchemaDescriptionYaml(moduleDescriptions, { showRequired: false })
 
-  const templatePath = resolve(__dirname, "templates", "template-strings.hbs")
+  const templatePath = resolve(TEMPLATES_DIR, "template-strings.hbs")
   const template = handlebars.compile(readFileSync(templatePath).toString())
   const markdown = template({ projectContext, moduleContext })
 
@@ -29,5 +30,5 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
 }
 
 if (require.main === module) {
-  writeTemplateStringReferenceDocs(resolve(__dirname, "..", "..", "..", "docs"))
+  writeTemplateStringReferenceDocs(resolve(GARDEN_SERVICE_ROOT, "..", "docs"))
 }

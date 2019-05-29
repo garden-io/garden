@@ -3,7 +3,7 @@ import { join } from "path"
 import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
 import { BuildTask } from "../../../src/tasks/build"
-import { makeTestGarden } from "../../helpers"
+import { makeTestGarden, dataDir } from "../../helpers"
 import { CONFIG_FILENAME } from "../../../src/constants"
 
 /*
@@ -16,7 +16,7 @@ import { CONFIG_FILENAME } from "../../../src/constants"
          e
  */
 
-const projectRoot = join(__dirname, "..", "data", "test-project-build-products")
+const projectRoot = join(dataDir, "test-project-build-products")
 
 const makeGarden = async () => {
   return await makeTestGarden(projectRoot)

@@ -10,13 +10,15 @@ import { expect } from "chai"
 import { parseLogLevel, getLogLevelChoices } from "../../../../src/cli/helpers"
 import { expectError } from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
+import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
+import { join } from "path"
 
 describe("helpers", () => {
   const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]
 
   describe("getPackageVersion", () => {
     it("should return the version in package.json", async () => {
-      const version = require("../../../../package.json").version
+      const version = require(join(GARDEN_SERVICE_ROOT, "package.json")).version
       expect(getPackageVersion()).to.eq(version)
     })
   })
