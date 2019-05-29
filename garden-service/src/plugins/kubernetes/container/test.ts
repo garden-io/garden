@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TestResult } from "../../../types/plugin/outputs"
-import { TestModuleParams } from "../../../types/plugin/params"
 import { ContainerModule } from "../../container/config"
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { runContainerModule } from "./run"
 import { storeTestResult } from "../test"
+import { TestModuleParams } from "../../../types/plugin/module/testModule"
+import { TestResult } from "../../../types/plugin/module/getTestResult"
 
 export async function testContainerModule(
   { ctx, interactive, module, runtimeContext, testConfig, testVersion, log }:

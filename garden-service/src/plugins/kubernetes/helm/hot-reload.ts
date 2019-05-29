@@ -9,12 +9,11 @@
 import { HelmService, HelmModule } from "./config"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
-import { HotReloadServiceParams } from "../../../types/plugin/params"
 import { ContainerModule } from "../../container/config"
-import { HotReloadServiceResult } from "../../../types/plugin/outputs"
 import { getChartResources, findServiceResource, getServiceResourceSpec } from "./common"
 import { syncToService, HotReloadableKind } from "../hot-reload"
 import { KubernetesPluginContext } from "../kubernetes"
+import { HotReloadServiceParams, HotReloadServiceResult } from "../../../types/plugin/service/hotReloadService"
 
 /**
  * The hot reload action handler for Helm charts.

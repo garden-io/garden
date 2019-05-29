@@ -10,7 +10,7 @@ import * as split from "split"
 import { omit } from "lodash"
 import moment = require("moment")
 
-import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/outputs"
+import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/service/getServiceLogs"
 import { splitFirst } from "../../util/util"
 import { kubectl } from "./kubectl"
 import { KubernetesResource } from "./types"

@@ -25,15 +25,6 @@ import {
 import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
-import {
-  DeleteSecretParams,
-  GetSecretParams,
-  ConfigureModuleParams,
-  RunModuleParams,
-  RunServiceParams,
-  RunTaskParams,
-  SetSecretParams,
-} from "../src/types/plugin/params"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_DIR_NAME, CONFIG_FILENAME } from "../src/constants"
 import { EventBus, Events } from "../src/events"
@@ -44,6 +35,13 @@ import { BuildDir } from "../src/build-dir"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { GLOBAL_OPTIONS } from "../src/cli/cli"
+import { RunModuleParams } from "../src/types/plugin/module/runModule"
+import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
+import { SetSecretParams } from "../src/types/plugin/provider/setSecret"
+import { GetSecretParams } from "../src/types/plugin/provider/getSecret"
+import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
+import { RunServiceParams } from "../src/types/plugin/service/runService"
+import { RunTaskParams } from "../src/types/plugin/task/runTask"
 
 export const dataDir = resolve(__dirname, "unit", "data")
 export const examplesDir = resolve(__dirname, "..", "..", "examples")

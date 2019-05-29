@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { Module } from "../types/module"
-import { PublishResult } from "../types/plugin/outputs"
+import { PublishResult } from "../types/plugin/module/publishModule"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"

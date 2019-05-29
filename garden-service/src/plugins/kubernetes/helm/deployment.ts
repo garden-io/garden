@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployServiceParams, DeleteServiceParams } from "../../../types/plugin/params"
 import { ServiceStatus } from "../../../types/service"
 import { getAppNamespace } from "../namespace"
 import { waitForResources } from "../status"
@@ -26,6 +25,8 @@ import { apply } from "../kubectl"
 import { KubernetesPluginContext } from "../kubernetes"
 import { ContainerHotReloadSpec } from "../../container/config"
 import { getHotReloadSpec } from "./hot-reload"
+import { DeployServiceParams } from "../../../types/plugin/service/deployService"
+import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 
 export async function deployService(
   { ctx, module, service, log, force, hotReload }: DeployServiceParams<HelmModule>,

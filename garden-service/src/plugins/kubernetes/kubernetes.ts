@@ -21,10 +21,10 @@ import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./
 import { containerHandlers, mavenContainerHandlers } from "./container/handlers"
 import { PluginContext } from "../../plugin-context"
 import { kubernetesHandlers } from "./kubernetes-module/handlers"
-import { ConfigureProviderParams, GetDebugInfoParams } from "../../types/plugin/params"
-import { kubectl } from "./kubectl"
+import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
+import { DebugInfo, GetDebugInfoParams } from "../../types/plugin/provider/getDebugInfo"
 import { systemNamespace, systemMetadataNamespace } from "./system"
-import { DebugInfo } from "../../types/plugin/outputs"
+import { kubectl } from "./kubectl"
 
 export const name = "kubernetes"
 

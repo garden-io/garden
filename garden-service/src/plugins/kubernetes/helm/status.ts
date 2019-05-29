@@ -7,7 +7,7 @@
  */
 
 import { ServiceStatus, ServiceState } from "../../../types/service"
-import { GetServiceStatusParams } from "../../../types/plugin/params"
+import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { getExecModuleBuildStatus } from "../../exec"
 import { compareDeployedObjects } from "../status"
 import { KubeApi } from "../api"

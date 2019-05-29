@@ -13,11 +13,11 @@ import { Garden } from "../garden"
 import { Task } from "../types/task"
 import { DeployTask } from "./deploy"
 import { LogEntry } from "../logger/log-entry"
-import { RunTaskResult } from "../types/plugin/outputs"
 import { prepareRuntimeContext } from "../types/service"
 import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
 import { ModuleVersion } from "../vcs/vcs"
 import { BuildTask } from "./build"
+import { RunTaskResult } from "../types/plugin/task/runTask"
 
 export interface TaskTaskParams {
   garden: Garden

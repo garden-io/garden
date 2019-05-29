@@ -10,19 +10,15 @@ import * as Docker from "dockerode"
 import { exec } from "child-process-promise"
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import {
-  GardenPlugin,
-} from "../../types/plugin/plugin"
-import {
-  DeployServiceParams,
-  ExecInServiceParams,
-  GetServiceStatusParams,
-} from "../../types/plugin/params"
+import { GardenPlugin } from "../../types/plugin/plugin"
 import { ContainerModule } from "../container/config"
 import { map, sortBy } from "lodash"
 import { sleep } from "../../util/util"
 import { ServiceState, ServiceStatus } from "../../types/service"
 import { containerHelpers } from "../container/helpers"
+import { DeployServiceParams } from "../../types/plugin/service/deployService"
+import { ExecInServiceParams } from "../../types/plugin/service/execInService"
+import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
 
 // should this be configurable and/or global across providers?
 const DEPLOY_TIMEOUT = 30

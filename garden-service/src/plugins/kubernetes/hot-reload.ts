@@ -9,9 +9,7 @@
 import * as Bluebird from "bluebird"
 import * as execa from "execa"
 import { V1Deployment, V1DaemonSet, V1StatefulSet, V1ObjectMeta } from "@kubernetes/client-node"
-import { HotReloadServiceParams } from "../../types/plugin/params"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
-import { HotReloadServiceResult } from "../../types/plugin/outputs"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { resolve as resolvePath, normalize, dirname } from "path"
 import { Omit } from "../../util/util"
@@ -25,6 +23,7 @@ import { getPortForward } from "./util"
 import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./kubernetes"
+import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 

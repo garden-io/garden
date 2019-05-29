@@ -12,15 +12,7 @@ import * as Bluebird from "bluebird"
 import { flatten, set, uniq } from "lodash"
 import { safeLoadAll } from "js-yaml"
 
-import {
-  BuildModuleParams,
-  GetServiceStatusParams,
-  DeployServiceParams,
-  DeleteServiceParams,
-  GetServiceLogsParams,
-} from "../../../types/plugin/params"
 import { KubernetesModule, configureKubernetesModule, KubernetesService, describeType } from "./config"
-import { BuildResult } from "../../../types/plugin/outputs"
 import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../kubernetes"
 import { KubernetesResource } from "../types"
@@ -31,6 +23,11 @@ import { KubeApi } from "../api"
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
 import { getAllLogs } from "../logs"
 import { deleteObjectsByLabel, apply } from "../kubectl"
+import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
+import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
+import { DeployServiceParams } from "../../../types/plugin/service/deployService"
+import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
+import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModule>> = {
   build,

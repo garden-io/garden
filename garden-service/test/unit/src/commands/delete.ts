@@ -4,12 +4,12 @@ import {
   DeleteServiceCommand,
 } from "../../../../src/commands/delete"
 import { Garden } from "../../../../src/garden"
-import { EnvironmentStatus } from "../../../../src/types/plugin/outputs"
 import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { expectError, makeTestGardenA, getDataDir, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
 import { expect } from "chai"
 import { ServiceStatus } from "../../../../src/types/service"
-import { DeleteServiceParams } from "../../../../src/types/plugin/params"
+import { EnvironmentStatus } from "../../../../src/types/plugin/provider/getEnvironmentStatus"
+import { DeleteServiceParams } from "../../../../src/types/plugin/service/deleteService"
 
 describe("DeleteSecretCommand", () => {
   const pluginName = "test-plugin"

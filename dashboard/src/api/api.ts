@@ -11,10 +11,10 @@ import axios from "axios"
 import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
 import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
-import { ServiceLogEntry } from "garden-cli/src/types/plugin/outputs"
+import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
 import { CommandResult } from "garden-cli/src/commands/base"
 import { ConfigDump } from "garden-cli/src/garden"
-import { EnvironmentStatus } from "garden-cli/src/actions"
+import { AllEnvironmentStatus } from "garden-cli/src/actions"
 
 export interface ApiRequest {
   command: string
@@ -35,7 +35,7 @@ export async function fetchGraph() {
 }
 
 export async function fetchStatus() {
-  return apiPost<EnvironmentStatus>("get.status", { output: "json" })
+  return apiPost<AllEnvironmentStatus>("get.status", { output: "json" })
 }
 
 export async function fetchLogs(services: FetchLogsParam) {

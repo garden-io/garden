@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RunTaskParams, RunModuleParams } from "../../../types/plugin/params"
 import { HelmModule, HelmResourceSpec } from "./config"
-import { RunTaskResult, RunResult } from "../../../types/plugin/outputs"
 import { getAppNamespace } from "../namespace"
 import { runPod } from "../run"
 import { findServiceResource, getChartResources, getResourceContainer, getServiceResourceSpec } from "./common"
@@ -17,6 +15,9 @@ import { LogEntry } from "../../../logger/log-entry"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../kubernetes"
 import { storeTaskResult } from "../task-results"
+import { RunModuleParams } from "../../../types/plugin/module/runModule"
+import { RunResult } from "../../../types/plugin/base"
+import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 
 export async function runHelmModule(
   {

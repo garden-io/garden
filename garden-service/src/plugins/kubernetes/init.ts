@@ -6,11 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  PrepareEnvironmentParams,
-  CleanupEnvironmentParams,
-  GetEnvironmentStatusParams,
-} from "../../types/plugin/params"
 import { KubeApi } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces } from "./namespace"
 import { KubernetesPluginContext } from "./kubernetes"
@@ -23,7 +18,9 @@ import {
 } from "./system"
 import { PrimitiveMap } from "../../config/common"
 import { DashboardPage } from "../../config/dashboard"
-import { EnvironmentStatus } from "../../types/plugin/outputs"
+import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
+import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
+import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
 
 interface GetK8sEnvironmentStatusParams extends GetEnvironmentStatusParams {
   variables?: PrimitiveMap
