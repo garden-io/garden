@@ -184,7 +184,7 @@ export default () => {
           {selectedIngress &&
             <div className="col-lg visible-lg-block">
               {selectedIngress &&
-                <ViewIngress ingress={selectedIngress} width={"61.8vw"} />
+                <ViewIngress ingress={selectedIngress} />
               }
             </div>
           }

@@ -73,12 +73,12 @@ export default ({ ingresses }: IngressesProp) => {
         const url = getIngressUrl(ingress)
         return (
           <LinkContainer key={ingress.path}>
-            <div className="visible-xl-block">
+            <div className="visible-lg-block">
               <ExternalLink id={ingress.path} onClick={handleSelectIngress} >
                 {truncateMiddle(url)}
               </ExternalLink>
             </div>
-            <div className="hidden-xl">
+            <div className="hidden-lg">
               <ExternalLink href={url} target="_blank">
                 {truncateMiddle(url)}
               </ExternalLink>
