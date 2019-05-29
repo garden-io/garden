@@ -13,7 +13,7 @@ import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { logHeader } from "../logger/util"
+import { logFooter } from "../logger/util"
 import { GlobalOptions } from "../cli/cli"
 
 export class ValidationError extends Error { }
@@ -304,7 +304,7 @@ export async function handleTaskResults(
   }
 
   if (!results.restartRequired) {
-    logHeader({ log, emoji: "heavy_check_mark", command: `Done!` })
+    logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })
   }
   return {
     result: results.taskResults,
