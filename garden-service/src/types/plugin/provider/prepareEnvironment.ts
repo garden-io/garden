@@ -25,10 +25,10 @@ export const prepareEnvironment = {
 
     Called ahead of any service runtime actions (such as \`deployService\`,
     \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\` or
-    \`needUserInput: true\`.
+    \`needManualInit: true\`.
 
     Important: If your handler does require user input, please be sure to indicate that via the
-    \`getEnvironmentStatus\` handler. If this provider's \`getEnvironmentStatus\` returns \`needUserInput: true\`,
+    \`getEnvironmentStatus\` handler. If this provider's \`getEnvironmentStatus\` returns \`needManualInit: true\`,
     this is only called via the \`garden init\` command, so that the handler can safely request user input via
     the CLI.
   `,

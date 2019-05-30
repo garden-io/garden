@@ -136,7 +136,7 @@ export class ActionHelper implements TypeGuard {
   /**
    * Checks environment status and calls prepareEnvironment for each provider that isn't flagged as ready.
    *
-   * If any of the getEnvironmentStatus handlers returns needUserInput=true, this throws and guides the user to
+   * If any of the getEnvironmentStatus handlers returns needManualInit=true, this throws and guides the user to
    * run `garden init`
    */
   async prepareEnvironment(
@@ -151,13 +151,13 @@ export class ActionHelper implements TypeGuard {
     const entry = log.info({ section: "providers", msg: "Getting status...", status: "active" })
     const statuses = await this.getEnvironmentStatus({ pluginName, log: entry })
 
-    const needUserInput = Object.entries(statuses)
+    const needManualInit = Object.entries(statuses)
       .map(([name, status]) => ({ ...status, name }))
-      .filter(status => status.needUserInput === true)
+      .filter(status => status.needManualInit === true)
 
-    if (!allowUserInput && needUserInput.length > 0) {
-      const names = needUserInput.map(s => s.name).join(", ")
-      const msgPrefix = needUserInput.length === 1
+    if (!allowUserInput && needManualInit.length > 0) {
+      const names = needManualInit.map(s => s.name).join(", ")
+      const msgPrefix = needManualInit.length === 1
         ? `Plugin ${names} has been updated or hasn't been configured, and requires user input.`
         : `Plugins ${names} have been updated or haven't been configured, and require user input.`
 
