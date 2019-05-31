@@ -5,6 +5,7 @@ import { examplesDir } from "../helpers"
 import { dedent } from "../../src/util/string"
 import chalk from "chalk"
 import { InternalError } from "../../src/exceptions"
+import { GARDEN_SERVICE_ROOT } from "../../src/constants"
 
 export const parsedArgs = parseArgs(process.argv.slice(2))
 
@@ -42,11 +43,6 @@ async function run() {
   console.log(chalk.grey("Call this script with -h for usage information."))
   console.log("Starting integ tests.")
 
-  const gardenServiceRoot = resolve(__dirname, "../")
-
-  console.log("Checking out examples dir...")
-  await execa("git", ["checkout", examplesDir])
-
   console.log("Running tests...")
 
   const mochaOpts = ["--opts", "test/mocha.integ.opts"]
@@ -57,8 +53,8 @@ async function run() {
     }
   }
 
-  const mochaBinPath = resolve(gardenServiceRoot, "node_modules/.bin/mocha")
-  await execa(mochaBinPath, mochaOpts, { cwd: gardenServiceRoot, stdio: "inherit" })
+  const mochaBinPath = resolve(GARDEN_SERVICE_ROOT, "node_modules/.bin/mocha")
+  await execa(mochaBinPath, mochaOpts, { cwd: GARDEN_SERVICE_ROOT, stdio: "inherit" })
   console.log("Checking out examples dir...")
   await execa("git", ["checkout", examplesDir])
   console.log("Done.")

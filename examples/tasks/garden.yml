@@ -9,5 +9,5 @@ environments:
       - name: kubernetes
         context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
         namespace: ${local.env.NAMESPACE || "tasks-testing"}
-        defaultHostname: testing.dev-1.sys.garden
+        defaultHostname: tasks-testing.dev-1.sys.garden
         buildMode: cluster-docker

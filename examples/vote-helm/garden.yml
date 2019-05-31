@@ -9,5 +9,5 @@ environments:
       - name: kubernetes
         context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
         namespace: ${local.env.NAMESPACE || "vote-helm-testing"}
-        defaultHostname: testing.dev-1.sys.garden
+        defaultHostname: vote-helm-testing.dev-1.sys.garden
         buildMode: cluster-docker
