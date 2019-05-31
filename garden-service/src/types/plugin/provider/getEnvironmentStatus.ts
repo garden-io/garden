@@ -16,7 +16,7 @@ export interface GetEnvironmentStatusParams extends PluginActionParamsBase { }
 
 export interface EnvironmentStatus {
   ready: boolean
-  needUserInput?: boolean
+  needManualInit?: boolean
   dashboardPages?: DashboardPage[]
   detail?: any
 }
@@ -30,7 +30,7 @@ export const environmentStatusSchema = Joi.object()
     ready: Joi.boolean()
       .required()
       .description("Set to true if the environment is fully configured for a provider."),
-    needUserInput: Joi.boolean()
+    needManualInit: Joi.boolean()
       .description(
         "Set to true if the environment needs user input to be initialized, " +
         "and thus needs to be initialized via `garden init`.",
@@ -50,10 +50,9 @@ export const getEnvironmentStatus = {
     Called before \`prepareEnvironment\`. If this returns \`ready: true\`, the
     \`prepareEnvironment\` action is not called.
 
-    If this returns \`needUserInput: true\`, the process may throw an error and guide the user to
-    run \`garden init\`, so that \`prepareEnvironment\` can safely ask for user input. Otherwise the
-    \`prepareEnvironment\` handler may be run implicitly ahead of actions like \`deployService\`,
-    \`runModule\` etc.
+    If this returns \`needManualInit: true\`, the process may throw an error and guide the user to
+    run \`garden init\`. Otherwise the \`prepareEnvironment\` handler may be run implicitly ahead of
+    actions like \`deployService\`, \`runModule\` etc.
   `,
   paramsSchema: actionParamsSchema,
   resultSchema: environmentStatusSchema,

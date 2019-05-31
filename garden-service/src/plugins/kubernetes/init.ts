@@ -56,6 +56,7 @@ export async function getEnvironmentStatus(
   }
 
   const systemServiceNames = k8sCtx.provider.config._systemServices
+  let needManualInit = false
 
   if (systemServiceNames.length > 0) {
     // Check Tiller status in system namespace
@@ -80,6 +81,10 @@ export async function getEnvironmentStatus(
 
     systemReady = systemTillerReady && systemServiceStatuses.ready && sysNamespaceUpToDate
     dashboardPages = systemServiceStatuses.dashboardPages
+
+    // We always require manual init if we're installing any system services to remote clusters, to avoid conflicts
+    // between users or unnecessary work.
+    needManualInit = true
   }
 
   const detail = { systemReady, projectReady }
@@ -88,6 +93,7 @@ export async function getEnvironmentStatus(
     ready: projectReady && systemReady,
     detail,
     dashboardPages,
+    needManualInit,
   }
 }
 
