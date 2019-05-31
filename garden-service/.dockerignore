@@ -10,3 +10,4 @@ gulpfile.ts
 tsconfig.*
 **/.garden
 **/node_modules
+build/test

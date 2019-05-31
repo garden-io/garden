@@ -13,8 +13,12 @@ echo "-> Copying files to tmp build dir..."
 mkdir -p dist
 rm -rf tmp/dist
 mkdir -p tmp/dist
+mkdir tmp/dist/bin
+mkdir tmp/dist/build
 
-cp -r package.json build node_modules tmp/dist
+cp -r package.json package-lock.json node_modules Dockerfile tmp/dist
+cp -r build/src tmp/dist/build/src
+cp bin/garden tmp/dist/bin
 rsync -r --exclude=.garden --exclude=.git static tmp/dist
 
 echo "-> Building executables..."
@@ -45,7 +49,7 @@ mkdir macos-amd64
 mv garden-cli-macos macos-amd64/garden
 cp -r ../tmp/dist/static macos-amd64
 # need to include the .node binary for fsevents
-cp ../lib/fsevents/node-v64-darwin-x64/fse.node macos-amd64
+cp ../lib/fsevents/node-v64-darwin-x64/fse.node macos-amd64/fsevents.node
 echo "    -> tar"
 tar -czf garden-${version}-macos-amd64.tar.gz macos-amd64
 

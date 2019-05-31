@@ -1,8 +1,9 @@
---require ts-node/register/type-check
---watch-dirs test/,src/
---exclude test/unit/**/*.ts
---watch-extensions ts,json,pegjs,yml
+--require source-map-support/register
+--watch-dirs build/
+--exclude build/test/unit/**/*.js
+--exclude test/,src/
+--watch-extensions js,json,pegjs
 --reporter spec
 --timeout 0
-test/setup.ts
-test/**/*.ts
+build/test/setup.js
+build/test/integ/**/*.js

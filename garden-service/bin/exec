@@ -1,8 +1,0 @@
-#!/bin/bash
-
-args=( $@ )
-working_dir=${args[0]}
-garden_args=${args[@]:1}
-
-cd ${working_dir}
-garden "${garden_args}"

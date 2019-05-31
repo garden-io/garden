@@ -61,7 +61,7 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
 }
 
 export function getPackageVersion(): String {
-  const version = require("../../package.json").version
+  const version = require("../../../package.json").version
   return version
 }
 

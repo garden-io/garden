@@ -296,7 +296,7 @@ describe("createIngressResources", () => {
   let garden: Garden
 
   before(() => {
-    process.env.KUBECONFIG = join(__dirname, "config.yml")
+    process.env.KUBECONFIG = join(projectRoot, "kubeconfig.yml")
   })
 
   after(() => {

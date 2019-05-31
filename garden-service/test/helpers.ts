@@ -26,7 +26,7 @@ import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_DIR_NAME, CONFIG_FILENAME } from "../src/constants"
+import { GARDEN_DIR_NAME, CONFIG_FILENAME, GARDEN_SERVICE_ROOT } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf } from "../src/util/util"
 import { Ignorer } from "../src/util/fs"
@@ -43,8 +43,8 @@ import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
 import { RunTaskParams } from "../src/types/plugin/task/runTask"
 
-export const dataDir = resolve(__dirname, "unit", "data")
-export const examplesDir = resolve(__dirname, "..", "..", "examples")
+export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
+export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
 export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
