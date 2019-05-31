@@ -26,11 +26,10 @@ import { containerHelpers } from "../../container/helpers"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
+import { millicpuToString, kilobytesToString } from "../util"
 
 export const DEFAULT_CPU_REQUEST = "10m"
-export const DEFAULT_CPU_LIMIT = "500m"
-export const DEFAULT_MEMORY_REQUEST = "128Mi"
-export const DEFAULT_MEMORY_LIMIT = "512Mi"
+export const DEFAULT_MEMORY_REQUEST = "64Mi"
 
 export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
   const { ctx, service, runtimeContext, force, log, hotReload } = params
@@ -127,8 +126,8 @@ export async function createDeployment(
         memory: DEFAULT_MEMORY_REQUEST,
       },
       limits: {
-        cpu: DEFAULT_CPU_LIMIT,
-        memory: DEFAULT_MEMORY_LIMIT,
+        cpu: millicpuToString(spec.limits.cpu),
+        memory: kilobytesToString(spec.limits.memory * 1024),
       },
     },
     imagePullPolicy: "IfNotPresent",

@@ -14,7 +14,11 @@ import {
 import { moduleFromConfig } from "../../../../src/types/module"
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import { ContainerModuleSpec, ContainerModuleConfig } from "../../../../src/plugins/container/config"
+import {
+  ContainerModuleSpec,
+  ContainerModuleConfig,
+  defaultContainerLimits,
+} from "../../../../src/plugins/container/config"
 import { containerHelpers as helpers, minDockerVersion } from "../../../../src/plugins/container/helpers"
 
 describe("plugins.container", () => {
@@ -379,6 +383,10 @@ describe("plugins.container", () => {
                   port: "http",
                 },
               },
+              limits: {
+                cpu: 123,
+                memory: 456,
+              },
               ports: [{
                 name: "http",
                 protocol: "TCP",
@@ -445,6 +453,10 @@ describe("plugins.container", () => {
                 },
                 healthCheck:
                   { httpGet: { path: "/health", port: "http" } },
+                limits: {
+                  cpu: 123,
+                  memory: 456,
+                },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 volumes: [],
               }],
@@ -491,6 +503,10 @@ describe("plugins.container", () => {
                 },
                 healthCheck:
                   { httpGet: { path: "/health", port: "http" } },
+                limits: {
+                  cpu: 123,
+                  memory: 456,
+                },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 volumes: [],
               },
@@ -560,6 +576,7 @@ describe("plugins.container", () => {
                   port: "bla",
                 },
               ],
+              limits: defaultContainerLimits,
               env: {},
               ports: [],
               volumes: [],
@@ -620,6 +637,7 @@ describe("plugins.container", () => {
                   port: "bla",
                 },
               },
+              limits: defaultContainerLimits,
               ports: [],
               volumes: [],
             }],
@@ -670,6 +688,7 @@ describe("plugins.container", () => {
               healthCheck: {
                 tcpPort: "bla",
               },
+              limits: defaultContainerLimits,
               ports: [],
               volumes: [],
             }],

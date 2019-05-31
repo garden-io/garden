@@ -25,6 +25,7 @@ import { Provider, providerConfigBaseSchema } from "../../config/project"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
+import { ServiceLimitSpec } from "../container/config"
 
 const gcfModuleSpecSchema = baseServiceSpecSchema
   .keys({
@@ -44,6 +45,7 @@ export interface GcfModuleSpec extends CommonServiceSpec {
   entrypoint?: string,
   function: string,
   hostname?: string
+  limits: ServiceLimitSpec
   path: string,
   project?: string,
   tests: ExecTestSpec[],

@@ -9,6 +9,7 @@ import { dataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
 import { moduleFromConfig } from "../../../../../../src/types/module"
 import { createIngressResources } from "../../../../../../src/plugins/kubernetes/container/ingress"
+import { defaultContainerLimits } from "../../../../../../src/plugins/container/config"
 import {
   ServicePortProtocol,
   ContainerIngressSpec,
@@ -326,8 +327,9 @@ describe("createIngressResources", () => {
       args: [],
       daemon: false,
       dependencies: [],
-      ingresses,
       env: {},
+      ingresses,
+      limits: defaultContainerLimits,
       ports,
       volumes: [],
     }
