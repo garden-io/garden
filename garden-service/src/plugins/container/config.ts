@@ -26,6 +26,11 @@ import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 
+export const defaultContainerLimits: ServiceLimitSpec = {
+  cpu: 1000,     // = 1000 millicpu = 1 CPU
+  memory: 1024,  // = 1024MB = 1GB
+}
+
 export interface ContainerIngressSpec {
   annotations: Annotations
   hostname?: string
@@ -61,6 +66,11 @@ export interface ServiceHealthCheckSpec {
   tcpPort?: string,
 }
 
+export interface ServiceLimitSpec {
+  cpu: number
+  memory: number
+}
+
 interface Annotations {
   [name: string]: string
 }
@@ -73,6 +83,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
   hotReloadArgs?: string[],
+  limits: ServiceLimitSpec,
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
 }
@@ -150,6 +161,18 @@ const healthCheckSchema = Joi.object()
       .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
   }).xor("httpGet", "command", "tcpPort")
 
+const limitsSchema = Joi.object()
+  .keys({
+    cpu: Joi.number()
+      .default(defaultContainerLimits.cpu)
+      .min(10)
+      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)"),
+    memory: Joi.number()
+      .default(defaultContainerLimits.memory)
+      .min(64)
+      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
+  })
+
 export const portSchema = Joi.object()
   .keys({
     name: joiUserIdentifier()
@@ -218,6 +241,9 @@ const serviceSchema = baseServiceSpecSchema
         these arguments instead of those in \`args\` when the service is deployed
         with hot reloading enabled.`,
       ),
+    limits: limitsSchema
+      .description("Specify resource limits for the service.")
+      .default(() => defaultContainerLimits, JSON.stringify(defaultContainerLimits)),
     ports: joiArray(portSchema)
       .unique("name")
       .description("List of ports that the service container exposes."),

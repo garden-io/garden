@@ -157,3 +157,39 @@ export async function getPortForward(
     })
   })
 }
+
+/**
+ * Converts the given number of millicpus (1000 mcpu = 1 CPU) to a string suitable for use in pod resource limit specs.
+ */
+export function millicpuToString(mcpu: number) {
+  mcpu = Math.floor(mcpu)
+
+  if (mcpu % 1000 === 0) {
+    return (mcpu / 1000).toString(10)
+  } else {
+    return `${mcpu}m`
+  }
+}
+
+/**
+ * Converts the given number of kilobytes to a string suitable for use in pod resource limit specs.
+ */
+export function kilobytesToString(kb: number) {
+  kb = Math.floor(kb)
+
+  for (const [suffix, power] of Object.entries(suffixTable)) {
+    if (kb % (1024 ** power) === 0) {
+      return `${(kb / (1024 ** power))}${suffix}`
+    }
+  }
+
+  return `${kb}Ki`
+}
+
+const suffixTable = {
+  Ei: 5,
+  Pi: 4,
+  Ti: 3,
+  Gi: 2,
+  Mi: 1,
+}
