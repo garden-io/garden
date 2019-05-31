@@ -208,15 +208,16 @@ jobs:
     steps:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
-      - setup_remote_docker:
-          docker_layer_caching: true
       - npm_install
       - configure_kubectl_context
       - *attach-workspace
       - run:
+          name: Init Garden
+          command: ./garden-service/bin/garden init --root garden-service/test/integ --logger-type basic
+      - run:
           name: Run integration tests
-          # command: ./garden-service/static/bin/garden test integ-tests --root garden-service/test/integ --logger-type basic
-          command: cd garden-service && node_modules/.bin/ts-node ./bin/integ-full.ts --env testing
+          command: ./garden-service/bin/garden test integ-tests --root garden-service/test/integ --logger-type basic
+          # command: cd garden-service && npm run integ-full --env testing
   build-dashboard:
     <<: *node-config
     steps:
@@ -285,16 +286,16 @@ workflows:
   commit:
     jobs:
       - build-service
-      - test-service:
-          requires:
-            - build-service
+      # - test-service:
+      #     requires:
+      #       - build-service
       - integ-test-service:
           requires:
             - build-service
-      - build-dashboard
-      - test-dashboard:
-          requires:
-            - build-dashboard
+      # - build-dashboard
+      # - test-dashboard:
+      #     requires:
+      #       - build-dashboard
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it

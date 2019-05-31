@@ -68,9 +68,9 @@ function getGardenWatch(project: ProjectName, command: string[]) {
 async function forceBuildIfRemote(project: ProjectName) {
   // Assume env is remote if passed as arg
   if (env) {
-    mlog.log("force building project", project)
-    await runWithOpts(project, ["build", "--force"])
-    mlog.log("finished force building")
+    mlog.log("initing project", project)
+    await runWithOpts(project, ["init"])
+    mlog.log("finished initing")
   }
 }
 
@@ -94,8 +94,8 @@ describe("PreReleaseTests", () => {
     await execa("git", ["checkout", examplesDir])
   })
 
-  if (sequencesToRun.includes("simple-project")) {
-    describe("simple-project: top-level sanity checks", () => {
+  if (sequencesToRun.includes("demo-project")) {
+    describe("demo-project: top-level sanity checks", () => {
       const demoProjectPath = resolve(examplesDir, "demo-project")
 
       before(async () => {
@@ -202,7 +202,7 @@ describe("PreReleaseTests", () => {
     /*
     * TODO: Re-enable once https://github.com/garden-io/garden/issues/780 is resolved
     */
-    describe.skip("vote-helm: helm & dependency calculations", () => {
+    describe("vote-helm: helm & dependency calculations", () => {
       const voteHelmProjectPath = resolve(examplesDir, "vote-helm")
 
       before(async () => {

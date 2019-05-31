@@ -11,7 +11,7 @@ The script performs the following cleanup operations before running the tests:
 The `integ-full` script supports the following options:
 
 * `binPath`: The Garden binary to use for the tests (defaults to the one in the static directory). Useful for testing release binaries.
-* `only`: Runs only the test sequence specified (e.g. `simple-project` or `vote-helm`).
+* `only`: Runs only the test sequence specified (e.g. `demo-project` or `vote-helm`).
 
 For example:
 ```
