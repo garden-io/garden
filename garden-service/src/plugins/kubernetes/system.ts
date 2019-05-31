@@ -13,7 +13,7 @@ import * as semver from "semver"
 
 import { STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
-import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { KubeApi } from "./api"
 import { createNamespace } from "./namespace"

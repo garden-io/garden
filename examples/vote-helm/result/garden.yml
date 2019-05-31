@@ -11,7 +11,7 @@ module:
   values:
     name: result
     image:
-      repository: result-image
+      repository: ${modules.result-image.outputs.deployment-image-name}
       tag: ${modules.result-image.version}
     ingress:
       enabled: true

@@ -9,6 +9,7 @@ module:
     - api
   values:
     image:
+      repository: ${modules.vote-image.outputs.deployment-image-name}
       tag: ${modules.vote-image.version}
     ingress:
       enabled: true

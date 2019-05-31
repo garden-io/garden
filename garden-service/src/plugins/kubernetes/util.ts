@@ -17,7 +17,7 @@ import { splitLast } from "../../util/util"
 import { KubeApi } from "./api"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
-import { KubernetesPluginContext } from "./kubernetes"
+import { KubernetesPluginContext } from "./config"
 import { kubectl } from "./kubectl"
 import { registerCleanupFunction } from "../../util/util"
 
@@ -172,7 +172,7 @@ export function millicpuToString(mcpu: number) {
 }
 
 /**
- * Converts the given number of kilobytes to a string suitable for use in pod resource limit specs.
+ * Converts the given number of kilobytes to a string suitable for use in pod/volume resource specs.
  */
 export function kilobytesToString(kb: number) {
   kb = Math.floor(kb)
@@ -184,6 +184,13 @@ export function kilobytesToString(kb: number) {
   }
 
   return `${kb}Ki`
+}
+
+/**
+ * Converts the given number of megabytes to a string suitable for use in pod/volume resource specs.
+ */
+export function megabytesToString(mb: number) {
+  return kilobytesToString(mb * 1024)
 }
 
 const suffixTable = {

@@ -8,23 +8,20 @@
 
 import { KubeApi } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces } from "./namespace"
-import { KubernetesPluginContext } from "./kubernetes"
+import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
 import {
   prepareSystemServices,
   getSystemServiceStatuses,
   getSystemGarden,
   systemNamespaceUpToDate,
+  systemNamespace,
 } from "./system"
-import { PrimitiveMap } from "../../config/common"
 import { DashboardPage } from "../../config/dashboard"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
 import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
-
-interface GetK8sEnvironmentStatusParams extends GetEnvironmentStatusParams {
-  variables?: PrimitiveMap
-}
+import { millicpuToString, megabytesToString } from "./util"
 
 /**
  * Performs the following actions to check environment status:
@@ -34,10 +31,10 @@ interface GetK8sEnvironmentStatusParams extends GetEnvironmentStatusParams {
  *
  * Returns ready === true if all the above are ready.
  */
-export async function getEnvironmentStatus(
-  { ctx, log, variables }: GetK8sEnvironmentStatusParams,
-): Promise<EnvironmentStatus> {
+export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
+  const variables = getVariables(k8sCtx.provider.config)
+
   const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
   const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
 
@@ -97,18 +94,15 @@ export async function getEnvironmentStatus(
   }
 }
 
-interface PrepareK8sEnvironmentParams extends PrepareEnvironmentParams {
-  variables?: PrimitiveMap
-}
-
 /**
  * Performs the following actions to prepare the environment
  *  1. Installs Tiller in project namespace
  *  2. Installs Tiller in system namespace (if provider has system services)
  *  3. Deploys system services (if provider has system services)
  */
-export async function prepareEnvironment({ ctx, log, force, status, variables }: PrepareK8sEnvironmentParams) {
+export async function prepareEnvironment({ ctx, log, force, status }: PrepareEnvironmentParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
+  const variables = getVariables(k8sCtx.provider.config)
   const systemReady = status.detail && !!status.detail.systemReady && !force
 
   // Install Tiller to project namespace
@@ -151,4 +145,27 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   await deleteNamespaces([namespace], api, entry)
 
   return {}
+}
+
+function getVariables(config: KubernetesConfig) {
+  return {
+    "namespace": systemNamespace,
+    "registry-hostname": getRegistryHostname(),
+    "builder-limits-cpu": millicpuToString(config.resources.builder.limits.cpu),
+    "builder-limits-memory": megabytesToString(config.resources.builder.limits.memory),
+    "builder-requests-cpu": millicpuToString(config.resources.builder.requests.cpu),
+    "builder-requests-memory": megabytesToString(config.resources.builder.requests.memory),
+    "builder-storage-size": megabytesToString(config.storage.builder.size),
+    "builder-storage-class": config.storage.builder.storageClass,
+    "registry-limits-cpu": millicpuToString(config.resources.registry.limits.cpu),
+    "registry-limits-memory": megabytesToString(config.resources.registry.limits.memory),
+    "registry-requests-cpu": millicpuToString(config.resources.registry.requests.cpu),
+    "registry-requests-memory": megabytesToString(config.resources.registry.requests.memory),
+    "registry-storage-size": megabytesToString(config.storage.registry.size),
+    "registry-storage-class": config.storage.registry.storageClass,
+  }
+}
+
+function getRegistryHostname() {
+  return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }

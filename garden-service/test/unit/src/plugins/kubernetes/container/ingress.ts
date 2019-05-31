@@ -3,7 +3,12 @@ import { resolve, join } from "path"
 import * as td from "testdouble"
 
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { KubernetesProvider, KubernetesConfig } from "../../../../../../src/plugins/kubernetes/kubernetes"
+import {
+  KubernetesProvider,
+  KubernetesConfig,
+  defaultResources,
+  defaultStorage,
+} from "../../../../../../src/plugins/kubernetes/config"
 import { gardenPlugin } from "../../../../../../src/plugins/container/container"
 import { dataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
@@ -28,6 +33,7 @@ const ports = [{
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
+  buildMode: "local",
   context: "my-cluster",
   defaultHostname: "my.domain.com",
   deploymentRegistry: {
@@ -40,6 +46,8 @@ const basicConfig: KubernetesConfig = {
   ingressClass: "nginx",
   ingressHttpPort: 80,
   ingressHttpsPort: 443,
+  resources: defaultResources,
+  storage: defaultStorage,
   tlsCertificates: [],
   _systemServices: [],
 }

@@ -22,7 +22,7 @@ import { waitForContainerService } from "./container/status"
 import { getPortForward } from "./util"
 import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
-import { KubernetesPluginContext } from "./kubernetes"
+import { KubernetesPluginContext } from "./config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
 
 export const RSYNC_PORT_NAME = "garden-rsync"

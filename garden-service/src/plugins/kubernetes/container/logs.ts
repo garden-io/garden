@@ -10,7 +10,7 @@ import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLo
 import { ContainerModule } from "../../container/config"
 import { getAppNamespace } from "../namespace"
 import { getAllLogs } from "../logs"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 import { createDeployment } from "./deployment"
 
 export async function getServiceLogs(params: GetServiceLogsParams<ContainerModule>) {
