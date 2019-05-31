@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "docker-daemon.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
+    helm.sh/chart: {{ include "docker-daemon.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 2375
+      protocol: TCP
+      name: docker
+  selector:
+    app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

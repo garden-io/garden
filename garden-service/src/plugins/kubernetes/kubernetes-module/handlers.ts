@@ -14,7 +14,7 @@ import { safeLoadAll } from "js-yaml"
 
 import { KubernetesModule, configureKubernetesModule, KubernetesService, describeType } from "./config"
 import { getNamespace, getAppNamespace } from "../namespace"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 import { KubernetesResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
 import { GARDEN_ANNOTATION_KEYS_SERVICE } from "../../../constants"

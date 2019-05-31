@@ -373,11 +373,17 @@ export class ActionHelper implements TypeGuard {
   async getServiceStatuses(
     { log, serviceNames }: { log: LogEntry, serviceNames?: string[] },
   ): Promise<ServiceStatusMap> {
-
     const graph = await this.garden.getConfigGraph()
     const services = keyBy(await graph.getServices(serviceNames), "name")
+
     return Bluebird.props(mapValues(services, async (service: Service) => {
       const runtimeContext = await getServiceRuntimeContext(this.garden, graph, service)
+
+      // TODO: Some handlers expect builds to have been staged when resolving services statuses. We should
+      //       tackle that better by getting statuses in the task graph.
+      await this.garden.buildDir.syncFromSrc(service.module, log)
+      await this.garden.buildDir.syncDependencyProducts(service.module, log)
+
       // TODO: The status will be reported as "outdated" if the service was deployed with hot-reloading enabled.
       //       Once hot-reloading is a toggle, as opposed to an API/CLI flag, we can resolve that issue.
       return this.getServiceStatus({ log, service, runtimeContext, hotReload: false })

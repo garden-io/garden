@@ -26,7 +26,7 @@ import {
   V1DeploymentStatus,
 } from "@kubernetes/client-node"
 import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
-import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
 import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
