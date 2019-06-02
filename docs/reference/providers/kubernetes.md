@@ -581,6 +581,14 @@ Specify which namespace to deploy services to (defaults to <project name>). Note
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+### `environments[].providers[].setupIngressController`
+[environments](#environments) > [providers](#environments[].providers[]) > setupIngressController
+
+Set this to `nginx` to install/enable the NGINX ingress controller.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
 
 
 ## Complete YAML schema
@@ -643,4 +651,5 @@ environments:
         ingressHttpPort: 80
         ingressHttpsPort: 443
         namespace:
+        setupIngressController: false
 ```
