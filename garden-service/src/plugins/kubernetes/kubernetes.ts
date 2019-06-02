@@ -26,8 +26,14 @@ import { ConfigurationError } from "../../exceptions"
 export const name = "kubernetes"
 
 export async function configureProvider({ projectName, config }: ConfigureProviderParams<KubernetesConfig>) {
+  config._systemServices = []
+
   if (!config.namespace) {
     config.namespace = projectName
+  }
+
+  if (config.setupIngressController === "nginx") {
+    config._systemServices.push("ingress-controller", "default-backend")
   }
 
   if (config.buildMode === "cluster-docker") {
@@ -47,7 +53,7 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
     }
 
     // Deploy build services on init
-    config._systemServices = ["docker-daemon", "docker-registry", "registry-proxy"]
+    config._systemServices.push("docker-daemon", "docker-registry", "registry-proxy")
 
   } else if (!config.deploymentRegistry) {
     throw new ConfigurationError(

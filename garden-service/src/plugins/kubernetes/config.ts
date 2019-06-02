@@ -274,5 +274,9 @@ export const configSchema = kubernetesConfigBase
         "Specify which namespace to deploy services to (defaults to <project name>). " +
         "Note that the framework generates other namespaces as well with this name as a prefix.",
       ),
+    setupIngressController: Joi.string()
+      .allow("nginx", false, null)
+      .default(false)
+      .description("Set this to `nginx` to install/enable the NGINX ingress controller."),
     _system: Joi.any().meta({ internal: true }),
   })
