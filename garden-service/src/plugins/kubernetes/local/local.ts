@@ -9,6 +9,8 @@
 import { GardenPlugin } from "../../../types/plugin/plugin"
 import { gardenPlugin as k8sPlugin } from "../kubernetes"
 import { configureProvider, configSchema } from "./config"
+import { getEnvironmentStatus } from "../init"
+import { GetEnvironmentStatusParams } from "../../../types/plugin/provider/getEnvironmentStatus"
 
 export const name = "local-kubernetes"
 
@@ -17,7 +19,17 @@ export function gardenPlugin(): GardenPlugin {
 
   plugin.configSchema = configSchema
 
+  plugin.actions!.getEnvironmentStatus = getLocalEnvironmentStatus
   plugin.actions!.configureProvider = configureProvider
 
   return plugin
+}
+
+async function getLocalEnvironmentStatus(params: GetEnvironmentStatusParams) {
+  const status = await getEnvironmentStatus(params)
+
+  // The local-kubernetes plugin shouldn't require manual init
+  status.needManualInit = false
+
+  return status
 }
