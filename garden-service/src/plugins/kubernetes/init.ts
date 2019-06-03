@@ -12,7 +12,7 @@ import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
 import {
   prepareSystemServices,
-  getSystemServiceStatuses,
+  getSystemServiceStatus,
   getSystemGarden,
   systemNamespaceUpToDate,
   systemNamespace,
@@ -68,7 +68,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, namespace, contextForLog)
 
     // Get system service statuses
-    const systemServiceStatuses = await getSystemServiceStatuses({
+    const systemServiceStatuses = await getSystemServiceStatus({
       ctx: k8sCtx,
       log,
       namespace,
@@ -76,8 +76,18 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
       variables: variables || {},
     })
 
-    systemReady = systemTillerReady && systemServiceStatuses.ready && sysNamespaceUpToDate
+    systemReady = systemTillerReady
+      && (systemServiceStatuses.state === "ready" || systemServiceStatuses.state === "outdated")
+      && sysNamespaceUpToDate
+
     dashboardPages = systemServiceStatuses.dashboardPages
+
+    if (systemServiceStatuses.state === "outdated") {
+      log.warn(
+        "One or more cluster-wide services are outdated or their configuration does not match your current " +
+        "configuration. You may want to run \`garden init\` to update them, or contact your cluster admin.",
+      )
+    }
 
     // We always require manual init if we're installing any system services to remote clusters, to avoid conflicts
     // between users or unnecessary work.
