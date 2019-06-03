@@ -6,7 +6,7 @@ import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { ServiceStatus } from "../../../../src/types/service"
 import nock = require("nock")
-import { configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
+import { configureTestModule, withDefaultGlobalOpts, dataDir } from "../../../helpers"
 
 const testProvider: PluginFactory = () => {
   const testStatuses: { [key: string]: ServiceStatus } = {
@@ -45,7 +45,7 @@ const testProvider: PluginFactory = () => {
 }
 
 describe("commands.call", () => {
-  const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
+  const projectRootB = join(dataDir, "test-project-b")
   const plugins = { "test-plugin": testProvider }
 
   beforeEach(() => {

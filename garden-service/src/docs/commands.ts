@@ -16,6 +16,7 @@ import { GLOBAL_OPTIONS } from "../cli/cli"
 import { coreCommands } from "../commands/commands"
 import { flatten } from "lodash"
 import { describeParameters } from "../commands/base"
+import { TEMPLATES_DIR } from "./config"
 
 export function writeCommandReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
@@ -31,7 +32,7 @@ export function writeCommandReferenceDocs(docsRoot: string) {
 
   const globalOptions = describeParameters(GLOBAL_OPTIONS)
 
-  const templatePath = resolve(__dirname, "templates", "commands.hbs")
+  const templatePath = resolve(TEMPLATES_DIR, "commands.hbs")
   handlebars.registerPartial(
     "argType",
     "{{#if choices}}{{#each choices}}`{{.}}` {{/each}}{{else}}{{type}}{{/if}}",

@@ -65,7 +65,7 @@ describe("Garden", () => {
       process.env.TEST_PROVIDER_TYPE = "test-plugin"
       process.env.TEST_VARIABLE = "banana"
 
-      const projectRoot = join(__dirname, "..", "data", "test-project-templated")
+      const projectRoot = join(dataDir, "test-project-templated")
 
       const garden = await makeTestGarden(projectRoot)
 
@@ -99,21 +99,21 @@ describe("Garden", () => {
     })
 
     it("should throw if plugin module exports invalid name", async () => {
-      const pluginPath = join(dataDir, "plugins", "invalid-exported-name.ts")
+      const pluginPath = join(__dirname, "plugins", "invalid-exported-name.js")
       const plugins = { foo: pluginPath }
       const projectRoot = join(dataDir, "test-project-empty")
       await expectError(async () => Garden.factory(projectRoot, { plugins }), "plugin")
     })
 
     it("should throw if plugin module name is not a valid identifier", async () => {
-      const pluginPath = join(dataDir, "plugins", "invalidModuleName.ts")
+      const pluginPath = join(__dirname, "plugins", "invalidModuleName.js")
       const plugins = { foo: pluginPath }
       const projectRoot = join(dataDir, "test-project-empty")
       await expectError(async () => Garden.factory(projectRoot, { plugins }), "plugin")
     })
 
     it("should throw if plugin module doesn't contain factory function", async () => {
-      const pluginPath = join(dataDir, "plugins", "missing-factory.ts")
+      const pluginPath = join(__dirname, "plugins", "missing-factory.js")
       const plugins = { foo: pluginPath }
       const projectRoot = join(dataDir, "test-project-empty")
       await expectError(async () => Garden.factory(projectRoot, { plugins }), "plugin")

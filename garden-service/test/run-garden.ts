@@ -8,8 +8,9 @@ import { parseLogEntries, searchLog, findTasks, touchFile, parsedArgs } from "./
 import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { ParameterError } from "../src/exceptions"
 import { dedent, deline } from "../src/util/string"
+import { GARDEN_SERVICE_ROOT } from "../src/constants"
 
-export const gardenBinPath = parsedArgs.binPath || resolve(__dirname, "..", "static", "bin", "garden")
+export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_SERVICE_ROOT, "bin", "garden")
 
 export const showLog = !!parsedArgs.showLog
 

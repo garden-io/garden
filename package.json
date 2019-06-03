@@ -46,7 +46,7 @@
     "typescript-formatter": "^7.2.2"
   },
   "scripts": {
-    "build": "npm run clean && lerna run build",
+    "build": "npm run clean && lerna bootstrap && lerna run build",
     "bootstrap": "lerna bootstrap",
     "check-docs": "./bin/check-docs",
     "check-licenses": "gulp check-licenses",

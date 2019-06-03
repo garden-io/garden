@@ -61,7 +61,7 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
 }
 
 export function getPackageVersion(): String {
-  const version = require("../../package.json").version
+  const version = require("../../../package.json").version
   return version
 }
 
@@ -166,6 +166,14 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
         _reject(new TimeoutError(`${cmd} timed out after ${timeout} seconds.`, { cmd, args, opts }))
       }, timeout * 1000)
     }
+
+    proc.on("error", (err) => {
+      let msg = `An error occurred while trying to run '${cmd}'.`
+      if ((<any>err).code === "ENOENT") {
+        msg = `${msg} Please make sure '${cmd}' is installed and in the $PATH.`
+      }
+      _reject(new RuntimeError(msg, { cmd, args, opts, result, err }))
+    })
 
     proc.on("close", (code) => {
       _timeout && clearTimeout(_timeout)

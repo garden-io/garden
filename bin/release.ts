@@ -7,7 +7,8 @@ import chalk from "chalk"
 import parseArgs = require("minimist")
 import replace = require("replace-in-file")
 import deline = require("deline")
-import { resolve, join } from "path"
+import { resolve } from "path"
+import { GARDEN_SERVICE_ROOT } from "../garden-service/src/constants"
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
@@ -30,8 +31,7 @@ async function release() {
   const argv = parseArgs(process.argv.slice(2))
   const releaseType = <ReleaseType>argv._[0]
   const force = argv.force
-  const gardenRoot = resolve(__dirname, "..")
-  const gardenServiceRoot = join(gardenRoot, "garden-service")
+  const gardenRoot = resolve(GARDEN_SERVICE_ROOT, "..")
 
   // Check if branch is clean
   try {
@@ -47,7 +47,7 @@ async function release() {
   // Bump package.json and package-lock.json version. Returns the version that was set.
   const version = await execa.stdout("npm", [
     "version", "--no-git-tag-version", releaseType,
-  ], { cwd: gardenServiceRoot })
+  ], { cwd: GARDEN_SERVICE_ROOT })
 
   const branchName = `release-${version}`
 

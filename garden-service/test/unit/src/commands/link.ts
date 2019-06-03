@@ -72,18 +72,16 @@ describe("LinkCommand", () => {
 
     it("should throw if module to link does not have an external source", async () => {
       await expectError(
-        async () => (
-          await cmd.action({
-            garden,
-            log,
-            logFooter: log,
-            args: {
-              module: "banana",
-              path: "",
-            },
-            opts: withDefaultGlobalOpts({}),
-          })
-        ),
+        async () => cmd.action({
+          garden,
+          log,
+          logFooter: log,
+          args: {
+            module: "banana",
+            path: "",
+          },
+          opts: withDefaultGlobalOpts({}),
+        }),
         "parameter",
       )
     })

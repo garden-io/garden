@@ -404,6 +404,30 @@ If this module uses the `hotReload` field, the container will be run with these 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+### `services[].limits`
+[services](#services) > limits
+
+Specify resource limits for the service.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `services[].limits.cpu`
+[services](#services) > [limits](#services[].limits) > cpu
+
+The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `services[].limits.memory`
+[services](#services) > [limits](#services[].limits) > memory
+
+The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
 ### `services[].ports[]`
 [services](#services) > ports
 
@@ -672,6 +696,9 @@ services:
       command:
       tcpPort:
     hotReloadArgs:
+    limits:
+      cpu: 1000
+      memory: 1024
     ports:
       - name:
         protocol: TCP

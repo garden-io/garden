@@ -5,7 +5,7 @@ import { expect } from "chai"
 import { buildExecModule } from "../../../../src/plugins/exec"
 import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { ServiceState, ServiceStatus } from "../../../../src/types/service"
-import { taskResultOutputs, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
+import { taskResultOutputs, configureTestModule, withDefaultGlobalOpts, dataDir } from "../../../helpers"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
 import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
@@ -79,7 +79,7 @@ const testProvider: PluginFactory = () => {
 }
 
 describe("DeployCommand", () => {
-  const projectRootB = join(__dirname, "..", "..", "data", "test-project-b")
+  const projectRootB = join(dataDir, "test-project-b")
   const plugins = { "test-plugin": testProvider }
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.

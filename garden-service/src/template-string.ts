@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { readFile } from "fs-extra"
-import { resolve } from "path"
 import Bluebird = require("bluebird")
 import { asyncDeepMap } from "./util/util"
 import { GardenBaseError } from "./exceptions"
@@ -23,15 +21,7 @@ let _parser: any
 
 async function getParser() {
   if (!_parser) {
-    try {
-      _parser = require("./template-string-parser")
-    } catch (_err) {
-      // fallback for when running with ts-node or mocha
-      const peg = require("pegjs")
-      const pegFilePath = resolve(__dirname, "template-string-parser.pegjs")
-      const grammar = await readFile(pegFilePath)
-      _parser = peg.generate(grammar.toString(), { trace: false })
-    }
+    _parser = require("./template-string-parser")
   }
 
   return _parser
