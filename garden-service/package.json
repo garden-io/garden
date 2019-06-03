@@ -151,6 +151,7 @@
     "gulp-tslint": "^8.1.4",
     "gulp-typescript": "^5.0.1",
     "handlebars": "^4.1.2",
+    "is-subset": "^0.1.1",
     "linewrap": "^0.2.1",
     "mocha": "^6.1.4",
     "nock": "^10.0.6",
