@@ -12,7 +12,7 @@ import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
 import {
   prepareSystemServices,
-  getSystemServiceStatuses,
+  getSystemServiceStatus,
   getSystemGarden,
   systemNamespaceUpToDate,
   systemNamespace,
@@ -22,6 +22,7 @@ import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugi
 import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
 import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
 import { millicpuToString, megabytesToString } from "./util"
+import chalk from "chalk"
 
 /**
  * Performs the following actions to check environment status:
@@ -68,7 +69,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, namespace, contextForLog)
 
     // Get system service statuses
-    const systemServiceStatuses = await getSystemServiceStatuses({
+    const systemServiceStatuses = await getSystemServiceStatus({
       ctx: k8sCtx,
       log,
       namespace,
@@ -76,8 +77,26 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
       variables: variables || {},
     })
 
-    systemReady = systemTillerReady && systemServiceStatuses.ready && sysNamespaceUpToDate
+    systemReady = systemTillerReady && sysNamespaceUpToDate && (
+      systemServiceStatuses.state === "ready"
+      ||
+      (needManualInit && systemServiceStatuses.state === "outdated")
+    )
+
     dashboardPages = systemServiceStatuses.dashboardPages
+
+    if (needManualInit && systemServiceStatuses.state === "outdated") {
+      // If we require manual init and system services are outdated (as opposed to unhealthy, missing etc.), we warn
+      // instead of aborting. This avoids blocking users where there's variance in configuration between users of the
+      // same cluster, that most likely shouldn't affect usage.
+      log.warn({
+        symbol: "warning",
+        msg: chalk.yellow(
+          "One or more cluster-wide services are outdated or their configuration does not match your current " +
+          "configuration. You may want to run \`garden init\` to update them, or contact your cluster admin.",
+        ),
+      })
+    }
 
     // We always require manual init if we're installing any system services to remote clusters, to avoid conflicts
     // between users or unnecessary work.
