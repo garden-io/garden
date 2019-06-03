@@ -158,8 +158,8 @@ export class ActionHelper implements TypeGuard {
     if (!allowUserInput && needManualInit.length > 0) {
       const names = needManualInit.map(s => s.name).join(", ")
       const msgPrefix = needManualInit.length === 1
-        ? `Plugin ${names} has been updated or hasn't been configured, and requires user input.`
-        : `Plugins ${names} have been updated or haven't been configured, and require user input.`
+        ? `Provider ${names} has been updated or hasn't been configured, and requires manual initialization.`
+        : `Providers ${names} have been updated or haven't been configured, and require manual initialization.`
 
       entry.setError()
 

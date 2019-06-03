@@ -81,7 +81,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
 
     // We always require manual init if we're installing any system services to remote clusters, to avoid conflicts
     // between users or unnecessary work.
-    needManualInit = true
+    needManualInit = ctx.provider.name !== "local-kubernetes"
   }
 
   const detail = { systemReady, projectReady }
