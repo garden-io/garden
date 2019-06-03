@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { TestCommand } from "../../../../src/commands/test"
-import * as isSubset from "is-subset"
+import isSubset = require("is-subset")
 import { makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
 
 describe("commands.test", () => {
