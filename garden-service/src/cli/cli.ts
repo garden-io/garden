@@ -111,7 +111,6 @@ export const GLOBAL_OPTIONS = {
   "env": new EnvironmentOption(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
-    defaultValue: DEFAULT_CLI_LOGGER_TYPE,
     help: deline`
       Set logger type:
       fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
