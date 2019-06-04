@@ -65,7 +65,7 @@ export class CallCommand extends Command<Args> {
       })
     }
 
-    if (!status.ingresses) {
+    if (!status.ingresses || status.ingresses.length === 0) {
       throw new ParameterError(`Service ${service.name} has no active ingresses`, {
         serviceName: service.name,
         serviceStatus: status,
