@@ -14,5 +14,6 @@ module:
       kind: DaemonSet
       daemonset:
         useHostPort: true
+      minReadySeconds: 1
     defaultBackend:
       enabled: false
