@@ -136,8 +136,8 @@ export class ActionHelper implements TypeGuard {
   /**
    * Checks environment status and calls prepareEnvironment for each provider that isn't flagged as ready.
    *
-   * If any of the getEnvironmentStatus handlers returns needManualInit=true, this throws and guides the user to
-   * run `garden init`
+   * If any of the getEnvironmentStatus handlers return ready=false AND needManualInit=true, this throws and guides
+   * the user to run `garden init`
    */
   async prepareEnvironment(
     { force = false, pluginName, log, allowUserInput = false }:
@@ -153,13 +153,13 @@ export class ActionHelper implements TypeGuard {
 
     const needManualInit = Object.entries(statuses)
       .map(([name, status]) => ({ ...status, name }))
-      .filter(status => status.needManualInit === true)
+      .filter(status => status.ready === false && status.needManualInit === true)
 
     if (!allowUserInput && needManualInit.length > 0) {
       const names = needManualInit.map(s => s.name).join(", ")
       const msgPrefix = needManualInit.length === 1
-        ? `Provider ${names} has been updated or hasn't been configured, and requires manual initialization.`
-        : `Providers ${names} have been updated or haven't been configured, and require manual initialization.`
+        ? `Provider ${names} has been updated or hasn't been configured, and requires manual initialization`
+        : `Providers ${names} have been updated or haven't been configured, and require manual initialization`
 
       entry.setError()
 
