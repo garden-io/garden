@@ -16,7 +16,7 @@ The following option flags can be used with any of the CLI commands:
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type: fancy: updates log lines in-place when their status changes (e.g. when tasks complete), basic: appends a new log line when a log line&#x27;s status changes, json: same as basic, but renders log lines as JSON, quiet: uppresses all log output,
+  | `--logger-type` |  | `basic` `fancy` `json`  | Set logger type: fancy: updates log lines in-place when their status changes (e.g. when tasks complete), basic: appends a new log line when a log line&#x27;s status changes, json: same as basic, but renders log lines as JSON.
   | `--loglevel` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).

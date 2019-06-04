@@ -7,7 +7,7 @@
  */
 
 import * as sywac from "sywac"
-import { intersection, merge } from "lodash"
+import { intersection, merge, without } from "lodash"
 import { resolve } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
@@ -110,13 +110,12 @@ export const GLOBAL_OPTIONS = {
   }),
   "env": new EnvironmentOption(),
   "logger-type": new ChoicesParameter({
-    choices: [...LOGGER_TYPES],
+    choices: without([...LOGGER_TYPES], "quiet"),
     help: deline`
       Set logger type:
       fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
       basic: appends a new log line when a log line's status changes,
-      json: same as basic, but renders log lines as JSON,
-      quiet: uppresses all log output,
+      json: same as basic, but renders log lines as JSON.
     `,
   }),
   "loglevel": new ChoicesParameter({
