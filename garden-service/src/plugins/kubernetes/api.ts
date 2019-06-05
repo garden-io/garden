@@ -340,7 +340,7 @@ export class KubeApi {
           return Reflect.get(target, name, receiver)
         }
 
-        return function (...args) {
+        return function(...args) {
           const defaultHeaders = target["defaultHeaders"]
 
           if (name.startsWith("patch")) {
@@ -418,7 +418,7 @@ async function getContextConfig(log: LogEntry, provider: KubernetesProvider): Pr
     }
   }
 
-  cachedConfigs[context] = kc
+  cachedConfigs[cacheKey] = kc
 
   return kc
 }

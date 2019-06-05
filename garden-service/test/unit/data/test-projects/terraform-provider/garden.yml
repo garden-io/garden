@@ -1,0 +1,10 @@
+kind: Project
+name: terraform-provider
+providers:
+  - name: terraform
+    autoApply: true
+    initRoot: tf
+    variables:
+      my-variable: foo
+  - name: test-plugin
+    something: ${providers.terraform.outputs.my-output}

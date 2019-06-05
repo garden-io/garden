@@ -139,6 +139,9 @@ export const projectNameSchema = joiIdentifier()
   .description("The name of the project.")
   .example("my-sweet-project")
 
+export const projectRootSchema = joi.string()
+  .description("The path to the project root.")
+
 const projectModulesSchema = joi.object()
   .keys({
     include: joi.array().items(joi.string().posixPath({ subPathOnly: true }))
@@ -168,9 +171,8 @@ export const projectSchema = joi.object()
       .only(DEFAULT_API_VERSION)
       .description("The schema version of this project's config (currently not used)."),
     kind: joi.string().default("Project").only("Project"),
-    path: joi.string()
-      .meta({ internal: true })
-      .description("The path to the project root."),
+    path: projectRootSchema
+      .meta({ internal: true }),
     configPath: joi.string()
       .meta({ internal: true })
       .description("The path to the project config file."),

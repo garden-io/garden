@@ -22,14 +22,16 @@ export interface CommonServiceSpec extends ServiceSpec {
 
 export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
 
+export const dependenciesSchema = joiArray(joiIdentifier())
+  .description(deline`
+    The names of any services that this service depends on at runtime, and the names of any
+    tasks that should be executed before this service is deployed.
+  `)
+
 export const baseServiceSpecSchema = joi.object()
   .keys({
     name: joiUserIdentifier().required(),
-    dependencies: joiArray(joiIdentifier())
-      .description(deline`
-        The names of any services that this service depends on at runtime, and the names of any
-        tasks that should be executed before this service is deployed.
-      `),
+    dependencies: dependenciesSchema,
   })
   .unknown(true)
   .meta({ extendable: true })

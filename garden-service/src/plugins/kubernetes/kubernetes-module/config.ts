@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceSpec } from "../../../config/service"
-import { joiArray, joiIdentifier, joi } from "../../../config/common"
+import { ServiceSpec, dependenciesSchema } from "../../../config/service"
+import { joiArray, joi } from "../../../config/common"
 import { Module } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import { Service } from "../../../types/service"
@@ -52,8 +52,7 @@ const kubernetesResourceSchema = joi.object()
 const kubernetesModuleSpecSchema = joi.object()
   .keys({
     build: baseBuildSpecSchema,
-    dependencies: joiArray(joiIdentifier())
-      .description("List of names of services that should be deployed before this chart."),
+    dependencies: dependenciesSchema,
     manifests: joiArray(kubernetesResourceSchema)
       .description(
         deline`

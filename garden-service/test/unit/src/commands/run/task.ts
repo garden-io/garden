@@ -22,9 +22,9 @@ describe("RunTaskCommand", () => {
     const expected = {
       command: ["echo", "OK"],
       moduleName: "module-a",
-      log: "OK",
+      log: "echo OK",
       outputs: {
-        log: "OK",
+        log: "echo OK",
       },
       success: true,
       taskName: "task-a",
