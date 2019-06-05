@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BuildModuleParams, GetBuildStatusParams } from "../../../types/plugin/params"
 import { ContainerModule } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus } from "../../container/build"
+import { GetBuildStatusParams } from "../../../types/plugin/module/getBuildStatus"
+import { BuildModuleParams } from "../../../types/plugin/module/build"
 
 export async function getBuildStatus(params: GetBuildStatusParams<ContainerModule>) {
   const status = await getContainerBuildStatus(params)

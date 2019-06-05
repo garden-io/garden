@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BuildModuleParams } from "../../../types/plugin/params"
 import { HelmModule } from "./config"
-import { BuildResult } from "../../../types/plugin/outputs"
 import { containsSource, getChartPath, getValuesPath, getBaseModule } from "./common"
 import { helm } from "./helm-cli"
 import { safeLoad } from "js-yaml"
@@ -17,6 +15,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
 import { apply as jsonMerge } from "json-merge-patch"
 import { KubernetesPluginContext } from "../kubernetes"
+import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const k8sCtx = <KubernetesPluginContext>ctx

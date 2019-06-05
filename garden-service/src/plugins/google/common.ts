@@ -7,7 +7,7 @@
  */
 
 import { Module } from "../../types/module"
-import { PrepareEnvironmentParams } from "../../types/plugin/params"
+import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
 import { ConfigurationError } from "../../exceptions"
 import { ExecTestSpec } from "../exec"
 import { GCloud } from "./gcloud"

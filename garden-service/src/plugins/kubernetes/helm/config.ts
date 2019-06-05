@@ -19,8 +19,6 @@ import {
   joiUserIdentifier,
 } from "../../../config/common"
 import { Module, FileCopySpec } from "../../../types/module"
-import { ConfigureModuleParams } from "../../../types/plugin/params"
-import { ConfigureModuleResult } from "../../../types/plugin/outputs"
 import { containsSource, getReleaseName } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
@@ -30,6 +28,7 @@ import { BaseTaskSpec } from "../../../config/task"
 import { Service } from "../../../types/service"
 import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 
 // A Helm Module always maps to a single Service
 export type HelmModuleSpec = HelmServiceSpec

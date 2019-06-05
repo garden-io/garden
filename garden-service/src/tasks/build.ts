@@ -9,7 +9,7 @@
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { Module, getModuleKey } from "../types/module"
-import { BuildResult } from "../types/plugin/outputs"
+import { BuildResult } from "../types/plugin/module/build"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { DependencyGraphNodeType } from "../config-graph"

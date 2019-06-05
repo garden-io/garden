@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetTaskResultParams } from "../../types/plugin/params"
+import { GetTaskResultParams } from "../../types/plugin/task/getTaskResult"
 import { ContainerModule } from "../container/config"
 import { HelmModule } from "./helm/config"
 import { ModuleVersion } from "../../vcs/vcs"
 import { KubernetesPluginContext, KubernetesProvider } from "./kubernetes"
 import { KubeApi } from "./api"
 import { getMetadataNamespace } from "./namespace"
-import { RunTaskResult } from "../../types/plugin/outputs"
+import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { deserializeValues, serializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"

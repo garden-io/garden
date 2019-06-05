@@ -21,6 +21,8 @@ const Module = styled.div`
   border-radius: 4px;
   margin: 0 1.3rem 1.3rem 0;
   min-width: 17rem;
+    flex: 1 1;
+    max-width: 20rem;
 `
 
 type InfoCardsProps = {
@@ -72,7 +74,6 @@ const Fields = styled.div<FieldsProps>`
 
 const Field = styled.div`
   padding-bottom: .5rem;
-  max-width: 14rem;
 
   &:last-of-type{
     padding-bottom: 0;

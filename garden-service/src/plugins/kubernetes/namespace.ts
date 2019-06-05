@@ -15,7 +15,7 @@ import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError, DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
-import { GetEnvironmentStatusParams } from "../../types/plugin/params"
+import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
 import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 

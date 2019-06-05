@@ -51,6 +51,7 @@ import { GardenConfig } from "../config/base"
 import { defaultEnvironments } from "../config/project"
 import { ERROR_LOG_FILENAME } from "../constants"
 import stringify = require("json-stringify-safe")
+import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -110,7 +111,6 @@ export const GLOBAL_OPTIONS = {
   "env": new EnvironmentOption(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
-    defaultValue: DEFAULT_CLI_LOGGER_TYPE,
     help: deline`
       Set logger type:
       fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
@@ -283,23 +283,33 @@ export class GardenCli {
       })
 
       do {
-        garden = await Garden.factory(root, contextOpts)
+        try {
+          garden = await Garden.factory(root, contextOpts)
 
-        // Register log file writers. We need to do this after the Garden class is initialised because
-        // the file writers depend on the project root.
-        await this.initFileWriters(logger, garden.projectRoot)
+          // Register log file writers. We need to do this after the Garden class is initialised because
+          // the file writers depend on the project root.
+          await this.initFileWriters(logger, garden.projectRoot)
 
-        // TODO: enforce that commands always output DeepPrimitiveMap
-        result = await command.action({
-          garden,
-          log,
-          logFooter,
-          args: parsedArgs,
-          opts: parsedOpts,
-        })
+          // TODO: enforce that commands always output DeepPrimitiveMap
+          result = await command.action({
+            garden,
+            log,
+            logFooter,
+            args: parsedArgs,
+            opts: parsedOpts,
+          })
 
-        await garden.close()
+          await garden.close()
 
+        } catch (err) {
+          // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
+          // Other exceptions are handled within the implementation of "get debug-info".
+          if (command.name === "debug-info") {
+            await generateBasicDebugInfoReport(root, log)
+            return
+          }
+          throw err
+        }
       } while (result.restartRequired)
 
       // We attach the action result to cli context so that we can process it in the parse method

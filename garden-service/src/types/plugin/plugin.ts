@@ -7,76 +7,39 @@
  */
 
 import * as Joi from "joi"
-import { mapValues } from "lodash"
-import dedent = require("dedent")
-import {
-  joiArray,
-  joiIdentifier,
-  joiIdentifierMap,
-} from "../../config/common"
-import { Module } from "../module"
-import { serviceStatusSchema } from "../service"
-import { LogNode } from "../../logger/log-node"
-import {
-  ModuleActionParams,
-  PluginActionParams,
-  ServiceActionParams,
-  TaskActionParams,
-  getEnvironmentStatusParamsSchema,
-  prepareEnvironmentParamsSchema,
-  cleanupEnvironmentParamsSchema,
-  getSecretParamsSchema,
-  setSecretParamsSchema,
-  deleteSecretParamsSchema,
-  getServiceStatusParamsSchema,
-  deployServiceParamsSchema,
-  deleteServiceParamsSchema,
-  execInServiceParamsSchema,
-  getServiceLogsParamsSchema,
-  runServiceParamsSchema,
-  describeModuleTypeParamsSchema,
-  configureModuleParamsSchema,
-  getBuildStatusParamsSchema,
-  buildModuleParamsSchema,
-  hotReloadServiceParamsSchema,
-  runModuleParamsSchema,
-  testModuleParamsSchema,
-  getTestResultParamsSchema,
-  publishModuleParamsSchema,
-  getTaskResultParamsSchema,
-  runTaskParamsSchema,
-  configureProviderParamsSchema,
-} from "./params"
-import {
-  buildModuleResultSchema,
-  buildStatusSchema,
-  prepareEnvironmentResultSchema,
-  deleteSecretResultSchema,
-  cleanupEnvironmentResultSchema,
-  environmentStatusSchema,
-  execInServiceResultSchema,
-  getSecretResultSchema,
-  getServiceLogsResultSchema,
-  getTestResultSchema,
-  ModuleActionOutputs,
-  moduleTypeDescriptionSchema,
-  PluginActionOutputs,
-  hotReloadServiceResultSchema,
-  runResultSchema,
-  ServiceActionOutputs,
-  TaskActionOutputs,
-  setSecretResultSchema,
-  testResultSchema,
-  configureModuleResultSchema,
-  publishModuleResultSchema,
-  runTaskResultSchema,
-  getTaskResultSchema,
-  configureProviderResultSchema,
-} from "./outputs"
 
-export type PluginActions = {
-  [P in keyof PluginActionParams]: (params: PluginActionParams[P]) => PluginActionOutputs[P]
-}
+import { BuildModuleParams, BuildResult, build } from "./module/build"
+import { BuildStatus, GetBuildStatusParams, getBuildStatus } from "./module/getBuildStatus"
+import { CleanupEnvironmentParams, CleanupEnvironmentResult, cleanupEnvironment } from "./provider/cleanupEnvironment"
+import { ConfigureModuleParams, ConfigureModuleResult, configure } from "./module/configure"
+import { ConfigureProviderParams, ConfigureProviderResult, configureProvider } from "./provider/configureProvider"
+import { DeleteSecretParams, DeleteSecretResult, deleteSecret } from "./provider/deleteSecret"
+import { DeleteServiceParams, deleteService } from "./service/deleteService"
+import { DeployServiceParams, deployService } from "./service/deployService"
+import { DescribeModuleTypeParams, ModuleTypeDescription, describeType } from "./module/describeType"
+import { EnvironmentStatus, GetEnvironmentStatusParams, getEnvironmentStatus } from "./provider/getEnvironmentStatus"
+import { ExecInServiceParams, ExecInServiceResult, execInService } from "./service/execInService"
+import { GetSecretParams, GetSecretResult, getSecret } from "./provider/getSecret"
+import { GetServiceLogsParams, getServiceLogs } from "./service/getServiceLogs"
+import { GetServiceStatusParams, getServiceStatus } from "./service/getServiceStatus"
+import { GetTaskResultParams, getTaskResult } from "./task/getTaskResult"
+import { GetTestResultParams, getTestResult, TestResult } from "./module/getTestResult"
+import { HotReloadServiceParams, HotReloadServiceResult, hotReloadService } from "./service/hotReloadService"
+import { PrepareEnvironmentParams, PrepareEnvironmentResult, prepareEnvironment } from "./provider/prepareEnvironment"
+import { PublishModuleParams, PublishResult, publishModule } from "./module/publishModule"
+import { RunModuleParams, runModule } from "./module/runModule"
+import { RunServiceParams, runService } from "./service/runService"
+import { RunTaskParams, RunTaskResult, runTask } from "./task/runTask"
+import { SetSecretParams, SetSecretResult, setSecret } from "./provider/setSecret"
+import { TestModuleParams, testModule } from "./module/testModule"
+import { joiArray, joiIdentifier, joiIdentifierMap } from "../../config/common"
+
+import { LogNode } from "../../logger/log-node"
+import { Module } from "../module"
+import { RunResult } from "./base"
+import { ServiceStatus } from "../service"
+import { mapValues } from "lodash"
+import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./provider/getDebugInfo"
 
 export type ServiceActions<T extends Module = Module> = {
   [P in keyof ServiceActionParams<T>]: (params: ServiceActionParams<T>[P]) => ServiceActionOutputs[P]
@@ -100,302 +63,135 @@ export type ModuleActionName = keyof ModuleActions
 
 export interface PluginActionDescription {
   description: string
+  // TODO: specify the schemas using primitives and not Joi objects
   paramsSchema: Joi.Schema
   resultSchema: Joi.Schema
 }
 
+export interface PluginActionParams {
+  configureProvider: ConfigureProviderParams
+
+  getEnvironmentStatus: GetEnvironmentStatusParams
+  prepareEnvironment: PrepareEnvironmentParams
+  cleanupEnvironment: CleanupEnvironmentParams
+
+  getSecret: GetSecretParams
+  setSecret: SetSecretParams
+  deleteSecret: DeleteSecretParams
+
+  getDebugInfo: GetDebugInfoParams
+}
+
+export interface PluginActionOutputs {
+  configureProvider: Promise<ConfigureProviderResult>
+
+  getEnvironmentStatus: Promise<EnvironmentStatus>
+  prepareEnvironment: Promise<PrepareEnvironmentResult>
+  cleanupEnvironment: Promise<CleanupEnvironmentResult>
+
+  getSecret: Promise<GetSecretResult>
+  setSecret: Promise<SetSecretResult>
+  deleteSecret: Promise<DeleteSecretResult>
+
+  getDebugInfo: Promise<DebugInfo>
+}
+
+export type PluginActions = {
+  [P in keyof PluginActionParams]: (params: PluginActionParams[P]) => PluginActionOutputs[P]
+}
+
 export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDescription } = {
-  configureProvider: {
-    description: dedent`
-      Validate and transform the given provider configuration.
+  configureProvider,
+  getEnvironmentStatus,
+  prepareEnvironment,
+  cleanupEnvironment,
 
-      Note that this does not need to perform structural schema validation (the framework does that
-      automatically), but should in turn perform semantic validation to make sure the configuration is sane.
+  getSecret,
+  setSecret,
+  deleteSecret,
 
-      This can also be used to further specify the semantics of the provider, including dependencies.
+  getDebugInfo,
+}
 
-      Important: This action is called on most executions of Garden commands, so it should return quickly
-      and avoid performing expensive processing or network calls.
-    `,
-    paramsSchema: configureProviderParamsSchema,
-    resultSchema: configureProviderResultSchema,
-  },
-  getEnvironmentStatus: {
-    description: dedent`
-      Check if the current environment is ready for use by this plugin. Use this action in combination
-      with \`prepareEnvironment\`.
+export interface ServiceActionParams<T extends Module = Module> {
+  getServiceStatus: GetServiceStatusParams<T>
+  deployService: DeployServiceParams<T>
+  hotReloadService: HotReloadServiceParams<T>
+  deleteService: DeleteServiceParams<T>
+  execInService: ExecInServiceParams<T>
+  getServiceLogs: GetServiceLogsParams<T>
+  runService: RunServiceParams<T>
+}
 
-      Called before \`prepareEnvironment\`. If this returns \`ready: true\`, the
-      \`prepareEnvironment\` action is not called.
-
-      If this returns \`needUserInput: true\`, the process may throw an error and guide the user to
-      run \`garden init\`, so that \`prepareEnvironment\` can safely ask for user input. Otherwise the
-      \`prepareEnvironment\` handler may be run implicitly ahead of actions like \`deployService\`,
-      \`runModule\` etc.
-    `,
-    paramsSchema: getEnvironmentStatusParamsSchema,
-    resultSchema: environmentStatusSchema,
-  },
-  prepareEnvironment: {
-    description: dedent`
-      Make sure the environment is set up for this plugin. Use this action to do any bootstrapping required
-      before deploying services.
-
-      Called ahead of any service runtime actions (such as \`deployService\`,
-      \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\` or
-      \`needUserInput: true\`.
-
-      Important: If your handler does require user input, please be sure to indicate that via the
-      \`getEnvironmentStatus\` handler. If this provider's \`getEnvironmentStatus\` returns \`needUserInput: true\`,
-      this is only called via the \`garden init\` command, so that the handler can safely request user input via
-      the CLI.
-    `,
-    paramsSchema: prepareEnvironmentParamsSchema,
-    resultSchema: prepareEnvironmentResultSchema,
-  },
-  cleanupEnvironment: {
-    description: dedent`
-      Clean up any runtime components, services etc. that this plugin has deployed in the environment.
-
-      Like \`prepareEnvironment\`, this is executed sequentially, so handlers are allowed to request user input
-      if necessary.
-
-      Called by the \`garden delete environment\` command.
-    `,
-    paramsSchema: cleanupEnvironmentParamsSchema,
-    resultSchema: cleanupEnvironmentResultSchema,
-  },
-
-  getSecret: {
-    description: dedent`
-      Retrieve a secret value for this plugin in the current environment (as set via \`setSecret\`).
-    `,
-    paramsSchema: getSecretParamsSchema,
-    resultSchema: getSecretResultSchema,
-  },
-  setSecret: {
-    description: dedent`
-      Set a secret for this plugin in the current environment. These variables are
-      not used by the Garden framework, but the plugin may expose them to services etc. at runtime
-      (e.g. as environment variables or mounted in containers).
-    `,
-    paramsSchema: setSecretParamsSchema,
-    resultSchema: setSecretResultSchema,
-  },
-  deleteSecret: {
-    description: dedent`
-      Remove a secret for this plugin in the current environment (as set via \`setSecret\`).
-    `,
-    paramsSchema: deleteSecretParamsSchema,
-    resultSchema: deleteSecretResultSchema,
-  },
+export interface ServiceActionOutputs {
+  getServiceStatus: Promise<ServiceStatus>
+  deployService: Promise<ServiceStatus>
+  hotReloadService: Promise<HotReloadServiceResult>
+  deleteService: Promise<ServiceStatus>
+  execInService: Promise<ExecInServiceResult>
+  getServiceLogs: Promise<{}>
+  runService: Promise<RunResult>
 }
 
 export const serviceActionDescriptions: { [P in ServiceActionName]: PluginActionDescription } = {
-  getServiceStatus: {
-    description: dedent`
-      Check and return the current runtime status of a service.
+  getServiceStatus,
+  deployService,
+  hotReloadService,
+  deleteService,
+  execInService,
+  getServiceLogs,
+  runService,
+}
 
-      Called ahead of any actions that expect a service to be running, as well as the
-      \`garden get status\` command.
-    `,
-    paramsSchema: getServiceStatusParamsSchema,
-    resultSchema: serviceStatusSchema,
-  },
-  deployService: {
-    description: dedent`
-      Deploy the specified service. This should wait until the service is ready and accessible,
-      and fail if the service doesn't reach a ready state.
+export interface TaskActionParams<T extends Module = Module> {
+  getTaskResult: GetTaskResultParams<T>
+  runTask: RunTaskParams<T>
+}
 
-      Called by the \`garden deploy\` and \`garden dev\` commands.
-    `,
-    paramsSchema: deployServiceParamsSchema,
-    resultSchema: serviceStatusSchema,
-  },
-  hotReloadService: {
-    description: dedent`
-      Synchronize changes directly into a running service, instead of doing a full redeploy.
-    `,
-    paramsSchema: hotReloadServiceParamsSchema,
-    resultSchema: hotReloadServiceResultSchema,
-  },
-  deleteService: {
-    description: dedent`
-      Terminate a deployed service. This should wait until the service is no longer running.
-
-      Called by the \`garden delete service\` command.
-    `,
-    paramsSchema: deleteServiceParamsSchema,
-    resultSchema: serviceStatusSchema,
-  },
-  execInService: {
-    description: dedent`
-      Execute the specified command next to a running service, e.g. in a service container.
-
-      Called by the \`garden exec\` command.
-    `,
-    paramsSchema: execInServiceParamsSchema,
-    resultSchema: execInServiceResultSchema,
-  },
-  getServiceLogs: {
-    description: dedent`
-      Retrieve a stream of logs for the specified service, optionally waiting listening for new logs.
-
-      Called by the \`garden logs\` command.
-    `,
-    paramsSchema: getServiceLogsParamsSchema,
-    resultSchema: getServiceLogsResultSchema,
-  },
-  runService: {
-    description: dedent`
-      Run an ad-hoc instance of the specified service. This should wait until the service completes
-      execution, and should ideally attach it to the terminal (i.e. pipe the output from the service
-      to the console, as well as pipe the input from the console to the running service).
-
-      Called by the \`garden run service\` command.
-    `,
-    paramsSchema: runServiceParamsSchema,
-    resultSchema: runResultSchema,
-  },
+export interface TaskActionOutputs {
+  runTask: Promise<RunTaskResult>
+  getTaskResult: Promise<RunTaskResult | null>
 }
 
 export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescription } = {
-  // TODO: see if this is actually necessary or useful
-  getTaskResult: {
-    description: dedent`
-      Retrieve the task result for the specified version. Use this along with the \`runTask\` handler
-      to avoid running the same task repeatedly when its dependencies haven't changed.
+  getTaskResult,
+  runTask,
+}
 
-      Note that the version string provided to this handler may be a hash of the module's version, as
-      well as any runtime dependencies configured for the task, so it may not match the current version
-      of the module itself.
-    `,
-    paramsSchema: getTaskResultParamsSchema,
-    resultSchema: getTaskResultSchema,
-  },
-  runTask: {
-    description: dedent`
-      Runs a task within the context of its module. This should wait until execution completes, and
-      return its output.
-    `,
-    paramsSchema: runTaskParamsSchema,
-    resultSchema: runTaskResultSchema,
-  },
+export interface ModuleActionParams<T extends Module = Module> {
+  describeType: DescribeModuleTypeParams,
+  configure: ConfigureModuleParams<T>
+  getBuildStatus: GetBuildStatusParams<T>
+  build: BuildModuleParams<T>
+  publishModule: PublishModuleParams<T>
+  runModule: RunModuleParams<T>
+  testModule: TestModuleParams<T>
+  getTestResult: GetTestResultParams<T>
+}
+
+export interface ModuleActionOutputs extends ServiceActionOutputs {
+  describeType: Promise<ModuleTypeDescription>
+  configure: Promise<ConfigureModuleResult>
+  getBuildStatus: Promise<BuildStatus>
+  build: Promise<BuildResult>
+  publishModule: Promise<PublishResult>
+  runModule: Promise<RunResult>
+  testModule: Promise<TestResult>
+  getTestResult: Promise<TestResult | null>
 }
 
 export const moduleActionDescriptions:
   { [P in ModuleActionName | ServiceActionName | TaskActionName]: PluginActionDescription } = {
-  // TODO: specify the schema using primitives and not Joi objects
-  describeType: {
-    description: dedent`
-      Return documentation and a schema description of the module type.
-
-      The documentation should be in markdown format. A reference for the module type is automatically
-      generated based on the provided schema, and a section appended to the provided documentation.
-
-      The schema should be a valid Joi schema describing the configuration keys that the user
-      should use under the \`module\` key in a \`garden.yml\` configuration file.
-
-      Used when auto-generating framework documentation.
-
-      This action is called on every execution of Garden, so it should return quickly and avoid doing
-      any network calls.
-    `,
-    paramsSchema: describeModuleTypeParamsSchema,
-    resultSchema: moduleTypeDescriptionSchema,
-  },
-  configure: {
-    description: dedent`
-      Validate and transform the given module configuration.
-
-      Note that this does not need to perform structural schema validation (the framework does that
-      automatically), but should in turn perform semantic validation to make sure the configuration is sane.
-
-      This can and should also be used to further specify the semantics of the module, including service
-      configuration and test configuration. Since services and tests are not specified using built-in
-      framework configuration fields, this action needs to specify those via the \`serviceConfigs\` and
-      \`testConfigs\` output keys.
-
-      This action is called on every execution of Garden, so it should return quickly and avoid doing
-      any network calls.
-    `,
-    paramsSchema: configureModuleParamsSchema,
-    resultSchema: configureModuleResultSchema,
-  },
-
-  getBuildStatus: {
-    description: dedent`
-      Check and return the build status of a module, i.e. whether the current version been built.
-
-      Called before running the \`build\` action, which is not run if this returns \`{ ready: true }\`.
-    `,
-    paramsSchema: getBuildStatusParamsSchema,
-    resultSchema: buildStatusSchema,
-  },
-  build: {
-    description: dedent`
-      Build the current version of a module. This must wait until the build is complete before returning.
-
-      Called ahead of a number of actions, including \`deployService\` and \`publishModule\`.
-    `,
-    paramsSchema: buildModuleParamsSchema,
-    resultSchema: buildModuleResultSchema,
-  },
-
-  publishModule: {
-    description: dedent`
-      Publish a built module to a remote registry.
-
-      Called by the \`garden publish\` command.
-    `,
-    paramsSchema: publishModuleParamsSchema,
-    resultSchema: publishModuleResultSchema,
-  },
-
-  runModule: {
-    description: dedent`
-      Run an ad-hoc instance of the specified module. This should wait until the execution completes,
-      and should ideally attach it to the terminal (i.e. pipe the output from the service
-      to the console, as well as pipe the input from the console to the running service).
-
-      Called by the \`garden run module\` command.
-    `,
-    paramsSchema: runModuleParamsSchema,
-    resultSchema: runResultSchema,
-  },
-
-  testModule: {
-    description: dedent`
-      Run the specified test for a module.
-
-      This should complete the test run and return the logs from the test run, and signal whether the
-      tests completed successfully.
-
-      It should also store the test results and provide the accompanying \`getTestResult\` handler,
-      so that the same version does not need to be tested multiple times.
-
-      Note that the version string provided to this handler may be a hash of the module's version, as
-      well as any runtime dependencies configured for the test, so it may not match the current version
-      of the module itself.
-    `,
-    paramsSchema: testModuleParamsSchema,
-    resultSchema: testResultSchema,
-  },
-  getTestResult: {
-    description: dedent`
-      Retrieve the test result for the specified version. Use this along with the \`testModule\` handler
-      to avoid testing the same code repeatedly.
-
-      Note that the version string provided to this handler may be a hash of the module's version, as
-      well as any runtime dependencies configured for the test, so it may not match the current version
-      of the module itself.
-    `,
-    paramsSchema: getTestResultParamsSchema,
-    resultSchema: getTestResultSchema,
-  },
+  describeType,
+  configure,
+  getBuildStatus,
+  build,
+  publishModule,
+  runModule,
+  testModule,
+  getTestResult,
 
   ...serviceActionDescriptions,
-
   ...taskActionDescriptions,
 }
 

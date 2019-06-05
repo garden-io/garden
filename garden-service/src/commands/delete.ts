@@ -8,10 +8,6 @@
 
 import * as Bluebird from "bluebird"
 import {
-  DeleteSecretResult,
-  EnvironmentStatusMap,
-} from "../types/plugin/outputs"
-import {
   Command,
   CommandResult,
   CommandParams,
@@ -22,6 +18,8 @@ import { NotFoundError } from "../exceptions"
 import dedent = require("dedent")
 import { ServiceStatus, getServiceRuntimeContext } from "../types/service"
 import { logHeader } from "../logger/util"
+import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
+import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
 
 export class DeleteCommand extends Command {
   name = "delete"

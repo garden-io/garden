@@ -10,9 +10,7 @@ RUN apk add --no-cache \
   rsync \
   ca-certificates \
   tar \
-  gzip \
-  && curl -L -o /usr/local/bin/kubectl "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/linux/amd64/kubectl" \
-  && chmod +x /usr/local/bin/kubectl
+  gzip
 
 WORKDIR /garden
 
@@ -28,5 +26,7 @@ ADD static /garden/static
 
 WORKDIR /project
 
-RUN ln -s /garden/static/bin/garden /bin/garden \
+RUN ln -s /garden/bin/garden /bin/garden \
   && chmod +x /bin/garden
+
+ENTRYPOINT [/garden/bin/garden]

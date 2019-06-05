@@ -18,7 +18,6 @@ import {
   ContainerTaskSpec,
 } from "../container/config"
 import { joiArray, joiProviderName } from "../../config/common"
-import { BuildModuleParams, ConfigureModuleParams, GetBuildStatusParams } from "../../types/plugin/params"
 import { Module } from "../../types/module"
 import { configureContainerModule, gardenPlugin as containerPlugin } from "../container/container"
 import { buildContainerModule, getContainerBuildStatus } from "../container/build"
@@ -35,6 +34,9 @@ import { LogEntry } from "../../logger/log-entry"
 import { dedent } from "../../util/string"
 import { ModuleConfig } from "../../config/module"
 import AsyncLock = require("async-lock")
+import { ConfigureModuleParams } from "../../types/plugin/module/configure"
+import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
+import { BuildModuleParams } from "../../types/plugin/module/build"
 
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile")
 const buildLock = new AsyncLock()

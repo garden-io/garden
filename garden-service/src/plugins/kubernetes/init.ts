@@ -6,11 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  PrepareEnvironmentParams,
-  CleanupEnvironmentParams,
-  GetEnvironmentStatusParams,
-} from "../../types/plugin/params"
 import { KubeApi } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces } from "./namespace"
 import { KubernetesPluginContext } from "./kubernetes"
@@ -23,7 +18,9 @@ import {
 } from "./system"
 import { PrimitiveMap } from "../../config/common"
 import { DashboardPage } from "../../config/dashboard"
-import { EnvironmentStatus } from "../../types/plugin/outputs"
+import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
+import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
+import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
 
 interface GetK8sEnvironmentStatusParams extends GetEnvironmentStatusParams {
   variables?: PrimitiveMap
@@ -59,6 +56,7 @@ export async function getEnvironmentStatus(
   }
 
   const systemServiceNames = k8sCtx.provider.config._systemServices
+  let needManualInit = false
 
   if (systemServiceNames.length > 0) {
     // Check Tiller status in system namespace
@@ -83,6 +81,10 @@ export async function getEnvironmentStatus(
 
     systemReady = systemTillerReady && systemServiceStatuses.ready && sysNamespaceUpToDate
     dashboardPages = systemServiceStatuses.dashboardPages
+
+    // We always require manual init if we're installing any system services to remote clusters, to avoid conflicts
+    // between users or unnecessary work.
+    needManualInit = true
   }
 
   const detail = { systemReady, projectReady }
@@ -91,6 +93,7 @@ export async function getEnvironmentStatus(
     ready: projectReady && systemReady,
     detail,
     dashboardPages,
+    needManualInit,
   }
 }
 

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigureModuleParams } from "../../types/plugin/params"
+import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { join } from "path"
 import {
   GcfModule,
@@ -58,6 +58,7 @@ export const gardenPlugin = (): GardenPlugin => ({
             }],
             env: {},
             healthCheck: { tcpPort: "http" },
+            limits: s.spec.limits,
             ports: [
               {
                 name: "http",

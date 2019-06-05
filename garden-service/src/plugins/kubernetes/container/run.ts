@@ -8,13 +8,6 @@
 
 import { includes, extend } from "lodash"
 import { DeploymentError } from "../../../exceptions"
-import { RunResult, RunTaskResult } from "../../../types/plugin/outputs"
-import {
-  ExecInServiceParams,
-  RunModuleParams,
-  RunServiceParams,
-  RunTaskParams,
-} from "../../../types/plugin/params"
 import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
@@ -24,6 +17,11 @@ import { runPod } from "../run"
 import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes"
 import { storeTaskResult } from "../task-results"
+import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
+import { RunModuleParams } from "../../../types/plugin/module/runModule"
+import { RunResult } from "../../../types/plugin/base"
+import { RunServiceParams } from "../../../types/plugin/service/runService"
+import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, log, service, command, interactive } = params

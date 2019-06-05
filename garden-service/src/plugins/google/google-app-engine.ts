@@ -6,12 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployServiceParams, ConfigureModuleParams } from "../../types/plugin/params"
 import { ServiceStatus } from "../../types/service"
 import { join } from "path"
-import {
-  gcloud,
-} from "./common"
+import { gcloud } from "./common"
 import {
   getEnvironmentStatus,
   GOOGLE_CLOUD_DEFAULT_REGION,
@@ -23,6 +20,8 @@ import { configureContainerModule } from "../container/container"
 import { ContainerModule } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/project"
 import * as Joi from "joi"
+import { ConfigureModuleParams } from "../../types/plugin/module/configure"
+import { DeployServiceParams } from "../../types/plugin/service/deployService"
 
 const configSchema = providerConfigBaseSchema.keys({
   project: Joi.string()

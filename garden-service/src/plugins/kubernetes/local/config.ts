@@ -9,7 +9,7 @@
 import * as execa from "execa"
 import * as Joi from "joi"
 import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../kubernetes"
-import { ConfigureProviderParams } from "../../../types/plugin/params"
+import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
 import { joiProviderName } from "../../../config/common"
 import { getKubeConfig } from "../api"
 import { configureMicrok8sAddons } from "./microk8s"

@@ -15,7 +15,7 @@
   },
   "preferGlobal": true,
   "bin": {
-    "garden": "./static/bin/garden"
+    "garden": "./bin/garden"
   },
   "files": [
     "build",
@@ -26,6 +26,7 @@
     "@types/koa-static": "^4.0.1",
     "JSONStream": "^1.3.5",
     "ansi-escapes": "^4.1.0",
+    "archiver": "^3.0.0",
     "async-exit-hook": "^2.0.1",
     "async-lock": "^1.2.0",
     "axios": "^0.18.0",
@@ -162,9 +163,8 @@
     "testdouble": "^3.11.0",
     "testdouble-chai": "^0.5.0",
     "timekeeper": "^2.2.0",
-    "tmp-promise": "^1.1.0",
+    "tmp-promise": "^2.0.1",
     "touch": "^3.1.0",
-    "ts-node": "^8.1.0",
     "tslint": "^5.16.0",
     "tslint-microsoft-contrib": "^6.1.1",
     "tslint-no-unused": "^0.2.0-alpha.1",
@@ -173,23 +173,24 @@
   },
   "scripts": {
     "build": "gulp build",
-    "build-ci": "gulp build-ci",
+    "build-ci": "gulp build",
+    "build-container": "npm run build && docker build -t gardendev/garden:latest .",
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "npm link && npm run tsc",
     "dist": "npm run build",
     "integ": "./test/integ/run",
-    "integ-full": "./bin/integ-full.ts",
+    "integ-full": "./build/test/integ/integ-full.js",
     "prepare": "npm run snyk-protect",
     "snyk-protect": "snyk protect",
     "test": "node_modules/.bin/mocha",
-    "tsc": "tsc -w -p tsconfig.build.json --outDir build --declaration --declarationMap",
+    "tsc": "tsc -w -p . --outDir build --declaration --declarationMap --sourceMap",
     "view-report": "open coverage/index.html"
   },
   "pkg": {
-    "scripts": "build/**/*.js",
-    "assets": [
-      "package.json"
+    "scripts": [
+      "package.json",
+      "build/src/**/*.js"
     ]
   },
   "snyk": true,

@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TestResult, RunResult } from "../../types/plugin/outputs"
-import { GetTestResultParams } from "../../types/plugin/params"
 import { ContainerModule } from "../container/config"
 import { deserializeValues, serializeValues } from "../../util/util"
 import { KubeApi } from "./api"
@@ -18,6 +16,8 @@ import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./kubernetes"
 import { systemMetadataNamespace } from "./system"
 import { LogEntry } from "../../logger/log-entry"
+import { GetTestResultParams, TestResult } from "../../types/plugin/module/getTestResult"
+import { RunResult } from "../../types/plugin/base"
 
 const testResultNamespace = systemMetadataNamespace
 

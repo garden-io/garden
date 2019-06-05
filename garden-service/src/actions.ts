@@ -7,87 +7,76 @@
  */
 
 import Bluebird = require("bluebird")
+
 import chalk from "chalk"
-import { Garden, ActionHandlerMap, ModuleActionHandlerMap, PluginActionMap, ModuleActionMap } from "./garden"
-import { Module } from "./types/module"
-import {
-  ModuleActions,
-  ServiceActions,
-  PluginActions,
-  TaskActions,
-  ModuleAndRuntimeActions,
-  pluginActionDescriptions,
-  moduleActionDescriptions,
-  pluginActionNames,
-  moduleActionNames,
-} from "./types/plugin/plugin"
-import {
-  BuildResult,
-  BuildStatus,
-  DeleteSecretResult,
-  EnvironmentStatusMap,
-  ExecInServiceResult,
-  GetSecretResult,
-  GetServiceLogsResult,
-  ModuleActionOutputs,
-  RunResult,
-  ServiceActionOutputs,
-  SetSecretResult,
-  TestResult,
-  PluginActionOutputs,
-  PublishResult,
-  TaskActionOutputs,
-  HotReloadServiceResult,
-  RunTaskResult,
-} from "./types/plugin/outputs"
-import {
-  BuildModuleParams,
-  DeleteSecretParams,
-  DeployServiceParams,
-  DeleteServiceParams,
-  ExecInServiceParams,
-  GetSecretParams,
-  GetBuildStatusParams,
-  GetServiceLogsParams,
-  GetServiceStatusParams,
-  GetTestResultParams,
-  ModuleActionParams,
-  PluginActionContextParams,
-  PluginActionParams,
-  PluginActionParamsBase,
-  PluginServiceActionParamsBase,
-  HotReloadServiceParams,
-  RunModuleParams,
-  RunServiceParams,
-  ServiceActionParams,
-  SetSecretParams,
-  TestModuleParams,
-  GetEnvironmentStatusParams,
-  PluginModuleActionParamsBase,
-  PublishModuleParams,
-  PluginTaskActionParamsBase,
-  RunTaskParams,
-  TaskActionParams,
-  GetTaskResultParams,
-} from "./types/plugin/params"
-import { Service, ServiceStatus, getServiceRuntimeContext, ServiceStatusMap } from "./types/service"
-import { mapValues, values, keyBy, omit, pickBy, fromPairs } from "lodash"
-import { Omit } from "./util/util"
-import { processServices, ProcessResults } from "./process"
-import { getDependantTasksForModule } from "./tasks/helpers"
+import * as Joi from "joi"
+import { fromPairs, keyBy, mapValues, omit, pickBy, values } from "lodash"
+
+import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
+import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
+import { validate } from "./config/common"
+import { defaultProvider } from "./config/project"
+import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
+import { ActionHandlerMap, Garden, ModuleActionHandlerMap, ModuleActionMap, PluginActionMap } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { createPluginContext } from "./plugin-context"
-import { CleanupEnvironmentParams } from "./types/plugin/params"
-import { ConfigurationError, PluginError, ParameterError } from "./exceptions"
-import { defaultProvider } from "./config/project"
-import { validate } from "./config/common"
-import * as Joi from "joi"
+import { ProcessResults, processServices } from "./process"
+import { getDependantTasksForModule } from "./tasks/helpers"
+import { Module } from "./types/module"
+import {
+  PluginActionContextParams,
+  PluginActionParamsBase,
+  PluginModuleActionParamsBase,
+  PluginServiceActionParamsBase,
+  PluginTaskActionParamsBase,
+  RunResult,
+} from "./types/plugin/base"
+import { BuildModuleParams, BuildResult } from "./types/plugin/module/build"
+import { BuildStatus, GetBuildStatusParams } from "./types/plugin/module/getBuildStatus"
+import { GetTestResultParams, TestResult } from "./types/plugin/module/getTestResult"
+import { RunModuleParams } from "./types/plugin/module/runModule"
+import { TestModuleParams } from "./types/plugin/module/testModule"
+import {
+  ModuleActionOutputs,
+  ModuleActionParams,
+  ModuleActions,
+  ModuleAndRuntimeActions,
+  PluginActionOutputs,
+  PluginActionParams,
+  PluginActions,
+  ServiceActionOutputs,
+  ServiceActionParams,
+  ServiceActions,
+  TaskActionOutputs,
+  TaskActionParams,
+  TaskActions,
+  moduleActionDescriptions,
+  moduleActionNames,
+  pluginActionDescriptions,
+  pluginActionNames,
+} from "./types/plugin/plugin"
+import { CleanupEnvironmentParams } from "./types/plugin/provider/cleanupEnvironment"
+import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
+import { EnvironmentStatusMap, GetEnvironmentStatusParams } from "./types/plugin/provider/getEnvironmentStatus"
+import { GetSecretParams, GetSecretResult } from "./types/plugin/provider/getSecret"
+import { DeleteServiceParams } from "./types/plugin/service/deleteService"
+import { DeployServiceParams } from "./types/plugin/service/deployService"
+import { ExecInServiceParams, ExecInServiceResult } from "./types/plugin/service/execInService"
+import { GetServiceLogsParams, GetServiceLogsResult } from "./types/plugin/service/getServiceLogs"
+import { GetServiceStatusParams } from "./types/plugin/service/getServiceStatus"
+import { HotReloadServiceParams, HotReloadServiceResult } from "./types/plugin/service/hotReloadService"
+import { RunServiceParams } from "./types/plugin/service/runService"
+import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
+import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
+import { Service, ServiceStatus, ServiceStatusMap, getServiceRuntimeContext } from "./types/service"
+import { Omit } from "./util/util"
+import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
 }
 
-export interface EnvironmentStatus {
+export interface AllEnvironmentStatus {
   providers: EnvironmentStatusMap
   services: { [name: string]: ServiceStatus }
 }
@@ -147,7 +136,7 @@ export class ActionHelper implements TypeGuard {
   /**
    * Checks environment status and calls prepareEnvironment for each provider that isn't flagged as ready.
    *
-   * If any of the getEnvironmentStatus handlers returns needUserInput=true, this throws and guides the user to
+   * If any of the getEnvironmentStatus handlers returns needManualInit=true, this throws and guides the user to
    * run `garden init`
    */
   async prepareEnvironment(
@@ -162,13 +151,13 @@ export class ActionHelper implements TypeGuard {
     const entry = log.info({ section: "providers", msg: "Getting status...", status: "active" })
     const statuses = await this.getEnvironmentStatus({ pluginName, log: entry })
 
-    const needUserInput = Object.entries(statuses)
+    const needManualInit = Object.entries(statuses)
       .map(([name, status]) => ({ ...status, name }))
-      .filter(status => status.needUserInput === true)
+      .filter(status => status.needManualInit === true)
 
-    if (!allowUserInput && needUserInput.length > 0) {
-      const names = needUserInput.map(s => s.name).join(", ")
-      const msgPrefix = needUserInput.length === 1
+    if (!allowUserInput && needManualInit.length > 0) {
+      const names = needManualInit.map(s => s.name).join(", ")
+      const msgPrefix = needManualInit.length === 1
         ? `Plugin ${names} has been updated or hasn't been configured, and requires user input.`
         : `Plugins ${names} have been updated or haven't been configured, and require user input.`
 
@@ -370,7 +359,7 @@ export class ActionHelper implements TypeGuard {
   //region Helper Methods
   //===========================================================================
 
-  async getStatus({ log, serviceNames }: { log: LogEntry, serviceNames?: string[] }): Promise<EnvironmentStatus> {
+  async getStatus({ log, serviceNames }: { log: LogEntry, serviceNames?: string[] }): Promise<AllEnvironmentStatus> {
     log.verbose(`Getting environment status (${this.garden.projectName})`)
 
     const envStatus: EnvironmentStatusMap = await this.getEnvironmentStatus({ log })
@@ -417,6 +406,11 @@ export class ActionHelper implements TypeGuard {
         forceBuild,
       }),
     })
+  }
+
+  async getDebugInfo({ log }: { log: LogEntry }): Promise<DebugInfoMap> {
+    const handlers = this.getActionHandlers("getDebugInfo")
+    return await Bluebird.props(mapValues(handlers, h => h({ ...this.commonParams(h, log) })))
   }
 
   //endregion

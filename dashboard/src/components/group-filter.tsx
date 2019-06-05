@@ -46,7 +46,7 @@ const FilterGroup = styled.ul`
 `
 export type Filters<T extends string> = {
   [key in T]: {
-    label: string
+    label: string,
     selected: boolean,
     readonly?: boolean,
   }

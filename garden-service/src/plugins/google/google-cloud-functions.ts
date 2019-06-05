@@ -6,21 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  joiArray,
-  validateWithPath,
-} from "../../config/common"
+import { joiArray, validateWithPath } from "../../config/common"
 import { Module } from "../../types/module"
-import { ConfigureModuleResult } from "../../types/plugin/outputs"
-import {
-  DeployServiceParams,
-  GetServiceStatusParams,
-  ConfigureModuleParams,
-} from "../../types/plugin/params"
 import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
-import {
-  resolve,
-} from "path"
+import { resolve } from "path"
 import * as Joi from "joi"
 import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { ExecTestSpec, execTestSchema } from "../exec"
@@ -33,6 +22,10 @@ import {
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema } from "../../config/project"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
+import { DeployServiceParams } from "../../types/plugin/service/deployService"
+import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
+import { ServiceLimitSpec } from "../container/config"
 
 const gcfModuleSpecSchema = baseServiceSpecSchema
   .keys({
@@ -52,6 +45,7 @@ export interface GcfModuleSpec extends CommonServiceSpec {
   entrypoint?: string,
   function: string,
   hostname?: string
+  limits: ServiceLimitSpec
   path: string,
   project?: string,
   tests: ExecTestSpec[],

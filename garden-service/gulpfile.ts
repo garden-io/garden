@@ -6,9 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  spawn as _spawn,
-} from "child_process"
 import { resolve, join } from "path"
 import { spawn } from "../support/support-util"
 
@@ -16,7 +13,7 @@ const pegjs = require("gulp-pegjs")
 const sourcemaps = require("gulp-sourcemaps")
 const ts = require("gulp-typescript")
 
-const tsConfigFilename = "tsconfig.build.json"
+const tsConfigFilename = "tsconfig.json"
 const tsConfigPath = resolve(__dirname, tsConfigFilename)
 const tsProject = ts.createProject(tsConfigPath, {
   declaration: true,
@@ -25,19 +22,17 @@ const tsProject = ts.createProject(tsConfigPath, {
 const pegjsSources = resolve(__dirname, "src", "*.pegjs")
 
 const destDir = resolve(__dirname, "build")
-const binDir = resolve(__dirname, "bin")
+const binDir = resolve(destDir, "src", "bin")
 
 module.exports = (gulp) => {
-  gulp.task("add-version-files", () => spawn(join(binDir, "add-version-files.ts"), []))
+  gulp.task("add-version-files", () => spawn("node", [join(binDir, "add-version-files.js")]))
 
-  gulp.task("build-container", () => spawn("docker", ["build", "-t", "gardendev/garden:latest", __dirname]))
-
-  gulp.task("generate-docs", () => spawn(join(binDir, "generate-docs.ts"), []))
+  gulp.task("generate-docs", () => spawn("node", [join(binDir, "generate-docs.js")]))
 
   gulp.task("pegjs", () =>
     gulp.src(pegjsSources)
       .pipe(pegjs({ format: "commonjs" }))
-      .pipe(gulp.dest(destDir)),
+      .pipe(gulp.dest(join(destDir, "src"))),
   )
 
   gulp.task("pegjs-watch", () =>
@@ -52,12 +47,9 @@ module.exports = (gulp) => {
       .pipe(gulp.dest(destDir)),
   )
 
-  gulp.task("build", gulp.parallel(
-    "add-version-files", "generate-docs", "pegjs", "tsc",
-  ))
-
-  gulp.task("build-ci", gulp.parallel(
-    "add-version-files", "generate-docs", "pegjs", "tsc",
+  gulp.task("build", gulp.series(
+    gulp.parallel("pegjs", "tsc"),
+    gulp.parallel("add-version-files", "generate-docs"),
   ))
 }
 

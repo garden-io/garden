@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetServiceLogsParams } from "../../../types/plugin/params"
+import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { ContainerModule } from "../../container/config"
 import { getAppNamespace } from "../namespace"
 import { getAllLogs } from "../logs"

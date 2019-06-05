@@ -15,7 +15,7 @@ import {
 } from "../base"
 import { logHeader } from "../../logger/util"
 import { getTaskVersion } from "../../tasks/task"
-import { RunTaskResult } from "../../types/plugin/outputs"
+import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
 
 export interface TaskResultOutput {

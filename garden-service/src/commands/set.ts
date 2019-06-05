@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { SetSecretResult } from "../types/plugin/outputs"
 import {
   Command,
   CommandResult,
@@ -14,6 +13,7 @@ import {
   StringParameter,
 } from "./base"
 import dedent = require("dedent")
+import { SetSecretResult } from "../types/plugin/provider/setSecret"
 
 export class SetCommand extends Command {
   name = "set"

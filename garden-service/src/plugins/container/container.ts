@@ -11,11 +11,13 @@ import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
 import { GardenPlugin } from "../../types/plugin/plugin"
-import { ConfigureModuleParams, HotReloadServiceParams, PublishModuleParams } from "../../types/plugin/params"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
 import { KubernetesProvider } from "../kubernetes/kubernetes"
+import { ConfigureModuleParams } from "../../types/plugin/module/configure"
+import { PublishModuleParams } from "../../types/plugin/module/publishModule"
+import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
 
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration

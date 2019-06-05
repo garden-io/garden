@@ -10,28 +10,25 @@ import cls from "classnames"
 import { css } from "emotion"
 import React, { Component } from "react"
 import styled from "@emotion/styled"
-import { capitalize, uniq } from "lodash"
+import { capitalize } from "lodash"
 import * as d3 from "d3"
 import dagreD3 from "dagre-d3"
-
+import { Extends } from "garden-cli/src/util/util"
+import { ConfigDump } from "garden-cli/src/garden"
 import Card from "../card"
-
 import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
 import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../context/ui"
 import { WsEventMessage, SupportedEventName } from "../../context/events"
-import { Events } from "garden-cli/src/events"
-import { Extends } from "garden-cli/src/util/util"
-import { ConfigDump } from "garden-cli/src/garden"
-import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
+import { GraphOutputWithNodeStatus } from "../../context/data"
 import { FiltersButton, Filters } from "../group-filter"
-import { RenderedNodeType } from "garden-cli/src/config-graph"
 
 interface Node {
   name: string
   label: string
   id: string
+  status?: string
 }
 
 interface Edge {
@@ -52,11 +49,6 @@ type TaskNodeEventName = Extends<
   "taskPending" | "taskProcessing" | "taskComplete" | "taskError"
 >
 
-type WsTaskNodeMessage = WsEventMessage & {
-  name: TaskNodeEventName;
-  payload: Events[TaskNodeEventName];
-}
-
 const taskNodeEventNames: Set<TaskNodeEventName> = new Set([
   "taskPending",
   "taskProcessing",
@@ -72,17 +64,18 @@ function clearGraphNodeSelection() {
   selectedNode && selectedNode.classList.remove(selectedClassName)
 }
 
-/**
- * Type guard to check whether WsEventMessage is of type WsTaskNodeMessage
- */
-function isTaskNodeMessage(
-  message: WsEventMessage,
-): message is WsTaskNodeMessage {
-  return taskNodeEventNames.has((message as WsTaskNodeMessage).name)
-}
-
 const MIN_CHART_WIDTH = 200
 const MIN_CHART_HEIGHT = 200
+
+function getNodeClass(node) {
+  let className = ""
+  if (selectedNodeId === node.id) {
+    className += selectedClassName
+  }
+
+  className += (node.status && ` ${node.status}` || "")
+  return className
+}
 
 function drawChart(
   graph: Graph,
@@ -97,13 +90,10 @@ function drawChart(
       return {}
     })
 
-  // Here we"re setting nodeclass, which is used by our custom drawNodes function
-  // below.
-
   for (const node of graph.nodes) {
     g.setNode(node.id, {
       label: node.label,
-      class: node.id === selectedNodeId ? selectedClassName : "",
+      class: getNodeClass(node),
       id: node.id,
       labelType: "html",
     })
@@ -186,21 +176,6 @@ function drawChart(
   })
 }
 
-interface Props {
-  config: ConfigDump
-  graph: GraphOutput
-  onGraphNodeSelected: SelectGraphNode
-  selectedGraphNode: string | null
-  layoutChanged: boolean
-  message?: WsEventMessage
-}
-
-interface State {
-  filters: Filters<StackGraphSupportedFilterKeys>
-  nodes: Node[]
-  edges: Edge[]
-}
-
 // Renders as HTML
 const makeLabel = (name: string, type: string, moduleName: string) => {
   return `
@@ -233,10 +208,20 @@ const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`
 type ChartState = {
   nodes: Node[],
   edges: Edge[],
-  filters: Filters<StackGraphSupportedFilterKeys>,
 }
 
-class Chart extends Component<Props, State> {
+interface Props {
+  config: ConfigDump
+  graph: GraphOutputWithNodeStatus
+  onGraphNodeSelected: SelectGraphNode
+  selectedGraphNode: string | null
+  layoutChanged: boolean
+  message?: WsEventMessage
+  filters: Filters<StackGraphSupportedFilterKeys>
+  onFilter: (filterKey: StackGraphSupportedFilterKeys) => void
+}
+
+class Chart extends Component<Props, ChartState> {
   _nodes: Node[]
   _edges: Edge[]
   _chartRef: React.RefObject<any>
@@ -244,38 +229,14 @@ class Chart extends Component<Props, State> {
   state: ChartState = {
     nodes: [],
     edges: [],
-    filters: {
-      run: { selected: true, label: "Run" },
-      deploy: { selected: true, label: "Deploy" },
-      test: { selected: true, label: "Test" },
-      build: { selected: true, label: "Build" },
-    },
   }
 
   constructor(props) {
     super(props)
 
     this._chartRef = React.createRef()
-    this.handleFilter = this.handleFilter.bind(this)
     this._nodes = []
     this._edges = []
-
-    const createFiltersState =
-      (allGroupFilters, type): Filters<StackGraphSupportedFilterKeys> => {
-        return ({
-          ...allGroupFilters,
-          [type]: {
-            ...(allGroupFilters[type]),
-            visible: true,
-          },
-        })
-      }
-    const taskTypes: RenderedNodeType[] = uniq(this.props.graph.nodes.map(n => n.type))
-    const filters: Filters<StackGraphSupportedFilterKeys> = taskTypes.reduce(createFiltersState, this.state.filters)
-    this.state = {
-      ...this.state,
-      filters,
-    }
   }
 
   componentDidMount() {
@@ -296,14 +257,6 @@ class Chart extends Component<Props, State> {
     window.onresize = () => { }
   }
 
-  handleFilter(key: string) {
-    const toggledFilters = this.state.filters
-    toggledFilters[key].selected = !toggledFilters[key].selected
-    this.setState({
-      filters: toggledFilters,
-    })
-  }
-
   drawChart() {
     const graph = this.makeGraph()
     this._nodes = graph.nodes
@@ -314,18 +267,21 @@ class Chart extends Component<Props, State> {
   }
 
   makeGraph() {
-    const { filters } = this.state
     const nodes: Node[] = this.props.graph.nodes
-      .filter(n => filters[n.type].selected)
+      .filter(n => this.props.filters[n.type].selected)
       .map(n => {
         return {
           id: n.key,
           name: n.name,
           label: makeLabel(n.name, n.type, n.moduleName),
+          status: n.status,
         }
       })
     const edges: Edge[] = this.props.graph.relationships
-      .filter(n => filters[n.dependant.type].selected && filters[n.dependency.type].selected)
+      .filter(n =>
+        this.props.filters[n.dependant.type].selected &&
+        this.props.filters[n.dependency.type].selected,
+      )
       .map(r => {
         const source = r.dependency
         const target = r.dependant
@@ -339,21 +295,17 @@ class Chart extends Component<Props, State> {
     return { edges, nodes }
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const message = this.props.message
-    if (message && message.type === "event") {
-      this.updateNodeClass(message)
-    }
-    if (prevState !== this.state) {
-      this.drawChart()
-    }
-
+  componentDidUpdate(prevProps: Props, prevState: ChartState) {
     if (
+      (prevState !== this.state) ||
+      (prevProps.graph !== this.props.graph) ||
       (!prevProps.selectedGraphNode && this.props.selectedGraphNode) ||
       (prevProps.selectedGraphNode && !this.props.selectedGraphNode) ||
+      (prevProps.filters !== this.props.filters) ||
       (prevProps.layoutChanged !== this.props.layoutChanged)) {
       this.drawChart()
     }
+
     if (!this.props.selectedGraphNode) {
       clearGraphNodeSelection()
     }
@@ -363,24 +315,6 @@ class Chart extends Component<Props, State> {
     // we use the event name as the class name
     for (const name of taskNodeEventNames) {
       el.classList.remove(name)
-    }
-  }
-
-  // Update the node class instead of re-rendering the graph for perf reasons
-  updateNodeClass(message: WsEventMessage) {
-    if (!isTaskNodeMessage(message)) {
-      return
-    }
-    for (const node of this._nodes) {
-      if (message.payload.key && node.id === message.payload.key) {
-        const nodeEl = document.getElementById(node.id)
-        if (nodeEl) {
-          this.clearClasses(nodeEl)
-          if (taskNodeEventNames.has(message.name)) {
-            nodeEl.classList.add(message.name) // we use the event name as the class name
-          }
-        }
-      }
     }
   }
 
@@ -415,8 +349,8 @@ class Chart extends Component<Props, State> {
           >
             <div className="ml-1" >
               <FiltersButton
-                filters={this.state.filters}
-                onFilter={this.handleFilter}
+                filters={this.props.filters}
+                onFilter={this.props.onFilter}
               />
               <div
                 className={css`

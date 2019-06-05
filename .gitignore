@@ -30,3 +30,6 @@ gulpfile.js
 *.tgz
 build/
 garden-service/static/dashboard/
+
+#debug files
+debug-info-*
