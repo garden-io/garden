@@ -17,6 +17,7 @@ import { BaseTask, TaskDefinitionError } from "./tasks/base"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError } from "./exceptions"
 import { Garden } from "./garden"
+import { Analytics } from "./analytics/analytics"
 
 class TaskGraphError extends Error { }
 
@@ -160,6 +161,8 @@ export class TaskGraph {
 
       this.initLogging()
 
+      const analytics = await new Analytics(this.garden).init()
+
       return Bluebird.map(batch, async (node: TaskNode) => {
         const task = node.task
         const type = node.getType()
@@ -186,6 +189,10 @@ export class TaskGraph {
               version: task.version,
             })
             result = await node.process(dependencyResults)
+
+            // Track task if user has opted-in
+            await analytics.trackTask(result.key, result.type)
+
             this.garden.events.emit("taskComplete", result)
           } catch (error) {
             result.error = error

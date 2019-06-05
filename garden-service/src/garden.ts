@@ -29,7 +29,7 @@ import { joiIdentifier, validate, PrimitiveMap, validateWithPath } from "./confi
 import { resolveTemplateStrings } from "./template-string"
 import { loadConfig, findProjectConfig } from "./config/base"
 import { BaseTask } from "./tasks/base"
-import { LocalConfigStore, ConfigStore } from "./config-store"
+import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig, baseModuleSpecSchema, ModuleResource } from "./config/module"
 import { ModuleConfigContext, ContextResolveOpts } from "./config/config-context"
@@ -94,6 +94,7 @@ export class Garden {
   private readonly watcher: Watcher
 
   public readonly configStore: ConfigStore
+  public readonly globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
   private actionHelper: ActionHelper
@@ -129,6 +130,7 @@ export class Garden {
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this.gardenDirPath)
     this.configStore = new LocalConfigStore(this.gardenDirPath)
+    this.globalConfigStore = new GlobalConfigStore()
     this.cache = new TreeCache()
 
     this.moduleConfigs = {}

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { platform, homedir } from "os"
+import { platform } from "os"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
 import { join, dirname, basename, sep } from "path"
@@ -14,7 +14,7 @@ import { hashString } from "./util"
 import Axios from "axios"
 import * as execa from "execa"
 import * as tar from "tar"
-import { SupportedPlatform } from "../constants"
+import { SupportedPlatform, GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { Extract } from "unzipper"
 import { createHash } from "crypto"
@@ -23,8 +23,7 @@ import * as crossSpawn from "cross-spawn"
 import { spawn } from "./util"
 const AsyncLock = require("async-lock")
 
-const globalGardenPath = join(homedir(), ".garden")
-const toolsPath = join(globalGardenPath, "tools")
+const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 
 export interface LibraryExtractSpec {
   // Archive format. Note: the "tar" format also implicitly supports gzip and bz2 compression.

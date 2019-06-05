@@ -27,6 +27,7 @@ import { CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events } from "../events"
 import { ValueOf } from "../util/util"
+import { Analytics } from "../analytics/analytics"
 
 export const DEFAULT_PORT = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
@@ -56,6 +57,7 @@ export class GardenServer {
   private server: Server
   private garden: Garden | undefined
   private app: websockify.App
+  private analytics: Analytics
 
   constructor(log: LogEntry, public port?: number) {
     this.log = log.placeholder()
@@ -63,6 +65,7 @@ export class GardenServer {
   }
 
   async start() {
+
     if (this.server) {
       return
     }
@@ -82,6 +85,8 @@ export class GardenServer {
       emoji: "sunflower",
       msg: chalk.cyan("Garden dashboard and API server running on ") + url,
     })
+
+    // this.analytics.track("Dashboard server started", { type: "DASHBOARD" })
   }
 
   async close() {
@@ -110,6 +115,12 @@ export class GardenServer {
       if (!this.garden) {
         return this.notReady(ctx)
       }
+
+      if (!this.analytics) {
+        this.analytics = await new Analytics(this.garden).init()
+      }
+
+      await this.analytics.trackAPI("POST", ctx.originalUrl, { ...ctx.request.body })
 
       // TODO: set response code when errors are in result object?
       const result = await resolveRequest(ctx, this.garden, this.log, commands, ctx.request.body)

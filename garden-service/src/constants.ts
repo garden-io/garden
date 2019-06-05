@@ -7,10 +7,12 @@
  */
 
 import { resolve, join } from "path"
+import { homedir } from "os"
 
 export const isPkg = !!(<any>process).pkg
 
 export const LOCAL_CONFIG_FILENAME = "local-config.yml"
+export const GLOBAL_CONFIG_FILENAME = "global-config.yml"
 export const GARDEN_SERVICE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
 export const STATIC_DIR = join(GARDEN_SERVICE_ROOT, "static")
 // We copy the built dashboard to the garden-service static directory (with gulp in development, otherwise in CI).
@@ -18,6 +20,8 @@ export const STATIC_DIR = join(GARDEN_SERVICE_ROOT, "static")
 export const DASHBOARD_STATIC_DIR = join(STATIC_DIR, "dashboard")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const LOGS_DIR_NAME = "logs"
+export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
+export const LOGS_DIR = join(DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"
 export const PROJECT_SOURCES_DIR_NAME = join("sources", "project")
 export const MODULE_SOURCES_DIR_NAME = join("sources", "module")

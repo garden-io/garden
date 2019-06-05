@@ -808,3 +808,13 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
     garden validate 
 
+### garden update-analytics
+
+Update your preferences regarding analytics.
+
+Update your preferences regarding analytics: opt-in, opt-out.
+
+##### Usage
+
+    garden update-analytics 
+
