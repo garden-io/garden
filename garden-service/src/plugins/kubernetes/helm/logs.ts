@@ -10,7 +10,7 @@ import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLo
 import { getAppNamespace } from "../namespace"
 import { getAllLogs } from "../logs"
 import { HelmModule } from "./config"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 import { getChartResources } from "./common"
 
 export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {

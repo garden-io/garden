@@ -19,7 +19,7 @@ import { getChartResources, findServiceResource } from "./common"
 import { buildHelmModule } from "./build"
 import { configureHotReload } from "../hot-reload"
 import { getHotReloadSpec } from "./hot-reload"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 
 const helmStatusCodeMap: { [code: number]: ServiceState } = {
   // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto

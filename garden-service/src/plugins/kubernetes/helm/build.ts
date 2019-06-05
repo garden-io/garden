@@ -14,7 +14,7 @@ import { dumpYaml } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
 import { apply as jsonMerge } from "json-merge-patch"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {

@@ -6,155 +6,60 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import * as Bluebird from "bluebird"
-import dedent = require("dedent")
 
-import { joiArray, joiIdentifier, joiProviderName } from "../../config/common"
 import { GardenPlugin } from "../../types/plugin/plugin"
-import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
 import { helmHandlers } from "./helm/handlers"
 import { getAppNamespace, getMetadataNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
-import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers, mavenContainerHandlers } from "./container/handlers"
-import { PluginContext } from "../../plugin-context"
 import { kubernetesHandlers } from "./kubernetes-module/handlers"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
 import { DebugInfo, GetDebugInfoParams } from "../../types/plugin/provider/getDebugInfo"
 import { systemNamespace, systemMetadataNamespace } from "./system"
 import { kubectl } from "./kubectl"
+import { KubernetesConfig, KubernetesPluginContext } from "./config"
+import { configSchema } from "./config"
+import { ConfigurationError } from "../../exceptions"
 
 export const name = "kubernetes"
 
-export interface SecretRef {
-  name: string
-  namespace: string
-}
-
-export interface IngressTlsCertificate {
-  name: string
-  hostnames?: string[]
-  secretRef: SecretRef
-}
-
-export interface KubernetesBaseConfig extends ProviderConfig {
-  context: string
-  defaultHostname?: string
-  defaultUsername?: string
-  forceSsl: boolean
-  imagePullSecrets: SecretRef[]
-  ingressHttpPort: number
-  ingressHttpsPort: number
-  ingressClass?: string
-  namespace?: string
-  tlsCertificates: IngressTlsCertificate[]
-  _systemServices: string[]
-}
-
-export interface KubernetesConfig extends KubernetesBaseConfig {
-  deploymentRegistry?: ContainerRegistryConfig
-}
-
-export type KubernetesProvider = Provider<KubernetesConfig>
-export type KubernetesPluginContext = PluginContext<KubernetesConfig>
-
-export const k8sContextSchema = Joi.string()
-  .required()
-  .description("The kubectl context to use to connect to the Kubernetes cluster.")
-  .example("my-dev-context")
-
-const secretRef = Joi.object()
-  .keys({
-    name: joiIdentifier()
-      .required()
-      .description("The name of the Kubernetes secret.")
-      .example("my-secret"),
-    namespace: joiIdentifier()
-      .default("default")
-      .description(
-        "The namespace where the secret is stored. " +
-        "If necessary, the secret may be copied to the appropriate namespace before use.",
-      ),
-  })
-  .description("Reference to a Kubernetes secret.")
-
-const imagePullSecretsSchema = joiArray(secretRef)
-  .description(dedent`
-    References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
-    images. This is necessary if you reference private images in your module configuration, and is required
-    when configuring a remote Kubernetes environment.
-  `)
-
-const tlsCertificateSchema = Joi.object()
-  .keys({
-    name: joiIdentifier()
-      .required()
-      .description("A unique identifier for this certificate.")
-      .example("www")
-      .example("wildcard"),
-    hostnames: Joi.array().items(Joi.string().hostname())
-      .description(
-        "A list of hostnames that this certificate should be used for. " +
-        "If you don't specify these, they will be automatically read from the certificate.",
-      )
-      .example([["www.mydomain.com"], {}]),
-    secretRef: secretRef
-      .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
-      .example({ name: "my-tls-secret", namespace: "default" }),
-  })
-
-export const kubernetesConfigBase = providerConfigBaseSchema
-  .keys({
-    defaultHostname: Joi.string()
-      .description("A default hostname to use when no hostname is explicitly configured for a service.")
-      .example("api.mydomain.com"),
-    defaultUsername: joiIdentifier()
-      .description("Set a default username (used for namespacing within a cluster)."),
-    forceSsl: Joi.boolean()
-      .default(false)
-      .description(
-        "Require SSL on all services. If set to true, an error is raised when no certificate " +
-        "is available for a configured hostname.",
-      ),
-    imagePullSecrets: imagePullSecretsSchema,
-    tlsCertificates: joiArray(tlsCertificateSchema)
-      .unique("name")
-      .description("One or more certificates to use for ingress."),
-    _systemServices: joiArray(joiIdentifier())
-      .meta({ internal: true }),
-  })
-
-export const configSchema = kubernetesConfigBase
-  .keys({
-    name: joiProviderName("kubernetes"),
-    context: k8sContextSchema
-      .required(),
-    deploymentRegistry: containerRegistryConfigSchema,
-    ingressClass: Joi.string()
-      .description(dedent`
-        The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
-        when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
-      `),
-    ingressHttpPort: Joi.number()
-      .default(80)
-      .description("The external HTTP port of the cluster's ingress controller."),
-    ingressHttpsPort: Joi.number()
-      .default(443)
-      .description("The external HTTPS port of the cluster's ingress controller."),
-    namespace: Joi.string()
-      .default(undefined, "<project name>")
-      .description(
-        "Specify which namespace to deploy services to (defaults to <project name>). " +
-        "Note that the framework generates other namespaces as well with this name as a prefix.",
-      ),
-    _system: Joi.any().meta({ internal: true }),
-  })
-
 export async function configureProvider({ projectName, config }: ConfigureProviderParams<KubernetesConfig>) {
+  config._systemServices = []
+
   if (!config.namespace) {
     config.namespace = projectName
+  }
+
+  if (config.setupIngressController === "nginx") {
+    config._systemServices.push("ingress-controller", "default-backend")
+  }
+
+  if (config.buildMode === "cluster-docker") {
+    if (config.deploymentRegistry) {
+      throw new ConfigurationError(
+        `kubernetes: deploymentRegistry should not be set in config if using cluster-docker build mode`,
+        { config },
+      )
+    }
+
+    // This is a special configuration, used in combination with the registry-proxy service,
+    // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
+    config.deploymentRegistry = {
+      hostname: `127.0.0.1:5000`,
+      // The base configure handler ensures that the namespace is set
+      namespace: config.namespace!,
+    }
+
+    // Deploy build services on init
+    config._systemServices.push("docker-daemon", "docker-registry", "registry-proxy")
+
+  } else if (!config.deploymentRegistry) {
+    throw new ConfigurationError(
+      `kubernetes: must specify deploymentRegistry in config if using local build mode`,
+      { config },
+    )
   }
 
   return { name: config.name, config }

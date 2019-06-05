@@ -25,7 +25,7 @@ import { Module } from "../../../types/module"
 import { findByName } from "../../../util/util"
 import { deline } from "../../../util/string"
 import { getAnnotation } from "../util"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 
 /**
  * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).

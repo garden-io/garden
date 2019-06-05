@@ -1,0 +1,23 @@
+kind: Module
+description: Docker registry for in-cluster builds
+name: docker-registry
+type: helm
+chart: stable/docker-registry
+releaseName: garden-docker-registry
+version: 1.7.0
+values:
+  resources:
+    limits:
+      cpu: ${var.registry-limits-cpu}
+      memory: ${var.registry-limits-memory}
+    requests:
+      cpu: ${var.registry-requests-cpu}
+      memory: ${var.registry-requests-memory}
+  # Note: this secret doesn't actually matter for security since the registry isn't exposed
+  secrets:
+    haSharedSecret: "TDVGTm45dVpCMXptOEJGMA=="
+  service:
+    port: 5000
+  persistence:
+    size: ${var.registry-storage-size}
+    storageClass: ${var.registry-storage-class}

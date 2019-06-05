@@ -10,7 +10,7 @@ module:
   values:
     name: api
     image:
-      repository: api-image
+      repository: ${modules.api-image.outputs.deployment-image-name}
       tag: ${modules.api-image.version}
     ingress:
       enabled: true

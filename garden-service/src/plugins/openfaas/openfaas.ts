@@ -23,7 +23,7 @@ import {
   testExecModule,
   getExecModuleBuildStatus,
 } from "../exec"
-import { KubernetesProvider } from "../kubernetes/kubernetes"
+import { KubernetesProvider } from "../kubernetes/config"
 import { getNamespace, getAppNamespace } from "../kubernetes/namespace"
 import { every, values } from "lodash"
 import { dumpYaml, findByName } from "../../util/util"

@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "docker-daemon.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
+    helm.sh/chart: {{ include "docker-daemon.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy:
+    # We only want one instance at a time, because we're using the same volume for the data
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      volumes:
+        - name: garden-docker-data
+          persistentVolumeClaim:
+            claimName: garden-docker-data
+        - name: garden-build-sync-data
+          persistentVolumeClaim:
+            claimName: garden-build-sync-data
+        # - name: garden-registry-tls
+        #   secret:
+        #     secretName: {{ .Values.dockerDaemon.registry.tlsSecretName }}
+        #     items:
+        #       - key: tls.crt
+        #         path: localhost:5000/ca.crt
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: docker
+              containerPort: 2375
+              protocol: TCP
+          securityContext:
+            privileged: true
+          livenessProbe:
+            tcpSocket:
+              port: 2375
+          readinessProbe:
+            tcpSocket:
+              port: 2375
+          volumeMounts:
+            - name: garden-docker-data
+              mountPath: /var/lib/docker
+            - name: garden-build-sync-data
+              mountPath: /garden-build
+              # Need to mount the registry cert so that the daemon trusts it
+            # - name: garden-registry-tls
+            #   mountPath: /etc/docker/certs.d
+          resources:
+            {{- toYaml .Values.dockerDaemon.resources | nindent 12 }}
+        - name: {{ .Chart.Name }}-sync
+          image: "eugenmayer/rsync:latest"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: docker
+              containerPort: 873
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: 873
+          readinessProbe:
+            tcpSocket:
+              port: 873
+          volumeMounts:
+            - mountPath: /data
+              name: garden-build-sync-data
+          env:
+            # The service is not exposed at all outside the cluster, so this should be all good.
+            - name: ALLOW
+              value: "0.0.0.0/0"
+          resources:
+            {{- toYaml .Values.sync.resources | nindent 12 }}
+        - name: {{ .Chart.Name }}-proxy
+          image: "basi/socat:v0.1.0"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              socat -d -d TCP-LISTEN:5000,fork TCP:{{ .Values.dockerDaemon.registry.hostname }}:5000
+          ports:
+            - name: proxy
+              containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

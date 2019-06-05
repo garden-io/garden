@@ -8,4 +8,5 @@ module:
     dependencies: [worker-image]
   values:
     image:
+      repository: ${modules.worker-image.outputs.deployment-image-name}
       tag: ${modules.worker-image.version}

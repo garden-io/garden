@@ -8,23 +8,21 @@
 
 import { KubeApi } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces } from "./namespace"
-import { KubernetesPluginContext } from "./kubernetes"
+import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
 import {
   prepareSystemServices,
-  getSystemServiceStatuses,
+  getSystemServiceStatus,
   getSystemGarden,
   systemNamespaceUpToDate,
+  systemNamespace,
 } from "./system"
-import { PrimitiveMap } from "../../config/common"
 import { DashboardPage } from "../../config/dashboard"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
 import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
-
-interface GetK8sEnvironmentStatusParams extends GetEnvironmentStatusParams {
-  variables?: PrimitiveMap
-}
+import { millicpuToString, megabytesToString } from "./util"
+import chalk from "chalk"
 
 /**
  * Performs the following actions to check environment status:
@@ -34,10 +32,10 @@ interface GetK8sEnvironmentStatusParams extends GetEnvironmentStatusParams {
  *
  * Returns ready === true if all the above are ready.
  */
-export async function getEnvironmentStatus(
-  { ctx, log, variables }: GetK8sEnvironmentStatusParams,
-): Promise<EnvironmentStatus> {
+export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
+  const variables = getVariables(k8sCtx.provider.config)
+
   const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
   const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
 
@@ -71,7 +69,7 @@ export async function getEnvironmentStatus(
     const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, namespace, contextForLog)
 
     // Get system service statuses
-    const systemServiceStatuses = await getSystemServiceStatuses({
+    const systemServiceStatuses = await getSystemServiceStatus({
       ctx: k8sCtx,
       log,
       namespace,
@@ -79,12 +77,30 @@ export async function getEnvironmentStatus(
       variables: variables || {},
     })
 
-    systemReady = systemTillerReady && systemServiceStatuses.ready && sysNamespaceUpToDate
+    systemReady = systemTillerReady && sysNamespaceUpToDate && (
+      systemServiceStatuses.state === "ready"
+      ||
+      (needManualInit && systemServiceStatuses.state === "outdated")
+    )
+
     dashboardPages = systemServiceStatuses.dashboardPages
+
+    if (needManualInit && systemServiceStatuses.state === "outdated") {
+      // If we require manual init and system services are outdated (as opposed to unhealthy, missing etc.), we warn
+      // instead of aborting. This avoids blocking users where there's variance in configuration between users of the
+      // same cluster, that most likely shouldn't affect usage.
+      log.warn({
+        symbol: "warning",
+        msg: chalk.yellow(
+          "One or more cluster-wide services are outdated or their configuration does not match your current " +
+          "configuration. You may want to run \`garden init\` to update them, or contact your cluster admin.",
+        ),
+      })
+    }
 
     // We always require manual init if we're installing any system services to remote clusters, to avoid conflicts
     // between users or unnecessary work.
-    needManualInit = true
+    needManualInit = ctx.provider.name !== "local-kubernetes"
   }
 
   const detail = { systemReady, projectReady }
@@ -97,18 +113,15 @@ export async function getEnvironmentStatus(
   }
 }
 
-interface PrepareK8sEnvironmentParams extends PrepareEnvironmentParams {
-  variables?: PrimitiveMap
-}
-
 /**
  * Performs the following actions to prepare the environment
  *  1. Installs Tiller in project namespace
  *  2. Installs Tiller in system namespace (if provider has system services)
  *  3. Deploys system services (if provider has system services)
  */
-export async function prepareEnvironment({ ctx, log, force, status, variables }: PrepareK8sEnvironmentParams) {
+export async function prepareEnvironment({ ctx, log, force, status }: PrepareEnvironmentParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
+  const variables = getVariables(k8sCtx.provider.config)
   const systemReady = status.detail && !!status.detail.systemReady && !force
 
   // Install Tiller to project namespace
@@ -151,4 +164,27 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   await deleteNamespaces([namespace], api, entry)
 
   return {}
+}
+
+function getVariables(config: KubernetesConfig) {
+  return {
+    "namespace": systemNamespace,
+    "registry-hostname": getRegistryHostname(),
+    "builder-limits-cpu": millicpuToString(config.resources.builder.limits.cpu),
+    "builder-limits-memory": megabytesToString(config.resources.builder.limits.memory),
+    "builder-requests-cpu": millicpuToString(config.resources.builder.requests.cpu),
+    "builder-requests-memory": megabytesToString(config.resources.builder.requests.memory),
+    "builder-storage-size": megabytesToString(config.storage.builder.size),
+    "builder-storage-class": config.storage.builder.storageClass,
+    "registry-limits-cpu": millicpuToString(config.resources.registry.limits.cpu),
+    "registry-limits-memory": megabytesToString(config.resources.registry.limits.memory),
+    "registry-requests-cpu": millicpuToString(config.resources.registry.requests.cpu),
+    "registry-requests-memory": megabytesToString(config.resources.registry.requests.memory),
+    "registry-storage-size": megabytesToString(config.storage.registry.size),
+    "registry-storage-class": config.storage.registry.storageClass,
+  }
+}
+
+function getRegistryHostname() {
+  return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }
