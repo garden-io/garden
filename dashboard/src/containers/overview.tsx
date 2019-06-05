@@ -49,24 +49,25 @@ export type ModuleModel = {
 }
 export type Entity = {
   name: string;
+  state?: ServiceState | RunState;
   isLoading: boolean;
-  state: ServiceState | RunState;
+  dependencies: string[];
 }
 export interface Service extends Entity {
-  state: ServiceState
+  state?: ServiceState
   ingresses?: ServiceIngress[]
 }
 export interface Test extends Entity {
   startedAt?: Date
   completedAt?: Date
   duration?: string
-  state: RunState
+  state?: RunState
 }
 export interface Task extends Entity {
   startedAt?: Date
   completedAt?: Date
   duration?: string
-  state: RunState
+  state?: RunState
 }
 
 // Note: We render the overview page components individually so we that we don't
@@ -103,15 +104,18 @@ export default () => {
       services: moduleConfig.serviceConfigs.map(service => ({
         name: service.name,
         isLoading: true,
-      })) as Service[],
+        dependencies: service.dependencies,
+      })),
       tests: moduleConfig.testConfigs.map(test => ({
         name: test.name,
         isLoading: true,
-      })) as Test[],
+        dependencies: test.dependencies,
+      })),
       tasks: moduleConfig.taskConfigs.map(task => ({
         name: task.name,
         isLoading: true,
-      })) as Task[],
+        dependencies: task.dependencies,
+      })),
     }))
 
     // fill missing data from status
@@ -126,7 +130,7 @@ export default () => {
           if (index !== -1) {
             currModule.services[index] = {
               ...currModule.services[index],
-              state: servicesStatus[serviceName].state || "unknown",
+              state: servicesStatus[serviceName].state,
               ingresses: servicesStatus[serviceName].ingresses,
               isLoading: false,
             }
@@ -140,7 +144,7 @@ export default () => {
             const testStatus = testsStatus[testName]
             currModule.tests[index] = {
               ...currModule.tests[index],
-              state: testStatus.state || "outdated",
+              state: testStatus.state,
               isLoading: false,
               startedAt: testStatus.startedAt,
               completedAt: testStatus.completedAt,
@@ -158,7 +162,7 @@ export default () => {
             const taskStatus = tasksStatus[taskName]
             currModule.tasks[index] = {
               ...currModule.tasks[index],
-              state: taskStatus.state || "outdated",
+              state: taskStatus.state,
               isLoading: false,
               startedAt: taskStatus.startedAt,
               completedAt: taskStatus.completedAt,
@@ -188,7 +192,6 @@ export default () => {
               }
             </div>
           }
-
         </div>
       </Overview >
     )

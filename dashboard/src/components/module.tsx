@@ -21,8 +21,8 @@ const Module = styled.div`
   border-radius: 4px;
   margin: 0 1.3rem 1.3rem 0;
   min-width: 17rem;
-    flex: 1 1;
-    max-width: 20rem;
+  flex: 1 1;
+  max-width: 20rem;
 `
 
 type InfoCardsProps = {
@@ -57,11 +57,11 @@ type FieldsProps = {
 }
 const Fields = styled.div<FieldsProps>`
   display: ${props => (props.visible ? `block` : "none")};
+  animation: fadein .5s ;
 
-   animation: fadein .5s ;
-&:first-of-type{
-  padding-top:0;
-}
+  &:first-of-type{
+    padding-top:0;
+  }
   @keyframes fadein {
     from {
       opacity: 0;
@@ -72,7 +72,11 @@ const Fields = styled.div<FieldsProps>`
   }
 `
 
-const Field = styled.div`
+type FieldProps = {
+  inline?: boolean,
+}
+const Field = styled.div<FieldProps>`
+  display: ${props => (props.inline ? "inline" : "block")};
   padding-bottom: .5rem;
 
   &:last-of-type{
@@ -96,15 +100,15 @@ const Name = styled.div`
   color: #323C47;
 `
 
-const Key = styled.div`
-  padding-right: .5rem;
+const Key = styled.span`
+  padding-right: .25rem;
   font-size: 13px;
   line-height: 19px;
   letter-spacing: 0.01em;
   color: #4C5862;
   opacity: 0.5;
 `
-const Value = styled.div`
+const Value = styled.span`
   padding-right: .5rem;
   font-size: 13px;
   line-height: 19px;
@@ -178,6 +182,12 @@ export default ({
             type={"service"}
           >
             <Fields visible={filters.servicesInfo}>
+              {service.dependencies.length > 0 && (
+                <Field>
+                  <Key>Depends on:</Key>
+                  <Value>{service.dependencies.join(", ")}</Value>
+                </Field>
+              )}
               <Field>
                 <Ingresses ingresses={service.ingresses} />
               </Field>
@@ -192,20 +202,26 @@ export default ({
             entity={test}
             type={"test"}
           >
-            {filters.testsInfo &&
-              <div className="row between-xs">
-                <div className="col-xs">
-                  <Key>Last run</Key>
+            <Fields visible={filters.testsInfo}>
+              {test.dependencies.length > 0 && (
+                <Field>
+                  <Key>Depends on:</Key>
+                  <Value>{test.dependencies.join(", ")}</Value>
+                </Field>
+              )}
+              <div className="row between-xs" >
+                <Field className="col-xs" inline>
+                  <Key>Ran:</Key>
                   <Value>{moment(test.startedAt).fromNow()}</Value>
-                </div>
+                </Field>
                 {test.state === "succeeded" &&
-                  <div>
-                    <Key>Duration</Key>
+                  <Field inline>
+                    <Key>Took:</Key>
                     <Value>{test.duration}</Value>
-                  </div>
+                  </Field>
                 }
               </div>
-            }
+            </Fields>
           </InfoCard>
         ))}
       </InfoCards>
@@ -216,22 +232,26 @@ export default ({
             entity={task}
             type={"task"}
           >
-            {filters.tasksInfo &&
-              <div className="row between-xs">
-                {task.startedAt && (
-                  <div className="col-xs">
-                    <Key>Last run</Key>
-                    <Value>{moment(task.startedAt).fromNow()}</Value>
-                  </div>
-                )}
+            <Fields visible={filters.tasksInfo}>
+              {task.dependencies.length && (
+                <Field>
+                  <Key>Depends on:</Key>
+                  <Value>{task.dependencies.join(", ")}</Value>
+                </Field>
+              )}
+              <div className="row between-xs" >
+                <Field className="col-xs" inline>
+                  <Key>Ran:</Key>
+                  <Value>{moment(task.startedAt).fromNow()}</Value>
+                </Field>
                 {task.state === "succeeded" &&
-                  <div>
-                    <Key>Duration</Key>
+                  <Field inline>
+                    <Key>Took:</Key>
                     <Value>{task.duration}</Value>
-                  </div>
+                  </Field>
                 }
               </div>
-            }
+            </Fields>
           </InfoCard>
         ))}
       </InfoCards>

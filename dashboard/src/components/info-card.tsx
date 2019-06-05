@@ -13,7 +13,7 @@ import { colors } from "../styles/variables"
 import { Facebook } from "react-content-loader"
 
 interface InfoCardProps {
-  type: InfoCardType
+  type: EntityType
 }
 const InfoCard = styled.div<InfoCardProps>`
   max-height: 13rem;
@@ -91,9 +91,9 @@ const Row = styled.div`
   display: flex;
   align-items: center;
 `
-type InfoCardType = "service" | "test" | "task"
+type EntityType = "service" | "test" | "task"
 interface Props {
-  type: InfoCardType
+  type: EntityType
   children: ReactNode
   entity: Entity
 }
@@ -110,9 +110,11 @@ export default ({
         <Tag>{type.toUpperCase()}</Tag>
         <Row>
           <Name>{name}</Name>
-          <State state={state}>
-            {state}
-          </State>
+          {state && (
+            <State state={state}>
+              {state}
+            </State>
+          )}
         </Row>
       </Header>
       <Content>
