@@ -32,15 +32,10 @@ const EntityCard = styled.div<EntityCardProps>`
     margin-right: 0;
   }
 `
-const Header = styled.div`
-  width: 100%;
-  padding: .6rem .75rem;
-  height: 3rem;
-`
 
 const Content = styled.div`
   width: 100%;
-  padding: 0rem .75rem .75rem .75rem;
+  padding: .6rem .75rem;
   position: relative;
   max-height: 10rem;
   &:empty
@@ -58,17 +53,21 @@ const State = styled.div<StateProps>`
   background-color: ${props => (props && props.state && colors.state[props.state] || colors.gardenGrayLight)};
   display: ${props => (props && props.state && colors.state[props.state] && "flex" || "none")};
   align-items: center;
-  margin-top: -0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  text-align: center;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  height: 1rem;
+`
 
-border-radius: 4px;
-
-font-weight: 500;
-font-size: 11px;
-line-height: 16px;
-text-align: center;
-letter-spacing: 0.02em;
-
-color: #FFFFFF;
+const Header = styled.div`
+  width: 100%;
+  padding: .6rem .75rem 0 .75rem;
+  display:flex;
+  justify-content: space-between;
 `
 
 const Tag = styled.div`
@@ -81,17 +80,16 @@ const Tag = styled.div`
   letter-spacing: 0.01em;
   color: #90A0B7;
 `
+
 const Name = styled.div`
-  height: 1rem;
   font-size: 0.9375rem;
+  font-weight: 500;
   color: rgba(0, 0, 0, .87);
+  padding-top: 0.125rem;
 `
 
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-`
 type EntityType = "service" | "test" | "task"
+
 interface Props {
   type: EntityType
   children: ReactNode
@@ -107,15 +105,15 @@ export default ({
   return (
     <EntityCard type={type}>
       <Header>
-        <Tag>{type.toUpperCase()}</Tag>
-        <Row>
+        <div>
+          <Tag>{type.toUpperCase()}</Tag>
           <Name>{name}</Name>
-          {state && (
-            <State state={state}>
-              {state}
-            </State>
-          )}
-        </Row>
+        </div>
+        {state && (
+          <State state={state}>
+            {state}
+          </State>
+        )}
       </Header>
       <Content>
         {isLoading && (

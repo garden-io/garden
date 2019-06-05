@@ -8,6 +8,7 @@
 
 import React, { useState, useContext } from "react"
 import styled from "@emotion/styled"
+import { css } from "emotion"
 import moment from "moment"
 import { ModuleModel } from "../containers/overview"
 import EntityCard from "./entity-card"
@@ -18,8 +19,8 @@ import { TertiaryButton } from "./button"
 const Module = styled.div`
   padding: 1.2rem;
   background: white;
-  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.06);
-  border-radius: 4px;
+  box-shadow: 0rem 0.375rem 1.125rem rgba(0, 0, 0, 0.06);
+  border-radius: 0.25rem;
   margin: 0 1.3rem 1.3rem 0;
   min-width: 17rem;
   flex: 1 1;
@@ -30,7 +31,7 @@ type EntityCardsProps = {
   visible: boolean,
 }
 const EntityCards = styled.div<EntityCardsProps>`
-  padding-top: .75rem;
+  padding-top: 1rem;
   display: flex;
   flex-wrap: wrap;
   align-items: middle;
@@ -47,22 +48,12 @@ const EntityCards = styled.div<EntityCardsProps>`
   }
 `
 
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  align-self: flex-start;
-`
-
 type FieldsProps = {
   visible: boolean,
 }
 const Fields = styled.div<FieldsProps>`
   display: ${props => (props.visible ? `block` : "none")};
-  animation: fadein .5s ;
-
-  &:first-of-type{
-    padding-top:0;
-  }
+  animation: fadein .5s;
   @keyframes fadein {
     from {
       opacity: 0;
@@ -75,89 +66,86 @@ const Fields = styled.div<FieldsProps>`
 
 type FieldProps = {
   inline?: boolean,
+  visible: boolean,
 }
-const Field = styled.div<FieldProps>`
-  display: ${props => (props.inline ? "inline" : "block")};
-  padding-bottom: .5rem;
 
-  &:last-of-type{
-    padding-bottom: 0;
-  }
-`
-
-const Tag = styled.div`
-  display: inline-block;
-  font-weight: 500;
-  font-size: 10px;
-  letter-spacing: 0.01em;
-  color: #90A0B7;
-  padding-left: .25rem;
+const Header = styled.div`
+  line-height: 1rem;
+  display: flex;
+  align-items: baseline;
+  align-self: flex-start;
+  justify-content: space-between;
 `
 const Name = styled.div`
-  padding-right: .5rem;
   font-weight: 500;
-  font-size: 15px;
+  font-size: 0.9375rem;
   letter-spacing: 0.01em;
   color: #323C47;
 `
+const Tag = styled.div`
+  padding-left: .5rem;
+  font-weight: 500;
+  font-size: 0.625rem;
+  letter-spacing: 0.01em;
+  color: #90A0B7;
+`
 
-const Key = styled.span`
+const Field = styled.div<FieldProps>`
+  display: ${props => (props.visible ? (props.inline ? "flex" : "block") : "none")};
+  flex-direction: row;
+`
+const Key = styled.div`
   padding-right: .25rem;
-  font-size: 13px;
-  line-height: 19px;
+  font-size: 0.8125rem;
+  line-height: 1.1875rem;
   letter-spacing: 0.01em;
   color: #4C5862;
   opacity: 0.5;
 `
-const Value = styled.span`
+const Value = styled.div`
   padding-right: .5rem;
-  font-size: 13px;
-  line-height: 19px;
+  font-size: 0.8125rem;
+  line-height: 1.1875rem;
   letter-spacing: 0.01em;
+`
+const Description = styled(Field)`
   color: #4C5862;
 `
 
-const UrlFull = styled(Value)`
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  -ms-word-break: break-all;
-  word-break: break-all;
-  word-break: break-word;
-  -ms-hyphens: auto;
-  -moz-hyphens: auto;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-  cursor: pointer;
-`
-const Description = styled(Field)`
-  padding-top: 0.25rem;
+const Path = styled(Field)`
+  padding-top: .75rem;
+  font-size: 11px;
+  color: #4C5862;
+  opacity: 0.5;
 `
 
-const UrlShort = styled(Value)`
-    padding-right: .5rem;
-    font-size: 13px;
-    line-height: 19px;
-    letter-spacing: 0.01em;
-    color: #4C5862;
-    cursor: pointer;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+const Full = styled(Value)`
+  cursor: pointer;
+  word-break: break-all;
 `
+
+const Short = styled(Value)`
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-all;
+`
+
 interface ModuleProp {
   module: ModuleModel
 }
 export default ({
-  module: { services = [], tests = [], tasks = [], name, type, description },
+  module: { services = [], tests = [], tasks = [], name, type, description, path },
 }: ModuleProp) => {
   const {
     state: { overview: { filters } },
     actions: { selectEntity },
   } = useContext(UiStateContext)
 
-  const [showFullDescription, setDescriptionState] = useState(false)
-  const toggleDescriptionState = () => (setDescriptionState(!showFullDescription))
+  const [isValueExpended, setValueExpendedState] = useState(false)
+  const toggleValueExpendedState = () => (setValueExpendedState(!isValueExpended))
 
   const handleSelectEntity = (
     {
@@ -182,21 +170,28 @@ export default ({
   return (
     <Module>
       <Header>
-        <Name>{name} <Tag>{type && type.toUpperCase()} MODULE</Tag></Name>
+        <Name>{name} </Name>
+        <Tag>{type && type.toUpperCase()} MODULE</Tag>
       </Header>
       <Fields visible={filters.modulesInfo}>
-        {description && (
-          <Description>
-            {!showFullDescription && (
-              <UrlShort onClick={toggleDescriptionState}>{description}</UrlShort>
-            )}
-            {showFullDescription && (
-              <UrlFull onClick={toggleDescriptionState}>{description}</UrlFull>
-            )}
-          </Description>
-        )}
+        <Description visible={!!description}>
+          {!isValueExpended && (
+            <Short onClick={toggleValueExpendedState}>{description}</Short>
+          )}
+          {isValueExpended && (
+            <Full onClick={toggleValueExpendedState}>{description}</Full>
+          )}
+        </Description>
+        <Path visible={!!path}>
+          {!isValueExpended && (
+            <Short onClick={toggleValueExpendedState}>{path}</Short>
+          )}
+          {isValueExpended && (
+            <Full onClick={toggleValueExpendedState}>{path}</Full>
+          )}
+        </Path>
       </Fields>
-      <EntityCards visible={filters.services && !!services.length}>
+      <EntityCards visible={filters.services && services.length > 0}>
         {services.map(service => (
           <EntityCard
             key={service.name}
@@ -204,20 +199,18 @@ export default ({
             type={"service"}
           >
             <Fields visible={filters.servicesInfo}>
-              {service.dependencies.length > 0 && (
-                <Field>
-                  <Key>Depends on:</Key>
-                  <Value>{service.dependencies.join(", ")}</Value>
-                </Field>
-              )}
-              <Field>
+              <Field inline visible={service.dependencies.length > 0}>
+                <Key>Depends on:</Key>
+                <Value>{service.dependencies.join(", ")}</Value>
+              </Field>
+              <Field visible={typeof service.ingresses !== "undefined" && service.ingresses.length > 0}>
                 <Ingresses ingresses={service.ingresses} />
               </Field>
             </Fields>
           </EntityCard>
         ))}
       </EntityCards>
-      <EntityCards visible={filters.tests && !!tests.length}>
+      <EntityCards visible={filters.tests && tests.length > 0}>
         {tests.map(test => (
           <EntityCard
             key={test.name}
@@ -225,23 +218,19 @@ export default ({
             type={"test"}
           >
             <Fields visible={filters.testsInfo}>
-              {test.dependencies.length > 0 && (
-                <Field>
-                  <Key>Depends on:</Key>
-                  <Value>{test.dependencies.join(", ")}</Value>
-                </Field>
-              )}
-              <div className="row between-xs" >
-                <Field className="col-xs" inline>
+              <Field inline visible={test.dependencies.length > 0}>
+                <Key>Depends on:</Key>
+                <Value>{test.dependencies.join(", ")}</Value>
+              </Field>
+              <div className="row between-xs middle-xs" >
+                <Field inline className="col-xs" visible={!!test.startedAt}>
                   <Key>Ran:</Key>
                   <Value>{moment(test.startedAt).fromNow()}</Value>
                 </Field>
-                {test.state === "succeeded" &&
-                  <Field inline>
-                    <Key>Took:</Key>
-                    <Value>{test.duration}</Value>
-                  </Field>
-                }
+                <Field inline visible={test.state === "succeeded"}>
+                  <Key>Took:</Key>
+                  <Value>{test.duration}</Value>
+                </Field>
               </div>
               <div className="row">
                 <div className="col-xs">
@@ -257,7 +246,7 @@ export default ({
           </EntityCard>
         ))}
       </EntityCards>
-      <EntityCards visible={filters.tasks && !!tasks.length}>
+      <EntityCards visible={filters.tasks && tasks.length > 0}>
         {tasks.map(task => (
           <EntityCard
             key={task.name}
@@ -265,23 +254,19 @@ export default ({
             type={"task"}
           >
             <Fields visible={filters.tasksInfo}>
-              {task.dependencies.length && (
-                <Field>
-                  <Key>Depends on:</Key>
-                  <Value>{task.dependencies.join(", ")}</Value>
-                </Field>
-              )}
-              <div className="row between-xs" >
-                <Field className="col-xs" inline>
+              <Field inline visible={task.dependencies.length > 0}>
+                <Key>Depends on:</Key>
+                <Value>{task.dependencies.join(", ")}</Value>
+              </Field>
+              <div className="row between-xs middle-xs" >
+                <Field inline className="col-xs" visible={!!task.startedAt}>
                   <Key>Ran:</Key>
                   <Value>{moment(task.startedAt).fromNow()}</Value>
                 </Field>
-                {task.state === "succeeded" &&
-                  <Field inline>
-                    <Key>Took:</Key>
-                    <Value>{task.duration}</Value>
-                  </Field>
-                }
+                <Field inline visible={task.state === "succeeded"}>
+                  <Key>Took:</Key>
+                  <Value>{task.duration}</Value>
+                </Field>
               </div>
               <div className="row">
                 <div className="col-xs">
@@ -314,7 +299,12 @@ const ShowResultButton = ({
 }) => {
   const handleClick = () => onClick({ entityName, moduleName, entityType })
   return (
-    <TertiaryButton onClick={handleClick}>
+    <TertiaryButton
+      onClick={handleClick}
+      className={css`
+        margin-top: .5rem;
+      `}
+    >
       Show result
     </TertiaryButton>
   )
