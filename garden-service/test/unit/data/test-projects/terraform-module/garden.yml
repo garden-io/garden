@@ -1,0 +1,24 @@
+kind: Project
+name: terraform-provider
+providers:
+  - name: terraform
+    variables:
+      my-variable: base
+  - name: test-plugin
+---
+kind: Module
+type: terraform
+name: tf
+autoApply: true
+root: ./tf
+variables:
+  my-variable: foo
+---
+kind: Module
+type: test
+name: test
+tasks:
+  - name: test-task
+    dependencies: [tf]
+    # The test plugin just returns the command as its output log, so we can verify that this parses
+    command: ["${runtime.services.tf.outputs.my-output}"]

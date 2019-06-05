@@ -9,7 +9,7 @@
 import { BinaryCmd } from "../../../util/ext-tools"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import { getAppNamespace } from "../namespace";
+import { getAppNamespace } from "../namespace"
 
 const helmCmd = new BinaryCmd({
   name: "helm",

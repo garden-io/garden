@@ -257,7 +257,14 @@ export class BinaryCmd extends Library {
 
   async exec({ args, cwd, env, log, timeout, input, ignoreError }: ExecParams) {
     const path = await this.getPath(log)
-    return execa(path, args || [], {
+
+    if (!args) {
+      args = []
+    }
+
+    log.verbose(`Execing ${path} ${args.join(" ")}`)
+
+    return execa(path, args, {
       cwd: cwd || dirname(path),
       timeout: this.getTimeout(timeout) * 1000,
       env,
@@ -269,6 +276,11 @@ export class BinaryCmd extends Library {
   async stdout(params: ExecParams) {
     const res = await this.exec(params)
     return res.stdout
+  }
+
+  async json(params: ExecParams) {
+    const out = await this.stdout(params)
+    return JSON.parse(out)
   }
 
   async spawn({ args, cwd, env, log }: ExecParams) {

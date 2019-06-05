@@ -11,7 +11,7 @@ import { BaseTask, TaskParams, TaskType } from "./base"
 import { ProviderConfig, Provider, getProviderDependencies, providerFromConfig } from "../config/provider"
 import { resolveTemplateStrings } from "../template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
-import { keyBy } from "lodash"
+import { keyBy, omit } from "lodash"
 import { TaskResults } from "../task-graph"
 import { ProviderConfigContext } from "../config/config-context"
 import { ModuleConfig } from "../config/module"
@@ -92,8 +92,8 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`Validating ${providerName} config`)
     if (this.plugin.configSchema) {
-      resolvedConfig = validateWithPath({
-        config: resolvedConfig,
+      resolvedConfig = <ProviderConfig>validateWithPath({
+        config: omit(resolvedConfig, "path"),
         schema: this.plugin.configSchema,
         path: this.garden.projectRoot,
         projectRoot: this.garden.projectRoot,

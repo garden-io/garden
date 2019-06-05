@@ -348,6 +348,9 @@ export const configSchema = kubernetesConfigBase
     ingressHttpsPort: joi.number()
       .default(443)
       .description("The external HTTPS port of the cluster's ingress controller."),
+    kubeconfig: joi.string()
+      .posixPath()
+      .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
     namespace: joi.string()
       .default(undefined, "<project name>")
       .description(
@@ -359,3 +362,4 @@ export const configSchema = kubernetesConfigBase
       .default(false)
       .description("Set this to `nginx` to install/enable the NGINX ingress controller."),
   })
+  .unknown(false)

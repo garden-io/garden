@@ -71,11 +71,14 @@ export async function profileBlock(description: string, block: () => Promise<any
 }
 
 async function runModule(params: RunModuleParams): Promise<RunResult> {
+  const command = [...(params.command || []), ...params.args]
+
   return {
     moduleName: params.module.name,
-    command: [...(params.command || []), ...params.args],
+    command,
     completedAt: testNow,
-    log: "OK",
+    // This is helpful to validate that the correct command was passed in
+    log: command.join(" "),
     version: params.module.version.versionString,
     startedAt: testNow,
     success: true,

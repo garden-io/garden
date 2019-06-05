@@ -19,6 +19,11 @@ node_modules
 .garden
 tmp/
 metadata.json
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+.terraform
 
 # TS cache on the CI
 ts-node-*

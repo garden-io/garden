@@ -43,6 +43,7 @@ const moduleTypes = [
   { name: "kubernetes", pluginName: "local-kubernetes" },
   { name: "maven-container" },
   { name: "openfaas", pluginName: "local-kubernetes" },
+  { name: "terraform" },
 ]
 
 interface RenderOpts {
@@ -482,6 +483,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
         { name: "local-openfaas" },
         { name: "maven-container" },
         { name: "openfaas" },
+        { name: "terraform" },
       ],
     },
   })

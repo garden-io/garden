@@ -43,3 +43,7 @@ Instructions for how to import code from remote repositories into a Garden proje
 ## [Hot Reload](./hot-reload.md)
 
 This article discusses how to use hot reloading, so that you can update running services on the fly as you make changes to their code, without losing state and without having to destroy and re-create containers.
+
+## [Terraform](./terraform.md)
+
+This article discusses how to use the Terraform provider, for provisioning infrastructure as part of your Garden project.

@@ -19,6 +19,7 @@ const gae = require("./google/google-app-engine")
 const localOpenfaas = require("./openfaas/local")
 const openfaas = require("./openfaas/openfaas")
 const mavenContainer = require("./maven-container/maven-container")
+const terraform = require("./terraform/terraform")
 
 // These plugins are always registered
 export const builtinPlugins = mapValues({
@@ -33,6 +34,7 @@ export const builtinPlugins = mapValues({
   "local-openfaas": localOpenfaas,
   openfaas,
   "maven-container": mavenContainer,
+  terraform,
 }, (m => m.gardenPlugin))
 
 // These plugins are always loaded

@@ -7,7 +7,7 @@
  */
 
 import dedent = require("dedent")
-import { projectNameSchema } from "../../../config/project"
+import { projectNameSchema, projectRootSchema } from "../../../config/project"
 import { ProviderConfig, Provider, providerConfigBaseSchema, providersSchema } from "../../../config/provider"
 import { LogEntry } from "../../../logger/log-entry"
 import { logEntrySchema } from "../base"
@@ -47,6 +47,7 @@ export const configureProvider = {
       config: providerConfigBaseSchema.required(),
       log: logEntrySchema,
       projectName: projectNameSchema,
+      projectRoot: projectRootSchema,
       dependencies: providersSchema,
       configStore: configStoreSchema,
     }),
