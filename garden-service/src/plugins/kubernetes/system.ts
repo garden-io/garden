@@ -7,13 +7,13 @@
  */
 
 import { join } from "path"
-import { every, values, find } from "lodash"
+import { values, find } from "lodash"
 import { V1Namespace } from "@kubernetes/client-node"
 import * as semver from "semver"
 
 import { STATIC_DIR } from "../../constants"
 import { Garden } from "../../garden"
-import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { KubeApi } from "./api"
 import { createNamespace } from "./namespace"
@@ -23,6 +23,7 @@ import { deleteNamespaces } from "./namespace"
 import { PluginError } from "../../exceptions"
 import { DashboardPage } from "../../config/dashboard"
 import { PrimitiveMap } from "../../config/common"
+import { combineStates } from "../../types/service"
 
 const GARDEN_VERSION = getPackageVersion()
 const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
@@ -132,7 +133,7 @@ interface GetSystemServicesStatusParams {
   variables: PrimitiveMap,
 }
 
-export async function getSystemServiceStatuses(
+export async function getSystemServiceStatus(
   { ctx, log, namespace, serviceNames, variables }: GetSystemServicesStatusParams,
 ) {
   let dashboardPages: DashboardPage[] = []
@@ -140,7 +141,7 @@ export async function getSystemServiceStatuses(
   const sysGarden = await getSystemGarden(ctx.provider, variables)
 
   const serviceStatuses = await sysGarden.actions.getServiceStatuses({ log, serviceNames })
-  const ready = every(values(serviceStatuses).map(s => s.state === "ready"))
+  const state = combineStates(values(serviceStatuses).map(s => s.state || "unknown"))
 
   // Add the Kubernetes dashboard to the Garden dashboard
   if (serviceNames.includes("kubernetes-dashboard")) {
@@ -167,7 +168,7 @@ export async function getSystemServiceStatuses(
   }
 
   return {
-    ready,
+    state,
     dashboardPages,
   }
 }

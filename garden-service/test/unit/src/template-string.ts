@@ -89,7 +89,9 @@ describe("resolveTemplateString", async () => {
     try {
       await resolveTemplateString("${some}", new TestContext({ some: {} }))
     } catch (err) {
-      expect(err.message).to.equal("Config value at some exists but is not a primitive (string, number or boolean)")
+      expect(err.message).to.equal(
+        "Config value at some exists but is not a primitive (string, number, boolean or null)",
+      )
       return
     }
 

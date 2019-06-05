@@ -9,7 +9,7 @@
 import { V1Secret } from "@kubernetes/client-node"
 
 import { KubeApi } from "./api"
-import { SecretRef, KubernetesPluginContext } from "./kubernetes"
+import { SecretRef, KubernetesPluginContext } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { getMetadataNamespace } from "./namespace"
 import { GetSecretParams } from "../../types/plugin/provider/getSecret"

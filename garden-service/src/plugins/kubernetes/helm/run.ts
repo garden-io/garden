@@ -13,7 +13,7 @@ import { findServiceResource, getChartResources, getResourceContainer, getServic
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { ConfigurationError } from "../../../exceptions"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
 import { RunModuleParams } from "../../../types/plugin/module/runModule"
 import { RunResult } from "../../../types/plugin/base"

@@ -131,6 +131,15 @@ sources:
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+### `environments[].providers[].buildMode`
+[environments](#environments) > [providers](#environments[].providers[]) > buildMode
+
+Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you can set it to 'cluster-docker' to sync files to a remote docker daemon, installed in the cluster, and build container images there.
+This is currently experimental and sometimes not needed (e.g. with Docker for Desktop), so it's not enabled by default.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
 ### `environments[].providers[].defaultHostname`
 [environments](#environments) > [providers](#environments[].providers[]) > defaultHostname
 
@@ -196,6 +205,182 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+### `environments[].providers[].storage`
+[environments](#environments) > [providers](#environments[].providers[]) > storage
+
+Storage parameters to set for the in-cluster builder and container registry persistent volume (which are automatically installed and used when buildMode=cluster-docker).
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].storage.builder`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > builder
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].storage.builder.size`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > size
+
+Volume size for the registry in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].storage.builder.storageClass`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > storageClass
+
+Storage class to use for the volume.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+### `environments[].providers[].storage.registry`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > registry
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].storage.registry.size`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > size
+
+Volume size for the registry in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].storage.registry.storageClass`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > storageClass
+
+Storage class to use for the volume.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+### `environments[].providers[].resources`
+[environments](#environments) > [providers](#environments[].providers[]) > resources
+
+Resource requests and limits for the in-cluster builder and container registry (which are automatically installed and used when buildMode=cluster-docker).
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.builder`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > builder
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.builder.limits`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > limits
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.builder.limits.cpu`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [limits](#environments[].providers[].resources.builder.limits) > cpu
+
+CPU limit in millicpu.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.builder.limits.memory`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [limits](#environments[].providers[].resources.builder.limits) > memory
+
+Memory limit in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.builder.requests`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > requests
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.builder.requests.cpu`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [requests](#environments[].providers[].resources.builder.requests) > cpu
+
+CPU request in millicpu.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.builder.requests.memory`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [requests](#environments[].providers[].resources.builder.requests) > memory
+
+Memory request in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.registry`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > registry
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.registry.limits`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > limits
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.registry.limits.cpu`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [limits](#environments[].providers[].resources.registry.limits) > cpu
+
+CPU limit in millicpu.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.registry.limits.memory`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [limits](#environments[].providers[].resources.registry.limits) > memory
+
+Memory limit in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.registry.requests`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > requests
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.registry.requests.cpu`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [requests](#environments[].providers[].resources.registry.requests) > cpu
+
+CPU request in millicpu.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.registry.requests.memory`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [requests](#environments[].providers[].resources.registry.requests) > memory
+
+Memory request in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
 ### `environments[].providers[].tlsCertificates[]`
 [environments](#environments) > [providers](#environments[].providers[]) > tlsCertificates
 
@@ -396,6 +581,14 @@ Specify which namespace to deploy services to (defaults to <project name>). Note
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+### `environments[].providers[].setupIngressController`
+[environments](#environments) > [providers](#environments[].providers[]) > setupIngressController
+
+Set this to `nginx` to install/enable the NGINX ingress controller.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
 
 
 ## Complete YAML schema
@@ -413,12 +606,35 @@ sources:
     repositoryUrl:
 environments:
   - providers:
-      - defaultHostname:
+      - buildMode: local
+        defaultHostname:
         defaultUsername:
         forceSsl: false
         imagePullSecrets:
           - name:
             namespace: default
+        storage:
+          builder:
+            size: 10240
+            storageClass: null
+          registry:
+            size: 10240
+            storageClass: null
+        resources:
+          builder:
+            limits:
+              cpu: 2000
+              memory: 4096
+            requests:
+              cpu: 200
+              memory: 512
+          registry:
+            limits:
+              cpu: 2000
+              memory: 4096
+            requests:
+              cpu: 200
+              memory: 512
         tlsCertificates:
           - name:
             hostnames:
@@ -435,4 +651,5 @@ environments:
         ingressHttpPort: 80
         ingressHttpsPort: 443
         namespace:
+        setupIngressController: false
 ```

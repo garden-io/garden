@@ -22,7 +22,7 @@ import {
 import { getReleaseStatus, getServiceStatus } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
 import { apply } from "../kubectl"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 import { ContainerHotReloadSpec } from "../../container/config"
 import { getHotReloadSpec } from "./hot-reload"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"

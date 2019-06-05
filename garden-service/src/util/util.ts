@@ -236,11 +236,11 @@ export function deepMap<T extends object, U extends object = T>(
   value: T | Iterable<T>, fn: (value: any, key: string | number) => any,
 ): U | Iterable<U> {
   if (isArray(value)) {
-    return value.map(fn)
+    return value.map(v => <U>deepMap(v, fn))
   } else if (isPlainObject(value)) {
     return <U>mapValues(value, v => deepMap(v, fn))
   } else {
-    return <U>value
+    return <U>fn(value, 0)
   }
 }
 

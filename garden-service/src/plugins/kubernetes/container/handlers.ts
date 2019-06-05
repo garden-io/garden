@@ -13,14 +13,14 @@ import { execInService, runContainerModule, runContainerService, runContainerTas
 import { testContainerModule } from "./test"
 import { ConfigurationError } from "../../../exceptions"
 import { configureContainerModule } from "../../container/container"
-import { KubernetesProvider } from "../kubernetes"
+import { KubernetesProvider } from "../config"
 import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
 import { getContainerServiceStatus } from "./status"
 import { getTestResult } from "../test"
 import { ContainerModule } from "../../container/config"
 import { configureMavenContainerModule, MavenContainerModule } from "../../maven-container/maven-container"
 import { getTaskResult } from "../task-results"
-import { buildModule, getBuildStatus } from "./build"
+import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./build"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   params.moduleConfig = await configureContainerModule(params)
@@ -35,11 +35,11 @@ export async function configureMaven(params: ConfigureModuleParams<MavenContaine
 
 export const containerHandlers = {
   configure,
-  build: buildModule,
+  build: k8sBuildContainer,
   deployService: deployContainerService,
   deleteService,
   execInService,
-  getBuildStatus,
+  getBuildStatus: k8sGetContainerBuildStatus,
   getServiceLogs,
   getServiceStatus: getContainerServiceStatus,
   getTestResult,

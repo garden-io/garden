@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { diffString } from "json-diff"
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { ServiceState, combineStates } from "../../types/service"
-import { sleep, encodeYamlMulti } from "../../util/util"
+import { sleep, encodeYamlMulti, deepMap } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "./kubectl"
 import { getAppNamespace } from "./namespace"
@@ -26,7 +27,7 @@ import {
   V1DeploymentStatus,
 } from "@kubernetes/client-node"
 import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
-import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
 import { V1ReplicationController, V1ReplicaSet } from "@kubernetes/client-node"
@@ -511,6 +512,10 @@ export async function compareDeployedObjects(
   log.verbose(`Comparing expected and deployed resources...`)
 
   for (let [newSpec, existingSpec] of zip(resources, deployedObjects) as KubernetesResource[][]) {
+    // to avoid normalization issues, we convert all numeric values to strings and then compare
+    newSpec = <KubernetesResource>deepMap(newSpec, v => typeof v === "number" ? v.toString() : v)
+    existingSpec = <KubernetesResource>deepMap(existingSpec, v => typeof v === "number" ? v.toString() : v)
+
     // the API version may implicitly change when deploying
     existingSpec.apiVersion = newSpec.apiVersion
 
@@ -546,12 +551,8 @@ export async function compareDeployedObjects(
 
     if (!isSubset(existingSpec, newSpec)) {
       if (newSpec) {
-        log.silly(`Resource ${newSpec.metadata.name} is not a superset of deployed resource`)
-        log.silly("----------------- Expected: -----------------------")
-        log.silly(JSON.stringify(newSpec, null, 4))
-        log.silly("------------------Deployed: -----------------------")
-        log.silly(JSON.stringify(existingSpec, null, 4))
-        log.silly("---------------------------------------------------")
+        log.verbose(`Resource ${newSpec.metadata.name} is not a superset of deployed resource:`)
+        log.verbose(diffString(existingSpec, newSpec))
       }
       // console.log(JSON.stringify(obj, null, 4))
       // console.log(JSON.stringify(existingSpec, null, 4))

@@ -8,7 +8,7 @@
 
 import * as execa from "execa"
 import * as Joi from "joi"
-import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../kubernetes"
+import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
 import { joiProviderName } from "../../../config/common"
 import { getKubeConfig } from "../api"
@@ -130,6 +130,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
 
   config = {
     name: config.name,
+    buildMode: config.buildMode,
     context,
     defaultHostname,
     deploymentRegistry,
@@ -139,6 +140,8 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     ingressHttpsPort: 443,
     ingressClass,
     namespace,
+    resources: config.resources,
+    storage: config.storage,
     setupIngressController: config.setupIngressController,
     tlsCertificates: config.tlsCertificates,
     _system: config._system,

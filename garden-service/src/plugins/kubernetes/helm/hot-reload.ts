@@ -12,7 +12,7 @@ import { deline } from "../../../util/string"
 import { ContainerModule } from "../../container/config"
 import { getChartResources, findServiceResource, getServiceResourceSpec } from "./common"
 import { syncToService, HotReloadableKind } from "../hot-reload"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../../types/plugin/service/hotReloadService"
 
 /**

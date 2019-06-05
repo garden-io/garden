@@ -16,7 +16,7 @@ import { getAppNamespace } from "../namespace"
 import { checkResourceStatuses, waitForResources } from "../status"
 import { combineStates } from "../../../types/service"
 import { apply } from "../kubectl"
-import { KubernetesProvider } from "../kubernetes"
+import { KubernetesProvider } from "../config"
 import chalk from "chalk"
 
 const serviceAccountName = "garden-tiller"

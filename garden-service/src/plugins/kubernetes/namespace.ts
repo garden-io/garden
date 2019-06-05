@@ -11,7 +11,7 @@ import { intersection } from "lodash"
 
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
-import { KubernetesProvider, KubernetesPluginContext } from "./kubernetes"
+import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { name as providerName } from "./kubernetes"
 import { AuthenticationError, DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"

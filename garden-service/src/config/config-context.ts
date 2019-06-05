@@ -140,7 +140,7 @@ export abstract class ConfigContext {
 
     if (!isPrimitive(value)) {
       throw new ConfigurationError(
-        `Config value at ${path} exists but is not a primitive (string, number or boolean)`,
+        `Config value at ${path} exists but is not a primitive (string, number, boolean or null)`,
         {
           value,
           path,

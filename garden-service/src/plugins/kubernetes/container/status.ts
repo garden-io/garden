@@ -19,7 +19,7 @@ import { KubeApi } from "../api"
 import { compareDeployedObjects } from "../status"
 import { getIngresses } from "./ingress"
 import { getAppNamespace } from "../namespace"
-import { KubernetesPluginContext } from "../kubernetes"
+import { KubernetesPluginContext } from "../config"
 
 export async function getContainerServiceStatus(
   { ctx, module, service, runtimeContext, log, hotReload }: GetServiceStatusParams<ContainerModule>,

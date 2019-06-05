@@ -13,7 +13,7 @@ import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
 
-export type Primitive = string | number | boolean
+export type Primitive = string | number | boolean | null
 
 export interface PrimitiveMap { [key: string]: Primitive }
 export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap }
@@ -28,7 +28,7 @@ export const enumToArray = Enum => (
 
 export const joiPrimitive = () => Joi.alternatives().try(
   Joi.number(),
-  Joi.string().allow(""),
+  Joi.string().allow("").allow(null),
   Joi.boolean(),
 ).description("Number, string or boolean")
 
@@ -103,7 +103,7 @@ export const joiRepositoryUrl = () => Joi
   .example("git+https://github.com/org/repo.git#v2.0")
 
 export function isPrimitive(value: any) {
-  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null
 }
 
 const joiPathPlaceholder = uuid.v4()
