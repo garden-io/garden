@@ -20,7 +20,7 @@ import { SourceConfig } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { hasRemoteSource } from "../../util/ext-source-util"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
@@ -45,8 +45,8 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<SourceConfig[]>> {
-    logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote modules" })
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<SourceConfig[]>> {
+    printHeader(headerLog, "update-remote modules", "hammer_and_wrench")
 
     const { modules: moduleNames } = args
     const graph = await garden.getConfigGraph()

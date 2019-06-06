@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { LoggerType } from "../logger/logger"
 import { ExecInServiceResult } from "../types/plugin/service/execInService"
-import { logHeader } from "../logger/util"
+import { printHeader } from "../logger/util"
 import {
   Command,
   CommandResult,
@@ -63,15 +63,17 @@ export class ExecCommand extends Command<Args> {
   options = runOpts
   loggerType: LoggerType = "basic"
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
+  async action(
+    { garden, log, headerLog, args, opts }: CommandParams<Args, Opts>,
+  ): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
     const command = args.command || []
 
-    logHeader({
-      log,
-      emoji: "runner",
-      command: `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
-    })
+    printHeader(
+      headerLog,
+      `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
+      "runner",
+    )
 
     const graph = await garden.getConfigGraph()
     const service = await graph.getService(serviceName)

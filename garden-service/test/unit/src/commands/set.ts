@@ -14,7 +14,8 @@ describe("SetSecretCommand", () => {
     await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { provider, key: "mykey", value: "myvalue" },
       opts: withDefaultGlobalOpts({}),
     })

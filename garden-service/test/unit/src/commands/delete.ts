@@ -29,7 +29,8 @@ describe("DeleteSecretCommand", () => {
     await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { provider, key },
       opts: withDefaultGlobalOpts({}),
     })
@@ -46,7 +47,8 @@ describe("DeleteSecretCommand", () => {
       async () => await command.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { provider, key: "foo" },
         opts: withDefaultGlobalOpts({}),
       }),
@@ -86,7 +88,14 @@ describe("DeleteEnvironmentCommand", () => {
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
 
-    const { result } = await command.action({ garden, log, logFooter: log, args: {}, opts: withDefaultGlobalOpts({}) })
+    const { result } = await command.action({
+      garden,
+      log,
+      footerLog: log,
+      headerLog: log,
+      args: {},
+      opts: withDefaultGlobalOpts({}),
+    })
 
     expect(result!["test-plugin"]["ready"]).to.be.false
   })
@@ -131,7 +140,8 @@ describe("DeleteServiceCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { services: ["service-a"] },
       opts: withDefaultGlobalOpts({}),
     })
@@ -147,7 +157,8 @@ describe("DeleteServiceCommand", () => {
     const { result } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { services: ["service-a", "service-b"] },
       opts: withDefaultGlobalOpts({}),
     })

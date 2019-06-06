@@ -32,7 +32,8 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           module: "module-a",
           path: join(projectRoot, "mock-local-path", "module-a"),
@@ -42,7 +43,8 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           module: "module-b",
           path: join(projectRoot, "mock-local-path", "module-b"),
@@ -52,7 +54,8 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           module: "module-c",
           path: join(projectRoot, "mock-local-path", "module-c"),
@@ -69,7 +72,8 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { modules: ["module-a", "module-b"] },
         opts: withDefaultGlobalOpts({ all: false }),
       })
@@ -83,7 +87,8 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultGlobalOpts({ all: true }),
       })
@@ -106,7 +111,8 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           source: "source-a",
           path: join(projectRoot, "mock-local-path", "source-a"),
@@ -116,7 +122,8 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           source: "source-b",
           path: join(projectRoot, "mock-local-path", "source-b"),
@@ -126,7 +133,8 @@ describe("UnlinkCommand", () => {
       await linkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           source: "source-c",
           path: join(projectRoot, "mock-local-path", "source-c"),
@@ -143,7 +151,8 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { sources: ["source-a", "source-b"] },
         opts: withDefaultGlobalOpts({ all: false }),
       })
@@ -157,7 +166,8 @@ describe("UnlinkCommand", () => {
       await unlinkCmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultGlobalOpts({ all: true }),
       })

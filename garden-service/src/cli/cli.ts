@@ -259,17 +259,14 @@ export class GardenCli {
       const level = parseLogLevel(logLevel)
       const logger = initLogger({ level, loggerType, emoji })
 
-      // Currently we initialise an empty placeholder log entry and pass that to the
-      // framework as opposed to the logger itself. This is mainly for type conformity.
-      // A log entry has the same capabilities as the logger itself (they both extend a log node)
-      // but can additionally be updated after it's created, whereas the logger can create only new
-      // entries (i.e. print new lines).
+      // Currently we initialise empty placeholder entries and pass those to the
+      // framework as opposed to the logger itself. This is to give better control over where on
+      // the screen the logs are printed.
+      const headerLog = logger.placeholder()
+      logger.info("") // Put one line between the header and the body
       const log = logger.placeholder()
-
-      // We pass a separate placeholder to the action method, so that commands can easily have a footer
-      // section in their log output.
-      logger.info("")   // Put one line between the body and the footer
-      const logFooter = logger.placeholder()
+      logger.info("") // Put one line between the body and the footer
+      const footerLog = logger.placeholder()
 
       const contextOpts: GardenOpts = { environmentName: env, log }
       if (command.noProject) {
@@ -280,7 +277,8 @@ export class GardenCli {
 
       await command.prepare({
         log,
-        logFooter,
+        headerLog,
+        footerLog,
         args: parsedArgs,
         opts: parsedOpts,
       })
@@ -297,7 +295,8 @@ export class GardenCli {
           result = await command.action({
             garden,
             log,
-            logFooter,
+            footerLog,
+            headerLog,
             args: parsedArgs,
             opts: parsedOpts,
           })

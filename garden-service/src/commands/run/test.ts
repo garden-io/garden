@@ -23,7 +23,7 @@ import {
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../types/service"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 import { BuildTask } from "../../tasks/build"
 import { getTestVersion } from "../../tasks/test"
 
@@ -67,7 +67,7 @@ export class RunTestCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
     const testName = args.test
 
@@ -84,11 +84,11 @@ export class RunTestCommand extends Command<Args, Opts> {
       })
     }
 
-    logHeader({
-      log,
-      emoji: "runner",
-      command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
-    })
+    printHeader(
+      headerLog,
+      `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
+      "runner",
+    )
 
     const actions = await garden.getActionHelper()
     await actions.prepareEnvironment({ log })

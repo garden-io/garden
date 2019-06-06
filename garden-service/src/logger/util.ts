@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogNode, LogLevel } from "./log-node"
+import { LogNode } from "./log-node"
 import { LogEntry, CreateOpts, EmojiName } from "./log-entry"
 import { combine, printEmoji } from "./renderers"
 import chalk from "chalk"
@@ -114,24 +114,18 @@ export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
   return columns
 }
 
-interface LogHeaderOptions {
-  log: LogEntry
-  command: string
-  emoji?: EmojiName
-  level?: LogLevel,
-  newLine?: boolean,
-}
-
-export function logHeader({ log, command, emoji, level = LogLevel.info, newLine = true }: LogHeaderOptions): LogEntry {
+function printWithEmoji(log: LogEntry, text: string, emoji?: EmojiName) {
   const msg = combine([
-    [chalk.bold.magenta(command)],
+    [chalk.bold.magenta(text)],
     [emoji && log.root.useEmoji ? " " + printEmoji(emoji) : ""],
-    [newLine ? "\n" : ""],
   ])
-  const lvlStr = LogLevel[level]
-  return log[lvlStr](msg)
+  return log.info(msg)
 }
 
-export function logFooter(opts: LogHeaderOptions): LogEntry {
-  return logHeader({ ...opts, newLine: false })
+export function printHeader(log: LogEntry, command: string, emoji?: EmojiName): LogEntry {
+  return printWithEmoji(log, command, emoji)
+}
+
+export function printFooter(log: LogEntry) {
+  return printWithEmoji(log, "Done!", "heavy_check_mark")
 }

@@ -16,7 +16,7 @@ import {
 import { UpdateRemoteSourcesCommand } from "./sources"
 import { UpdateRemoteModulesCommand } from "./modules"
 import { SourceConfig } from "../../config/project"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 
 export interface UpdateRemoteAllResult {
   projectSources: SourceConfig[],
@@ -33,8 +33,10 @@ export class UpdateRemoteAllCommand extends Command {
         garden update-remote all # update all remote sources and modules in the project
   `
 
-  async action({ garden, log, logFooter, opts }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
-    logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote all" })
+  async action(
+    { garden, log, headerLog, footerLog, opts }: CommandParams,
+  ): Promise<CommandResult<UpdateRemoteAllResult>> {
+    printHeader(headerLog, "update-remote all", "hammer_and_wrench")
 
     const sourcesCmd = new UpdateRemoteSourcesCommand()
     const modulesCmd = new UpdateRemoteModulesCommand()
@@ -42,14 +44,16 @@ export class UpdateRemoteAllCommand extends Command {
     const { result: projectSources } = await sourcesCmd.action({
       garden,
       log,
-      logFooter,
+      footerLog,
+      headerLog,
       opts,
       args: { sources: undefined },
     })
     const { result: moduleSources } = await modulesCmd.action({
       garden,
       log,
-      logFooter,
+      footerLog,
+      headerLog,
       opts,
       args: { modules: undefined },
     })

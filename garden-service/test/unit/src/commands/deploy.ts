@@ -93,7 +93,8 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: {
         services: undefined,
       },
@@ -130,7 +131,8 @@ describe("DeployCommand", () => {
     const { result, errors } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: {
         services: ["service-b"],
       },

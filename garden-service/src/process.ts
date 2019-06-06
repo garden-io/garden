@@ -28,7 +28,7 @@ interface ProcessParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  logFooter?: LogEntry
+  footerLog?: LogEntry
   watch: boolean
   handler: ProcessHandler
   // use this if the behavior should be different on watcher changes than on initial processing
@@ -49,7 +49,7 @@ export interface ProcessResults {
 }
 
 export async function processServices(
-  { garden, graph, log, logFooter, services, watch, handler, changeHandler }: ProcessServicesParams,
+  { garden, graph, log, footerLog, services, watch, handler, changeHandler }: ProcessServicesParams,
 ): Promise<ProcessResults> {
 
   const modules = Array.from(new Set(services.map(s => s.module)))
@@ -59,7 +59,7 @@ export async function processServices(
     garden,
     graph,
     log,
-    logFooter,
+    footerLog,
     watch,
     handler,
     changeHandler,
@@ -67,7 +67,7 @@ export async function processServices(
 }
 
 export async function processModules(
-  { garden, graph, log, logFooter, modules, watch, handler, changeHandler }: ProcessModulesParams,
+  { garden, graph, log, footerLog, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
 
   log.debug("Starting processModules")
@@ -87,13 +87,13 @@ export async function processModules(
 
   const tasks: BaseTask[] = flatten(await Bluebird.map(modules, module => handler(graph, module)))
 
-  if (watch && !!logFooter) {
+  if (watch && !!footerLog) {
     garden.events.on("taskGraphProcessing", () => {
-      logFooter.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
+      footerLog.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
     })
 
     garden.events.on("taskGraphComplete", () => {
-      logFooter.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes") })
+      footerLog.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes") })
     })
   }
 

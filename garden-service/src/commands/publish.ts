@@ -19,7 +19,7 @@ import { PublishTask } from "../tasks/publish"
 import { TaskResults } from "../task-graph"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { logHeader } from "../logger/util"
+import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 
 const publishArgs = {
@@ -60,15 +60,17 @@ export class PublishCommand extends Command<Args, Opts> {
   arguments = publishArgs
   options = publishOpts
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
-    logHeader({ log, emoji: "rocket", command: "Publish modules" })
+  async action(
+    { garden, log, headerLog, footerLog, args, opts }: CommandParams<Args, Opts>,
+  ): Promise<CommandResult<TaskResults>> {
+    printHeader(headerLog, "Publish modules", "rocket")
 
     const graph = await garden.getConfigGraph()
     const modules = await graph.getModules(args.modules)
 
     const results = await publishModules(garden, log, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
-    return handleTaskResults(log, "publish", { taskResults: results })
+    return handleTaskResults(footerLog, "publish", { taskResults: results })
   }
 }
 

@@ -27,7 +27,7 @@ const tableConfig: CliTable.TableConstructorOptions = {
     "right": "", "right-mid": "", "middle": "",
   },
   wordWrap: true,
-  truncate: " ",
+  truncate: " ", // We need this to prevent ellipsis (empty string does not work)
 }
 
 export class OptionsCommand extends Command {

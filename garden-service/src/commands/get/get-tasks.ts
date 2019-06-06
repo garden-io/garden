@@ -16,7 +16,7 @@ import {
   StringsParameter,
   PrepareParams,
 } from "../base"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 import { Task } from "../../types/task"
 
 const getTasksArgs = {
@@ -61,8 +61,8 @@ export class GetTasksCommand extends Command<Args> {
 
   arguments = getTasksArgs
 
-  async prepare({ log }: PrepareParams<Args>) {
-    logHeader({ log, emoji: "open_book", command: "Tasks" })
+  async prepare({ headerLog }: PrepareParams<Args>) {
+    printHeader(headerLog, "Tasks", "open_book")
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {

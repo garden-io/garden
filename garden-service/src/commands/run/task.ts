@@ -17,7 +17,7 @@ import {
 import dedent = require("dedent")
 import { TaskTask } from "../../tasks/task"
 import { TaskResult } from "../../task-graph"
-import { logHeader, logFooter } from "../../logger/util"
+import { printHeader, printFooter } from "../../logger/util"
 
 const runArgs = {
   task: new StringParameter({
@@ -49,13 +49,15 @@ export class RunTaskCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult>> {
+  async action(
+    { garden, log, headerLog, footerLog, args, opts }: CommandParams<Args, Opts>,
+  ): Promise<CommandResult<TaskResult>> {
     const graph = await garden.getConfigGraph()
     const task = await graph.getTask(args.task)
 
     const msg = `Running task ${chalk.white(task.name)}`
 
-    logHeader({ log, emoji: "runner", command: msg })
+    printHeader(headerLog, msg, "runner")
 
     const actions = await garden.getActionHelper()
     await actions.prepareEnvironment({ log })
@@ -66,8 +68,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
     if (!result.error) {
       log.info("")
       log.info(chalk.white(result.output.output))
-      log.info("")
-      logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })
+      printFooter(footerLog)
     }
 
     return { result }

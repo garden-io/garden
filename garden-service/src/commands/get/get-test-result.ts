@@ -16,7 +16,7 @@ import { NotFoundError } from "../../exceptions"
 import { TestResult } from "../../types/plugin/module/getTestResult"
 import { getTestVersion } from "../../tasks/test"
 import { findByName, getNames } from "../../util/util"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 
 export interface TestResultOutput {
@@ -47,21 +47,17 @@ export class GetTestResultCommand extends Command<Args> {
 
   arguments = getTestResultArgs
 
-  async action({
-    garden,
-    log,
-    args,
-  }: CommandParams<Args>): Promise<CommandResult<TestResultOutput>> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<TestResultOutput>> {
     const testName = args.name
     const moduleName = args.module
 
-    logHeader({
-      log,
-      emoji: "heavy_check_mark",
-      command: `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(
+    printHeader(
+      headerLog,
+      `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(
         moduleName,
       )}`,
-    })
+      "heavy_check_mark",
+    )
 
     const graph = await garden.getConfigGraph()
     const actions = await garden.getActionHelper()

@@ -19,7 +19,7 @@ import { BuildTask } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 import { processModules } from "../process"
-import { logHeader } from "../logger/util"
+import { printHeader } from "../logger/util"
 import { startServer, GardenServer } from "../server/server"
 
 const buildArguments = {
@@ -61,16 +61,16 @@ export class BuildCommand extends Command<Args, Opts> {
 
   private server: GardenServer
 
-  async prepare({ log, logFooter, opts }: PrepareParams<Args, Opts>) {
-    logHeader({ log, emoji: "hammer", command: "Build" })
+  async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
+    printHeader(headerLog, "Build", "hammer")
 
     if (!!opts.watch) {
-      this.server = await startServer(logFooter)
+      this.server = await startServer(footerLog)
     }
   }
 
   async action(
-    { args, opts, garden, log, logFooter }: CommandParams<Args, Opts>,
+    { args, opts, garden, log, footerLog }: CommandParams<Args, Opts>,
   ): Promise<CommandResult<TaskResults>> {
     if (this.server) {
       this.server.setGarden(garden)
@@ -86,7 +86,7 @@ export class BuildCommand extends Command<Args, Opts> {
       garden,
       graph: await garden.getConfigGraph(),
       log,
-      logFooter,
+      footerLog,
       modules,
       watch: opts.watch,
       handler: async (_, module) => [new BuildTask({ garden, log, module, force: opts.force })],
@@ -98,6 +98,6 @@ export class BuildCommand extends Command<Args, Opts> {
       },
     })
 
-    return handleTaskResults(log, "build", results)
+    return handleTaskResults(footerLog, "build", results)
   }
 }

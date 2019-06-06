@@ -77,17 +77,17 @@ export class DevCommand extends Command<Args, Opts> {
 
   private server: GardenServer
 
-  async prepare({ log, logFooter }: PrepareParams<Args, Opts>) {
+  async prepare({ log, footerLog }: PrepareParams<Args, Opts>) {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
 
     log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
-    this.server = await startServer(logFooter)
+    this.server = await startServer(footerLog)
   }
 
-  async action({ garden, log, logFooter, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
+  async action({ garden, log, footerLog, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     this.server.setGarden(garden)
 
     const actions = await garden.getActionHelper()
@@ -97,7 +97,7 @@ export class DevCommand extends Command<Args, Opts> {
     const modules = await graph.getModules()
 
     if (modules.length === 0) {
-      logFooter && logFooter.setState({ msg: "" })
+      footerLog && footerLog.setState({ msg: "" })
       log.info({ msg: "No modules found in project." })
       log.info({ msg: "Aborting..." })
       return {}
@@ -155,14 +155,14 @@ export class DevCommand extends Command<Args, Opts> {
       garden,
       graph,
       log,
-      logFooter,
+      footerLog,
       modules,
       watch: true,
       handler: tasksForModule(false),
       changeHandler: tasksForModule(true),
     })
 
-    return handleTaskResults(log, "dev", results)
+    return handleTaskResults(footerLog, "dev", results)
   }
 }
 

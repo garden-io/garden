@@ -36,7 +36,8 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           module: "module-a",
           path: join(projectRoot, "mock-local-path", "module-a"),
@@ -55,7 +56,8 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           module: "module-a",
           path: join("mock-local-path", "module-a"),
@@ -75,7 +77,8 @@ describe("LinkCommand", () => {
         async () => cmd.action({
           garden,
           log,
-          logFooter: log,
+          headerLog: log,
+          footerLog: log,
           args: {
             module: "banana",
             path: "",
@@ -105,7 +108,8 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           source: "source-a",
           path: join(projectRoot, "mock-local-path", "source-a"),
@@ -124,7 +128,8 @@ describe("LinkCommand", () => {
       await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {
           source: "source-a",
           path: join("mock-local-path", "source-a"),

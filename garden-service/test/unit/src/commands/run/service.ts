@@ -27,7 +27,8 @@ describe("RunServiceCommand", () => {
     const { result } = await cmd.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { service: "service-a" },
       opts: withDefaultGlobalOpts({ "force-build": false }),
     })

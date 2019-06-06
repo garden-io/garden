@@ -12,7 +12,8 @@ describe("ScanCommand", () => {
       await command.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: {},
         opts: withDefaultGlobalOpts({}),
       })
