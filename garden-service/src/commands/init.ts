@@ -41,10 +41,11 @@ export class InitCommand extends Command {
   options = initOpts
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<{}>> {
-    const { name } = garden.environment
+    const name = garden.environmentName
     logHeader({ log, emoji: "gear", command: `Initializing ${name} environment` })
 
-    await garden.actions.prepareEnvironment({ log, force: opts.force, allowUserInput: true })
+    const actions = await garden.getActionHelper()
+    await actions.prepareEnvironment({ log, force: opts.force, allowUserInput: true })
 
     log.info("")
     logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })

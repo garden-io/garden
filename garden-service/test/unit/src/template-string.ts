@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { resolveTemplateString, resolveTemplateStrings } from "../../../src/template-string"
+import { resolveTemplateString, resolveTemplateStrings, collectTemplateReferences } from "../../../src/template-string"
 import { ConfigContext } from "../../../src/config/config-context"
 import { expectError } from "../../helpers"
 
@@ -277,5 +277,24 @@ describe("resolveTemplateStrings", () => {
         noTemplate: "at-all",
       },
     })
+  })
+})
+
+describe("collectTemplateReferences", () => {
+  it("should return and sort all template string references in an object", async () => {
+    const obj = {
+      foo: "\${my.reference}",
+      nested: {
+        boo: "\${moo}",
+        foo: "lalalla\${moo}\${moo}",
+        banana: "\${banana.rama.llama}",
+      },
+    }
+
+    expect(await collectTemplateReferences(obj)).to.eql([
+      ["banana", "rama", "llama"],
+      ["moo"],
+      ["my", "reference"],
+    ])
   })
 })

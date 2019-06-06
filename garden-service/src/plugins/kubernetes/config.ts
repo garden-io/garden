@@ -10,7 +10,7 @@ import * as Joi from "joi"
 import dedent = require("dedent")
 
 import { joiArray, joiIdentifier, joiProviderName } from "../../config/common"
-import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/project"
+import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"

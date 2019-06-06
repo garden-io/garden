@@ -145,7 +145,8 @@ describe("exec plugin", () => {
 
       await writeModuleVersionFile(versionFilePath, version)
 
-      const result = await garden.actions.getBuildStatus({ log, module })
+      const actions = await garden.getActionHelper()
+      const result = await actions.getBuildStatus({ log, module })
 
       expect(result.ready).to.be.true
     })
@@ -159,7 +160,8 @@ describe("exec plugin", () => {
       const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
 
       await garden.buildDir.syncFromSrc(module, log)
-      await garden.actions.build({ log, module })
+      const actions = await garden.getActionHelper()
+      await actions.build({ log, module })
 
       const versionFileContents = await readModuleVersionFile(versionFilePath)
 

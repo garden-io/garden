@@ -121,7 +121,8 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     // TODO: make this a task
-    await garden.actions.prepareEnvironment({ log })
+    const actions = await garden.getActionHelper()
+    await actions.prepareEnvironment({ log })
 
     const results = await processServices({
       garden,

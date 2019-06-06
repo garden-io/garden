@@ -20,10 +20,12 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
+    const providers = await garden.resolveProviders()
+
     const config = {
-      environmentName: garden.environment.name,
-      providers: garden.environment.providers,
-      variables: garden.environment.variables,
+      environmentName: garden.environmentName,
+      providers,
+      variables: garden.variables,
       moduleConfigs: sortBy(await garden.resolveModuleConfigs(), "name"),
     }
 

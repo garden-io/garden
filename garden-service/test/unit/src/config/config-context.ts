@@ -233,7 +233,9 @@ describe("ModuleConfigContext", () => {
     await garden.scanModules()
     c = new ModuleConfigContext(
       garden,
-      garden.environment,
+      garden.environmentName,
+      await garden.resolveProviders(),
+      garden.variables,
       Object.values((<any>garden).moduleConfigs),
     )
   })
@@ -249,7 +251,7 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the environment config", async () => {
-    expect(await c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.equal(garden.environment.name)
+    expect(await c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.equal(garden.environmentName)
   })
 
   it("should should resolve the path of a module", async () => {

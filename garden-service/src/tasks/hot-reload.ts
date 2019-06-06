@@ -11,7 +11,7 @@ import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
 import { Service, getServiceRuntimeContext } from "../types/service"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType, ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../config-graph"
 
 interface Params {
   garden: Garden
@@ -23,7 +23,6 @@ interface Params {
 
 export class HotReloadTask extends BaseTask {
   type: TaskType = "hot-reload"
-  depType: DependencyGraphNodeType = "service"
 
   private graph: ConfigGraph
   private service: Service
@@ -36,7 +35,7 @@ export class HotReloadTask extends BaseTask {
     this.service = service
   }
 
-  protected getName() {
+  getName() {
     return this.service.name
   }
 
@@ -52,9 +51,10 @@ export class HotReloadTask extends BaseTask {
     })
 
     const runtimeContext = await getServiceRuntimeContext(this.garden, this.graph, this.service)
+    const actions = await this.garden.getActionHelper()
 
     try {
-      await this.garden.actions.hotReloadService({ log, service: this.service, runtimeContext })
+      await actions.hotReloadService({ log, service: this.service, runtimeContext })
     } catch (err) {
       log.setError()
       throw err

@@ -24,9 +24,9 @@ export const PROJECT_SOURCES_DIR_NAME = join(GARDEN_DIR_NAME, "sources", "projec
 export const MODULE_SOURCES_DIR_NAME = join(GARDEN_DIR_NAME, "sources", "module")
 export const GARDEN_BUILD_VERSION_FILENAME = "garden-build-version"
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
-export const DEFAULT_NAMESPACE = "default"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
+export const DEFAULT_API_VERSION = "garden.io/v0"
 export const GARDEN_ANNOTATION_PREFIX = "garden.io/"
 export const GARDEN_ANNOTATION_KEYS_SERVICE = GARDEN_ANNOTATION_PREFIX + "service"
 export const GARDEN_ANNOTATION_KEYS_VERSION = GARDEN_ANNOTATION_PREFIX + "version"

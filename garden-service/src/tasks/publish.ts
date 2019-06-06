@@ -12,7 +12,6 @@ import { Module } from "../types/module"
 import { PublishResult } from "../types/plugin/module/publishModule"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
-import { DependencyGraphNodeType } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 
 export interface PublishTaskParams {
@@ -24,7 +23,6 @@ export interface PublishTaskParams {
 
 export class PublishTask extends BaseTask {
   type: TaskType = "publish"
-  depType: DependencyGraphNodeType = "publish"
 
   private module: Module
   private forceBuild: boolean
@@ -71,9 +69,11 @@ export class PublishTask extends BaseTask {
       status: "active",
     })
 
+    const actions = await this.garden.getActionHelper()
+
     let result: PublishResult
     try {
-      result = await this.garden.actions.publishModule({ module: this.module, log })
+      result = await actions.publishModule({ module: this.module, log })
     } catch (err) {
       log.setError()
       throw err

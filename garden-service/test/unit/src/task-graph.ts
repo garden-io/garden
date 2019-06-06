@@ -1,14 +1,9 @@
 import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, TaskType } from "../../../src/tasks/base"
-import {
-  TaskGraph,
-  TaskResult,
-  TaskResults,
-} from "../../../src/task-graph"
+import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir } from "../../helpers"
 import { Garden } from "../../../src/garden"
-import { DependencyGraphNodeType } from "../../../src/config-graph"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -23,7 +18,6 @@ interface TestTaskOptions {
 
 class TestTask extends BaseTask {
   type: TaskType = "test"
-  depType: DependencyGraphNodeType = "test"
   name: string
   callback: TestTaskCallback | null
   uid: string
@@ -32,7 +26,7 @@ class TestTask extends BaseTask {
   constructor(
     garden: Garden,
     name: string,
-    force,
+    force: boolean,
     options?: TestTaskOptions,
   ) {
     super({
@@ -107,6 +101,7 @@ describe("task-graph", () => {
           type: "test",
           description: "a",
           key: "a",
+          name: "a",
           output: {
             result: "result-a",
             dependencyResults: {},
@@ -118,7 +113,7 @@ describe("task-graph", () => {
       expect(results).to.eql(expected)
     })
 
-    it("should emit events when processing and completing a task", async () => {
+    it("should emit a taskPending event when adding a task", async () => {
       const now = freezeTime()
 
       const garden = await getGarden()
@@ -136,12 +131,15 @@ describe("task-graph", () => {
       ])
     })
 
-    it("should not emit a taskPending event when adding a task with a cached result", async () => {
+    it.skip("should throw if tasks have circular dependencies", async () => {
+      throw new Error("TODO")
+    })
+
+    it("should emit events when processing and completing a task", async () => {
       const now = freezeTime()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
-
       const task = new TestTask(garden, "a", false)
       await graph.process([task])
 
@@ -238,6 +236,7 @@ describe("task-graph", () => {
         type: "test",
         description: "a.a1",
         key: "a",
+        name: "a",
         output: {
           result: "result-a.a1",
           dependencyResults: {},
@@ -247,6 +246,7 @@ describe("task-graph", () => {
       const resultB: TaskResult = {
         type: "test",
         key: "b",
+        name: "b",
         description: "b.b1",
         output: {
           result: "result-b.b1",
@@ -258,6 +258,7 @@ describe("task-graph", () => {
         type: "test",
         description: "c.c1",
         key: "c",
+        name: "c",
         output: {
           result: "result-c.c1",
           dependencyResults: { b: resultB },
@@ -273,6 +274,7 @@ describe("task-graph", () => {
           type: "test",
           description: "d.d1",
           key: "d",
+          name: "d",
           output: {
             result: "result-d.d1",
             dependencyResults: {
@@ -335,6 +337,7 @@ describe("task-graph", () => {
         type: "test",
         description: "a",
         key: "a",
+        name: "a",
         output: {
           result: "result-a",
           dependencyResults: {},

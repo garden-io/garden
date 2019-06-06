@@ -132,7 +132,7 @@ export async function prepareEnvironment({ ctx, log, force, status }: PrepareEnv
   if (systemServiceNames.length > 0 && !systemReady) {
     // Install Tiller to system namespace
     const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
-    const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(k8sCtx.provider.name)
+    const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
     await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
 
     const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)

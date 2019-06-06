@@ -1,0 +1,12 @@
+kind: Project
+name: test-project-a
+environmentDefaults:
+  variables:
+    some: variable
+environments:
+  - name: local
+  - name: other
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b

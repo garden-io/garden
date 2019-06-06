@@ -3,7 +3,7 @@ import { join } from "path"
 import {
   detectCycles,
   detectMissingDependencies,
-  detectCircularDependencies,
+  detectCircularModuleDependencies,
 } from "../../../../src/util/validate-dependencies"
 import { makeTestGarden, dataDir } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
@@ -62,7 +62,7 @@ describe("validate-dependencies", () => {
       const circularProjectRoot = join(dataDir, "test-project-circular-deps")
       const garden = await makeTestGarden(circularProjectRoot)
       const { moduleConfigs } = await scanAndGetConfigs(garden)
-      const err = detectCircularDependencies(moduleConfigs)
+      const err = detectCircularModuleDependencies(moduleConfigs)
       expect(err).to.be.an.instanceOf(ConfigurationError)
     })
 
@@ -70,7 +70,7 @@ describe("validate-dependencies", () => {
       const nonCircularProjectRoot = join(dataDir, "test-project-b")
       const garden = await makeTestGarden(nonCircularProjectRoot)
       const { moduleConfigs } = await scanAndGetConfigs(garden)
-      const err = detectCircularDependencies(moduleConfigs)
+      const err = detectCircularModuleDependencies(moduleConfigs)
       expect(err).to.eql(null)
     })
   })
@@ -79,7 +79,7 @@ describe("validate-dependencies", () => {
     it("should detect self-to-self cycles", () => {
       const cycles = detectCycles({
         a: { a: { distance: 1, next: "a" } },
-      }, ["a"])
+      })
 
       expect(cycles).to.deep.eq([["a"]])
     })
@@ -89,7 +89,7 @@ describe("validate-dependencies", () => {
         foo: { bar: { distance: 1, next: "bar" } },
         bar: { baz: { distance: 1, next: "baz" } },
         baz: { foo: { distance: 1, next: "foo" } },
-      }, ["foo", "bar", "baz"])
+      })
 
       expect(cycles).to.deep.eq([["foo", "bar", "baz"]])
     })

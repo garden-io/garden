@@ -22,7 +22,7 @@ import {
   ModuleActions,
   Plugins,
 } from "../src/types/plugin/plugin"
-import { Garden } from "../src/garden"
+import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -33,6 +33,7 @@ import { Ignorer } from "../src/util/fs"
 import { SourceConfig } from "../src/config/project"
 import { BuildDir } from "../src/build-dir"
 import { LogEntry } from "../src/logger/log-entry"
+import { ProviderConfig } from "../src/config/provider"
 import timekeeper = require("timekeeper")
 import { GLOBAL_OPTIONS } from "../src/cli/cli"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
@@ -292,14 +293,19 @@ export class TestGarden extends Garden {
   constructor(
     public readonly projectRoot: string,
     public readonly projectName: string,
-    environmentName: string,
-    variables: PrimitiveMap,
+    public readonly environmentName: string,
+    public readonly variables: PrimitiveMap,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
     public readonly ignorer: Ignorer,
-    log?,
+    public readonly opts: GardenOpts,
+    plugins: Plugins,
+    providerConfigs: ProviderConfig[],
   ) {
-    super(projectRoot, projectName, environmentName, variables, projectSources, buildDir, ignorer, log)
+    super(
+      projectRoot, projectName, environmentName, variables, projectSources,
+      buildDir, ignorer, opts, plugins, providerConfigs,
+    )
     this.events = new TestEventBus(this.log)
   }
 }

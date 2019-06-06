@@ -60,7 +60,7 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
   exitHook(func)
 }
 
-export function getPackageVersion(): String {
+export function getPackageVersion(): string {
   const version = require("../../../package.json").version
   return version
 }

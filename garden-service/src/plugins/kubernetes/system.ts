@@ -11,7 +11,7 @@ import { values, find } from "lodash"
 import { V1Namespace } from "@kubernetes/client-node"
 import * as semver from "semver"
 
-import { STATIC_DIR } from "../../constants"
+import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
@@ -41,34 +41,24 @@ export async function getSystemGarden(provider: KubernetesProvider, variables: P
   return Garden.factory(systemProjectPath, {
     environmentName: "default",
     config: {
-      dirname: "system",
       path: systemProjectPath,
-      project: {
-        apiVersion: "garden.io/v0",
-        name: systemNamespace,
-        environmentDefaults: {
-          providers: [],
-          variables: {},
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: systemNamespace,
+      defaultEnvironment: "default",
+      environments: [
+        { name: "default", variables: {} },
+      ],
+      providers: [
+        {
+          name: "local-kubernetes",
+          context: provider.config.context,
+          namespace: systemNamespace,
+          _system: systemSymbol,
+          _systemServices: [],
         },
-        defaultEnvironment: "default",
-        environments: [
-          {
-            name: "default",
-            providers: [
-              {
-                name: provider.name,
-                ...provider.config,
-                // Note: this means we can't build images as part of system services
-                deploymentRegistry: undefined,
-                namespace: systemNamespace,
-                _system: systemSymbol,
-                _systemServices: [],
-              },
-            ],
-            variables,
-          },
-        ],
-      },
+      ],
+      variables,
     },
   })
 }
@@ -139,8 +129,9 @@ export async function getSystemServiceStatus(
   let dashboardPages: DashboardPage[] = []
 
   const sysGarden = await getSystemGarden(ctx.provider, variables)
+  const actions = await sysGarden.getActionHelper()
 
-  const serviceStatuses = await sysGarden.actions.getServiceStatuses({ log, serviceNames })
+  const serviceStatuses = await actions.getServiceStatuses({ log, serviceNames })
   const state = combineStates(values(serviceStatuses).map(s => s.state || "unknown"))
 
   // Add the Kubernetes dashboard to the Garden dashboard
@@ -195,7 +186,8 @@ export async function prepareSystemServices(
 
   // Deploy enabled system services
   if (serviceNames.length > 0) {
-    const results = await sysGarden.actions.deployServices({
+    const actions = await sysGarden.getActionHelper()
+    const results = await actions.deployServices({
       log,
       serviceNames,
       force,

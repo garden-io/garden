@@ -90,7 +90,8 @@ export class RunTestCommand extends Command<Args, Opts> {
       command: `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
     })
 
-    await garden.actions.prepareEnvironment({ log })
+    const actions = await garden.getActionHelper()
+    await actions.prepareEnvironment({ log })
 
     const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
     await garden.processTasks([buildTask])
@@ -103,7 +104,7 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     const testVersion = await getTestVersion(garden, graph, module, testConfig)
 
-    const result = await garden.actions.testModule({
+    const result = await actions.testModule({
       log,
       module,
       interactive,

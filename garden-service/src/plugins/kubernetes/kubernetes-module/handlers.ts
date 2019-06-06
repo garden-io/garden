@@ -49,7 +49,13 @@ async function getServiceStatus(
   { ctx, module, log }: GetServiceStatusParams<KubernetesModule>,
 ): Promise<ServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
+  const namespace = await getNamespace({
+    configStore: ctx.configStore,
+    log,
+    projectName: k8sCtx.projectName,
+    provider: k8sCtx.provider,
+    skipCreate: true,
+  })
   const context = ctx.provider.config.context
   const api = await KubeApi.factory(log, context)
   const manifests = await getManifests(module)
@@ -69,7 +75,13 @@ async function deployService(
   const { ctx, force, module, service, log } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
+  const namespace = await getNamespace({
+    configStore: ctx.configStore,
+    log,
+    projectName: k8sCtx.projectName,
+    provider: k8sCtx.provider,
+    skipCreate: true,
+  })
   const context = ctx.provider.config.context
   const manifests = await getManifests(module)
 

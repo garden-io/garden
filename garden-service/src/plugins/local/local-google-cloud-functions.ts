@@ -6,17 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigureModuleParams } from "../../types/plugin/module/configure"
+import { ConfigureModuleParams, ConfigureProviderParams } from "../../types/plugin/params"
 import { join } from "path"
-import {
-  GcfModule,
-  configureGcfModule,
-} from "../google/google-cloud-functions"
-import {
-  GardenPlugin,
-} from "../../types/plugin/plugin"
-import { STATIC_DIR } from "../../constants"
+import { GcfModule, configureGcfModule } from "../google/google-cloud-functions"
+import { GardenPlugin } from "../../types/plugin/plugin"
+import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { ServiceConfig } from "../../config/service"
+import { ContainerModuleConfig } from "../container/config"
 import {
   ContainerServiceSpec,
   ServicePortProtocol,
@@ -29,7 +25,39 @@ const emulatorBaseModulePath = join(STATIC_DIR, emulatorModuleName)
 const emulatorPort = 8010
 
 export const gardenPlugin = (): GardenPlugin => ({
-  modules: [emulatorBaseModulePath],
+  actions: {
+    async configureProvider({ config }: ConfigureProviderParams) {
+      const emulatorConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        apiVersion: DEFAULT_API_VERSION,
+        build: {
+          dependencies: [],
+        },
+        description: "Base container for running Google Cloud Functions emulator",
+        name: "local-gcf-container",
+        path: emulatorBaseModulePath,
+        outputs: {},
+        serviceConfigs: [],
+        spec: {
+          build: {
+            dependencies: [],
+          },
+          buildArgs: {},
+          services: [],
+          tasks: [],
+          tests: [],
+        },
+        taskConfigs: [],
+        testConfigs: [],
+        type: "container",
+      }
+
+      return {
+        config,
+        moduleConfigs: [emulatorConfig],
+      }
+    },
+  },
 
   moduleActions: {
     "google-cloud-function": {
@@ -80,7 +108,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         })
 
         return {
-          apiVersion: "garden.io/v0",
+          apiVersion: DEFAULT_API_VERSION,
           allowPublish: true,
           build: {
             command: [],

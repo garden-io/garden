@@ -51,12 +51,13 @@ const moduleTypes = [
   { name: "helm", pluginName: "local-kubernetes" },
   { name: "kubernetes", pluginName: "local-kubernetes" },
   { name: "maven-container" },
-  { name: "openfaas" },
+  { name: "openfaas", pluginName: "local-kubernetes" },
 ]
 
 const providers = [
   { name: "local-kubernetes", schema: populateProviderSchema(localK8sConfigSchema) },
   { name: "kubernetes", schema: populateProviderSchema(k8sConfigSchema) },
+  { name: "local-openfaas", schema: populateProviderSchema(openfaasConfigSchema) },
   { name: "maven-container", schema: populateProviderSchema(mavenContainerConfigSchema) },
   { name: "openfaas", schema: populateProviderSchema(openfaasConfigSchema) },
 ]
@@ -414,24 +415,20 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   const moduleProviders = uniq(moduleTypes.map(m => m.pluginName || m.name)).map(name => ({ name }))
   const garden = await Garden.factory(__dirname, {
     config: {
-      dirname: "generate-docs",
       path: __dirname,
-      project: {
-        apiVersion: "garden.io/v0",
-        name: "generate-docs",
-        defaultEnvironment: "default",
-        environmentDefaults: {
+      apiVersion: "garden.io/v0",
+      kind: "Project",
+      name: "generate-docs",
+      defaultEnvironment: "default",
+      providers: moduleProviders,
+      variables: {},
+      environments: [
+        {
+          name: "default",
           providers: [],
           variables: {},
         },
-        environments: [
-          {
-            name: "default",
-            providers: moduleProviders,
-            variables: {},
-          },
-        ],
-      },
+      ],
     },
   })
 
@@ -448,7 +445,8 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   const readme = ["# Module Types", ""]
   for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
-    const { docs, schema, title } = await garden.actions.describeType(name)
+    const actions = await garden.getActionHelper()
+    const { docs, schema, title } = await actions.describeType(name)
 
     console.log("->", path)
     writeFileSync(path, renderModuleTypeReference(populateModuleSchema(schema), name, docs))

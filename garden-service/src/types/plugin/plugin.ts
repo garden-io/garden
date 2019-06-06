@@ -40,6 +40,7 @@ import { RunResult } from "./base"
 import { ServiceStatus } from "../service"
 import { mapValues } from "lodash"
 import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./provider/getDebugInfo"
+import { deline } from "../../util/string"
 
 export type ServiceActions<T extends Module = Module> = {
   [P in keyof ServiceActionParams<T>]: (params: ServiceActionParams<T>[P]) => ServiceActionOutputs[P]
@@ -202,7 +203,7 @@ export interface GardenPlugin {
   configSchema?: Joi.Schema,
   configKeys?: string[]
 
-  modules?: string[]
+  dependencies?: string[]
 
   actions?: Partial<PluginActions>
   moduleActions?: { [moduleType: string]: Partial<ModuleAndRuntimeActions> }
@@ -225,12 +226,12 @@ export const pluginSchema = Joi.object()
   .keys({
     // TODO: make this an OpenAPI schema for portability
     configSchema: Joi.object({ isJoi: Joi.boolean().only(true).required() }).unknown(true),
-    modules: joiArray(Joi.string())
-      .description(
-        "Plugins may optionally provide paths to Garden modules that are loaded as part of the plugin. " +
-        "This is useful, for example, to provide build dependencies for other modules " +
-        "or as part of the plugin operation.",
-      ),
+    dependencies: joiArray(Joi.string())
+      .description(deline`
+        Names of plugins that need to be configured prior to this plugin. This plugin will be able to reference the
+        configuration from the listed plugins. Note that the dependencies will not be implicitly configured—the user
+        will need to explicitly configure them in their project configuration.
+      `),
     // TODO: document plugin actions further
     actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func()))
       .description("A map of plugin action handlers provided by the plugin."),

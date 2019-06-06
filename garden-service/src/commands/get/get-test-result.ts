@@ -64,6 +64,8 @@ export class GetTestResultCommand extends Command<Args> {
     })
 
     const graph = await garden.getConfigGraph()
+    const actions = await garden.getActionHelper()
+
     const module = await graph.getModule(moduleName)
 
     const testConfig = findByName(module.testConfigs, testName)
@@ -81,7 +83,7 @@ export class GetTestResultCommand extends Command<Args> {
 
     const testVersion = await getTestVersion(garden, graph, module, testConfig)
 
-    const testResult: TestResult | null = await garden.actions.getTestResult({
+    const testResult: TestResult | null = await actions.getTestResult({
       log,
       testName,
       module,

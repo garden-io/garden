@@ -8,17 +8,27 @@
 
 import * as Joi from "joi"
 import dedent = require("dedent")
-import { ProviderConfig, Provider, providerConfigBaseSchema, projectNameSchema } from "../../../config/project"
+import { projectNameSchema } from "../../../config/project"
+import { ProviderConfig, Provider, providerConfigBaseSchema, providersSchema } from "../../../config/provider"
 import { LogEntry } from "../../../logger/log-entry"
 import { logEntrySchema } from "../base"
+import { configStoreSchema, ConfigStore } from "../../../config-store"
+import { joiArray } from "../../../config/common"
+import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
+import { deline } from "../../../util/string"
 
 export interface ConfigureProviderParams<T extends ProviderConfig = any> {
   config: T
   log: LogEntry
   projectName: string
+  dependencies: Provider[]
+  configStore: ConfigStore
 }
 
-export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConfig> extends Provider<T> { }
+export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConfig> {
+  config: T
+  moduleConfigs?: ModuleConfig[]
+}
 
 export const configureProvider = {
   description: dedent`
@@ -37,9 +47,19 @@ export const configureProvider = {
       config: providerConfigBaseSchema.required(),
       log: logEntrySchema,
       projectName: projectNameSchema,
+      dependencies: providersSchema,
+      configStore: configStoreSchema,
     }),
   resultSchema: Joi.object()
     .keys({
       config: providerConfigBaseSchema,
+      moduleConfigs: joiArray(moduleConfigSchema)
+        .description(deline`
+          Providers may return one or more module configs, that are included with the provider. This can be used for
+          modules that should always be built, or deployed as part of bootstrapping the provider.
+
+          They become part of the project graph like other modules, but need to be referenced with the provider name
+          as a prefix and a double dash, e.g. \`provider-name--module-name\`.
+        `),
     }),
 }

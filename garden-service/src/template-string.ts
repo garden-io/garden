@@ -9,7 +9,9 @@
 import Bluebird = require("bluebird")
 import { asyncDeepMap } from "./util/util"
 import { GardenBaseError } from "./exceptions"
-import { ConfigContext, ContextResolveOpts } from "./config/config-context"
+import { ConfigContext, ContextResolveOpts, ContextResolveParams } from "./config/config-context"
+import { KeyedSet } from "./util/keyed-set"
+import { uniq } from "lodash"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -65,4 +67,27 @@ export async function resolveTemplateStrings<T extends object>(
     // need to iterate sequentially to catch potential circular dependencies
     { concurrency: 1 },
   )
+}
+
+/**
+ * Scans for all template strings in the given object and lists the referenced keys.
+ */
+export async function collectTemplateReferences<T extends object>(obj: T): Promise<string[][]> {
+  const context = new ScanContext()
+  await resolveTemplateStrings(obj, context)
+  return uniq(context.foundKeys.entries()).sort()
+}
+
+class ScanContext extends ConfigContext {
+  foundKeys: KeyedSet<string[]>
+
+  constructor() {
+    super()
+    this.foundKeys = new KeyedSet<string[]>(v => v.join("."))
+  }
+
+  async resolve({ key }: ContextResolveParams) {
+    this.foundKeys.add(key)
+    return key.join(".")
+  }
 }

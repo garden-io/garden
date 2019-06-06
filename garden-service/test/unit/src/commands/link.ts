@@ -44,7 +44,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedModuleSources } = await garden.localConfigStore.get()
+      const { linkedModuleSources } = await garden.configStore.get()
 
       expect(linkedModuleSources).to.eql([
         { name: "module-a", path: join(projectRoot, "mock-local-path", "module-a") },
@@ -63,7 +63,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedModuleSources } = await garden.localConfigStore.get()
+      const { linkedModuleSources } = await garden.configStore.get()
 
       expect(linkedModuleSources).to.eql([
         { name: "module-a", path: join(projectRoot, "mock-local-path", "module-a") },
@@ -113,7 +113,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedProjectSources } = await garden.localConfigStore.get()
+      const { linkedProjectSources } = await garden.configStore.get()
 
       expect(linkedProjectSources).to.eql([
         { name: "source-a", path: join(projectRoot, "mock-local-path", "source-a") },
@@ -132,7 +132,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedProjectSources } = await garden.localConfigStore.get()
+      const { linkedProjectSources } = await garden.configStore.get()
 
       expect(linkedProjectSources).to.eql([
         { name: "source-a", path: join(projectRoot, "mock-local-path", "source-a") },

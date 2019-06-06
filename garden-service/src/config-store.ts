@@ -202,6 +202,10 @@ const localConfigSchema = Joi.object()
   .keys(localConfigSchemaKeys)
   .meta({ internal: true })
 
+// TODO: we should not be passing this to provider actions
+export const configStoreSchema = Joi.object()
+  .description("Helper class for managing local configuration for plugins.")
+
 export class LocalConfigStore extends ConfigStore<LocalConfig> {
 
   getConfigPath(projectPath): string {

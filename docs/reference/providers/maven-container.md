@@ -41,7 +41,7 @@ The default environment to use when calling commands without the `--env` paramet
 | `string` | No
 ### `environmentDefaults`
 
-Default environment settings. These are inherited (but can be overridden) by each configured environment.
+DEPRECATED - Please use the `providers` field instead, and omit the environments key in the configured provider to use it for all environments, and use the `variables` field to configure variables across all environments.
 
 | Type | Required |
 | ---- | -------- |
@@ -56,7 +56,7 @@ environmentDefaults:
 ### `environmentDefaults.providers[]`
 [environmentDefaults](#environmentdefaults) > providers
 
-A list of providers that should be used for this environment, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
+DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
 
 | Type | Required |
 | ---- | -------- |
@@ -79,14 +79,71 @@ environmentDefaults:
   providers:
     - name: "local-kubernetes"
 ```
+### `environmentDefaults.providers[].environments[]`
+[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaults.providers[]) > environments
+
+If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+environmentDefaults:
+  providers: []
+  variables: {}
+  ...
+  providers:
+    - environments:
+      - dev
+      - stage
+```
 ### `environmentDefaults.variables`
 [environmentDefaults](#environmentdefaults) > variables
 
-A key/value map of variables that modules can reference when using this environment.
+A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field.
 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+### `providers`
+
+A list of providers that should be used for this project, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
+
+| Type | Required |
+| ---- | -------- |
+| `array[object]` | No
+### `providers[].name`
+[providers](#providers) > name
+
+The name of the provider plugin to use.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+Example:
+```yaml
+providers:
+  - name: "local-kubernetes"
+```
+### `providers[].environments[]`
+[providers](#providers) > environments
+
+If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+providers:
+  - environments:
+    - dev
+    - stage
+```
 ### `sources`
 
 A list of remote sources to import into project.
@@ -116,6 +173,13 @@ Example:
 sources:
   - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
+### `variables`
+
+Variables to configure for all environments.
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
 ### `environments`
 
 
@@ -131,6 +195,23 @@ sources:
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+### `environments[].providers[].environments[]`
+[environments](#environments) > [providers](#environments[].providers[]) > environments
+
+If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - environments:
+        - dev
+        - stage
+```
 ### `environments[].providers[].name`
 [environments](#environments) > [providers](#environments[].providers[]) > name
 
@@ -157,11 +238,17 @@ defaultEnvironment: ''
 environmentDefaults:
   providers:
     - name:
+      environments:
   variables: {}
+providers:
+  - name:
+    environments:
 sources:
   - name:
     repositoryUrl:
+variables: {}
 environments:
   - providers:
-      - name: maven-container
+      - environments:
+        name: maven-container
 ```

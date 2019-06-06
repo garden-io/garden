@@ -103,7 +103,8 @@ export class TestCommand extends Command<Args, Opts> {
       modules = await graph.getModules()
     }
 
-    await garden.actions.prepareEnvironment({ log })
+    const actions = await garden.getActionHelper()
+    await actions.prepareEnvironment({ log })
 
     const name = opts.name
     const force = opts.force

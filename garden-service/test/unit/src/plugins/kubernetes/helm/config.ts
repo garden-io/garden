@@ -4,35 +4,33 @@ import { cloneDeep } from "lodash"
 
 import { TestGarden, dataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
-import { validateHelmModule, helmModuleSpecSchema } from "../../../../../../src/plugins/kubernetes/helm/config"
 import { deline } from "../../../../../../src/util/string"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
-import { validate } from "../../../../../../src/config/common"
+import { ModuleConfig } from "../../../../../../src/config/module"
+import { apply } from "json-merge-patch"
 
 describe("validateHelmModule", () => {
   let garden: TestGarden
   let ctx: PluginContext
-  let log: LogEntry
+  let moduleConfigs: { [key: string]: ModuleConfig }
 
   before(async () => {
     const projectRoot = resolve(dataDir, "test-projects", "helm")
     garden = await makeTestGarden(projectRoot)
-    log = garden.log
-    ctx = garden.getPluginContext("local-kubernetes")
+    ctx = await garden.getPluginContext("local-kubernetes")
     await garden.resolveModuleConfigs()
+    moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
+  })
+
+  beforeEach(() => {
+    (<any>garden).moduleConfigs = cloneDeep(moduleConfigs)
   })
 
   after(async () => {
     await garden.close()
   })
 
-  function getModuleConfig(name: string) {
-    const config = cloneDeep((<any>garden).moduleConfigs[name])
-    config.spec = validate(config.spec, helmModuleSpecSchema)
-    config.serviceConfigs = []
-    config.taskConfigs = []
-    config.testConfigs = []
-    return config
+  function patchModuleConfig(name: string, patch: any) {
+    apply((<any>garden).moduleConfigs[name], patch)
   }
 
   it("should validate a Helm module", async () => {
@@ -129,17 +127,15 @@ describe("validateHelmModule", () => {
   })
 
   it("should not return a serviceConfig if skipDeploy=true", async () => {
-    const moduleConfig = getModuleConfig("api")
-    moduleConfig.spec.skipDeploy = true
-    const config = await validateHelmModule({ ctx, moduleConfig, log })
+    patchModuleConfig("api", { spec: { skipDeploy: true } })
+    const config = await garden.resolveModuleConfig("api")
 
     expect(config.serviceConfigs).to.eql([])
   })
 
   it("should add the module specified under 'base' as a build dependency", async () => {
-    const moduleConfig = getModuleConfig("postgres")
-    moduleConfig.spec.base = "foo"
-    const config = await validateHelmModule({ ctx, moduleConfig, log })
+    patchModuleConfig("postgres", { spec: { base: "foo" } })
+    const config = await garden.resolveModuleConfig("postgres")
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [{ source: "*", target: "." }] },
@@ -147,10 +143,11 @@ describe("validateHelmModule", () => {
   })
 
   it("should add copy spec to build dependency if it's already a dependency", async () => {
-    const moduleConfig = getModuleConfig("postgres")
-    moduleConfig.build.dependencies = [{ name: "foo", copy: [] }]
-    moduleConfig.spec.base = "foo"
-    const config = await validateHelmModule({ ctx, moduleConfig, log })
+    patchModuleConfig("postgres", {
+      build: { dependencies: [{ name: "foo", copy: [] }] },
+      spec: { base: "foo" },
+    })
+    const config = await garden.resolveModuleConfig("postgres")
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [{ source: "*", target: "." }] },
@@ -158,11 +155,14 @@ describe("validateHelmModule", () => {
   })
 
   it("should add module specified under tasks[].resource.containerModule as a build dependency", async () => {
-    const moduleConfig = getModuleConfig("api")
-    moduleConfig.spec.tasks = [
-      { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
-    ]
-    const config = await validateHelmModule({ ctx, moduleConfig, log })
+    patchModuleConfig("api", {
+      spec: {
+        tasks: [
+          { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
+        ],
+      },
+    })
+    const config = await garden.resolveModuleConfig("api")
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [] },
@@ -170,11 +170,14 @@ describe("validateHelmModule", () => {
   })
 
   it("should add module specified under tests[].resource.containerModule as a build dependency", async () => {
-    const moduleConfig = getModuleConfig("api")
-    moduleConfig.spec.tests = [
-      { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
-    ]
-    const config = await validateHelmModule({ ctx, moduleConfig, log })
+    patchModuleConfig("api", {
+      spec: {
+        tests: [
+          { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
+        ],
+      },
+    })
+    const config = await garden.resolveModuleConfig("api")
 
     expect(config.build.dependencies).to.eql([
       { name: "foo", copy: [] },
@@ -182,10 +185,10 @@ describe("validateHelmModule", () => {
   })
 
   it("should throw if chart both contains sources and specifies base", async () => {
-    const moduleConfig = getModuleConfig("api")
-    moduleConfig.spec.base = "foo"
+    patchModuleConfig("api", { spec: { base: "foo" } })
+
     await expectError(
-      () => validateHelmModule({ ctx, moduleConfig, log }),
+      () => garden.resolveModuleConfig("api"),
       err => expect(err.message).to.equal(deline`
         Helm module 'api' both contains sources and specifies a base module.
         Since Helm charts cannot currently be merged, please either remove the sources or
@@ -195,10 +198,10 @@ describe("validateHelmModule", () => {
   })
 
   it("should throw if chart contains no sources and doesn't specify chart name nor base", async () => {
-    const moduleConfig = getModuleConfig("postgres")
-    delete moduleConfig.spec.chart
+    patchModuleConfig("postgres", { spec: { chart: null } })
+
     await expectError(
-      () => validateHelmModule({ ctx, moduleConfig, log }),
+      () => garden.resolveModuleConfig("postgres"),
       err => expect(err.message).to.equal(deline`
         Chart neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
       `),

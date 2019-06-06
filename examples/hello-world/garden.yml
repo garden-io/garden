@@ -9,5 +9,4 @@ project:
     - name: local
       providers:
         - name: local-kubernetes
-        - name: openfaas
-
+        - name: local-openfaas
