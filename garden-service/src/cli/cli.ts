@@ -7,6 +7,7 @@
  */
 
 import * as sywac from "sywac"
+import chalk from "chalk"
 import { intersection, merge } from "lodash"
 import { resolve, join } from "path"
 import { safeDump } from "js-yaml"
@@ -25,13 +26,10 @@ import {
 } from "../commands/base"
 import { GardenError, PluginError, toGardenError } from "../exceptions"
 import { Garden, GardenOpts } from "../garden"
-import { getLogger, Logger, LoggerType, LOGGER_TYPES } from "../logger/logger"
+import { getLogger, Logger, LoggerType, LOGGER_TYPES, getWriterInstance } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
-import { FancyTerminalWriter } from "../logger/writers/fancy-terminal-writer"
-import { JsonTerminalWriter } from "../logger/writers/json-terminal-writer"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
-import { Writer } from "../logger/writers/base"
 
 import {
   envSupportsEmoji,
@@ -66,12 +64,6 @@ const OUTPUT_RENDERERS = {
   },
 }
 
-const WRITER_CLASSES = {
-  basic: BasicTerminalWriter,
-  fancy: FancyTerminalWriter,
-  json: JsonTerminalWriter,
-}
-
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
 const DEFAULT_CLI_LOGGER_TYPE = "fancy"
 
@@ -99,21 +91,25 @@ export const GLOBAL_OPTIONS = {
   }),
   "silent": new BooleanParameter({
     alias: "s",
-    help: "Suppress log output.",
+    help: "Suppress log output. Same as setting --logger-type=quiet.",
     defaultValue: false,
   }),
   "env": new EnvironmentOption(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`
-      Set logger type:
-      fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
-      basic: appends a new log line when a log line's status changes,
-      json: same as basic, but renders log lines as JSON,
-      quiet: uppresses all log output,
+      Set logger type.
+
+      ${chalk.bold("fancy:")} updates log lines in-place when their status changes (e.g. when tasks complete),
+
+      ${chalk.bold("basic:")} appends a new log line when a log line's status changes,
+
+      ${chalk.bold("json:")} same as basic, but renders log lines as JSON,
+
+      ${chalk.bold("quiet:")} suppresses all log output, same as --silent.
     `,
   }),
-  "loglevel": new ChoicesParameter({
+  "log-level": new ChoicesParameter({
     alias: "l",
     choices: getLogLevelChoices(),
     help: deline`
@@ -136,15 +132,9 @@ export const GLOBAL_OPTIONS = {
 
 export type GlobalOptions = typeof GLOBAL_OPTIONS
 
-function initLogger({ level, logEnabled, loggerType, emoji }: {
-  level: LogLevel, logEnabled: boolean, loggerType: LoggerType, emoji: boolean,
-}) {
-  let writers: Writer[] = []
-
-  if (logEnabled) {
-    writers.push(new WRITER_CLASSES[loggerType]())
-  }
-
+function initLogger({ level, loggerType, emoji }: { level: LogLevel, loggerType: LoggerType, emoji: boolean }) {
+  const writer = getWriterInstance(loggerType)
+  const writers = writer ? [writer] : undefined
   return Logger.initialize({ level, writers, useEmoji: emoji })
 }
 
@@ -240,14 +230,24 @@ export class GardenCli {
       const parsedArgs = filterByKeys(argv, argKeys)
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
-      const { emoji, env, loglevel, "logger-type": loggerTypeOpt, silent, output } = parsedOpts
+      const {
+        "logger-type": loggerTypeOpt,
+        "log-level": logLevel,
+        emoji,
+        env,
+        silent,
+        output,
+      } = parsedOpts
 
-      const loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
+      let loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
+
+      if (silent || output) {
+        loggerType = "quiet"
+      }
 
       // Init logger
-      const logEnabled = !silent && !output && loggerType !== "quiet"
-      const level = parseLogLevel(loglevel)
-      const logger = initLogger({ level, logEnabled, loggerType, emoji })
+      const level = parseLogLevel(logLevel)
+      const logger = initLogger({ level, loggerType, emoji })
 
       // Currently we initialise an empty placeholder log entry and pass that to the
       // framework as opposed to the logger itself. This is mainly for type conformity.
