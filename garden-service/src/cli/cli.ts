@@ -8,7 +8,7 @@
 
 import * as sywac from "sywac"
 import chalk from "chalk"
-import { intersection, merge } from "lodash"
+import { intersection, merge, sortBy } from "lodash"
 import { resolve, join } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
@@ -44,6 +44,7 @@ import {
   styleConfig,
   getLogLevelChoices,
   parseLogLevel,
+  helpTextMaxWidth,
 } from "./helpers"
 import { defaultEnvironments, ProjectConfig } from "../config/project"
 import {
@@ -84,6 +85,14 @@ export const MOCK_CONFIG: ProjectConfig = {
 }
 
 export const GLOBAL_OPTIONS = {
+  "version": new StringParameter({
+    alias: "v",
+    help: "Show the current CLI version.",
+  }),
+  "help": new StringParameter({
+    alias: "h",
+    help: "Show help",
+  }),
   "root": new StringParameter({
     alias: "r",
     help: "Override project root directory (defaults to working directory).",
@@ -116,7 +125,7 @@ export const GLOBAL_OPTIONS = {
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
       (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.`,
     hints:
-      "[enum] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
+      "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
   }),
   "output": new ChoicesParameter({
@@ -158,21 +167,21 @@ export class GardenCli {
     const version = getPackageVersion()
     this.program = sywac
       .help("-h, --help", {
-        group: GLOBAL_OPTIONS_GROUP_NAME,
+        hidden: true,
       })
       .version("-v, --version", {
         version,
-        group: GLOBAL_OPTIONS_GROUP_NAME,
-        description: "Show's the current cli version.",
+        hidden: true,
       })
       .showHelpByDefault()
       .check((argv, _ctx) => {
         // NOTE: Need to mutate argv!
         merge(argv, negateConflictingParams(argv, GLOBAL_OPTIONS))
       })
+      .outputSettings({ maxWidth: helpTextMaxWidth() })
       .style(styleConfig)
 
-    const commands = coreCommands
+    const commands = sortBy(coreCommands, c => c.name)
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
     commands.forEach(command => this.addCommand(command, this.program))
@@ -198,6 +207,7 @@ export class GardenCli {
     this.program.option(getOptionSynopsis(key, option), {
       ...prepareOptionConfig(option),
       group: GLOBAL_OPTIONS_GROUP_NAME,
+      hidden: true,
     })
   }
 

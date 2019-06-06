@@ -26,6 +26,7 @@ import { UpdateRemoteCommand } from "./update-remote/update-remote"
 import { ValidateCommand } from "./validate"
 import { ExecCommand } from "./exec"
 import { ServeCommand } from "./serve"
+import { OptionsCommand } from "./options"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -38,6 +39,7 @@ export const coreCommands: Command[] = [
   new InitCommand(),
   new LinkCommand(),
   new LogsCommand(),
+  new OptionsCommand(),
   new PublishCommand(),
   new RunCommand(),
   new ScanCommand(),
