@@ -95,18 +95,19 @@ export class GitHandler extends VcsHandler {
     }
 
     const files = await Bluebird.map(lines, async (line) => {
-      const split = line.trim().split(" ")
+      const split = line.trim().split("\t")
       if (split.length === 1) {
         // File is untracked
         return { path: split[0] }
       } else {
-        return { path: split[2].split("\t")[1], hash: split[1] }
+        return { path: split[1], hash: split[0].split(" ")[1] }
       }
     })
 
     const modifiedArr = ((await this.getModifiedFiles(git, path)) || [])
       .map(modifiedRelPath => resolve(gitRoot, modifiedRelPath))
     const modified = new Set(modifiedArr)
+
     const filtered = files
       .filter(f => !include || matchGlobs(f.path, include))
       .filter(f => !ignored.includes(f.path))
