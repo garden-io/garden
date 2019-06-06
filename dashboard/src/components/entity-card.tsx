@@ -12,10 +12,10 @@ import { Entity } from "../containers/overview"
 import { colors } from "../styles/variables"
 import { Facebook } from "react-content-loader"
 
-interface InfoCardProps {
+interface EntityCardProps {
   type: EntityType
 }
-const InfoCard = styled.div<InfoCardProps>`
+const EntityCard = styled.div<EntityCardProps>`
   max-height: 13rem;
   background-color: ${props => (props && props.type && colors.cardTypes[props.type] || "white")};
   margin-right: 1rem;
@@ -105,7 +105,7 @@ export default ({
 }: Props) => {
 
   return (
-    <InfoCard type={type}>
+    <EntityCard type={type}>
       <Header>
         <Tag>{type.toUpperCase()}</Tag>
         <Row>
@@ -123,6 +123,6 @@ export default ({
         )}
         {!isLoading && children}
       </Content>
-    </InfoCard>
+    </EntityCard>
   )
 }

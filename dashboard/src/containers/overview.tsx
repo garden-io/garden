@@ -12,6 +12,7 @@ import styled from "@emotion/styled"
 import { ServiceIngress } from "garden-cli/src/types/service"
 import { RunState } from "garden-cli/src/commands/get/get-status"
 import Module from "../components/module"
+import EntityResult from "../containers/entity-result"
 import { default as ViewIngress } from "../components/view-ingress"
 import { DataContext } from "../context/data"
 import Spinner from "../components/spinner"
@@ -30,7 +31,6 @@ const Overview = styled.div`
 `
 
 const Modules = styled.div`
-  margin-top: 1rem;
   display: flex;
   flex-wrap: wrap;
   overflow-y: scroll;
@@ -79,10 +79,20 @@ export default () => {
   } = useContext(DataContext)
 
   const {
-    state: { overview: { selectedIngress } } } = useContext(UiStateContext)
+    state: {
+      overview: { selectedIngress, selectedEntity },
+    },
+    actions: {
+      selectEntity,
+    },
+  } = useContext(UiStateContext)
 
   useEffect(loadConfig, [])
   useEffect(loadStatus, [])
+
+  const clearSelectedEntity = () => {
+    selectEntity(null)
+  }
 
   const isLoadingConfig = !config.data || config.loading
 
@@ -192,6 +202,16 @@ export default () => {
               }
             </div>
           }
+          {selectedEntity && (
+            <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
+              <EntityResult
+                name={selectedEntity.name}
+                type={selectedEntity.type}
+                moduleName={selectedEntity.module}
+                onClose={clearSelectedEntity}
+              />
+            </div>
+          )}
         </div>
       </Overview >
     )

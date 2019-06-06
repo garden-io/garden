@@ -8,11 +8,12 @@
 
 import React, { useState, useContext } from "react"
 import styled from "@emotion/styled"
+import moment from "moment"
 import { ModuleModel } from "../containers/overview"
-import InfoCard from "./info-card"
+import EntityCard from "./entity-card"
 import { UiStateContext } from "../context/ui"
 import Ingresses from "./ingresses"
-import moment from "moment"
+import { TertiaryButton } from "./button"
 
 const Module = styled.div`
   padding: 1.2rem;
@@ -25,10 +26,10 @@ const Module = styled.div`
   max-width: 20rem;
 `
 
-type InfoCardsProps = {
+type EntityCardsProps = {
   visible: boolean,
 }
-const InfoCards = styled.div<InfoCardsProps>`
+const EntityCards = styled.div<EntityCardsProps>`
   padding-top: .75rem;
   display: flex;
   flex-wrap: wrap;
@@ -152,10 +153,31 @@ export default ({
 }: ModuleProp) => {
   const {
     state: { overview: { filters } },
+    actions: { selectEntity },
   } = useContext(UiStateContext)
 
   const [showFullDescription, setDescriptionState] = useState(false)
   const toggleDescriptionState = () => (setDescriptionState(!showFullDescription))
+
+  const handleSelectEntity = (
+    {
+      moduleName,
+      entityName,
+      entityType,
+    }:
+      {
+        moduleName: string,
+        entityName: string,
+        entityType: "test" | "task",
+      }) => {
+    if (moduleName && entityName && entityType) {
+      selectEntity({
+        type: entityType,
+        name: entityName,
+        module: moduleName,
+      })
+    }
+  }
 
   return (
     <Module>
@@ -174,9 +196,9 @@ export default ({
           </Description>
         )}
       </Fields>
-      <InfoCards visible={filters.services && !!services.length}>
+      <EntityCards visible={filters.services && !!services.length}>
         {services.map(service => (
-          <InfoCard
+          <EntityCard
             key={service.name}
             entity={service}
             type={"service"}
@@ -192,12 +214,12 @@ export default ({
                 <Ingresses ingresses={service.ingresses} />
               </Field>
             </Fields>
-          </InfoCard>
+          </EntityCard>
         ))}
-      </InfoCards>
-      <InfoCards visible={filters.tests && !!tests.length}>
+      </EntityCards>
+      <EntityCards visible={filters.tests && !!tests.length}>
         {tests.map(test => (
-          <InfoCard
+          <EntityCard
             key={test.name}
             entity={test}
             type={"test"}
@@ -221,13 +243,23 @@ export default ({
                   </Field>
                 }
               </div>
+              <div className="row">
+                <div className="col-xs">
+                  <ShowResultButton
+                    entityType="test"
+                    moduleName={name}
+                    entityName={test.name}
+                    onClick={handleSelectEntity}
+                  />
+                </div>
+              </div>
             </Fields>
-          </InfoCard>
+          </EntityCard>
         ))}
-      </InfoCards>
-      <InfoCards visible={filters.tasks && !!tasks.length}>
+      </EntityCards>
+      <EntityCards visible={filters.tasks && !!tasks.length}>
         {tasks.map(task => (
-          <InfoCard
+          <EntityCard
             key={task.name}
             entity={task}
             type={"task"}
@@ -251,11 +283,39 @@ export default ({
                   </Field>
                 }
               </div>
+              <div className="row">
+                <div className="col-xs">
+                  <ShowResultButton
+                    entityType="task"
+                    moduleName={name}
+                    entityName={task.name}
+                    onClick={handleSelectEntity}
+                  />
+                </div>
+              </div>
             </Fields>
-          </InfoCard>
+          </EntityCard>
         ))}
-      </InfoCards>
-
+      </EntityCards>
     </Module>
+  )
+}
+
+const ShowResultButton = ({
+  entityName,
+  entityType,
+  moduleName,
+  onClick,
+}: {
+  entityName: string,
+  entityType: "test" | "task",
+  moduleName: string,
+  onClick,
+}) => {
+  const handleClick = () => onClick({ entityName, moduleName, entityType })
+  return (
+    <TertiaryButton onClick={handleClick}>
+      Show result
+    </TertiaryButton>
   )
 }

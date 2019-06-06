@@ -12,11 +12,11 @@ import { capitalize } from "lodash"
 import { css } from "emotion"
 import moment from "moment"
 import styled from "@emotion/styled"
-import Card from "../components/card"
+import Card from "./card"
 import { colors } from "../styles/variables"
-import { RenderedNode } from "garden-cli/src/config-graph"
 import { WarningNotification } from "./notifications"
 import { ActionIcon } from "./ActionIcon"
+import { EntityResultSupportedTypes } from "../context/ui"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
@@ -100,28 +100,31 @@ const Header = styled.div`
 `
 
 interface Props {
-  node: RenderedNode
-  clearGraphNodeSelection: () => void
-  onRefresh?: () => void
-  loading?: boolean
+  type: EntityResultSupportedTypes
+  name: string
+  moduleName: string
   output?: string | null
   startedAt?: Date | null
   completedAt?: Date | null
   duration?: string | null
+  onClose: () => void
+  onRefresh?: () => void
+  loading?: boolean
 }
 
 // TODO: Split up into something InfoPane and InfoPaneWithResults. Props are kind of messy.
-export const InfoPane: React.FC<Props> = ({
-  clearGraphNodeSelection,
-  loading,
-  onRefresh,
-  node,
+export default ({
+  type,
+  name,
+  moduleName,
   output,
   startedAt,
   completedAt,
   duration,
-}) => {
-  const { name, moduleName, type } = node
+  onClose,
+  onRefresh,
+  loading,
+}: Props) => {
   let outputEl: React.ReactNode = null
 
   if (output) {
@@ -175,7 +178,7 @@ export const InfoPane: React.FC<Props> = ({
             {onRefresh && (
               <ActionIcon onClick={onRefresh} inProgress={loading || false} iconClassName="redo-alt" />
             )}
-            <ActionIcon onClick={clearGraphNodeSelection} iconClassName="window-close" />
+            <ActionIcon onClick={onClose} iconClassName="window-close" />
           </ClosePaneContainer>
         </div>
 
@@ -211,8 +214,8 @@ export const InfoPane: React.FC<Props> = ({
             <Value>{moment(completedAt).fromNow()}</Value>
           </Field>
         )}
-
-        {(type === "test" || type === "run") && outputEl !== null && outputEl}
+        {/* we only show the output if has content and only for these types */}
+        {(type === "test" || type === "run" || type === "task") && outputEl !== null && outputEl}
       </div>
     </Card>
   )

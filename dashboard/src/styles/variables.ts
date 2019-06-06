@@ -76,4 +76,22 @@ export const colors = {
     test: "",
     run: "",
   },
+  buttons: {
+    primary: {},
+    secondary: {},
+    tertiary: {
+      default: {
+        color: "#109CF1",
+      },
+      hover: {
+        color: "#34AFF9",
+      },
+      pressed: {
+        color: "#098EDF",
+      },
+      disabled: {
+        color: "#109CF1",
+      },
+    },
+  },
 }

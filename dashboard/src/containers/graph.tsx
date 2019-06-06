@@ -12,8 +12,8 @@ import Graph from "../components/graph"
 import PageError from "../components/page-error"
 import { EventContext } from "../context/events"
 import { DataContext } from "../context/data"
-import { UiStateContext, StackGraphSupportedFilterKeys } from "../context/ui"
-import { NodeInfo } from "./node-info"
+import { UiStateContext, StackGraphSupportedFilterKeys, EntityResultSupportedTypes } from "../context/ui"
+import EntityResult from "./entity-result"
 import Spinner from "../components/spinner"
 import { Filters } from "../components/group-filter"
 import { capitalize } from "lodash"
@@ -33,7 +33,7 @@ export default () => {
   useEffect(loadGraph, [])
 
   const {
-    actions: { selectGraphNode, stackGraphToggleItemsView },
+    actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
     state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
   } = useContext(UiStateContext)
 
@@ -58,7 +58,12 @@ export default () => {
     if (node) {
       moreInfoPane = (
         <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
-          <NodeInfo node={node} />
+          <EntityResult
+            name={node.name}
+            type={node.type as EntityResultSupportedTypes}
+            moduleName={node.moduleName}
+            onClose={clearGraphNodeSelection}
+          />
         </div>
       )
     }
