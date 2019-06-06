@@ -12,7 +12,7 @@ import {
   CommandResult,
   CommandParams,
 } from "./base"
-import { logHeader } from "../logger/util"
+import { logHeader, logFooter } from "../logger/util"
 import dedent = require("dedent")
 
 const initOpts = {
@@ -47,7 +47,7 @@ export class InitCommand extends Command {
     await garden.actions.prepareEnvironment({ log, force: opts.force, allowUserInput: true })
 
     log.info("")
-    logHeader({ log, emoji: "heavy_check_mark", command: `Done!` })
+    logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })
 
     return { result: {} }
   }

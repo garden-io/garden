@@ -118,15 +118,20 @@ interface LogHeaderOptions {
   log: LogEntry
   command: string
   emoji?: EmojiName
-  level?: LogLevel
+  level?: LogLevel,
+  newLine?: boolean,
 }
 
-export function logHeader({ log, command, emoji, level = LogLevel.info }: LogHeaderOptions): LogEntry {
+export function logHeader({ log, command, emoji, level = LogLevel.info, newLine = true }: LogHeaderOptions): LogEntry {
   const msg = combine([
     [chalk.bold.magenta(command)],
     [emoji && log.root.useEmoji ? " " + printEmoji(emoji) : ""],
-    ["\n"],
+    [newLine ? "\n" : ""],
   ])
   const lvlStr = LogLevel[level]
   return log[lvlStr](msg)
+}
+
+export function logFooter(opts: LogHeaderOptions): LogEntry {
+  return logHeader({ ...opts, newLine: false })
 }

@@ -17,7 +17,7 @@ import {
 import dedent = require("dedent")
 import { TaskTask } from "../../tasks/task"
 import { TaskResult } from "../../task-graph"
-import { logHeader } from "../../logger/util"
+import { logHeader, logFooter } from "../../logger/util"
 
 const runArgs = {
   task: new StringParameter({
@@ -66,7 +66,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
       log.info("")
       log.info(chalk.white(result.output.output))
       log.info("")
-      logHeader({ log, emoji: "heavy_check_mark", command: `Done!` })
+      logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })
     }
 
     return { result }
