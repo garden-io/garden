@@ -155,6 +155,7 @@ export async function getSystemServiceStatus(
 
   return {
     state,
+    serviceStatuses,
     dashboardPages,
   }
 }

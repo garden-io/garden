@@ -12,6 +12,7 @@ import { environmentStatusSchema, EnvironmentStatus } from "./getEnvironmentStat
 import { dedent } from "../../../util/string"
 
 export interface PrepareEnvironmentParams extends PluginActionParamsBase {
+  manualInit: boolean
   status: EnvironmentStatus
   force: boolean
 }
@@ -34,9 +35,11 @@ export const prepareEnvironment = {
   `,
   paramsSchema: actionParamsSchema
     .keys({
-      status: environmentStatusSchema,
       force: Joi.boolean()
         .description("Force re-configuration of the environment."),
+      manualInit: Joi.boolean()
+        .description("Set to true if the environment is being explicitly initialized via `garden init`."),
+      status: environmentStatusSchema,
     }),
   resultSchema: Joi.object().keys({}),
 }

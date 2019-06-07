@@ -161,14 +161,9 @@ export class ActionHelper implements TypeGuard {
    * the user to run `garden init`
    */
   async prepareEnvironment(
-    { force = false, pluginName, log, allowUserInput = false }:
-      { force?: boolean, pluginName?: string, log: LogEntry, allowUserInput?: boolean },
+    { force = false, pluginName, log, manualInit = false }:
+      { force?: boolean, pluginName?: string, log: LogEntry, manualInit?: boolean },
   ) {
-    const handlers = this.getActionHelpers("prepareEnvironment", pluginName)
-    // FIXME: We're calling getEnvironmentStatus before preparing the environment.
-    // Results in 404 errors for unprepared/missing services.
-    // See: https://github.com/garden-io/garden/issues/353
-
     const entry = log.info({ section: "providers", msg: "Getting status...", status: "active" })
     const statuses = await this.getEnvironmentStatus({ pluginName, log: entry })
 
@@ -176,7 +171,7 @@ export class ActionHelper implements TypeGuard {
       .map(([name, status]) => ({ ...status, name }))
       .filter(status => status.ready === false && status.needManualInit === true)
 
-    if (!allowUserInput && needManualInit.length > 0) {
+    if (!manualInit && needManualInit.length > 0) {
       const names = needManualInit.map(s => s.name).join(", ")
       const msgPrefix = needManualInit.length === 1
         ? `Provider ${names} has been updated or hasn't been configured, and requires manual initialization`
@@ -190,11 +185,11 @@ export class ActionHelper implements TypeGuard {
       )
     }
 
-    const needPrep = Object.entries(handlers).filter(([name]) => {
+    const prepareHandlers = this.getActionHelpers("prepareEnvironment", pluginName)
+
+    const needPrep = Object.entries(prepareHandlers).filter(([name]) => {
       const status = statuses[name] || { ready: false }
-      const needForce = status.detail && !!status.detail.needForce
-      const forcePrep = force || needForce
-      return forcePrep || !status.ready
+      return (force || !status.ready)
     })
 
     const output = {}
@@ -206,8 +201,6 @@ export class ActionHelper implements TypeGuard {
     // sequentially go through the preparation steps, to allow plugins to request user input
     for (const [name, handler] of needPrep) {
       const status = statuses[name] || { ready: false }
-      const needForce = status.detail && !!status.detail.needForce
-      const forcePrep = force || needForce
 
       const envLogEntry = entry.info({
         status: "active",
@@ -217,7 +210,8 @@ export class ActionHelper implements TypeGuard {
 
       await handler({
         ...await this.commonParams(handler, log),
-        force: forcePrep,
+        manualInit,
+        force,
         status,
         log: envLogEntry,
       })

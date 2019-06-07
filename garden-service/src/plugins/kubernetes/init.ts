@@ -8,7 +8,7 @@
 
 import { KubeApi } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces } from "./namespace"
-import { KubernetesPluginContext, KubernetesConfig } from "./config"
+import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider } from "./config"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
 import {
   prepareSystemServices,
@@ -56,6 +56,8 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const systemServiceNames = k8sCtx.provider.config._systemServices
   let needManualInit = false
 
+  const detail = { systemReady, projectReady, serviceStatuses: {}, systemServiceState: "unknown" }
+
   if (systemServiceNames.length > 0) {
     // Check Tiller status in system namespace
     let systemTillerReady = true
@@ -69,7 +71,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, namespace, contextForLog)
 
     // Get system service statuses
-    const systemServiceStatuses = await getSystemServiceStatus({
+    const systemServiceStatus = await getSystemServiceStatus({
       ctx: k8sCtx,
       log,
       namespace,
@@ -77,33 +79,23 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
       variables: variables || {},
     })
 
-    systemReady = systemTillerReady && sysNamespaceUpToDate && (
-      systemServiceStatuses.state === "ready"
-      ||
-      (needManualInit && systemServiceStatuses.state === "outdated")
-    )
+    // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
+    // between users or unnecessary work.
+    needManualInit = checkManualInit(k8sCtx.provider)
+    systemReady = systemTillerReady && sysNamespaceUpToDate && systemServiceStatus.state === "ready"
+    dashboardPages = systemServiceStatus.dashboardPages
 
-    dashboardPages = systemServiceStatuses.dashboardPages
-
-    if (needManualInit && systemServiceStatuses.state === "outdated") {
-      // If we require manual init and system services are outdated (as opposed to unhealthy, missing etc.), we warn
-      // instead of aborting. This avoids blocking users where there's variance in configuration between users of the
-      // same cluster, that most likely shouldn't affect usage.
-      log.warn({
-        symbol: "warning",
-        msg: chalk.yellow(
-          "One or more cluster-wide services are outdated or their configuration does not match your current " +
-          "configuration. You may want to run \`garden init\` to update them, or contact your cluster admin.",
-        ),
-      })
+    // If we require manual init and system services are outdated (as opposed to unhealthy, missing etc.), we warn
+    // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
+    // there's variance in configuration between users of the same cluster, that most likely shouldn't affect usage.
+    if (needManualInit && systemServiceStatus.state === "outdated") {
+      needManualInit = false
     }
 
-    // We always require manual init if we're installing any system services to remote clusters, to avoid conflicts
-    // between users or unnecessary work.
-    needManualInit = ctx.provider.name !== "local-kubernetes"
+    detail.systemReady = systemReady
+    detail.serviceStatuses = systemServiceStatus.serviceStatuses
+    detail.systemServiceState = systemServiceStatus.state
   }
-
-  const detail = { systemReady, projectReady }
 
   return {
     ready: projectReady && systemReady,
@@ -113,23 +105,40 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   }
 }
 
+function checkManualInit(provider: KubernetesProvider) {
+  return provider.name !== "local-kubernetes"
+}
+
 /**
  * Performs the following actions to prepare the environment
  *  1. Installs Tiller in project namespace
  *  2. Installs Tiller in system namespace (if provider has system services)
  *  3. Deploys system services (if provider has system services)
  */
-export async function prepareEnvironment({ ctx, log, force, status }: PrepareEnvironmentParams) {
+export async function prepareEnvironment({ ctx, log, force, manualInit, status }: PrepareEnvironmentParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const variables = getVariables(k8sCtx.provider.config)
-  const systemReady = status.detail && !!status.detail.systemReady && !force
 
   // Install Tiller to project namespace
   await installTiller({ ctx: k8sCtx, provider: k8sCtx.provider, log, force })
 
+  const systemReady = status.detail && !!status.detail.systemReady && !force
   const systemServiceNames = k8sCtx.provider.config._systemServices
 
   if (systemServiceNames.length > 0 && !systemReady) {
+    const needManualInit = checkManualInit(k8sCtx.provider)
+
+    if (!manualInit && needManualInit && status.detail && status.detail.systemServiceState === "outdated") {
+      log.warn({
+        symbol: "warning",
+        msg: chalk.yellow(
+          "One or more cluster-wide services are outdated or their configuration does not match your current " +
+          "configuration. You may want to run \`garden init\` to update them, or contact a cluster admin to do so.",
+        ),
+      })
+      return {}
+    }
+
     // Install Tiller to system namespace
     const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
     const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)

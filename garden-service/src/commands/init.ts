@@ -45,7 +45,7 @@ export class InitCommand extends Command {
     logHeader({ log, emoji: "gear", command: `Initializing ${name} environment` })
 
     const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log, force: opts.force, allowUserInput: true })
+    await actions.prepareEnvironment({ log, force: opts.force, manualInit: true })
 
     log.info("")
     logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })
