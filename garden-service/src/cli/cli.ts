@@ -8,7 +8,7 @@
 
 import * as sywac from "sywac"
 import { intersection, merge } from "lodash"
-import { resolve } from "path"
+import { resolve, join } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import { DeepPrimitiveMap } from "../config/common"
@@ -30,7 +30,7 @@ import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "../logger/writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "../logger/writers/json-terminal-writer"
-import { FileWriter } from "../logger/writers/file-writer"
+import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 import { Writer } from "../logger/writers/base"
 
 import {
@@ -48,7 +48,12 @@ import {
   parseLogLevel,
 } from "./helpers"
 import { defaultEnvironments, ProjectConfig } from "../config/project"
-import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION } from "../constants"
+import {
+  ERROR_LOG_FILENAME,
+  DEFAULT_API_VERSION,
+  DEFAULT_GARDEN_DIR_NAME,
+  LOGS_DIR_NAME,
+} from "../constants"
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 
@@ -66,12 +71,6 @@ const WRITER_CLASSES = {
   fancy: FancyTerminalWriter,
   json: JsonTerminalWriter,
 }
-
-const FILE_WRITER_CONFIGS = [
-  { filename: "development.log" },
-  { filename: ERROR_LOG_FILENAME, level: LogLevel.error },
-  { filename: ERROR_LOG_FILENAME, level: LogLevel.error, path: ".", truncatePrevious: true },
-]
 
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
 const DEFAULT_CLI_LOGGER_TYPE = "fancy"
@@ -190,18 +189,17 @@ export class GardenCli {
     globalOptions.forEach(([key, opt]) => this.addGlobalOption(key, opt))
   }
 
-  async initFileWriters(logger: Logger, projectRoot: string) {
+  async initFileWriters(logger: Logger, root: string, gardenDirPath: string) {
     if (this.fileWritersInitialized) {
       return
     }
-    for (const config of FILE_WRITER_CONFIGS) {
-      logger.writers.push(
-        await FileWriter.factory({
-          level: logger.level,
-          root: projectRoot,
-          ...config,
-        }),
-      )
+    const logConfigs: FileWriterConfig[] = [
+      { logFilePath: join(root, ERROR_LOG_FILENAME), truncatePrevious: true, level: LogLevel.error },
+      { logFilePath: join(gardenDirPath, LOGS_DIR_NAME, ERROR_LOG_FILENAME), level: LogLevel.error },
+      { logFilePath: join(gardenDirPath, LOGS_DIR_NAME, "development.log"), level: logger.level },
+    ]
+    for (const config of logConfigs) {
+      logger.writers.push(await FileWriter.factory(config))
     }
     this.fileWritersInitialized = true
   }
@@ -283,7 +281,7 @@ export class GardenCli {
 
           // Register log file writers. We need to do this after the Garden class is initialised because
           // the file writers depend on the project root.
-          await this.initFileWriters(logger, garden.projectRoot)
+          await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
 
           // TODO: enforce that commands always output DeepPrimitiveMap
           result = await command.action({
@@ -300,7 +298,8 @@ export class GardenCli {
           // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
           // Other exceptions are handled within the implementation of "get debug-info".
           if (command.name === "debug-info") {
-            await generateBasicDebugInfoReport(root, log)
+            // Use default Garden dir name as fallback since Garden class hasn't been initialised
+            await generateBasicDebugInfoReport(root, join(root, DEFAULT_GARDEN_DIR_NAME), log)
             return
           }
           throw err

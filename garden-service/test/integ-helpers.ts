@@ -4,7 +4,7 @@ import { remove } from "fs-extra"
 import { get, intersection } from "lodash"
 import parseArgs = require("minimist")
 import { resolve } from "path"
-import { GARDEN_DIR_NAME } from "../src/constants"
+import { DEFAULT_GARDEN_DIR_NAME } from "../src/constants"
 import { TaskLogStatus } from "../src/logger/log-entry"
 import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { getExampleProjects } from "./helpers"
@@ -16,7 +16,7 @@ export const parsedArgs = parseArgs(process.argv.slice(2))
 export async function removeExampleDotGardenDirs() {
   await Bluebird.map(Object.values(getExampleProjects()), async (projectRoot) => {
     try {
-      await remove(resolve(projectRoot, GARDEN_DIR_NAME))
+      await remove(resolve(projectRoot, DEFAULT_GARDEN_DIR_NAME))
     } catch (error) {
       // No .garden directory found in projectRoot, so there's nothing to do here.
     }

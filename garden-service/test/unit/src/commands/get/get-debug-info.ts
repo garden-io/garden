@@ -19,16 +19,16 @@ import {
   GetDebugInfoCommand,
 } from "../../../../../src/commands/get/get-debug-info"
 import { readdirSync, remove, pathExists, readJSONSync } from "fs-extra"
-import { GARDEN_DIR_NAME, CONFIG_FILENAME, ERROR_LOG_FILENAME } from "../../../../../src/constants"
+import { CONFIG_FILENAME, ERROR_LOG_FILENAME } from "../../../../../src/constants"
 import { join, relative } from "path"
 import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 
 const debugZipFileRegex = new RegExp(/debug-info-.*?.zip/)
 
-async function cleanupTmpDebugFiles(root: string) {
+async function cleanupTmpDebugFiles(root: string, gardenDirPath: string) {
   const allFiles = readdirSync(root)
-  await remove(join(root, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT))
+  await remove(join(gardenDirPath, TEMP_DEBUG_ROOT))
   const deleteFilenames = allFiles.filter((fileName) => {
     return fileName.match(debugZipFileRegex)
   })
@@ -45,15 +45,15 @@ describe("GetDebugInfoCommand", () => {
   before(async () => {
     garden = await makeTestGardenA()
     log = garden.log
-    gardenDebugTmp = join(garden.projectRoot, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+    gardenDebugTmp = join(garden.gardenDirPath, TEMP_DEBUG_ROOT)
   })
 
   afterEach(async () => {
-    await cleanupTmpDebugFiles(garden.projectRoot)
+    await cleanupTmpDebugFiles(garden.projectRoot, garden.gardenDirPath)
   })
 
   after(async () => {
-    await cleanProject(garden.projectRoot)
+    await cleanProject(garden.gardenDirPath)
   })
 
   describe("generateDebugInfoReport", () => {
@@ -82,7 +82,7 @@ describe("GetDebugInfoCommand", () => {
   describe("generateBasicDebugInfoReport", () => {
     it("should generate a zip file containing a *basic* debug info report in the root folder of the project",
       async () => {
-        await generateBasicDebugInfoReport(garden.projectRoot, log)
+        await generateBasicDebugInfoReport(garden.projectRoot, garden.gardenDirPath, log)
         const gardenProjectRootFiles = readdirSync(garden.projectRoot)
         const zipFiles = gardenProjectRootFiles.filter((fileName) => {
           return fileName.match(debugZipFileRegex)
@@ -94,7 +94,7 @@ describe("GetDebugInfoCommand", () => {
 
   describe("collectBasicDebugInfo", () => {
     it("should create a basic debug info report in a temporary folder", async () => {
-      await collectBasicDebugInfo(garden.projectRoot, log)
+      await collectBasicDebugInfo(garden.projectRoot, garden.gardenDirPath, log)
 
       // we first check if the main garden.yml exists
       expect(await pathExists(join(gardenDebugTmp, CONFIG_FILENAME))).to.equal(true)
@@ -121,7 +121,7 @@ describe("GetDebugInfoCommand", () => {
 
   describe("collectSystemDiagnostic", () => {
     it("should create a system info report in a temporary folder", async () => {
-      await collectSystemDiagnostic(garden.projectRoot, log)
+      await collectSystemDiagnostic(garden.gardenDirPath, log)
 
       // Check if the temporary folder exists
       expect(await pathExists(gardenDebugTmp)).to.equal(true)

@@ -323,7 +323,7 @@ describe("createIngressResources", () => {
   })
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { container: gardenPlugin })
+    garden = await makeTestGarden(projectRoot, { extraPlugins: { container: gardenPlugin } })
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 

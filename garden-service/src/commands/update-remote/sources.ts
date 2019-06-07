@@ -73,7 +73,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
       await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", log })
     }
 
-    await pruneRemoteSources({ projectRoot: garden.projectRoot, type: "project", sources: projectSources })
+    await pruneRemoteSources({ gardenDirPath: garden.gardenDirPath, type: "project", sources: projectSources })
 
     return { result: projectSources }
   }

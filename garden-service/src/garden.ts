@@ -35,7 +35,7 @@ import { BuildDependencyConfig, ModuleConfig, baseModuleSpecSchema, ModuleResour
 import { ModuleConfigContext, ContextResolveOpts } from "./config/config-context"
 import { createPluginContext } from "./plugin-context"
 import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
-import { SUPPORTED_PLATFORMS, SupportedPlatform, CONFIG_FILENAME } from "./constants"
+import { SUPPORTED_PLATFORMS, SupportedPlatform, CONFIG_FILENAME, DEFAULT_GARDEN_DIR_NAME } from "./constants"
 import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
@@ -70,6 +70,7 @@ export type ModuleActionMap = {
 
 export interface GardenOpts {
   config?: ProjectConfig,
+  gardenDirPath?: string,
   environmentName?: string,
   log?: LogEntry,
   plugins?: Plugins,
@@ -105,6 +106,7 @@ export class Garden {
     public readonly variables: PrimitiveMap,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
+    public readonly gardenDirPath: string,
     public readonly ignorer: Ignorer,
     public readonly opts: GardenOpts,
     plugins: Plugins,
@@ -125,8 +127,8 @@ export class Garden {
     this.modulesScanned = false
     this.log = opts.log || getLogger().placeholder()
     // TODO: Support other VCS options.
-    this.vcs = new GitHandler(this.projectRoot)
-    this.configStore = new LocalConfigStore(this.projectRoot)
+    this.vcs = new GitHandler(this.gardenDirPath)
+    this.configStore = new LocalConfigStore(this.gardenDirPath)
     this.cache = new TreeCache()
 
     this.moduleConfigs = {}
@@ -148,7 +150,7 @@ export class Garden {
   static async factory<T extends typeof Garden>(
     this: T, currentDirectory: string, opts: GardenOpts = {},
   ): Promise<InstanceType<T>> {
-    let { environmentName, config, plugins = {} } = opts
+    let { environmentName, config, gardenDirPath, plugins = {} } = opts
 
     if (!config) {
       config = await findProjectConfig(currentDirectory)
@@ -176,8 +178,9 @@ export class Garden {
 
     const { providers, variables } = pickEnvironment(config, environmentName)
 
-    const buildDir = await BuildDir.factory(projectRoot)
-    const ignorer = await getIgnorer(projectRoot)
+    gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
+    const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
+    const ignorer = await getIgnorer(projectRoot, gardenDirPath)
 
     const garden = new this(
       projectRoot,
@@ -186,6 +189,7 @@ export class Garden {
       variables,
       projectSources,
       buildDir,
+      gardenDirPath,
       ignorer,
       opts,
       plugins,
@@ -606,7 +610,7 @@ export class Garden {
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
       const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
-        return await getModulesPathsFromPath(dir)
+        return await getModulesPathsFromPath(dir, this.gardenDirPath)
       })).filter(Boolean)
 
       const rawConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]

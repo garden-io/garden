@@ -24,7 +24,6 @@ import { getModulesPathsFromPath } from "../../util/fs"
 import {
   CONFIG_FILENAME,
   ERROR_LOG_FILENAME,
-  GARDEN_DIR_NAME,
 } from "../../constants"
 import dedent = require("dedent")
 import { Garden } from "../../garden"
@@ -43,9 +42,10 @@ export const PROVIDER_INFO_FILENAME_NO_EXT = "info"
  *
  * @export
  * @param {string} root Project root path
+ * @param {string} gardenDirPath Path to the Garden cache directory
  * @param {LogEntry} log Logger
  */
-export async function collectBasicDebugInfo(root: string, log: LogEntry) {
+export async function collectBasicDebugInfo(root: string, gardenDirPath: string, log: LogEntry) {
   // Find project definition
   const config = await findProjectConfig(root, true)
   if (!config) {
@@ -56,7 +56,7 @@ export async function collectBasicDebugInfo(root: string, log: LogEntry) {
   }
 
   // Create temporary folder inside .garden/ at root of project
-  const tempPath = join(root, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+  const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   await remove(tempPath)
   await ensureDir(tempPath)
 
@@ -68,7 +68,7 @@ export async function collectBasicDebugInfo(root: string, log: LogEntry) {
   }
 
   // Find all services paths
-  const paths = await getModulesPathsFromPath(root)
+  const paths = await getModulesPathsFromPath(root, gardenDirPath)
 
   // Copy all the service configuration files
   for (const servicePath of paths) {
@@ -88,11 +88,11 @@ export async function collectBasicDebugInfo(root: string, log: LogEntry) {
  * Saves all the informations as json in a temporary folder.
  *
  * @export
- * @param {string} root Project root path
+ * @param {string} gardenDirPath Path to the Garden cache directory
  * @param {LogEntry} log Logger
  */
-export async function collectSystemDiagnostic(root: string, log: LogEntry) {
-  const tempPath = join(root, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEntry) {
+  const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
 
   let dockerVersion = ""
@@ -124,7 +124,7 @@ export async function collectSystemDiagnostic(root: string, log: LogEntry) {
  * @param {string} format The extension format dictating the extension of the report
  */
 export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, format: string) {
-  const tempPath = join(garden.projectRoot, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+  const tempPath = join(garden.gardenDirPath, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
   // Collect debug info from providers
   const actions = await garden.getActionHelper()
@@ -149,17 +149,17 @@ export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, fo
  * @param {string} root
  * @param {LogEntry} log
  */
-export async function generateBasicDebugInfoReport(root: string, log: LogEntry) {
-  const tempPath = join(root, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+export async function generateBasicDebugInfoReport(root: string, gardenDirPath: string, log: LogEntry) {
+  const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   const entry = log.info({ msg: "Collecting basic debug info", status: "active" })
   // Collect project info
   const projectEntry = entry.info({ section: "Project", msg: "collecting info", status: "active" })
-  await collectBasicDebugInfo(root, log)
+  await collectBasicDebugInfo(root, gardenDirPath, log)
   projectEntry.setSuccess({ msg: chalk.green(`Done (took ${projectEntry.getDuration(1)} sec)`), append: true })
 
   // Run system diagnostic
   const systemEntry = entry.info({ section: "System", msg: "collecting info", status: "active" })
-  await collectSystemDiagnostic(root, log)
+  await collectSystemDiagnostic(gardenDirPath, log)
   systemEntry.setSuccess({ msg: chalk.green(`Done (took ${systemEntry.getDuration(1)} sec)`), append: true })
 
   // Zip report folder
@@ -227,13 +227,13 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
   options = debugInfoOptions
 
   async action({ garden, log, opts }: CommandParams<Args, Opts>) {
-    const tempPath = join(garden.projectRoot, GARDEN_DIR_NAME, TEMP_DEBUG_ROOT)
+    const tempPath = join(garden.gardenDirPath, TEMP_DEBUG_ROOT)
 
     const entry = log.info({ msg: "Collecting debug info", status: "active" })
 
     // Collect project info
     const projectEntry = entry.info({ section: "Project", msg: "collecting info", status: "active" })
-    await collectBasicDebugInfo(garden.projectRoot, log)
+    await collectBasicDebugInfo(garden.projectRoot, garden.gardenDirPath, log)
     projectEntry.setSuccess({ msg: chalk.green(`Done (took ${projectEntry.getDuration(1)} sec)`), append: true })
 
     // Run system diagnostic

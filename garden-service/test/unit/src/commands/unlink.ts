@@ -62,7 +62,7 @@ describe("UnlinkCommand", () => {
     })
 
     afterEach(async () => {
-      await cleanProject(projectRoot)
+      await cleanProject(garden.gardenDirPath)
     })
 
     it("should unlink the provided modules", async () => {
@@ -136,7 +136,7 @@ describe("UnlinkCommand", () => {
     })
 
     afterEach(async () => {
-      await cleanProject(projectRoot)
+      await cleanProject(garden.gardenDirPath)
     })
 
     it("should unlink the provided sources", async () => {
