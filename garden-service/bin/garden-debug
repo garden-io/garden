@@ -1,5 +1,7 @@
 #!/usr/bin/env node --inspect
 
+require("source-map-support").install()
+
 const cli = require("../build/src/cli/cli")
 
 cli.run()
