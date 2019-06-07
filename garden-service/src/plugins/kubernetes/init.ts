@@ -36,7 +36,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const k8sCtx = <KubernetesPluginContext>ctx
   const variables = getVariables(k8sCtx.provider.config)
 
-  const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
+  const sysGarden = await getSystemGarden(k8sCtx, variables || {})
   const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
 
   let systemReady = true
@@ -74,9 +74,9 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     const systemServiceStatus = await getSystemServiceStatus({
       ctx: k8sCtx,
       log,
+      sysGarden,
       namespace,
       serviceNames: systemServiceNames,
-      variables: variables || {},
     })
 
     // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
@@ -140,7 +140,7 @@ export async function prepareEnvironment({ ctx, log, force, manualInit, status }
     }
 
     // Install Tiller to system namespace
-    const sysGarden = await getSystemGarden(k8sCtx.provider, variables || {})
+    const sysGarden = await getSystemGarden(k8sCtx, variables || {})
     const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
     await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
 
@@ -149,11 +149,11 @@ export async function prepareEnvironment({ ctx, log, force, manualInit, status }
     // Install system services
     await prepareSystemServices({
       log,
+      sysGarden,
       namespace,
       force,
       ctx: k8sCtx,
       serviceNames: systemServiceNames,
-      variables: variables || {},
     })
   }
 

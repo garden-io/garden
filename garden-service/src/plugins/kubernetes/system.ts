@@ -13,7 +13,7 @@ import * as semver from "semver"
 
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { Garden } from "../../garden"
-import { KubernetesProvider, KubernetesPluginContext, KubernetesConfig } from "./config"
+import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { KubeApi } from "./api"
 import { createNamespace } from "./namespace"
@@ -33,17 +33,23 @@ const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
 export const systemNamespace = "garden-system"
 export const systemMetadataNamespace = "garden-system--metadata"
 
-export async function getSystemGarden(provider: KubernetesProvider, variables: PrimitiveMap): Promise<Garden> {
+/**
+ * Note that we initialise system Garden with a custom Garden dir path. This is because
+ * the system modules are stored in the static directory but we want their build products
+ * stored at the project level. This way we can run several Garden processes at the same time
+ * without them all modifying the same system build directory, which can cause unexpected issues.
+ */
+export async function getSystemGarden(ctx: KubernetesPluginContext, variables: PrimitiveMap): Promise<Garden> {
   const sysProvider: KubernetesConfig = {
-    ...provider.config,
-
+    ...ctx.provider.config,
     environments: ["default"],
-    name: provider.name,
+    name: ctx.provider.name,
     namespace: systemNamespace,
     _systemServices: [],
   }
 
   return Garden.factory(systemProjectPath, {
+    gardenDirPath: join(ctx.gardenDirPath, "kubernetes.garden"),
     environmentName: "default",
     config: {
       path: systemProjectPath,
@@ -114,18 +120,17 @@ export async function recreateSystemNamespaces(api: KubeApi, log: LogEntry, name
 
 interface GetSystemServicesStatusParams {
   ctx: KubernetesPluginContext,
+  sysGarden: Garden,
   log: LogEntry,
   namespace: string,
   serviceNames: string[],
-  variables: PrimitiveMap,
 }
 
 export async function getSystemServiceStatus(
-  { ctx, log, namespace, serviceNames, variables }: GetSystemServicesStatusParams,
+  { ctx, sysGarden, log, namespace, serviceNames }: GetSystemServicesStatusParams,
 ) {
   let dashboardPages: DashboardPage[] = []
 
-  const sysGarden = await getSystemGarden(ctx.provider, variables)
   const actions = await sysGarden.getActionHelper()
 
   const serviceStatuses = await actions.getServiceStatuses({ log, serviceNames })
@@ -167,7 +172,7 @@ interface PrepareSystemServicesParams extends GetSystemServicesStatusParams {
 }
 
 export async function prepareSystemServices(
-  { ctx, log, namespace, serviceNames, force, variables }: PrepareSystemServicesParams,
+  { ctx, sysGarden, log, namespace, serviceNames, force }: PrepareSystemServicesParams,
 ) {
   const api = await KubeApi.factory(log, ctx.provider.config.context)
 
@@ -180,7 +185,6 @@ export async function prepareSystemServices(
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const sysGarden = await getSystemGarden(provider, variables)
 
   // Deploy enabled system services
   if (serviceNames.length > 0) {
