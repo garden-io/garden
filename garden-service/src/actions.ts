@@ -143,7 +143,7 @@ export class ActionHelper implements TypeGuard {
   async getEnvironmentStatus(
     { pluginName, log }: ActionHelperParams<GetEnvironmentStatusParams>,
   ): Promise<EnvironmentStatusMap> {
-    const handlers = this.getActionHelpers("getEnvironmentStatus", pluginName)
+    const handlers = this.getActionHandlers("getEnvironmentStatus", pluginName)
     const logEntry = log.debug({
       msg: "Getting status...",
       status: "active",
@@ -185,7 +185,7 @@ export class ActionHelper implements TypeGuard {
       )
     }
 
-    const prepareHandlers = this.getActionHelpers("prepareEnvironment", pluginName)
+    const prepareHandlers = this.getActionHandlers("prepareEnvironment", pluginName)
 
     const needPrep = Object.entries(prepareHandlers).filter(([name]) => {
       const status = statuses[name] || { ready: false }
@@ -229,7 +229,7 @@ export class ActionHelper implements TypeGuard {
   async cleanupEnvironment(
     { pluginName, log }: ActionHelperParams<CleanupEnvironmentParams>,
   ): Promise<EnvironmentStatusMap> {
-    const handlers = this.getActionHelpers("cleanupEnvironment", pluginName)
+    const handlers = this.getActionHandlers("cleanupEnvironment", pluginName)
     await Bluebird.each(values(handlers), async (h) => h({ ...await this.commonParams(h, log) }))
     return this.getEnvironmentStatus({ pluginName, log })
   }
@@ -430,7 +430,7 @@ export class ActionHelper implements TypeGuard {
   }
 
   async getDebugInfo({ log }: { log: LogEntry }): Promise<DebugInfoMap> {
-    const handlers = this.getActionHelpers("getDebugInfo")
+    const handlers = this.getActionHandlers("getDebugInfo")
     return Bluebird.props(mapValues(handlers, async (h) => h({ ...await this.commonParams(h, log) })))
   }
 
@@ -598,7 +598,7 @@ export class ActionHelper implements TypeGuard {
   /**
    * Get a handler for the specified action.
    */
-  public getActionHelpers<T extends keyof PluginActions>(actionType: T, pluginName?: string): ActionHandlerMap<T> {
+  public getActionHandlers<T extends keyof PluginActions>(actionType: T, pluginName?: string): ActionHandlerMap<T> {
     return this.filterActionHandlers(this.actionHandlers[actionType], pluginName)
   }
 
@@ -633,7 +633,7 @@ export class ActionHelper implements TypeGuard {
       { actionType: T, pluginName?: string, defaultHandler?: PluginActions[T] },
   ): PluginActions[T] {
 
-    const handlers = Object.values(this.getActionHelpers(actionType, pluginName))
+    const handlers = Object.values(this.getActionHandlers(actionType, pluginName))
 
     if (handlers.length) {
       return handlers[handlers.length - 1]

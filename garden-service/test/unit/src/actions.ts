@@ -321,9 +321,9 @@ describe("ActionHelper", () => {
     })
   })
 
-  describe("getActionHelpers", () => {
+  describe("getActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = actions.getActionHelpers("prepareEnvironment")
+      const handlers = actions.getActionHandlers("prepareEnvironment")
 
       expect(Object.keys(handlers)).to.eql([
         "test-plugin",
