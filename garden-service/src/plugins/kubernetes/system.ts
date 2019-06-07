@@ -29,13 +29,9 @@ const GARDEN_VERSION = getPackageVersion()
 const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
-export const systemSymbol = Symbol()
+
 export const systemNamespace = "garden-system"
 export const systemMetadataNamespace = "garden-system--metadata"
-
-export function isSystemGarden(provider: KubernetesProvider): boolean {
-  return provider.config._system === systemSymbol
-}
 
 export async function getSystemGarden(provider: KubernetesProvider, variables: PrimitiveMap): Promise<Garden> {
   return Garden.factory(systemProjectPath, {
@@ -54,7 +50,6 @@ export async function getSystemGarden(provider: KubernetesProvider, variables: P
           name: "local-kubernetes",
           context: provider.config.context,
           namespace: systemNamespace,
-          _system: systemSymbol,
           _systemServices: [],
         },
       ],

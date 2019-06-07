@@ -23,7 +23,6 @@ import { ContainerRegistryConfig } from "../../container/config"
 const supportedContexts = ["docker-for-desktop", "microk8s", "minikube"]
 
 export interface LocalKubernetesConfig extends KubernetesBaseConfig {
-  _system?: Symbol
   setupIngressController: string | null
 }
 
@@ -42,7 +41,6 @@ export const configSchema = kubernetesConfigBase
       .allow("nginx", false, null)
       .default("nginx")
       .description("Set this to null or false to skip installing/enabling the `nginx` ingress controller."),
-    _system: Joi.any().meta({ internal: true }),
   })
   .description("The provider configuration for the local-kubernetes plugin.")
 
@@ -145,7 +143,6 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     storage: config.storage,
     setupIngressController: config.setupIngressController,
     tlsCertificates: config.tlsCertificates,
-    _system: config._system,
     _systemServices,
   }
 
