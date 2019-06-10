@@ -18,7 +18,7 @@ export async function testContainerModule(
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
-  const command = testConfig.spec.args
+  const { command, args } = testConfig.spec
   runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
@@ -26,6 +26,7 @@ export async function testContainerModule(
     ctx,
     module,
     command,
+    args,
     interactive,
     ignoreError: true, // to ensure results get stored when an error occurs
     runtimeContext,

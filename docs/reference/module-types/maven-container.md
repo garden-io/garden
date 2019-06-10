@@ -270,6 +270,22 @@ Annotations to attach to the service (Note: May not be applicable to all provide
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+### `services[].command[]`
+[services](#services) > command
+
+The command/entrypoint to run the container with when starting the service.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+services:
+  - command:
+    - /bin/sh
+    - '-c'
+```
 ### `services[].args[]`
 [services](#services) > args
 
@@ -278,6 +294,14 @@ The arguments to run the container with when starting the service.
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
+Example:
+```yaml
+services:
+  - args:
+    - npm
+    - start
+```
 ### `services[].daemon`
 [services](#services) > daemon
 
@@ -401,14 +425,39 @@ Set this to check the service's health by checking if this TCP port is accepting
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `services[].hotReloadArgs[]`
-[services](#services) > hotReloadArgs
+### `services[].hotReloadCommand[]`
+[services](#services) > hotReloadCommand
 
-If this module uses the `hotReload` field, the container will be run with these arguments instead of those in `args` when the service is deployed with hot reloading enabled.
+If this module uses the `hotReload` field, the container will be run with this command/entrypoint when the service is deployed with hot reloading enabled.
 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
+Example:
+```yaml
+services:
+  - hotReloadCommand:
+    - /bin/sh
+    - '-c'
+```
+### `services[].hotReloadArgs[]`
+[services](#services) > hotReloadArgs
+
+If this module uses the `hotReload` field, the container will be run with these arguments when the service is deployed with hot reloading enabled.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+services:
+  - hotReloadArgs:
+    - npm
+    - run
+    - dev
+```
 ### `services[].limits`
 [services](#services) > limits
 
@@ -568,6 +617,22 @@ Maximum duration (in seconds) of the test run.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+### `tests[].command[]`
+[tests](#tests) > command
+
+The command/entrypoint used to run the test inside the container.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+tests:
+  - command:
+    - /bin/sh
+    - '-c'
+```
 ### `tests[].args[]`
 [tests](#tests) > args
 
@@ -631,6 +696,22 @@ Maximum duration (in seconds) of the task's execution.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+### `tasks[].command[]`
+[tasks](#tasks) > command
+
+The command/entrypoint used to run the task inside the container.
+
+| Type | Required |
+| ---- | -------- |
+| `array[string]` | No
+
+Example:
+```yaml
+tasks:
+  - command:
+    - /bin/sh
+    - '-c'
+```
 ### `tasks[].args[]`
 [tasks](#tasks) > args
 
@@ -711,6 +792,7 @@ services:
   - name:
     dependencies: []
     annotations: {}
+    command:
     args:
     daemon: false
     ingresses:
@@ -726,6 +808,7 @@ services:
         scheme: HTTP
       command:
       tcpPort:
+    hotReloadCommand:
     hotReloadArgs:
     limits:
       cpu: 1000
@@ -745,6 +828,7 @@ tests:
   - name:
     dependencies: []
     timeout: null
+    command:
     args:
     env: {}
 tasks:
@@ -752,6 +836,7 @@ tasks:
     description:
     dependencies: []
     timeout: null
+    command:
     args:
     env: {}
 jarPath:

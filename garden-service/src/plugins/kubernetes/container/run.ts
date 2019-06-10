@@ -81,7 +81,7 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
 
 export async function runContainerModule(
   {
-    ctx, log, module, command, ignoreError = true, interactive, runtimeContext, timeout,
+    ctx, log, module, args, command, ignoreError = true, interactive, runtimeContext, timeout,
   }: RunModuleParams<ContainerModule>,
 ): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
@@ -94,7 +94,8 @@ export async function runContainerModule(
     namespace,
     module,
     envVars: runtimeContext.envVars,
-    args: command,
+    command,
+    args,
     image,
     interactive,
     ignoreError,
@@ -105,11 +106,13 @@ export async function runContainerModule(
 
 export async function runContainerService(
   { ctx, service, interactive, runtimeContext, timeout, log }: RunServiceParams<ContainerModule>,
-) {
+): Promise<RunResult> {
+  const { command, args } = service.spec
   return runContainerModule({
     ctx,
     module: service.module,
-    command: service.spec.args || [],
+    command,
+    args,
     interactive,
     runtimeContext,
     timeout,
@@ -126,13 +129,15 @@ export async function runContainerTask(
   const context = provider.config.context
   const namespace = await getAppNamespace(ctx, log, provider)
   const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+  const { command, args } = task.spec
 
   const res = await runPod({
     context,
     namespace,
     module,
     envVars: runtimeContext.envVars,
-    args: task.spec.args || [],
+    command,
+    args,
     image,
     interactive,
     ignoreError: false,

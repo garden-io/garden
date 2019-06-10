@@ -21,7 +21,7 @@ import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask
 
 export async function runHelmModule(
   {
-    ctx, module, command, ignoreError = true, interactive, runtimeContext, timeout, log,
+    ctx, module, args, command, ignoreError = true, interactive, runtimeContext, timeout, log,
   }: RunModuleParams<HelmModule>,
 ): Promise<RunResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -44,7 +44,8 @@ export async function runHelmModule(
     namespace,
     module,
     envVars: runtimeContext.envVars,
-    args: command,
+    command,
+    args,
     image,
     interactive,
     ignoreError,
@@ -60,7 +61,7 @@ export async function runHelmTask(
   const context = k8sCtx.provider.config.context
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
-  const args = task.spec.args
+  const { command, args } = task.spec
   const image = await getImage(k8sCtx, module, log, task.spec.resource || getServiceResourceSpec(module))
 
   const res = await runPod({
@@ -68,6 +69,7 @@ export async function runHelmTask(
     namespace,
     module,
     envVars: { ...runtimeContext.envVars, ...task.spec.env },
+    command,
     args,
     image,
     interactive,

@@ -85,8 +85,6 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
     await garden.processTasks([buildTask])
 
-    const command = args.command || []
-
     const runtimeContext = await runtimeContextForServiceDeps(garden, graph, module)
 
     printRuntimeContext(log, runtimeContext)
@@ -96,7 +94,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const result = await actions.runModule({
       log,
       module,
-      command,
+      args: args.command || [],
       runtimeContext,
       interactive: opts.interactive,
     })

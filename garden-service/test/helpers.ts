@@ -43,6 +43,7 @@ import { GetSecretParams } from "../src/types/plugin/provider/getSecret"
 import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
 import { RunTaskParams } from "../src/types/plugin/task/runTask"
+import { RunResult, RunTaskResult } from "../src/types/plugin/outputs"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -66,12 +67,12 @@ export async function profileBlock(description: string, block: () => Promise<any
   return result
 }
 
-async function runModule(params: RunModuleParams) {
+async function runModule(params: RunModuleParams): Promise<RunResult> {
   const version = await params.module.version
 
   return {
     moduleName: params.module.name,
-    command: params.command,
+    command: params.args,
     completedAt: testNow,
     output: "OK",
     version,
@@ -176,12 +177,12 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
 
         async runService(
           { ctx, service, interactive, runtimeContext, timeout, log }: RunServiceParams,
-        ) {
+        ): Promise<RunResult> {
           return runModule({
             ctx,
             log,
             module: service.module,
-            command: [service.name],
+            args: [service.name],
             interactive,
             runtimeContext,
             timeout,
@@ -190,14 +191,14 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
 
         async runTask(
           { ctx, task, interactive, runtimeContext, log }: RunTaskParams,
-        ) {
+        ): Promise<RunTaskResult> {
           const result = await runModule({
             ctx,
             interactive,
             log,
             runtimeContext,
             module: task.module,
-            command: task.spec.command || [],
+            args: task.spec.command,
             ignoreError: false,
             timeout: task.spec.timeout || 9999,
           })
