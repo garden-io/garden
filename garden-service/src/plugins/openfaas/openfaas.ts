@@ -45,6 +45,7 @@ import { keyBy, union } from "lodash"
 import { DEFAULT_API_VERSION } from "../../constants"
 import { ExecModuleConfig } from "../exec"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
+import { V1Deployment } from "@kubernetes/client-node"
 
 export const stackFilename = "stack.yml"
 
@@ -411,7 +412,7 @@ async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusP
   const namespace = await getAppNamespace(openFaasCtx, log, k8sProvider)
   const api = await KubeApi.factory(log, k8sProvider.config.context)
 
-  let deployment
+  let deployment: V1Deployment
 
   try {
     deployment = (await api.apps.readNamespacedDeployment(service.name, namespace)).body
