@@ -7,7 +7,9 @@ import {
   getChildDirNames,
   isConfigFilename,
   getConfigFilePath,
+  getWorkingCopyId,
 } from "../../../../src/util/fs"
+import { withDir } from "tmp-promise"
 
 const projectYamlFileExtensions = getDataDir("test-project-yaml-file-extensions")
 const projectDuplicateYamlFileExtensions = getDataDir("test-project-duplicate-yaml-file-extensions")
@@ -98,6 +100,24 @@ describe("util", () => {
       for (const name of badNames) {
         expect(isConfigFilename(name)).to.be.false
       }
+    })
+  })
+
+  describe("getWorkingCopyId", () => {
+    it("should generate and return a new ID for an empty directory", async () => {
+      return withDir(async (dir) => {
+        const id = await getWorkingCopyId(dir.path)
+        expect(id).to.be.string
+      }, { unsafeCleanup: true })
+    })
+
+    it("should return the same ID after generating for the first time", async () => {
+      return withDir(async (dir) => {
+        const idA = await getWorkingCopyId(dir.path)
+        const idB = await getWorkingCopyId(dir.path)
+
+        expect(idA).to.equal(idB)
+      }, { unsafeCleanup: true })
     })
   })
 })
