@@ -215,8 +215,9 @@ environments:
 ### `environments[].providers[].buildMode`
 [environments](#environments) > [providers](#environments[].providers[]) > buildMode
 
-Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you can set it to 'cluster-docker' to sync files to a remote docker daemon, installed in the cluster, and build container images there.
-This is currently experimental and sometimes not needed (e.g. with Docker for Desktop), so it's not enabled by default.
+Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you can set it to 'cluster-docker' or 'kaniko' to sync files to a remote docker daemon, installed in the cluster, and build container images there. This avoids the need to run Docker or Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker daemon when building. You might also be deploying to a remote cluster that isn't intended as a development environment, so you'd want your builds to happen elsewhere.
+Functionally, both 'cluster-docker' and 'kaniko' do the same thing, but use different underlying mechanisms to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode, this is less secure than Kaniko, but in turn it is generally faster. See the [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information.
 
 | Type | Required |
 | ---- | -------- |
@@ -257,7 +258,7 @@ Require SSL on all services. If set to true, an error is raised when no certific
 
 References to `docker-registry` secrets to use for authenticating with remote registries when pulling
 images. This is necessary if you reference private images in your module configuration, and is required
-when configuring a remote Kubernetes environment.
+when configuring a remote Kubernetes environment with buildMode=local.
 
 | Type | Required |
 | ---- | -------- |
@@ -286,66 +287,10 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | Type | Required |
 | ---- | -------- |
 | `string` | No
-### `environments[].providers[].storage`
-[environments](#environments) > [providers](#environments[].providers[]) > storage
-
-Storage parameters to set for the in-cluster builder and container registry persistent volume (which are automatically installed and used when buildMode=cluster-docker).
-
-| Type | Required |
-| ---- | -------- |
-| `object` | No
-### `environments[].providers[].storage.builder`
-[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > builder
-
-
-
-| Type | Required |
-| ---- | -------- |
-| `object` | No
-### `environments[].providers[].storage.builder.size`
-[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > size
-
-Volume size for the registry in megabytes.
-
-| Type | Required |
-| ---- | -------- |
-| `number` | No
-### `environments[].providers[].storage.builder.storageClass`
-[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > storageClass
-
-Storage class to use for the volume.
-
-| Type | Required |
-| ---- | -------- |
-| `string` | No
-### `environments[].providers[].storage.registry`
-[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > registry
-
-
-
-| Type | Required |
-| ---- | -------- |
-| `object` | No
-### `environments[].providers[].storage.registry.size`
-[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > size
-
-Volume size for the registry in megabytes.
-
-| Type | Required |
-| ---- | -------- |
-| `number` | No
-### `environments[].providers[].storage.registry.storageClass`
-[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > storageClass
-
-Storage class to use for the volume.
-
-| Type | Required |
-| ---- | -------- |
-| `string` | No
 ### `environments[].providers[].resources`
 [environments](#environments) > [providers](#environments[].providers[]) > resources
 
-Resource requests and limits for the in-cluster builder and container registry (which are automatically installed and used when buildMode=cluster-docker).
+Resource requests and limits for the in-cluster builder and container registry (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
 
 | Type | Required |
 | ---- | -------- |
@@ -462,6 +407,142 @@ Memory request in megabytes.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+### `environments[].providers[].resources.sync`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > sync
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.sync.limits`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > limits
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.sync.limits.cpu`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [limits](#environments[].providers[].resources.sync.limits) > cpu
+
+CPU limit in millicpu.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.sync.limits.memory`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [limits](#environments[].providers[].resources.sync.limits) > memory
+
+Memory limit in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.sync.requests`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > requests
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].resources.sync.requests.cpu`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [requests](#environments[].providers[].resources.sync.requests) > cpu
+
+CPU request in millicpu.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].resources.sync.requests.memory`
+[environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [requests](#environments[].providers[].resources.sync.requests) > memory
+
+Memory request in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].storage`
+[environments](#environments) > [providers](#environments[].providers[]) > storage
+
+Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].storage.builder`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > builder
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].storage.builder.size`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > size
+
+Volume size for the registry in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].storage.builder.storageClass`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [builder](#environments[].providers[].storage.builder) > storageClass
+
+Storage class to use for the volume.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+### `environments[].providers[].storage.registry`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > registry
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].storage.registry.size`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > size
+
+Volume size for the registry in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].storage.registry.storageClass`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [registry](#environments[].providers[].storage.registry) > storageClass
+
+Storage class to use for the volume.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
+### `environments[].providers[].storage.sync`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > sync
+
+
+
+| Type | Required |
+| ---- | -------- |
+| `object` | No
+### `environments[].providers[].storage.sync.size`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [sync](#environments[].providers[].storage.sync) > size
+
+Volume size for the registry in megabytes.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+### `environments[].providers[].storage.sync.storageClass`
+[environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > [sync](#environments[].providers[].storage.sync) > storageClass
+
+Storage class to use for the volume.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | No
 ### `environments[].providers[].tlsCertificates[]`
 [environments](#environments) > [providers](#environments[].providers[]) > tlsCertificates
 
@@ -700,13 +781,6 @@ environments:
         imagePullSecrets:
           - name:
             namespace: default
-        storage:
-          builder:
-            size: 10240
-            storageClass: null
-          registry:
-            size: 10240
-            storageClass: null
         resources:
           builder:
             limits:
@@ -722,6 +796,23 @@ environments:
             requests:
               cpu: 200
               memory: 512
+          sync:
+            limits:
+              cpu: 200
+              memory: 256
+            requests:
+              cpu: 100
+              memory: 64
+        storage:
+          builder:
+            size: 10240
+            storageClass: null
+          registry:
+            size: 10240
+            storageClass: null
+          sync:
+            size: 10240
+            storageClass: null
         tlsCertificates:
           - name:
             hostnames:

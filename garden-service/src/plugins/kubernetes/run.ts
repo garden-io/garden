@@ -23,6 +23,7 @@ interface RunPodParams {
   module: Module,
   namespace: string,
   overrides?: any,
+  podName?: string,
   timeout?: number,
 }
 
@@ -39,6 +40,7 @@ export async function runPod(
     module,
     namespace,
     overrides,
+    podName,
     timeout,
   }: RunPodParams,
 ): Promise<RunResult> {
@@ -63,7 +65,8 @@ export async function runPod(
   const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
 
   const kubecmd = [
-    "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
+    "run",
+    podName || `run-${module.name}-${Math.round(new Date().getTime())}`,
     ...opts,
     ...envArgs,
     "--",

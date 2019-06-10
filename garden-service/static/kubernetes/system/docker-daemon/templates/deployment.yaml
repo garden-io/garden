@@ -26,12 +26,12 @@ spec:
         - name: garden-docker-data
           persistentVolumeClaim:
             claimName: garden-docker-data
-        - name: garden-build-sync-data
+        - name: garden-build-sync
           persistentVolumeClaim:
-            claimName: garden-build-sync-data
+            claimName: garden-build-sync
         # - name: garden-registry-tls
         #   secret:
-        #     secretName: {{ .Values.dockerDaemon.registry.tlsSecretName }}
+        #     secretName: foo
         #     items:
         #       - key: tls.crt
         #         path: localhost:5000/ca.crt
@@ -54,43 +54,21 @@ spec:
           volumeMounts:
             - name: garden-docker-data
               mountPath: /var/lib/docker
-            - name: garden-build-sync-data
+            - name: garden-build-sync
               mountPath: /garden-build
               # Need to mount the registry cert so that the daemon trusts it
             # - name: garden-registry-tls
             #   mountPath: /etc/docker/certs.d
           resources:
-            {{- toYaml .Values.dockerDaemon.resources | nindent 12 }}
-        - name: {{ .Chart.Name }}-sync
-          image: "eugenmayer/rsync:latest"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: docker
-              containerPort: 873
-              protocol: TCP
-          livenessProbe:
-            tcpSocket:
-              port: 873
-          readinessProbe:
-            tcpSocket:
-              port: 873
-          volumeMounts:
-            - mountPath: /data
-              name: garden-build-sync-data
-          env:
-            # The service is not exposed at all outside the cluster, so this should be all good.
-            - name: ALLOW
-              value: "0.0.0.0/0"
-          resources:
-            {{- toYaml .Values.sync.resources | nindent 12 }}
-        - name: {{ .Chart.Name }}-proxy
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: proxy
           image: "basi/socat:v0.1.0"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - /bin/sh
             - -c
             - |
-              socat -d -d TCP-LISTEN:5000,fork TCP:{{ .Values.dockerDaemon.registry.hostname }}:5000
+              socat TCP-LISTEN:5000,fork TCP:{{ .Values.registry.hostname }}:5000
           ports:
             - name: proxy
               containerPort: 5000

@@ -1,4 +1,4 @@
-# Default values for docker-daemon.
+# Default values for garden-registry-proxy.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -10,10 +10,9 @@ image:
 nameOverride: garden-registry-proxy
 fullnameOverride: garden-registry-proxy
 
-dockerDaemon:
-  registry:
-    hostname: garden-docker-registry
-    tlsSecretName: garden-docker-registry-tls
+registry:
+  hostname: garden-docker-registry
+  tlsSecretName: garden-docker-registry-tls
 
 nodeSelector: {}
 

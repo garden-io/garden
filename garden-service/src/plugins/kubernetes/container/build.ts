@@ -8,84 +8,119 @@
 
 import { ContainerModule } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
-import { buildContainerModule, getContainerBuildStatus } from "../../container/build"
+import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import { getPortForward, getPods } from "../util"
+import { getPortForward, getPods, millicpuToString, megabytesToString } from "../util"
 import { systemNamespace } from "../system"
 import { RSYNC_PORT } from "../constants"
 import execa = require("execa")
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
-import { ConfigurationError } from "../../../exceptions"
 import { LogEntry } from "../../../logger/log-entry"
-import { KubernetesProvider } from "../config"
+import { KubernetesProvider, ContainerBuildMode } from "../config"
+import { PluginError } from "../../../exceptions"
+import axios from "axios"
+import { runPod } from "../run"
+import { getRegistryHostname } from "../init"
 
-const builderDeployment = "garden-docker-daemon"
+const dockerDaemonDeploymentName = "garden-docker-daemon"
+const dockerDaemonContainerName = "docker-daemon"
+// TODO: make build timeout configurable
+const buildTimeout = 600
+// Note: v0.9.0 appears to be completely broken: https://github.com/GoogleContainerTools/kaniko/issues/268
+const kanikoImage = "gcr.io/kaniko-project/executor:v0.8.0"
+const registryDeploymentName = "garden-docker-registry"
+const registryPort = 5000
+const syncDataVolumeName = "garden-build-sync"
+const syncDeploymentName = "garden-build-sync"
 
 export async function k8sGetContainerBuildStatus(
   params: GetBuildStatusParams<ContainerModule>,
 ): Promise<BuildStatus> {
-  const { ctx } = params
-  const provider = <KubernetesProvider>ctx.provider
-
-  if (provider.config.buildMode === "local") {
-    const status = await getContainerBuildStatus(params)
-
-    if (ctx.provider.config.deploymentRegistry) {
-      // TODO: Check if the image exists in the remote registry
-    }
-    return status
-
-  } else if (provider.config.buildMode === "cluster-docker") {
-    return getContainerBuildStatusCluster(params)
-
-  } else {
-    throw invalidBuildMode(provider)
-  }
-}
-
-export async function k8sBuildContainer(params: BuildModuleParams<ContainerModule>): Promise<BuildResult> {
-  const { ctx } = params
-  const provider = <KubernetesProvider>ctx.provider
-
-  if (provider.config.buildMode === "local") {
-    return buildContainerLocal(params)
-
-  } else if (provider.config.buildMode === "cluster-docker") {
-    return buildContainerCluster(params)
-
-  } else {
-    throw invalidBuildMode(provider)
-  }
-}
-
-async function getContainerBuildStatusCluster(params: GetBuildStatusParams<ContainerModule>) {
-  const { ctx, module, log } = params
+  const { ctx, module } = params
   const provider = <KubernetesProvider>ctx.provider
 
   const hasDockerfile = await containerHelpers.hasDockerfile(module)
 
   if (!hasDockerfile) {
+    // Nothing to build
     return { ready: true }
   }
 
-  const deploymentImage = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-  const args = ["docker", "images", "-q", deploymentImage]
-  const res = await execInBuilder(provider, log, args, 30)
-
-  const checkLog = res.stdout + res.stderr
-  log.silly(checkLog)
-
-  // The `docker images -q <id>` command returns an ID if the image exists, otherwise it returns an empty string
-  const ready = checkLog.trim().length > 0
-
-  return { ready }
+  const handler = buildStatusHandlers[provider.config.buildMode]
+  return handler(params)
 }
 
-async function buildContainerLocal(params: BuildModuleParams<ContainerModule>) {
+export async function k8sBuildContainer(params: BuildModuleParams<ContainerModule>): Promise<BuildResult> {
+  const { ctx } = params
+  const provider = <KubernetesProvider>ctx.provider
+  const handler = buildHandlers[provider.config.buildMode]
+  return handler(params)
+}
+
+type BuildStatusHandler = (params: GetBuildStatusParams<ContainerModule>) => Promise<BuildStatus>
+
+const getLocalBuildStatus: BuildStatusHandler = async (params) => {
+  const { ctx } = params
+  const status = await getContainerBuildStatus(params)
+
+  if (ctx.provider.config.deploymentRegistry) {
+    // TODO: Check if the image exists in the remote registry
+    // Note: Waiting for the `docker registry ls` command to be available in Docker 19.03. Otherwise we'll need to
+    // attempt to handle all kinds of authentication cases.
+  }
+
+  return status
+}
+
+const getRemoteBuildStatus: BuildStatusHandler = async (params) => {
+  const { ctx, module, log } = params
+  const provider = <KubernetesProvider>ctx.provider
+
+  const registryFwd = await getPortForward({
+    ctx,
+    log,
+    namespace: systemNamespace,
+    targetDeployment: `Deployment/${registryDeploymentName}`,
+    port: registryPort,
+  })
+
+  const imageId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+  const imageName = containerHelpers.unparseImageId({
+    ...containerHelpers.parseImageId(imageId),
+    host: undefined,
+    tag: undefined,
+  })
+
+  const url = `http://localhost:${registryFwd.localPort}/v2/${imageName}/manifests/${module.version.versionString}`
+
+  try {
+    const res = await axios({ url })
+    log.silly(res.data)
+    return { ready: true }
+  } catch (err) {
+    if (err.response && err.response.status === 404) {
+      return { ready: false }
+    } else {
+      throw new PluginError(`Could not query in-cluster registry: ${err}`, {
+        message: err.message,
+        response: err.response,
+      })
+    }
+  }
+}
+
+const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
+  "local": getLocalBuildStatus,
+  "cluster-docker": getRemoteBuildStatus,
+  "kaniko": getRemoteBuildStatus,
+}
+
+type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
+
+const localBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const buildResult = await buildContainerModule(params)
 
@@ -108,68 +143,88 @@ async function buildContainerLocal(params: BuildModuleParams<ContainerModule>) {
   return buildResult
 }
 
-async function buildContainerCluster(params: BuildModuleParams<ContainerModule>) {
+const remoteBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
-
-  const hasDockerfile = await containerHelpers.hasDockerfile(module)
-
-  if (!hasDockerfile) {
-    log.setState("Nothing to build")
-
-    return {
-      fetched: true,
-      fresh: false,
-      version: module.version.versionString,
-    }
-  }
 
   // Sync the build context to the remote sync service
   // -> Get a tunnel to the service
   log.setState("Syncing sources to cluster...")
-  const syncFwd = await getPortForward(ctx, log, systemNamespace, `Deployment/${builderDeployment}`, RSYNC_PORT)
+  const syncFwd = await getPortForward({
+    ctx,
+    log,
+    namespace: systemNamespace,
+    targetDeployment: `Deployment/${syncDeploymentName}`,
+    port: RSYNC_PORT,
+  })
 
   // -> Run rsync
   const buildRoot = resolve(module.buildPath, "..")
   // This trick is used to automatically create the correct target directory with rsync:
   // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
   const src = `${buildRoot}/./${module.name}/`
-  const destination = `rsync://localhost:${syncFwd.localPort}/volume/`
+  const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
 
   log.debug(`Syncing from ${src} to ${destination}`)
   // TODO: use list of files from module version
   await execa("rsync", ["-vrpztgo", "--relative", src, destination])
 
-  // Execute the build
   const localId = await containerHelpers.getLocalImageId(module)
   const deploymentImageId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+  const dockerfile = module.spec.dockerfile || "Dockerfile"
+
+  // Because we're syncing to a shared volume, we need to scope by a unique ID
+  const contextPath = `/garden-build/${ctx.workingCopyId}/${module.name}/`
 
   log.setState(`Building image ${localId}...`)
 
-  // Prepare the build command
-  const dockerfile = module.spec.dockerfile || "Dockerfile"
-  const contextPath = `/garden-build/${module.name}`
-  const dockerfilePath = posix.join(contextPath, dockerfile)
+  let buildLog = ""
 
-  const buildArgs = [
-    "docker", "build",
-    "-t", deploymentImageId,
-    "-f", dockerfilePath,
-    `/garden-build/${module.name}`,
-  ]
+  if (provider.config.buildMode === "cluster-docker") {
+    // Prepare the build command
+    const dockerfilePath = posix.join(contextPath, dockerfile)
 
-  const buildRes = await execInBuilder(provider, log, buildArgs, 600)
+    const args = [
+      "docker", "build",
+      "-t", deploymentImageId,
+      "-f", dockerfilePath,
+      contextPath,
+      ...getDockerBuildFlags(module),
+    ]
 
-  const buildLog = buildRes.stdout + buildRes.stderr
+    // Execute the build
+    const podName = await getBuilderPodName(provider, log)
+    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName })
+    buildLog = buildRes.stdout + buildRes.stderr
+
+    // Push the image to the registry
+    log.setState({ msg: `Pushing image ${localId} to registry...` })
+
+    const dockerCmd = ["docker", "push", deploymentImageId]
+    const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
+
+    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName })
+    buildLog += pushRes.stdout + pushRes.stderr
+
+  } else {
+    // build with Kaniko
+    const args = [
+      "executor",
+      "--context", "dir://" + contextPath,
+      "--dockerfile", dockerfile,
+      "--destination", deploymentImageId,
+      "--cache=true",
+      "--insecure",   // The in-cluster registry is not exposed, so we don't configure TLS on it.
+      // "--verbosity", "debug",
+      ...getDockerBuildFlags(module),
+    ]
+
+    // Execute the build
+    const buildRes = await runKaniko(provider, log, module, args)
+    buildLog = buildRes.output
+  }
+
   log.silly(buildLog)
-
-  // Push the image to the registry
-  log.setState({ msg: `Pushing image ${localId} to registry...` })
-
-  const dockerCmd = ["docker", "push", deploymentImageId]
-  const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
-
-  await execInBuilder(provider, log, pushArgs, 300)
 
   return {
     buildLog,
@@ -179,33 +234,126 @@ async function buildContainerCluster(params: BuildModuleParams<ContainerModule>)
   }
 }
 
-// TODO: we should make a simple service around this instead of execing into containers
-async function execInBuilder(provider: KubernetesProvider, log: LogEntry, args: string[], timeout: number) {
-  const api = await KubeApi.factory(log, provider.config.context)
-  const builderDockerPodName = await getBuilderPodName(api)
+interface BuilderExecParams {
+  provider: KubernetesProvider,
+  log: LogEntry,
+  args: string[],
+  timeout: number,
+  podName: string,
+}
 
-  const execCmd = ["exec", "-i", builderDockerPodName, "-c", "docker-daemon", "--", ...args]
+const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
+  "local": localBuild,
+  "cluster-docker": remoteBuild,
+  "kaniko": remoteBuild,
+}
+
+// TODO: we should make a simple service around this instead of execing into containers
+async function execInBuilder({ provider, log, args, timeout }: BuilderExecParams) {
+  const podName = await getBuilderPodName(provider, log)
+
+  const execCmd = ["exec", "-i", podName, "-c", dockerDaemonContainerName, "--", ...args]
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 
   return kubectl.exec({
     args: execCmd,
-    context: api.context,
+    context: provider.config.context,
     log,
     namespace: systemNamespace,
     timeout,
   })
 }
 
-async function getBuilderPodName(api: KubeApi) {
-  const builderStatusRes = await api.apps.readNamespacedDeployment(builderDeployment, systemNamespace)
+async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
+  const api = await KubeApi.factory(log, provider.config.context)
+
+  const builderStatusRes = await api.apps.readNamespacedDeployment(dockerDaemonDeploymentName, systemNamespace)
   const builderPods = await getPods(api, systemNamespace, builderStatusRes.body.spec.selector.matchLabels)
+  const pod = builderPods[0]
+
+  if (!pod) {
+    throw new PluginError(`Could not find running image builder`, {
+      builderDeploymentName: dockerDaemonDeploymentName,
+      systemNamespace,
+    })
+  }
+
   return builderPods[0].metadata.name
 }
 
-function invalidBuildMode(provider: KubernetesProvider) {
-  return new ConfigurationError(
-    `kubernetes: Invalid build mode '${provider.config.buildMode}'`,
-    { config: provider.config },
-  )
+async function runKaniko(provider: KubernetesProvider, log: LogEntry, module: ContainerModule, args: string[]) {
+  const podName = `kaniko-${module.name}-${Math.round(new Date().getTime())}`
+  const registryHostname = getRegistryHostname()
+
+  return runPod({
+    args,
+    context: provider.config.context,
+    envVars: {},
+    ignoreError: false,
+    image: kanikoImage,
+    interactive: false,
+    module,
+    namespace: systemNamespace,
+    log,
+    overrides: {
+      metadata: {
+        // Workaround to make sure sidecars are not injected,
+        // due to https://github.com/kubernetes/kubernetes/issues/25908
+        annotations: { "sidecar.istio.io/inject": "false" },
+      },
+      spec: {
+        shareProcessNamespace: true,
+        containers: [
+          {
+            name: "kaniko",
+            image: kanikoImage,
+            args,
+            volumeMounts: [{
+              name: syncDataVolumeName,
+              mountPath: "/garden-build",
+            }],
+            resources: {
+              limits: {
+                cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
+                memory: megabytesToString(provider.config.resources.builder.limits.memory),
+              },
+              requests: {
+                cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
+                memory: megabytesToString(provider.config.resources.builder.requests.memory),
+              },
+            },
+          },
+          {
+            name: "proxy",
+            image: "basi/socat:v0.1.0",
+            command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
+            ports: [{
+              name: "proxy",
+              containerPort: registryPort,
+              protocol: "TCP",
+            }],
+            readinessProbe: {
+              tcpSocket: { port: registryPort },
+            },
+          },
+          // This is a little workaround so that the socat proxy doesn't just keep running after the build finishes.
+          {
+            name: "killer",
+            image: "busybox",
+            command: [
+              "sh", "-c",
+              "while true; do if pidof executor > /dev/null; then sleep 0.5; else killall socat; exit 0; fi done",
+            ],
+          },
+        ],
+        volumes: [{
+          name: syncDataVolumeName,
+          persistentVolumeClaim: { claimName: syncDataVolumeName },
+        }],
+      },
+    },
+    podName,
+    timeout: buildTimeout,
+  })
 }
