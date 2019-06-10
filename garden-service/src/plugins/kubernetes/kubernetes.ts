@@ -37,13 +37,6 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
   }
 
   if (config.buildMode === "cluster-docker") {
-    if (config.deploymentRegistry) {
-      throw new ConfigurationError(
-        `kubernetes: deploymentRegistry should not be set in config if using cluster-docker build mode`,
-        { config },
-      )
-    }
-
     // This is a special configuration, used in combination with the registry-proxy service,
     // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
     config.deploymentRegistry = {
@@ -55,7 +48,7 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
     // Deploy build services on init
     config._systemServices.push("docker-daemon", "docker-registry", "registry-proxy")
 
-  } else if (!config.deploymentRegistry) {
+  } else if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
     throw new ConfigurationError(
       `kubernetes: must specify deploymentRegistry in config if using local build mode`,
       { config },

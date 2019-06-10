@@ -261,7 +261,6 @@ export interface ContainerRegistryConfig {
 export const containerRegistryConfigSchema = Joi.object()
   .keys({
     hostname: Joi.string()
-      .hostname()
       .required()
       .description("The hostname (and optionally port, if not the default port) of the registry.")
       .example("gcr.io"),
