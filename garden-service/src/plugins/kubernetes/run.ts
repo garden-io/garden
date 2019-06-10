@@ -13,26 +13,35 @@ import { Module } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
 
 interface RunPodParams {
-  context: string,
-  namespace: string,
-  module: Module,
-  image: string,
-  envVars: PrimitiveMap,
   args: string[],
-  interactive: boolean,
+  context: string,
+  envVars: PrimitiveMap,
   ignoreError: boolean,
-  timeout?: number,
-  overrides?: any,
+  image: string,
+  interactive: boolean,
   log: LogEntry,
+  module: Module,
+  namespace: string,
+  overrides?: any,
+  timeout?: number,
 }
 
+// TODO: stop using kubectl for this, run the Pod directly or at least create via API and only attach via kubectl
 export async function runPod(
-  { context, namespace, module, image, envVars, args, interactive, ignoreError, timeout, overrides, log }: RunPodParams,
+  {
+    args,
+    context,
+    envVars,
+    ignoreError,
+    image,
+    interactive,
+    log,
+    module,
+    namespace,
+    overrides,
+    timeout,
+  }: RunPodParams,
 ): Promise<RunResult> {
-  const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
-
-  const commandStr = args.join(" ")
-
   const opts = [
     `--image=${image}`,
     "--restart=Never",
@@ -51,14 +60,14 @@ export async function runPod(
     opts.push("--tty")
   }
 
+  const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
+
   const kubecmd = [
     "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
     ...opts,
     ...envArgs,
     "--",
-    "/bin/sh",
-    "-c",
-    commandStr,
+    ...args,
   ]
 
   log.verbose(`Running kubectl ${args.join(" ")}`)

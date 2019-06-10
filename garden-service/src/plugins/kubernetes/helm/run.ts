@@ -44,7 +44,8 @@ export async function runHelmModule(
     namespace,
     module,
     envVars: runtimeContext.envVars,
-    args: command,
+    // TODO: get rid of this (see https://github.com/garden-io/garden/issues/401)
+    args: ["/bin/sh", "-c", command.join(" ")],
     image,
     interactive,
     ignoreError,
@@ -68,7 +69,8 @@ export async function runHelmTask(
     namespace,
     module,
     envVars: { ...runtimeContext.envVars, ...task.spec.env },
-    args,
+    // TODO: get rid of this (see https://github.com/garden-io/garden/issues/401)
+    args: ["/bin/sh", "-c", args.join(" ")],
     image,
     interactive,
     ignoreError: false,

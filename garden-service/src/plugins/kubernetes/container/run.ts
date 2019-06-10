@@ -94,7 +94,8 @@ export async function runContainerModule(
     namespace,
     module,
     envVars: runtimeContext.envVars,
-    args: command,
+    // TODO: get rid of this (see https://github.com/garden-io/garden/issues/401)
+    args: ["/bin/sh", "-c", command.join(" ")],
     image,
     interactive,
     ignoreError,
@@ -126,13 +127,15 @@ export async function runContainerTask(
   const context = provider.config.context
   const namespace = await getAppNamespace(ctx, log, provider)
   const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+  const args = task.spec.args || []
 
   const res = await runPod({
     context,
     namespace,
     module,
     envVars: runtimeContext.envVars,
-    args: task.spec.args || [],
+    // TODO: get rid of this (see https://github.com/garden-io/garden/issues/401)
+    args: ["/bin/sh", "-c", args.join(" ")],
     image,
     interactive,
     ignoreError: false,

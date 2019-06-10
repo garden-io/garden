@@ -40,7 +40,8 @@ export async function testHelmModule(
     namespace,
     module,
     envVars: runtimeContext.envVars,
-    args,
+    // TODO: get rid of this (see https://github.com/garden-io/garden/issues/401)
+    args: ["/bin/sh", "-c", args.join(" ")],
     image,
     interactive,
     ignoreError: true, // to ensure results get stored when an error occurs
