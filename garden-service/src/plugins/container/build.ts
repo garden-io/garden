@@ -53,15 +53,7 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
   // build doesn't exist, so we create it
   log.setState(`Building ${identifier}...`)
 
-  const cmdOpts = ["build", "-t", identifier]
-
-  for (const [key, value] of Object.entries(module.spec.buildArgs)) {
-    cmdOpts.push("--build-arg", `${key}=${value}`)
-  }
-
-  if (module.spec.build.targetImage) {
-    cmdOpts.push("--target", module.spec.build.targetImage)
-  }
+  const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(module)]
 
   if (module.spec.dockerfile) {
     cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
@@ -72,4 +64,18 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
   await containerHelpers.dockerCli(module, [...cmdOpts, buildPath])
 
   return { fresh: true, details: { identifier } }
+}
+
+export function getDockerBuildFlags(module: ContainerModule) {
+  const args: string[] = []
+
+  for (const [key, value] of Object.entries(module.spec.buildArgs)) {
+    args.push("--build-arg", `${key}=${value}`)
+  }
+
+  if (module.spec.build.targetImage) {
+    args.push("--target", module.spec.build.targetImage)
+  }
+
+  return args
 }

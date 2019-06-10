@@ -3,21 +3,20 @@ type: helm
 name: docker-daemon
 description: Docker daemon used for in-cluster building
 releaseName: garden-docker-daemon
+dependencies:
+  - build-sync
 values:
-  dockerDaemon:
-    resources:
-      limits:
-        cpu: ${var.builder-limits-cpu}
-        memory: ${var.builder-limits-memory}
-      requests:
-        cpu: ${var.builder-requests-cpu}
-        memory: ${var.builder-requests-memory}
-    registry:
-      hostname: ${var.registry-hostname || "foo"}
-      # tlsSecretName: ${variables.registry-tls-secret-name}
-    storage:
-      size: ${var.builder-storage-size}
-      storageClass: ${var.builder-storage-class}
-  sync:
-    storage:
-      storageClass: ${var.builder-storage-class}
+  mode: ${var.builder-mode}
+  resources:
+    limits:
+      cpu: ${var.builder-limits-cpu}
+      memory: ${var.builder-limits-memory}
+    requests:
+      cpu: ${var.builder-requests-cpu}
+      memory: ${var.builder-requests-memory}
+  registry:
+    hostname: ${var.registry-hostname || "foo"}
+    # tlsSecretName: ${variables.registry-tls-secret-name}
+  storage:
+    size: ${var.builder-storage-size}
+    storageClass: ${var.builder-storage-class}

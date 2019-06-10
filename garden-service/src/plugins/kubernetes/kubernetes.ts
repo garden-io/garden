@@ -36,17 +36,21 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
     config._systemServices.push("ingress-controller", "default-backend")
   }
 
-  if (config.buildMode === "cluster-docker") {
+  if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {
+    // TODO: support external registry
     // This is a special configuration, used in combination with the registry-proxy service,
     // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
     config.deploymentRegistry = {
       hostname: `127.0.0.1:5000`,
-      // The base configure handler ensures that the namespace is set
-      namespace: config.namespace!,
+      namespace: config.namespace,
     }
 
     // Deploy build services on init
-    config._systemServices.push("docker-daemon", "docker-registry", "registry-proxy")
+    config._systemServices.push("build-sync", "docker-registry", "registry-proxy", "nfs-provisioner")
+
+    if (config.buildMode === "cluster-docker") {
+      config._systemServices.push("docker-daemon")
+    }
 
   } else if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
     throw new ConfigurationError(

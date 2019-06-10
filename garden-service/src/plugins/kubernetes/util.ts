@@ -115,7 +115,8 @@ registerCleanupFunction("kill-port-forward-procs", () => {
 })
 
 export async function getPortForward(
-  ctx: PluginContext, log: LogEntry, namespace: string, targetDeployment: string, port: number,
+  { ctx, log, namespace, targetDeployment, port }:
+    { ctx: PluginContext, log: LogEntry, namespace: string, targetDeployment: string, port: number },
 ): Promise<PortForward> {
   // Using lock here to avoid concurrency issues (multiple parallel requests for same forward).
   const key = `${targetDeployment}:${port}`

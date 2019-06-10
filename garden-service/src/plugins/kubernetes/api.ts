@@ -16,7 +16,6 @@ import {
   Apiextensions_v1beta1Api,
   V1Secret,
   Policy_v1beta1Api,
-  Storage_v1Api,
   CoreApi,
   ApisApi,
   V1APIGroup,
@@ -78,7 +77,6 @@ const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
   extensions: Extensions_v1beta1Api,
   policy: Policy_v1beta1Api,
   rbac: RbacAuthorization_v1Api,
-  storage: Storage_v1Api,
 }
 
 const crudMap = {
