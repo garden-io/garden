@@ -14,7 +14,7 @@ import { remove, readdirSync, existsSync } from "fs-extra"
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
-import { validate, PrimitiveMap, joiArray } from "../src/config/common"
+import { validate, joiArray } from "../src/config/common"
 import {
   GardenPlugin,
   PluginActions,
@@ -22,18 +22,14 @@ import {
   ModuleActions,
   Plugins,
 } from "../src/types/plugin/plugin"
-import { Garden, GardenOpts } from "../src/garden"
+import { Garden, GardenParams } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { CONFIG_FILENAME, GARDEN_SERVICE_ROOT } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf } from "../src/util/util"
-import { Ignorer } from "../src/util/fs"
-import { SourceConfig } from "../src/config/project"
-import { BuildDir } from "../src/build-dir"
 import { LogEntry } from "../src/logger/log-entry"
-import { ProviderConfig } from "../src/config/provider"
 import timekeeper = require("timekeeper")
 import { GLOBAL_OPTIONS } from "../src/cli/cli"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
@@ -290,23 +286,8 @@ class TestEventBus extends EventBus {
 export class TestGarden extends Garden {
   events: TestEventBus
 
-  constructor(
-    public readonly projectRoot: string,
-    public readonly projectName: string,
-    public readonly environmentName: string,
-    public readonly variables: PrimitiveMap,
-    public readonly projectSources: SourceConfig[] = [],
-    public readonly buildDir: BuildDir,
-    public readonly gardenDirPath: string,
-    public readonly ignorer: Ignorer,
-    public readonly opts: GardenOpts,
-    plugins: Plugins,
-    providerConfigs: ProviderConfig[],
-  ) {
-    super(
-      projectRoot, projectName, environmentName, variables, projectSources,
-      buildDir, gardenDirPath, ignorer, opts, plugins, providerConfigs,
-    )
+  constructor(params: GardenParams) {
+    super(params)
     this.events = new TestEventBus(this.log)
   }
 }

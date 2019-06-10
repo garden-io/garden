@@ -40,7 +40,7 @@ import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import { getIgnorer, Ignorer, getModulesPathsFromPath } from "./util/fs"
+import { getIgnorer, Ignorer, getModulesPathsFromPath, getWorkingCopyId } from "./util/fs"
 import { Provider, ProviderConfig, getProviderDependencies } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionHelper } from "./actions"
@@ -82,6 +82,21 @@ interface ModuleConfigResolveOpts extends ContextResolveOpts {
 
 const asyncLock = new AsyncLock()
 
+export interface GardenParams {
+  buildDir: BuildDir,
+  environmentName: string,
+  gardenDirPath: string,
+  ignorer: Ignorer,
+  opts: GardenOpts,
+  plugins: Plugins,
+  projectName: string,
+  projectRoot: string,
+  projectSources?: SourceConfig[],
+  providerConfigs: ProviderConfig[],
+  variables: PrimitiveMap,
+  workingCopyId: string,
+}
+
 export class Garden {
   public readonly log: LogEntry
   private readonly loadedPlugins: { [key: string]: GardenPlugin }
@@ -99,19 +114,31 @@ export class Garden {
   private actionHelper: ActionHelper
   public readonly events: EventBus
 
-  constructor(
-    public readonly projectRoot: string,
-    public readonly projectName: string,
-    public readonly environmentName: string,
-    public readonly variables: PrimitiveMap,
-    public readonly projectSources: SourceConfig[] = [],
-    public readonly buildDir: BuildDir,
-    public readonly gardenDirPath: string,
-    public readonly ignorer: Ignorer,
-    public readonly opts: GardenOpts,
-    plugins: Plugins,
-    private readonly providerConfigs: ProviderConfig[],
-  ) {
+  public readonly projectRoot: string
+  public readonly projectName: string
+  public readonly environmentName: string
+  public readonly variables: PrimitiveMap
+  public readonly projectSources: SourceConfig[]
+  public readonly buildDir: BuildDir
+  public readonly gardenDirPath: string
+  public readonly ignorer: Ignorer
+  public readonly opts: GardenOpts
+  private readonly providerConfigs: ProviderConfig[]
+  public readonly workingCopyId: string
+
+  constructor(params: GardenParams) {
+    this.buildDir = params.buildDir
+    this.environmentName = params.environmentName
+    this.gardenDirPath = params.gardenDirPath
+    this.ignorer = params.ignorer
+    this.opts = params.opts
+    this.projectName = params.projectName
+    this.projectRoot = params.projectRoot
+    this.projectSources = params.projectSources || []
+    this.providerConfigs = params.providerConfigs
+    this.variables = params.variables
+    this.workingCopyId = params.workingCopyId
+
     // make sure we're on a supported platform
     const currentPlatform = platform()
     const currentArch = arch()
@@ -125,7 +152,7 @@ export class Garden {
     }
 
     this.modulesScanned = false
-    this.log = opts.log || getLogger().placeholder()
+    this.log = this.opts.log || getLogger().placeholder()
     // TODO: Support other VCS options.
     this.vcs = new GitHandler(this.gardenDirPath)
     this.configStore = new LocalConfigStore(this.gardenDirPath)
@@ -141,7 +168,7 @@ export class Garden {
     this.watcher = new Watcher(this, this.log)
 
     // Register plugins
-    for (const [name, pluginFactory] of Object.entries({ ...builtinPlugins, ...plugins })) {
+    for (const [name, pluginFactory] of Object.entries({ ...builtinPlugins, ...params.plugins })) {
       // This cast is required for the linter to accept the instance type hackery.
       this.registerPlugin(name, pluginFactory)
     }
@@ -181,8 +208,9 @@ export class Garden {
     gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const ignorer = await getIgnorer(projectRoot, gardenDirPath)
+    const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
-    const garden = new this(
+    const garden = new this({
       projectRoot,
       projectName,
       environmentName,
@@ -193,8 +221,9 @@ export class Garden {
       ignorer,
       opts,
       plugins,
-      providers,
-    ) as InstanceType<T>
+      providerConfigs: providers,
+      workingCopyId,
+    }) as InstanceType<T>
 
     return garden
   }

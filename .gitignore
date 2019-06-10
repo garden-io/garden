@@ -18,6 +18,7 @@ node_modules
 # Runtime files
 .garden
 tmp/
+metadata.json
 
 # TS cache on the CI
 ts-node-*

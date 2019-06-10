@@ -1,7 +1,8 @@
 import { expect } from "chai"
 import { join } from "path"
 import { getDataDir } from "../../../helpers"
-import { scanDirectory, toCygwinPath, getChildDirNames } from "../../../../src/util/fs"
+import { scanDirectory, toCygwinPath, getChildDirNames, getWorkingCopyId } from "../../../../src/util/fs"
+import { withDir } from "tmp-promise"
 
 describe("util", () => {
   describe("scanDirectory", () => {
@@ -51,6 +52,24 @@ describe("util", () => {
     it("should retain a trailing slash", () => {
       const path = "C:\\some\\path\\"
       expect(toCygwinPath(path)).to.equal("/cygdrive/c/some/path/")
+    })
+  })
+
+  describe("getWorkingCopyId", () => {
+    it("should generate and return a new ID for an empty directory", async () => {
+      return withDir(async (dir) => {
+        const id = await getWorkingCopyId(dir.path)
+        expect(id).to.be.string
+      }, { unsafeCleanup: true })
+    })
+
+    it("should return the same ID after generating for the first time", async () => {
+      return withDir(async (dir) => {
+        const idA = await getWorkingCopyId(dir.path)
+        const idB = await getWorkingCopyId(dir.path)
+
+        expect(idA).to.equal(idB)
+      }, { unsafeCleanup: true })
     })
   })
 })
