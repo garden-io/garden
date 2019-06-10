@@ -278,5 +278,4 @@ export const configSchema = kubernetesConfigBase
       .allow("nginx", false, null)
       .default(false)
       .description("Set this to `nginx` to install/enable the NGINX ingress controller."),
-    _system: Joi.any().meta({ internal: true }),
   })
