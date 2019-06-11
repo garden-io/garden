@@ -13,7 +13,7 @@ import * as semver from "semver"
 
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { Garden } from "../../garden"
-import { KubernetesProvider, KubernetesPluginContext } from "./config"
+import { KubernetesProvider, KubernetesPluginContext, KubernetesConfig } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { KubeApi } from "./api"
 import { createNamespace } from "./namespace"
@@ -34,6 +34,15 @@ export const systemNamespace = "garden-system"
 export const systemMetadataNamespace = "garden-system--metadata"
 
 export async function getSystemGarden(provider: KubernetesProvider, variables: PrimitiveMap): Promise<Garden> {
+  const sysProvider: KubernetesConfig = {
+    ...provider.config,
+
+    environments: ["default"],
+    name: provider.name,
+    namespace: systemNamespace,
+    _systemServices: [],
+  }
+
   return Garden.factory(systemProjectPath, {
     environmentName: "default",
     config: {
@@ -45,14 +54,7 @@ export async function getSystemGarden(provider: KubernetesProvider, variables: P
       environments: [
         { name: "default", variables: {} },
       ],
-      providers: [
-        {
-          name: "local-kubernetes",
-          context: provider.config.context,
-          namespace: systemNamespace,
-          _systemServices: [],
-        },
-      ],
+      providers: [sysProvider],
       variables,
     },
   })
