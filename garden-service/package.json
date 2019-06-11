@@ -82,6 +82,7 @@
     "node-forge": "^0.8.2",
     "normalize-url": "^4.3.0",
     "p-queue": "^5.0.0",
+    "p-retry": "^4.1.0",
     "path-is-inside": "^1.0.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",

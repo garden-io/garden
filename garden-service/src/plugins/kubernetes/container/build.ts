@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import pRetry from "p-retry"
 import { ContainerModule } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
@@ -166,8 +167,12 @@ const remoteBuild: BuildHandler = async (params) => {
   const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
 
   log.debug(`Syncing from ${src} to ${destination}`)
-  // TODO: use list of files from module version
-  await execa("rsync", ["-vrpztgo", "--relative", src, destination])
+
+  // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
+  await pRetry(
+    () => execa("rsync", ["-vrpztgo", "--relative", "--delete", src, destination]),
+    { retries: 3, minTimeout: 500 },
+  )
 
   const localId = await containerHelpers.getLocalImageId(module)
   const deploymentImageId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
