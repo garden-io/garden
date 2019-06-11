@@ -60,7 +60,7 @@ describe("UpdateRemoteCommand", () => {
     })
 
     it("should remove stale remote project sources", async () => {
-      const stalePath = join(projectRoot, ".garden", "sources", "project", "stale-source")
+      const stalePath = join(garden.gardenDirPath, "sources", "project", "stale-source")
       await mkdirp(stalePath)
       await cmd.action({
         garden,
@@ -124,7 +124,7 @@ describe("UpdateRemoteCommand", () => {
     })
 
     it("should remove stale remote module sources", async () => {
-      const stalePath = join(projectRoot, ".garden", "sources", "module", "stale-source")
+      const stalePath = join(garden.gardenDirPath, "sources", "module", "stale-source")
       await mkdirp(stalePath)
       await cmd.action({
         garden,

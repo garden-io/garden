@@ -15,7 +15,7 @@ import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
-import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourcePath } from "../util/ext-source-util"
+import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
 import { LogNode } from "../logger/log-node"
 
@@ -77,7 +77,7 @@ export interface VcsFile {
 }
 
 export abstract class VcsHandler {
-  constructor(protected projectRoot: string) { }
+  constructor(protected gardenDirPath: string) { }
 
   abstract name: string
   abstract async getFiles(path: string, include?: string[]): Promise<VcsFile[]>
@@ -138,8 +138,11 @@ export abstract class VcsHandler {
     return getRemoteSourcesDirname(type)
   }
 
-  getRemoteSourcePath(name, url, sourceType) {
-    return getRemoteSourcePath({ name, url, sourceType })
+  /**
+   * Returns the path to the remote source directory, relative to the project level Garden directory (.garden)
+   */
+  getRemoteSourceRelPath(name, url, sourceType) {
+    return getRemoteSourceRelPath({ name, url, sourceType })
   }
 }
 

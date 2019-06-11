@@ -34,7 +34,7 @@ export function getRemoteSourcesDirname(type: ExternalSourceType): string {
  * A remote source dir name has the format 'source-name--HASH_OF_REPO_URL'
  * so that we can detect if the repo url has changed
  */
-export function getRemoteSourcePath({ name, url, sourceType }:
+export function getRemoteSourceRelPath({ name, url, sourceType }:
   { name: string, url: string, sourceType: ExternalSourceType }) {
   const dirname = name + "--" + hashRepoUrl(url)
   return join(getRemoteSourcesDirname(sourceType), dirname)

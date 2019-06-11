@@ -7,7 +7,7 @@
  */
 
 import * as winston from "winston"
-import { join } from "path"
+import { dirname, isAbsolute } from "path"
 import { ensureDir, truncate } from "fs-extra"
 import stripAnsi from "strip-ansi"
 
@@ -18,13 +18,11 @@ import {
   renderError,
   renderMsg,
 } from "../renderers"
-import { LOGS_DIR } from "../../constants"
+import { InternalError } from "../../exceptions"
 
 export interface FileWriterConfig {
   level: LogLevel
-  root: string
-  filename: string
-  path?: string
+  logFilePath: string
   fileTransportOptions?: {}
   truncatePrevious?: boolean
 }
@@ -54,41 +52,34 @@ export function render(level: LogLevel, entry: LogEntry): string | null {
 
 export class FileWriter extends Writer {
   private fileLogger: winston.Logger | null
-  private filePath: string
+  private logFilePath: string
   private fileTransportOptions: FileTransportOptions
 
   public level: LogLevel
 
-  constructor(filePath: string, config: FileWriterConfig) {
-    const {
-      fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS,
-      level,
-    } = config
+  constructor(logFilePath: string, config: FileWriterConfig) {
+    const { fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS, level } = config
 
     super({ level })
 
     this.fileTransportOptions = fileTransportOptions
-    this.filePath = filePath
+    this.logFilePath = logFilePath
     this.fileLogger = null
   }
 
   static async factory(config: FileWriterConfig) {
-    const {
-      filename,
-      root,
-      truncatePrevious,
-      path = LOGS_DIR,
-    } = config
-    const fullPath = join(root, path)
-    await ensureDir(fullPath)
-    const filePath = join(fullPath, filename)
+    const { logFilePath, truncatePrevious } = config
+    if (!isAbsolute(logFilePath)) {
+      throw new InternalError(`FilewWriter expected absolute log file path, got ${logFilePath}`, { logFilePath })
+    }
+    await ensureDir(dirname(logFilePath))
     if (truncatePrevious) {
       try {
-        await truncate(filePath)
+        await truncate(logFilePath)
       } catch (_) {
       }
     }
-    return new FileWriter(filePath, config)
+    return new FileWriter(logFilePath, config)
   }
 
   // Only init if needed to prevent unnecessary file writes
@@ -98,7 +89,7 @@ export class FileWriter extends Writer {
       transports: [
         new winston.transports.File({
           ...this.fileTransportOptions,
-          filename: this.filePath,
+          filename: this.logFilePath,
         }),
       ],
     })

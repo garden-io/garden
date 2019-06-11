@@ -7,8 +7,8 @@ type ExecConfig = {}
 
 class ExecConfigStore extends ConfigStore<ExecConfig> {
 
-  getConfigPath(projectPath): string {
-    return resolve(projectPath, ".garden", "local-config.yml")
+  getConfigPath(gardenDirPath: string): string {
+    return resolve(gardenDirPath, "local-config.yml")
   }
 
   validate(config): ExecConfig {

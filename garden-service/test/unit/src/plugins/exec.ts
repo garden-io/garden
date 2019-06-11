@@ -24,7 +24,7 @@ describe("exec plugin", () => {
   let log: LogEntry
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { exec: gardenPlugin })
+    garden = await makeTestGarden(projectRoot, { extraPlugins: { exec: gardenPlugin } })
     log = garden.log
     graph = await garden.getConfigGraph()
     await garden.clearBuilds()

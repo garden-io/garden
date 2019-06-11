@@ -77,7 +77,7 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
       await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "module", log })
     }
 
-    await pruneRemoteSources({ projectRoot: garden.projectRoot, type: "module", sources: moduleSources })
+    await pruneRemoteSources({ gardenDirPath: garden.gardenDirPath, type: "module", sources: moduleSources })
 
     return { result: moduleSources }
   }

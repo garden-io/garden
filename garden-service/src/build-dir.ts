@@ -19,7 +19,6 @@ import {
   emptyDir,
   ensureDir,
 } from "fs-extra"
-import { GARDEN_DIR_NAME } from "./constants"
 import { ConfigurationError } from "./exceptions"
 import {
   FileCopySpec,
@@ -35,15 +34,12 @@ import { LogEntry } from "./logger/log-entry"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
-const buildDirRelPath = join(GARDEN_DIR_NAME, "build")
-const buildMetadataDirRelPath = join(GARDEN_DIR_NAME, "build-metadata")
-
 export class BuildDir {
-  constructor(private projectRoot: string, public buildDirPath: string, public buildMetadataDirPath) { }
+  constructor(private projectRoot: string, public buildDirPath: string, public buildMetadataDirPath: string) { }
 
-  static async factory(projectRoot: string) {
-    const buildDirPath = join(projectRoot, buildDirRelPath)
-    const buildMetadataDirPath = join(projectRoot, buildMetadataDirRelPath)
+  static async factory(projectRoot: string, gardenDirPath: string) {
+    const buildDirPath = join(gardenDirPath, "build")
+    const buildMetadataDirPath = join(gardenDirPath, "build-metadata")
     await ensureDir(buildDirPath)
     await ensureDir(buildMetadataDirPath)
     return new BuildDir(projectRoot, buildDirPath, buildMetadataDirPath)
@@ -131,7 +127,7 @@ export class BuildDir {
     destinationPath = stripWildcard(destinationPath)
 
     // --exclude is required for modules where the module and project are in the same directory
-    const syncOpts = ["-rptgo", `--exclude=${GARDEN_DIR_NAME}`]
+    const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`]
     if (withDelete) {
       syncOpts.push("--delete")
     }

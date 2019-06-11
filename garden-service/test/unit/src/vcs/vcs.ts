@@ -62,7 +62,7 @@ describe("VcsHandler", () => {
     it("should respect the include field, if specified", async () => {
       const includeGarden = await makeTestGarden(includeProjectRoot)
       const module = await includeGarden.resolveModuleConfig("module-a")
-      const includeHandler = new GitHandler(includeProjectRoot)
+      const includeHandler = new GitHandler(includeGarden.gardenDirPath)
 
       const withInclude = await includeHandler.getTreeVersion(module.path, module.include!)
       const withoutInclude = await includeHandler.getTreeVersion(module.path, null)

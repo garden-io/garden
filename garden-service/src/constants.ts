@@ -17,11 +17,11 @@ export const STATIC_DIR = join(GARDEN_SERVICE_ROOT, "static")
 // We copy the built dashboard to the garden-service static directory (with gulp in development, otherwise in CI).
 // TODO: Use env vars to detect if Garden is running in dev mode and serve straight from the dashboard directory.
 export const DASHBOARD_STATIC_DIR = join(STATIC_DIR, "dashboard")
-export const GARDEN_DIR_NAME = ".garden"
-export const LOGS_DIR = join(GARDEN_DIR_NAME, "logs")
+export const DEFAULT_GARDEN_DIR_NAME = ".garden"
+export const LOGS_DIR_NAME = "logs"
 export const ERROR_LOG_FILENAME = "error.log"
-export const PROJECT_SOURCES_DIR_NAME = join(GARDEN_DIR_NAME, "sources", "project")
-export const MODULE_SOURCES_DIR_NAME = join(GARDEN_DIR_NAME, "sources", "module")
+export const PROJECT_SOURCES_DIR_NAME = join("sources", "project")
+export const MODULE_SOURCES_DIR_NAME = join("sources", "module")
 export const GARDEN_BUILD_VERSION_FILENAME = "garden-build-version"
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"

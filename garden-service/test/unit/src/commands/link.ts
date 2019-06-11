@@ -29,7 +29,7 @@ describe("LinkCommand", () => {
     })
 
     afterEach(async () => {
-      await cleanProject(projectRoot)
+      await cleanProject(garden.gardenDirPath)
     })
 
     it("should link external modules", async () => {
@@ -98,7 +98,7 @@ describe("LinkCommand", () => {
     })
 
     afterEach(async () => {
-      await cleanProject(projectRoot)
+      await cleanProject(garden.gardenDirPath)
     })
 
     it("should link external sources", async () => {

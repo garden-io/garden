@@ -14,23 +14,23 @@ import { getChildDirNames } from "../../util/fs"
 import {
   ExternalSourceType,
   getRemoteSourcesDirname,
-  getRemoteSourcePath,
+  getRemoteSourceRelPath,
 } from "../../util/ext-source-util"
 import { SourceConfig } from "../../config/project"
 
-export async function pruneRemoteSources({ projectRoot, sources, type }: {
-  projectRoot: string,
+export async function pruneRemoteSources({ gardenDirPath, sources, type }: {
+  gardenDirPath: string,
   sources: SourceConfig[],
   type: ExternalSourceType,
 }) {
-  const remoteSourcesPath = join(projectRoot, getRemoteSourcesDirname(type))
+  const remoteSourcesPath = join(gardenDirPath, getRemoteSourcesDirname(type))
 
   if (!(await pathExists(remoteSourcesPath))) {
     return
   }
 
   const sourceNames = sources
-    .map(({ name, repositoryUrl: url }) => getRemoteSourcePath({ name, url, sourceType: type }))
+    .map(({ name, repositoryUrl: url }) => getRemoteSourceRelPath({ name, url, sourceType: type }))
     .map(srcPath => basename(srcPath))
 
   const currentRemoteSources = await getChildDirNames(remoteSourcesPath)

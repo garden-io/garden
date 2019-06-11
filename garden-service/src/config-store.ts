@@ -8,14 +8,14 @@
 
 import * as Joi from "joi"
 import * as yaml from "js-yaml"
-import { resolve } from "path"
+import { join } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
 import { Primitive, validate, joiArray, joiUserIdentifier } from "./config/common"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
-import { GARDEN_DIR_NAME, LOCAL_CONFIG_FILENAME } from "./constants"
+import { LOCAL_CONFIG_FILENAME } from "./constants"
 
 export type ConfigValue = Primitive | Primitive[] | Object[]
 
@@ -25,12 +25,12 @@ export abstract class ConfigStore<T extends object = any> {
   private config: null | T
   protected configPath: string
 
-  constructor(projectPath: string) {
-    this.configPath = this.getConfigPath(projectPath)
+  constructor(gardenDirPath: string) {
+    this.configPath = this.getConfigPath(gardenDirPath)
     this.config = null
   }
 
-  abstract getConfigPath(projectPath: string): string
+  abstract getConfigPath(gardenDirPath: string): string
   abstract validate(config): T
 
   /**
@@ -208,8 +208,8 @@ export const configStoreSchema = Joi.object()
 
 export class LocalConfigStore extends ConfigStore<LocalConfig> {
 
-  getConfigPath(projectPath): string {
-    return resolve(projectPath, GARDEN_DIR_NAME, LOCAL_CONFIG_FILENAME)
+  getConfigPath(gardenDirPath: string): string {
+    return join(gardenDirPath, LOCAL_CONFIG_FILENAME)
   }
 
   validate(config): LocalConfig {

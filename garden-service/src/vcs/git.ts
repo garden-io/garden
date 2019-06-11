@@ -134,11 +134,11 @@ export class GitHandler extends VcsHandler {
 
   // TODO Better auth handling
   async ensureRemoteSource({ url, name, log, sourceType }: RemoteSourceParams): Promise<string> {
-    const remoteSourcesPath = join(this.projectRoot, this.getRemoteSourcesDirname(sourceType))
+    const remoteSourcesPath = join(this.gardenDirPath, this.getRemoteSourcesDirname(sourceType))
     await ensureDir(remoteSourcesPath)
     const git = this.gitCli(remoteSourcesPath)
 
-    const absPath = join(this.projectRoot, this.getRemoteSourcePath(name, url, sourceType))
+    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
     const isCloned = await pathExists(absPath)
 
     if (!isCloned) {
@@ -162,7 +162,7 @@ export class GitHandler extends VcsHandler {
   }
 
   async updateRemoteSource({ url, name, sourceType, log }: RemoteSourceParams) {
-    const absPath = join(this.projectRoot, this.getRemoteSourcePath(name, url, sourceType))
+    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
     const git = this.gitCli(absPath)
     const { repositoryUrl, hash } = parseGitUrl(url)
 

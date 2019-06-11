@@ -26,7 +26,7 @@ import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_DIR_NAME, CONFIG_FILENAME, GARDEN_SERVICE_ROOT } from "../src/constants"
+import { CONFIG_FILENAME, GARDEN_SERVICE_ROOT } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf } from "../src/util/util"
 import { Ignorer } from "../src/util/fs"
@@ -297,6 +297,7 @@ export class TestGarden extends Garden {
     public readonly variables: PrimitiveMap,
     public readonly projectSources: SourceConfig[] = [],
     public readonly buildDir: BuildDir,
+    public readonly gardenDirPath: string,
     public readonly ignorer: Ignorer,
     public readonly opts: GardenOpts,
     plugins: Plugins,
@@ -304,13 +305,15 @@ export class TestGarden extends Garden {
   ) {
     super(
       projectRoot, projectName, environmentName, variables, projectSources,
-      buildDir, ignorer, opts, plugins, providerConfigs,
+      buildDir, gardenDirPath, ignorer, opts, plugins, providerConfigs,
     )
     this.events = new TestEventBus(this.log)
   }
 }
 
-export const makeTestGarden = async (projectRoot: string, extraPlugins: Plugins = {}): Promise<TestGarden> => {
+export const makeTestGarden = async (
+  projectRoot: string, { extraPlugins, gardenDirPath }: { extraPlugins?: Plugins, gardenDirPath?: string } = {},
+): Promise<TestGarden> => {
   const testPlugins = {
     "test-plugin": testPlugin,
     "test-plugin-b": testPluginB,
@@ -318,11 +321,11 @@ export const makeTestGarden = async (projectRoot: string, extraPlugins: Plugins 
   }
   const plugins = { ...testPlugins, ...extraPlugins }
 
-  return TestGarden.factory(projectRoot, { plugins })
+  return TestGarden.factory(projectRoot, { plugins, gardenDirPath })
 }
 
 export const makeTestGardenA = async (extraPlugins: Plugins = {}) => {
-  return makeTestGarden(projectRootA, extraPlugins)
+  return makeTestGarden(projectRootA, { extraPlugins })
 }
 
 export function stubAction<T extends keyof PluginActions>(
@@ -375,8 +378,8 @@ export function taskResultOutputs(results: TaskResults) {
   return mapValues(results, r => r.output)
 }
 
-export const cleanProject = async (projectRoot: string) => {
-  return remove(join(projectRoot, GARDEN_DIR_NAME))
+export const cleanProject = async (gardenDirPath: string) => {
+  return remove(gardenDirPath)
 }
 
 export function stubGitCli(garden: Garden) {
@@ -391,8 +394,8 @@ export function stubExtSources(garden: Garden) {
   stubGitCli(garden)
   const getRemoteSourcesDirname = td.replace(garden.vcs, "getRemoteSourcesDirname")
 
-  td.when(getRemoteSourcesDirname("module")).thenReturn(join("mock-dot-garden", "sources", "module"))
-  td.when(getRemoteSourcesDirname("project")).thenReturn(join("mock-dot-garden", "sources", "project"))
+  td.when(getRemoteSourcesDirname("module")).thenReturn(join("sources", "module"))
+  td.when(getRemoteSourcesDirname("project")).thenReturn(join("sources", "project"))
 }
 
 export function getExampleProjects() {

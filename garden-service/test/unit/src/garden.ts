@@ -14,6 +14,7 @@ import {
   stubGitCli,
   testModuleVersion,
   TestGarden,
+  testPlugin,
 } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { MOCK_CONFIG } from "../../../src/cli/cli"
@@ -177,6 +178,31 @@ describe("Garden", () => {
       const plugins = { foo: pluginPath }
       const projectRoot = join(dataDir, "test-project-empty")
       await expectError(async () => Garden.factory(projectRoot, { plugins }), "plugin")
+    })
+
+    it("should set .garden as the default cache dir", async () => {
+      const projectRoot = join(dataDir, "test-project-empty")
+      const garden = await Garden.factory(projectRoot, { plugins: { "test-plugin": testPlugin } })
+      expect(garden.gardenDirPath).to.eql(join(projectRoot, ".garden"))
+    })
+
+    it("should optionally set a custom cache dir relative to project root", async () => {
+      const projectRoot = join(dataDir, "test-project-empty")
+      const garden = await Garden.factory(projectRoot, {
+        plugins: { "test-plugin": testPlugin },
+        gardenDirPath: "my/cache/dir",
+      })
+      expect(garden.gardenDirPath).to.eql(join(projectRoot, "my/cache/dir"))
+    })
+
+    it("should optionally set a custom cache dir with an absolute path", async () => {
+      const projectRoot = join(dataDir, "test-project-empty")
+      const gardenDirPath = join(dataDir, "test-garden-dir")
+      const garden = await Garden.factory(projectRoot, {
+        plugins: { "test-plugin": testPlugin },
+        gardenDirPath,
+      })
+      expect(garden.gardenDirPath).to.eql(gardenDirPath)
     })
   })
 
@@ -633,15 +659,17 @@ describe("Garden", () => {
     })
 
     it("should scan and add modules for projects with external project sources", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"))
+      const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"), {
+        gardenDirPath: "mock-dot-garden",
+      })
 
-      const getRemoteSourcePath = td.replace(garden.vcs, "getRemoteSourcePath")
-      td.when(getRemoteSourcePath("source-a"), { ignoreExtraArgs: true })
-        .thenReturn(join("mock-dot-garden", "sources", "project", "source-a"))
-      td.when(getRemoteSourcePath("source-b"), { ignoreExtraArgs: true })
-        .thenReturn(join("mock-dot-garden", "sources", "project", "source-b"))
-      td.when(getRemoteSourcePath("source-c"), { ignoreExtraArgs: true })
-        .thenReturn(join("mock-dot-garden", "sources", "project", "source-c"))
+      const getRemoteSourceRelPath = td.replace(garden.vcs, "getRemoteSourceRelPath")
+      td.when(getRemoteSourceRelPath("source-a"), { ignoreExtraArgs: true })
+        .thenReturn(join("sources", "project", "source-a"))
+      td.when(getRemoteSourceRelPath("source-b"), { ignoreExtraArgs: true })
+        .thenReturn(join("sources", "project", "source-b"))
+      td.when(getRemoteSourceRelPath("source-c"), { ignoreExtraArgs: true })
+        .thenReturn(join("sources", "project", "source-c"))
       stubExtSources(garden)
 
       await garden.scanModules()
@@ -762,23 +790,23 @@ describe("Garden", () => {
   })
 
   describe("loadExtSourcePath", () => {
-    let projectRoot: string
+    let garden: TestGarden
 
     const makeGarden = async (root) => {
-      const garden = await makeTestGarden(root)
+      garden = await makeTestGarden(root)
       stubGitCli(garden)
       return garden
     }
 
     afterEach(async () => {
-      if (projectRoot) {
-        await cleanProject(projectRoot)
+      if (garden) {
+        await cleanProject(garden.gardenDirPath)
       }
     })
 
     it("should return the path to the project source if source type is project", async () => {
-      projectRoot = getDataDir("test-project-ext-project-sources")
-      const garden = await makeGarden(projectRoot)
+      const projectRoot = getDataDir("test-project-ext-project-sources")
+      garden = await makeGarden(projectRoot)
       const repositoryUrl = "https://github.com/org/repo.git#master"
       const path = await garden.loadExtSourcePath({ repositoryUrl, name: "source-a", sourceType: "project" })
       const repoUrlHash = hashRepoUrl(repositoryUrl)
@@ -786,8 +814,8 @@ describe("Garden", () => {
     })
 
     it("should return the path to the module source if source type is module", async () => {
-      projectRoot = getDataDir("test-project-ext-module-sources")
-      const garden = await makeGarden(projectRoot)
+      const projectRoot = getDataDir("test-project-ext-module-sources")
+      garden = await makeGarden(projectRoot)
       const repositoryUrl = "https://github.com/org/repo.git#master"
       const path = await garden.loadExtSourcePath({ repositoryUrl, name: "module-a", sourceType: "module" })
       const repoUrlHash = hashRepoUrl(repositoryUrl)
@@ -795,8 +823,8 @@ describe("Garden", () => {
     })
 
     it("should return the local path of the project source if linked", async () => {
-      projectRoot = getDataDir("test-project-ext-project-sources")
-      const garden = await makeGarden(projectRoot)
+      const projectRoot = getDataDir("test-project-ext-project-sources")
+      garden = await makeGarden(projectRoot)
       const localPath = join(projectRoot, "mock-local-path", "source-a")
 
       const linked: LinkedSource[] = [{
@@ -815,8 +843,8 @@ describe("Garden", () => {
     })
 
     it("should return the local path of the module source if linked", async () => {
-      projectRoot = getDataDir("test-project-ext-module-sources")
-      const garden = await makeGarden(projectRoot)
+      const projectRoot = getDataDir("test-project-ext-module-sources")
+      garden = await makeGarden(projectRoot)
       const localPath = join(projectRoot, "mock-local-path", "module-a")
 
       const linked: LinkedSource[] = [{
