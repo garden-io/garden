@@ -19,6 +19,7 @@ import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvir
 import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 import { ConfigStore } from "../../config-store"
+import { gardenAnnotationKey } from "../../util/string"
 
 const GARDEN_VERSION = getPackageVersion()
 type CreateNamespaceStatus = "pending" | "created"
@@ -52,8 +53,8 @@ export async function createNamespace(api: KubeApi, namespace: string) {
     metadata: {
       name: namespace,
       annotations: {
-        "garden.io/generated": "true",
-        "garden.io/version": GARDEN_VERSION,
+        [gardenAnnotationKey("generated")]: "true",
+        [gardenAnnotationKey("version")]: GARDEN_VERSION,
       },
     },
   })

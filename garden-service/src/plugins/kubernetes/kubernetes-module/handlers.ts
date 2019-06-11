@@ -17,7 +17,6 @@ import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { KubernetesResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
-import { GARDEN_ANNOTATION_KEYS_SERVICE } from "../../../constants"
 import { compareDeployedObjects, waitForResources } from "../status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
@@ -28,6 +27,7 @@ import { GetServiceStatusParams } from "../../../types/plugin/service/getService
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
+import { gardenAnnotationKey } from "../../../util/string"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModule>> = {
   build,
@@ -111,7 +111,7 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
     log,
     context,
     namespace,
-    labelKey: GARDEN_ANNOTATION_KEYS_SERVICE,
+    labelKey: gardenAnnotationKey("service"),
     labelValue: service.name,
     objectTypes: uniq(manifests.map(m => m.kind)),
     includeUninitialized: false,
@@ -131,7 +131,7 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
 }
 
 function getSelector(service: KubernetesService) {
-  return `${GARDEN_ANNOTATION_KEYS_SERVICE}=${service.name}`
+  return `${gardenAnnotationKey("service")}=${service.name}`
 }
 
 async function getManifests(module: KubernetesModule): Promise<KubernetesResource[]> {
@@ -144,8 +144,8 @@ async function getManifests(module: KubernetesModule): Promise<KubernetesResourc
 
   // Add a label, so that we can identify the manifests as part of this module, and prune if needed
   return manifests.map(manifest => {
-    set(manifest, ["metadata", "annotations", GARDEN_ANNOTATION_KEYS_SERVICE], module.name)
-    set(manifest, ["metadata", "labels", GARDEN_ANNOTATION_KEYS_SERVICE], module.name)
+    set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], module.name)
+    set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], module.name)
     return manifest
   })
 }
