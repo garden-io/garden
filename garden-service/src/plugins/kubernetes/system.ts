@@ -18,7 +18,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { KubeApi } from "./api"
 import { createNamespace } from "./namespace"
 import { getPackageVersion } from "../../util/util"
-import { deline } from "../../util/string"
+import { deline, gardenAnnotationKey } from "../../util/string"
 import { deleteNamespaces } from "./namespace"
 import { PluginError } from "../../exceptions"
 import { DashboardPage } from "../../config/dashboard"
@@ -84,7 +84,8 @@ export async function systemNamespaceUpToDate(
     }
   }
 
-  const versionInCluster = namespaceResource.metadata.annotations["garden.io/version"]
+  const annotations = namespaceResource.metadata.annotations || {}
+  const versionInCluster = annotations[gardenAnnotationKey("version")]
 
   const upToDate = !!versionInCluster && semver.gte(semver.coerce(versionInCluster)!, SYSTEM_NAMESPACE_MIN_VERSION)
 

@@ -11,7 +11,6 @@ import { Module } from "../../types/module"
 import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
 import { resolve } from "path"
 import * as Joi from "joi"
-import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../constants"
 import { ExecTestSpec, execTestSchema } from "../exec"
 import {
   prepareEnvironment,
@@ -26,6 +25,7 @@ import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
 import { ServiceLimitSpec } from "../container/config"
+import { gardenAnnotationKey } from "../../util/string"
 
 const gcfModuleSpecSchema = baseServiceSpecSchema
   .keys({
@@ -154,7 +154,7 @@ export async function getServiceStatus(
   return {
     providerId,
     providerVersion: status.versionId,
-    version: status.labels[GARDEN_ANNOTATION_KEYS_VERSION],
+    version: status.labels[gardenAnnotationKey("version")],
     state,
     updatedAt: status.updateTime,
     detail: status,

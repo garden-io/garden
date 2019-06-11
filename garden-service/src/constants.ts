@@ -27,9 +27,6 @@ export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
 export const DEFAULT_API_VERSION = "garden.io/v0"
-export const GARDEN_ANNOTATION_PREFIX = "garden.io/"
-export const GARDEN_ANNOTATION_KEYS_SERVICE = GARDEN_ANNOTATION_PREFIX + "service"
-export const GARDEN_ANNOTATION_KEYS_VERSION = GARDEN_ANNOTATION_PREFIX + "version"
 
 export const DEFAULT_TEST_TIMEOUT = 60 * 1000
 

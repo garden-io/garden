@@ -13,3 +13,11 @@ import _deline = require("deline")
 // the import syntax, and it for some reason doesn't play nice with IDEs).
 export const dedent = _dedent
 export const deline = _deline
+
+const gardenAnnotationPrefix = "garden.io/"
+
+export type GardenAnnotationKey = "generated" | "service" | "version"
+
+export function gardenAnnotationKey(key: GardenAnnotationKey) {
+  return gardenAnnotationPrefix + key
+}

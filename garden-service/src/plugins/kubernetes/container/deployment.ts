@@ -15,7 +15,6 @@ import { waitForResources } from "../status"
 import { apply, deleteObjectsByLabel } from "../kubectl"
 import { getAppNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
-import { GARDEN_ANNOTATION_KEYS_VERSION } from "../../../constants"
 import { KubeApi } from "../api"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { configureHotReload } from "../hot-reload"
@@ -27,6 +26,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { millicpuToString, kilobytesToString } from "../util"
+import { gardenAnnotationKey } from "../../../util/string"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
@@ -74,8 +74,8 @@ export async function createContainerObjects(
   const objects = [deployment, ...kubeservices, ...ingresses]
 
   return objects.map(obj => {
-    set(obj, ["metadata", "annotations", "garden.io/generated"], "true")
-    set(obj, ["metadata", "annotations", GARDEN_ANNOTATION_KEYS_VERSION], version.versionString)
+    set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
+    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], version.versionString)
     set(obj, ["metadata", "labels", "module"], service.module.name)
     set(obj, ["metadata", "labels", "service"], service.name)
     return obj
