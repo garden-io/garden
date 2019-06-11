@@ -15,7 +15,8 @@ describe("GetConfigCommand", () => {
     const res = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { provider },
       opts: withDefaultGlobalOpts({}),
     })

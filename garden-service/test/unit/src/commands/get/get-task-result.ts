@@ -19,9 +19,10 @@ describe("GetTaskResultCommand", () => {
         await command.action({
           garden,
           log,
+          headerLog: log,
+          footerLog: log,
           args: { name },
           opts: withDefaultGlobalOpts({}),
-          logFooter: log,
         }),
       "parameter",
     )
@@ -37,9 +38,10 @@ describe("GetTaskResultCommand", () => {
     const res = await command.action({
       garden,
       log,
+      footerLog: log,
+      headerLog: log,
       args: { name },
       opts: withDefaultGlobalOpts({}),
-      logFooter: log,
     })
 
     expect(pick(res.result, ["output", "name"])).to.eql({ output: null, name })

@@ -13,7 +13,8 @@ describe("RunTaskCommand", () => {
     const { result } = await cmd.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { task: "task-a" },
       opts: withDefaultGlobalOpts({ "force-build": false }),
     })

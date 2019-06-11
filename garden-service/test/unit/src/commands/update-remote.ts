@@ -41,7 +41,8 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultGlobalOpts({}),
       })
@@ -52,7 +53,8 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { sources: ["source-a"] },
         opts: withDefaultGlobalOpts({}),
       })
@@ -65,7 +67,8 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { sources: undefined },
         opts: withDefaultGlobalOpts({}),
       })
@@ -78,7 +81,8 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            logFooter: log,
+            headerLog: log,
+            footerLog: log,
             args: { sources: ["banana"] },
             opts: withDefaultGlobalOpts({}),
           })
@@ -105,7 +109,8 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultGlobalOpts({}),
       })
@@ -116,7 +121,8 @@ describe("UpdateRemoteCommand", () => {
       const { result } = await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { modules: ["module-a"] },
         opts: withDefaultGlobalOpts({}),
       })
@@ -129,7 +135,8 @@ describe("UpdateRemoteCommand", () => {
       await cmd.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { modules: undefined },
         opts: withDefaultGlobalOpts({}),
       })
@@ -142,7 +149,8 @@ describe("UpdateRemoteCommand", () => {
           await cmd.action({
             garden,
             log,
-            logFooter: log,
+            headerLog: log,
+            footerLog: log,
             args: { modules: ["banana"] },
             opts: withDefaultGlobalOpts({}),
           })

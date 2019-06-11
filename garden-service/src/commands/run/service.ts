@@ -17,7 +17,7 @@ import {
 } from "../base"
 import { printRuntimeContext, runtimeContextForServiceDeps } from "./run"
 import dedent = require("dedent")
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 import { BuildTask } from "../../tasks/build"
 
 const runArgs = {
@@ -52,17 +52,17 @@ export class RunServiceCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
     const graph = await garden.getConfigGraph()
     const service = await graph.getService(serviceName)
     const module = service.module
 
-    logHeader({
-      log,
-      emoji: "runner",
-      command: `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`,
-    })
+    printHeader(
+      headerLog,
+      `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`,
+      "runner",
+    )
 
     const actions = await garden.getActionHelper()
     await actions.prepareEnvironment({ log })

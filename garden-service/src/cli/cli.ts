@@ -7,7 +7,8 @@
  */
 
 import * as sywac from "sywac"
-import { intersection, merge } from "lodash"
+import chalk from "chalk"
+import { intersection, merge, sortBy } from "lodash"
 import { resolve, join } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
@@ -25,13 +26,10 @@ import {
 } from "../commands/base"
 import { GardenError, PluginError, toGardenError } from "../exceptions"
 import { Garden, GardenOpts } from "../garden"
-import { getLogger, Logger, LoggerType, LOGGER_TYPES } from "../logger/logger"
+import { getLogger, Logger, LoggerType, LOGGER_TYPES, getWriterInstance } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
-import { FancyTerminalWriter } from "../logger/writers/fancy-terminal-writer"
-import { JsonTerminalWriter } from "../logger/writers/json-terminal-writer"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
-import { Writer } from "../logger/writers/base"
 
 import {
   envSupportsEmoji,
@@ -46,6 +44,7 @@ import {
   styleConfig,
   getLogLevelChoices,
   parseLogLevel,
+  helpTextMaxWidth,
 } from "./helpers"
 import { defaultEnvironments, ProjectConfig } from "../config/project"
 import {
@@ -64,12 +63,6 @@ const OUTPUT_RENDERERS = {
   yaml: (data: DeepPrimitiveMap) => {
     return safeDump(data, { noRefs: true, skipInvalid: true })
   },
-}
-
-const WRITER_CLASSES = {
-  basic: BasicTerminalWriter,
-  fancy: FancyTerminalWriter,
-  json: JsonTerminalWriter,
 }
 
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
@@ -92,6 +85,14 @@ export const MOCK_CONFIG: ProjectConfig = {
 }
 
 export const GLOBAL_OPTIONS = {
+  "version": new StringParameter({
+    alias: "v",
+    help: "Show the current CLI version.",
+  }),
+  "help": new StringParameter({
+    alias: "h",
+    help: "Show help",
+  }),
   "root": new StringParameter({
     alias: "r",
     help: "Override project root directory (defaults to working directory).",
@@ -99,28 +100,32 @@ export const GLOBAL_OPTIONS = {
   }),
   "silent": new BooleanParameter({
     alias: "s",
-    help: "Suppress log output.",
+    help: "Suppress log output. Same as setting --logger-type=quiet.",
     defaultValue: false,
   }),
   "env": new EnvironmentOption(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`
-      Set logger type:
-      fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
-      basic: appends a new log line when a log line's status changes,
-      json: same as basic, but renders log lines as JSON,
-      quiet: uppresses all log output,
+      Set logger type.
+
+      ${chalk.bold("fancy:")} updates log lines in-place when their status changes (e.g. when tasks complete),
+
+      ${chalk.bold("basic:")} appends a new log line when a log line's status changes,
+
+      ${chalk.bold("json:")} same as basic, but renders log lines as JSON,
+
+      ${chalk.bold("quiet:")} suppresses all log output, same as --silent.
     `,
   }),
-  "loglevel": new ChoicesParameter({
+  "log-level": new ChoicesParameter({
     alias: "l",
     choices: getLogLevelChoices(),
     help: deline`
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
       (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.`,
     hints:
-      "[enum] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
+      "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
   }),
   "output": new ChoicesParameter({
@@ -136,15 +141,9 @@ export const GLOBAL_OPTIONS = {
 
 export type GlobalOptions = typeof GLOBAL_OPTIONS
 
-function initLogger({ level, logEnabled, loggerType, emoji }: {
-  level: LogLevel, logEnabled: boolean, loggerType: LoggerType, emoji: boolean,
-}) {
-  let writers: Writer[] = []
-
-  if (logEnabled) {
-    writers.push(new WRITER_CLASSES[loggerType]())
-  }
-
+function initLogger({ level, loggerType, emoji }: { level: LogLevel, loggerType: LoggerType, emoji: boolean }) {
+  const writer = getWriterInstance(loggerType)
+  const writers = writer ? [writer] : undefined
   return Logger.initialize({ level, writers, useEmoji: emoji })
 }
 
@@ -168,21 +167,21 @@ export class GardenCli {
     const version = getPackageVersion()
     this.program = sywac
       .help("-h, --help", {
-        group: GLOBAL_OPTIONS_GROUP_NAME,
+        hidden: true,
       })
       .version("-v, --version", {
         version,
-        group: GLOBAL_OPTIONS_GROUP_NAME,
-        description: "Show's the current cli version.",
+        hidden: true,
       })
       .showHelpByDefault()
       .check((argv, _ctx) => {
         // NOTE: Need to mutate argv!
         merge(argv, negateConflictingParams(argv, GLOBAL_OPTIONS))
       })
+      .outputSettings({ maxWidth: helpTextMaxWidth() })
       .style(styleConfig)
 
-    const commands = coreCommands
+    const commands = sortBy(coreCommands, c => c.name)
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
     commands.forEach(command => this.addCommand(command, this.program))
@@ -208,6 +207,7 @@ export class GardenCli {
     this.program.option(getOptionSynopsis(key, option), {
       ...prepareOptionConfig(option),
       group: GLOBAL_OPTIONS_GROUP_NAME,
+      hidden: true,
     })
   }
 
@@ -240,26 +240,33 @@ export class GardenCli {
       const parsedArgs = filterByKeys(argv, argKeys)
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
-      const { emoji, env, loglevel, "logger-type": loggerTypeOpt, silent, output } = parsedOpts
+      const {
+        "logger-type": loggerTypeOpt,
+        "log-level": logLevel,
+        emoji,
+        env,
+        silent,
+        output,
+      } = parsedOpts
 
-      const loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
+      let loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
+
+      if (silent || output) {
+        loggerType = "quiet"
+      }
 
       // Init logger
-      const logEnabled = !silent && !output && loggerType !== "quiet"
-      const level = parseLogLevel(loglevel)
-      const logger = initLogger({ level, logEnabled, loggerType, emoji })
+      const level = parseLogLevel(logLevel)
+      const logger = initLogger({ level, loggerType, emoji })
 
-      // Currently we initialise an empty placeholder log entry and pass that to the
-      // framework as opposed to the logger itself. This is mainly for type conformity.
-      // A log entry has the same capabilities as the logger itself (they both extend a log node)
-      // but can additionally be updated after it's created, whereas the logger can create only new
-      // entries (i.e. print new lines).
+      // Currently we initialise empty placeholder entries and pass those to the
+      // framework as opposed to the logger itself. This is to give better control over where on
+      // the screen the logs are printed.
+      const headerLog = logger.placeholder()
+      logger.info("") // Put one line between the header and the body
       const log = logger.placeholder()
-
-      // We pass a separate placeholder to the action method, so that commands can easily have a footer
-      // section in their log output.
-      logger.info("")   // Put one line between the body and the footer
-      const logFooter = logger.placeholder()
+      logger.info("") // Put one line between the body and the footer
+      const footerLog = logger.placeholder()
 
       const contextOpts: GardenOpts = { environmentName: env, log }
       if (command.noProject) {
@@ -270,7 +277,8 @@ export class GardenCli {
 
       await command.prepare({
         log,
-        logFooter,
+        headerLog,
+        footerLog,
         args: parsedArgs,
         opts: parsedOpts,
       })
@@ -287,7 +295,8 @@ export class GardenCli {
           result = await command.action({
             garden,
             log,
-            logFooter,
+            footerLog,
+            headerLog,
             args: parsedArgs,
             opts: parsedOpts,
           })

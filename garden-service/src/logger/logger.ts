@@ -20,7 +20,7 @@ import { parseLogLevel } from "../cli/helpers"
 export type LoggerType = "quiet" | "basic" | "fancy" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
 
-export function getCommonConfig(loggerType: LoggerType): LoggerConfig {
+export function getLoggerConfig(loggerType: LoggerType): LoggerConfig {
   const configs: { [key in LoggerType]: LoggerConfig } = {
     quiet: {
       level: LogLevel.info,
@@ -39,6 +39,19 @@ export function getCommonConfig(loggerType: LoggerType): LoggerConfig {
     },
   }
   return configs[loggerType]
+}
+
+export function getWriterInstance(loggerType: LoggerType) {
+  switch (loggerType) {
+    case "basic":
+      return new BasicTerminalWriter()
+    case "fancy":
+      return new FancyTerminalWriter()
+    case "json":
+      return new JsonTerminalWriter()
+    case "quiet":
+      return undefined
+  }
 }
 
 export interface LoggerConfig {
@@ -89,7 +102,8 @@ export class Logger extends LogNode {
         })
       }
 
-      instance = new Logger({ ...getCommonConfig(loggerType), level: config.level })
+      const writer = getWriterInstance(loggerType)
+      instance = new Logger({ writers: writer ? [writer] : undefined, level: config.level })
       instance.debug(`Setting logger type to ${loggerType} (from GARDEN_LOGGER_TYPE)`)
     } else {
       instance = new Logger(config)

@@ -13,11 +13,17 @@ The following option flags can be used with any of the CLI commands:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--version` | `-v` | string | Show the current CLI version.
+  | `--help` | `-h` | string | Show help
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
-  | `--silent` | `-s` | boolean | Suppress log output.
+  | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type: fancy: updates log lines in-place when their status changes (e.g. when tasks complete), basic: appends a new log line when a log line&#x27;s status changes, json: same as basic, but renders log lines as JSON, quiet: uppresses all log output,
-  | `--loglevel` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
+  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type.
+[1mfancy:[22m updates log lines in-place when their status changes (e.g. when tasks complete),
+[1mbasic:[22m appends a new log line when a log line&#x27;s status changes,
+[1mjson:[22m same as basic, but renders log lines as JSON,
+[1mquiet:[22m suppresses all log output, same as --silent.
+  | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
 
@@ -439,6 +445,16 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
   | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to -1, showing all log lines.
+
+### garden options
+
+Print global options
+
+Prints all global options (options that can be applied to any command).
+
+##### Usage
+
+    garden options 
 
 ### garden publish
 

@@ -80,7 +80,8 @@ export async function resolveRequest(
   return command.action({
     garden: cmdGarden,
     log: cmdLog,
-    logFooter: cmdLog,
+    headerLog: cmdLog,
+    footerLog: cmdLog,
     args: cmdArgs,
     opts: cmdOpts,
   })

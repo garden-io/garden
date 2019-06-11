@@ -13,7 +13,7 @@ import {
   CommandParams,
   StringParameter,
 } from "../base"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
@@ -42,11 +42,7 @@ export class GetTaskResultCommand extends Command<Args> {
 
   arguments = getTaskResultArgs
 
-  async action({
-    garden,
-    log,
-    args,
-  }: CommandParams<Args>): Promise<CommandResult<TaskResultOutput>> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<TaskResultOutput>> {
     const taskName = args.name
 
     const graph: ConfigGraph = await garden.getConfigGraph()
@@ -62,11 +58,11 @@ export class GetTaskResultCommand extends Command<Args> {
       },
     )
 
-    logHeader({
-      log,
-      emoji: "rocket",
-      command: `Task result for task ${chalk.cyan(taskName)}`,
-    })
+    printHeader(
+      headerLog,
+      `Task result for task ${chalk.cyan(taskName)}`,
+      "rocket",
+    )
 
     if (taskResult !== null) {
       const output: TaskResultOutput = {

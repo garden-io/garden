@@ -21,7 +21,7 @@ import {
 import { getDependantTasksForModule } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
 import { processServices } from "../process"
-import { logHeader } from "../logger/util"
+import { printHeader } from "../logger/util"
 import { HotReloadTask } from "../tasks/hot-reload"
 import { BaseTask } from "../tasks/base"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
@@ -84,15 +84,15 @@ export class DeployCommand extends Command<Args, Opts> {
 
   private server: GardenServer
 
-  async prepare({ log, logFooter, opts }: PrepareParams<Args, Opts>) {
-    logHeader({ log, emoji: "rocket", command: "Deploy" })
+  async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
+    printHeader(headerLog, "Deploy", "rocket")
 
     if (!!opts.watch || !!opts["hot-reload"]) {
-      this.server = await startServer(logFooter)
+      this.server = await startServer(footerLog)
     }
   }
 
-  async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     if (this.server) {
       this.server.setGarden(garden)
     }
@@ -128,7 +128,7 @@ export class DeployCommand extends Command<Args, Opts> {
       garden,
       graph: initGraph,
       log,
-      logFooter,
+      footerLog,
       services,
       watch,
       handler: async (graph, module) => getDependantTasksForModule({
@@ -158,6 +158,6 @@ export class DeployCommand extends Command<Args, Opts> {
       },
     })
 
-    return handleTaskResults(log, "deploy", results)
+    return handleTaskResults(footerLog, "deploy", results)
   }
 }

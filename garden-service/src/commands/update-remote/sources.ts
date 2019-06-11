@@ -19,7 +19,7 @@ import {
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { SourceConfig } from "../../config/project"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
@@ -43,10 +43,8 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  async action(
-    { garden, log, args }: CommandParams<Args>,
-  ): Promise<CommandResult<SourceConfig[]>> {
-    logHeader({ log, emoji: "hammer_and_wrench", command: "update-remote sources" })
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<SourceConfig[]>> {
+    printHeader(headerLog, "update-remote sources", "hammer_and_wrench")
 
     const { sources } = args
 

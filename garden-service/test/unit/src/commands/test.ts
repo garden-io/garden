@@ -12,7 +12,8 @@ describe("commands.test", () => {
     const { result } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { modules: undefined },
       opts: withDefaultGlobalOpts({ "name": undefined, "force": true, "force-build": true, "watch": false }),
     })
@@ -50,7 +51,8 @@ describe("commands.test", () => {
     const { result } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { modules: ["module-a"] },
       opts: withDefaultGlobalOpts({ "name": undefined, "force": true, "force-build": true, "watch": false }),
     })

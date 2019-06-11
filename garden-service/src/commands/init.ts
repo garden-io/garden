@@ -12,7 +12,7 @@ import {
   CommandResult,
   CommandParams,
 } from "./base"
-import { logHeader, logFooter } from "../logger/util"
+import { printHeader, printFooter } from "../logger/util"
 import dedent = require("dedent")
 
 const initOpts = {
@@ -40,15 +40,14 @@ export class InitCommand extends Command {
 
   options = initOpts
 
-  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<{}>> {
+  async action({ garden, log, footerLog, headerLog, opts }: CommandParams<{}, Opts>): Promise<CommandResult<{}>> {
     const name = garden.environmentName
-    logHeader({ log, emoji: "gear", command: `Initializing ${name} environment` })
+    printHeader(headerLog, `Initializing ${name} environment`, "gear")
 
     const actions = await garden.getActionHelper()
     await actions.prepareEnvironment({ log, force: opts.force, manualInit: true })
 
-    log.info("")
-    logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })
+    printFooter(footerLog)
 
     return { result: {} }
   }

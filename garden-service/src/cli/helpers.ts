@@ -60,6 +60,14 @@ export const filterByKeys = (obj: any, keys: string[]): any => {
   }, {})
 }
 
+/**
+ * The maximum width of the help text that the CLI outputs. E.g. when running "garden --help" or "garden options".
+ */
+export function helpTextMaxWidth() {
+  const cols = process.stdout.columns || 100
+  return Math.min(100, cols)
+}
+
 // Add platforms/terminals?
 export function envSupportsEmoji() {
   return process.platform === "darwin"

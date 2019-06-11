@@ -17,7 +17,7 @@ import {
 import { NotFoundError } from "../exceptions"
 import dedent = require("dedent")
 import { ServiceStatus, getServiceRuntimeContext } from "../types/service"
-import { logHeader } from "../logger/util"
+import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
 
@@ -93,8 +93,8 @@ export class DeleteEnvironmentCommand extends Command {
     resources.
   `
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
-    logHeader({ log, emoji: "skull_and_crossbones", command: `Deleting ${garden.environmentName} environment` })
+  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
+    printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
 
     const actions = await garden.getActionHelper()
     const result = await actions.cleanupEnvironment({ log })
@@ -127,7 +127,7 @@ export class DeleteServiceCommand extends Command {
         garden delete service my-service # deletes my-service
   `
 
-  async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+  async action({ garden, log, headerLog, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph()
     const services = await graph.getServices(args.services)
 
@@ -136,7 +136,7 @@ export class DeleteServiceCommand extends Command {
       return { result: {} }
     }
 
-    logHeader({ log, emoji: "skull_and_crossbones", command: `Delete service` })
+    printHeader(headerLog, "Delete service", "skull_and_crossbones")
 
     const result: { [key: string]: ServiceStatus } = {}
 

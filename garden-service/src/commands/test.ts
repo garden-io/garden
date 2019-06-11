@@ -24,7 +24,7 @@ import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
-import { logHeader } from "../logger/util"
+import { printHeader } from "../logger/util"
 import { GardenServer, startServer } from "../server/server"
 
 const testArgs = {
@@ -76,19 +76,15 @@ export class TestCommand extends Command<Args, Opts> {
 
   private server: GardenServer
 
-  async prepare({ log, logFooter, opts }: PrepareParams<Args, Opts>) {
-    logHeader({
-      log,
-      emoji: "thermometer",
-      command: `Running tests`,
-    })
+  async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
+    printHeader(headerLog, `Running tests`, "thermometer")
 
     if (!!opts.watch) {
-      this.server = await startServer(logFooter)
+      this.server = await startServer(footerLog)
     }
   }
 
-  async action({ garden, log, logFooter, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     if (this.server) {
       this.server.setGarden(garden)
     }
@@ -114,7 +110,7 @@ export class TestCommand extends Command<Args, Opts> {
       garden,
       graph,
       log,
-      logFooter,
+      footerLog,
       modules,
       watch: opts.watch,
       handler: async (updatedGraph, module) => getTestTasks({
@@ -128,6 +124,6 @@ export class TestCommand extends Command<Args, Opts> {
       },
     })
 
-    return handleTaskResults(log, "test", results)
+    return handleTaskResults(footerLog, "test", results)
   }
 }

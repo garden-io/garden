@@ -19,7 +19,7 @@ import {
   CommandParams,
 } from "../base"
 import { LinkedSource } from "../../config-store"
-import { logHeader } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 import {
   addLinkedSources,
   hasRemoteSource,
@@ -53,8 +53,8 @@ export class LinkModuleCommand extends Command<Args> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
-    logHeader({ log, emoji: "link", command: "link module" })
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
+    printHeader(headerLog, "link module", "link")
 
     const sourceType = "module"
 

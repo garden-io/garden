@@ -69,7 +69,8 @@ describe("commands.call", () => {
     const { result } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { serviceAndPath: "service-a/path-a" },
       opts: withDefaultGlobalOpts({}),
     })
@@ -94,7 +95,8 @@ describe("commands.call", () => {
     const { result } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { serviceAndPath: "service-a" },
       opts: withDefaultGlobalOpts({}),
     })
@@ -118,7 +120,8 @@ describe("commands.call", () => {
     const { result } = await command.action({
       garden,
       log,
-      logFooter: log,
+      headerLog: log,
+      footerLog: log,
       args: { serviceAndPath: "service-b" },
       opts: withDefaultGlobalOpts({}),
     })
@@ -139,7 +142,8 @@ describe("commands.call", () => {
       await command.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { serviceAndPath: "service-d/path-d" },
         opts: withDefaultGlobalOpts({}),
       })
@@ -160,7 +164,8 @@ describe("commands.call", () => {
       await command.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { serviceAndPath: "service-c/path-c" },
         opts: withDefaultGlobalOpts({}),
       })
@@ -181,7 +186,8 @@ describe("commands.call", () => {
       await command.action({
         garden,
         log,
-        logFooter: log,
+        headerLog: log,
+        footerLog: log,
         args: { serviceAndPath: "service-a/bla" },
         opts: withDefaultGlobalOpts({}),
       })

@@ -13,7 +13,7 @@ import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { logFooter } from "../logger/util"
+import { printFooter } from "../logger/util"
 import { GlobalOptions } from "../cli/cli"
 
 export class ValidationError extends Error { }
@@ -210,7 +210,8 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
   args: ParameterValues<T>
   opts: ParameterValues<GlobalOptions & U>
   log: LogEntry
-  logFooter: LogEntry
+  headerLog: LogEntry
+  footerLog: LogEntry
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
@@ -304,7 +305,7 @@ export async function handleTaskResults(
   }
 
   if (!results.restartRequired) {
-    logFooter({ log, emoji: "heavy_check_mark", command: `Done!` })
+    printFooter(log)
   }
   return {
     result: results.taskResults,

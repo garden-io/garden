@@ -37,6 +37,7 @@
     "chokidar": "^3.0.0",
     "cli-cursor": "^3.0.0",
     "cli-highlight": "^2.1.1",
+    "cli-table3": "^0.5.1",
     "cli-truncate": "^1.1.0",
     "cross-spawn": "^6.0.5",
     "cryo": "0.0.6",
