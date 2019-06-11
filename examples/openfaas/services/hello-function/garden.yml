@@ -1,0 +1,5 @@
+kind: Module
+description: Hello world serverless function
+name: hello-function
+type: openfaas
+lang: node

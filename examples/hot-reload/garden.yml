@@ -1,9 +1,9 @@
-project:
-  name: hot-reload
-  environmentDefaults:
+kind: Project
+name: hot-reload
+environmentDefaults:
+  providers:
+    - name: container
+environments:
+  - name: local
     providers:
-      - name: container
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
+      - name: local-kubernetes

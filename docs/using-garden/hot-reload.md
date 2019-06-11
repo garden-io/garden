@@ -19,17 +19,17 @@ Since hot reloading is triggered via Garden's file system watcher, hot reloading
 Following is a simple example of a module configured for hot reloading:
 
 ```yaml
-module:
-  description: My Test Service
-  name: test-service
-  type: container
-  hotReload:
-    sync:
-    - target: /app/
-  services:
-    - name: test-service
-      args: [npm, start]             # runs `node main.js`
-      hotReloadArgs: [npm, run, dev] # runs `nodemon main.js`
+kind: Module
+description: My Test Service
+name: test-service
+type: container
+hotReload:
+  sync:
+  - target: /app/
+services:
+  - name: test-service
+    args: [npm, start]             # runs `node main.js`
+    hotReloadArgs: [npm, run, dev] # runs `nodemon main.js`
 ```
 
 In the above, the `hotReload` field specifies the destination path inside the running container that the module's (top-level) directory (where its `garden.yml` resides) is synced to.

@@ -20,13 +20,13 @@ import {
   removeExampleDotGardenDirs,
 } from "../../integ-helpers"
 
-const prereleaseSequences = ["simple-project", "hello-world", "tasks", "vote-helm", "remote-sources"]
+const prereleaseSequences = ["demo-project", "hello-world", "tasks", "vote-helm", "remote-sources"]
 const sequencesToRun = parsedArgs["only"] ? [parsedArgs["only"]] : prereleaseSequences
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command
 
 describe("PreReleaseTests", () => {
-  const simpleProjectPath = resolve(examplesDir, "simple-project")
+  const demoProjectPath = resolve(examplesDir, "demo-project")
 
   before(async () => {
     mlog.log("deleting .garden folders")
@@ -38,33 +38,33 @@ describe("PreReleaseTests", () => {
     await execa("git", ["checkout", examplesDir])
   })
 
-  if (sequencesToRun.includes("simple-project")) {
-    describe("simple-project: top-level sanity checks", () => {
+  if (sequencesToRun.includes("demo-project")) {
+    describe("demo-project: top-level sanity checks", () => {
       it("runs the validate command", async () => {
-        await runGarden(simpleProjectPath, ["validate"])
+        await runGarden(demoProjectPath, ["validate"])
       })
 
       it("runs the deploy command", async () => {
-        const logEntries = await runGarden(simpleProjectPath, ["deploy"])
+        const logEntries = await runGarden(demoProjectPath, ["deploy"])
         expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
       })
 
       it("runs the test command", async () => {
-        const logEntries = await runGarden(simpleProjectPath, ["test"])
+        const logEntries = await runGarden(demoProjectPath, ["test"])
         expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
       })
 
       it("runs the dev command", async () => {
-        const gardenWatch = new GardenWatch(simpleProjectPath, ["dev"])
+        const gardenWatch = new GardenWatch(demoProjectPath, ["dev"])
 
         const testSteps = [
-          taskCompletedStep("deploy.go-service", 1),
+          taskCompletedStep("deploy.backend", 1),
           waitingForChangesStep(),
-          changeFileStep(resolve(simpleProjectPath, "services/go-service/webserver/main.go"),
-            "change app code in go-service"),
-          taskCompletedStep("deploy.go-service", 2),
-          changeFileStep(resolve(simpleProjectPath, "services/go-service/garden.yml"),
-            "change garden.yml in go-service"),
+          changeFileStep(resolve(demoProjectPath, "backend/webserver/main.go"),
+            "change app code in backend service"),
+          taskCompletedStep("deploy.backend", 2),
+          changeFileStep(resolve(demoProjectPath, "backend/garden.yml"),
+            "change garden.yml in backend service"),
           commandReloadedStep(),
         ]
 
@@ -72,7 +72,7 @@ describe("PreReleaseTests", () => {
       })
 
       after(async () => {
-        await deleteExampleNamespaces(["simple-project"])
+        await deleteExampleNamespaces(["demo-project"])
       })
     })
   }

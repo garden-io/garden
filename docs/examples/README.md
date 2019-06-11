@@ -1,10 +1,6 @@
 # Example projects
 
-## [Hello world](./hello-world.md)
-
-In this project we see in practice the basics of configuring dependencies, defining ports and endpoints, and setting up tests.
-
-## [Simple project](./simple-project.md)
+## [Demo project](./demo-project.md)
 
 Here we see how to "gardenify" a pre-existing project, creating a project config and the individual module configs for every part.
 

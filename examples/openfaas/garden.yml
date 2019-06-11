@@ -1,0 +1,13 @@
+kind: Project
+name: openfaas
+environmentDefaults:
+  providers:
+    - name: npm-package
+  variables:
+    my-variable: hello-variable
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+      - name: local-openfaas
+

@@ -1,11 +1,11 @@
-module:
-  description: The voting UI container image
-  name: vote-image
-  type: container
-  hotReload:
-    sync:
-      - target: /app/src
-        source: src
-  tests:
-    - name: unit
-      args: [npm, run, test:unit]
+kind: Module
+description: The voting UI container image
+name: vote-image
+type: container
+hotReload:
+  sync:
+    - target: /app/src
+      source: src
+tests:
+  - name: unit
+    args: [npm, run, test:unit]

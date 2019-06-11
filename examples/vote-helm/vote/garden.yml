@@ -1,22 +1,22 @@
-module:
-  description: Helm chart for the voting UI
-  type: helm
-  name: vote
-  serviceResource:
-    kind: Deployment
-    containerModule: vote-image
-  dependencies:
-    - api
-  values:
-    image:
-      repository: ${modules.vote-image.outputs.deployment-image-name}
-      tag: ${modules.vote-image.version}
-    ingress:
-      enabled: true
-      paths: [/]
-      hosts: [vote-helm.local.app.garden]
-  tests:
-    - name: integ
-      args: [npm, run, test:integ]
-      dependencies:
-        - api
+kind: Module
+description: Helm chart for the voting UI
+type: helm
+name: vote
+serviceResource:
+  kind: Deployment
+  containerModule: vote-image
+dependencies:
+  - api
+values:
+  image:
+    repository: ${modules.vote-image.outputs.deployment-image-name}
+    tag: ${modules.vote-image.version}
+  ingress:
+    enabled: true
+    paths: [/]
+    hosts: [vote-helm.local.app.garden]
+tests:
+  - name: integ
+    args: [npm, run, test:integ]
+    dependencies:
+      - api

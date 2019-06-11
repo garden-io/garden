@@ -1,6 +1,6 @@
-project:
-  name: vote-helm
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
+kind: Project
+name: vote-helm
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes

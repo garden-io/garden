@@ -20,15 +20,15 @@ connect to your cluster.
 Example:
 
 ```yaml
-project:
-  name: my-project
-  environments:
-  - name: dev
-    providers:
-    - name: kubernetes
-      context: my-dev-context   # the name of the kubectl context for the cluster
-      ...
-  defaultEnvironment: dev
+kind: Project
+name: my-project
+environments:
+- name: dev
+  providers:
+  - name: kubernetes
+    context: my-dev-context   # the name of the kubectl context for the cluster
+    ...
+defaultEnvironment: dev
 ```
 
 ### Ingress, TLS and DNS
@@ -51,30 +51,30 @@ kubectl create secret tls mydomain-tls-secret --key <path-to-key-file> --cert <p
 Then configure each certificate/secret in your `garden.yml` provider configuration:
 
 ```yaml
-project:
-  name: my-project
-  environments:
-  - name: dev
-    providers:
-    - name: kubernetes
-      context: my-dev-context
-      defaultHostname: mydomain.com
-      tlsCertificates:
-      - name: main
-        # Optionally set particular hostnames to use this certificate for
-        # (useful if you have multiple certs for the same hostname).
-        hostnames: [mydomain.com]
-        secretRef:
-          # Change to whatever name you chose for the secret above.
-          name: my-tls-secret
-          # Change this if you store the secret in another namespace.
-          namespace: default
-      - name: wildcard
-        secretRef:
-          name: wildcard-tls-secret
-          namespace: default
-      ...
-  defaultEnvironment: dev
+kind: Project
+name: my-project
+defaultEnvironment: dev
+environments:
+- name: dev
+  providers:
+  - name: kubernetes
+    context: my-dev-context
+    defaultHostname: mydomain.com
+    tlsCertificates:
+    - name: main
+      # Optionally set particular hostnames to use this certificate for
+      # (useful if you have multiple certs for the same hostname).
+      hostnames: [mydomain.com]
+      secretRef:
+        # Change to whatever name you chose for the secret above.
+        name: my-tls-secret
+        # Change this if you store the secret in another namespace.
+        namespace: default
+    - name: wildcard
+      secretRef:
+        name: wildcard-tls-secret
+        namespace: default
+    ...
 ```
 
 ### Configuring a container registry
@@ -98,26 +98,26 @@ Once you've created the auth secret in the cluster, you can configure the regist
 `garden.yml` project config like this:
 
 ```yaml
-project:
-  name: my-project
-  environments:
-  - name: dev
-    providers:
-    - name: kubernetes
-      context: my-dev-context
-      ...
-      deploymentRegistry:
-        # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
-        hostname: my.registry.io
-        # Namespace (aka project ID) to use in the registry for this project.
-        # For GKE/GCR, use the project ID where your cluster is.
-        namespace: my-project-id
-      imagePullSecrets:
-        # The name of the secret you stored using `kubectl create secret docker-registry`
-      - name: my-registry-secret
-        # Change this if you store the secret in another namespace.
-        namespace: default
-  defaultEnvironment: dev
+kind: Project
+name: my-project
+environments:
+- name: dev
+  providers:
+  - name: kubernetes
+    context: my-dev-context
+    ...
+    deploymentRegistry:
+      # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
+      hostname: my.registry.io
+      # Namespace (aka project ID) to use in the registry for this project.
+      # For GKE/GCR, use the project ID where your cluster is.
+      namespace: my-project-id
+    imagePullSecrets:
+      # The name of the secret you stored using `kubectl create secret docker-registry`
+    - name: my-registry-secret
+      # Change this if you store the secret in another namespace.
+      namespace: default
+defaultEnvironment: dev
 ```
 
 You also need to login to the `docker` CLI, so that images can be pushed to the registry. Please refer

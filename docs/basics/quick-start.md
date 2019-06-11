@@ -4,15 +4,15 @@ This guide will walk you through setting up the Garden framework. It assumes you
 
 ## Using the CLI
 
-With the CLI installed, we can now try out a few commands using the [Simple Project](../examples/simple-project.md) from our [example projects](../examples/README.md). The example project consists of a couple of basic modules, each defining one service.
+With the CLI installed, we can now try out a few commands using the [Demo Project](../examples/demo-project.md) from our [example projects](../examples/README.md). The example project consists of a couple of basic modules, each defining one service.
 
 _Note: Check whether Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
 
-Clone the repo and change into the `simple-project`  directory:
+Clone the repo and change into the `demo-project`  directory:
 
 ```sh
 git clone https://github.com/garden-io/garden.git
-cd garden/examples/simple-project
+cd garden/examples/demo-project
 ```
 
 First, let's check the environment status by running the following from the project root:
@@ -27,16 +27,16 @@ The response tells us how the environment is configured and the status of the pr
 garden build
 ```
 
-This builds Docker images for `go-service` and `node-service` respectively. Next, we'll deploy the services with:
+This builds Docker images for `backend` and `frontend` respectively. Next, we'll deploy the services with:
 
 ```sh
 garden deploy
 ```
 
-And that's it! The `garden build` step above is actually unnecessary (only included here for clarity), since `garden deploy` will also rebuild modules as needed. The services are now running in your Kubernetes cluster. You can see for yourself by querying the `/hello` endpoint of `go-service`'s running container:
+And that's it! The `garden build` step above is actually unnecessary (only included here for clarity), since `garden deploy` will also rebuild modules as needed. The services are now running in your Kubernetes cluster. You can see for yourself by querying the `/hello` endpoint of `backend`'s running container:
 
 ```sh
-garden call go-service/hello-go
+garden call backend/hello-backend
 ```
 
 To run tests for all modules:
@@ -55,4 +55,4 @@ Go ahead, leave it running and change one of the files in the project, then watc
 
 That's it for now. Check out our [Using Garden](../using-garden/README.md) section for other features like hot reload, remote clusters, integration tests, and lots more.
 
-To see how a Garden project is configured from scratch check, out the [Simple Project](../examples/simple-project.md) guide for a more in-depth presentation.
+To see how a Garden project is configured from scratch check, out the [Demo Project](../examples/demo-project.md) guide for a more in-depth presentation.
