@@ -28,6 +28,7 @@ describe("GetConfigCommand", () => {
       providers,
       variables: garden.variables,
       moduleConfigs: sortBy(await garden.resolveModuleConfigs(), "name"),
+      projectRoot: garden.projectRoot,
     }
 
     expect(config).to.deep.equal(res.result)

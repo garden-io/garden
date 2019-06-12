@@ -704,6 +704,7 @@ export class Garden {
       providers: await this.resolveProviders(),
       variables: this.variables,
       moduleConfigs: sortBy(await this.resolveModuleConfigs(), "name"),
+      projectRoot: this.projectRoot,
     }
   }
 
@@ -715,4 +716,5 @@ export interface ConfigDump {
   providers: Provider[]
   variables: PrimitiveMap
   moduleConfigs: ModuleConfig[]
+  projectRoot: string
 }
