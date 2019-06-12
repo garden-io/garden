@@ -156,7 +156,7 @@ export default ({
         `,
         )}
       >
-        <div className="row">
+        <div className="row middle-xs">
           <div>
             <IconContainer className={cls(`garden-icon`, `garden-icon--${type}`)} />
           </div>
