@@ -34,7 +34,7 @@ const Ingresses = styled.div`
   }
 `
 const LinkContainer = styled.div`
-  padding-bottom: 1rem;
+  padding-top: .25rem;
   font-size: .75rem;
 
   &:last-of-type {
@@ -69,7 +69,7 @@ export default ({ ingresses }: IngressesProp) => {
 
   return (
     <Ingresses>
-      {(ingresses || []).map((ingress, index) => {
+      {(ingresses || []).map((ingress) => {
         const url = getIngressUrl(ingress)
         return (
           <LinkContainer key={ingress.path}>
@@ -83,9 +83,6 @@ export default ({ ingresses }: IngressesProp) => {
                 {truncateMiddle(url)}
               </ExternalLink>
             </div>
-            {ingresses && (index < ingresses.length - 1) &&
-              <br />
-            }
           </LinkContainer>
         )
       })}

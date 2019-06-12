@@ -41,7 +41,8 @@ const Modules = styled.div`
 export type ModuleModel = {
   name: string;
   type: string;
-  path: string;
+  path?: string;
+  repositoryUrl?: string;
   description?: string;
   services: Service[];
   tests: Test[];
@@ -109,7 +110,11 @@ export default () => {
     modules = config.data.moduleConfigs.map(moduleConfig => ({
       name: moduleConfig.name,
       type: moduleConfig.type,
-      path: moduleConfig.path,
+      path: config.data &&
+        config.data.projectRoot &&
+        config.data.projectRoot.split("/").pop() +
+        moduleConfig.path.replace(config.data.projectRoot, ""),
+      repositoryUrl: moduleConfig.repositoryUrl,
       description: moduleConfig.description,
       services: moduleConfig.serviceConfigs.map(service => ({
         name: service.name,
