@@ -91,8 +91,6 @@ export class DevCommand extends Command<Args, Opts> {
     this.server.setGarden(garden)
 
     const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log })
-
     const graph = await garden.getConfigGraph()
     const modules = await graph.getModules()
 
