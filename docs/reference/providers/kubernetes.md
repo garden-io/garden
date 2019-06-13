@@ -774,7 +774,7 @@ variables: {}
 environments:
   - providers:
       - environments:
-        buildMode: local
+        buildMode: local-docker
         defaultHostname:
         defaultUsername:
         forceSsl: false

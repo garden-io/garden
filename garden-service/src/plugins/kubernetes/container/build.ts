@@ -114,7 +114,7 @@ const getRemoteBuildStatus: BuildStatusHandler = async (params) => {
 }
 
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
-  "local": getLocalBuildStatus,
+  "local-docker": getLocalBuildStatus,
   "cluster-docker": getRemoteBuildStatus,
   "kaniko": getRemoteBuildStatus,
 }
@@ -248,7 +248,7 @@ interface BuilderExecParams {
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
-  "local": localBuild,
+  "local-docker": localBuild,
   "cluster-docker": remoteBuild,
   "kaniko": remoteBuild,
 }

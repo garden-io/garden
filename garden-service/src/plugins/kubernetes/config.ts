@@ -56,7 +56,7 @@ interface KubernetesStorage {
   sync: KubernetesStorageSpec
 }
 
-export type ContainerBuildMode = "local" | "cluster-docker" | "kaniko"
+export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 
 export interface KubernetesBaseConfig extends ProviderConfig {
   buildMode: ContainerBuildMode
@@ -220,8 +220,8 @@ const tlsCertificateSchema = Joi.object()
 export const kubernetesConfigBase = providerConfigBaseSchema
   .keys({
     buildMode: Joi.string()
-      .allow("local", "cluster-docker", "kaniko")
-      .default("local")
+      .allow("local-docker", "cluster-docker", "kaniko")
+      .default("local-docker")
       .description(deline`
         Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you
         can set it to 'cluster-docker' or 'kaniko' to sync files to a remote docker daemon, installed in the cluster,
