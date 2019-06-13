@@ -69,6 +69,18 @@ export interface SegmentEvent {
   properties: AnalyticsEventProperties
 }
 
+/**
+ * An Segment client wrapper with utility functionalities like local and global config and info,
+ * prompt for opt-in/opt-out and wrappers for single events.
+ *
+ * Usage:
+ *
+ * const analyticsClient = await new Analytics(garden: Garden).init()
+ * analitycsClient.trackCommand(commandName)
+ *
+ * @export
+ * @class Analytics
+ */
 export class Analytics {
   private garden: Garden
   private segment: any
@@ -99,6 +111,18 @@ export class Analytics {
     }
   }
 
+  /**
+   * A factory function which returns an initialized Analytics object, ready to be used.
+   * This function will load global and local config stores and update them if needed.
+   * The globalConfigStore contains info about optIn, first run, machine info, etc., while
+   * the localStore contains info about the project.
+   * If the Analytics has never been initalized, this function will prompt the user to ask
+   * permission for the collection of the data. This method always needs to be called after
+   * instantiation.
+   *
+   * @returns
+   * @memberof Analytics
+   */
   async init() {
     if (!ci.isCI) {
       const globalConf = await this.globalConfigStore.get()
@@ -142,13 +166,30 @@ export class Analytics {
     return this.globalConfig.optedIn || false
   }
 
+  /**
+   * It sets the optedIn property in the globalConfigStore.
+   * This is the property checked to decide if an event should be tracked or not.
+   *
+   * @param {boolean} isOptedIn
+   * @memberof Analytics
+   */
   async setAnalyticsOptIn(isOptedIn: boolean) {
     this.globalConfig.optedIn = isOptedIn
     await this.globalConfigStore.set([globalConfigKeys.analytics, "optedIn"], isOptedIn)
   }
 
+  /**
+   * The actual segment track method.
+   * The segment client works with callbacks, therefore the need of wrapping the function
+   * with Promises.
+   *
+   * @private
+   * @param {AnalyticsEvent} event The event to track
+   * @returns
+   * @memberof Analytics
+   */
   private async track(event: AnalyticsEvent) {
-    if (this.segment && this.hasOptedIn()) {
+    if (this.segment && this.hasOptedIn() && !ci.isCI) {
       const segmentEvent: SegmentEvent = {
         userId: this.globalConfig.userId,
         event: event.type,
@@ -172,6 +213,13 @@ export class Analytics {
     return false
   }
 
+  /**
+   * Tracks a Command.
+   *
+   * @param {string} commandName The name of the command
+   * @returns
+   * @memberof Analytics
+   */
   async trackCommand(commandName: string) {
     return this.track({
       type: AnalyticsType.COMMAND,
@@ -183,6 +231,14 @@ export class Analytics {
     })
   }
 
+  /**
+   * Tracks a Garden Task. The taskName is hashed since it could contain sensitive information
+   *
+   * @param {string} taskName The name of the Task. Usually in the format '<taskType>.<moduleName>'
+   * @param {string} taskType The type of the Task
+   * @returns
+   * @memberof Analytics
+   */
   async trackTask(taskName: string, taskType: string) {
     const properties: AnalyticsTaskEventProperties = {
       name: taskType,
@@ -197,6 +253,16 @@ export class Analytics {
     })
   }
 
+  /**
+   *  Tracks an Api call generated from within the Dashboard.
+   *
+   * @param {string} method The HTTP method of the request
+   * @param {string} path The path of the request
+   * @param {ApiRequestBody} body The body of the request.
+   * NOTE: for privacy issues we only collect the 'command' from the body
+   * @returns
+   * @memberof Analytics
+   */
   async trackApi(method: string, path: string, body: ApiRequestBody) {
     const properties: AnalyticsApiEventProperties = {
       name: `${method} request`,
@@ -212,6 +278,13 @@ export class Analytics {
     })
   }
 
+  /**
+   * Prompts the user to ask to opt-in the analytics collection
+   *
+   * @private
+   * @returns the user answer (boolean)
+   * @memberof Analytics
+   */
   private async promptAnalytics() {
 
     const defaultMessage = dedent`
