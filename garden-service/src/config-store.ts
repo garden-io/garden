@@ -12,12 +12,16 @@ import { join } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
-import { Primitive, validate, joiArray, joiUserIdentifier } from "./config/common"
+import { Primitive, validate, joiArray, joiUserIdentifier, joiPrimitive } from "./config/common"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
-import { LOCAL_CONFIG_FILENAME } from "./constants"
+import {
+  LOCAL_CONFIG_FILENAME,
+  GLOBAL_CONFIG_FILENAME,
+  GARDEN_GLOBAL_PATH,
+} from "./constants"
 
-export type ConfigValue = Primitive | Primitive[] | Object[]
+export type ConfigValue = Primitive | Primitive[] | Object[] | Object
 
 export type SetManyParam = { keyPath: Array<string>, value: ConfigValue }[]
 
@@ -156,6 +160,12 @@ export abstract class ConfigStore<T extends object = any> {
 
 }
 
+/*********************************************
+ *                                           *
+ *  LocalConfigStore implementation          *
+ *                                           *
+**********************************************/
+
 // TODO: Camel case previous usernames
 export interface KubernetesLocalConfig {
   username?: string
@@ -167,10 +177,15 @@ export interface LinkedSource {
   path: string
 }
 
+export interface AnalyticsLocalConfig {
+  projectId: string
+}
+
 export interface LocalConfig {
   kubernetes?: KubernetesLocalConfig
   linkedModuleSources?: LinkedSource[] // TODO Use KeyedSet instead of array
   linkedProjectSources?: LinkedSource[]
+  analytics: AnalyticsLocalConfig
 }
 
 const kubernetesLocalConfigSchema = Joi.object()
@@ -187,10 +202,16 @@ const linkedSourceSchema = Joi.object()
   })
   .meta({ internal: true })
 
+const AnalyticsLocalConfigSchema = Joi.object()
+  .keys({
+    projectId: Joi.string(),
+  }).meta({ internal: true })
+
 const localConfigSchemaKeys = {
   kubernetes: kubernetesLocalConfigSchema,
   linkedModuleSources: joiArray(linkedSourceSchema),
   linkedProjectSources: joiArray(linkedSourceSchema),
+  analytics: AnalyticsLocalConfigSchema,
 }
 
 export const localConfigKeys = Object.keys(localConfigSchemaKeys).reduce((acc, key) => {
@@ -216,6 +237,70 @@ export class LocalConfigStore extends ConfigStore<LocalConfig> {
     return validate(
       config,
       localConfigSchema,
+      { context: this.configPath, ErrorClass: LocalConfigError },
+    )
+  }
+
+}
+
+/*********************************************
+ *                                           *
+ *  GlobalConfigStore implementation         *
+ *                                           *
+**********************************************/
+
+export interface AnalyticsGlobalConfig {
+  userId: string
+  optedIn: boolean
+  firstRun: boolean
+}
+
+export interface GlobalConfig {
+  analytics?: AnalyticsGlobalConfig
+}
+
+const AnalyticsGlobalConfigSchema = Joi.object()
+  .keys({
+    userId: joiPrimitive().allow("").optional(),
+    optedIn: Joi.boolean().optional(),
+    firstRun: Joi.boolean().optional(),
+  }).meta({ internal: true })
+
+const globalConfigSchemaKeys = {
+  analytics: AnalyticsGlobalConfigSchema,
+}
+
+/* This contains a config key, key string pair to be used when setting/getting values in the store
+ eg.
+  globalConfigKeys = {
+    analytics: "analytics"
+  }
+
+  used like:
+  globalConfigStore.set([globalConfigKeys.analytics], { data: value })
+*/
+export const globalConfigKeys = Object.keys(globalConfigSchemaKeys).reduce((acc, key) => {
+  acc[key] = key
+  return acc
+}, {}) as { [K in keyof typeof globalConfigSchemaKeys]: K }
+
+const globalConfigSchema = Joi.object()
+  .keys(globalConfigSchemaKeys)
+  .meta({ internal: true })
+
+export class GlobalConfigStore extends ConfigStore<GlobalConfig> {
+  constructor() {
+    super(GARDEN_GLOBAL_PATH)
+  }
+
+  getConfigPath(): string {
+    return join(GARDEN_GLOBAL_PATH, GLOBAL_CONFIG_FILENAME)
+  }
+
+  validate(config): GlobalConfig {
+    return validate(
+      config,
+      globalConfigSchema,
       { context: this.configPath, ErrorClass: LocalConfigError },
     )
   }

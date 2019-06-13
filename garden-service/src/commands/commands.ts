@@ -27,6 +27,7 @@ import { ValidateCommand } from "./validate"
 import { ExecCommand } from "./exec"
 import { ServeCommand } from "./serve"
 import { OptionsCommand } from "./options"
+import { ConfigCommand } from "./config/config"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -49,4 +50,5 @@ export const coreCommands: Command[] = [
   new UnlinkCommand(),
   new UpdateRemoteCommand(),
   new ValidateCommand(),
+  new ConfigCommand(),
 ]
