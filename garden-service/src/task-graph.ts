@@ -17,7 +17,7 @@ import { BaseTask, TaskDefinitionError } from "./tasks/base"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError } from "./exceptions"
 import { Garden } from "./garden"
-import { Analytics } from "./analytics/analytics"
+import { AnalyticsHandler } from "./analytics/analytics"
 
 class TaskGraphError extends Error { }
 
@@ -161,7 +161,7 @@ export class TaskGraph {
 
       this.initLogging()
 
-      const analytics = await new Analytics(this.garden).init()
+      const analytics = await new AnalyticsHandler(this.garden).init()
 
       return Bluebird.map(batch, async (node: TaskNode) => {
         const task = node.task

@@ -27,7 +27,7 @@ import { CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events } from "../events"
 import { ValueOf } from "../util/util"
-import { Analytics } from "../analytics/analytics"
+import { AnalyticsHandler } from "../analytics/analytics"
 
 export const DEFAULT_PORT = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
@@ -57,7 +57,7 @@ export class GardenServer {
   private server: Server
   private garden: Garden | undefined
   private app: websockify.App
-  private analytics: Analytics
+  private analytics: AnalyticsHandler
 
   constructor(log: LogEntry, public port?: number) {
     this.log = log.placeholder()
@@ -116,7 +116,7 @@ export class GardenServer {
       }
 
       if (!this.analytics) {
-        this.analytics = await new Analytics(this.garden).init()
+        this.analytics = await new AnalyticsHandler(this.garden).init()
       }
 
       // tslint:disable-next-line: no-floating-promises

@@ -55,7 +55,7 @@ import {
 } from "../constants"
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
-import { Analytics } from "../analytics/analytics"
+import { AnalyticsHandler } from "../analytics/analytics"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -298,7 +298,7 @@ export class GardenCli {
           await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
 
           // Init Analytics, track command if user opted-in
-          const analytics = await new Analytics(garden).init()
+          const analytics = await new AnalyticsHandler(garden).init()
 
           // tslint:disable-next-line: no-floating-promises
           analytics.trackCommand(command.getFullName())

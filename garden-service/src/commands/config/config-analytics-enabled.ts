@@ -13,11 +13,11 @@ import {
   BooleanParameter,
 } from "../base"
 import dedent = require("dedent")
-import { Analytics } from "../../analytics/analytics"
+import { AnalyticsHandler } from "../../analytics/analytics"
 
 const configAnalyticsEnabledArgs = {
-  enableAnalytics: new BooleanParameter({
-    help: "Enable analytics, defaults to \"true\"",
+  enable: new BooleanParameter({
+    help: "Enable analytics. Defaults to \"true\"",
     defaultValue: true,
   }),
 }
@@ -31,27 +31,27 @@ export class ConfigAnalyticsEnabled extends Command {
   arguments = configAnalyticsEnabledArgs
 
   description = dedent`
-    Update your preferences regarding analytics.
-
-    To help us make Garden better you can opt in to the collection of CLI usage data.
-    We make sure all the data collected is anonymized and stripped out of sensitive
-    informations.We collect data about which commands are run, what tasks they trigger,
-    the Api calls the dashboard make to your local Garden server as well as some info
+    To help us make Garden better, you can opt in to the collection of usage data.
+    We make sure all the data collected is anonymized and stripped of sensitive
+    information. We collect data about which commands are run, what tasks they trigger,
+    which API calls are made to your local Garden server, as well as some info
     about the environment in which Garden runs.
 
     You will be asked if you want to opt-in when running Garden for the
     first time and you can use this command to update your preferences later.
-    To do so, please run:
-      $ garden config analytics-enabled <true/false> (default=true)
+
+    Examples:
+
+        garden config analytics-enabled true   # enable analytics
+        garden config analytics-enabled false  # disable analytics
   `
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
+    const analyticsClient = await new AnalyticsHandler(garden).init()
+    await analyticsClient.setAnalyticsOptIn(args.enable)
 
-    const analyticsClient = await new Analytics(garden).init()
-    await analyticsClient.setAnalyticsOptIn(args.enableAnalytics)
-
-    if (args.enableAnalytics) {
-      log.setSuccess(`Thanks for helping us make Garden better. The analytics are now enabled.`)
+    if (args.enable) {
+      log.setSuccess(`Thanks for helping us make Garden better! Anonymized analytics collection is now active.`)
     } else {
       log.setSuccess(`The collection of anonymous CLI usage data is now disabled.`)
     }
