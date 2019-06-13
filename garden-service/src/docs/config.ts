@@ -37,11 +37,9 @@ export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templa
 const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema
   .concat(schema)
 
-const populateProviderSchema = (schema: Joi.Schema) => projectSchema
+const populateProviderSchema = (schema: Joi.ObjectSchema) => Joi.object()
   .keys({
-    environments: joiArray(Joi.object().keys({
-      providers: joiArray(schema),
-    })),
+    providers: joiArray(schema),
   })
 
 const maxWidth = 100
@@ -55,11 +53,11 @@ const moduleTypes = [
 ]
 
 const providers = [
-  { name: "local-kubernetes", schema: populateProviderSchema(localK8sConfigSchema) },
-  { name: "kubernetes", schema: populateProviderSchema(k8sConfigSchema) },
-  { name: "local-openfaas", schema: populateProviderSchema(openfaasConfigSchema) },
-  { name: "maven-container", schema: populateProviderSchema(mavenContainerConfigSchema) },
-  { name: "openfaas", schema: populateProviderSchema(openfaasConfigSchema) },
+  { name: "local-kubernetes", schema: localK8sConfigSchema },
+  { name: "kubernetes", schema: k8sConfigSchema },
+  { name: "local-openfaas", schema: openfaasConfigSchema },
+  { name: "maven-container", schema: mavenContainerConfigSchema },
+  { name: "openfaas", schema: openfaasConfigSchema },
 ]
 
 interface RenderOpts {
@@ -437,7 +435,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   for (const { name, schema } of providers) {
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
-    writeFileSync(path, renderProviderReference(schema, name))
+    writeFileSync(path, renderProviderReference(populateProviderSchema(schema), name))
   }
 
   // Render module type docs

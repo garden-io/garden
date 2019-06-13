@@ -10,6 +10,7 @@ schema keys. The [second section](#complete-yaml-schema) contains the complete Y
 
 ## Configuration keys
 
+
 ### `apiVersion`
 
 The schema version of this module's config (currently not used).
@@ -17,13 +18,13 @@ The schema version of this module's config (currently not used).
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "garden.io/v0"
+
 ### `kind`
-
-
 
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "Module"
+
 ### `type`
 
 The type of this module.
@@ -33,9 +34,11 @@ The type of this module.
 | `string` | Yes
 
 Example:
+
 ```yaml
 type: "container"
 ```
+
 ### `name`
 
 The name of this module.
@@ -45,16 +48,17 @@ The name of this module.
 | `string` | Yes
 
 Example:
+
 ```yaml
 name: "my-sweet-module"
 ```
+
 ### `description`
-
-
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `include`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
@@ -71,11 +75,13 @@ Also note that specifying an empty list here means _no sources_ should be includ
 | `array[string]` | No
 
 Example:
+
 ```yaml
 include:
   - Dockerfile
   - my-app.js
 ```
+
 ### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
@@ -88,9 +94,11 @@ config from the local garden.yml file.
 | `string` | No
 
 Example:
+
 ```yaml
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
+
 ### `allowPublish`
 
 When false, disables pushing this module to remote registries.
@@ -98,6 +106,7 @@ When false, disables pushing this module to remote registries.
 | Type | Required |
 | ---- | -------- |
 | `boolean` | No
+
 ### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
@@ -105,7 +114,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `build.dependencies[]`
+
 [build](#build) > dependencies
 
 A list of modules that must be built before this module is built.
@@ -115,13 +126,16 @@ A list of modules that must be built before this module is built.
 | `array[object]` | No
 
 Example:
+
 ```yaml
 build:
   ...
   dependencies:
     - name: some-other-module-name
 ```
+
 ### `build.dependencies[].name`
+
 [build](#build) > [dependencies](#build.dependencies[]) > name
 
 Module name to build ahead of this module.
@@ -129,7 +143,9 @@ Module name to build ahead of this module.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `build.dependencies[].copy[]`
+
 [build](#build) > [dependencies](#build.dependencies[]) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
@@ -137,7 +153,9 @@ Specify one or more files or directories to copy from the built dependency to th
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+
 ### `build.dependencies[].copy[].source`
+
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
@@ -145,7 +163,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `build.dependencies[].copy[].target`
+
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
 POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
@@ -153,7 +173,9 @@ POSIX-style path or filename to copy the directory or file(s) to (defaults to sa
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `build.command[]`
+
 [build](#build) > command
 
 The command to run inside the module's directory to perform the build.
@@ -163,6 +185,7 @@ The command to run inside the module's directory to perform the build.
 | `array[string]` | No
 
 Example:
+
 ```yaml
 build:
   ...
@@ -171,6 +194,7 @@ build:
     - run
     - build
 ```
+
 ### `env`
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
@@ -178,6 +202,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `tasks`
 
 A list of tasks that can be run in this module.
@@ -185,7 +210,9 @@ A list of tasks that can be run in this module.
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+
 ### `tasks[].name`
+
 [tasks](#tasks) > name
 
 The name of the task.
@@ -193,7 +220,9 @@ The name of the task.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `tasks[].description`
+
 [tasks](#tasks) > description
 
 A description of the task.
@@ -201,7 +230,9 @@ A description of the task.
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `tasks[].dependencies[]`
+
 [tasks](#tasks) > dependencies
 
 The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
@@ -209,7 +240,9 @@ The names of any tasks that must be executed, and the names of any services that
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tasks[].timeout`
+
 [tasks](#tasks) > timeout
 
 Maximum duration (in seconds) of the task's execution.
@@ -217,7 +250,9 @@ Maximum duration (in seconds) of the task's execution.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
 ### `tasks[].command[]`
+
 [tasks](#tasks) > command
 
 The command to run in the module build context.
@@ -225,6 +260,7 @@ The command to run in the module build context.
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tests`
 
 A list of tests to run in the module.
@@ -232,7 +268,9 @@ A list of tests to run in the module.
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+
 ### `tests[].name`
+
 [tests](#tests) > name
 
 The name of the test.
@@ -240,7 +278,9 @@ The name of the test.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `tests[].dependencies[]`
+
 [tests](#tests) > dependencies
 
 The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
@@ -248,7 +288,9 @@ The names of any services that must be running, and the names of any tasks that 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tests[].timeout`
+
 [tests](#tests) > timeout
 
 Maximum duration (in seconds) of the test run.
@@ -256,7 +298,9 @@ Maximum duration (in seconds) of the test run.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
 ### `tests[].command[]`
+
 [tests](#tests) > command
 
 The command to run in the module build context in order to test it.
@@ -264,7 +308,9 @@ The command to run in the module build context in order to test it.
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tests[].env`
+
 [tests](#tests) > env
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
