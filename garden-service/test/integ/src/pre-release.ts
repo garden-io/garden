@@ -40,6 +40,7 @@ const prereleaseSequences: ProjectName[] = [
 ]
 
 export const sequencesToRun = parsedArgs["only"] ? [parsedArgs["only"]] : prereleaseSequences
+// We assume tests are running remotely in CI if env is passed, otherwise locally.
 const env = parsedArgs["env"]
 
 export function getProjectNamespace(project: ProjectName) {
@@ -86,8 +87,11 @@ describe("PreReleaseTests", () => {
     // This adds a lot of time to the test run.
     // tslint:disable-next-line: no-floating-promises
     deleteExampleNamespaces(namespaces)
-    mlog.log("Checking out example project directories to HEAD")
-    await execa("git", ["checkout", examplesDir])
+    // Checkout changes to example dir when running locally
+    if (!env) {
+      mlog.log("Checking out example project directories to HEAD")
+      await execa("git", ["checkout", examplesDir])
+    }
   })
 
   if (sequencesToRun.includes("demo-project")) {
