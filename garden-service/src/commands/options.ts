@@ -15,7 +15,7 @@ import {
 import stringWidth = require("string-width")
 import { maxBy, zip } from "lodash"
 import * as CliTable from "cli-table3"
-import { GLOBAL_OPTIONS } from "../cli/cli"
+import { GLOBAL_OPTIONS, HIDDEN_OPTIONS } from "../cli/cli"
 import { helpTextMaxWidth } from "../cli/helpers"
 import chalk from "chalk"
 
@@ -33,19 +33,22 @@ const tableConfig: CliTable.TableConstructorOptions = {
 export class OptionsCommand extends Command {
   name = "options"
   help = "Print global options"
+  noProject = true
 
   description = "Prints all global options (options that can be applied to any command)."
 
   async action({ log }: CommandParams): Promise<CommandResult> {
-    const sortedOpts = Object.keys(GLOBAL_OPTIONS).sort()
+    // Show both global options and hidden commands (version and help) in the output
+    const allOpts = { ...GLOBAL_OPTIONS, ...HIDDEN_OPTIONS }
+    const sortedOpts = Object.keys(allOpts).sort()
     const optNames = sortedOpts.map(optName => {
-      const option = <Parameter<any>>GLOBAL_OPTIONS[optName]
+      const option = <Parameter<any>>allOpts[optName]
       const alias = option.alias ? `-${option.alias}, ` : ""
       return chalk.green(`  ${alias}--${optName}  `)
     })
 
     const helpTexts = sortedOpts.map(optName => {
-      const option = <Parameter<any>>GLOBAL_OPTIONS[optName]
+      const option = <Parameter<any>>allOpts[optName]
       let out = option.help
       let hints = ""
       if (option.hints) {
