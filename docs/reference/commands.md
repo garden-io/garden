@@ -812,15 +812,26 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
 Update your preferences regarding analytics.
 
-Update your preferences regarding analytics: .
+Update your preferences regarding analytics.
+
+To help us make Garden better you can opt in to the collection of CLI usage data.
+We make sure all the data collected is anonymized and stripped out of sensitive
+informations.We collect data about which commands are run, what tasks they trigger,
+the Api calls the dashboard make to your local Garden server as well as some info
+about the environment in which Garden runs.
+
+You will be asked if you want to opt-in when running Garden for the
+first time and you can use this command to update your preferences later.
+To do so, please run:
+  $ garden config analytics-enabled <true/false> (default=true)
 
 ##### Usage
 
-    garden config analytics-enabled [activeteAnalytics] 
+    garden config analytics-enabled [enableAnalytics] 
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `activeteAnalytics` | No | Enable analitics, defaults to &quot;true&quot;
+  | `enableAnalytics` | No | Enable analytics, defaults to &quot;true&quot;
 

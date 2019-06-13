@@ -32,7 +32,7 @@ const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_A
 export enum AnalyticsType {
   COMMAND = "Run Command",
   TASK = "Run Task",
-  CALL_API = "Dashboard Api call",
+  CALL_API = "Api call",
 }
 
 export interface SystemInfo {
@@ -76,7 +76,7 @@ export interface SegmentEvent {
  * Usage:
  *
  * const analyticsClient = await new Analytics(garden: Garden).init()
- * analitycsClient.trackCommand(commandName)
+ * analyticsClient.trackCommand(commandName)
  *
  * @export
  * @class Analytics
@@ -124,39 +124,40 @@ export class Analytics {
    * @memberof Analytics
    */
   async init() {
-    if (!ci.isCI) {
-      const globalConf = await this.globalConfigStore.get()
-      const localConf = await this.localConfigStore.get()
+    if (ci.isCI) {
+      return this
+    }
+    const globalConf = await this.globalConfigStore.get()
+    const localConf = await this.localConfigStore.get()
+    this.globalConfig = {
+      ...this.globalConfig,
+      ...globalConf.analytics,
+    }
+    this.localConfig = {
+      ...localConf.analytics,
+    }
+
+    if (this.globalConfig.firstRun) {
+      this.logger.stop()
+      this.localConfig.projectId = md5(this.garden.projectName)
       this.globalConfig = {
-        ...this.globalConfig,
-        ...globalConf.analytics,
-      }
-      this.localConfig = {
-        ...localConf.analytics,
+        firstRun: false,
+        userId: uuidv4(),
+        optedIn: await this.promptAnalytics(),
       }
 
-      if (this.globalConfig.firstRun) {
-        this.logger.stop()
-        this.localConfig.projectId = md5(this.garden.projectName)
-        this.globalConfig = {
-          firstRun: false,
-          userId: uuidv4(),
-          optedIn: await this.promptAnalytics(),
-        }
+      await this.globalConfigStore.set([globalConfigKeys.analytics], this.globalConfig)
+      await this.localConfigStore.set([localConfigKeys.analytics], this.localConfig)
 
-        await this.globalConfigStore.set([globalConfigKeys.analytics], this.globalConfig)
-        await this.localConfigStore.set([localConfigKeys.analytics], this.localConfig)
-
-        if (this.segment && this.globalConfig.optedIn) {
-          this.segment.identify({
-            userId: this.globalConfig.userId,
-            traits: {
-              platform: platform(),
-              platformVersion: release(),
-              gardenVersion: getPackageVersion(),
-            },
-          })
-        }
+      if (this.segment && this.globalConfig.optedIn) {
+        this.segment.identify({
+          userId: this.globalConfig.userId,
+          traits: {
+            platform: platform(),
+            platformVersion: release(),
+            gardenVersion: getPackageVersion(),
+          },
+        })
       }
     }
     return this
