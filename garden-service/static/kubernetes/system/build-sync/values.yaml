@@ -1,0 +1,29 @@
+# Default values for garden-build-sync.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  pullPolicy: IfNotPresent
+
+nameOverride: "garden-build-sync"
+fullnameOverride: "garden-build-sync"
+
+service:
+  type: ClusterIP
+  port: 2375
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+storage:
+  request: 2Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

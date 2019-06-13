@@ -283,6 +283,15 @@ describe("plugins.container", () => {
       })
     })
 
+    it("should correctly parse an id with a host with a port, and namespace", () => {
+      expect(helpers.parseImageId("localhost:5000/namespace/image:tag")).to.eql({
+        host: "localhost:5000",
+        namespace: "namespace",
+        repository: "image",
+        tag: "tag",
+      })
+    })
+
     it("should correctly parse an id with a host and multi-level namespace", () => {
       expect(helpers.parseImageId("my-host.com/a/b/c/d/image:tag")).to.eql({
         host: "my-host.com",

@@ -42,6 +42,7 @@ interface KubernetesResourceSpec {
 interface KubernetesResources {
   builder: KubernetesResourceSpec
   registry: KubernetesResourceSpec
+  sync: KubernetesResourceSpec
 }
 
 interface KubernetesStorageSpec {
@@ -52,10 +53,13 @@ interface KubernetesStorageSpec {
 interface KubernetesStorage {
   builder: KubernetesStorageSpec
   registry: KubernetesStorageSpec
+  sync: KubernetesStorageSpec
 }
 
+export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
+
 export interface KubernetesBaseConfig extends ProviderConfig {
-  buildMode: string
+  buildMode: ContainerBuildMode
   context: string
   defaultHostname?: string
   defaultUsername?: string
@@ -99,6 +103,16 @@ export const defaultResources: KubernetesResources = {
       memory: 512,
     },
   },
+  sync: {
+    limits: {
+      cpu: 200,
+      memory: 256,
+    },
+    requests: {
+      cpu: 100,
+      memory: 64,
+    },
+  },
 }
 
 export const defaultStorage: KubernetesStorage = {
@@ -107,6 +121,10 @@ export const defaultStorage: KubernetesStorage = {
     storageClass: null,
   },
   registry: {
+    size: 10 * 1024,
+    storageClass: null,
+  },
+  sync: {
     size: 10 * 1024,
     storageClass: null,
   },
@@ -178,7 +196,7 @@ const imagePullSecretsSchema = joiArray(secretRef)
   .description(dedent`
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
     images. This is necessary if you reference private images in your module configuration, and is required
-    when configuring a remote Kubernetes environment.
+    when configuring a remote Kubernetes environment with buildMode=local.
   `)
 
 const tlsCertificateSchema = Joi.object()
@@ -202,15 +220,23 @@ const tlsCertificateSchema = Joi.object()
 export const kubernetesConfigBase = providerConfigBaseSchema
   .keys({
     buildMode: Joi.string()
-      .allow("local", "cluster-docker")
-      .default("local")
+      .allow("local-docker", "cluster-docker", "kaniko")
+      .default("local-docker")
       .description(deline`
         Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you
-        can set it to 'cluster-docker' to sync files to a remote docker daemon, installed in the cluster, and build
-        container images there.
+        can set it to 'cluster-docker' or 'kaniko' to sync files to a remote docker daemon, installed in the cluster,
+        and build container images there. This avoids the need to run Docker or Kubernetes locally, and allows you to
+        share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-        This is currently experimental and sometimes not needed (e.g. with Docker for Desktop), so it's not enabled
-        by default.
+        This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using
+        the \`local-kubernetes\` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker
+        daemon when building. You might also be deploying to a remote cluster that isn't intended as a development
+        environment, so you'd want your builds to happen elsewhere.
+
+        Functionally, both 'cluster-docker' and 'kaniko' do the same thing, but use different underlying mechanisms
+        to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
+        this is less secure than Kaniko, but in turn it is generally faster. See the
+        [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information.
       `),
     defaultHostname: Joi.string()
       .description("A default hostname to use when no hostname is explicitly configured for a service.")
@@ -224,25 +250,27 @@ export const kubernetesConfigBase = providerConfigBaseSchema
         "is available for a configured hostname.",
       ),
     imagePullSecrets: imagePullSecretsSchema,
-    storage: Joi.object()
-      .keys({
-        builder: storageSchema(defaultStorage.builder),
-        registry: storageSchema(defaultStorage.registry),
-      })
-      .default(defaultStorage)
-      .description(deline`
-        Storage parameters to set for the in-cluster builder and container registry persistent volume
-        (which are automatically installed and used when buildMode=cluster-docker).
-      `),
     resources: Joi.object()
       .keys({
         builder: resourceSchema(defaultResources.builder),
         registry: resourceSchema(defaultResources.registry),
+        sync: resourceSchema(defaultResources.sync),
       })
       .default(defaultResources)
       .description(deline`
         Resource requests and limits for the in-cluster builder and container registry
-        (which are automatically installed and used when buildMode=cluster-docker).
+        (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
+      `),
+    storage: Joi.object()
+      .keys({
+        builder: storageSchema(defaultStorage.builder),
+        registry: storageSchema(defaultStorage.registry),
+        sync: storageSchema(defaultStorage.sync),
+      })
+      .default(defaultStorage)
+      .description(deline`
+        Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
+        (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
       `),
     tlsCertificates: joiArray(tlsCertificateSchema)
       .unique("name")

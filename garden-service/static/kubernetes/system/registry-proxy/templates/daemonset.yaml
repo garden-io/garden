@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ include "docker-daemon.fullname" . }}
+  name: {{ include "registry-proxy.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
-    helm.sh/chart: {{ include "docker-daemon.chart" . }}
+    app.kubernetes.io/name: {{ include "registry-proxy.name" . }}
+    helm.sh/chart: {{ include "registry-proxy.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
+      app.kubernetes.io/name: {{ include "registry-proxy.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   updateStrategy:
     rollingUpdate:
@@ -18,19 +18,9 @@ spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "docker-daemon.name" . }}
+        app.kubernetes.io/name: {{ include "registry-proxy.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      volumes:
-        # - name: docker-certs
-        #   hostPath:
-        #     path: /etc/docker/certs.d
-        # - name: garden-registry-tls
-        #   secret:
-        #     secretName: {{ .Values.dockerDaemon.registry.tlsSecretName }}
-        #     items:
-        #       - key: tls.crt
-        #         path: ca.crt
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -42,28 +32,20 @@ spec:
               # Copy the registry certs to the host
               # cp -r /certs/localhost /etc/docker/certs.d/localhost:5000
               # Proxy node connections on 127.0.0.1:5000 to the docker registry
-              socat -d -d -d TCP-LISTEN:5000,fork,range=10.0.0.0/8 TCP:{{ .Values.dockerDaemon.registry.hostname }}:5000
+              socat -d TCP-LISTEN:5000,fork,range=10.0.0.0/8 TCP:{{ .Values.registry.hostname }}:5000
           ports:
             - name: docker
               containerPort: 5000
               hostPort: 5000
               protocol: TCP
-          # securityContext:
-          #   privileged: true
           # livenessProbe:
           #   tcpSocket:
           #     port: 5000
           # readinessProbe:
           #   tcpSocket:
           #     port: 5000
-          # volumeMounts:
-              # Need to add the registry cert to the node so that the daemon trusts it
-            # - name: docker-certs
-            #   mountPath: "/etc/docker/certs.d"
-            # - name: garden-registry-tls
-            #   mountPath: "/certs/localhost"
           resources:
-            {{- toYaml .Values.dockerDaemon.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

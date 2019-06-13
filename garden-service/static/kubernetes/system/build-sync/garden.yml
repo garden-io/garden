@@ -1,0 +1,18 @@
+kind: Module
+type: helm
+name: build-sync
+description: Sync service for receiving build context ahead of in-cluster builds
+releaseName: garden-build-sync
+dependencies:
+  - nfs-provisioner
+values:
+  resources:
+    limits:
+      cpu: ${var.sync-limits-cpu}
+      memory: ${var.sync-limits-memory}
+    requests:
+      cpu: ${var.sync-requests-cpu}
+      memory: ${var.sync-requests-memory}
+  storage:
+    request: ${var.sync-storage-size}
+    storageClass: garden-system-nfs

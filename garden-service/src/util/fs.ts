@@ -8,16 +8,18 @@
 
 import klaw = require("klaw")
 import * as _spawn from "cross-spawn"
-import { pathExists, readFile } from "fs-extra"
 import * as Bluebird from "bluebird"
+import { pathExists, readFile, writeFile } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
+import * as uuid from "uuid"
 import { join, basename, win32, posix, relative, parse } from "path"
 import { ValidationError } from "../exceptions"
 // NOTE: Importing from ignore/ignore doesn't work on Windows
 const ignore = require("ignore")
 
 const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
+const metadataFilename = "metadata.json"
 
 /*
   Warning: Don't make any async calls in the loop body when using this function, since this may cause
@@ -190,4 +192,30 @@ export function toCygwinPath(path: string) {
  */
 export function matchGlobs(path: string, patterns: string[]): boolean {
   return some(patterns, pattern => minimatch(path, pattern))
+}
+
+/**
+ * Gets an ID for the current working copy, given the path to the project's `.garden` directory.
+ * We do this by storing a `metadata` file in the directory with an ID. The file is created on demand and a new
+ * ID is set when it is first generated.
+ *
+ * The implication is that removing the `.garden` directory resets the ID, so any remote data attached to the ID
+ * will be orphaned. Which is usually not a big issue, but something to be mindful of.
+ */
+export async function getWorkingCopyId(gardenDirPath: string) {
+  const metadataPath = join(gardenDirPath, metadataFilename)
+
+  let metadata = {
+    workingCopyId: uuid.v4(),
+  }
+
+  // TODO: do this in a fully concurrency-safe way
+  if (await pathExists(metadataPath)) {
+    const metadataContent = await readFile(metadataPath)
+    metadata = JSON.parse(metadataContent.toString())
+  } else {
+    await writeFile(metadataPath, JSON.stringify(metadata))
+  }
+
+  return metadata.workingCopyId
 }

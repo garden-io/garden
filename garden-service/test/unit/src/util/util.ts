@@ -4,8 +4,10 @@ import {
   getEnvVarName,
   deepOmitUndefined,
   deepFilter,
+  splitLast,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
+import { splitFirst } from "../../../../src/util/util"
 
 describe("util", () => {
   describe("getEnvVarName", () => {
@@ -116,6 +118,26 @@ describe("util", () => {
         ],
       }
       expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
+    })
+  })
+
+  describe("splitFirst", () => {
+    it("should split string on first occurrence of given delimiter", () => {
+      expect(splitFirst("foo:bar:boo", ":")).to.eql(["foo", "bar:boo"])
+    })
+
+    it("should return the whole string as first element when no delimiter is found in string", () => {
+      expect(splitFirst("foo", ":")).to.eql(["foo", ""])
+    })
+  })
+
+  describe("splitLast", () => {
+    it("should split string on last occurrence of given delimiter", () => {
+      expect(splitLast("foo:bar:boo", ":")).to.eql(["foo:bar", "boo"])
+    })
+
+    it("should return the whole string as last element when no delimiter is found in string", () => {
+      expect(splitLast("foo", ":")).to.eql(["", "foo"])
     })
   })
 })

@@ -239,7 +239,7 @@ export async function syncToService(
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
 
   try {
-    const portForward = await getPortForward(ctx, log, namespace, targetDeployment, RSYNC_PORT)
+    const portForward = await getPortForward({ ctx, log, namespace, targetDeployment, port: RSYNC_PORT })
 
     return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
       const src = rsyncSourcePath(service.sourceModule.path, source)

@@ -33,7 +33,7 @@ const ports = [{
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
-  buildMode: "local",
+  buildMode: "local-docker",
   context: "my-cluster",
   defaultHostname: "my.domain.com",
   deploymentRegistry: {

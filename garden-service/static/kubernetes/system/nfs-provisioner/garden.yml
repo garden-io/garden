@@ -1,0 +1,15 @@
+kind: Module
+name: nfs-provisioner
+description: Provisioner for NFS volumes used by Garden system services
+type: helm
+chart: stable/nfs-server-provisioner
+version: "0.3.0"
+releaseName: garden-nfs-provisioner
+values:
+  nameOverride: garden-nfs-provisioner
+  fullnameOverride: garden-nfs-provisioner
+  persistence:
+    enable: true
+    size: 50Gi
+  storageClass:
+    name: garden-system-nfs

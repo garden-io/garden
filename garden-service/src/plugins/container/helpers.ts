@@ -10,7 +10,7 @@ import { pathExists } from "fs-extra"
 import { join } from "path"
 import * as semver from "semver"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { splitFirst, spawn } from "../../util/util"
+import { splitFirst, spawn, splitLast } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
 
@@ -127,7 +127,13 @@ const helpers = {
   },
 
   parseImageId(imageId: string): ParsedImageId {
-    let [name, tag] = imageId.split(":")
+    let [name, tag] = splitLast(imageId, ":")
+
+    if (name === "") {
+      name = tag
+      tag = defaultTag
+    }
+
     const parts = name.length > 0 ? name.split("/") : []
 
     if (!tag) {

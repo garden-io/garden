@@ -85,10 +85,11 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     systemReady = systemTillerReady && sysNamespaceUpToDate && systemServiceStatus.state === "ready"
     dashboardPages = systemServiceStatus.dashboardPages
 
-    // If we require manual init and system services are outdated (as opposed to unhealthy, missing etc.), we warn
+    // If we require manual init and system services are outdated but none are *missing*, we warn
     // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
     // there's variance in configuration between users of the same cluster, that most likely shouldn't affect usage.
-    if (needManualInit && systemServiceStatus.state === "outdated") {
+    const states = Object.values(systemServiceStatus.serviceStatuses).map(s => s.state)
+    if (needManualInit && systemServiceStatus.state === "outdated" && !states.includes("missing")) {
       needManualInit = false
     }
 
@@ -178,22 +179,33 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
 function getVariables(config: KubernetesConfig) {
   return {
     "namespace": systemNamespace,
+
     "registry-hostname": getRegistryHostname(),
+    "builder-mode": config.buildMode,
+
     "builder-limits-cpu": millicpuToString(config.resources.builder.limits.cpu),
     "builder-limits-memory": megabytesToString(config.resources.builder.limits.memory),
     "builder-requests-cpu": millicpuToString(config.resources.builder.requests.cpu),
     "builder-requests-memory": megabytesToString(config.resources.builder.requests.memory),
     "builder-storage-size": megabytesToString(config.storage.builder.size),
     "builder-storage-class": config.storage.builder.storageClass,
+
     "registry-limits-cpu": millicpuToString(config.resources.registry.limits.cpu),
     "registry-limits-memory": megabytesToString(config.resources.registry.limits.memory),
     "registry-requests-cpu": millicpuToString(config.resources.registry.requests.cpu),
     "registry-requests-memory": megabytesToString(config.resources.registry.requests.memory),
     "registry-storage-size": megabytesToString(config.storage.registry.size),
     "registry-storage-class": config.storage.registry.storageClass,
+
+    "sync-limits-cpu": millicpuToString(config.resources.sync.limits.cpu),
+    "sync-limits-memory": megabytesToString(config.resources.sync.limits.memory),
+    "sync-requests-cpu": millicpuToString(config.resources.sync.requests.cpu),
+    "sync-requests-memory": megabytesToString(config.resources.sync.requests.memory),
+    "sync-storage-size": megabytesToString(config.storage.sync.size),
+    "sync-storage-class": config.storage.sync.storageClass,
   }
 }
 
-function getRegistryHostname() {
+export function getRegistryHostname() {
   return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }

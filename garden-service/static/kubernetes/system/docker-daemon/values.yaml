@@ -14,29 +14,18 @@ service:
   type: ClusterIP
   port: 2375
 
-dockerDaemon:
-  resources:
-    limits:
-      cpu: "2"
-      memory: 4Gi
-    requests:
-      cpu: 200m
-      memory: 256Mi
-  storage:
-    request: 20Gi
-  registry:
-    hostname: garden-docker-registry
-
-sync:
-  resources:
-    limits:
-      cpu: 200m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  storage:
-    request: 2Gi
+mode: cluster-docker
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+storage:
+  request: 20Gi
+registry:
+  hostname: garden-docker-registry
 
 nodeSelector: {}
 

@@ -20,6 +20,7 @@ type WrappedFromGarden = Pick<Garden,
   "projectRoot" |
   "projectSources" |
   "gardenDirPath" |
+  "workingCopyId" |
   // TODO: remove this from the interface
   "configStore" |
   "environmentName"
@@ -47,6 +48,8 @@ export const pluginContextSchema = Joi.object()
     environmentName: environmentNameSchema,
     provider: providerSchema
       .description("The provider being used for this context."),
+    workingCopyId: Joi.string()
+      .description("A unique ID assigned to the current project working copy."),
   })
 
 export async function createPluginContext(garden: Garden, providerName: string): Promise<PluginContext> {
@@ -69,5 +72,6 @@ export async function createPluginContext(garden: Garden, providerName: string):
     projectSources: cloneDeep(garden.projectSources),
     configStore: garden.configStore,
     provider,
+    workingCopyId: garden.workingCopyId,
   }
 }

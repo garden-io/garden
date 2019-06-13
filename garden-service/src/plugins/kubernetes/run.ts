@@ -14,24 +14,35 @@ import { LogEntry } from "../../logger/log-entry"
 
 interface RunPodParams {
   context: string,
-  namespace: string,
-  module: Module,
   image: string,
   envVars: PrimitiveMap,
   command?: string[],
   args: string[],
   interactive: boolean,
   ignoreError: boolean,
-  timeout?: number,
-  overrides?: any,
   log: LogEntry,
+  module: Module,
+  namespace: string,
+  overrides?: any,
+  podName?: string,
+  timeout?: number,
 }
 
 export async function runPod(
   {
-    context, namespace, module, image, envVars,
-    command, args, interactive, ignoreError,
-    timeout, overrides, log,
+    args,
+    command,
+    context,
+    envVars,
+    ignoreError,
+    image,
+    interactive,
+    log,
+    module,
+    namespace,
+    overrides,
+    podName,
+    timeout,
   }: RunPodParams,
 ): Promise<RunResult> {
   const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
@@ -60,7 +71,8 @@ export async function runPod(
   }
 
   const kubecmd = [
-    "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
+    "run",
+    podName || `run-${module.name}-${Math.round(new Date().getTime())}`,
     ...opts,
     ...envArgs,
     "--",

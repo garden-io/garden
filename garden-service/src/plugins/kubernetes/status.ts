@@ -606,13 +606,14 @@ function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof 
 async function getPodLogs(api: KubeApi, namespace: string, podNames: string[]): Promise<string> {
   const allLogs = await Bluebird.map(podNames, async (name) => {
     let containerName: string | undefined
+
     try {
       const podRes = await api.core.readNamespacedPod(name, namespace)
       const containerNames = podRes.body.spec.containers.map(c => c.name)
       if (containerNames.length > 1) {
-        containerName = containerNames.filter(n => !n.match(/garden-/))[0]
+        containerName = containerNames.filter(n => !n.match(/garden-/))[0] || containerNames[0]
       } else {
-        containerName = undefined
+        containerName = containerNames[0]
       }
     } catch (err) {
       if (err.code === 404) {
@@ -621,6 +622,7 @@ async function getPodLogs(api: KubeApi, namespace: string, podNames: string[]): 
         throw err
       }
     }
+
     // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
     // accidentally logs a binary file or something.
     try {
