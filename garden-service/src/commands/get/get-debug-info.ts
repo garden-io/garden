@@ -16,15 +16,12 @@ import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
 import { getPackageVersion } from "../../util/util"
 import { platform, release } from "os"
-import { join, relative } from "path"
+import { join, relative, basename } from "path"
 import execa = require("execa")
 import { LogEntry } from "../../logger/log-entry"
 import { deline } from "../../util/string"
-import { getModulesPathsFromPath } from "../../util/fs"
-import {
-  CONFIG_FILENAME,
-  ERROR_LOG_FILENAME,
-} from "../../constants"
+import { getModulesPathsFromPath, getConfigFilePath } from "../../util/fs"
+import { ERROR_LOG_FILENAME } from "../../constants"
 import dedent = require("dedent")
 import { Garden } from "../../garden"
 import { zipFolder } from "../../util/archive"
@@ -61,7 +58,9 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   await ensureDir(tempPath)
 
   // Copy project definition in tmp folder
-  await copy(join(root, CONFIG_FILENAME), join(tempPath, CONFIG_FILENAME))
+  const projectConfigFilePath = await getConfigFilePath(root)
+  const projectConfigFilename = basename(projectConfigFilePath)
+  await copy(projectConfigFilePath, join(tempPath, projectConfigFilename))
   // Check if error logs exist and copy it over if it does
   if (await pathExists(join(root, ERROR_LOG_FILENAME))) {
     await copy(join(root, ERROR_LOG_FILENAME), join(tempPath, ERROR_LOG_FILENAME))
@@ -74,7 +73,9 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   for (const servicePath of paths) {
     const tempServicePath = join(tempPath, relative(root, servicePath))
     await ensureDir(tempServicePath)
-    await copy(join(servicePath, CONFIG_FILENAME), join(tempServicePath, CONFIG_FILENAME))
+    const moduleConfigFilePath = await getConfigFilePath(servicePath)
+    const moduleConfigFilename = basename(moduleConfigFilePath)
+    await copy(moduleConfigFilePath, join(tempServicePath, moduleConfigFilename))
 
     // Check if error logs exist and copy them over if they do
     if (await pathExists(join(servicePath, ERROR_LOG_FILENAME))) {

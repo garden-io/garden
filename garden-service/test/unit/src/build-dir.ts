@@ -4,7 +4,7 @@ import { pathExists, readdir } from "fs-extra"
 import { expect } from "chai"
 import { BuildTask } from "../../../src/tasks/build"
 import { makeTestGarden, dataDir } from "../../helpers"
-import { CONFIG_FILENAME } from "../../../src/constants"
+import { getConfigFilePath } from "../../../src/util/fs"
 
 /*
   Module dependency diagram for test-project-build-products
@@ -52,7 +52,7 @@ describe("BuildDir", () => {
     const buildDirA = await garden.buildDir.buildPath(moduleA.name)
 
     const copiedPaths = [
-      join(buildDirA, CONFIG_FILENAME),
+      await getConfigFilePath(buildDirA),
       join(buildDirA, "some-dir", "some-file"),
     ]
 

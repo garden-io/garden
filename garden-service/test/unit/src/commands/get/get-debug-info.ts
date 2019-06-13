@@ -19,10 +19,11 @@ import {
   GetDebugInfoCommand,
 } from "../../../../../src/commands/get/get-debug-info"
 import { readdirSync, remove, pathExists, readJSONSync } from "fs-extra"
-import { CONFIG_FILENAME, ERROR_LOG_FILENAME } from "../../../../../src/constants"
+import { ERROR_LOG_FILENAME } from "../../../../../src/constants"
 import { join, relative } from "path"
 import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
+import { getConfigFilePath } from "../../../../../src/util/fs"
 
 const debugZipFileRegex = new RegExp(/debug-info-.*?.zip/)
 
@@ -98,7 +99,7 @@ describe("GetDebugInfoCommand", () => {
       await collectBasicDebugInfo(garden.projectRoot, garden.gardenDirPath, log)
 
       // we first check if the main garden.yml exists
-      expect(await pathExists(join(gardenDebugTmp, CONFIG_FILENAME))).to.equal(true)
+      expect(await pathExists(await getConfigFilePath(gardenDebugTmp))).to.equal(true)
       const graph = await garden.getConfigGraph()
 
       // Check that each module config files have been copied over and
@@ -110,7 +111,7 @@ describe("GetDebugInfoCommand", () => {
         expect(await pathExists(join(gardenDebugTmp, moduleRelativePath))).to.equal(true)
 
         // Checks config file is copied over
-        expect(await pathExists(join(gardenDebugTmp, moduleRelativePath, CONFIG_FILENAME))).to.equal(true)
+        expect(await pathExists(await getConfigFilePath(join(gardenDebugTmp, moduleRelativePath)))).to.equal(true)
 
         // Checks error logs are copied over if they exist
         if (await pathExists(join(module.path, ERROR_LOG_FILENAME))) {

@@ -9,12 +9,15 @@
 import klaw = require("klaw")
 import * as _spawn from "cross-spawn"
 import { pathExists, readFile } from "fs-extra"
+import * as Bluebird from "bluebird"
 import minimatch = require("minimatch")
 import { some } from "lodash"
 import { join, basename, win32, posix, relative, parse } from "path"
-import { CONFIG_FILENAME } from "../constants"
+import { ValidationError } from "../exceptions"
 // NOTE: Importing from ignore/ignore doesn't work on Windows
 const ignore = require("ignore")
+
+const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
 
 /*
   Warning: Don't make any async calls in the loop body when using this function, since this may cause
@@ -48,6 +51,40 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
 
     yield await promise
   }
+}
+
+/**
+ * Returns the expected full path to the Garden config filename.
+ *
+ * If a valid config filename is found at the given path, it returns the full path to it.
+ * If no config file is found, it returns the path joined with the first value from the VALID_CONFIG_FILENAMES list.
+ * (The check for whether or not a project or a module has a valid config file at all is handled elsewehere.)
+ *
+ * Throws an error if there are more than one valid config filenames at the given path.
+ */
+export async function getConfigFilePath(path: string) {
+  const configFilePaths = await Bluebird
+    .map(VALID_CONFIG_FILENAMES, async (filename) => {
+      const configFilePath = join(path, filename)
+      return (await pathExists(configFilePath)) ? configFilePath : undefined
+    })
+    .filter(Boolean)
+
+  if (configFilePaths.length > 1) {
+    throw new ValidationError(`Found more than one Garden config file at ${path}.`, {
+      path,
+      configFilenames: configFilePaths.map(filePath => basename(filePath || "")).join(", "),
+    })
+  }
+
+  return configFilePaths[0] || join(path, VALID_CONFIG_FILENAMES[0])
+}
+
+/**
+ * Helper function to check whether a given filename is a valid Garden config filename
+ */
+export function isConfigFilename(filename: string) {
+  return VALID_CONFIG_FILENAMES.includes(filename)
 }
 
 export async function getChildDirNames(parentDir: string): Promise<string[]> {
@@ -125,7 +162,7 @@ export async function getModulesPathsFromPath(dir: string, gardenDirPath: string
 
     const parsedPath = parse(item.path)
 
-    if (parsedPath.base !== CONFIG_FILENAME) {
+    if (!isConfigFilename(parsedPath.base)) {
       continue
     }
 

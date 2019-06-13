@@ -26,7 +26,7 @@ import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { CONFIG_FILENAME, GARDEN_SERVICE_ROOT } from "../src/constants"
+import { GARDEN_SERVICE_ROOT } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf } from "../src/util/util"
 import { Ignorer } from "../src/util/fs"
@@ -400,7 +400,10 @@ export function stubExtSources(garden: Garden) {
 }
 
 export function getExampleProjects() {
-  const names = readdirSync(examplesDir).filter(n => existsSync(join(examplesDir, n, CONFIG_FILENAME)))
+  const names = readdirSync(examplesDir).filter(n => {
+    const basePath = join(examplesDir, n)
+    return existsSync(join(basePath, "garden.yml")) || existsSync(join(basePath, "garden.yaml"))
+  })
   return fromPairs(names.map(n => [n, join(examplesDir, n)]))
 }
 
