@@ -1,13 +1,13 @@
 kind: Project
 name: integ-tests
 environments:
-  - name: local
+  - name: testing
     providers:
-      - name: local-kubernetes
-  # TODO
-  # - name: remote
-  #   providers:
-  #     - name: kubernetes
+      - name: kubernetes
+        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        namespace: integ-tests
+        defaultHostname: dev-1.sys.garden
+        buildMode: cluster-docker
 
 ---
 
@@ -15,11 +15,15 @@ kind: Module
 name: integ-tests
 type: exec
 tests:
-  - name: simple-project
-    command: [npm, run, integ-full, --, --only=simple-project, "--showlog=true"]
-  - name: tasks
-    command: [npm, run, integ-full, --, --only=tasks, "--showlog=true"]
+  - name: demo-project
+    command: [npm, run, integ-full, --, --only=demo-project, --showlog=true, --env=testing]
+  - name: tasks # Tests for tasks are currently being skipped
+    command: [npm, run, integ-full, --, --only=tasks, --showlog=true, --env=testing]
+  - name: hot-reload # Tests for hot-reload are currently being skipped
+    command: [npm, run, integ-full, --, --only=hot-reload, --showlog=true, --env=testing]
   - name: vote-helm
-    command: [npm, run, integ-full, --, --only=vote-helm, "--showlog=true"]
+    command: [npm, run, integ-full, --, --only=vote-helm, --showlog=true, --env=testing]
+  - name: vote
+    command: [npm, run, integ-full, --, --only=vote, --showlog=true, --env=testing]
   - name: remote-sources
-    command: [npm, run, integ-full, --, --only=remote-sources, "--showlog=true"]
+    command: [npm, run, integ-full, --, --only=remote-sources, --showlog=true, --env=testing]

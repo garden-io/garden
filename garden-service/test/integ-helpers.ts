@@ -1,5 +1,6 @@
 import * as execa from "execa"
 import * as Bluebird from "bluebird"
+import * as mlog from "mocha-logger"
 import { remove } from "fs-extra"
 import { get, intersection } from "lodash"
 import parseArgs = require("minimist")
@@ -74,7 +75,13 @@ export async function touchFile(path: string): Promise<void> {
 
 export function parseLogEntries(entries: string[]): JsonLogEntry[] {
   return entries.filter(Boolean).map((line) => {
-    return JSON.parse(line)
+    // Lines are not always JSON parseable
+    try {
+      return JSON.parse(line)
+    } catch (error) {
+      mlog.log("Unable to parse line", line)
+      return {}
+    }
   })
 }
 
