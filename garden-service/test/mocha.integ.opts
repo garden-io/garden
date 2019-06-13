@@ -6,4 +6,4 @@
 --reporter spec
 --timeout 0
 build/test/setup.js
-build/test/integ/**/*.js
+build/test/integ/src/**/*.js
