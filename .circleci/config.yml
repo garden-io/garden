@@ -112,13 +112,10 @@ commands:
         description: Name of registry to use. Defaults to docker.io.
         type: string
         default: docker.io
-      release:
-        description: to release to public registry or not
-        type: boolean
-        default: false
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+      # TODO: use garden publish here
       - deploy:
           name: Release docker image
           command: |
@@ -126,7 +123,7 @@ commands:
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             # Switches between git tag and master for releases
             TAG=${CIRCLE_TAG:-master}
-            docker build -t << parameters.context >> << parameters.context >>
+            docker build -t << parameters.context >> --build-arg TAG=$TAG << parameters.context >>
             docker tag << parameters.context >>  << parameters.registry >>/<< parameters.image >>:$TAG
             docker push << parameters.registry >>/<< parameters.image >>:$TAG
 
@@ -261,6 +258,16 @@ jobs:
       - docker_release:
           context: garden-service
           image: $DOCKER_ORG/garden
+  release-service-docker-gcloud:
+    <<: *node-config
+    steps:
+      - checkout
+      # This is to copy the pre-build build output from test-service (this should be a different step)
+      - *attach-workspace
+      - docker_release:
+          context: garden-service
+          image: $DOCKER_ORG/garden-gcloud
+          dockerfile: gcloud.Dockerfile
   release-service-pkg:
     <<: *node-config
     steps:
@@ -310,6 +317,11 @@ workflows:
           requires:
             - build-service
             - build-dashboard
+      - release-service-docker-gcloud:
+          <<: *only-master
+          context: docker
+          requires:
+            - release-service-docker
       - release-service-pkg:
           <<: *only-master
           requires:
@@ -335,6 +347,11 @@ workflows:
           requires:
             - build-service
             - build-dashboard
+      - release-service-docker-gcloud:
+          <<: *only-tags
+          context: docker
+          requires:
+            - release-service-docker
       - release-service-pkg:
           <<: *only-tags
           requires:
