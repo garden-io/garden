@@ -21,14 +21,14 @@ describe("RunModuleCommand", () => {
     log = garden.log
   })
 
-  it("should run a module without a command param", async () => {
+  it("should run a module without an arguments param", async () => {
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { module: "module-a", command: [] },
+      args: { module: "module-a", arguments: [] },
       opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false }),
     })
 
@@ -45,20 +45,44 @@ describe("RunModuleCommand", () => {
     expect(result).to.eql(expected)
   })
 
-  it("should run a module with a command param", async () => {
+  it("should run a module with an arguments param", async () => {
     const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { module: "module-a", command: ["my", "command"] },
+      args: { module: "module-a", arguments: ["my", "command"] },
       opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false }),
     })
 
     const expected: RunResult = {
       moduleName: "module-a",
       command: ["my", "command"],
+      completedAt: testNow,
+      output: "OK",
+      version: testModuleVersion,
+      startedAt: testNow,
+      success: true,
+    }
+
+    expect(result).to.eql(expected)
+  })
+
+  it("should run a module with a command option", async () => {
+    const cmd = new RunModuleCommand()
+    const { result } = await cmd.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { module: "module-a", arguments: ["my", "command"] },
+      opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false, "command": ["/bin/sh", "-c"] }),
+    })
+
+    const expected: RunResult = {
+      moduleName: "module-a",
+      command: ["/bin/sh", "-c", "my", "command"],
       completedAt: testNow,
       output: "OK",
       version: testModuleVersion,

@@ -499,14 +499,14 @@ Examples:
 
 ##### Usage
 
-    garden run module <module> [command] [options]
+    garden run module <module> [arguments] [options]
 
 ##### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `module` | Yes | The name of the module to run.
-  | `command` | No | The command to run in the module.
+  | `arguments` | No | The arguments to run the module with. Example: &#x27;npm run my-script&#x27;.
 
 ##### Options
 
@@ -514,6 +514,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
   | `--force-build` |  | boolean | Force rebuild of module before running.
+  | `--command` | `-c` | array:string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
 
 ### garden run service
 

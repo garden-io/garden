@@ -17,9 +17,9 @@ import {
   StringsParameter,
 } from "../base"
 import { printRuntimeContext, runtimeContextForServiceDeps } from "./run"
-import dedent = require("dedent")
 import { printHeader } from "../../logger/util"
 import { BuildTask } from "../../tasks/build"
+import { dedent, deline } from "../../util/string"
 
 const runArgs = {
   module: new StringParameter({
@@ -27,8 +27,9 @@ const runArgs = {
     required: true,
   }),
   // TODO: make this a variadic arg
-  command: new StringsParameter({
-    help: "The command to run in the module.",
+  arguments: new StringsParameter({
+    help: "The arguments to run the module with. Example: 'npm run my-script'.",
+    delimiter: " ",
   }),
 }
 
@@ -42,6 +43,13 @@ const runOpts = {
     cliOnly: true,
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
+  "command": new StringsParameter({
+    help: deline`The base command (a.k.a. entrypoint) to run in the module. For container modules, for example,
+      this overrides the image's default command/entrypoint. This option may not be relevant for all module types.
+      Example: '/bin/sh -c'.`,
+    alias: "c",
+    delimiter: " ",
+  }),
 }
 
 type Args = typeof runArgs
@@ -73,8 +81,8 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph()
     const module = await graph.getModule(moduleName)
 
-    const msg = args.command
-      ? `Running command ${chalk.white(args.command.join(" "))} in module ${chalk.white(moduleName)}`
+    const msg = args.arguments
+      ? `Running module ${chalk.white(moduleName)} with arguments ${chalk.white(args.arguments.join(" "))}`
       : `Running module ${chalk.white(moduleName)}`
 
     printHeader(headerLog, msg, "runner")
@@ -94,7 +102,8 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const result = await actions.runModule({
       log,
       module,
-      args: args.command || [],
+      command: opts.command,
+      args: args.arguments || [],
       runtimeContext,
       interactive: opts.interactive,
     })
