@@ -215,9 +215,21 @@ environments:
 ### `environments[].providers[].buildMode`
 [environments](#environments) > [providers](#environments[].providers[]) > buildMode
 
-Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you can set it to 'cluster-docker' or 'kaniko' to sync files to a remote docker daemon, installed in the cluster, and build container images there. This avoids the need to run Docker or Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
-This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker daemon when building. You might also be deploying to a remote cluster that isn't intended as a development environment, so you'd want your builds to happen elsewhere.
-Functionally, both 'cluster-docker' and 'kaniko' do the same thing, but use different underlying mechanisms to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode, this is less secure than Kaniko, but in turn it is generally faster. See the [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information.
+Choose the mechanism for building container images before deploying. By default it uses the local Docker
+daemon, but you can set it to `cluster-docker` or `kaniko` to sync files to a remote Docker daemon,
+installed in the cluster, and build container images there. This removes the need to run Docker or
+Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well
+as between your development and CI workflows.
+
+This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using
+the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker
+daemon when building. You might also be deploying to a remote cluster that isn't intended as a development
+environment, so you'd want your builds to happen elsewhere.
+
+Functionally, both `cluster-docker` and `kaniko` do the same thing, but use different underlying mechanisms
+to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
+this is less secure than Kaniko, but in turn it is generally faster. See the
+[Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
 
 | Type | Required |
 | ---- | -------- |
@@ -248,7 +260,7 @@ Set a default username (used for namespacing within a cluster).
 ### `environments[].providers[].forceSsl`
 [environments](#environments) > [providers](#environments[].providers[]) > forceSsl
 
-Require SSL on all services. If set to true, an error is raised when no certificate is available for a configured hostname.
+Require SSL on all `container` module services. If set to true, an error is raised when no certificate is available for a configured hostname on a `container` module.
 
 | Type | Required |
 | ---- | -------- |
@@ -290,7 +302,7 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 ### `environments[].providers[].resources`
 [environments](#environments) > [providers](#environments[].providers[]) > resources
 
-Resource requests and limits for the in-cluster builder and container registry (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
+Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
 
 | Type | Required |
 | ---- | -------- |
@@ -298,7 +310,14 @@ Resource requests and limits for the in-cluster builder and container registry (
 ### `environments[].providers[].resources.builder`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > builder
 
+Resource requests and limits for the in-cluster builder.
 
+When `buildMode` is `cluster-docker`, this refers to the Docker Daemon that is installed and run
+cluster-wide. This is shared across all users and builds, so it should be resourced accordingly, factoring
+in how many concurrent builds you expect and how heavy your builds tend to be.
+
+When `buildMode` is `kaniko`, this refers to _each instance_ of Kaniko, so you'd generally use lower
+limits/requests, but you should evaluate based on your needs.
 
 | Type | Required |
 | ---- | -------- |
@@ -319,6 +338,19 @@ CPU limit in millicpu.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          builder:
+            ...
+            limits:
+              ...
+              cpu: 2000
+```
 ### `environments[].providers[].resources.builder.limits.memory`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [limits](#environments[].providers[].resources.builder.limits) > memory
 
@@ -327,6 +359,19 @@ Memory limit in megabytes.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          builder:
+            ...
+            limits:
+              ...
+              memory: 4096
+```
 ### `environments[].providers[].resources.builder.requests`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > requests
 
@@ -343,6 +388,19 @@ CPU request in millicpu.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          builder:
+            ...
+            requests:
+              ...
+              cpu: 200
+```
 ### `environments[].providers[].resources.builder.requests.memory`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [builder](#environments[].providers[].resources.builder) > [requests](#environments[].providers[].resources.builder.requests) > memory
 
@@ -351,10 +409,27 @@ Memory request in megabytes.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          builder:
+            ...
+            requests:
+              ...
+              memory: 512
+```
 ### `environments[].providers[].resources.registry`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > registry
 
+Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
+so that they are available to all the nodes in your cluster.
 
+This is shared across all users and builds, so it should be resourced accordingly, factoring
+in how many concurrent builds you expect and how large your images tend to be.
 
 | Type | Required |
 | ---- | -------- |
@@ -375,6 +450,19 @@ CPU limit in millicpu.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          registry:
+            ...
+            limits:
+              ...
+              cpu: 2000
+```
 ### `environments[].providers[].resources.registry.limits.memory`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [limits](#environments[].providers[].resources.registry.limits) > memory
 
@@ -383,6 +471,19 @@ Memory limit in megabytes.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          registry:
+            ...
+            limits:
+              ...
+              memory: 4096
+```
 ### `environments[].providers[].resources.registry.requests`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > requests
 
@@ -399,6 +500,19 @@ CPU request in millicpu.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          registry:
+            ...
+            requests:
+              ...
+              cpu: 200
+```
 ### `environments[].providers[].resources.registry.requests.memory`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [registry](#environments[].providers[].resources.registry) > [requests](#environments[].providers[].resources.registry.requests) > memory
 
@@ -407,10 +521,25 @@ Memory request in megabytes.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          registry:
+            ...
+            requests:
+              ...
+              memory: 512
+```
 ### `environments[].providers[].resources.sync`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > sync
 
-
+Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
+ahead of building images. This generally is not resource intensive, but you might want to adjust the
+defaults if you have many concurrent users.
 
 | Type | Required |
 | ---- | -------- |
@@ -431,6 +560,19 @@ CPU limit in millicpu.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          sync:
+            ...
+            limits:
+              ...
+              cpu: 200
+```
 ### `environments[].providers[].resources.sync.limits.memory`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [limits](#environments[].providers[].resources.sync.limits) > memory
 
@@ -439,6 +581,19 @@ Memory limit in megabytes.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          sync:
+            ...
+            limits:
+              ...
+              memory: 256
+```
 ### `environments[].providers[].resources.sync.requests`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > requests
 
@@ -455,6 +610,19 @@ CPU request in millicpu.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          sync:
+            ...
+            requests:
+              ...
+              cpu: 100
+```
 ### `environments[].providers[].resources.sync.requests.memory`
 [environments](#environments) > [providers](#environments[].providers[]) > [resources](#environments[].providers[].resources) > [sync](#environments[].providers[].resources.sync) > [requests](#environments[].providers[].resources.sync.requests) > memory
 
@@ -463,10 +631,27 @@ Memory request in megabytes.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
+Example:
+```yaml
+environments:
+  - providers:
+      - resources:
+          ...
+          sync:
+            ...
+            requests:
+              ...
+              memory: 64
+```
 ### `environments[].providers[].storage`
 [environments](#environments) > [providers](#environments[].providers[]) > storage
 
-Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
+Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
+(which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
+
+These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
+factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
 
 | Type | Required |
 | ---- | -------- |
@@ -474,7 +659,9 @@ Storage parameters to set for the in-cluster builder, container registry and cod
 ### `environments[].providers[].storage.builder`
 [environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > builder
 
+Storage parameters for the data volume for the in-cluster Docker Daemon.
 
+Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
 | Type | Required |
 | ---- | -------- |
@@ -498,7 +685,10 @@ Storage class to use for the volume.
 ### `environments[].providers[].storage.registry`
 [environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > registry
 
+Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
+are available to all the nodes in your cluster.
 
+Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
 
 | Type | Required |
 | ---- | -------- |
@@ -522,7 +712,10 @@ Storage class to use for the volume.
 ### `environments[].providers[].storage.sync`
 [environments](#environments) > [providers](#environments[].providers[]) > [storage](#environments[].providers[].storage) > sync
 
+Storage parameters for the code sync volume, which build contexts are synced to ahead of running
+in-cluster builds.
 
+Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
 
 | Type | Required |
 | ---- | -------- |
