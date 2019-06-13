@@ -15,6 +15,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { printFooter } from "../logger/util"
 import { GlobalOptions } from "../cli/cli"
+import stripAnsi from "strip-ansi"
 
 export interface ParameterConstructor<T> {
   help: string,
@@ -274,7 +275,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
       name,
       fullName: this.getFullName(),
       help,
-      description,
+      description: description ? stripAnsi(description) : undefined,
       cliOnly,
       subCommands,
       arguments: describeParameters(this.arguments),
@@ -323,5 +324,6 @@ export function describeParameters(args?: Parameters) {
     name: argName,
     usageName: arg.required ? `<${argName}>` : `[${argName}]`,
     ...arg,
+    help: stripAnsi(arg.help),
   }))
 }

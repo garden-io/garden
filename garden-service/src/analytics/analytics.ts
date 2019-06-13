@@ -202,7 +202,7 @@ export class AnalyticsHandler {
       const trackToRemote = (eventToTrack: SegmentEvent) => {
         return new Promise(
           (resolve, reject) => {
-            this.segment.track(eventToTrack, function (error) {
+            this.segment.track(eventToTrack, function(error) {
               if (error) { reject(error) }
               resolve(true)
             })
