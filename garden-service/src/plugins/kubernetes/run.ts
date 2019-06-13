@@ -11,6 +11,7 @@ import { kubectl } from "./kubectl"
 import { PrimitiveMap } from "../../config/common"
 import { Module } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
+import { defaultContainerCommand } from "../container/helpers"
 
 interface RunPodParams {
   context: string,
@@ -18,6 +19,7 @@ interface RunPodParams {
   module: Module,
   image: string,
   envVars: PrimitiveMap,
+  command?: string[],
   args: string[],
   interactive: boolean,
   ignoreError: boolean,
@@ -27,11 +29,15 @@ interface RunPodParams {
 }
 
 export async function runPod(
-  { context, namespace, module, image, envVars, args, interactive, ignoreError, timeout, overrides, log }: RunPodParams,
+  {
+    context, namespace, module, image, envVars,
+    command, args, interactive, ignoreError,
+    timeout, overrides, log,
+  }: RunPodParams,
 ): Promise<RunResult> {
   const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
 
-  const commandStr = args.join(" ")
+  const cmd = (command && command.length) ? command : defaultContainerCommand
 
   const opts = [
     `--image=${image}`,
@@ -56,12 +62,11 @@ export async function runPod(
     ...opts,
     ...envArgs,
     "--",
-    "/bin/sh",
-    "-c",
-    commandStr,
+    ...cmd,
+    args.join(" "),
   ]
 
-  log.verbose(`Running kubectl ${args.join(" ")}`)
+  log.verbose(`Running ${cmd.join(" ")} '${args.join(" ")}'`)
 
   const startedAt = new Date()
 
@@ -77,7 +82,7 @@ export async function runPod(
 
   return {
     moduleName: module.name,
-    command: args,
+    command: [...cmd, ...args],
     version: module.version,
     startedAt,
     completedAt: new Date(),

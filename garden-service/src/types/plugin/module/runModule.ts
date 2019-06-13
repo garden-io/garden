@@ -14,7 +14,8 @@ import { RuntimeContext } from "../../service"
 import { joiArray } from "../../../config/common"
 
 export interface RunModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
-  command: string[]
+  command?: string[]
+  args: string[]
   interactive: boolean
   runtimeContext: RuntimeContext
   ignoreError?: boolean
@@ -27,7 +28,10 @@ export const runModuleBaseSchema = moduleActionParamsSchema
 export const runModuleParamsSchema = runModuleBaseSchema
   .keys({
     command: joiArray(Joi.string())
-      .description("The command to run in the module."),
+      .optional()
+      .description("The command/entrypoint to run in the module."),
+    args: joiArray(Joi.string())
+      .description("The arguments passed to the command/entrypoint to run in the module."),
   })
 
 export const runModule = {

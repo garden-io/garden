@@ -156,7 +156,7 @@ describe("ActionHelper", () => {
         const result = await actions.runModule({
           log,
           module,
-          command,
+          args: command,
           interactive: true,
           runtimeContext: {
             envVars: { FOO: "bar" },
@@ -481,7 +481,7 @@ const testPlugin: PluginFactory = async () => ({
         validate(params, moduleActionDescriptions.runModule.paramsSchema)
         return {
           moduleName: params.module.name,
-          command: params.command,
+          command: params.args,
           completedAt: now,
           output: "bla bla",
           success: true,

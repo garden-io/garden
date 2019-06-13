@@ -38,17 +38,20 @@ export interface HelmResourceSpec {
   name?: string,
   containerName?: string,
   containerModule?: string
+  hotReloadCommand?: string[]
   hotReloadArgs?: string[],
 }
 
 export interface HelmTaskSpec extends BaseTaskSpec {
   resource: HelmResourceSpec
+  command?: string[]
   args: string[]
   env: { [key: string]: string }
 }
 
 export interface HelmTestSpec extends BaseTestSpec {
   resource: HelmResourceSpec
+  command?: string[]
   args: string[]
   env: { [key: string]: string }
 }

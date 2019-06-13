@@ -77,16 +77,20 @@ interface Annotations {
 
 export interface ContainerServiceSpec extends CommonServiceSpec {
   annotations: Annotations,
+  command?: string[],
   args: string[],
   daemon: boolean
   ingresses: ContainerIngressSpec[],
   env: PrimitiveMap,
   healthCheck?: ServiceHealthCheckSpec,
+  hotReloadCommand?: string[],
   hotReloadArgs?: string[],
   limits: ServiceLimitSpec,
   ports: ServicePortSpec[],
   volumes: ServiceVolumeSpec[],
 }
+
+const commandExample = ["/bin/sh", "-c"]
 
 const hotReloadSyncSchema = Joi.object()
   .keys({
@@ -221,8 +225,12 @@ const serviceSchema = baseServiceSpecSchema
   .keys({
     annotations: annotationsSchema
       .description("Annotations to attach to the service (Note: May not be applicable to all providers)"),
+    command: Joi.array().items(Joi.string())
+      .description("The command/entrypoint to run the container with when starting the service.")
+      .example([commandExample, {}]),
     args: Joi.array().items(Joi.string())
-      .description("The arguments to run the container with when starting the service."),
+      .description("The arguments to run the container with when starting the service.")
+      .example([["npm", "start"], {}]),
     daemon: Joi.boolean()
       .default(false)
       .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
@@ -235,12 +243,16 @@ const serviceSchema = baseServiceSpecSchema
     env: joiEnvVars(),
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),
+    hotReloadCommand: Joi.array().items(Joi.string())
+      .description(deline`
+        If this module uses the \`hotReload\` field, the container will be run with
+        this command/entrypoint when the service is deployed with hot reloading enabled.`)
+      .example([commandExample, {}]),
     hotReloadArgs: Joi.array().items(Joi.string())
       .description(deline`
         If this module uses the \`hotReload\` field, the container will be run with
-        these arguments instead of those in \`args\` when the service is deployed
-        with hot reloading enabled.`,
-      ),
+        these arguments when the service is deployed with hot reloading enabled.`)
+      .example([["npm", "run", "dev"], {}]),
     limits: limitsSchema
       .description("Specify resource limits for the service.")
       .default(() => defaultContainerLimits, JSON.stringify(defaultContainerLimits)),
@@ -280,12 +292,16 @@ export const containerRegistryConfigSchema = Joi.object()
 export interface ContainerService extends Service<ContainerModule> { }
 
 export interface ContainerTestSpec extends BaseTestSpec {
+  command?: string[],
   args: string[],
   env: { [key: string]: string },
 }
 
 export const containerTestSchema = baseTestSpecSchema
   .keys({
+    command: Joi.array().items(Joi.string())
+      .description("The command/entrypoint used to run the test inside the container.")
+      .example([commandExample, {}]),
     args: Joi.array().items(Joi.string())
       .description("The arguments used to run the test inside the container.")
       .example([["npm", "test"], {}]),
@@ -293,12 +309,16 @@ export const containerTestSchema = baseTestSpecSchema
   })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
+  command?: string[],
   args: string[]
   env: PrimitiveMap
 }
 
 export const containerTaskSchema = baseTaskSpecSchema
   .keys({
+    command: Joi.array().items(Joi.string())
+      .description("The command/entrypoint used to run the task inside the container.")
+      .example([commandExample, {}]),
     args: Joi.array().items(Joi.string())
       .description("The arguments used to run the task inside the container.")
       .example([["rake", "db:migrate"], {}]),

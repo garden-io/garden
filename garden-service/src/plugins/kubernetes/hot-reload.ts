@@ -37,6 +37,7 @@ export const hotReloadableKinds: HotReloadableKind[] = ["Deployment", "DaemonSet
 interface ConfigureHotReloadParams {
   target: HotReloadableResource,
   hotReloadSpec: ContainerHotReloadSpec,
+  hotReloadCommand?: string[],
   hotReloadArgs?: string[],
   containerName?: string,
 }
@@ -48,7 +49,7 @@ interface ConfigureHotReloadParams {
  * and an initContainer to perform the initial population of the emptyDir volume.
  */
 export function configureHotReload({
-  target, hotReloadSpec, hotReloadArgs, containerName,
+  target, hotReloadSpec, hotReloadCommand, hotReloadArgs, containerName,
 }: ConfigureHotReloadParams) {
   const kind = <HotReloadableKind>target.kind
 
@@ -100,6 +101,10 @@ export function configureHotReload({
         ${kind} ${target.metadata.name} is configured for hot reload, but one of its containers uses
         port ${RSYNC_PORT}, which is reserved for internal use while hot reload is active. Please remove
         ${RSYNC_PORT} from your services' port config.`)
+    }
+
+    if (hotReloadCommand) {
+      container.command = hotReloadCommand
     }
 
     if (hotReloadArgs) {
