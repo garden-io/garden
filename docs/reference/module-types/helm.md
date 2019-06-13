@@ -10,6 +10,7 @@ schema keys. The [second section](#complete-yaml-schema) contains the complete Y
 
 ## Configuration keys
 
+
 ### `apiVersion`
 
 The schema version of this module's config (currently not used).
@@ -17,13 +18,13 @@ The schema version of this module's config (currently not used).
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "garden.io/v0"
+
 ### `kind`
-
-
 
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "Module"
+
 ### `type`
 
 The type of this module.
@@ -33,9 +34,11 @@ The type of this module.
 | `string` | Yes
 
 Example:
+
 ```yaml
 type: "container"
 ```
+
 ### `name`
 
 The name of this module.
@@ -45,16 +48,17 @@ The name of this module.
 | `string` | Yes
 
 Example:
+
 ```yaml
 name: "my-sweet-module"
 ```
+
 ### `description`
-
-
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `include`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
@@ -71,11 +75,13 @@ Also note that specifying an empty list here means _no sources_ should be includ
 | `array[string]` | No
 
 Example:
+
 ```yaml
 include:
   - Dockerfile
   - my-app.js
 ```
+
 ### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
@@ -88,9 +94,11 @@ config from the local garden.yml file.
 | `string` | No
 
 Example:
+
 ```yaml
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
+
 ### `allowPublish`
 
 When false, disables pushing this module to remote registries.
@@ -98,6 +106,7 @@ When false, disables pushing this module to remote registries.
 | Type | Required |
 | ---- | -------- |
 | `boolean` | No
+
 ### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
@@ -105,7 +114,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `build.dependencies[]`
+
 [build](#build) > dependencies
 
 A list of modules that must be built before this module is built.
@@ -115,13 +126,16 @@ A list of modules that must be built before this module is built.
 | `array[object]` | No
 
 Example:
+
 ```yaml
 build:
   ...
   dependencies:
     - name: some-other-module-name
 ```
+
 ### `build.dependencies[].name`
+
 [build](#build) > [dependencies](#build.dependencies[]) > name
 
 Module name to build ahead of this module.
@@ -129,7 +143,9 @@ Module name to build ahead of this module.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `build.dependencies[].copy[]`
+
 [build](#build) > [dependencies](#build.dependencies[]) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
@@ -137,7 +153,9 @@ Specify one or more files or directories to copy from the built dependency to th
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+
 ### `build.dependencies[].copy[].source`
+
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
@@ -145,7 +163,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `build.dependencies[].copy[].target`
+
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
 POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
@@ -153,6 +173,7 @@ POSIX-style path or filename to copy the directory or file(s) to (defaults to sa
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `base`
 
 The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart across multiple services. For example, you might have an organization-wide base chart for certain types of services.
@@ -164,9 +185,11 @@ Each of those can be overridden in this module. They will be merged with a JSON 
 | `string` | No
 
 Example:
+
 ```yaml
 base: "my-base-chart"
 ```
+
 ### `chart`
 
 A valid Helm chart name or URI (same as you'd input to `helm install`). Required if the module doesn't contain the Helm chart itself.
@@ -176,9 +199,11 @@ A valid Helm chart name or URI (same as you'd input to `helm install`). Required
 | `string` | No
 
 Example:
+
 ```yaml
 chart: "stable/nginx-ingress"
 ```
+
 ### `chartPath`
 
 The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any). Not used when `base` is specified.
@@ -186,6 +211,7 @@ The path, relative to the module path, to the chart sources (i.e. where the Char
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `dependencies`
 
 List of names of services that should be deployed before this chart.
@@ -193,6 +219,7 @@ List of names of services that should be deployed before this chart.
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `releaseName`
 
 Optionally override the release name used when installing (defaults to the module name).
@@ -200,6 +227,7 @@ Optionally override the release name used when installing (defaults to the modul
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `repo`
 
 The repository URL to fetch the chart from.
@@ -207,6 +235,7 @@ The repository URL to fetch the chart from.
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `serviceResource`
 
 The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources). Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
@@ -215,7 +244,9 @@ We currently map a Helm chart to a single Garden service, because all the resour
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `serviceResource.kind`
+
 [serviceResource](#serviceresource) > kind
 
 The type of Kubernetes resource to sync files to.
@@ -223,7 +254,9 @@ The type of Kubernetes resource to sync files to.
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "Deployment", "DaemonSet", "StatefulSet"
+
 ### `serviceResource.name`
+
 [serviceResource](#serviceresource) > name
 
 The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
@@ -232,7 +265,9 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `serviceResource.containerName`
+
 [serviceResource](#serviceresource) > containerName
 
 The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
@@ -240,7 +275,9 @@ The name of a container in the target. Specify this if the target contains more 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `serviceResource.containerModule`
+
 [serviceResource](#serviceresource) > containerModule
 
 The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
@@ -252,12 +289,15 @@ Note: If you specify a module here, you don't need to specify it additionally un
 | `string` | No
 
 Example:
+
 ```yaml
 serviceResource:
   ...
   containerModule: "my-container-module"
 ```
+
 ### `serviceResource.hotReloadArgs[]`
+
 [serviceResource](#serviceresource) > hotReloadArgs
 
 If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -267,6 +307,7 @@ If specified, overrides the arguments for the main container when running in hot
 | `array[string]` | No
 
 Example:
+
 ```yaml
 serviceResource:
   ...
@@ -274,6 +315,7 @@ serviceResource:
     - nodemon
     - my-server.js
 ```
+
 ### `skipDeploy`
 
 Set this to true if the chart should only be built, but not deployed as a service. Use this, for example, if the chart should only be used as a base for other modules.
@@ -281,6 +323,7 @@ Set this to true if the chart should only be built, but not deployed as a servic
 | Type | Required |
 | ---- | -------- |
 | `boolean` | No
+
 ### `tasks`
 
 The task definitions for this module.
@@ -288,7 +331,9 @@ The task definitions for this module.
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+
 ### `tasks[].name`
+
 [tasks](#tasks) > name
 
 The name of the test.
@@ -296,7 +341,9 @@ The name of the test.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `tasks[].dependencies[]`
+
 [tasks](#tasks) > dependencies
 
 The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
@@ -304,7 +351,9 @@ The names of any services that must be running, and the names of any tasks that 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tasks[].timeout`
+
 [tasks](#tasks) > timeout
 
 Maximum duration (in seconds) of the test run.
@@ -312,7 +361,9 @@ Maximum duration (in seconds) of the test run.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
 ### `tasks[].resource`
+
 [tasks](#tasks) > resource
 
 The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
@@ -320,7 +371,9 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `tasks[].resource.kind`
+
 [tasks](#tasks) > [resource](#tasks[].resource) > kind
 
 The type of Kubernetes resource to sync files to.
@@ -328,7 +381,9 @@ The type of Kubernetes resource to sync files to.
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "Deployment", "DaemonSet", "StatefulSet"
+
 ### `tasks[].resource.name`
+
 [tasks](#tasks) > [resource](#tasks[].resource) > name
 
 The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
@@ -337,7 +392,9 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `tasks[].resource.containerName`
+
 [tasks](#tasks) > [resource](#tasks[].resource) > containerName
 
 The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
@@ -345,7 +402,9 @@ The name of a container in the target. Specify this if the target contains more 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `tasks[].resource.containerModule`
+
 [tasks](#tasks) > [resource](#tasks[].resource) > containerModule
 
 The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
@@ -357,13 +416,16 @@ Note: If you specify a module here, you don't need to specify it additionally un
 | `string` | No
 
 Example:
+
 ```yaml
 tasks:
   - resource:
       ...
       containerModule: "my-container-module"
 ```
+
 ### `tasks[].resource.hotReloadArgs[]`
+
 [tasks](#tasks) > [resource](#tasks[].resource) > hotReloadArgs
 
 If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -373,6 +435,7 @@ If specified, overrides the arguments for the main container when running in hot
 | `array[string]` | No
 
 Example:
+
 ```yaml
 tasks:
   - resource:
@@ -381,7 +444,9 @@ tasks:
         - nodemon
         - my-server.js
 ```
+
 ### `tasks[].args[]`
+
 [tasks](#tasks) > args
 
 The arguments to pass to the pod used for execution.
@@ -389,7 +454,9 @@ The arguments to pass to the pod used for execution.
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tasks[].env`
+
 [tasks](#tasks) > env
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
@@ -397,6 +464,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `tests`
 
 The test suite definitions for this module.
@@ -404,7 +472,9 @@ The test suite definitions for this module.
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+
 ### `tests[].name`
+
 [tests](#tests) > name
 
 The name of the test.
@@ -412,7 +482,9 @@ The name of the test.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `tests[].dependencies[]`
+
 [tests](#tests) > dependencies
 
 The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
@@ -420,7 +492,9 @@ The names of any services that must be running, and the names of any tasks that 
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tests[].timeout`
+
 [tests](#tests) > timeout
 
 Maximum duration (in seconds) of the test run.
@@ -428,7 +502,9 @@ Maximum duration (in seconds) of the test run.
 | Type | Required |
 | ---- | -------- |
 | `number` | No
+
 ### `tests[].resource`
+
 [tests](#tests) > resource
 
 The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
@@ -436,7 +512,9 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `tests[].resource.kind`
+
 [tests](#tests) > [resource](#tests[].resource) > kind
 
 The type of Kubernetes resource to sync files to.
@@ -444,7 +522,9 @@ The type of Kubernetes resource to sync files to.
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "Deployment", "DaemonSet", "StatefulSet"
+
 ### `tests[].resource.name`
+
 [tests](#tests) > [resource](#tests[].resource) > name
 
 The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
@@ -453,7 +533,9 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `tests[].resource.containerName`
+
 [tests](#tests) > [resource](#tests[].resource) > containerName
 
 The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
@@ -461,7 +543,9 @@ The name of a container in the target. Specify this if the target contains more 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `tests[].resource.containerModule`
+
 [tests](#tests) > [resource](#tests[].resource) > containerModule
 
 The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
@@ -473,13 +557,16 @@ Note: If you specify a module here, you don't need to specify it additionally un
 | `string` | No
 
 Example:
+
 ```yaml
 tests:
   - resource:
       ...
       containerModule: "my-container-module"
 ```
+
 ### `tests[].resource.hotReloadArgs[]`
+
 [tests](#tests) > [resource](#tests[].resource) > hotReloadArgs
 
 If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -489,6 +576,7 @@ If specified, overrides the arguments for the main container when running in hot
 | `array[string]` | No
 
 Example:
+
 ```yaml
 tests:
   - resource:
@@ -497,7 +585,9 @@ tests:
         - nodemon
         - my-server.js
 ```
+
 ### `tests[].args[]`
+
 [tests](#tests) > args
 
 The arguments to pass to the pod used for testing.
@@ -505,7 +595,9 @@ The arguments to pass to the pod used for testing.
 | Type | Required |
 | ---- | -------- |
 | `array[string]` | No
+
 ### `tests[].env`
+
 [tests](#tests) > env
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
@@ -513,6 +605,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `version`
 
 The chart version to deploy.
@@ -520,6 +613,7 @@ The chart version to deploy.
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `values`
 
 Map of values to pass to Helm when rendering the templates. May include arrays and nested objects.

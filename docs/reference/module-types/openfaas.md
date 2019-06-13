@@ -9,6 +9,7 @@ schema keys. The [second section](#complete-yaml-schema) contains the complete Y
 
 ## Configuration keys
 
+
 ### `apiVersion`
 
 The schema version of this module's config (currently not used).
@@ -16,13 +17,13 @@ The schema version of this module's config (currently not used).
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "garden.io/v0"
+
 ### `kind`
-
-
 
 | Type | Required | Allowed Values |
 | ---- | -------- | -------------- |
 | `string` | Yes | "Module"
+
 ### `type`
 
 The type of this module.
@@ -32,9 +33,11 @@ The type of this module.
 | `string` | Yes
 
 Example:
+
 ```yaml
 type: "container"
 ```
+
 ### `name`
 
 The name of this module.
@@ -44,16 +47,17 @@ The name of this module.
 | `string` | Yes
 
 Example:
+
 ```yaml
 name: "my-sweet-module"
 ```
+
 ### `description`
-
-
 
 | Type | Required |
 | ---- | -------- |
 | `string` | No
+
 ### `include`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
@@ -70,11 +74,13 @@ Also note that specifying an empty list here means _no sources_ should be includ
 | `array[string]` | No
 
 Example:
+
 ```yaml
 include:
   - Dockerfile
   - my-app.js
 ```
+
 ### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
@@ -87,9 +93,11 @@ config from the local garden.yml file.
 | `string` | No
 
 Example:
+
 ```yaml
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
+
 ### `allowPublish`
 
 When false, disables pushing this module to remote registries.
@@ -97,6 +105,7 @@ When false, disables pushing this module to remote registries.
 | Type | Required |
 | ---- | -------- |
 | `boolean` | No
+
 ### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
@@ -104,7 +113,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 | Type | Required |
 | ---- | -------- |
 | `object` | No
+
 ### `build.dependencies[]`
+
 [build](#build) > dependencies
 
 A list of modules that must be built before this module is built.
@@ -114,13 +125,16 @@ A list of modules that must be built before this module is built.
 | `array[object]` | No
 
 Example:
+
 ```yaml
 build:
   ...
   dependencies:
     - name: some-other-module-name
 ```
+
 ### `build.dependencies[].name`
+
 [build](#build) > [dependencies](#build.dependencies[]) > name
 
 Module name to build ahead of this module.
@@ -128,7 +142,9 @@ Module name to build ahead of this module.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `build.dependencies[].copy[]`
+
 [build](#build) > [dependencies](#build.dependencies[]) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
@@ -136,7 +152,9 @@ Specify one or more files or directories to copy from the built dependency to th
 | Type | Required |
 | ---- | -------- |
 | `array[object]` | No
+
 ### `build.dependencies[].copy[].source`
+
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
@@ -144,7 +162,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | Type | Required |
 | ---- | -------- |
 | `string` | Yes
+
 ### `build.dependencies[].copy[].target`
+
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
 POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).

@@ -137,11 +137,13 @@ const resourceSchema = (defaults: KubernetesResourceSpec) => Joi.object()
         cpu: Joi.number()
           .integer()
           .default(defaults.limits.cpu)
-          .description("CPU limit in millicpu."),
+          .description("CPU limit in millicpu.")
+          .example(defaults.limits.cpu),
         memory: Joi.number()
           .integer()
           .default(defaults.limits.memory)
-          .description("Memory limit in megabytes."),
+          .description("Memory limit in megabytes.")
+          .example(defaults.limits.memory),
       })
       .default(defaults.limits),
     requests: Joi.object()
@@ -149,11 +151,13 @@ const resourceSchema = (defaults: KubernetesResourceSpec) => Joi.object()
         cpu: Joi.number()
           .integer()
           .default(defaults.requests.cpu)
-          .description("CPU request in millicpu."),
+          .description("CPU request in millicpu.")
+          .example(defaults.requests.cpu),
         memory: Joi.number()
           .integer()
           .default(defaults.requests.memory)
-          .description("Memory request in megabytes."),
+          .description("Memory request in megabytes.")
+          .example(defaults.requests.memory),
       })
       .default(defaults.requests),
   })
@@ -222,21 +226,22 @@ export const kubernetesConfigBase = providerConfigBaseSchema
     buildMode: Joi.string()
       .allow("local-docker", "cluster-docker", "kaniko")
       .default("local-docker")
-      .description(deline`
-        Choose the mechanism used to build containers before deploying. By default it uses the local docker, but you
-        can set it to 'cluster-docker' or 'kaniko' to sync files to a remote docker daemon, installed in the cluster,
-        and build container images there. This avoids the need to run Docker or Kubernetes locally, and allows you to
-        share layer and image caches between multiple developers, as well as between your development and CI workflows.
+      .description(dedent`
+        Choose the mechanism for building container images before deploying. By default it uses the local Docker
+        daemon, but you can set it to \`cluster-docker\` or \`kaniko\` to sync files to a remote Docker daemon,
+        installed in the cluster, and build container images there. This removes the need to run Docker or
+        Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well
+        as between your development and CI workflows.
 
         This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using
         the \`local-kubernetes\` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker
         daemon when building. You might also be deploying to a remote cluster that isn't intended as a development
         environment, so you'd want your builds to happen elsewhere.
 
-        Functionally, both 'cluster-docker' and 'kaniko' do the same thing, but use different underlying mechanisms
+        Functionally, both \`cluster-docker\` and \`kaniko\` do the same thing, but use different underlying mechanisms
         to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
         this is less secure than Kaniko, but in turn it is generally faster. See the
-        [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information.
+        [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
       `),
     defaultHostname: Joi.string()
       .description("A default hostname to use when no hostname is explicitly configured for a service.")
@@ -246,31 +251,73 @@ export const kubernetesConfigBase = providerConfigBaseSchema
     forceSsl: Joi.boolean()
       .default(false)
       .description(
-        "Require SSL on all services. If set to true, an error is raised when no certificate " +
-        "is available for a configured hostname.",
+        "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
+        "is available for a configured hostname on a `container` module.",
       ),
     imagePullSecrets: imagePullSecretsSchema,
     resources: Joi.object()
       .keys({
-        builder: resourceSchema(defaultResources.builder),
-        registry: resourceSchema(defaultResources.registry),
-        sync: resourceSchema(defaultResources.sync),
+        builder: resourceSchema(defaultResources.builder)
+          .description(dedent`
+            Resource requests and limits for the in-cluster builder.
+
+            When \`buildMode\` is \`cluster-docker\`, this refers to the Docker Daemon that is installed and run
+            cluster-wide. This is shared across all users and builds, so it should be resourced accordingly, factoring
+            in how many concurrent builds you expect and how heavy your builds tend to be.
+
+            When \`buildMode\` is \`kaniko\`, this refers to _each instance_ of Kaniko, so you'd generally use lower
+            limits/requests, but you should evaluate based on your needs.
+          `),
+        registry: resourceSchema(defaultResources.registry)
+          .description(dedent`
+            Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
+            so that they are available to all the nodes in your cluster.
+
+            This is shared across all users and builds, so it should be resourced accordingly, factoring
+            in how many concurrent builds you expect and how large your images tend to be.
+          `),
+        sync: resourceSchema(defaultResources.sync)
+          .description(dedent`
+            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
+            ahead of building images. This generally is not resource intensive, but you might want to adjust the
+            defaults if you have many concurrent users.
+          `),
       })
       .default(defaultResources)
       .description(deline`
-        Resource requests and limits for the in-cluster builder and container registry
-        (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
+        Resource requests and limits for the in-cluster builder, container registry and code sync service.
+        (which are automatically installed and used when \`buildMode\` is \`cluster-docker\` or \`kaniko\`).
       `),
     storage: Joi.object()
       .keys({
-        builder: storageSchema(defaultStorage.builder),
-        registry: storageSchema(defaultStorage.registry),
-        sync: storageSchema(defaultStorage.sync),
+        builder: storageSchema(defaultStorage.builder)
+          .description(dedent`
+            Storage parameters for the data volume for the in-cluster Docker Daemon.
+
+            Only applies when \`buildMode\` is set to \`cluster-docker\`, ignored otherwise.
+          `),
+        registry: storageSchema(defaultStorage.registry)
+          .description(dedent`
+            Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
+            are available to all the nodes in your cluster.
+
+            Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
+          `),
+        sync: storageSchema(defaultStorage.sync)
+          .description(dedent`
+            Storage parameters for the code sync volume, which build contexts are synced to ahead of running
+            in-cluster builds.
+
+            Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
+          `),
       })
       .default(defaultStorage)
-      .description(deline`
+      .description(dedent`
         Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
-        (which are automatically installed and used when buildMode is 'cluster-docker' or 'kaniko').
+        (which are automatically installed and used when \`buildMode\` is \`cluster-docker\` or \`kaniko\`).
+
+        These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
+        factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
       `),
     tlsCertificates: joiArray(tlsCertificateSchema)
       .unique("name")

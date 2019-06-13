@@ -140,13 +140,14 @@ describe("config", () => {
     it("should return the correct markdown", () => {
       const { markdownReference } = renderConfigReference(portSchema)
       expect(markdownReference).to.equal(dedent`
-        ### \`containerPort\`
+        \n### \`containerPort\`
 
         description
 
         | Type | Required |
         | ---- | -------- |
         | \`number\` | Yes
+
         ### \`servicePort\`
 
         description
@@ -156,9 +157,11 @@ describe("config", () => {
         | \`number\` | No
 
         Example:
+
         \`\`\`yaml
         servicePort: "8080"
         \`\`\`
+
         ### \`testObject\`
 
         test object
@@ -166,7 +169,9 @@ describe("config", () => {
         | Type | Required |
         | ---- | -------- |
         | \`object\` | No
+
         ### \`testObject.testKeyA\`
+
         [testObject](#testobject) > testKeyA
 
         key a
@@ -174,7 +179,9 @@ describe("config", () => {
         | Type | Required |
         | ---- | -------- |
         | \`number\` | Yes
+
         ### \`testObject.testKeyB\`
+
         [testObject](#testobject) > testKeyB
 
         key b
@@ -182,6 +189,7 @@ describe("config", () => {
         | Type | Required | Allowed Values |
         | ---- | -------- | -------------- |
         | \`string\` | Yes | "b"
+
         ### \`testArray\`
 
         test array
