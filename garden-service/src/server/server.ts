@@ -86,7 +86,6 @@ export class GardenServer {
       msg: chalk.cyan("Garden dashboard and API server running on ") + url,
     })
 
-    // this.analytics.track("Dashboard server started", { type: "DASHBOARD" })
   }
 
   async close() {
@@ -120,7 +119,8 @@ export class GardenServer {
         this.analytics = await new Analytics(this.garden).init()
       }
 
-      await this.analytics.trackAPI("POST", ctx.originalUrl, { ...ctx.request.body })
+      // tslint:disable-next-line: no-floating-promises
+      this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
       // TODO: set response code when errors are in result object?
       const result = await resolveRequest(ctx, this.garden, this.log, commands, ctx.request.body)

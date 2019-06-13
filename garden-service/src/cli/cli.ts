@@ -299,7 +299,9 @@ export class GardenCli {
 
           // Init Analytics, track command if user opted-in
           const analytics = await new Analytics(garden).init()
-          await analytics.trackCommand(command.getFullName())
+
+          // tslint:disable-next-line: no-floating-promises
+          analytics.trackCommand(command.getFullName())
 
           // TODO: enforce that commands always output DeepPrimitiveMap
           result = await command.action({

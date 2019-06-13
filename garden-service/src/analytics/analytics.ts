@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as prompts from "prompts"
 import dedent = require("dedent")
 import * as uuidv4 from "uuid/v4"
-const md5 = require("md5")
+import md5 = require("md5")
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"
-const ci = require("ci-info")
+import ci = require("ci-info")
 
 import {
   globalConfigKeys,
@@ -24,10 +23,17 @@ import {
 } from "../config-store"
 import { getPackageVersion } from "../util/util"
 import { Garden } from "../garden"
+import { Logger, getLogger } from "../logger/logger"
+import inquirer = require("inquirer")
+import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
 
-const API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW"
+const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
-export type AnalyticsType = "COMMAND" | "TASK" | "DASHBOARD"
+export enum AnalyticsType {
+  COMMAND = "Run Command",
+  TASK = "Run Task",
+  CALL_API = "Dashboard Api call",
+}
 
 export interface SystemInfo {
   gardenVersion: string
@@ -44,14 +50,12 @@ export interface AnalyticsEventProperties {
 export interface AnalyticsTaskEventProperties extends AnalyticsEventProperties {
   taskName: string
 }
-export interface AnalyticsAPIEventProperties extends AnalyticsEventProperties {
+export interface AnalyticsApiEventProperties extends AnalyticsEventProperties {
   path: string
   command: string
-  parameters: object
 }
-export interface APIRequestBody {
+export interface ApiRequestBody {
   command: string
-  parameters: object
 }
 
 export interface AnalyticsEvent {
@@ -68,6 +72,7 @@ export interface SegmentEvent {
 export class Analytics {
   private garden: Garden
   private segment: any
+  private logger: Logger
   private globalConfig: AnalyticsGlobalConfig
   private localConfig: AnalyticsLocalConfig
   private globalConfigStore: GlobalConfigStore
@@ -75,15 +80,17 @@ export class Analytics {
   private systemConfig: SystemInfo
 
   constructor(garden: Garden) {
-    this.garden = garden
+    // { flushAt: 1 } means the client will track events as soon as they are created
+    // no batching is occurring: this will change once the daemon is implemented
     this.segment = new segmentClient(API_KEY, { flushAt: 1 })
+    this.garden = garden
+    this.logger = getLogger()
     this.globalConfigStore = garden.globalConfigStore
     this.localConfigStore = garden.configStore
     this.globalConfig = {
       userId: "",
       firstRun: true,
       optedIn: false,
-
     }
     this.systemConfig = {
       platform: platform(),
@@ -105,7 +112,27 @@ export class Analytics {
       }
 
       if (this.globalConfig.firstRun) {
-        await this.toggleAnalytics()
+        this.logger.stop()
+        this.localConfig.projectId = md5(this.garden.projectName)
+        this.globalConfig = {
+          firstRun: false,
+          userId: uuidv4(),
+          optedIn: await this.promptAnalytics(),
+        }
+
+        await this.globalConfigStore.set([globalConfigKeys.analytics], this.globalConfig)
+        await this.localConfigStore.set([localConfigKeys.analytics], this.localConfig)
+
+        if (this.segment && this.globalConfig.optedIn) {
+          this.segment.identify({
+            userId: this.globalConfig.userId,
+            traits: {
+              platform: platform(),
+              platformVersion: release(),
+              gardenVersion: getPackageVersion(),
+            },
+          })
+        }
       }
     }
     return this
@@ -113,6 +140,11 @@ export class Analytics {
 
   hasOptedIn(): boolean {
     return this.globalConfig.optedIn || false
+  }
+
+  async setAnalyticsOptIn(isOptedIn: boolean) {
+    this.globalConfig.optedIn = isOptedIn
+    await this.globalConfigStore.set([globalConfigKeys.analytics, "optedIn"], isOptedIn)
   }
 
   private async track(event: AnalyticsEvent) {
@@ -141,86 +173,59 @@ export class Analytics {
   }
 
   async trackCommand(commandName: string) {
-    if (this.segment && this.hasOptedIn()) {
-      return await this.track({
-        type: "COMMAND",
-        properties: {
-          name: commandName,
-          projectId: this.localConfig.projectId,
-          system: this.systemConfig,
-        },
-      })
-    }
-    return false
+    return this.track({
+      type: AnalyticsType.COMMAND,
+      properties: {
+        name: commandName,
+        projectId: this.localConfig.projectId,
+        system: this.systemConfig,
+      },
+    })
   }
 
   async trackTask(taskName: string, taskType: string) {
-    if (this.segment && this.hasOptedIn()) {
-      const properties: AnalyticsTaskEventProperties = {
-        name: taskName,
-        taskName: md5(taskType),
-        projectId: this.localConfig.projectId,
-        system: this.systemConfig,
-      }
-
-      return await this.track({
-        type: "TASK",
-        properties,
-      })
+    const properties: AnalyticsTaskEventProperties = {
+      name: taskType,
+      taskName: md5(taskName),
+      projectId: this.localConfig.projectId,
+      system: this.systemConfig,
     }
-    return false
+
+    return this.track({
+      type: AnalyticsType.TASK,
+      properties,
+    })
   }
 
-  async trackAPI(method: string, path: string, body: APIRequestBody) {
-    if (this.segment && this.hasOptedIn()) {
-      const properties: AnalyticsAPIEventProperties = {
-        name: `${method} request`,
-        path,
-        ...body,
-        projectId: this.localConfig.projectId,
-        system: this.systemConfig,
-      }
-
-      return await this.track({
-        type: "DASHBOARD",
-        properties,
-      })
+  async trackApi(method: string, path: string, body: ApiRequestBody) {
+    const properties: AnalyticsApiEventProperties = {
+      name: `${method} request`,
+      path,
+      command: body.command,
+      projectId: this.localConfig.projectId,
+      system: this.systemConfig,
     }
-    return false
+
+    return this.track({
+      type: AnalyticsType.CALL_API,
+      properties,
+    })
   }
 
-  async toggleAnalytics(customMessage?: string) {
+  private async promptAnalytics() {
 
     const defaultMessage = dedent`
-      Thanks for installing garden! We work hard to provide you the best experience we can
-      and it would help us a lot if we could collect some anonymous analytics while you use garden.
+      Thanks for installing Garden! We work hard to provide you the best experience we can
+      and it would help us a lot if we could collect some anonymous analytics while you use Garden.
+      Are you ok with us collecting anonymized data about your CLI usage?
 
-      Are you ok with us collecting anonymized data about your cli usage?
     `
-    const { optedIn } = await prompts({
-      type: "confirm",
-      name: "optedIn",
-      message: customMessage || defaultMessage,
-      initial: true,
+    const ans: any = await inquirer.prompt({
+      name: "continue",
+      message: defaultMessage,
     })
 
-    this.globalConfig.optedIn = optedIn
-    this.globalConfig.firstRun = false
-    this.globalConfig.userId = uuidv4()
-    this.localConfig.projectId = md5(this.garden.projectName)
+    return ans.continue.startsWith("y")
 
-    await this.globalConfigStore.set([globalConfigKeys.analytics], this.globalConfig)
-    await this.localConfigStore.set([localConfigKeys.analytics], this.localConfig)
-
-    if (this.segment && this.globalConfig.optedIn) {
-      this.segment.identify({
-        userId: this.globalConfig.userId,
-        traits: {
-          platform: platform(),
-          platformVersion: release(),
-          gardenVersion: getPackageVersion(),
-        },
-      })
-    }
   }
 }

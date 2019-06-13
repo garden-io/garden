@@ -270,6 +270,15 @@ const globalConfigSchemaKeys = {
   analytics: AnalyticsGlobalConfigSchema,
 }
 
+/* This contains a config key, key string pair to be used when setting/getting values in the store
+ eg.
+  globalConfigKeys = {
+    analytics: "analytics"
+  }
+
+  used like:
+  globalConfigStore.set([globalConfigKeys.analytics], { data: value })
+*/
 export const globalConfigKeys = Object.keys(globalConfigSchemaKeys).reduce((acc, key) => {
   acc[key] = key
   return acc

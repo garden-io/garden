@@ -808,13 +808,19 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
     garden validate 
 
-### garden update-analytics
+### garden config analytics-enabled
 
 Update your preferences regarding analytics.
 
-Update your preferences regarding analytics: opt-in, opt-out.
+Update your preferences regarding analytics: .
 
 ##### Usage
 
-    garden update-analytics 
+    garden config analytics-enabled [activeteAnalytics] 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `activeteAnalytics` | No | Enable analitics, defaults to &quot;true&quot;
 
