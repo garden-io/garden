@@ -1,6 +1,6 @@
 ARG NAME
-ARG VERSION
-FROM gardendev/${NAME:-garden}:${VERSION}
+ARG TAG
+FROM gardendev/garden-gcloud:${TAG}
 
 RUN apk add --no-cache python \
   && mkdir -p /gcloud \
