@@ -1,4 +1,87 @@
 
+<a name="v0.10.0-0"></a>
+## [v0.10.0-0](https://github.com/garden-io/garden/compare/v0.9.12...v0.10.0-0) (2019-06-14)
+
+### Bug Fixes
+
+* revisions to `command` option ([51fc76ab](https://github.com/garden-io/garden/commit/51fc76ab))
+* include fixes, docs and refactoring for [#778](https://github.com/garden-io/garden/issues/778) ([14063c06](https://github.com/garden-io/garden/commit/14063c06))
+* crash when deploy and docker not installed ([540edb02](https://github.com/garden-io/garden/commit/540edb02))
+* some commands terminate with double new line ([86fa9816](https://github.com/garden-io/garden/commit/86fa9816))
+* improved error messages for call command ([2286a17e](https://github.com/garden-io/garden/commit/2286a17e))
+* always ignore .garden ([bb0e2df8](https://github.com/garden-io/garden/commit/bb0e2df8))
+* **analytics:** don't use promises and silently fail ([85c80f24](https://github.com/garden-io/garden/commit/85c80f24))
+* **cli:** ensure cli exits with code 0 when help/version called ([3e31d9ba](https://github.com/garden-io/garden/commit/3e31d9ba))
+* **container:** incorrect parsing of image ID with port in hostname ([78e03b71](https://github.com/garden-io/garden/commit/78e03b71))
+* **core:** don't abort if providers needing manual init are ready ([c7becfdd](https://github.com/garden-io/garden/commit/c7becfdd))
+* **dashboard:** stackgraph loses ws status when drawn ([112e5825](https://github.com/garden-io/garden/commit/112e5825))
+* **dev-command:** prepareEnvironment was called twice ([65dc993b](https://github.com/garden-io/garden/commit/65dc993b))
+* **integ-tests:** only checkout example dir when running locally ([0a1b3a2b](https://github.com/garden-io/garden/commit/0a1b3a2b))
+* **k8s:** fix various issues with Kubernetes API queries ([c7839e93](https://github.com/garden-io/garden/commit/c7839e93))
+* **k8s:** don't require manual init for local-kubernetes provider ([83d9efbb](https://github.com/garden-io/garden/commit/83d9efbb))
+* **k8s:** unhelpful error with conflicting namespace ([a1161200](https://github.com/garden-io/garden/commit/a1161200))
+* **k8s:** avoid concurrency issues when creating port forwards ([169aa3c1](https://github.com/garden-io/garden/commit/169aa3c1))
+* **k8s:** avoid normalization issue when installing nginx controller ([118b02cd](https://github.com/garden-io/garden/commit/118b02cd))
+* **k8s:** error when getting debug logs from multi-container Pods ([2778c3a8](https://github.com/garden-io/garden/commit/2778c3a8))
+* **k8s:** warn instead of error when cluster services are outdated ([fbc4cb5d](https://github.com/garden-io/garden/commit/fbc4cb5d))
+* **k8s:** handle normalization issue between numbers and strings in diffs ([d98ed6fc](https://github.com/garden-io/garden/commit/d98ed6fc))
+* **k8s:** make sure we error/init when any system service is missing on init ([33f9638b](https://github.com/garden-io/garden/commit/33f9638b))
+* **k8s:** fix some issues with syncing build context to remote cluster ([a5ed2cf8](https://github.com/garden-io/garden/commit/a5ed2cf8))
+* **k8s:** startup error when using remote kubernetes provider ([b15b30f5](https://github.com/garden-io/garden/commit/b15b30f5))
+* **vcs:** error when handling files with spaces in the name ([eeff4d46](https://github.com/garden-io/garden/commit/eeff4d46))
+
+### Code Refactoring
+
+* **cli:** add header log to commands ([51c7efef](https://github.com/garden-io/garden/commit/51c7efef))
+* **core:** allow setting a custom Garden dir path ([43f2ad69](https://github.com/garden-io/garden/commit/43f2ad69))
+* **core:** added manualInit flag to prepareEnvironment handler ([66aa4739](https://github.com/garden-io/garden/commit/66aa4739))
+* **core:** split up plugin handler declarations to individual modules ([ea863553](https://github.com/garden-io/garden/commit/ea863553))
+* **k8s:** rename "local" build mode to "local-docker" ([55d9ceca](https://github.com/garden-io/garden/commit/55d9ceca))
+* **k8s:** nest system garden dir under project garden dir ([33019b0a](https://github.com/garden-io/garden/commit/33019b0a))
+
+### Features
+
+* add analytics ([#819](https://github.com/garden-io/garden/issues/819)) ([a2fa49ec](https://github.com/garden-io/garden/commit/a2fa49ec))
+* Implement get debug-info command ([44f666e0](https://github.com/garden-io/garden/commit/44f666e0))
+* **cli:** add a dedicated options command ([8dd53003](https://github.com/garden-io/garden/commit/8dd53003))
+* **container:** add configurable CPU and memory limits ([77e71df5](https://github.com/garden-io/garden/commit/77e71df5))
+* **container:** add command option ([afbd9539](https://github.com/garden-io/garden/commit/afbd9539))
+* **core:** providers can depend on and reference configs from each other ([a67f5220](https://github.com/garden-io/garden/commit/a67f5220))
+* **core:** add persistent ID for each working copy ([b49ecc37](https://github.com/garden-io/garden/commit/b49ecc37))
+* **core:** allow .yaml endings for Garden config files ([3a9195a0](https://github.com/garden-io/garden/commit/3a9195a0))
+* **k8s:** add Kaniko as a builder option ([2ccd0395](https://github.com/garden-io/garden/commit/2ccd0395))
+* **k8s:** optionally enable ingress controller for remote k8s ([6f321dcd](https://github.com/garden-io/garden/commit/6f321dcd))
+* **k8s:** in-cluster building ([5d351025](https://github.com/garden-io/garden/commit/5d351025))
+
+### Improvement
+
+* get source maps working in error tracebacks ([36959cea](https://github.com/garden-io/garden/commit/36959cea))
+* **cli:** rename --loglevel to --log-level + refactor log init ([de5e78a3](https://github.com/garden-io/garden/commit/de5e78a3))
+* **dashboard:** add graph filters to global context ([73e3f5ca](https://github.com/garden-io/garden/commit/73e3f5ca))
+* **dashboard:** add task and test info pane to overview page ([e97b8fa7](https://github.com/garden-io/garden/commit/e97b8fa7))
+* **dashboard:** add dependencies to each entity card ([8b0a4305](https://github.com/garden-io/garden/commit/8b0a4305))
+* **dashboard:** view ingress on lg screens instead of xl ([bd28965e](https://github.com/garden-io/garden/commit/bd28965e))
+* **k8s:** always require manual init for remote clusters ([4201dc53](https://github.com/garden-io/garden/commit/4201dc53))
+* **service:** add project root to config dump ([520aadf3](https://github.com/garden-io/garden/commit/520aadf3))
+
+### Performance Improvements
+
+* improve performance of logs command ([65afeef8](https://github.com/garden-io/garden/commit/65afeef8))
+
+### BREAKING CHANGE
+
+
+k8s providers no longer default to `/bin/sh -c` as the entrypoint when
+running pods. This applies to tasks, tests and the `run module` command.
+
+The --loglevel CLI option is now called --log-level
+
+When using OpenFaaS with `local-kubernetes` you now need to use the
+`local-openfaas` provider, instead of `openfaas`. You also need to
+manually delete any existing `<my namespace>--openfaas` namespaces from your
+cluster after upgrading.
+
+
 <a name="v0.9.12"></a>
 ## [v0.9.12](https://github.com/garden-io/garden/compare/v0.9.11...v0.9.12) (2019-05-21)
 
