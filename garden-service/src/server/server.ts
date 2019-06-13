@@ -119,7 +119,6 @@ export class GardenServer {
         this.analytics = await new AnalyticsHandler(this.garden).init()
       }
 
-      // tslint:disable-next-line: no-floating-promises
       this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
       // TODO: set response code when errors are in result object?

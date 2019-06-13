@@ -191,7 +191,6 @@ export class TaskGraph {
             result = await node.process(dependencyResults)
 
             // Track task if user has opted-in
-            // tslint:disable-next-line: no-floating-promises
             analytics.trackTask(result.key, result.type)
 
             this.garden.events.emit("taskComplete", result)

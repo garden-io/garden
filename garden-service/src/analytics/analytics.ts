@@ -104,6 +104,9 @@ export class AnalyticsHandler {
       firstRun: true,
       optedIn: false,
     }
+    this.localConfig = {
+      projectId: "",
+    }
     this.systemConfig = {
       platform: platform(),
       platformVersion: release(),
@@ -181,15 +184,13 @@ export class AnalyticsHandler {
 
   /**
    * The actual segment track method.
-   * The segment client works with callbacks, therefore the need of wrapping the function
-   * with Promises.
    *
    * @private
    * @param {AnalyticsEvent} event The event to track
    * @returns
    * @memberof Analytics
    */
-  private async track(event: AnalyticsEvent) {
+  private track(event: AnalyticsEvent) {
     if (this.segment && this.hasOptedIn() && !ci.isCI) {
       const segmentEvent: SegmentEvent = {
         userId: this.globalConfig.userId,
@@ -200,16 +201,14 @@ export class AnalyticsHandler {
       }
 
       const trackToRemote = (eventToTrack: SegmentEvent) => {
-        return new Promise(
-          (resolve, reject) => {
-            this.segment.track(eventToTrack, function(error) {
-              if (error) { reject(error) }
-              resolve(true)
-            })
-          })
+        this.segment.track(eventToTrack, (err) => {
+          if (err) {
+            this.garden.log.debug(`Error sending tracking event: ${err}`)
+          }
+        })
       }
 
-      return await trackToRemote(segmentEvent)
+      return trackToRemote(segmentEvent)
     }
     return false
   }
@@ -221,7 +220,7 @@ export class AnalyticsHandler {
    * @returns
    * @memberof Analytics
    */
-  async trackCommand(commandName: string) {
+  trackCommand(commandName: string) {
     return this.track({
       type: AnalyticsType.COMMAND,
       properties: {
@@ -240,7 +239,7 @@ export class AnalyticsHandler {
    * @returns
    * @memberof Analytics
    */
-  async trackTask(taskName: string, taskType: string) {
+  trackTask(taskName: string, taskType: string) {
     const properties: AnalyticsTaskEventProperties = {
       name: taskType,
       taskName: md5(taskName),
@@ -264,7 +263,7 @@ export class AnalyticsHandler {
    * @returns
    * @memberof Analytics
    */
-  async trackApi(method: string, path: string, body: ApiRequestBody) {
+  trackApi(method: string, path: string, body: ApiRequestBody) {
     const properties: AnalyticsApiEventProperties = {
       name: `${method} request`,
       path,
