@@ -84,15 +84,21 @@ export const MOCK_CONFIG: ProjectConfig = {
   variables: {},
 }
 
-export const GLOBAL_OPTIONS = {
-  "version": new StringParameter({
+// The help text for these commands is only displayed when calling `garden options`.
+// However, we can't include them with the global options since that causes the CLI
+// to exit with code 1 when they're called.
+export const HIDDEN_OPTIONS = {
+  version: new StringParameter({
     alias: "v",
     help: "Show the current CLI version.",
   }),
-  "help": new StringParameter({
+  help: new StringParameter({
     alias: "h",
     help: "Show help",
   }),
+}
+
+export const GLOBAL_OPTIONS = {
   "root": new StringParameter({
     alias: "r",
     help: "Override project root directory (defaults to working directory).",

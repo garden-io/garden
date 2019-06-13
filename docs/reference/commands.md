@@ -13,8 +13,6 @@ The following option flags can be used with any of the CLI commands:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--version` | `-v` | string | Show the current CLI version.
-  | `--help` | `-h` | string | Show help
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
