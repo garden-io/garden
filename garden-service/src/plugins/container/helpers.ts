@@ -15,7 +15,6 @@ import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
 
 export const minDockerVersion = "17.07.0"
-export const defaultContainerCommand = ["/bin/sh", "-c"]
 
 interface ParsedImageId {
   host?: string

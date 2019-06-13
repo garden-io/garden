@@ -11,7 +11,6 @@ import { kubectl } from "./kubectl"
 import { PrimitiveMap } from "../../config/common"
 import { Module } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
-import { defaultContainerCommand } from "../container/helpers"
 
 interface RunPodParams {
   context: string,
@@ -37,12 +36,11 @@ export async function runPod(
 ): Promise<RunResult> {
   const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
 
-  const cmd = (command && command.length) ? command : defaultContainerCommand
+  const cmd = (command && command.length) ? command : []
 
   const opts = [
     `--image=${image}`,
     "--restart=Never",
-    "--command",
     "--quiet",
     "--rm",
     // Need to attach to get the log output and exit code.
@@ -57,13 +55,17 @@ export async function runPod(
     opts.push("--tty")
   }
 
+  if (cmd.length) {
+    opts.push("--command")
+  }
+
   const kubecmd = [
     "run", `run-${module.name}-${Math.round(new Date().getTime())}`,
     ...opts,
     ...envArgs,
     "--",
     ...cmd,
-    args.join(" "),
+    ...args,
   ]
 
   log.verbose(`Running ${cmd.join(" ")} '${args.join(" ")}'`)

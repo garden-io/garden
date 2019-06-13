@@ -15,8 +15,8 @@ import {
   CommandResult,
   CommandParams,
   StringParameter,
-  StringsParameter,
   BooleanParameter,
+  StringsParameter,
 } from "./base"
 import dedent = require("dedent")
 import { getServiceRuntimeContext } from "../types/service"
@@ -29,6 +29,7 @@ const runArgs = {
   command: new StringsParameter({
     help: "The command to run.",
     required: true,
+    delimiter: " ",
   }),
 }
 

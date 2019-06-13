@@ -72,7 +72,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 
   return {
     moduleName: params.module.name,
-    command: params.args,
+    command: [...(params.command || []), ...params.args],
     completedAt: testNow,
     output: "OK",
     version,

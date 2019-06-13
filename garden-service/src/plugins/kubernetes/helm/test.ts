@@ -21,7 +21,7 @@ export async function testHelmModule(
     TestModuleParams<HelmModule>,
 ): Promise<TestResult> {
   const testName = testConfig.name
-  const args = testConfig.spec.args
+  const { command, args } = testConfig.spec
   runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
@@ -40,6 +40,7 @@ export async function testHelmModule(
     namespace,
     module,
     envVars: runtimeContext.envVars,
+    command,
     args,
     image,
     interactive,

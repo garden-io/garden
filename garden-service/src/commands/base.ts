@@ -93,9 +93,20 @@ export class StringOption extends Parameter<string | undefined> {
   }
 }
 
+export interface StringsConstructor extends ParameterConstructor<string[]> {
+  delimiter?: string
+}
+
 export class StringsParameter extends Parameter<string[] | undefined> {
   type = "array:string"
   schema = Joi.array().items(Joi.string())
+  delimiter: string
+
+  constructor(args: StringsConstructor) {
+    super(args)
+
+    this.delimiter = args.delimiter || ","
+  }
 
   // Sywac returns [undefined] if input is empty so we coerce that into undefined.
   // This only applies to optional parameters since Sywac would throw if input is empty for a required parameter.
@@ -108,7 +119,7 @@ export class StringsParameter extends Parameter<string[] | undefined> {
   }
 
   parseString(input: string) {
-    return input.split(",")
+    return input.split(this.delimiter)
   }
 }
 
