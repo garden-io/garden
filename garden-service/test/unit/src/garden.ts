@@ -51,6 +51,16 @@ describe("Garden", () => {
       expect(garden).to.be.ok
     })
 
+    it("should initialize a project with config files with yaml and yml extensions", async () => {
+      const garden = await makeTestGarden(getDataDir("test-project-yaml-file-extensions"))
+      expect(garden).to.be.ok
+    })
+
+    it("should throw if a project has config files with yaml and yml extensions in the same dir", async () => {
+      const path = getDataDir("test-project-duplicate-yaml-file-extensions")
+      await expectError(async () => makeTestGarden(path), "validation")
+    })
+
     it("should parse and resolve the config from the project root", async () => {
       const garden = await makeTestGardenA()
       const projectRoot = garden.projectRoot
@@ -687,6 +697,12 @@ describe("Garden", () => {
           "Module module-a is declared multiple times (in 'module-a/garden.yml' and 'module-b/garden.yml')",
         ),
       )
+    })
+
+    it("should scan and add modules with config files with yaml and yml extensions", async () => {
+      const garden = await makeTestGarden(getDataDir("test-project-yaml-file-extensions"))
+      const modules = await garden.resolveModuleConfigs()
+      expect(getNames(modules).sort()).to.eql(["module-yaml", "module-yml"])
     })
   })
 

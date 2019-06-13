@@ -1,7 +1,16 @@
 import { expect } from "chai"
-import { join } from "path"
-import { getDataDir } from "../../../helpers"
-import { scanDirectory, toCygwinPath, getChildDirNames } from "../../../../src/util/fs"
+import { join, basename } from "path"
+import { getDataDir, expectError } from "../../../helpers"
+import {
+  scanDirectory,
+  toCygwinPath,
+  getChildDirNames,
+  isConfigFilename,
+  getConfigFilePath,
+} from "../../../../src/util/fs"
+
+const projectYamlFileExtensions = getDataDir("test-project-yaml-file-extensions")
+const projectDuplicateYamlFileExtensions = getDataDir("test-project-duplicate-yaml-file-extensions")
 
 describe("util", () => {
   describe("scanDirectory", () => {
@@ -51,6 +60,44 @@ describe("util", () => {
     it("should retain a trailing slash", () => {
       const path = "C:\\some\\path\\"
       expect(toCygwinPath(path)).to.equal("/cygdrive/c/some/path/")
+    })
+  })
+
+  describe("getConfigFilePath", () => {
+    context("name of the file is garden.yml", () => {
+      it("should return the full path to the config file", async () => {
+        const testPath = join(projectYamlFileExtensions, "module-yml")
+        expect(await getConfigFilePath(testPath)).to.eql(join(testPath, "garden.yml"))
+      })
+    })
+    context("name of the file is garden.yaml", () => {
+      it("should return the full path to the config file", async () => {
+        const testPath = join(projectYamlFileExtensions, "module-yml")
+        expect(await getConfigFilePath(testPath)).to.eql(join(testPath, "garden.yml"))
+      })
+    })
+    it("should throw if multiple valid config files found at the given path", async () => {
+      await expectError(() => getConfigFilePath(projectDuplicateYamlFileExtensions), "validation")
+    })
+    it("should return a valid default path if no config file found at the given path", async () => {
+      const testPath = join(projectYamlFileExtensions, "module-no-config")
+      const result = await getConfigFilePath(testPath)
+      expect(isConfigFilename(basename(result))).to.be.true
+    })
+  })
+
+  describe("isConfigFilename", () => {
+    it("should return true if the name of the file is garden.yaml", async () => {
+      expect(await isConfigFilename("garden.yaml")).to.be.true
+    })
+    it("should return true if the name of the file is garden.yml", async () => {
+      expect(await isConfigFilename("garden.yml")).to.be.true
+    })
+    it("should return false otherwise", async () => {
+      const badNames = ["agarden.yml", "garden.ymla", "garden.yaaml", "garden.ml"]
+      for (const name of badNames) {
+        expect(isConfigFilename(name)).to.be.false
+      }
     })
   })
 })

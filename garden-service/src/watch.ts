@@ -10,13 +10,13 @@ import { watch, FSWatcher } from "chokidar"
 import { parse, relative } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
-import { CONFIG_FILENAME } from "./constants"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import * as klaw from "klaw"
 import { registerCleanupFunction } from "./util/util"
 import * as Bluebird from "bluebird"
 import { some } from "lodash"
+import { isConfigFilename } from "./util/fs"
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
@@ -117,12 +117,12 @@ export class Watcher {
     const parsed = parse(path)
     const filename = parsed.base
 
-    if (filename === CONFIG_FILENAME || filename === ".gitignore" || filename === ".gardenignore") {
+    if (isConfigFilename(filename) || filename === ".gitignore" || filename === ".gardenignore") {
       this.invalidateCached(modules)
 
       if (changedModuleNames.length > 0) {
         this.garden.events.emit("moduleConfigChanged", { names: changedModuleNames, path })
-      } else if (filename === CONFIG_FILENAME) {
+      } else if (isConfigFilename(filename)) {
         if (parsed.dir === this.garden.projectRoot) {
           this.garden.events.emit("projectConfigChanged", {})
         } else {
@@ -160,7 +160,7 @@ export class Watcher {
       klaw(path, scanOpts)
         .on("data", (item) => {
           const parsed = parse(item.path)
-          if (item.path !== path && parsed.base === CONFIG_FILENAME) {
+          if (item.path !== path && isConfigFilename(parsed.base)) {
             configChanged = true
             this.garden.events.emit("configAdded", { path: item.path })
           }

@@ -7,7 +7,7 @@
  */
 
 import Joi = require("joi")
-import { GardenError, RuntimeError, InternalError } from "../exceptions"
+import { GardenError, RuntimeError, InternalError, ParameterError } from "../exceptions"
 import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/logger"
 import { ProcessResults } from "../process"
@@ -15,8 +15,6 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { printFooter } from "../logger/util"
 import { GlobalOptions } from "../cli/cli"
-
-export class ValidationError extends Error { }
 
 export interface ParameterConstructor<T> {
   help: string,
@@ -139,7 +137,10 @@ export class IntegerParameter extends Parameter<number> {
     try {
       return parseInt(input, 10)
     } catch {
-      throw new ValidationError(`Could not parse "${input}" as integer`)
+      throw new ParameterError(`Could not parse "${input}" as integer`, {
+        expectedType: "integer",
+        input,
+      })
     }
   }
 }
@@ -164,7 +165,10 @@ export class ChoicesParameter extends Parameter<string> {
     if (this.choices.includes(input)) {
       return input
     } else {
-      throw new ValidationError(`"${input}" is not a valid argument`)
+      throw new ParameterError(`"${input}" is not a valid argument`, {
+        expectedType: `One of: ${this.choices.join(", ")}`,
+        input,
+      })
     }
   }
 

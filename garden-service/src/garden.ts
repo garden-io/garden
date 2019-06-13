@@ -7,7 +7,7 @@
  */
 
 import Bluebird = require("bluebird")
-import { parse, relative, resolve, sep, join } from "path"
+import { parse, relative, resolve, sep } from "path"
 import { flatten, isString, cloneDeep, sortBy, set, zip } from "lodash"
 const AsyncLock = require("async-lock")
 
@@ -35,12 +35,12 @@ import { BuildDependencyConfig, ModuleConfig, baseModuleSpecSchema, ModuleResour
 import { ModuleConfigContext, ContextResolveOpts } from "./config/config-context"
 import { createPluginContext } from "./plugin-context"
 import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
-import { SUPPORTED_PLATFORMS, SupportedPlatform, CONFIG_FILENAME, DEFAULT_GARDEN_DIR_NAME } from "./constants"
+import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME } from "./constants"
 import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import { getIgnorer, Ignorer, getModulesPathsFromPath } from "./util/fs"
+import { getIgnorer, Ignorer, getModulesPathsFromPath, getConfigFilePath } from "./util/fs"
 import { Provider, ProviderConfig, getProviderDependencies } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionHelper } from "./actions"
@@ -407,13 +407,13 @@ export class Garden {
 
       this.resolvedProviders = Object.values(taskResults).map(result => result.output)
 
-      for (const provider of this.resolvedProviders) {
-        for (const moduleConfig of provider.moduleConfigs) {
+      await Bluebird.map(this.resolvedProviders, async (provider) =>
+        Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
           // Make sure module and all nested entities are scoped to the plugin
           moduleConfig.plugin = provider.name
-          this.addModule(moduleConfig)
-        }
-      }
+          return this.addModule(moduleConfig)
+        }),
+      )
     })
 
     return this.resolvedProviders
@@ -622,9 +622,7 @@ export class Garden {
         }
       })
 
-      for (const config of rawConfigs) {
-        this.addModule(config)
-      }
+      await Bluebird.map(rawConfigs, async (config) => this.addModule(config))
 
       this.modulesScanned = true
     })
@@ -641,14 +639,14 @@ export class Garden {
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
    * Template strings should be resolved on the config before calling this.
    */
-  private addModule(config: ModuleConfig) {
+  private async addModule(config: ModuleConfig) {
     const key = getModuleKey(config.name, config.plugin)
 
     if (this.moduleConfigs[key]) {
-      const [pathA, pathB] = [
-        relative(this.projectRoot, join(this.moduleConfigs[key].path, CONFIG_FILENAME)),
-        relative(this.projectRoot, join(config.path, CONFIG_FILENAME)),
-      ].sort()
+      const paths = [this.moduleConfigs[key].path, config.path]
+      const [pathA, pathB] = (await Bluebird
+        .map(paths, async (path) => relative(this.projectRoot, await getConfigFilePath(path))))
+        .sort()
 
       throw new ConfigurationError(
         `Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,

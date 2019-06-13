@@ -10,7 +10,6 @@ import { resolve, join } from "path"
 
 export const isPkg = !!(<any>process).pkg
 
-export const CONFIG_FILENAME = "garden.yml"
 export const LOCAL_CONFIG_FILENAME = "local-config.yml"
 export const GARDEN_SERVICE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
 export const STATIC_DIR = join(GARDEN_SERVICE_ROOT, "static")

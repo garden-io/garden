@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, sep, resolve, relative } from "path"
+import { sep, resolve, relative, basename } from "path"
 import * as yaml from "js-yaml"
 import { readFile } from "fs-extra"
 import { omit, flatten, isPlainObject, find } from "lodash"
 import { baseModuleSpecSchema, ModuleResource } from "./module"
 import { ConfigurationError } from "../exceptions"
-import { CONFIG_FILENAME, DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
+import { getConfigFilePath } from "../util/fs"
 
 export interface GardenResource {
   apiVersion: string
@@ -26,7 +27,7 @@ const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().childre
 
 export async function loadConfig(projectRoot: string, path: string): Promise<GardenResource[]> {
   // TODO: nicer error messages when load/validation fails
-  const absPath = join(path, CONFIG_FILENAME)
+  const absPath = await getConfigFilePath(path)
   let fileData: Buffer
   let rawSpecs: any[]
 
@@ -40,7 +41,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   try {
     rawSpecs = yaml.safeLoadAll(fileData.toString()) || []
   } catch (err) {
-    throw new ConfigurationError(`Could not parse ${CONFIG_FILENAME} in directory ${path} as valid YAML`, err)
+    throw new ConfigurationError(`Could not parse ${basename(absPath)} in directory ${path} as valid YAML`, err)
   }
 
   const resources: GardenResource[] = flatten(rawSpecs.map(s => prepareResources(s, path, projectRoot)))
