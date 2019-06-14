@@ -49,7 +49,7 @@ mkdir macos-amd64
 mv garden-cli-macos macos-amd64/garden
 cp -r ../tmp/dist/static macos-amd64
 # need to include the .node binary for fsevents
-cp ../lib/fsevents/node-v64-darwin-x64/fse.node macos-amd64/fsevents.node
+cp ../lib/fsevents/node-v64-darwin-x64/fse.node macos-amd64/fse.node
 echo "    -> tar"
 tar -czf garden-${version}-macos-amd64.tar.gz macos-amd64
 
