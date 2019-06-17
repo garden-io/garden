@@ -473,14 +473,11 @@ export async function compareDeployedObjects(
       // Exited with non-zero code. Check for error messages on stderr. If one is there, the command was unable to
       // complete the check, so we fall back to our own mechanism. Otherwise the command worked, but one or more
       // resources are missing or outdated.
-      if (
-        !err.detail || !err.detail.result
-        || (!!err.detail.result.stderr && err.detail.result.stderr.trim() !== "exit status 1")
-      ) {
+      if (err.stderr && err.stderr.trim() !== "exit status 1") {
         log.verbose(`kubectl diff failed: ${err.message}\n${err.stderr}`)
       } else {
         log.verbose(`kubectl diff indicates one or more resources are outdated.`)
-        log.silly(err.detail.result.stdout)
+        log.silly(err.stdout)
         result.state = "outdated"
         return result
       }
