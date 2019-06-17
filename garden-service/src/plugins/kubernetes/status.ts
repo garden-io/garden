@@ -26,7 +26,7 @@ import {
   V1StatefulSetSpec,
   V1DeploymentStatus,
 } from "@kubernetes/client-node"
-import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
+import { some, zip, isArray, isPlainObject, pickBy, mapValues, flatten } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
@@ -422,8 +422,10 @@ export async function compareDeployedObjects(
   ctx: KubernetesPluginContext, api: KubeApi, namespace: string, resources: KubernetesResource[], log: LogEntry,
   skipDiff: boolean,
 ): Promise<ComparisonResult> {
+  // Unroll any `List` resource types
+  resources = flatten(resources.map((r: any) => r.apiVersion === "v1" && r.kind === "List" ? r.items : [r]))
 
-  // First check if any resources are missing from the cluster.
+  // Check if any resources are missing from the cluster.
   const maybeDeployedObjects = await Bluebird.map(resources, obj => getDeployedObject(ctx, ctx.provider, obj, log))
   const deployedObjects = <KubernetesResource[]>maybeDeployedObjects.filter(o => o !== null)
 
