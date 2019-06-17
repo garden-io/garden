@@ -20,6 +20,8 @@
     * [Container](./reference/module-types/container.md)
     * [Exec](./reference/module-types/exec.md)
     * [Helm](./reference/module-types/helm.md)
+    * [Kubernetes](./reference/module-types/kubernetes.md)
+    * [Maven Container](./reference/module-types/maven-container.md)
     * [OpenFaaS](./reference/module-types/openfaas.md)
   * [Providers](./reference/providers/README.md)
     * [Kubernetes](./reference/providers/kubernetes.md)
