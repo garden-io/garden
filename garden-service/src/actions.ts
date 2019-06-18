@@ -331,11 +331,26 @@ export class ActionHelper implements TypeGuard {
       msg: "Deleting...",
       status: "active",
     })
-    return this.callServiceHandler({
+
+    const status = await this.getServiceStatus({ ...params, hotReload: false })
+
+    if (status.state === "missing") {
+      log.setSuccess({
+        section: params.service.name,
+        msg: "Not found",
+      })
+      return status
+    }
+
+    const result = this.callServiceHandler({
       params: { ...params, log },
       actionType: "deleteService",
       defaultHandler: dummyDeleteServiceHandler,
     })
+
+    log.setSuccess()
+
+    return result
   }
 
   async execInService(params: ServiceActionHelperParams<ExecInServiceParams>): Promise<ExecInServiceResult> {

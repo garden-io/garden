@@ -106,8 +106,8 @@ Examples:
 
 Deletes a running environment.
 
-This will trigger providers to clear up any deployments in a Garden environment and reset it.
-When you then run `garden init`, the environment will be reconfigured.
+This will delete all services in the specified environment, and trigger providers to clear up any other resources
+and reset it. When you then run `garden init` or `garden deploy`, the environment will be reconfigured.
 
 This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
 resources.

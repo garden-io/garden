@@ -16,10 +16,11 @@ import {
 } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent = require("dedent")
-import { ServiceStatus, getServiceRuntimeContext } from "../types/service"
+import { ServiceStatus, getServiceRuntimeContext, ServiceStatusMap } from "../types/service"
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
+import chalk from "chalk"
 
 export class DeleteCommand extends Command {
   name = "delete"
@@ -80,26 +81,49 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
   }
 }
 
+interface DeleteEnvironmentResult {
+  serviceStatuses: ServiceStatusMap
+  environmentStatuses: EnvironmentStatusMap
+}
+
 export class DeleteEnvironmentCommand extends Command {
   name = "environment"
   alias = "env"
   help = "Deletes a running environment."
 
   description = dedent`
-    This will trigger providers to clear up any deployments in a Garden environment and reset it.
-    When you then run \`garden init\`, the environment will be reconfigured.
+    This will delete all services in the specified environment, and trigger providers to clear up any other resources
+    and reset it. When you then run \`garden init\` or \`garden deploy\`, the environment will be reconfigured.
 
     This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
     resources.
   `
 
-  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<EnvironmentStatusMap>> {
+  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
     printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
 
     const actions = await garden.getActionHelper()
-    const result = await actions.cleanupEnvironment({ log })
+    const graph = await garden.getConfigGraph()
 
-    return { result }
+    const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
+
+    const services = await graph.getServices()
+    const serviceStatuses: { [key: string]: ServiceStatus } = {}
+
+    await Bluebird.map(services, async (service) => {
+      const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
+      serviceStatuses[service.name] = await actions.deleteService({ log: servicesLog, service, runtimeContext })
+    })
+
+    servicesLog.setSuccess()
+
+    log.info("")
+
+    const envLog = log.info({ msg: chalk.white("Cleaning up environments..."), status: "active" })
+    const environmentStatuses = await actions.cleanupEnvironment({ log: envLog })
+    envLog.setSuccess()
+
+    return { result: { serviceStatuses, environmentStatuses } }
   }
 }
 
