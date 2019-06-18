@@ -315,6 +315,11 @@ export async function checkResourceStatus(
   api: KubeApi, namespace: string, resource: KubernetesResource, log: LogEntry, prevStatus?: WorkloadStatus,
 ) {
   const handler = objHandlers[resource.kind]
+
+  if (resource.metadata.namespace) {
+    namespace = resource.metadata.namespace
+  }
+
   let status: WorkloadStatus
   if (handler) {
     try {
