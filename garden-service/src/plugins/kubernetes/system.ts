@@ -24,6 +24,7 @@ import { PluginError } from "../../exceptions"
 import { DashboardPage } from "../../config/dashboard"
 import { PrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
+import { KubernetesResource } from "./types"
 
 const GARDEN_VERSION = getPackageVersion()
 const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
@@ -72,10 +73,10 @@ export async function getSystemGarden(ctx: KubernetesPluginContext, variables: P
 export async function systemNamespaceUpToDate(
   api: KubeApi, log: LogEntry, namespace: string, contextForLog: string,
 ): Promise<boolean> {
-  let namespaceResource: V1Namespace
+  let namespaceResource: KubernetesResource<V1Namespace>
 
   try {
-    namespaceResource = (await api.core.readNamespace(namespace)).body
+    namespaceResource = await api.core.readNamespace(namespace)
   } catch (err) {
     if (err.code === 404) {
       return false

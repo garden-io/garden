@@ -16,6 +16,8 @@ import { KubeApi } from "../api"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
+import { KubernetesResource } from "../types"
+import { V1Secret } from "@kubernetes/client-node"
 
 interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
@@ -136,10 +138,10 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     return certificateHostnames[cert.name]
   } else {
     // pull secret via secret ref from k8s
-    let res
+    let secret: KubernetesResource<V1Secret>
 
     try {
-      res = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
+      secret = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
     } catch (err) {
       if (err.code === 404) {
         throw new ConfigurationError(
@@ -150,16 +152,17 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
         throw err
       }
     }
-    const secret = res.body
 
-    if (!secret.data["tls.crt"] || !secret.data["tls.key"]) {
+    const data = secret.data!
+
+    if (!data["tls.crt"] || !data["tls.key"]) {
       throw new ConfigurationError(
         `Secret '${cert.secretRef.name}' is not a valid TLS secret (missing tls.crt and/or tls.key).`,
         cert,
       )
     }
 
-    const crtData = Buffer.from(secret.data["tls.crt"], "base64").toString()
+    const crtData = Buffer.from(data["tls.crt"], "base64").toString()
 
     try {
       return getHostnamesFromPem(crtData)

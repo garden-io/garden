@@ -28,7 +28,7 @@ export async function getTaskResult(
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, ns)
-    return <RunTaskResult>deserializeValues(res.body.data)
+    return <RunTaskResult>deserializeValues(res.data!)
   } catch (err) {
     if (err.code === 404) {
       return null

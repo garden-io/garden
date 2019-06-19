@@ -44,7 +44,7 @@ interface WorkloadStatus {
   logs?: string
 }
 
-type Workload = V1Deployment | V1DaemonSet | V1StatefulSet
+type Workload = KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 
 interface ObjHandler {
   (api: KubeApi, namespace: string, obj: KubernetesResource, log: LogEntry, resourceVersion?: number)
@@ -62,21 +62,25 @@ const objHandlers: { [kind: string]: ObjHandler } = {
 
   PersistentVolumeClaim: async (api, namespace, obj) => {
     const res = await api.core.readNamespacedPersistentVolumeClaim(obj.metadata.name, namespace)
-    const state: ServiceState = res.body.status.phase === "Bound" ? "ready" : "deploying"
+    const state: ServiceState = res.status.phase === "Bound" ? "ready" : "deploying"
     return { state, obj }
   },
 
   Pod: async (api, namespace, obj) => {
     const res = await api.core.readNamespacedPod(obj.metadata.name, namespace)
-    return checkPodStatus(obj, [res.body])
+    return checkPodStatus(obj, [res])
   },
 
   ReplicaSet: async (api, namespace, obj) => {
-    return checkPodStatus(obj, await getPods(api, namespace, (<V1ReplicaSet>obj).spec.selector.matchLabels))
+    return checkPodStatus(obj, await getPods(
+      api, namespace, (<KubernetesResource<V1ReplicaSet>>obj).spec.selector!.matchLabels!),
+    )
   },
 
   ReplicationController: async (api, namespace, obj) => {
-    return checkPodStatus(obj, await getPods(api, namespace, (<V1ReplicationController>obj).spec.selector))
+    return checkPodStatus(obj, await getPods(
+      api, namespace, (<KubernetesResource<V1ReplicationController>>obj).spec.selector),
+    )
   },
 
   Service: async (api, namespace, obj) => {
@@ -86,11 +90,11 @@ const objHandlers: { [kind: string]: ObjHandler } = {
 
     const status = await api.core.readNamespacedService(obj.metadata.name, namespace)
 
-    if (obj.spec.clusterIP !== "None" && status.body.spec.clusterIP === "") {
+    if (obj.spec.clusterIP !== "None" && status.spec.clusterIP === "") {
       return { state: "deploying", obj }
     }
 
-    if (obj.spec.type === "LoadBalancer" && !status.body.status.loadBalancer.ingress) {
+    if (obj.spec.type === "LoadBalancer" && !status.status.loadBalancer!.ingress) {
       return { state: "deploying", obj }
     }
 
@@ -98,10 +102,10 @@ const objHandlers: { [kind: string]: ObjHandler } = {
   },
 }
 
-async function checkPodStatus(obj: KubernetesResource, pods: V1Pod[]): Promise<WorkloadStatus> {
+async function checkPodStatus(obj: KubernetesResource, pods: KubernetesResource<V1Pod>[]): Promise<WorkloadStatus> {
   for (const pod of pods) {
     // TODO: detect unhealthy state (currently we just time out)
-    const ready = some(pod.status.conditions.map(c => c.type === "ready"))
+    const ready = some(pod.status!.conditions!.map(c => c.type === "ready"))
     if (!ready) {
       return { state: "deploying", obj }
     }
@@ -140,7 +144,7 @@ export async function checkWorkloadStatus(
   }
 
   if (!resourceVersion) {
-    resourceVersion = out.resourceVersion = parseInt(statusRes.metadata.resourceVersion, 10)
+    resourceVersion = out.resourceVersion = parseInt(statusRes.metadata.resourceVersion!, 10)
   }
 
   // TODO: try to come up with something more efficient. may need to wait for newer k8s version.
@@ -151,7 +155,7 @@ export async function checkWorkloadStatus(
   )
 
   // look for errors and warnings in the events for the service, abort if we find any fatal errors
-  const events = eventsRes.body.items
+  const events = eventsRes.items
 
   for (let event of events) {
     const eventVersion = parseInt(event.involvedObject.resourceVersion || "0", 10)
@@ -159,9 +163,9 @@ export async function checkWorkloadStatus(
     if (
       !(event.involvedObject.kind === obj.kind && event.involvedObject.name === obj.metadata.name)
       &&
-      !event.metadata.name.startsWith(obj.metadata.name + ".")
+      !event.metadata.name!.startsWith(obj.metadata.name + ".")
       &&
-      !event.metadata.name.startsWith(obj.metadata.name + "-")
+      !event.metadata.name!.startsWith(obj.metadata.name + "-")
     ) {
       continue
     }
@@ -175,8 +179,8 @@ export async function checkWorkloadStatus(
       event.type === "Error" ||
       event.type === "Failed" ||
       (event.type === "Warning" && (
-        event.message.includes("CrashLoopBackOff") ||
-        event.message.includes("ImagePullBackOff") ||
+        event.message!.includes("CrashLoopBackOff") ||
+        event.message!.includes("ImagePullBackOff") ||
         event.reason === "BackOff"
       ))
     ) {
@@ -185,7 +189,7 @@ export async function checkWorkloadStatus(
 
       // TODO: fetch logs for the pods in the deployment
       if (event.involvedObject.kind === "Pod") {
-        const logs = await getPodLogs(api, namespace, [event.involvedObject.name])
+        const logs = await getPodLogs(api, namespace, [event.involvedObject!.name!])
 
         if (logs) {
           out.logs = dedent`
@@ -205,7 +209,7 @@ export async function checkWorkloadStatus(
 
     let message = event.message
 
-    if (event.reason === event.reason.toUpperCase()) {
+    if (event.reason === event.reason!.toUpperCase()) {
       // some events like ingress events are formatted this way
       message = `${event.reason} ${message}`
     }
@@ -220,7 +224,7 @@ export async function checkWorkloadStatus(
   out.state = "ready"
   let statusMsg = ""
 
-  if (statusRes.metadata.generation > statusRes.status.observedGeneration) {
+  if (statusRes.metadata.generation! > statusRes.status!.observedGeneration!) {
     statusMsg = `Waiting for spec update to be observed...`
     out.state = "deploying"
   } else if (obj.kind === "DaemonSet") {
@@ -239,7 +243,7 @@ export async function checkWorkloadStatus(
     }
   } else if (obj.kind === "StatefulSet") {
     const status = <V1StatefulSetStatus>statusRes.status
-    const statusSpec = <V1StatefulSetSpec>statusRes.spec
+    const statusSpec = <Required<V1StatefulSetSpec>>statusRes.spec
 
     const replicas = status.replicas || 0
     const updated = status.updatedReplicas || 0
@@ -287,7 +291,7 @@ export async function checkWorkloadStatus(
 
   // Catch timeout conditions here
   if (out.state !== "ready") {
-    for (const condition of statusRes.status.conditions || []) {
+    for (const condition of statusRes.status!.conditions || []) {
       if (condition.status === "False" && condition.reason === "ProgressDeadlineExceeded") {
         out.state = "unhealthy"
         out.lastError = `${condition.reason} - ${condition.message}`
@@ -613,7 +617,7 @@ async function getPodLogs(api: KubeApi, namespace: string, podNames: string[]): 
 
     try {
       const podRes = await api.core.readNamespacedPod(name, namespace)
-      const containerNames = podRes.body.spec.containers.map(c => c.name)
+      const containerNames = podRes.spec.containers.map(c => c.name)
       if (containerNames.length > 1) {
         containerName = containerNames.filter(n => !n.match(/garden-/))[0] || containerNames[0]
       } else {
@@ -630,10 +634,10 @@ async function getPodLogs(api: KubeApi, namespace: string, podNames: string[]): 
     // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
     // accidentally logs a binary file or something.
     try {
-      const res = await api.core.readNamespacedPodLog(
+      const log = await api.core.readNamespacedPodLog(
         name, namespace, containerName, false, 5000, undefined, false, undefined, podLogLines,
       )
-      return res.body ? `****** ${name} ******\n${res.body}` : ""
+      return log ? `****** ${name} ******\n${log}` : ""
     } catch (err) {
       if (err instanceof KubernetesError && err.message.includes("waiting to start")) {
         return ""

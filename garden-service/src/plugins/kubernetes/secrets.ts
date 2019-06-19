@@ -15,6 +15,7 @@ import { getMetadataNamespace } from "./namespace"
 import { GetSecretParams } from "../../types/plugin/provider/getSecret"
 import { SetSecretParams } from "../../types/plugin/provider/setSecret"
 import { DeleteSecretParams } from "../../types/plugin/provider/deleteSecret"
+import { KubernetesResource } from "./types"
 
 export async function getSecret({ ctx, log, key }: GetSecretParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -23,7 +24,7 @@ export async function getSecret({ ctx, log, key }: GetSecretParams) {
 
   try {
     const res = await api.core.readNamespacedSecret(key, ns)
-    return { value: Buffer.from(res.body.data.value, "base64").toString() }
+    return { value: Buffer.from(res.data!.value, "base64").toString() }
   } catch (err) {
     if (err.code === 404) {
       return { value: null }
@@ -87,10 +88,10 @@ export async function deleteSecret({ ctx, log, key }: DeleteSecretParams) {
  * Make sure the specified secret exists in the target namespace, copying it if necessary.
  */
 export async function ensureSecret(api: KubeApi, secretRef: SecretRef, targetNamespace: string) {
-  let secret: V1Secret
+  let secret: KubernetesResource<V1Secret>
 
   try {
-    secret = (await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)).body
+    secret = await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)
   } catch (err) {
     if (err.code === 404) {
       throw new ConfigurationError(

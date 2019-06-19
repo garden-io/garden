@@ -45,7 +45,7 @@ import { keyBy, union } from "lodash"
 import { DEFAULT_API_VERSION } from "../../constants"
 import { ExecModuleConfig } from "../exec"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
-import { V1Deployment } from "@kubernetes/client-node"
+import { KubernetesDeployment } from "../kubernetes/types"
 
 export const stackFilename = "stack.yml"
 
@@ -394,7 +394,7 @@ async function writeStackFile(
 }
 
 async function getResources(api: KubeApi, service: OpenFaasService, namespace: string) {
-  const deployment = (await api.apps.readNamespacedDeployment(service.name, namespace)).body
+  const deployment = await api.apps.readNamespacedDeployment(service.name, namespace)
   return [deployment]
 }
 
@@ -412,10 +412,10 @@ async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusP
   const namespace = await getAppNamespace(openFaasCtx, log, k8sProvider)
   const api = await KubeApi.factory(log, k8sProvider.config.context)
 
-  let deployment: V1Deployment
+  let deployment: KubernetesDeployment
 
   try {
-    deployment = (await api.apps.readNamespacedDeployment(service.name, namespace)).body
+    deployment = await api.apps.readNamespacedDeployment(service.name, namespace)
   } catch (err) {
     if (err.code === 404) {
       return {}

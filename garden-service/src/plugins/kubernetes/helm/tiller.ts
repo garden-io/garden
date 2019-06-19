@@ -85,7 +85,7 @@ async function getTillerResources(
   return safeLoadAll(tillerManifests)
 }
 
-function getRoleResources(namespace: string): KubernetesResource[] {
+function getRoleResources(namespace: string) {
   return [
     {
       apiVersion: "v1",

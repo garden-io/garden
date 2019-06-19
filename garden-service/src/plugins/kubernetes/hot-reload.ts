@@ -8,11 +8,10 @@
 
 import * as Bluebird from "bluebird"
 import * as execa from "execa"
-import { V1Deployment, V1DaemonSet, V1StatefulSet, V1ObjectMeta } from "@kubernetes/client-node"
+import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { resolve as resolvePath, normalize, dirname } from "path"
-import { Omit } from "../../util/util"
 import { deline } from "../../util/string"
 import { set } from "lodash"
 import { Service } from "../../types/service"
@@ -24,11 +23,11 @@ import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
+import { KubernetesResource } from "./types"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 
-export type HotReloadableResource = Omit<V1Deployment | V1DaemonSet | V1StatefulSet, "status" | "metadata">
-  & { metadata: Partial<V1ObjectMeta> }
+export type HotReloadableResource = KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 
 export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 

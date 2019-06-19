@@ -49,7 +49,7 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
     undefined,
     `service=${service.name}`,
   )
-  const pod = podsRes.body.items[0]
+  const pod = podsRes.items[0]
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure

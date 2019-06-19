@@ -6,21 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+// No idea why tslint complains over this line
+// tslint:disable-next-line:no-unused
+import { IncomingMessage } from "http"
 import { resolve } from "url"
 import {
   KubeConfig,
-  Core_v1Api,
-  Extensions_v1beta1Api,
-  RbacAuthorization_v1Api,
-  Apps_v1Api,
-  Apiextensions_v1beta1Api,
   V1Secret,
-  Policy_v1beta1Api,
   CoreApi,
   ApisApi,
   V1APIGroup,
   V1APIVersions,
   V1APIResource,
+  CoreV1Api,
+  ExtensionsV1beta1Api,
+  RbacAuthorizationV1Api,
+  AppsV1Api,
+  ApiextensionsV1beta1Api,
+  PolicyV1beta1Api,
+  KubernetesObject,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -28,9 +32,9 @@ import requestErrors = require("request-promise/errors")
 import { safeLoad, safeDump } from "js-yaml"
 
 import { Omit } from "../../util/util"
-import { zip, omitBy, isObject, keyBy } from "lodash"
+import { zip, omitBy, isObject, isPlainObject, keyBy } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
-import { KubernetesResource } from "./types"
+import { KubernetesResource, KubernetesServerResource, KubernetesServerList } from "./types"
 import { LogEntry } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
 
@@ -60,23 +64,23 @@ const apiInfoLock = new AsyncLock()
 
 // NOTE: be warned, the API of the client library is very likely to change
 
-type K8sApi = Core_v1Api
-  | Extensions_v1beta1Api
-  | RbacAuthorization_v1Api
-  | Apps_v1Api
-  | Apiextensions_v1beta1Api
-  | Policy_v1beta1Api
+type K8sApi = CoreV1Api
+  | ExtensionsV1beta1Api
+  | RbacAuthorizationV1Api
+  | AppsV1Api
+  | ApiextensionsV1beta1Api
+  | PolicyV1beta1Api
 type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
 
 const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
-  apiExtensions: Apiextensions_v1beta1Api,
+  apiExtensions: ApiextensionsV1beta1Api,
   apis: ApisApi,
-  apps: Apps_v1Api,
-  core: Core_v1Api,
+  apps: AppsV1Api,
+  core: CoreV1Api,
   coreApi: CoreApi,
-  extensions: Extensions_v1beta1Api,
-  policy: Policy_v1beta1Api,
-  rbac: RbacAuthorization_v1Api,
+  extensions: ExtensionsV1beta1Api,
+  policy: PolicyV1beta1Api,
+  rbac: RbacAuthorizationV1Api,
 }
 
 const crudMap = {
@@ -99,15 +103,39 @@ export class KubernetesError extends GardenBaseError {
   response?: any
 }
 
+interface List {
+  items?: Array<any>
+}
+
+type WrappedList<T extends List> = T["items"] extends Array<infer V> ? KubernetesServerList<V> : KubernetesServerList
+
+// This describes the API classes on KubeApi after they've been wrapped with KubeApi.wrapApi()
+type WrappedApi<T> = {
+  // Wrap each API method
+  [P in keyof T]:
+  T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage, body: infer U }>
+  ? (
+    // If so we wrap it and return the `body` part of the output directly and...
+    // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
+    U extends List ? (...args: A) => Promise<WrappedList<U>> :
+    // If it's a resource, we wrap it as a KubernetesResource which makes some attributes required
+    // (as they should be)
+    U extends KubernetesObject ? (...args: A) => Promise<KubernetesServerResource<U>> :
+    // Otherwise we keep the body output type as-is
+    (...args: A) => Promise<U>
+  ) :
+  T[P]
+}
+
 export class KubeApi {
-  public apiExtensions: Apiextensions_v1beta1Api
-  public apis: ApisApi
-  public apps: Apps_v1Api
-  public core: Core_v1Api
-  public coreApi: CoreApi
-  public extensions: Extensions_v1beta1Api
-  public policy: Policy_v1beta1Api
-  public rbac: RbacAuthorization_v1Api
+  public apiExtensions: WrappedApi<ApiextensionsV1beta1Api>
+  public apis: WrappedApi<ApisApi>
+  public apps: WrappedApi<AppsV1Api>
+  public core: WrappedApi<CoreV1Api>
+  public coreApi: WrappedApi<CoreApi>
+  public extensions: WrappedApi<ExtensionsV1beta1Api>
+  public policy: WrappedApi<PolicyV1beta1Api>
+  public rbac: WrappedApi<RbacAuthorizationV1Api>
 
   constructor(public context: string, private config: KubeConfig) {
     const cluster = this.config.getCurrentCluster()
@@ -121,7 +149,7 @@ export class KubeApi {
 
     for (const [name, cls] of Object.entries(apiTypes)) {
       const api = new cls(cluster.server)
-      this[name] = this.proxyApi(api, this.config)
+      this[name] = this.wrapApi(api, this.config)
     }
   }
 
@@ -140,7 +168,7 @@ export class KubeApi {
         const coreApi = await this.coreApi.getAPIVersions()
         const apis = await this.apis.getAPIVersions()
 
-        const coreGroups: V1APIGroup[] = coreApi.body.versions.map(version => ({
+        const coreGroups: V1APIGroup[] = coreApi.versions.map(version => ({
           apiVersion: "v1",
           kind: "ApiGroup",
           name: version,
@@ -158,10 +186,10 @@ export class KubeApi {
               version,
             },
           ],
-          serverAddressByClientCIDRs: coreApi.body.serverAddressByClientCIDRs,
+          serverAddressByClientCIDRs: coreApi.serverAddressByClientCIDRs,
         }))
 
-        const groups = coreGroups.concat(apis.body.groups)
+        const groups = coreGroups.concat(apis.groups)
         const groupMap: ApiGroupMap = {}
 
         for (const group of groups) {
@@ -171,7 +199,7 @@ export class KubeApi {
         }
 
         const info = {
-          coreApi: coreApi.body,
+          coreApi,
           groups,
           groupMap,
           resources: {},
@@ -202,7 +230,7 @@ export class KubeApi {
   async getApiResourceInfo(log: LogEntry, manifest: KubernetesResource): Promise<ApiResourceInfo> {
     const apiInfo = await this.getApiInfo()
     const group = await this.getApiGroup(manifest)
-    const groupId = group.preferredVersion.groupVersion
+    const groupId = group.preferredVersion!.groupVersion
 
     const lockKey = `${this.context}/${groupId}`
     const resourceMap = apiInfo.resources[groupId] || await apiInfoLock.acquire(lockKey, async () => {
@@ -260,7 +288,7 @@ export class KubeApi {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${name}`)
 
     const { group, resource } = await this.getApiResourceInfo(log, manifest)
-    const groupId = group.preferredVersion.groupVersion
+    const groupId = group.preferredVersion!.groupVersion
     const basePath = getGroupBasePath(groupId)
 
     const apiPath = resource.namespaced
@@ -300,7 +328,7 @@ export class KubeApi {
   /**
    * Wrapping the API objects to deal with bugs.
    */
-  private proxyApi<T extends K8sApi>(api: T, config: KubeConfig): T {
+  private wrapApi<T extends K8sApi>(api: T, config: KubeConfig): T {
     api.setDefaultAuthentication(config)
 
     return new Proxy(api, {
@@ -321,13 +349,20 @@ export class KubeApi {
           target["defaultHeaders"] = defaultHeaders
 
           if (typeof output.then === "function") {
-            // the API errors are not properly formed Error objects
-            return output.catch((err: Error) => {
-              throw wrapError(err)
-            })
-          } else {
             return output
+              // return the result body direcly
+              .then((res: any) => {
+                if (isPlainObject(res) && res["body"] !== undefined) {
+                  return res["body"]
+                }
+              })
+              // the API errors are not properly formed Error objects
+              .catch((err: Error) => {
+                throw wrapError(err)
+              })
           }
+
+          return output
         }
       },
     })
