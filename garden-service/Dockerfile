@@ -29,4 +29,4 @@ WORKDIR /project
 RUN ln -s /garden/bin/garden /bin/garden \
   && chmod +x /bin/garden
 
-ENTRYPOINT [/garden/bin/garden]
+ENTRYPOINT ["/garden/bin/garden"]
