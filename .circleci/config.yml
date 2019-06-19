@@ -126,6 +126,11 @@ commands:
             docker build -t << parameters.context >> --build-arg TAG=$TAG << parameters.context >>
             docker tag << parameters.context >>  << parameters.registry >>/<< parameters.image >>:$TAG
             docker push << parameters.registry >>/<< parameters.image >>:$TAG
+            # Set the latest tag as well for tagged releases
+            if [ "$TAG" == "$CIRCLE_TAG" ]; then
+              docker tag << parameters.context >>  << parameters.registry >>/<< parameters.image >>:latest
+              docker push << parameters.registry >>/<< parameters.image >>:latest
+            fi
 
   configure_kubectl_context:
     description: Configure the kubectl context so that we can access our remote cluster. Used for integration testing.
