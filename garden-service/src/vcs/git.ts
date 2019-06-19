@@ -121,7 +121,7 @@ export class GitHandler extends VcsHandler {
           hash = await this.hashObject(resolvedPath) || ""
         } catch (err) {
           // 128 = File no longer exists
-          if (err.code !== 128) {
+          if (err.code !== 128 && err.code !== "ENOENT") {
             throw err
           }
         }

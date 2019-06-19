@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import * as tmp from "tmp-promise"
-import { createFile, writeFile, realpath, mkdir } from "fs-extra"
+import { createFile, writeFile, realpath, mkdir, remove } from "fs-extra"
 import { join, resolve } from "path"
 
 import { expectError } from "../../../helpers"
@@ -132,6 +132,17 @@ describe("GitHandler", () => {
       expect(await handler.getFiles(tmpPath)).to.eql([
         { path: resolve(tmpPath, "my file.txt"), hash },
       ])
+    })
+
+    it("should gracefully skip files that are deleted after having been committed", async () => {
+      const filePath = join(tmpPath, "my file.txt")
+      await createFile(filePath)
+      await git("add", filePath)
+      await git("commit", "-m", "foo")
+
+      await remove(filePath)
+
+      expect(await handler.getFiles(tmpPath)).to.eql([])
     })
 
     it("should work with untracked files with spaces in the name", async () => {
