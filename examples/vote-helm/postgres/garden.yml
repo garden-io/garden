@@ -30,7 +30,7 @@ tasks:
       --host, postgres,
       --port=5432,
       -d, postgres,
-      -c "TRUNCATE votes"
+      -c, "TRUNCATE votes"
     ]
     env:
       PGPASSWORD: postgres
