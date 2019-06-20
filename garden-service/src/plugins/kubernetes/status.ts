@@ -26,7 +26,7 @@ import {
   V1StatefulSetSpec,
   V1DeploymentStatus,
 } from "@kubernetes/client-node"
-import { some, zip, isArray, isPlainObject, pickBy, mapValues } from "lodash"
+import { some, zip, isArray, isPlainObject, pickBy, mapValues, flatten } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { isSubset } from "../../util/is-subset"
 import { LogEntry } from "../../logger/log-entry"
@@ -315,6 +315,11 @@ export async function checkResourceStatus(
   api: KubeApi, namespace: string, resource: KubernetesResource, log: LogEntry, prevStatus?: WorkloadStatus,
 ) {
   const handler = objHandlers[resource.kind]
+
+  if (resource.metadata.namespace) {
+    namespace = resource.metadata.namespace
+  }
+
   let status: WorkloadStatus
   if (handler) {
     try {
@@ -422,8 +427,10 @@ export async function compareDeployedObjects(
   ctx: KubernetesPluginContext, api: KubeApi, namespace: string, resources: KubernetesResource[], log: LogEntry,
   skipDiff: boolean,
 ): Promise<ComparisonResult> {
+  // Unroll any `List` resource types
+  resources = flatten(resources.map((r: any) => r.apiVersion === "v1" && r.kind === "List" ? r.items : [r]))
 
-  // First check if any resources are missing from the cluster.
+  // Check if any resources are missing from the cluster.
   const maybeDeployedObjects = await Bluebird.map(resources, obj => getDeployedObject(ctx, ctx.provider, obj, log))
   const deployedObjects = <KubernetesResource[]>maybeDeployedObjects.filter(o => o !== null)
 
@@ -471,14 +478,11 @@ export async function compareDeployedObjects(
       // Exited with non-zero code. Check for error messages on stderr. If one is there, the command was unable to
       // complete the check, so we fall back to our own mechanism. Otherwise the command worked, but one or more
       // resources are missing or outdated.
-      if (
-        !err.detail || !err.detail.result
-        || (!!err.detail.result.stderr && err.detail.result.stderr.trim() !== "exit status 1")
-      ) {
+      if (err.stderr && err.stderr.trim() !== "exit status 1") {
         log.verbose(`kubectl diff failed: ${err.message}\n${err.stderr}`)
       } else {
         log.verbose(`kubectl diff indicates one or more resources are outdated.`)
-        log.silly(err.detail.result.stdout)
+        log.silly(err.stdout)
         result.state = "outdated"
         return result
       }
