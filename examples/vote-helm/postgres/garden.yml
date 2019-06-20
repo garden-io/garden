@@ -16,7 +16,7 @@ tasks:
       --host, postgres,
       --port=5432,
       -d, postgres,
-      -c, "'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
+      -c, "CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)"
     ]
     env:
       PGPASSWORD: postgres
@@ -30,7 +30,7 @@ tasks:
       --host, postgres,
       --port=5432,
       -d, postgres,
-      -c "'TRUNCATE votes'"
+      -c, "TRUNCATE votes"
     ]
     env:
       PGPASSWORD: postgres

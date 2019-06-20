@@ -57,7 +57,13 @@ describe("DeleteSecretCommand", () => {
   })
 })
 
+const getServiceStatus = async (): Promise<ServiceStatus> => {
+  return { state: "ready" }
+}
+
 describe("DeleteEnvironmentCommand", () => {
+  let deletedServices: string[] = []
+
   const testProvider: PluginFactory = () => {
     const name = "test-plugin"
 
@@ -72,19 +78,35 @@ describe("DeleteEnvironmentCommand", () => {
       return testEnvStatuses[name]
     }
 
+    const deleteService = async ({ service }): Promise<ServiceStatus> => {
+      deletedServices.push(service.name)
+      return { state: "missing" }
+    }
+
     return {
       actions: {
         cleanupEnvironment,
         getEnvironmentStatus,
       },
+      moduleActions: {
+        test: {
+          configure: configureTestModule,
+          getServiceStatus,
+          deleteService,
+        },
+      },
     }
   }
+
+  beforeEach(() => {
+    deletedServices = []
+  })
 
   const projectRootB = getDataDir("test-project-b")
   const command = new DeleteEnvironmentCommand()
   const plugins = { "test-plugin": testProvider }
 
-  it("should destroy environment", async () => {
+  it("should delete environment with services", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
 
@@ -97,7 +119,14 @@ describe("DeleteEnvironmentCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result!["test-plugin"]["ready"]).to.be.false
+    expect(result!.environmentStatuses["test-plugin"]["ready"]).to.be.false
+    expect(result!.serviceStatuses).to.eql({
+      "service-a": { state: "missing" },
+      "service-b": { state: "missing" },
+      "service-c": { state: "missing" },
+      "service-d": { state: "missing" },
+    })
+    expect(deletedServices).to.eql(["service-a", "service-b", "service-c", "service-d"])
   })
 })
 
@@ -122,6 +151,7 @@ describe("DeleteServiceCommand", () => {
       moduleActions: {
         test: {
           configure: configureTestModule,
+          getServiceStatus,
           deleteService,
         },
       },
