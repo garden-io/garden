@@ -274,7 +274,7 @@ async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
   const api = await KubeApi.factory(log, provider.config.context)
 
   const builderStatusRes = await api.apps.readNamespacedDeployment(dockerDaemonDeploymentName, systemNamespace)
-  const builderPods = await getPods(api, systemNamespace, builderStatusRes.body.spec.selector.matchLabels)
+  const builderPods = await getPods(api, systemNamespace, builderStatusRes.spec.selector.matchLabels)
   const pod = builderPods[0]
 
   if (!pod) {

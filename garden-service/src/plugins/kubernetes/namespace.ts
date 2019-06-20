@@ -30,7 +30,7 @@ export async function ensureNamespace(api: KubeApi, namespace: string) {
     created[namespace] = "pending"
     const namespacesStatus = await api.core.listNamespace()
 
-    for (const n of namespacesStatus.body.items) {
+    for (const n of namespacesStatus.items) {
       if (n.status.phase === "Active") {
         created[n.metadata.name] = "created"
       }
@@ -131,7 +131,7 @@ export function getMetadataNamespace(ctx: PluginContext, log: LogEntry, provider
 
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
   const allNamespaces = await api.core.listNamespace()
-  return allNamespaces.body.items
+  return allNamespaces.items
     .map(n => n.metadata.name)
 }
 

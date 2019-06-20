@@ -30,7 +30,7 @@ export async function getTestResult(
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, testResultNamespace)
-    return <TestResult>deserializeValues(res.body.data)
+    return <TestResult>deserializeValues(res.data!)
   } catch (err) {
     if (err.code === 404) {
       return null

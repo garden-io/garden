@@ -9,11 +9,10 @@
 import * as Bluebird from "bluebird"
 import { get, flatten, uniqBy } from "lodash"
 import { ChildProcess } from "child_process"
-import { V1Pod } from "@kubernetes/client-node"
 import getPort = require("get-port")
 const AsyncLock = require("async-lock")
 
-import { KubernetesResource } from "./types"
+import { KubernetesResource, KubernetesWorkload, KubernetesPod } from "./types"
 import { splitLast } from "../../util/util"
 import { KubeApi } from "./api"
 import { PluginContext } from "../../plugin-context"
@@ -31,20 +30,22 @@ export function getAnnotation(obj: KubernetesResource, key: string): string | nu
 /**
  * Given a list of resources, get all the associated pods.
  */
-export async function getAllPods(api: KubeApi, namespace: string, resources: KubernetesResource[]): Promise<V1Pod[]> {
-  const pods = flatten(await Bluebird.map(resources, async (resource) => {
+export async function getAllPods(
+  api: KubeApi, namespace: string, resources: KubernetesResource[],
+): Promise<KubernetesPod[]> {
+  const pods: KubernetesPod[] = flatten(await Bluebird.map(resources, async (resource) => {
     if (resource.apiVersion === "v1" && resource.kind === "Pod") {
-      return [<V1Pod>resource]
+      return [<KubernetesPod>resource]
     }
 
     if (isWorkload(resource)) {
-      return getWorkloadPods(api, namespace, resource)
+      return getWorkloadPods(api, namespace, <KubernetesWorkload>resource)
     }
 
     return []
   }))
 
-  return <V1Pod[]>deduplicateResources(pods)
+  return <KubernetesPod[]>deduplicateResources(pods)
 }
 
 /**
@@ -57,7 +58,7 @@ export async function getAllPodNames(api: KubeApi, namespace: string, resources:
 /**
  * Retrieve a list of pods based on the provided label selector.
  */
-export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesResource): Promise<V1Pod[]> {
+export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
   const selector = resource.spec.selector.matchLabels
   return getPods(api, resource.metadata.namespace || namespace, selector)
 }
@@ -65,12 +66,14 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
 /**
  * Retrieve a list of pods based on the provided label selector.
  */
-export async function getPods(api: KubeApi, namespace: string, selector: { [key: string]: string }): Promise<V1Pod[]> {
+export async function getPods(
+  api: KubeApi, namespace: string, selector: { [key: string]: string },
+): Promise<KubernetesPod[]> {
   const selectorString = Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
   const res = await api.core.listNamespacedPod(
     namespace, true, undefined, undefined, undefined, selectorString,
   )
-  return res.body.items
+  return <KubernetesPod[]>res.items
 }
 
 /**

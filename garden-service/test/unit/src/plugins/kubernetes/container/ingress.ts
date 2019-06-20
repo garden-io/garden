@@ -395,15 +395,9 @@ describe("createIngressResources", () => {
     const api = await KubeApi.factory(garden.log, context)
 
     const core = td.replace(api, "core")
-    td.when(core.readNamespacedSecret("somesecret", "somenamespace")).thenResolve({
-      body: myDomainCertSecret,
-    })
-    td.when(core.readNamespacedSecret("othersecret", "somenamespace")).thenResolve({
-      body: otherDomainCertSecret,
-    })
-    td.when(core.readNamespacedSecret("wildcardsecret", "somenamespace")).thenResolve({
-      body: wildcardDomainCertSecret,
-    })
+    td.when(core.readNamespacedSecret("somesecret", "somenamespace")).thenResolve(myDomainCertSecret)
+    td.when(core.readNamespacedSecret("othersecret", "somenamespace")).thenResolve(otherDomainCertSecret)
+    td.when(core.readNamespacedSecret("wildcardsecret", "somenamespace")).thenResolve(wildcardDomainCertSecret)
 
     td.replace(api, "upsert")
 
@@ -679,11 +673,7 @@ describe("createIngressResources", () => {
 
     const err: any = new Error("nope")
     err.code = 404
-    td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({
-      body: {
-        data: {},
-      },
-    })
+    td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({ data: {} })
 
     await expectError(async () => await createIngressResources(api, provider, namespace, service), "configuration")
   })
@@ -715,10 +705,8 @@ describe("createIngressResources", () => {
     const err: any = new Error("nope")
     err.code = 404
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({
-      body: {
-        data: {
-          "tls.crt": "blablablablablalbalblabl",
-        },
+      data: {
+        "tls.crt": "blablablablablalbalblabl",
       },
     })
 
@@ -801,9 +789,7 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
     }
 
-    td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({
-      body: myDomainCertSecret,
-    })
+    td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve(myDomainCertSecret)
     const ingresses = await createIngressResources(api, provider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, myDomainCertSecret))
