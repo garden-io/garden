@@ -131,6 +131,14 @@ commands:
     description: Configure the kubectl context so that we can access our remote cluster. Used for integration testing.
     steps:
       - run:
+          name: Install binary dependencies
+          command: |
+            mkdir -p $HOME/bin
+            cd $HOME/bin
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/linux/amd64/kubectl
+            chmod +x kubectl
+            echo 'export PATH=$HOME/bin:$PATH' >> $BASH_ENV
+      - run:
           name: Install gcloud
           command: |
             mkdir $HOME/gcloud
@@ -210,6 +218,10 @@ jobs:
       - run:
           name: Run integration tests
           command: ./garden-service/bin/garden test integ-tests --root garden-service/test/integ --logger-type basic
+      - run:
+          name: Cleanup
+          command: kubectl delete --wait=false ns $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
+          when: always
   build-dashboard:
     <<: *node-config
     steps:
