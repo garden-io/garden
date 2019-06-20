@@ -7,11 +7,13 @@ import chalk from "chalk"
 import parseArgs = require("minimist")
 import replace = require("replace-in-file")
 import deline = require("deline")
-import { join } from "path"
-import { GARDEN_SERVICE_ROOT } from "../garden-service/src/constants"
+import { join, resolve } from "path"
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
+
+const gardenRoot = resolve(__dirname, "..")
+const gardenServiceRoot = join(gardenRoot, "garden-service")
 
 /**
  * Performs the following steps to prepare for a release:
@@ -31,9 +33,6 @@ async function release() {
   const argv = parseArgs(process.argv.slice(2))
   const releaseType = <ReleaseType>argv._[0]
   const force = argv.force
-  // const gardenRoot = resolve(GARDEN_SERVICE_ROOT, "..")
-  const gardenRoot = GARDEN_SERVICE_ROOT
-  const gardenServiceRoot = join(GARDEN_SERVICE_ROOT, "garden-service")
 
   // Check if branch is clean
   try {
@@ -61,7 +60,7 @@ async function release() {
     // no op
   } finally {
     if (localBranch) {
-      await rollBack(gardenRoot)
+      await rollBack()
       throw new Error(`Branch ${branchName} already exists locally. Aborting.`)
     }
   }
@@ -78,7 +77,7 @@ async function release() {
     // no op
   } finally {
     if (remoteBranch) {
-      await rollBack(gardenRoot)
+      await rollBack()
       throw new Error(`Branch ${branchName} already exists remotely. Aborting.`)
     }
   }
@@ -86,7 +85,7 @@ async function release() {
   // Check if user wants to continue
   const proceed = await prompt(version)
   if (!proceed) {
-    await rollBack(gardenRoot)
+    await rollBack()
     return
   }
 
@@ -97,7 +96,7 @@ async function release() {
   // Verify tag doesn't exist
   const tags = (await execa.stdout("git", ["tag"], { cwd: gardenRoot })).split("\n")
   if (tags.includes(version) && !force) {
-    await rollBack(gardenRoot)
+    await rollBack()
     throw new Error(`Tag ${version} already exists. Use "--force" to override.`)
   }
 
@@ -129,7 +128,7 @@ async function release() {
 
   // Tag the commit and push the tag
   console.log("Pushing tag...")
-  await createTag(version, gardenRoot, force)
+  await createTag(version, force)
 
   // Reset local tag state (after stripping release tags)
   await execa("git", ["fetch", "origin", "--tags"], { cwd: gardenRoot })
@@ -150,7 +149,7 @@ async function release() {
     await execa("git", ["commit", "--amend", "--no-edit"], { cwd: gardenRoot })
 
     // Tag the commit and force push the tag after updating the links (this triggers another CI build)
-    await createTag(version, gardenRoot, true)
+    await createTag(version, true)
   }
 
   console.log("Pushing release branch...")
@@ -170,7 +169,7 @@ async function release() {
   `)
 }
 
-async function createTag(version: string, gardenRoot: string, force: boolean) {
+async function createTag(version: string, force: boolean) {
   // Tag the commit
   const createTagArgs = ["tag", "-a", version, "-m", `chore(release): release ${version}`]
   if (force) {
@@ -196,7 +195,7 @@ async function updateExampleLinks(version: string) {
   console.log("Modified files:", changes.join(", "))
 }
 
-async function rollBack(gardenRoot: string) {
+async function rollBack() {
   // Undo any file changes. This is safe since we know the branch is clean.
   console.log("Undoing file changes")
   await execa.stdout("git", ["checkout", "."], { cwd: gardenRoot })
