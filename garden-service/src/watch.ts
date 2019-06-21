@@ -16,7 +16,26 @@ import * as klaw from "klaw"
 import { registerCleanupFunction } from "./util/util"
 import * as Bluebird from "bluebird"
 import { some } from "lodash"
-import { isConfigFilename } from "./util/fs"
+import { isConfigFilename, Ignorer } from "./util/fs"
+
+// IMPORTANT: We must use a single global instance of the watcher, because we may otherwise get
+// segmentation faults on macOS! See https://github.com/fsevents/fsevents/issues/273
+let watcher: FSWatcher | undefined
+let ignorer: Ignorer
+let projectRoot: string
+
+const ignored = (path: string, _: any) => {
+  const relpath = relative(projectRoot, path)
+  return relpath && ignorer.ignores(relpath)
+}
+
+// The process hangs after tests if we don't do this
+registerCleanupFunction("stop watcher", () => {
+  if (watcher) {
+    watcher.close()
+    watcher = undefined
+  }
+})
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
@@ -27,33 +46,21 @@ export type ChangeHandler = (module: Module | null, configChanged: boolean) => P
 export class Watcher {
   private watcher: FSWatcher
 
-  constructor(private garden: Garden, private log: LogEntry) {
-  }
-
-  /**
-   * Starts the file watcher. Idempotent.
-   *
-   * @param modules All configured modules in the project.
-   */
-  start(modules: Module[]) {
-    // Only run one watcher for the process
-    if (this.watcher) {
-      return
-    }
-
-    const projectRoot = this.garden.projectRoot
-    const ignorer = this.garden.ignorer
+  constructor(private garden: Garden, private log: LogEntry, modules: Module[]) {
+    projectRoot = this.garden.projectRoot
+    ignorer = this.garden.ignorer
 
     this.log.debug(`Watcher: Watching ${projectRoot}`)
 
-    this.watcher = watch(projectRoot, {
-      ignored: (path: string, _: any) => {
-        const relpath = relative(projectRoot, path)
-        return relpath && ignorer.ignores(relpath)
-      },
-      ignoreInitial: true,
-      persistent: true,
-    })
+    if (watcher === undefined) {
+      watcher = watch(projectRoot, {
+        ignored,
+        ignoreInitial: true,
+        persistent: true,
+      })
+    }
+
+    this.watcher = watcher
 
     this.watcher
       .on("add", this.makeFileAddedHandler(modules))
@@ -61,18 +68,12 @@ export class Watcher {
       .on("unlink", this.makeFileChangedHandler("removed", modules))
       .on("addDir", this.makeDirAddedHandler(modules))
       .on("unlinkDir", this.makeDirRemovedHandler(modules))
-
-    registerCleanupFunction("clearFileWatches", () => {
-      this.stop()
-    })
   }
 
   stop(): void {
     if (this.watcher) {
-      this.log.debug(`Watcher: Stopping`)
-
-      this.watcher.close()
-      delete this.watcher
+      this.log.debug(`Watcher: Clearing handlers`)
+      this.watcher.removeAllListeners()
     }
   }
 

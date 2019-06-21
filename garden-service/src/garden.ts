@@ -106,7 +106,7 @@ export class Garden {
   private modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: PluginFactory }
   private readonly taskGraph: TaskGraph
-  private readonly watcher: Watcher
+  private watcher: Watcher
 
   public readonly configStore: ConfigStore
   public readonly globalConfigStore: GlobalConfigStore
@@ -167,7 +167,6 @@ export class Garden {
 
     this.taskGraph = new TaskGraph(this, this.log)
     this.events = new EventBus(this.log)
-    this.watcher = new Watcher(this, this.log)
 
     // Register plugins
     for (const [name, pluginFactory] of Object.entries({ ...builtinPlugins, ...params.plugins })) {
@@ -234,7 +233,7 @@ export class Garden {
    * Clean up before shutting down.
    */
   async close() {
-    this.watcher.stop()
+    this.watcher && this.watcher.stop()
   }
 
   getPluginContext(providerName: string) {
@@ -255,7 +254,7 @@ export class Garden {
    */
   async startWatcher(graph: ConfigGraph) {
     const modules = await graph.getModules()
-    this.watcher.start(modules)
+    this.watcher = new Watcher(this, this.log, modules)
   }
 
   private registerPlugin(name: string, moduleOrFactory: RegisterPluginParam) {
