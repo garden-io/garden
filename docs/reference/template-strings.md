@@ -1,64 +1,12 @@
-# Template strings
+# Template strings reference
 
-## Introduction
+Below you'll find the schema for the keys available when interpolating template strings (see our
+[Configuration Files](../using-garden/configuration-files.md) guide for information and usage examples).
 
-String configuration values in `garden.yml` can be templated to inject, among other things, variables,
-information about the user's environment, references to other modules/services etc.
+Note that there are two sections below, because Project configs and Module configs have different keys available to
+them. Please make sure to refer to the correct section.
 
-The syntax for templated strings is `${some.key}`. The key is looked up from the context available when
-resolving the string. The context depends on which top-level key the configuration value belongs to (`project`
-or `module`). See below for the full context that is available for each of those.
-
-For example, for one service you might want to reference something from another module and expose it as an
-environment variable:
-
-```yaml
-kind: Module
-name: some-module
-services:
-  - name: some-service
-    # ...
-    env:
-      OTHER_MODULE_VERSION: ${modules.other-module.version}
-```
-
-You can also inject a template variable into a string. For instance, you might need to include a module's
-version as part of a URI:
-
-```yaml
-    # ...
-    env:
-      OTHER_MODULE_ENDPOINT: http://other-module/api/${modules.other-module.version}
-```
-
-Note that while the syntax looks similar to template strings in Javascript, you can currently only do simple
-lookups of keys. However, it is possible to do nested templating. For a somewhat contrived example:
-
-```yaml
-    # ...
-    env:
-      OTHER_MODULE_ENDPOINT: http://${var.auth-module}/api/${modules.${var.auth-module}.version}
-```
-
-There the name of the module is pulled from the project/environment configuration, and used to find the
-appropriate key under the `modules` configuration context.
-
-You can also do conditional statements, using the `||` operator. For example:
-
-```yaml
-  # ...
-  variables:
-    log-level: ${local.env.LOG_LEVEL || "info"}
-    namespace: ${local.env.CI_BRANCH || local.username || "default"}
-```
-
-This allows you to easily set default values when certain template keys are not available, and to configure your
-project based on varying context.
-
-
-## Reference
-
-### Project configuration context
+## Project configuration context
 
 The following keys are available in template strings under the `project` key in `garden.yml` files:
 
@@ -83,7 +31,7 @@ local:
   platform:
 ```
 
-### Module configuration context
+## Module configuration context
 
 The following keys are available in template strings under the `module` key in `garden.yml` files:
 
