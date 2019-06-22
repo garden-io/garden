@@ -13,11 +13,10 @@ If you need more advanced templating features you can use the
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-files.md).
-The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available
+The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
 ## Configuration keys
-
 
 ### `apiVersion`
 

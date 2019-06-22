@@ -120,6 +120,23 @@ describe("plugins.container", () => {
     })
   })
 
+  describe("getLocalImageName", () => {
+    it("should return configured image name with no version if specified", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image:1.1"
+      const module = await getTestModule(config)
+
+      expect(await helpers.getLocalImageName(module)).to.equal("some/image")
+    })
+
+    it("should return module name if no image name is specified", async () => {
+      const config = cloneDeep(baseConfig)
+      const module = await getTestModule(config)
+
+      expect(await helpers.getLocalImageName(module)).to.equal(config.name)
+    })
+  })
+
   describe("getDeploymentImageId", () => {
     it("should return module name with module version if there is a Dockerfile and no image name set", async () => {
       const config = cloneDeep(baseConfig)
@@ -437,6 +454,7 @@ describe("plugins.container", () => {
           apiVersion: "garden.io/v0",
           name: "module-a",
           outputs: {
+            "local-image-name": "module-a",
             "deployment-image-name": "module-a",
           },
           path: modulePath,

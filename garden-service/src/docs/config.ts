@@ -209,11 +209,12 @@ function getParentDescriptions(
   return descriptions
 }
 
-function renderMarkdownTitle(description: NormalizedDescription) {
+function renderMarkdownTitle(description: NormalizedDescription, prefix = "") {
   const parentDescriptions = getParentDescriptions(description)
-  return parentDescriptions.length > 0
+  const title = parentDescriptions.length > 0
     ? `${parentDescriptions.map(d => d.formattedName).join(".")}.${description.formattedName}`
     : description.name
+  return prefix + title
 }
 
 function renderMarkdownLink(description: NormalizedDescription) {
@@ -221,9 +222,9 @@ function renderMarkdownLink(description: NormalizedDescription) {
   return `[${description.name}](#${path})`
 }
 
-function makeMarkdownDescription(description: NormalizedDescription) {
+function makeMarkdownDescription(description: NormalizedDescription, titlePrefix = "") {
   const parentDescriptions = getParentDescriptions(description)
-  const title = renderMarkdownTitle(description)
+  const title = renderMarkdownTitle(description, titlePrefix)
   const breadCrumbs = parentDescriptions.length > 0
     ? parentDescriptions
       .map(renderMarkdownLink)
@@ -359,12 +360,12 @@ export function renderSchemaDescriptionYaml(
  * The config reference contains a list of keys and their description in Markdown
  * and a YAML schema.
  */
-export function renderConfigReference(configSchema: Joi.ObjectSchema) {
+export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefix = "") {
   const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
   const normalizedDescriptions = normalizeDescriptions(configSchema.describe())
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { showComment: false })
-  const keys = normalizedDescriptions.map(makeMarkdownDescription)
+  const keys = normalizedDescriptions.map(d => makeMarkdownDescription(d, titlePrefix))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return { markdownReference: template({ keys }), yaml }
@@ -385,11 +386,14 @@ function renderProviderReference(schema: Joi.ObjectSchema, name: string) {
  * Generates the module types reference from the module-type.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderModuleTypeReference(schema: Joi.ObjectSchema, name: string, docs: string) {
+function renderModuleTypeReference(
+  schema: Joi.ObjectSchema, outputsSchema: Joi.ObjectSchema, name: string, docs: string,
+) {
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
+  const outputsReference = renderConfigReference(outputsSchema, "modules.<module-name>.outputs.").markdownReference
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
-  return template({ name, docs, markdownReference, yaml })
+  return template({ name, docs, markdownReference, yaml, outputsReference })
 }
 
 /**
@@ -444,10 +448,15 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
     const actions = await garden.getActionHelper()
-    const { docs, schema, title } = await actions.describeType(name)
+    const { docs, outputsSchema, schema, title } = await actions.describeType(name)
 
     console.log("->", path)
-    writeFileSync(path, renderModuleTypeReference(populateModuleSchema(schema), name, docs))
+    writeFileSync(path, renderModuleTypeReference(
+      populateModuleSchema(schema),
+      outputsSchema,
+      name,
+      docs,
+    ))
 
     readme.push(`* [${title || startCase(name.replace("-", " "))}](./${name}.md)`)
   }

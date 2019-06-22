@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Joi from "joi"
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
 import { HelmModule, validateHelmModule as configureHelmModule, helmModuleSpecSchema } from "./config"
 import { buildHelmModule } from "./build"
@@ -18,12 +19,20 @@ import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
 import { dedent } from "../../../util/string"
 
+const helmModuleOutputsSchema = Joi.object()
+  .keys({
+    "release-name": Joi.string()
+      .required()
+      .description("The Helm release name of the service."),
+  })
+
 async function describeType() {
   return {
     docs: dedent`
       Specify a Helm chart (either in your repository or remote from a registry) to deploy.
       Refer to the [Helm guide](https://docs.garden.io/using-garden/using-helm-charts) for usage instructions.
     `,
+    outputsSchema: helmModuleOutputsSchema,
     schema: helmModuleSpecSchema,
   }
 }

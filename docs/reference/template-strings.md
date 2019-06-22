@@ -7,6 +7,10 @@ Note that there are three sections below, because Project configs and Module con
 them, and additional keys are available under `providers` in Project configs.
 Please make sure to refer to the correct section.
 
+Modules are able to reference defined `outputs` from other modules, via the `${modules.<module-name>.outputs}` key.
+For details on which outputs are available for a module type, please refer to the
+[reference](https://docs.garden.io/reference/module-types) docs for the module type and look for the _Outputs_ section.
+
 ## Project configuration context
 
 The following keys are available in template strings anywhere in Project `garden.yml` config files:

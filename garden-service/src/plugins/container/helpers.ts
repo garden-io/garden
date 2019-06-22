@@ -40,19 +40,26 @@ const helpers = {
   async getLocalImageId(module: ContainerModule): Promise<string> {
     const hasDockerfile = await helpers.hasDockerfile(module)
 
-    if (module.spec.image && hasDockerfile) {
-      const { versionString } = module.version
-      const parsedImage = helpers.parseImageId(module.spec.image)
-      return helpers.unparseImageId({ ...parsedImage, tag: versionString })
-    } else if (!module.spec.image && hasDockerfile) {
-      const { versionString } = module.version
-      return helpers.unparseImageId({ repository: module.name, tag: versionString })
-    } else if (module.spec.image && !hasDockerfile) {
+    if (module.spec.image && !hasDockerfile) {
       return module.spec.image
     } else {
       const { versionString } = module.version
-      const parsedImage = helpers.parseImageId(module.name)
+      const name = await helpers.getLocalImageName(module)
+      const parsedImage = helpers.parseImageId(name)
       return helpers.unparseImageId({ ...parsedImage, tag: versionString })
+    }
+  },
+
+  /**
+   * Returns the image name used locally (without tag/version), when building and deploying to local environments
+   * (when we don't need to push to remote registries).
+   */
+  async getLocalImageName(config: ContainerModuleConfig): Promise<string> {
+    if (config.spec.image) {
+      const parsedImage = helpers.parseImageId(config.spec.image)
+      return helpers.unparseImageId({ ...parsedImage, tag: undefined })
+    } else {
+      return config.name
     }
   },
 

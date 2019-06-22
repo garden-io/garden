@@ -15,7 +15,8 @@ export const describeModuleTypeParamsSchema = Joi.object()
 
 export interface ModuleTypeDescription {
   docs: string
-  // TODO: specify the schema using primitives and not Joi objects
+  // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
+  outputsSchema: Joi.ObjectSchema
   schema: Joi.ObjectSchema
   title?: string
 }
@@ -43,6 +44,13 @@ export const describeType = {
       docs: Joi.string()
         .required()
         .description("Documentation for the module type, in markdown format."),
+      // TODO: specify the schemas using primitives and not Joi objects
+      outputsSchema: Joi.object()
+        .default(Joi.object().keys({}), "{}")
+        .description(
+          "A valid Joi schema describing the keys that each module outputs, for use in template strings " +
+          "(e.g. \`\${modules.my-module.outputs.some-key}\`).",
+        ),
       schema: Joi.object()
         .required()
         .description(

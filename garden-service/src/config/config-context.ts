@@ -308,7 +308,10 @@ class ModuleContext extends ConfigContext {
 
   @schema(
     joiIdentifierMap(joiPrimitive())
-      .description("The outputs defined by the module (see individual plugins for details).")
+      .description(
+        "The outputs defined by the module (see individual module type " +
+        "[references](https://docs.garden.io/reference/module-types) for details).",
+      )
       .example(exampleOutputs),
   )
   public outputs: PrimitiveMap
