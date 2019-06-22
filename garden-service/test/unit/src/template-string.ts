@@ -209,6 +209,14 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("foo")
   })
 
+  it("should handle chained conditional with string fallback", async () => {
+    const res = await resolveTemplateString(
+      "${a.b || c.d || e.f || 'foo'}",
+      new TestContext({ a: {}, c: {}, e: {} }),
+    )
+    expect(res).to.equal("foo")
+  })
+
   it("should handle a conditional between two identifiers without spaces with first value set", async () => {
     const res = await resolveTemplateString(
       "${a||b}",

@@ -16,12 +16,24 @@ FormatString
   = FormatStart key:Key FormatEnd {
       return options.getKey(key)
   }
-  / FormatStart a:Key Or b:Key FormatEnd {
-      return options.getKey(a, { allowUndefined: true })
-        .then(result => {
-          return result || options.getKey(b, { allowUndefined: false })
+  / FormatStart head:Key tail:(Or (Key / StringLiteral))+ FormatEnd {
+      const keys = [head, ...tail.map(t => t[1])]
+
+      // Resolve all the keys
+      return Promise.all(keys.map(key =>
+        typeof key === "string" ? key : options.getKey(key, { allowUndefined: true })
+      ))
+        .then(candidates => {
+          // Return the first non-undefined value
+          for (const value of candidates) {
+            if (value !== undefined) {
+              return value
+            }
+          }
+
+          throw new options.ConfigurationError("None of the keys could be resolved in the conditional: " + text())
         })
-  }
+    }
   / FormatStart a:Key Or b:StringLiteral FormatEnd {
       return options.getKey(a, { allowUndefined: true })
         .then(result => {

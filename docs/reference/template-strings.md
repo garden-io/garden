@@ -43,6 +43,19 @@ lookups of keys. However, it is possible to do nested templating. For a somewhat
 There the name of the module is pulled from the project/environment configuration, and used to find the
 appropriate key under the `modules` configuration context.
 
+You can also do conditional statements, using the `||` operator. For example:
+
+```yaml
+  # ...
+  variables:
+    log-level: ${local.env.LOG_LEVEL || "info"}
+    namespace: ${local.env.CI_BRANCH || local.username || "default"}
+```
+
+This allows you to easily set default values when certain template keys are not available, and to configure your
+project based on varying context.
+
+
 ## Reference
 
 ### Project configuration context

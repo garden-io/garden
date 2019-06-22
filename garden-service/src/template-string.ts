@@ -8,7 +8,7 @@
 
 import Bluebird = require("bluebird")
 import { asyncDeepMap } from "./util/util"
-import { GardenBaseError } from "./exceptions"
+import { GardenBaseError, ConfigurationError } from "./exceptions"
 import { ConfigContext, ContextResolveOpts, ContextResolveParams } from "./config/config-context"
 import { KeyedSet } from "./util/keyed-set"
 import { uniq } from "lodash"
@@ -48,6 +48,7 @@ export async function resolveTemplateString(string: string, context: ConfigConte
       const s = (await Bluebird.all(parts)).join("")
       return resolveTemplateString(`\$\{${s}\}`, context, { ...opts, ...resolveOpts || {} })
     },
+    ConfigurationError,
     TemplateStringError,
   })
 
