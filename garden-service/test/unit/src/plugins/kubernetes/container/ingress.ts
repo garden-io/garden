@@ -345,6 +345,7 @@ describe("createIngressResources", () => {
       ingresses,
       limits: defaultContainerLimits,
       ports,
+      replicas: 1,
       volumes: [],
     }
     const moduleConfig = {

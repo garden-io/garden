@@ -14,12 +14,19 @@ import { KubernetesPluginContext } from "../config"
 import { createDeployment } from "./deployment"
 
 export async function getServiceLogs(params: GetServiceLogsParams<ContainerModule>) {
-  const { ctx, log, service } = params
+  const { ctx, log, service, runtimeContext } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
-  const resources = [await createDeployment(k8sCtx.provider, service, params.runtimeContext, namespace, false)]
+  const resources = [await createDeployment({
+    provider: k8sCtx.provider,
+    service,
+    runtimeContext,
+    namespace,
+    enableHotReload: false,
+    log,
+  })]
 
   return getAllLogs({ ...params, context, namespace, resources })
 }
