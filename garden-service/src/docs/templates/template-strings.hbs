@@ -3,20 +3,30 @@
 Below you'll find the schema for the keys available when interpolating template strings (see our
 [Configuration Files](../using-garden/configuration-files.md) guide for information and usage examples).
 
-Note that there are two sections below, because Project configs and Module configs have different keys available to
-them. Please make sure to refer to the correct section.
+Note that there are three sections below, because Project configs and Module configs have different keys available to
+them, and additional keys are available under `providers` in Project configs.
+Please make sure to refer to the correct section.
 
 ## Project configuration context
 
-The following keys are available in template strings under the `project` key in `garden.yml` files:
+The following keys are available in template strings anywhere in Project `garden.yml` config files:
 
 ```yaml
 {{{projectContext}}}
 ```
 
+## Provider configuration context
+
+The following keys are available in template strings under the `providers` key (or `environments[].providers)
+in Project `garden.yml` config files:
+
+```yaml
+{{{providerContext}}}
+```
+
 ## Module configuration context
 
-The following keys are available in template strings under the `module` key in `garden.yml` files:
+The following keys are available in template strings under Module `garden.yml` config files:
 
 ```yaml
 {{{moduleContext}}}

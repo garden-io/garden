@@ -99,6 +99,7 @@
     "typescript-memoize": "^1.0.0-alpha.3",
     "uniqid": "^5.0.3",
     "unzipper": "^0.9.11",
+    "username": "^5.1.0",
     "uuid": "^3.3.2",
     "winston": "^3.2.1",
     "wrap-ansi": "^5.1.0",

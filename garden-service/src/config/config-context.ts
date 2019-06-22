@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import username = require("username")
 import { isString } from "lodash"
 import { PrimitiveMap, isPrimitive, Primitive, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
 import { Provider, ProviderConfig } from "./provider"
@@ -173,10 +174,26 @@ class LocalContext extends ConfigContext {
   )
   public platform: string
 
+  @schema(
+    Joi.string()
+      .description(
+        "The current username (as resolved by https://github.com/sindresorhus/username)",
+      )
+      .example("tenzing_norgay"),
+  )
+  public username: () => Promise<string>
+
   constructor(root: ConfigContext) {
     super(root)
     this.env = process.env
     this.platform = process.platform
+    this.username = async () => {
+      const name = await username()
+      if (name === undefined) {
+        throw new ConfigurationError(`Could not resolve current username`, {})
+      }
+      return name
+    }
   }
 }
 
@@ -190,6 +207,20 @@ export class ProjectConfigContext extends ConfigContext {
   constructor() {
     super()
     this.local = new LocalContext(this)
+  }
+}
+
+class ProjectContext extends ConfigContext {
+  @schema(
+    Joi.string()
+      .description("The name of the Garden project.")
+      .example("my-project"),
+  )
+  public name: string
+
+  constructor(root: ConfigContext, name: string) {
+    super(root)
+    this.name = name
   }
 }
 
@@ -239,17 +270,24 @@ export class ProviderConfigContext extends ProjectConfigContext {
   public environment: EnvironmentContext
 
   @schema(
+    ProjectContext.getSchema()
+      .description("Information about the Garden project."),
+  )
+  public project: ProjectContext
+
+  @schema(
     joiIdentifierMap(ProviderContext.getSchema())
       .description("Retrieve information about providers that are defined in the project.")
       .example(providersExample),
   )
   public providers: Map<string, ProviderContext>
 
-  constructor(environmentName: string, resolvedProviders: Provider[]) {
+  constructor(environmentName: string, projectName: string, resolvedProviders: Provider[]) {
     super()
     const _this = this
 
     this.environment = new EnvironmentContext(this, environmentName)
+    this.project = new ProjectContext(this, projectName)
 
     this.providers = new Map(resolvedProviders.map(p =>
       <[string, ProviderContext]>[p.name, new ProviderContext(_this, p)],
@@ -322,7 +360,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     variables: PrimitiveMap,
     moduleConfigs: ModuleConfig[],
   ) {
-    super(environmentName, resolvedProviders)
+    super(environmentName, garden.projectName, resolvedProviders)
 
     const _this = this
 

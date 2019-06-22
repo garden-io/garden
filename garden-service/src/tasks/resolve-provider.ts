@@ -76,7 +76,7 @@ export class ResolveProviderTask extends BaseTask {
   async process(dependencyResults: TaskResults) {
     const resolvedProviders: Provider[] = Object.values(dependencyResults).map(result => result.output)
 
-    const context = new ProviderConfigContext(this.garden.environmentName, resolvedProviders)
+    const context = new ProviderConfigContext(this.garden.environmentName, this.garden.projectName, resolvedProviders)
     let resolvedConfig = await resolveTemplateStrings(this.config, context)
 
     resolvedConfig.path = this.garden.projectRoot
