@@ -25,7 +25,7 @@ describe("resolveTemplateString", async () => {
 
   it("should optionally allow undefined values", async () => {
     const res = await resolveTemplateString("${some}", new TestContext({}), { allowUndefined: true })
-    expect(res).to.equal("")
+    expect(res).to.equal(undefined)
   })
 
   it("should interpolate a format string with a prefix", async () => {
@@ -51,16 +51,6 @@ describe("resolveTemplateString", async () => {
   it("should handle consecutive format strings", async () => {
     const res = await resolveTemplateString("${a}${b}", new TestContext({ a: "value", b: "other" }))
     expect(res).to.equal("valueother")
-  })
-
-  it("should interpolate a simple format string that resolves to a number", async () => {
-    const res = await resolveTemplateString("${some}", new TestContext({ some: 123 }))
-    expect(res).to.equal("123")
-  })
-
-  it("should interpolate a simple format string that resolves to a boolean", async () => {
-    const res = await resolveTemplateString("${some}", new TestContext({ some: false }))
-    expect(res).to.equal("false")
   })
 
   it("should throw when a key is not found", async () => {
@@ -127,6 +117,70 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("foo")
   })
 
+  it("should handle a numeric literal and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${123}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(123)
+  })
+
+  it("should handle a boolean true literal and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${true}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should handle a boolean false literal and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${false}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(false)
+  })
+
+  it("should handle a null literal and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${null}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(null)
+  })
+
+  it("should handle a numeric literal in a conditional and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${a || 123}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(123)
+  })
+
+  it("should handle a boolean true literal in a conditional and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${a || true}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should handle a boolean false literal in a conditional and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${a || false}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(false)
+  })
+
+  it("should handle a null literal in a conditional and return it directly", async () => {
+    const res = await resolveTemplateString(
+      "${a || null}",
+      new TestContext({}),
+    )
+    expect(res).to.equal(null)
+  })
+
   it("should handle a double-quoted string", async () => {
     const res = await resolveTemplateString(
       "${\"foo\"}",
@@ -158,9 +212,9 @@ describe("resolveTemplateString", async () => {
   it("should handle a conditional between two identifiers", async () => {
     const res = await resolveTemplateString(
       "${a || b}",
-      new TestContext({ a: undefined, b: 123 }),
+      new TestContext({ a: undefined, b: "abc" }),
     )
-    expect(res).to.equal("123")
+    expect(res).to.equal("abc")
   })
 
   it("should handle a conditional between two nested identifiers", async () => {
@@ -168,29 +222,29 @@ describe("resolveTemplateString", async () => {
       "${a.b || c.d}",
       new TestContext({
         a: { b: undefined },
-        c: { d: "123" },
+        c: { d: "abc" },
       }),
     )
-    expect(res).to.equal("123")
+    expect(res).to.equal("abc")
   })
 
   it("should handle a conditional between two nested identifiers where the first resolves", async () => {
     const res = await resolveTemplateString(
       "${a.b || c.d}",
       new TestContext({
-        a: { b: "123" },
+        a: { b: "abc" },
         c: { d: undefined },
       }),
     )
-    expect(res).to.equal("123")
+    expect(res).to.equal("abc")
   })
 
   it("should handle a conditional between two identifiers without spaces with first value undefined", async () => {
     const res = await resolveTemplateString(
       "${a||b}",
-      new TestContext({ a: undefined, b: 123 }),
+      new TestContext({ a: undefined, b: "abc" }),
     )
-    expect(res).to.equal("123")
+    expect(res).to.equal("abc")
   })
 
   it("should handle a conditional between two identifiers with first value undefined and string fallback", async () => {
@@ -220,9 +274,9 @@ describe("resolveTemplateString", async () => {
   it("should handle a conditional between two identifiers without spaces with first value set", async () => {
     const res = await resolveTemplateString(
       "${a||b}",
-      new TestContext({ a: 123, b: undefined }),
+      new TestContext({ a: "abc", b: undefined }),
     )
-    expect(res).to.equal("123")
+    expect(res).to.equal("abc")
   })
 
   it("should throw if neither key in conditional is valid", async () => {
@@ -245,20 +299,80 @@ describe("resolveTemplateString", async () => {
     )
   })
 
-  it("should handle a conditional between an identifier and a string", async () => {
-    const res = await resolveTemplateString(
-      "${a || 'b'}",
-      new TestContext({ a: undefined }),
-    )
-    expect(res).to.equal("b")
-  })
-
   it("should handle a conditional between a string and a string", async () => {
     const res = await resolveTemplateString(
       "${'a' || 'b'}",
       new TestContext({ a: undefined }),
     )
     expect(res).to.equal("a")
+  })
+
+  context("when the template string is the full input string", () => {
+    it("should return a resolved number directly", async () => {
+      const res = await resolveTemplateString(
+        "${a}",
+        new TestContext({ a: 100 }),
+      )
+      expect(res).to.equal(100)
+    })
+
+    it("should return a resolved boolean true directly", async () => {
+      const res = await resolveTemplateString(
+        "${a}",
+        new TestContext({ a: true }),
+      )
+      expect(res).to.equal(true)
+    })
+
+    it("should return a resolved boolean false directly", async () => {
+      const res = await resolveTemplateString(
+        "${a}",
+        new TestContext({ a: false }),
+      )
+      expect(res).to.equal(false)
+    })
+
+    it("should return a resolved null directly", async () => {
+      const res = await resolveTemplateString(
+        "${a}",
+        new TestContext({ a: null }),
+      )
+      expect(res).to.equal(null)
+    })
+  })
+
+  context("when the template string is a part of a string", () => {
+    it("should format a resolved number into the string", async () => {
+      const res = await resolveTemplateString(
+        "foo-${a}",
+        new TestContext({ a: 100 }),
+      )
+      expect(res).to.equal("foo-100")
+    })
+
+    it("should format a resolved boolean true into the string", async () => {
+      const res = await resolveTemplateString(
+        "foo-${a}",
+        new TestContext({ a: true }),
+      )
+      expect(res).to.equal("foo-true")
+    })
+
+    it("should format a resolved boolean false into the string", async () => {
+      const res = await resolveTemplateString(
+        "foo-${a}",
+        new TestContext({ a: false }),
+      )
+      expect(res).to.equal("foo-false")
+    })
+
+    it("should format a resolved null into the string", async () => {
+      const res = await resolveTemplateString(
+        "foo-${a}",
+        new TestContext({ a: null }),
+      )
+      expect(res).to.equal("foo-null")
+    })
   })
 })
 

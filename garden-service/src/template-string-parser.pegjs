@@ -10,18 +10,21 @@ TemplateString
   = a:(FormatString)+ b:TemplateString? { return [...a, ...(b || [])] }
   / a:Prefix b:(FormatString)+ c:TemplateString? { return [a, ...b, ...(c || [])] }
   / InvalidFormatString
-  / $(.*) { return [text()] }
+  / $(.*) { return text() === "" ? [] : [text()] }
 
 FormatString
-  = FormatStart key:Key FormatEnd {
-      return options.getKey(key)
+  = FormatStart v:Literal FormatEnd {
+      return v
   }
-  / FormatStart head:Key tail:(Or (Key / StringLiteral))+ FormatEnd {
+  / FormatStart v:Key FormatEnd {
+      return options.getKey(v)
+  }
+  / FormatStart head:LiteralOrKey tail:(Or LiteralOrKey)* FormatEnd {
       const keys = [head, ...tail.map(t => t[1])]
 
       // Resolve all the keys
       return Promise.all(keys.map(key =>
-        typeof key === "string" ? key : options.getKey(key, { allowUndefined: true })
+        options.lodash.isArray(key) ? options.getKey(key, { allowUndefined: true }) : key,
       ))
         .then(candidates => {
           // Return the first non-undefined value
@@ -34,19 +37,10 @@ FormatString
           throw new options.ConfigurationError("None of the keys could be resolved in the conditional: " + text())
         })
     }
-  / FormatStart a:Key Or b:StringLiteral FormatEnd {
-      return options.getKey(a, { allowUndefined: true })
-        .then(result => {
-          return result || b
-        })
-  }
-  // These would be odd in configuration, but there's no reason to throw if it comes up.
-  / FormatStart a:StringLiteral Or b:StringLiteral FormatEnd {
-      return a || b
-  }
-  / FormatStart a:StringLiteral FormatEnd {
-      return a
-  }
+
+LiteralOrKey
+  = Literal
+  / Key
 
 InvalidFormatString
   = Prefix? FormatStart .* {
@@ -73,8 +67,59 @@ Key
 Or
   = ws "||" ws
 
-// Some of the below is based on https://github.com/pegjs/pegjs/blob/master/examples/json.pegjs
+Prefix
+  = !FormatStart (. ! FormatStart)* . { return text() }
+
+Suffix
+  = !FormatEnd (. ! FormatEnd)* . { return text() }
+
+// Much of the below is based on https://github.com/pegjs/pegjs/blob/master/examples/json.pegjs
 ws "whitespace" = [ \t\n\r]*
+
+// ----- Literals -----
+
+Literal
+  = BooleanLiteral
+  / NullLiteral
+  / NumberLiteral
+  / StringLiteral
+
+BooleanLiteral
+  = ws "true" ws { return true }
+  / ws "false" ws { return false }
+
+NullLiteral
+  = ws "null" ws { return null }
+
+NumberLiteral
+  = ws Minus? Int Frac? Exp? ws { return parseFloat(text()); }
+
+DecimalPoint
+  = "."
+
+Digit1_9
+  = [1-9]
+
+E
+  = [eE]
+
+Exp
+  = E (Minus / Plus)? DIGIT+
+
+Frac
+  = DecimalPoint DIGIT+
+
+Int
+  = Zero / (Digit1_9 DIGIT*)
+
+Minus
+  = "-"
+
+Plus
+  = "+"
+
+Zero
+  = "0"
 
 StringLiteral
   = ws '"' chars:DoubleQuotedChar* '"' ws { return chars.join(""); }
@@ -118,12 +163,6 @@ SingleQuotedChar
         }
     )
     { return sequence; }
-
-Prefix
-  = !FormatStart (. ! FormatStart)* . { return text() }
-
-Suffix
-  = !FormatEnd (. ! FormatEnd)* . { return text() }
 
 // ----- Core ABNF Rules -----
 

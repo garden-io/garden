@@ -387,6 +387,49 @@ You can do conditional statements in template strings, using the `||` operator. 
 This allows you to easily set default values when certain template keys are not available, and to configure your
 project based on varying context.
 
+### Numbers, booleans and null values
+
+When a template string key resolves to a number, boolean or null, the output is handled in two different ways,
+depending on whether the template string is part of surrounding string or not.
+
+If the template string is the whole string being interpolated, we assign the number, boolean or null directly to the
+key:
+
+```yaml
+kind: Project
+...
+variables:
+  global-memory-limit: 100
+---
+kind: Module
+...
+services:
+  - name: my-service
+    ...
+    limits:
+      memory: ${var.global-memory-limit}   # <- resolves to a number, as opposed to "100" as a string
+```
+
+If however the template string is part of a surrounding string, the value is formatted into the string, as you would
+expect:
+
+```yaml
+kind: Project
+...
+variables:
+  project-id: 123
+  some-key: null
+---
+kind: Module
+...
+services:
+  - name: my-service
+    ...
+    env:
+      CONTEXT: project-${project-id}   # <- resolves to "project-123"
+      SOME_VAR: foo-${var.some-key}   # <- resolves to "foo-null"
+```
+
 ## Next steps
 
 We highly recommend browsing through the [Example projects](../examples/README.md) to see different examples of how projects and modules can be configured.
