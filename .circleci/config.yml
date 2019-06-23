@@ -225,7 +225,7 @@ jobs:
           command: ./garden-service/bin/garden test integ-tests --root garden-service/test/integ --logger-type basic
       - run:
           name: Cleanup
-          command: kubectl delete --wait=false ns $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
+          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
           when: always
   build-dashboard:
     <<: *node-config
