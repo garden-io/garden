@@ -24,6 +24,7 @@ try {
 generateDocs(resolve(GARDEN_SERVICE_ROOT, "..", "docs"))
   .then(() => {
     console.log("Done!")
+    process.exit(0)
   })
   .catch(err => {
     console.error(err)

@@ -8,9 +8,9 @@ The reference is divided into two sections. The [first section](#configuration-k
 
 ### `providers`
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `providers[].environments[]`
 
@@ -18,9 +18,9 @@ The reference is divided into two sections. The [first section](#configuration-k
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 Example:
 
@@ -51,9 +51,9 @@ to build. The former uses a normal Docker daemon in the cluster. Because this ha
 this is less secure than Kaniko, but in turn it is generally faster. See the
 [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default          |
+| -------- | -------- | ---------------- |
+| `string` | No       | `"local-docker"` |
 
 ### `providers[].defaultHostname`
 
@@ -61,9 +61,9 @@ this is less secure than Kaniko, but in turn it is generally faster. See the
 
 A default hostname to use when no hostname is explicitly configured for a service.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 Example:
 
@@ -78,9 +78,9 @@ providers:
 
 Set a default username (used for namespacing within a cluster).
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].forceSsl`
 
@@ -88,9 +88,9 @@ Set a default username (used for namespacing within a cluster).
 
 Require SSL on all `container` module services. If set to true, an error is raised when no certificate is available for a configured hostname on a `container` module.
 
-| Type | Required |
-| ---- | -------- |
-| `boolean` | No
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
 
 ### `providers[].imagePullSecrets[]`
 
@@ -100,9 +100,9 @@ References to `docker-registry` secrets to use for authenticating with remote re
 images. This is necessary if you reference private images in your module configuration, and is required
 when configuring a remote Kubernetes environment with buildMode=local.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `providers[].imagePullSecrets[].name`
 
@@ -110,9 +110,9 @@ when configuring a remote Kubernetes environment with buildMode=local.
 
 The name of the Kubernetes secret.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -128,9 +128,9 @@ providers:
 
 The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default     |
+| -------- | -------- | ----------- |
+| `string` | No       | `"default"` |
 
 ### `providers[].resources`
 
@@ -138,9 +138,9 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                                                                                                                                                                                                                                                    |
+| -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `object` | No       | `{"builder":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":200,"memory":256},"requests":{"cpu":100,"memory":64}}}` |
 
 ### `providers[].resources.builder`
 
@@ -155,17 +155,17 @@ in how many concurrent builds you expect and how heavy your builds tend to be.
 When `buildMode` is `kaniko`, this refers to _each instance_ of Kaniko, so you'd generally use lower
 limits/requests, but you should evaluate based on your needs.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                                                                     |
+| -------- | -------- | --------------------------------------------------------------------------- |
+| `object` | No       | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` |
 
 ### `providers[].resources.builder.limits`
 
 [providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > limits
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                      |
+| -------- | -------- | ---------------------------- |
+| `object` | No       | `{"cpu":2000,"memory":4096}` |
 
 ### `providers[].resources.builder.limits.cpu`
 
@@ -173,9 +173,9 @@ limits/requests, but you should evaluate based on your needs.
 
 CPU limit in millicpu.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `2000`  |
 
 Example:
 
@@ -196,9 +196,9 @@ providers:
 
 Memory limit in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `4096`  |
 
 Example:
 
@@ -217,9 +217,9 @@ providers:
 
 [providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > requests
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                    |
+| -------- | -------- | -------------------------- |
+| `object` | No       | `{"cpu":200,"memory":512}` |
 
 ### `providers[].resources.builder.requests.cpu`
 
@@ -227,9 +227,9 @@ providers:
 
 CPU request in millicpu.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `200`   |
 
 Example:
 
@@ -250,9 +250,9 @@ providers:
 
 Memory request in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `512`   |
 
 Example:
 
@@ -277,17 +277,17 @@ so that they are available to all the nodes in your cluster.
 This is shared across all users and builds, so it should be resourced accordingly, factoring
 in how many concurrent builds you expect and how large your images tend to be.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                                                                     |
+| -------- | -------- | --------------------------------------------------------------------------- |
+| `object` | No       | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` |
 
 ### `providers[].resources.registry.limits`
 
 [providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > limits
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                      |
+| -------- | -------- | ---------------------------- |
+| `object` | No       | `{"cpu":2000,"memory":4096}` |
 
 ### `providers[].resources.registry.limits.cpu`
 
@@ -295,9 +295,9 @@ in how many concurrent builds you expect and how large your images tend to be.
 
 CPU limit in millicpu.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `2000`  |
 
 Example:
 
@@ -318,9 +318,9 @@ providers:
 
 Memory limit in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `4096`  |
 
 Example:
 
@@ -339,9 +339,9 @@ providers:
 
 [providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > requests
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                    |
+| -------- | -------- | -------------------------- |
+| `object` | No       | `{"cpu":200,"memory":512}` |
 
 ### `providers[].resources.registry.requests.cpu`
 
@@ -349,9 +349,9 @@ providers:
 
 CPU request in millicpu.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `200`   |
 
 Example:
 
@@ -372,9 +372,9 @@ providers:
 
 Memory request in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `512`   |
 
 Example:
 
@@ -397,17 +397,17 @@ Resource requests and limits for the code sync service, which we use to sync bui
 ahead of building images. This generally is not resource intensive, but you might want to adjust the
 defaults if you have many concurrent users.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                                                                  |
+| -------- | -------- | ------------------------------------------------------------------------ |
+| `object` | No       | `{"limits":{"cpu":200,"memory":256},"requests":{"cpu":100,"memory":64}}` |
 
 ### `providers[].resources.sync.limits`
 
 [providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > limits
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                    |
+| -------- | -------- | -------------------------- |
+| `object` | No       | `{"cpu":200,"memory":256}` |
 
 ### `providers[].resources.sync.limits.cpu`
 
@@ -415,9 +415,9 @@ defaults if you have many concurrent users.
 
 CPU limit in millicpu.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `200`   |
 
 Example:
 
@@ -438,9 +438,9 @@ providers:
 
 Memory limit in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `256`   |
 
 Example:
 
@@ -459,9 +459,9 @@ providers:
 
 [providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > requests
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                   |
+| -------- | -------- | ------------------------- |
+| `object` | No       | `{"cpu":100,"memory":64}` |
 
 ### `providers[].resources.sync.requests.cpu`
 
@@ -469,9 +469,9 @@ providers:
 
 CPU request in millicpu.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `100`   |
 
 Example:
 
@@ -492,9 +492,9 @@ providers:
 
 Memory request in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `64`    |
 
 Example:
 
@@ -519,9 +519,9 @@ Storage parameters to set for the in-cluster builder, container registry and cod
 These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
 factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                                                                                                                                  |
+| -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `object` | No       | `{"builder":{"size":10240,"storageClass":null},"registry":{"size":10240,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` |
 
 ### `providers[].storage.builder`
 
@@ -531,9 +531,9 @@ Storage parameters for the data volume for the in-cluster Docker Daemon.
 
 Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                              |
+| -------- | -------- | ------------------------------------ |
+| `object` | No       | `{"size":10240,"storageClass":null}` |
 
 ### `providers[].storage.builder.size`
 
@@ -541,9 +541,9 @@ Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
 Volume size for the registry in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `10240` |
 
 ### `providers[].storage.builder.storageClass`
 
@@ -551,9 +551,9 @@ Volume size for the registry in megabytes.
 
 Storage class to use for the volume.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `null`  |
 
 ### `providers[].storage.registry`
 
@@ -564,9 +564,9 @@ are available to all the nodes in your cluster.
 
 Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                              |
+| -------- | -------- | ------------------------------------ |
+| `object` | No       | `{"size":10240,"storageClass":null}` |
 
 ### `providers[].storage.registry.size`
 
@@ -574,9 +574,9 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 
 Volume size for the registry in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `10240` |
 
 ### `providers[].storage.registry.storageClass`
 
@@ -584,9 +584,9 @@ Volume size for the registry in megabytes.
 
 Storage class to use for the volume.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `null`  |
 
 ### `providers[].storage.sync`
 
@@ -597,9 +597,9 @@ in-cluster builds.
 
 Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                              |
+| -------- | -------- | ------------------------------------ |
+| `object` | No       | `{"size":10240,"storageClass":null}` |
 
 ### `providers[].storage.sync.size`
 
@@ -607,9 +607,9 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 
 Volume size for the registry in megabytes.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `10240` |
 
 ### `providers[].storage.sync.storageClass`
 
@@ -617,9 +617,9 @@ Volume size for the registry in megabytes.
 
 Storage class to use for the volume.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `null`  |
 
 ### `providers[].tlsCertificates[]`
 
@@ -627,9 +627,9 @@ Storage class to use for the volume.
 
 One or more certificates to use for ingress.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `providers[].tlsCertificates[].name`
 
@@ -637,9 +637,9 @@ One or more certificates to use for ingress.
 
 A unique identifier for this certificate.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -655,9 +655,9 @@ providers:
 
 A list of hostnames that this certificate should be used for. If you don't specify these, they will be automatically read from the certificate.
 
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 Example:
 
@@ -674,9 +674,9 @@ providers:
 
 A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 Example:
 
@@ -694,9 +694,9 @@ providers:
 
 The name of the Kubernetes secret.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -716,9 +716,9 @@ providers:
 
 The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default     |
+| -------- | -------- | ----------- |
+| `string` | No       | `"default"` |
 
 ### `providers[].name`
 
@@ -726,9 +726,9 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 The name of the provider plugin to use.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required | Default        |
+| -------- | -------- | -------------- |
+| `string` | Yes      | `"kubernetes"` |
 
 Example:
 
@@ -743,9 +743,9 @@ providers:
 
 The kubectl context to use to connect to the Kubernetes cluster.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -760,9 +760,9 @@ providers:
 
 The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].deploymentRegistry.hostname`
 
@@ -770,9 +770,9 @@ The registry where built containers should be pushed to, and then pulled to the 
 
 The hostname (and optionally port, if not the default port) of the registry.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -789,9 +789,9 @@ providers:
 
 The port where the registry listens on, if not the default.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `providers[].deploymentRegistry.namespace`
 
@@ -799,9 +799,9 @@ The port where the registry listens on, if not the default.
 
 The namespace in the registry where images should be pushed.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"_"`   |
 
 Example:
 
@@ -819,9 +819,9 @@ providers:
 The ingress class to use on configured Ingresses (via the `kubernetes.io/ingress.class` annotation)
 when deploying `container` services. Use this if you have multiple ingress controllers in your cluster.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].ingressHttpPort`
 
@@ -829,9 +829,9 @@ when deploying `container` services. Use this if you have multiple ingress contr
 
 The external HTTP port of the cluster's ingress controller.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `80`    |
 
 ### `providers[].ingressHttpsPort`
 
@@ -839,9 +839,9 @@ The external HTTP port of the cluster's ingress controller.
 
 The external HTTPS port of the cluster's ingress controller.
 
-| Type | Required |
-| ---- | -------- |
-| `number` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `443`   |
 
 ### `providers[].namespace`
 
@@ -849,9 +849,9 @@ The external HTTPS port of the cluster's ingress controller.
 
 Specify which namespace to deploy services to (defaults to <project name>). Note that the framework generates other namespaces as well with this name as a prefix.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].setupIngressController`
 
@@ -859,9 +859,9 @@ Specify which namespace to deploy services to (defaults to <project name>). Note
 
 Set this to `nginx` to install/enable the NGINX ingress controller.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `false` |
 
 
 ## Complete YAML schema

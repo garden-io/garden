@@ -20,23 +20,23 @@ Please refer to those for more details on provider and module configuration.
 
 The schema version of this project's config (currently not used).
 
-| Type | Required | Allowed Values |
-| ---- | -------- | -------------- |
-| `string` | Yes | "garden.io/v0"
+| Type     | Required | Allowed Values | Default          |
+| -------- | -------- | -------------- | ---------------- |
+| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
 
 ### `kind`
 
-| Type | Required | Allowed Values |
-| ---- | -------- | -------------- |
-| `string` | Yes | "Project"
+| Type     | Required | Allowed Values | Default     |
+| -------- | -------- | -------------- | ----------- |
+| `string` | Yes      | "Project"      | `"Project"` |
 
 ### `name`
 
 The name of the project.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -48,17 +48,17 @@ name: "my-sweet-project"
 
 The default environment to use when calling commands without the `--env` parameter.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `""`    |
 
 ### `environmentDefaults`
 
 DEPRECATED - Please use the `providers` field instead, and omit the environments key in the configured provider to use it for all environments, and use the `variables` field to configure variables across all environments.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default                           |
+| -------- | -------- | --------------------------------- |
+| `object` | No       | `{"providers":[],"variables":{}}` |
 
 Example:
 
@@ -74,9 +74,9 @@ environmentDefaults:
 
 DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `environmentDefaults.providers[].name`
 
@@ -84,9 +84,9 @@ DEPRECATED - Please use the top-level `providers` field instead, and if needed u
 
 The name of the provider plugin to use.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -105,9 +105,9 @@ environmentDefaults:
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 Example:
 
@@ -128,17 +128,17 @@ environmentDefaults:
 
 A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
 
 ### `environments`
 
 A list of environments to configure for the project.
 
-| Type | Required |
-| ---- | -------- |
-| `alternatives` | No
+| Type           | Required |
+| -------------- | -------- |
+| `alternatives` | No       |
 
 Example:
 
@@ -150,9 +150,9 @@ environments: [{"name":"local","providers":[{"name":"local-kubernetes","environm
 
 A list of providers that should be used for this project, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `providers[].name`
 
@@ -160,9 +160,9 @@ A list of providers that should be used for this project, and their configuratio
 
 The name of the provider plugin to use.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -177,9 +177,9 @@ providers:
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 Example:
 
@@ -194,9 +194,9 @@ providers:
 
 A list of remote sources to import into project.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `sources[].name`
 
@@ -204,9 +204,9 @@ A list of remote sources to import into project.
 
 The name of the source to import
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 ### `sources[].repositoryUrl`
 
@@ -214,9 +214,9 @@ The name of the source to import
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -229,9 +229,9 @@ sources:
 
 Variables to configure for all environments.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
 
 
 ## Project YAML schema
@@ -262,23 +262,23 @@ variables: {}
 
 The schema version of this module's config (currently not used).
 
-| Type | Required | Allowed Values |
-| ---- | -------- | -------------- |
-| `string` | Yes | "garden.io/v0"
+| Type     | Required | Allowed Values | Default          |
+| -------- | -------- | -------------- | ---------------- |
+| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
 
 ### `kind`
 
-| Type | Required | Allowed Values |
-| ---- | -------- | -------------- |
-| `string` | Yes | "Module"
+| Type     | Required | Allowed Values | Default    |
+| -------- | -------- | -------------- | ---------- |
+| `string` | Yes      | "Module"       | `"Module"` |
 
 ### `type`
 
 The type of this module.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -290,9 +290,9 @@ type: "container"
 
 The name of this module.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -302,9 +302,9 @@ name: "my-sweet-module"
 
 ### `description`
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `include`
 
@@ -317,9 +317,9 @@ same format as `.gitignore` files.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 Example:
 
@@ -336,9 +336,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 Garden will import the repository source code into this module, but read the module's
 config from the local garden.yml file.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 Example:
 
@@ -350,17 +350,17 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 When false, disables pushing this module to remote registries.
 
-| Type | Required |
-| ---- | -------- |
-| `boolean` | No
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `true`  |
 
 ### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default               |
+| -------- | -------- | --------------------- |
+| `object` | No       | `{"dependencies":[]}` |
 
 ### `build.dependencies[]`
 
@@ -368,9 +368,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 
 A list of modules that must be built before this module is built.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 Example:
 
@@ -387,9 +387,9 @@ build:
 
 Module name to build ahead of this module.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 ### `build.dependencies[].copy[]`
 
@@ -397,9 +397,9 @@ Module name to build ahead of this module.
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `build.dependencies[].copy[].source`
 
@@ -407,19 +407,19 @@ Specify one or more files or directories to copy from the built dependency to th
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 ### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
-POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
+POSIX-style path or filename to copy the directory or file(s).
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default                   |
+| -------- | -------- | ------------------------- |
+| `string` | No       | `"<same as source path>"` |
 
 
 ## Module YAML schema
@@ -437,6 +437,6 @@ build:
     - name:
       copy:
         - source:
-          target: ''
+          target: <same as source path>
 ```
 

@@ -33,11 +33,15 @@ const copySchema = Joi.object()
   .keys({
     // TODO: allow array of strings here
     // TODO: disallow paths outside of the module root
-    source: Joi.string().uri(<any>{ relativeOnly: true }).required()
+    source: Joi.string()
+      .uri(<any>{ relativeOnly: true })
+      .required()
       .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
-    target: Joi.string().uri(<any>{ relativeOnly: true }).default("")
+    target: Joi.string()
+      .uri(<any>{ relativeOnly: true })
+      .default(() => "", "<same as source path>")
       .description(
-        "POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).",
+        "POSIX-style path or filename to copy the directory or file(s).",
       ),
   })
 

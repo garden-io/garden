@@ -196,7 +196,7 @@ export const portSchema = Joi.object()
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
     servicePort: Joi.number()
-      .default((context) => context.containerPort, "<containerPort>")
+      .default((context) => context.containerPort, "<same as containerPort>")
       .example("80")
       .description(deline`The port exposed on the service.
         Defaults to \`containerPort\` if not specified.

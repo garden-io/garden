@@ -10,7 +10,7 @@ import dedent = require("dedent")
 import { joiArray } from "../../../../src/config/common"
 
 describe("config", () => {
-  const serivcePortSchema = Joi.number().default((context) => context.containerPort, "default value")
+  const serivcePortSchema = Joi.number().default((context) => context.containerPort, "<same as containerPort>")
     .example("8080")
     .description("description")
 
@@ -61,7 +61,7 @@ describe("config", () => {
         # Example: "8080"
         #
         # Optional.
-        servicePort: default value
+        servicePort: <same as containerPort>
 
         # test object
         #
@@ -98,7 +98,7 @@ describe("config", () => {
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { showComment: false })
       expect(yaml).to.equal(dedent`
         containerPort:
-        servicePort: default value
+        servicePort: <same as containerPort>
         testObject:
           testKeyA:
           testKeyB:
@@ -113,7 +113,7 @@ describe("config", () => {
       )
       expect(yaml).to.equal(dedent`
         containerPort:
-        servicePort: default value
+        servicePort: <same as containerPort>
         testObject:
           ...
           testKeyA:
@@ -132,7 +132,7 @@ describe("config", () => {
 
     it("should get the default value of a function with context", () => {
       const value = getDefaultValue(serivcePortSchema.describe())
-      expect(value).to.eq("default value")
+      expect(value).to.eq("<same as containerPort>")
     })
   })
 
@@ -144,17 +144,17 @@ describe("config", () => {
 
         description
 
-        | Type | Required |
-        | ---- | -------- |
-        | \`number\` | Yes
+        | Type     | Required |
+        | -------- | -------- |
+        | \`number\` | Yes      |
 
         ### \`servicePort\`
 
         description
 
-        | Type | Required |
-        | ---- | -------- |
-        | \`number\` | No
+        | Type     | Required | Default                     |
+        | -------- | -------- | --------------------------- |
+        | \`number\` | No       | \`"<same as containerPort>"\` |
 
         Example:
 
@@ -166,9 +166,9 @@ describe("config", () => {
 
         test object
 
-        | Type | Required |
-        | ---- | -------- |
-        | \`object\` | No
+        | Type     | Required |
+        | -------- | -------- |
+        | \`object\` | No       |
 
         ### \`testObject.testKeyA\`
 
@@ -176,9 +176,9 @@ describe("config", () => {
 
         key a
 
-        | Type | Required |
-        | ---- | -------- |
-        | \`number\` | Yes
+        | Type     | Required |
+        | -------- | -------- |
+        | \`number\` | Yes      |
 
         ### \`testObject.testKeyB\`
 
@@ -186,24 +186,24 @@ describe("config", () => {
 
         key b
 
-        | Type | Required | Allowed Values |
-        | ---- | -------- | -------------- |
-        | \`string\` | Yes | "b"
+        | Type     | Required | Allowed Values |
+        | -------- | -------- | -------------- |
+        | \`string\` | Yes      | "b"            |
 
         ### \`testArray\`
 
         test array
 
-        | Type | Required |
-        | ---- | -------- |
-        | \`array[number]\` | No\n
+        | Type            | Required | Default |
+        | --------------- | -------- | ------- |
+        | \`array[number]\` | No       | \`[]\`    |\n
       `)
     })
     it("should return the correct yaml", () => {
       const { yaml } = renderConfigReference(portSchema)
       expect(yaml).to.equal(dedent`
         containerPort:
-        servicePort: default value
+        servicePort: <same as containerPort>
         testObject:
           testKeyA:
           testKeyB:

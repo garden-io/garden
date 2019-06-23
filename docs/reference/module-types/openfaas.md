@@ -13,23 +13,23 @@ schema keys. The [second section](#complete-yaml-schema) contains the complete Y
 
 The schema version of this module's config (currently not used).
 
-| Type | Required | Allowed Values |
-| ---- | -------- | -------------- |
-| `string` | Yes | "garden.io/v0"
+| Type     | Required | Allowed Values | Default          |
+| -------- | -------- | -------------- | ---------------- |
+| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
 
 ### `kind`
 
-| Type | Required | Allowed Values |
-| ---- | -------- | -------------- |
-| `string` | Yes | "Module"
+| Type     | Required | Allowed Values | Default    |
+| -------- | -------- | -------------- | ---------- |
+| `string` | Yes      | "Module"       | `"Module"` |
 
 ### `type`
 
 The type of this module.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -41,9 +41,9 @@ type: "container"
 
 The name of this module.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 Example:
 
@@ -53,9 +53,9 @@ name: "my-sweet-module"
 
 ### `description`
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `include`
 
@@ -68,9 +68,9 @@ same format as `.gitignore` files.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 Example:
 
@@ -87,9 +87,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 Garden will import the repository source code into this module, but read the module's
 config from the local garden.yml file.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 Example:
 
@@ -101,17 +101,17 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 When false, disables pushing this module to remote registries.
 
-| Type | Required |
-| ---- | -------- |
-| `boolean` | No
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `true`  |
 
 ### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
-| Type | Required |
-| ---- | -------- |
-| `object` | No
+| Type     | Required | Default               |
+| -------- | -------- | --------------------- |
+| `object` | No       | `{"dependencies":[]}` |
 
 ### `build.dependencies[]`
 
@@ -119,9 +119,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 
 A list of modules that must be built before this module is built.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 Example:
 
@@ -138,9 +138,9 @@ build:
 
 Module name to build ahead of this module.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 ### `build.dependencies[].copy[]`
 
@@ -148,9 +148,9 @@ Module name to build ahead of this module.
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `build.dependencies[].copy[].source`
 
@@ -158,19 +158,19 @@ Specify one or more files or directories to copy from the built dependency to th
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 ### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
 
-POSIX-style path or filename to copy the directory or file(s) to (defaults to same as source path).
+POSIX-style path or filename to copy the directory or file(s).
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required | Default                   |
+| -------- | -------- | ------------------------- |
+| `string` | No       | `"<same as source path>"` |
 
 
 ## Complete YAML schema
@@ -188,5 +188,5 @@ build:
     - name:
       copy:
         - source:
-          target: ''
+          target: <same as source path>
 ```

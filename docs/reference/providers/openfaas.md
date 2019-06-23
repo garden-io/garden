@@ -8,9 +8,9 @@ The reference is divided into two sections. The [first section](#configuration-k
 
 ### `providers`
 
-| Type | Required |
-| ---- | -------- |
-| `array[object]` | No
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
 ### `providers[].environments[]`
 
@@ -18,9 +18,9 @@ The reference is divided into two sections. The [first section](#configuration-k
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
-| Type | Required |
-| ---- | -------- |
-| `array[string]` | No
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 Example:
 
@@ -37,9 +37,9 @@ providers:
 
 The name of the provider plugin to use.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | Yes
+| Type     | Required | Default      |
+| -------- | -------- | ------------ |
+| `string` | Yes      | `"openfaas"` |
 
 Example:
 
@@ -58,9 +58,9 @@ Defaults to the default hostname of the configured Kubernetes provider.
 Important: If you have other types of services, this should be different from their ingress hostnames,
 or the other services should not expose paths under /function and /system to avoid routing conflicts.
 
-| Type | Required |
-| ---- | -------- |
-| `string` | No
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 Example:
 
