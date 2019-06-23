@@ -17,7 +17,6 @@ import { resolve } from "path"
 import {
   get,
   flatten,
-  padEnd,
   uniq,
   startCase,
 } from "lodash"
@@ -31,6 +30,7 @@ import { joiArray } from "../config/common"
 import { mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
 import { Garden } from "../garden"
 import { GARDEN_SERVICE_ROOT } from "../constants"
+import { indent, renderMarkdownTable } from "./util"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 
@@ -184,19 +184,16 @@ export function getDefaultValue(description: Joi.Description) {
     return
   } else if (defaultSpec && defaultSpec.function) {
     const value = defaultSpec.function({})
-    if (value === undefined) {
+    if (!value) {
       return defaultSpec.description
     } else {
       return value
     }
+  } else if (defaultSpec && defaultSpec.description) {
+    return defaultSpec.description
   } else {
     return defaultSpec
   }
-}
-
-function indent(lines: string[], level: number) {
-  const prefix = padEnd("", level * 2, " ")
-  return lines.map(line => prefix + line)
 }
 
 function getParentDescriptions(
@@ -223,6 +220,8 @@ function renderMarkdownLink(description: NormalizedDescription) {
 }
 
 function makeMarkdownDescription(description: NormalizedDescription, titlePrefix = "") {
+  const { formattedType, required, allowedValues, defaultValue } = description
+
   const parentDescriptions = getParentDescriptions(description)
   const title = renderMarkdownTitle(description, titlePrefix)
   const breadCrumbs = parentDescriptions.length > 0
@@ -240,11 +239,19 @@ function makeMarkdownDescription(description: NormalizedDescription, titlePrefix
     ).replace(/\n$/, "") // strip trailing new line
   }
 
+  const table = renderMarkdownTable({
+    Type: "`" + formattedType + "`",
+    Required: required ? "Yes" : "No",
+    ...allowedValues ? { "Allowed Values": allowedValues } : {},
+    ...defaultValue !== undefined ? { Default: "`" + JSON.stringify(defaultValue) + "`" } : {},
+  })
+
   return {
     ...description,
     breadCrumbs,
     formattedExample,
     title,
+    table,
   }
 }
 
