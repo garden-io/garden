@@ -54,7 +54,7 @@
     "check-all": "npm run check-docs && npm run check-package-lock && npm run check-licenses && npm run lint",
     "clean": "lerna run clean && git clean -X -f && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
     "fix-format": "tslint -p . --fix && tsfmt -r",
-    "generate-docs": "gulp generate-docs",
+    "generate-docs": "lerna run generate-docs",
     "integ": "lerna run integ",
     "lint": "tslint -p . && tsfmt --verify && gulp check-licenses",
     "test": "lerna run test"

@@ -27,6 +27,7 @@ ts-node-*
 .nyc_output
 coverage/
 gulpfile.js
+!garden-service/gulpfile.js
 *.map
 *.tgz
 build/
