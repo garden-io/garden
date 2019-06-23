@@ -15,7 +15,8 @@ To decide how to split your project up into modules, it's useful to consider wha
 step, and what the dependency relationships are between your build steps. For example, each container and each
 serverless function should be represented by its own module.
 
-Below, we'll be using examples from the [OpenFaaS](../examples/openfaas.md) example project.
+Below, we'll be using examples from the
+[OpenFaaS](https://github.com/garden-io/garden/blob/master/examples/openfaas/garden.yml) example project.
 
 ## Project Configuration
 
@@ -50,7 +51,7 @@ For example, assuming the above project configuration, `"foo-${var.my-variable}-
 ## Module Configuration
 
 Below, we'll use the module configurations of `hello-function` and `hello-container` from the
-[OpenFaaS](../examples/openfaas.md) example project
+[OpenFaaS](https://github.com/garden-io/garden/blob/master/examples/openfaas/garden.yml) example project
 as examples to illustrate some of the primary module-level configuration options.
 
 The following is a snippet from `hello-container`'s module config:
