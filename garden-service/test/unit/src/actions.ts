@@ -429,6 +429,7 @@ const testPlugin: PluginFactory = async () => ({
         validate(params, moduleActionDescriptions.describeType.paramsSchema)
         return {
           docs: "bla bla bla",
+          outputsSchema: Joi.object(),
           schema: Joi.object(),
           title: "Bla",
         }

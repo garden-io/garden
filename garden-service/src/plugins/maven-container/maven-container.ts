@@ -19,7 +19,11 @@ import {
 } from "../container/config"
 import { joiArray, joiProviderName } from "../../config/common"
 import { Module } from "../../types/module"
-import { configureContainerModule, gardenPlugin as containerPlugin } from "../container/container"
+import {
+  configureContainerModule,
+  gardenPlugin as containerPlugin,
+  containerModuleOutputsSchema,
+} from "../container/container"
 import { buildContainerModule, getContainerBuildStatus } from "../container/build"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
@@ -109,6 +113,7 @@ async function describeType() {
       To use it, make sure to add the \`maven-container\` provider to your project configuration.
       The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
     `,
+    outputsSchema: containerModuleOutputsSchema,
     schema: mavenContainerModuleSpecSchema,
   }
 }

@@ -15,11 +15,13 @@ The provider will automatically fetch and cache Maven and the appropriate OpenJD
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-files.md).
-The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available
+The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-## Configuration keys
+`maven-container` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
+See the [Outputs](#outputs) section below for details.
 
+## Configuration keys
 
 ### `apiVersion`
 
@@ -985,3 +987,25 @@ jarPath:
 jdkVersion: 8
 mvnOpts: []
 ```
+
+## Outputs
+
+The following keys are available via the `${modules.<module-name>.outputs}` template string key for `maven-container`
+modules.
+
+### `modules.<module-name>.outputs.local-image-name`
+
+The name of the image (without tag/version) that the module uses for local builds and deployments.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+
+### `modules.<module-name>.outputs.deployment-image-name`
+
+The name of the image (without tag/version) that the module will use during deployment.
+
+| Type | Required |
+| ---- | -------- |
+| `string` | Yes
+

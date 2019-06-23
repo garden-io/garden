@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import lodash = require("lodash")
 import Bluebird = require("bluebird")
 import { asyncDeepMap } from "./util/util"
-import { GardenBaseError } from "./exceptions"
+import { GardenBaseError, ConfigurationError } from "./exceptions"
 import { ConfigContext, ContextResolveOpts, ContextResolveParams } from "./config/config-context"
 import { KeyedSet } from "./util/keyed-set"
 import { uniq } from "lodash"
+import { Primitive } from "./config/common"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -37,7 +39,9 @@ async function getParser() {
  * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
  * dependencies when resolving context variables.
  */
-export async function resolveTemplateString(string: string, context: ConfigContext, opts: ContextResolveOpts = {}) {
+export async function resolveTemplateString(
+  string: string, context: ConfigContext, opts: ContextResolveOpts = {},
+): Promise<Primitive | undefined> {
   const parser = await getParser()
   const parsed = parser.parse(string, {
     getKey: async (key: string[], resolveOpts?: ContextResolveOpts) => {
@@ -48,11 +52,21 @@ export async function resolveTemplateString(string: string, context: ConfigConte
       const s = (await Bluebird.all(parts)).join("")
       return resolveTemplateString(`\$\{${s}\}`, context, { ...opts, ...resolveOpts || {} })
     },
+    // Some utilities to pass to the parser
+    lodash,
+    ConfigurationError,
     TemplateStringError,
   })
 
-  const resolved = await Bluebird.all(parsed)
-  return resolved.join("")
+  const resolved: (Primitive | undefined)[] = await Bluebird.all(parsed)
+
+  const result = resolved.length === 1
+    // Return value directly if there is only one value in the output
+    ? resolved[0]
+    // Else join together all the parts as a string. Output null as a literal string and not an empty string.
+    : resolved.map(v => v === null ? "null" : v).join("")
+
+  return <Primitive | undefined>result
 }
 
 /**

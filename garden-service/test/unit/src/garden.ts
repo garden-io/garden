@@ -749,6 +749,16 @@ describe("Garden", () => {
     it.skip("should set default values properly", async () => {
       throw new Error("TODO")
     })
+
+    it("should handle template variables for non-string fields", async () => {
+      const projectRoot = getDataDir("test-projects", "non-string-template-values")
+      const garden = await makeTestGarden(projectRoot)
+
+      const module = await garden.resolveModuleConfig("module-a")
+
+      // We template in the value for the module's allowPublish field to test this
+      expect(module.allowPublish).to.equal(false)
+    })
   })
 
   describe("resolveVersion", () => {

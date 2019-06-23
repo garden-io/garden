@@ -72,6 +72,14 @@ export const openfaasModuleSpecSchema = execModuleSpecSchema
   .unknown(false)
   .description("The module specification for an OpenFaaS module.")
 
+export const openfaasModuleOutputsSchema = Joi.object()
+  .keys({
+    endpoint: Joi.string()
+      .uri()
+      .required()
+      .description(`The full URL to query this service _from within_ the cluster.`),
+  })
+
 export interface OpenFaasModule extends Module<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> { }
 export type OpenFaasModuleConfig = OpenFaasModule["_ConfigType"]
 export interface OpenFaasService extends Service<OpenFaasModule> { }
@@ -104,6 +112,7 @@ async function describeType() {
       Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`kubernetes\` or
       \`local-kubernetes\` provider to be configured. Everything else is installed automatically.
     `,
+    outputsSchema: openfaasModuleOutputsSchema,
     schema: openfaasModuleSpecSchema,
   }
 }

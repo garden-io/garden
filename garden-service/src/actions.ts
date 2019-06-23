@@ -261,6 +261,7 @@ export class ActionHelper implements TypeGuard {
       moduleType,
       defaultHandler: async ({ }) => ({
         docs: "",
+        outputsSchema: Joi.object().options({ allowUnknown: true }),
         schema: Joi.object().options({ allowUnknown: true }),
       }),
     })

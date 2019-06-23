@@ -230,6 +230,7 @@ async function describeType() {
       A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
       type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
     `,
+    outputsSchema: Joi.object().keys({}),
     schema: execModuleSpecSchema,
   }
 }

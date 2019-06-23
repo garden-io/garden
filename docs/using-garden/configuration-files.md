@@ -224,6 +224,7 @@ tasks:
     dependencies:
       - node-migration
 ```
+
 ```yaml
 # hello/garden.yml
 kind: Module
@@ -243,6 +244,7 @@ tasks:
     dependencies:
       - postgres
 ```
+
 ```yaml
 # postgres/garden.yml
 kind: Module
@@ -254,8 +256,9 @@ services:
   - name: postgres
     ...
 ```
+
 To spin up this project, three services have to be deployed and two database migrations have to be run, and all this
-has to happen in the right dependency order. 
+has to happen in the right dependency order.
 
 To deploy the `user` service, first the `postgres` service has to be deployed, then `node-migration` has to be run (to
 create the `users` table), and finally, `ruby-migration` has to be run (to populate the `users` table).
@@ -313,10 +316,124 @@ tests:
       - prod-integration-testing-backend
 ```
 
+## Template strings
+
+String configuration values in `garden.yml` can be templated to inject variables,
+information about the user's environment, references to other modules/services etc.
+
+The syntax for templated strings is `${some.key}`. The key is looked up from the context available when
+resolving the string. The context depends on which top-level key the configuration value belongs to (`project`
+or `module`). See below for the full context that is available for each of those.
+
+For example, for one service you might want to reference something from another module and expose it as an
+environment variable:
+
+```yaml
+kind: Module
+name: some-module
+services:
+  - name: some-service
+    ...
+    env:
+      OTHER_MODULE_VERSION: ${modules.other-module.version}
+```
+
+You can also inject a template variable into a string. For instance, you might need to include a module's
+version as part of a URI:
+
+```yaml
+    ...
+    env:
+      OTHER_MODULE_ENDPOINT: http://other-module/api/${modules.other-module.version}
+```
+
+Note that while this syntax looks similar to template strings in Javascript, currently, only simple lookups by key
+and conditionals are supported, whereas arbitrary JS expressions are not.
+
+Another common use case is to define `variables` in the project/environment configuration, and to use template strings
+to propagate values to modules in the project:
+
+```yaml
+kind: Project
+...
+variables:
+  log-level: "info"
+
+---
+
+kind: Module
+...
+services:
+  - name: my-service
+    ...
+    env:
+      LOG_LEVEL: ${var.log-level}
+```
+
+For a full reference of the keys available in template strings, please look at the
+[Template Strings Reference](../reference/template-strings.md).
+
+### Conditionals
+
+You can use conditional expressions in template strings, using the `||` operator. For example:
+
+```yaml
+  # ...
+  variables:
+    log-level: ${local.env.LOG_LEVEL || "info"}
+    namespace: ${local.env.CI_BRANCH || local.username || "default"}
+```
+
+This allows you to easily set default values when certain template keys are not available, and to configure your
+project based on a dynamic context.
+
+### Numbers, booleans and null values
+
+When a template string key resolves to a number, boolean or null, its output is handled in one of two different ways,
+depending on whether the template string is part of a surrounding string or not.
+
+If the template string is the whole string being interpolated, we assign the number, boolean or null directly to the
+key:
+
+```yaml
+kind: Project
+...
+variables:
+  global-memory-limit: 100
+---
+kind: Module
+...
+services:
+  - name: my-service
+    ...
+    limits:
+      memory: ${var.global-memory-limit}   # <- resolves to a number, as opposed to the string "100"
+```
+
+If, however, the template string is not the whole string being interpolated, but a component of it, the value is
+formatted into the string, as you would expect:
+
+```yaml
+kind: Project
+...
+variables:
+  project-id: 123
+  some-key: null
+---
+kind: Module
+...
+services:
+  - name: my-service
+    ...
+    env:
+      CONTEXT: project-${project-id}   # <- resolves to "project-123"
+      SOME_VAR: foo-${var.some-key}   # <- resolves to "foo-null"
+```
+
 ## Next steps
 
 We highly recommend browsing through the [Example projects](../examples/README.md) to see different examples of how projects and modules can be configured.
 
-Also be sure to look at the [Config Files Reference](../reference/config.md)
- for more details on each of the available
-configuration fields.
+Also, be sure to look at the [Config Files Reference](../reference/config.md) for more details on each of the available
+configuration fields, and the [Template Strings Reference](../reference/template-strings.md) for the keys available in
+template strings.

@@ -7,6 +7,7 @@
  */
 
 import dedent = require("dedent")
+import * as Joi from "joi"
 import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
@@ -18,6 +19,18 @@ import { KubernetesProvider } from "../kubernetes/config"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { PublishModuleParams } from "../../types/plugin/module/publishModule"
 import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
+
+export const containerModuleOutputsSchema = Joi.object()
+  .keys({
+    "local-image-name": Joi.string()
+      .required()
+      .description(
+        "The name of the image (without tag/version) that the module uses for local builds and deployments.",
+      ),
+    "deployment-image-name": Joi.string()
+      .required()
+      .description("The name of the image (without tag/version) that the module will use during deployment."),
+  })
 
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration
@@ -121,6 +134,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
   )
 
   moduleConfig.outputs = {
+    "local-image-name": await containerHelpers.getLocalImageName(moduleConfig),
     "deployment-image-name": deploymentImageName,
   }
 
@@ -178,6 +192,7 @@ async function describeType() {
       other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
       [kubernetes](https://github.com/garden-io/garden/blob/master/docs/reference/module-types/kubernetes.md).
     `,
+    outputsSchema: containerModuleOutputsSchema,
     schema: containerModuleSpecSchema,
   }
 }

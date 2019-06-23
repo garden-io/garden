@@ -1,53 +1,22 @@
-# Template strings
+# Template string reference
 
-## Introduction
+Below you'll find the schema of the keys available when interpolating template strings (see our
+[Configuration Files](../using-garden/configuration-files.md) guide for more information and usage examples).
 
-String configuration values in `garden.yml` can be templated to inject, among other things, variables,
-information about the user's environment, references to other modules/services etc.
+Note that there are three sections below, since Project configs and Module configs have different keys available to
+them, and since additional keys are available under `providers` in Project configs.
+Please make sure to refer to the correct section.
 
-The syntax for templated strings is `${some.key}`. The key is looked up from the context available when
-resolving the string. The context depends on which top-level key the configuration value belongs to (`project`
-or `module`). See below for the full context that is available for each of those.
+Modules can reference `outputs` defined by other modules, via the `${modules.<module-name>.outputs}` key.
+For details on which outputs are available for a given module type, please refer to the
+[reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the
+_Outputs_ section.
 
-For example, for one service you might want to reference something from another module and expose it as an
-environment variable:
+## Project configuration context
 
-```yaml
-kind: Module
-name: some-module
-services:
-  - name: some-service
-    # ...
-    env:
-      OTHER_MODULE_VERSION: ${modules.other-module.version}
-```
-
-You can also inject a template variable into a string. For instance, you might need to include a module's
-version as part of a URI:
-
-```yaml
-    # ...
-    env:
-      OTHER_MODULE_ENDPOINT: http://other-module/api/${modules.other-module.version}
-```
-
-Note that while the syntax looks similar to template strings in Javascript, you can currently only do simple
-lookups of keys. However, it is possible to do nested templating. For a somewhat contrived example:
-
-```yaml
-    # ...
-    env:
-      OTHER_MODULE_ENDPOINT: http://${var.auth-module}/api/${modules.${var.auth-module}.version}
-```
-
-There the name of the module is pulled from the project/environment configuration, and used to find the
-appropriate key under the `modules` configuration context.
-
-## Reference
-
-### Project configuration context
-
-The following keys are available in template strings under the `project` key in `garden.yml` files:
+The following keys are available in any template strings within project definitions in `garden.yml` config files
+(see the [Provider](#provider-configuration-context) section below for additional keys available when configuring
+`providers`):
 
 ```yaml
 # Type: object
@@ -68,11 +37,20 @@ local:
   # Example: "posix"
   #
   platform:
+
+  # The current username (as resolved by https://github.com/sindresorhus/username)
+  #
+  # Type: string
+  #
+  # Example: "tenzing_norgay"
+  #
+  username:
 ```
 
-### Module configuration context
+## Provider configuration context
 
-The following keys are available in template strings under the `module` key in `garden.yml` files:
+The following keys are available in template strings under the `providers` key (or `environments[].providers)
+in `garden.yml` project config files:
 
 ```yaml
 # Type: object
@@ -93,6 +71,14 @@ local:
   # Example: "posix"
   #
   platform:
+
+  # The current username (as resolved by https://github.com/sindresorhus/username)
+  #
+  # Type: string
+  #
+  # Example: "tenzing_norgay"
+  #
+  username:
 
 # Information about the environment that Garden is running against.
 #
@@ -104,6 +90,89 @@ environment:
   # Type: string
   #
   # Example: "local"
+  #
+  name:
+
+# Information about the Garden project.
+#
+# Type: object
+#
+project:
+  # The name of the Garden project.
+  #
+  # Type: string
+  #
+  # Example: "my-project"
+  #
+  name:
+
+# Retrieve information about providers that are defined in the project.
+#
+# Type: object
+#
+# Example:
+#   kubernetes:
+#     config:
+#       clusterHostname: my-cluster.example.com
+#
+providers: {}
+```
+
+## Module configuration context
+
+The following keys are available in template strings with module definitions in `garden.yml` config files:
+
+```yaml
+# Type: object
+#
+local:
+  # A map of all local environment variables (see
+  # https://nodejs.org/api/process.html#process_process_env).
+  #
+  # Type: object
+  #
+  env:
+
+  # A string indicating the platform that the framework is running on (see
+  # https://nodejs.org/api/process.html#process_process_platform)
+  #
+  # Type: string
+  #
+  # Example: "posix"
+  #
+  platform:
+
+  # The current username (as resolved by https://github.com/sindresorhus/username)
+  #
+  # Type: string
+  #
+  # Example: "tenzing_norgay"
+  #
+  username:
+
+# Information about the environment that Garden is running against.
+#
+# Type: object
+#
+environment:
+  # The name of the environment Garden is running against.
+  #
+  # Type: string
+  #
+  # Example: "local"
+  #
+  name:
+
+# Information about the Garden project.
+#
+# Type: object
+#
+project:
+  # The name of the Garden project.
+  #
+  # Type: string
+  #
+  # Example: "my-project"
   #
   name:
 
