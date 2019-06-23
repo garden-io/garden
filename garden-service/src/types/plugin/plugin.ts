@@ -163,7 +163,7 @@ export interface ModuleActionParams<T extends Module = Module> {
   configure: ConfigureModuleParams<T>
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
-  publishModule: PublishModuleParams<T>
+  publish: PublishModuleParams<T>
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>
@@ -174,7 +174,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   configure: Promise<ConfigureModuleResult>
   getBuildStatus: Promise<BuildStatus>
   build: Promise<BuildResult>
-  publishModule: Promise<PublishResult>
+  publish: Promise<PublishResult>
   runModule: Promise<RunResult>
   testModule: Promise<TestResult>
   getTestResult: Promise<TestResult | null>
@@ -186,7 +186,7 @@ export const moduleActionDescriptions:
   configure,
   getBuildStatus,
   build,
-  publishModule,
+  publish: publishModule,
   runModule,
   testModule,
   getTestResult,

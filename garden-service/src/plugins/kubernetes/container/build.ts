@@ -20,11 +20,11 @@ import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
-import { KubernetesProvider, ContainerBuildMode } from "../config"
+import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
 import { PluginError } from "../../../exceptions"
-import axios from "axios"
 import { runPod } from "../run"
 import { getRegistryHostname } from "../init"
+import { getManifestFromRegistry } from "./util"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -32,7 +32,6 @@ const dockerDaemonContainerName = "docker-daemon"
 const buildTimeout = 600
 // Note: v0.9.0 appears to be completely broken: https://github.com/GoogleContainerTools/kaniko/issues/268
 const kanikoImage = "gcr.io/kaniko-project/executor:v0.8.0"
-const registryDeploymentName = "garden-docker-registry"
 const registryPort = 5000
 const syncDataVolumeName = "garden-build-sync"
 const syncDeploymentName = "garden-build-sync"
@@ -78,39 +77,10 @@ const getLocalBuildStatus: BuildStatusHandler = async (params) => {
 
 const getRemoteBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, module, log } = params
-  const provider = <KubernetesProvider>ctx.provider
+  const k8sCtx = ctx as KubernetesPluginContext
+  const manifest = await getManifestFromRegistry(k8sCtx, module, log)
 
-  const registryFwd = await getPortForward({
-    ctx,
-    log,
-    namespace: systemNamespace,
-    targetDeployment: `Deployment/${registryDeploymentName}`,
-    port: registryPort,
-  })
-
-  const imageId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-  const imageName = containerHelpers.unparseImageId({
-    ...containerHelpers.parseImageId(imageId),
-    host: undefined,
-    tag: undefined,
-  })
-
-  const url = `http://localhost:${registryFwd.localPort}/v2/${imageName}/manifests/${module.version.versionString}`
-
-  try {
-    const res = await axios({ url })
-    log.silly(res.data)
-    return { ready: true }
-  } catch (err) {
-    if (err.response && err.response.status === 404) {
-      return { ready: false }
-    } else {
-      throw new PluginError(`Could not query in-cluster registry: ${err}`, {
-        message: err.message,
-        response: err.response,
-      })
-    }
-  }
+  return { ready: !!manifest }
 }
 
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {

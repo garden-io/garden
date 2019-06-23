@@ -29,7 +29,7 @@ describe("plugins.container", () => {
   const handler = gardenPlugin()
   const configure = handler.moduleActions!.container!.configure!
   const build = handler.moduleActions!.container!.build!
-  const publishModule = handler.moduleActions!.container!.publishModule!
+  const publishModule = handler.moduleActions!.container!.publish!
   const getBuildStatus = handler.moduleActions!.container!.getBuildStatus!
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {

@@ -285,7 +285,7 @@ export class ActionHelper implements TypeGuard {
   async publishModule<T extends Module>(
     params: ModuleActionHelperParams<PublishModuleParams<T>>,
   ): Promise<PublishResult> {
-    return this.callModuleHandler({ params, actionType: "publishModule", defaultHandler: dummyPublishHandler })
+    return this.callModuleHandler({ params, actionType: "publish", defaultHandler: dummyPublishHandler })
   }
 
   async runModule<T extends Module>(params: ModuleActionHelperParams<RunModuleParams<T>>): Promise<RunResult> {
