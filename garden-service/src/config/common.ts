@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { JoiObject } from "joi"
-import * as Joi from "joi"
+import * as Joi from "@hapi/joi"
+import { JoiObject } from "@hapi/joi"
 import * as uuid from "uuid"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
@@ -26,10 +26,86 @@ export const enumToArray = Enum => (
   Object.values(Enum).filter(k => typeof k === "string") as string[]
 )
 
-export const joiPrimitive = () => Joi.alternatives().try(
-  Joi.number(),
-  Joi.string().allow("").allow(null),
-  Joi.boolean(),
+interface JoiPathParams {
+  absoluteOnly?: boolean
+  relativeOnly?: boolean
+  subPathOnly?: boolean
+}
+
+// Extend the Joi module with our custom rules
+export interface CustomStringSchema extends Joi.StringSchema {
+  posixPath: (params?: JoiPathParams) => CustomStringSchema
+}
+
+declare module "@hapi/joi" {
+  export function string(): CustomStringSchema
+}
+
+export const joi: Joi.Root = Joi.extend({
+  base: Joi.string(),
+  name: "string",
+  language: {
+    posixPath: "must be a POSIX-style path", // Used below as 'string.posixPath'
+    absoluteOnly: "must be a an absolute path",
+    relativeOnly: "must be a relative path (may not be an absolute path)",
+    subPathOnly: "must be a relative sub-path (may not contain '..' or be an absolute path)",
+  },
+  rules: [
+    {
+      name: "posixPath",
+      params: {
+        options: Joi.object()
+          .keys({
+            absoluteOnly: Joi.boolean()
+              .description("Only allow absolute paths (starting with /)."),
+            relativeOnly: Joi.boolean()
+              .description("Disallow absolute paths (starting with /)."),
+            subPathOnly: Joi.boolean()
+              .description("Only allow sub-paths. That is, disallow '..' path segments and absolute paths."),
+          })
+          .oxor("absoluteOnly", "relativeOnly")
+          .oxor("absoluteOnly", "subPathOnly"),
+      },
+      validate(params: { options?: JoiPathParams }, value: string, state, prefs) {
+        // Note: This relativeOnly param is in the context of URLs.
+        // Our own relativeOnly param is in the context of file paths.
+        const baseSchema = Joi.string().uri({ relativeOnly: true })
+        const result = baseSchema.validate(value)
+
+        if (result.error) {
+          // tslint:disable-next-line:no-invalid-this
+          return this.createError("posixPath", { v: value }, state, prefs)
+        }
+
+        const options = params.options || {}
+
+        if (options.absoluteOnly) {
+          if (!value.startsWith("/")) {
+            // tslint:disable-next-line:no-invalid-this
+            return this.createError("string.absoluteOnly", { v: value }, state, prefs)
+          }
+        } else if (options.subPathOnly) {
+          if (value.startsWith("/") || value.split("/").includes("..")) {
+            // tslint:disable-next-line:no-invalid-this
+            return this.createError("string.subPathOnly", { v: value }, state, prefs)
+          }
+        } else if (options.relativeOnly) {
+          if (value.startsWith("/")) {
+            // tslint:disable-next-line:no-invalid-this
+            return this.createError("string.relativeOnly", { v: value }, state, prefs)
+          }
+        }
+
+        return value // Everything is OK
+      },
+    },
+  ],
+})
+
+export const joiPrimitive = () => joi.alternatives().try(
+  joi.number(),
+  joi.string().allow("").allow(null),
+  joi.boolean(),
 ).description("Number, string or boolean")
 
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
@@ -38,7 +114,7 @@ export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
 export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_]*$/i
 
-export const joiIdentifier = () => Joi.string()
+export const joiIdentifier = () => joi.string()
   .regex(identifierRegex)
   .description(
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
@@ -53,7 +129,7 @@ export const joiProviderName = (name: string) => joiIdentifier().required()
 export const joiStringMap = (valueSchema: JoiObject) => Joi
   .object().pattern(/.+/, valueSchema)
 
-export const joiUserIdentifier = () => Joi.string()
+export const joiUserIdentifier = () => joi.string()
   .regex(userIdentifierRegex)
   .description(
     "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +

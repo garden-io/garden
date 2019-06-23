@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import * as yaml from "js-yaml"
 import { join } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
-import { Primitive, validate, joiArray, joiUserIdentifier, joiPrimitive } from "./config/common"
+import { Primitive, validate, joiArray, joiUserIdentifier, joiPrimitive, joi } from "./config/common"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
 import {
@@ -188,23 +187,23 @@ export interface LocalConfig {
   analytics: AnalyticsLocalConfig
 }
 
-const kubernetesLocalConfigSchema = Joi.object()
+const kubernetesLocalConfigSchema = joi.object()
   .keys({
     "username": joiUserIdentifier().allow("").optional(),
-    "previous-usernames": Joi.array().items(joiUserIdentifier()).optional(),
+    "previous-usernames": joi.array().items(joiUserIdentifier()).optional(),
   })
   .meta({ internal: true })
 
-const linkedSourceSchema = Joi.object()
+const linkedSourceSchema = joi.object()
   .keys({
     name: joiUserIdentifier(),
-    path: Joi.string(),
+    path: joi.string(),
   })
   .meta({ internal: true })
 
-const AnalyticsLocalConfigSchema = Joi.object()
+const AnalyticsLocalConfigSchema = joi.object()
   .keys({
-    projectId: Joi.string(),
+    projectId: joi.string(),
   }).meta({ internal: true })
 
 const localConfigSchemaKeys = {
@@ -219,12 +218,12 @@ export const localConfigKeys = Object.keys(localConfigSchemaKeys).reduce((acc, k
   return acc
 }, {}) as { [K in keyof typeof localConfigSchemaKeys]: K }
 
-const localConfigSchema = Joi.object()
+const localConfigSchema = joi.object()
   .keys(localConfigSchemaKeys)
   .meta({ internal: true })
 
 // TODO: we should not be passing this to provider actions
-export const configStoreSchema = Joi.object()
+export const configStoreSchema = joi.object()
   .description("Helper class for managing local configuration for plugins.")
 
 export class LocalConfigStore extends ConfigStore<LocalConfig> {
@@ -259,11 +258,11 @@ export interface GlobalConfig {
   analytics?: AnalyticsGlobalConfig
 }
 
-const AnalyticsGlobalConfigSchema = Joi.object()
+const AnalyticsGlobalConfigSchema = joi.object()
   .keys({
     userId: joiPrimitive().allow("").optional(),
-    optedIn: Joi.boolean().optional(),
-    firstRun: Joi.boolean().optional(),
+    optedIn: joi.boolean().optional(),
+    firstRun: joi.boolean().optional(),
   }).meta({ internal: true })
 
 const globalConfigSchemaKeys = {
@@ -284,7 +283,7 @@ export const globalConfigKeys = Object.keys(globalConfigSchemaKeys).reduce((acc,
   return acc
 }, {}) as { [K in keyof typeof globalConfigSchemaKeys]: K }
 
-const globalConfigSchema = Joi.object()
+const globalConfigSchema = joi.object()
   .keys(globalConfigSchemaKeys)
   .meta({ internal: true })
 

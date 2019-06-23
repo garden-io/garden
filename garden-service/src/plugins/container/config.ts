@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import deline = require("deline")
 
 import { Module, FileCopySpec } from "../../types/module"
@@ -16,7 +15,7 @@ import {
   joiArray,
   PrimitiveMap,
   joiPrimitive,
-  absolutePathRegex,
+  joi,
 } from "../../config/common"
 import { Service, ingressHostnameSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
@@ -93,16 +92,17 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
 
 const commandExample = ["/bin/sh", "-c"]
 
-const hotReloadSyncSchema = Joi.object()
+const hotReloadSyncSchema = joi.object()
   .keys({
-    source: Joi.string().uri(<any>{ relativeOnly: true })
+    source: joi.string()
+      .posixPath({ subPathOnly: true })
       .default(".")
       .description(deline`
         POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
         Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.`)
       .example("src"),
-    target: Joi.string().uri(<any>{ relativeOnly: true })
-      .regex(absolutePathRegex)
+    target: joi.string()
+      .posixPath({ absoluteOnly: true })
       .required()
       .description(deline`
         POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
@@ -114,9 +114,9 @@ export interface ContainerHotReloadSpec {
   sync: FileCopySpec[]
 }
 
-const hotReloadConfigSchema = Joi.object()
+const hotReloadConfigSchema = joi.object()
   .keys({
-    sync: Joi.array().items(hotReloadSyncSchema)
+    sync: joi.array().items(hotReloadSyncSchema)
       .required()
       .description(
         "Specify one or more source files or directories to automatically sync into the running container.",
@@ -130,64 +130,65 @@ const hotReloadConfigSchema = Joi.object()
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
-const annotationsSchema = joiStringMap(Joi.string())
+const annotationsSchema = joiStringMap(joi.string())
   .default(() => ({}), "{}")
 
-const ingressSchema = Joi.object()
+const ingressSchema = joi.object()
   .keys({
     annotations: annotationsSchema
       .description("Annotations to attach to the ingress (Note: May not be applicable to all providers)"),
     hostname: ingressHostnameSchema,
-    path: Joi.string().uri(<any>{ relativeOnly: true })
+    path: joi.string()
+      .uri(<any>{ relativeOnly: true })
       .default("/")
       .description("The path which should be routed to the service."),
-    port: Joi.string()
+    port: joi.string()
       .required()
       .description("The name of the container port where the specified paths should be routed."),
   })
 
-const healthCheckSchema = Joi.object()
+const healthCheckSchema = joi.object()
   .keys({
-    httpGet: Joi.object()
+    httpGet: joi.object()
       .keys({
-        path: Joi.string()
+        path: joi.string()
           .uri(<any>{ relativeOnly: true })
           .required()
           .description("The path of the service's health check endpoint."),
-        port: Joi.string()
+        port: joi.string()
           .required()
           .description("The name of the port where the service's health check endpoint should be available."),
-        scheme: Joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+        scheme: joi.string().allow("HTTP", "HTTPS").default("HTTP"),
       })
       .description("Set this to check the service's health by making an HTTP request."),
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .description("Set this to check the service's health by running a command in its container."),
-    tcpPort: Joi.string()
+    tcpPort: joi.string()
       .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
   }).xor("httpGet", "command", "tcpPort")
 
-const limitsSchema = Joi.object()
+const limitsSchema = joi.object()
   .keys({
-    cpu: Joi.number()
+    cpu: joi.number()
       .default(defaultContainerLimits.cpu)
       .min(10)
       .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)"),
-    memory: Joi.number()
+    memory: joi.number()
       .default(defaultContainerLimits.memory)
       .min(64)
       .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
   })
 
-export const portSchema = Joi.object()
+export const portSchema = joi.object()
   .keys({
     name: joiUserIdentifier()
       .required()
       .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
-    protocol: Joi.string()
+    protocol: joi.string()
       .allow("TCP", "UDP")
       .default(DEFAULT_PORT_PROTOCOL)
       .description("The protocol of the port."),
-    containerPort: Joi.number()
+    containerPort: joi.number()
       .required()
       .example("8080")
       .description(deline`
@@ -195,30 +196,30 @@ export const portSchema = Joi.object()
         for \`servicePort\`.
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    servicePort: Joi.number()
+    servicePort: joi.number()
       .default((context) => context.containerPort, "<same as containerPort>")
       .example("80")
       .description(deline`The port exposed on the service.
         Defaults to \`containerPort\` if not specified.
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    hostPort: Joi.number()
+    hostPort: joi.number()
       .meta({ deprecated: true }),
-    nodePort: Joi.number()
+    nodePort: joi.number()
       .description(deline`
         Set this to expose the service on the specified port on the host node
         (may not be supported by all providers).`),
   })
 
-const volumeSchema = Joi.object()
+const volumeSchema = joi.object()
   .keys({
     name: joiUserIdentifier()
       .required()
       .description("The name of the allocated volume."),
-    containerPath: Joi.string()
+    containerPath: joi.string()
       .required()
       .description("The path where the volume should be mounted in the container."),
-    hostPath: Joi.string()
+    hostPath: joi.string()
       .meta({ deprecated: true }),
   })
 
@@ -226,13 +227,13 @@ const serviceSchema = baseServiceSpecSchema
   .keys({
     annotations: annotationsSchema
       .description("Annotations to attach to the service (Note: May not be applicable to all providers)."),
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .description("The command/entrypoint to run the container with when starting the service.")
       .example([commandExample, {}]),
-    args: Joi.array().items(Joi.string())
+    args: joi.array().items(joi.string())
       .description("The arguments to run the container with when starting the service.")
       .example([["npm", "start"], {}]),
-    daemon: Joi.boolean()
+    daemon: joi.boolean()
       .default(false)
       .description(deline`
         Whether to run the service as a daemon (to ensure exactly one instance runs per node).
@@ -247,12 +248,12 @@ const serviceSchema = baseServiceSpecSchema
     env: joiEnvVars(),
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),
-    hotReloadCommand: Joi.array().items(Joi.string())
+    hotReloadCommand: joi.array().items(joi.string())
       .description(deline`
         If this module uses the \`hotReload\` field, the container will be run with
         this command/entrypoint when the service is deployed with hot reloading enabled.`)
       .example([commandExample, {}]),
-    hotReloadArgs: Joi.array().items(Joi.string())
+    hotReloadArgs: joi.array().items(joi.string())
       .description(deline`
         If this module uses the \`hotReload\` field, the container will be run with
         these arguments when the service is deployed with hot reloading enabled.`)
@@ -263,7 +264,7 @@ const serviceSchema = baseServiceSpecSchema
     ports: joiArray(portSchema)
       .unique("name")
       .description("List of ports that the service container exposes."),
-    replicas: Joi.number()
+    replicas: joi.number()
       .integer()
       .min(1)
       .default(1)
@@ -284,16 +285,16 @@ export interface ContainerRegistryConfig {
   namespace: string,
 }
 
-export const containerRegistryConfigSchema = Joi.object()
+export const containerRegistryConfigSchema = joi.object()
   .keys({
-    hostname: Joi.string()
+    hostname: joi.string()
       .required()
       .description("The hostname (and optionally port, if not the default port) of the registry.")
       .example("gcr.io"),
-    port: Joi.number()
+    port: joi.number()
       .integer()
       .description("The port where the registry listens on, if not the default."),
-    namespace: Joi.string()
+    namespace: joi.string()
       .default("_")
       .description("The namespace in the registry where images should be pushed.")
       .example("my-project"),
@@ -313,10 +314,10 @@ export interface ContainerTestSpec extends BaseTestSpec {
 
 export const containerTestSchema = baseTestSpecSchema
   .keys({
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .description("The command/entrypoint used to run the test inside the container.")
       .example([commandExample, {}]),
-    args: Joi.array().items(Joi.string())
+    args: joi.array().items(joi.string())
       .description("The arguments used to run the test inside the container.")
       .example([["npm", "test"], {}]),
     env: joiEnvVars(),
@@ -330,10 +331,10 @@ export interface ContainerTaskSpec extends BaseTaskSpec {
 
 export const containerTaskSchema = baseTaskSpecSchema
   .keys({
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .description("The command/entrypoint used to run the task inside the container.")
       .example([commandExample, {}]),
-    args: Joi.array().items(Joi.string())
+    args: joi.array().items(joi.string())
       .description("The arguments used to run the task inside the container.")
       .example([["rake", "db:migrate"], {}]),
     env: joiEnvVars(),
@@ -360,30 +361,31 @@ export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec>
 export const defaultNamespace = "_"
 export const defaultTag = "latest"
 
-export const containerModuleSpecSchema = Joi.object()
+export const containerModuleSpecSchema = joi.object()
   .keys({
     build: baseBuildSpecSchema
       .keys({
-        targetImage: Joi.string()
+        targetImage: joi.string()
           .description(deline`
             For multi-stage Dockerfiles, specify which image to build (see
             https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
             details).
           `),
       }),
-    buildArgs: Joi.object()
+    buildArgs: joi.object()
       .pattern(/.+/, joiPrimitive())
       .default(() => ({}), "{}")
       .description("Specify build arguments to use when building the container image."),
     // TODO: validate the image name format
-    image: Joi.string()
+    image: joi.string()
       .description(deline`
         Specify the image name for the container. Should be a valid Docker image identifier. If specified and
         the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
     hotReload: hotReloadConfigSchema,
-    dockerfile: Joi.string().uri(<any>{ relativeOnly: true })
-      .description("POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile."),
+    dockerfile: joi.string()
+      .posixPath({ subPathOnly: true })
+      .description("POSIX-style name of Dockerfile, relative to module root."),
     services: joiArray(serviceSchema)
       .unique("name")
       .description("The list of services to deploy from this container module."),

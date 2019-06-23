@@ -270,7 +270,7 @@ hotReload:
 
 ### `dockerfile`
 
-POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile.
+POSIX-style name of Dockerfile, relative to module root.
 
 | Type     | Required |
 | -------- | -------- |
@@ -890,7 +890,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 
 ### `jarPath`
 
-The path to the packaged JAR artifact, relative to the module directory.
+POSIX-style path to the packaged JAR artifact, relative to the module directory.
 
 | Type     | Required |
 | -------- | -------- |

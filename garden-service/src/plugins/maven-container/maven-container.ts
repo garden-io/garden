@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { omit, get } from "lodash"
 import { copy, pathExists, readFile } from "fs-extra"
 import { GardenPlugin } from "../../types/plugin/plugin"
@@ -17,7 +16,7 @@ import {
   ContainerModuleConfig,
   ContainerTaskSpec,
 } from "../container/config"
-import { joiArray, joiProviderName } from "../../config/common"
+import { joiArray, joiProviderName, joi } from "../../config/common"
 import { Module } from "../../types/module"
 import {
   configureContainerModule,
@@ -61,16 +60,17 @@ export interface MavenContainerModule<
   > extends Module<M, S, T, W> { }
 
 const mavenKeys = {
-  jarPath: Joi.string()
+  jarPath: joi.string()
     .required()
-    .description("The path to the packaged JAR artifact, relative to the module directory.")
+    .posixPath({ subPathOnly: true })
+    .description("POSIX-style path to the packaged JAR artifact, relative to the module directory.")
     .example("target/my-module.jar"),
-  jdkVersion: Joi.number()
+  jdkVersion: joi.number()
     .integer()
     .allow(8, 11)
     .default(8)
     .description("The JDK version to use."),
-  mvnOpts: joiArray(Joi.string())
+  mvnOpts: joiArray(joi.string())
     .description("Options to add to the `mvn package` command when building."),
 }
 

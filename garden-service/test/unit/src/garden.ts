@@ -27,10 +27,10 @@ import { ConfigureProviderParams } from "../../../src/types/plugin/provider/conf
 import { ProjectConfig } from "../../../src/config/project"
 import { ModuleConfig } from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
-import * as Joi from "joi"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy } from "lodash"
 import stripAnsi from "strip-ansi"
+import { joi } from "../../../src/config/common"
 
 describe("Garden", () => {
   beforeEach(async () => {
@@ -577,7 +577,7 @@ describe("Garden", () => {
         return {
           configSchema: providerConfigBaseSchema
             .keys({
-              foo: Joi.string().default("bar"),
+              foo: joi.string().default("bar"),
             }),
         }
       }
@@ -610,7 +610,7 @@ describe("Garden", () => {
         return {
           configSchema: providerConfigBaseSchema
             .keys({
-              foo: Joi.string(),
+              foo: joi.string(),
             }),
         }
       }

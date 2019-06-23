@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { logEntrySchema } from "../base"
 import { baseModuleSpecSchema, ModuleConfig, moduleConfigSchema } from "../../../config/module"
+import { joi } from "../../../config/common"
 
 export interface ConfigureModuleParams<T extends Module = Module> {
   ctx: PluginContext
@@ -43,7 +43,7 @@ export const configure = {
     any network calls.
   `,
 
-  paramsSchema: Joi.object()
+  paramsSchema: joi.object()
     .keys({
       ctx: pluginContextSchema
         .required(),

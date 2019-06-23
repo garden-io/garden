@@ -7,7 +7,6 @@
  */
 
 import dedent = require("dedent")
-import * as Joi from "joi"
 import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
@@ -19,15 +18,16 @@ import { KubernetesProvider } from "../kubernetes/config"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { PublishModuleParams } from "../../types/plugin/module/publishModule"
 import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
+import { joi } from "../../config/common"
 
-export const containerModuleOutputsSchema = Joi.object()
+export const containerModuleOutputsSchema = joi.object()
   .keys({
-    "local-image-name": Joi.string()
+    "local-image-name": joi.string()
       .required()
       .description(
         "The name of the image (without tag/version) that the module uses for local builds and deployments.",
       ),
-    "deployment-image-name": Joi.string()
+    "deployment-image-name": joi.string()
       .required()
       .description("The name of the image (without tag/version) that the module will use during deployment."),
   })

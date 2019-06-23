@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginActionParamsBase } from "../base"
 import { dedent } from "../../../util/string"
-import { joiPrimitive, Primitive } from "../../../config/common"
+import { joiPrimitive, Primitive, joi } from "../../../config/common"
 import { getSecretParamsSchema } from "./getSecret"
 
 export interface SetSecretParams extends PluginActionParamsBase {
@@ -30,5 +29,5 @@ export const setSecret = {
       value: joiPrimitive()
         .description("The value of the secret."),
     }),
-  resultSchema: Joi.object().keys({}),
+  resultSchema: joi.object().keys({}),
 }

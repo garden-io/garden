@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { RuntimeContext, runtimeContextSchema, serviceStatusSchema } from "../../service"
+import { joi } from "../../../config/common"
 
 export interface DeployServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
@@ -28,10 +28,10 @@ export const deployService = {
   `,
   paramsSchema: serviceActionParamsSchema
     .keys({
-      force: Joi.boolean()
+      force: joi.boolean()
         .description("Whether to force a re-deploy, even if the service is already deployed."),
       runtimeContext: runtimeContextSchema,
-      hotReload: Joi.boolean()
+      hotReload: joi.boolean()
         .default(false)
         .description("Whether to configure the service for hot-reloading."),
     }),

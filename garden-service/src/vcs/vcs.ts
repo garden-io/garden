@@ -9,8 +9,7 @@
 import * as Bluebird from "bluebird"
 import { mapValues, keyBy, sortBy, omit } from "lodash"
 import { createHash } from "crypto"
-import * as Joi from "joi"
-import { validate, joiArray } from "../config/common"
+import { validate, joiArray, joi } from "../config/common"
 import { join } from "path"
 import { GARDEN_VERSIONFILE_NAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
@@ -38,26 +37,26 @@ interface NamedTreeVersion extends TreeVersion {
   name: string
 }
 
-const versionStringSchema = Joi.string()
+const versionStringSchema = joi.string()
   .regex(/^v/)
   .required()
   .description("String representation of the module version.")
 
-const fileNamesSchema = joiArray(Joi.string())
+const fileNamesSchema = joiArray(joi.string())
   .description("List of file paths included in the version.")
 
-export const treeVersionSchema = Joi.object()
+export const treeVersionSchema = joi.object()
   .keys({
-    contentHash: Joi.string()
+    contentHash: joi.string()
       .required()
       .description("The hash of all files in the directory, after filtering."),
     files: fileNamesSchema,
   })
 
-export const moduleVersionSchema = Joi.object()
+export const moduleVersionSchema = joi.object()
   .keys({
     versionString: versionStringSchema,
-    dependencyVersions: Joi.object()
+    dependencyVersions: joi.object()
       .pattern(/.+/, treeVersionSchema)
       .default(() => ({}), "{}")
       .description("The version of each of the dependencies of the module."),

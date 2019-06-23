@@ -7,10 +7,10 @@
  */
 
 import deline = require("deline")
-import * as Joi from "joi"
 import {
   joiArray,
   joiUserIdentifier,
+  joi,
 } from "./common"
 
 export interface TestSpec { }
@@ -21,17 +21,17 @@ export interface BaseTestSpec extends TestSpec {
   timeout: number | null
 }
 
-export const baseTestSpecSchema = Joi.object()
+export const baseTestSpecSchema = joi.object()
   .keys({
     name: joiUserIdentifier()
       .required()
       .description("The name of the test."),
-    dependencies: joiArray(Joi.string())
+    dependencies: joiArray(joi.string())
       .description(deline`
         The names of any services that must be running, and the names of any
         tasks that must be executed, before the test is run.
       `),
-    timeout: Joi.number()
+    timeout: joi.number()
       .allow(null)
       .default(null)
       .description("Maximum duration (in seconds) of the test run."),
@@ -44,7 +44,7 @@ export interface TestConfig<T extends TestSpec = TestSpec> extends BaseTestSpec 
 
 export const testConfigSchema = baseTestSpecSchema
   .keys({
-    spec: Joi.object()
+    spec: joi.object()
       .meta({ extendable: true })
       .description("The configuration for the test, as specified by its module's provider."),
   })

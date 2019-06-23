@@ -6,14 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import dedent = require("dedent")
 import { projectNameSchema } from "../../../config/project"
 import { ProviderConfig, Provider, providerConfigBaseSchema, providersSchema } from "../../../config/provider"
 import { LogEntry } from "../../../logger/log-entry"
 import { logEntrySchema } from "../base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
-import { joiArray } from "../../../config/common"
+import { joiArray, joi } from "../../../config/common"
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
 import { deline } from "../../../util/string"
 
@@ -42,7 +41,7 @@ export const configureProvider = {
     Important: This action is called on most executions of Garden commands, so it should return quickly
     and avoid performing expensive processing or network calls.
   `,
-  paramsSchema: Joi.object()
+  paramsSchema: joi.object()
     .keys({
       config: providerConfigBaseSchema.required(),
       log: logEntrySchema,
@@ -50,7 +49,7 @@ export const configureProvider = {
       dependencies: providersSchema,
       configStore: configStoreSchema,
     }),
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
       config: providerConfigBaseSchema,
       moduleConfigs: joiArray(moduleConfigSchema)

@@ -6,11 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiArray, validateWithPath } from "../../config/common"
+import { joiArray, validateWithPath, joi } from "../../config/common"
 import { Module } from "../../types/module"
 import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
 import { resolve } from "path"
-import * as Joi from "joi"
 import { ExecTestSpec, execTestSchema } from "../exec"
 import {
   prepareEnvironment,
@@ -29,13 +28,13 @@ import { gardenAnnotationKey } from "../../util/string"
 
 const gcfModuleSpecSchema = baseServiceSpecSchema
   .keys({
-    entrypoint: Joi.string()
+    entrypoint: joi.string()
       .description("The entrypoint for the function (exported name in the function's module)"),
     hostname: ingressHostnameSchema,
-    path: Joi.string()
+    path: joi.string()
       .default(".")
       .description("The path of the module that contains the function."),
-    project: Joi.string()
+    project: joi.string()
       .description("The Google Cloud project name of the function."),
     tests: joiArray(execTestSchema),
   })
@@ -97,7 +96,7 @@ export async function configureGcfModule(
 }
 
 const configSchema = providerConfigBaseSchema.keys({
-  project: Joi.string()
+  project: joi.string()
     .description("The default GCP project to deploy functions to (can be overridden on individual functions)."),
 })
 

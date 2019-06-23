@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { getEnvVarName, uniqByName } from "../util/util"
-import { PrimitiveMap, joiEnvVars, joiIdentifierMap, joiPrimitive, joiUserIdentifier } from "../config/common"
+import { PrimitiveMap, joiEnvVars, joiIdentifierMap, joiPrimitive, joiUserIdentifier, joi } from "../config/common"
 import { Module, getModuleKey } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
@@ -27,15 +26,15 @@ export interface Service<M extends Module = Module, S extends Module = Module> {
   spec: M["serviceConfigs"][0]["spec"]
 }
 
-export const serviceSchema = Joi.object()
+export const serviceSchema = joi.object()
   .options({ presence: "required" })
   .keys({
     name: joiUserIdentifier()
       .description("The name of the service."),
-    module: Joi.object().unknown(true),   // This causes a stack overflow: Joi.lazy(() => moduleSchema),
-    sourceModule: Joi.object().unknown(true),   // This causes a stack overflow: Joi.lazy(() => moduleSchema),
+    module: joi.object().unknown(true),   // This causes a stack overflow: joi.lazy(() => moduleSchema),
+    sourceModule: joi.object().unknown(true),   // This causes a stack overflow: joi.lazy(() => moduleSchema),
     config: serviceConfigSchema,
-    spec: Joi.object()
+    spec: joi.object()
       .description("The raw configuration of the service (specific to each plugin)."),
   })
 
@@ -93,7 +92,7 @@ export interface ServiceIngress extends ServiceIngressSpec {
   hostname: string
 }
 
-export const ingressHostnameSchema = Joi.string()
+export const ingressHostnameSchema = joi.string()
   .hostname()
   .description(dedent`
     The hostname that should route to this service. Defaults to the default hostname
@@ -102,20 +101,20 @@ export const ingressHostnameSchema = Joi.string()
     Note that if you're developing locally you may need to add this hostname to your hosts file.
   `)
 
-const portSchema = Joi.number()
+const portSchema = joi.number()
   .description(dedent`
     The port number that the service is exposed on internally.
     This defaults to the first specified port for the service.
   `)
 
-export const serviceIngressSpecSchema = Joi.object()
+export const serviceIngressSpecSchema = joi.object()
   .keys({
     hostname: ingressHostnameSchema,
     port: portSchema,
-    path: Joi.string()
+    path: joi.string()
       .default("/")
       .description("The ingress path that should be matched to route to this service."),
-    protocol: Joi.string()
+    protocol: joi.string()
       .only("http", "https")
       .required()
       .description("The protocol to use for the ingress."),
@@ -123,7 +122,7 @@ export const serviceIngressSpecSchema = Joi.object()
 
 export const serviceIngressSchema = serviceIngressSpecSchema
   .keys({
-    hostname: Joi.string()
+    hostname: joi.string()
       .required()
       .description("The hostname where the service can be accessed."),
     port: portSchema
@@ -151,33 +150,33 @@ export interface ServiceStatusMap {
   [key: string]: ServiceStatus
 }
 
-export const serviceStatusSchema = Joi.object()
+export const serviceStatusSchema = joi.object()
   .keys({
-    providerId: Joi.string()
+    providerId: joi.string()
       .description("The ID used for the service by the provider (if not the same as the service name)."),
-    providerVersion: Joi.string()
+    providerVersion: joi.string()
       .description("The provider version of the deployed service (if different from the Garden module version."),
-    version: Joi.string()
+    version: joi.string()
       .description("The Garden module version of the deployed service."),
-    state: Joi.string()
+    state: joi.string()
       .only("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
       .default("unknown")
       .description("The current deployment status of the service."),
-    runningReplicas: Joi.number()
+    runningReplicas: joi.number()
       .description("How many replicas of the service are currently running."),
-    ingresses: Joi.array()
+    ingresses: joi.array()
       .items(serviceIngressSchema)
       .description("List of currently deployed ingress endpoints for the service."),
-    lastMessage: Joi.string()
+    lastMessage: joi.string()
       .allow("")
       .description("Latest status message of the service (if any)."),
-    lastError: Joi.string()
+    lastError: joi.string()
       .description("Latest error status message of the service (if any)."),
-    createdAt: Joi.string()
+    createdAt: joi.string()
       .description("When the service was first deployed by the provider."),
-    updatedAt: Joi.string()
+    updatedAt: joi.string()
       .description("When the service was last updated by the provider."),
-    detail: Joi.object()
+    detail: joi.object()
       .meta({ extendable: true })
       .description("Additional detail, specific to the provider."),
   })
@@ -192,17 +191,17 @@ export type RuntimeContext = {
   },
 }
 
-const runtimeDependencySchema = Joi.object()
+const runtimeDependencySchema = joi.object()
   .keys({
     version: moduleVersionSchema,
     outputs: joiEnvVars()
       .description("The outputs provided by the service (e.g. ingress URLs etc.)."),
   })
 
-export const runtimeContextSchema = Joi.object()
+export const runtimeContextSchema = joi.object()
   .options({ presence: "required" })
   .keys({
-    envVars: Joi.object().pattern(/.+/, joiPrimitive())
+    envVars: joi.object().pattern(/.+/, joiPrimitive())
       .default(() => ({}), "{}")
       .unknown(false)
       .description(

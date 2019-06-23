@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Joi = require("@hapi/joi")
 import {
   readFileSync,
   writeFileSync,
 } from "fs"
 import { safeDump } from "js-yaml"
 import * as linewrap from "linewrap"
-import * as Joi from "joi"
 import { resolve } from "path"
 import {
   get,
@@ -26,7 +26,7 @@ import handlebars = require("handlebars")
 import { configSchema as localK8sConfigSchema } from "../plugins/kubernetes/local/config"
 import { configSchema as k8sConfigSchema } from "../plugins/kubernetes/config"
 import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/openfaas"
-import { joiArray } from "../config/common"
+import { joiArray, joi } from "../config/common"
 import { mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
 import { Garden } from "../garden"
 import { GARDEN_SERVICE_ROOT } from "../constants"
@@ -37,7 +37,7 @@ export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templa
 const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema
   .concat(schema)
 
-const populateProviderSchema = (schema: Joi.ObjectSchema) => Joi.object()
+const populateProviderSchema = (schema: Joi.ObjectSchema) => joi.object()
   .keys({
     providers: joiArray(schema),
   })

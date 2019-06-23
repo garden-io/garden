@@ -7,14 +7,13 @@
  */
 
 import * as td from "testdouble"
-import * as Joi from "joi"
 import { resolve, join } from "path"
 import { extend } from "lodash"
 import { remove, readdirSync, existsSync } from "fs-extra"
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
-import { validate, joiArray } from "../src/config/common"
+import { validate, joiArray, joi } from "../src/config/common"
 import {
   GardenPlugin,
   PluginActions,
@@ -80,10 +79,10 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 export const projectRootA = getDataDir("test-project-a")
 
 const testModuleTestSchema = containerTestSchema
-  .keys({ command: Joi.array().items(Joi.string()) })
+  .keys({ command: joi.array().items(joi.string()) })
 
 const testModuleTaskSchema = containerTaskSchema
-  .keys({ command: Joi.array().items(Joi.string()) })
+  .keys({ command: joi.array().items(joi.string()) })
 
 export const testModuleSpecSchema = containerModuleSpecSchema
   .keys({
@@ -328,11 +327,13 @@ export function stubModuleAction<T extends keyof ModuleActions<any>>(
   return td.replace(garden["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
 }
 
-export async function expectError(fn: Function, typeOrCallback: string | ((err: any) => void)) {
+export async function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
   try {
     await fn()
   } catch (err) {
-    if (typeof typeOrCallback === "function") {
+    if (typeOrCallback === undefined) {
+      return
+    } else if (typeof typeOrCallback === "function") {
       return typeOrCallback(err)
     } else {
       if (!err.type) {

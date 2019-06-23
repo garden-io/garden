@@ -7,12 +7,11 @@
  */
 
 import dedent = require("dedent")
-import * as Joi from "joi"
 import { join } from "path"
 import { resolve as urlResolve } from "url"
 import { ConfigurationError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import { joiArray, PrimitiveMap, joiProviderName } from "../../config/common"
+import { joiArray, PrimitiveMap, joiProviderName, joi } from "../../config/common"
 import { Module } from "../../types/module"
 import { ConfigureProviderResult } from "../../types/plugin/outputs"
 import { ServiceStatus, ServiceIngress, Service } from "../../types/service"
@@ -57,24 +56,24 @@ export interface OpenFaasModuleSpec extends ExecModuleSpec {
 
 export const openfaasModuleSpecSchema = execModuleSpecSchema
   .keys({
-    dependencies: joiArray(Joi.string())
+    dependencies: joiArray(joi.string())
       .description("The names of services/functions that this function depends on at runtime."),
-    handler: Joi.string()
+    handler: joi.string()
       .default(".")
-      .uri((<any>{ relativeOnly: true }))
+      .posixPath({ subPathOnly: true })
       .description("Specify which directory under the module contains the handler file/function."),
-    image: Joi.string()
+    image: joi.string()
       .description("The image name to use for the built OpenFaaS container (defaults to the module name)"),
-    lang: Joi.string()
+    lang: joi.string()
       .required()
       .description("The OpenFaaS language template to use to build this function."),
   })
   .unknown(false)
   .description("The module specification for an OpenFaaS module.")
 
-export const openfaasModuleOutputsSchema = Joi.object()
+export const openfaasModuleOutputsSchema = joi.object()
   .keys({
-    endpoint: Joi.string()
+    endpoint: joi.string()
       .uri()
       .required()
       .description(`The full URL to query this service _from within_ the cluster.`),
@@ -91,7 +90,7 @@ export interface OpenFaasConfig extends ProviderConfig {
 export const configSchema = providerConfigBaseSchema
   .keys({
     name: joiProviderName("openfaas"),
-    hostname: Joi.string()
+    hostname: joi.string()
       .hostname()
       .description(dedent`
         The hostname to configure for the function gateway.

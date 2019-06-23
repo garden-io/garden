@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import dedent = require("dedent")
 
-import { joiArray, joiIdentifier, joiProviderName } from "../../config/common"
+import { joiArray, joiIdentifier, joiProviderName, joi } from "../../config/common"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { PluginContext } from "../../plugin-context"
@@ -130,30 +129,30 @@ export const defaultStorage: KubernetesStorage = {
   },
 }
 
-const resourceSchema = (defaults: KubernetesResourceSpec) => Joi.object()
+const resourceSchema = (defaults: KubernetesResourceSpec) => joi.object()
   .keys({
-    limits: Joi.object()
+    limits: joi.object()
       .keys({
-        cpu: Joi.number()
+        cpu: joi.number()
           .integer()
           .default(defaults.limits.cpu)
           .description("CPU limit in millicpu.")
           .example(defaults.limits.cpu),
-        memory: Joi.number()
+        memory: joi.number()
           .integer()
           .default(defaults.limits.memory)
           .description("Memory limit in megabytes.")
           .example(defaults.limits.memory),
       })
       .default(defaults.limits),
-    requests: Joi.object()
+    requests: joi.object()
       .keys({
-        cpu: Joi.number()
+        cpu: joi.number()
           .integer()
           .default(defaults.requests.cpu)
           .description("CPU request in millicpu.")
           .example(defaults.requests.cpu),
-        memory: Joi.number()
+        memory: joi.number()
           .integer()
           .default(defaults.requests.memory)
           .description("Memory request in megabytes.")
@@ -163,25 +162,25 @@ const resourceSchema = (defaults: KubernetesResourceSpec) => Joi.object()
   })
   .default(defaults)
 
-const storageSchema = (defaults: KubernetesStorageSpec) => Joi.object()
+const storageSchema = (defaults: KubernetesStorageSpec) => joi.object()
   .keys({
-    size: Joi.number()
+    size: joi.number()
       .integer()
       .default(defaults.size)
       .description("Volume size for the registry in megabytes."),
-    storageClass: Joi.string()
+    storageClass: joi.string()
       .allow(null)
       .default(null)
       .description("Storage class to use for the volume."),
   })
   .default(defaults)
 
-export const k8sContextSchema = Joi.string()
+export const k8sContextSchema = joi.string()
   .required()
   .description("The kubectl context to use to connect to the Kubernetes cluster.")
   .example("my-dev-context")
 
-const secretRef = Joi.object()
+const secretRef = joi.object()
   .keys({
     name: joiIdentifier()
       .required()
@@ -203,14 +202,14 @@ const imagePullSecretsSchema = joiArray(secretRef)
     when configuring a remote Kubernetes environment with buildMode=local.
   `)
 
-const tlsCertificateSchema = Joi.object()
+const tlsCertificateSchema = joi.object()
   .keys({
     name: joiIdentifier()
       .required()
       .description("A unique identifier for this certificate.")
       .example("www")
       .example("wildcard"),
-    hostnames: Joi.array().items(Joi.string().hostname())
+    hostnames: joi.array().items(joi.string().hostname())
       .description(
         "A list of hostnames that this certificate should be used for. " +
         "If you don't specify these, they will be automatically read from the certificate.",
@@ -223,7 +222,7 @@ const tlsCertificateSchema = Joi.object()
 
 export const kubernetesConfigBase = providerConfigBaseSchema
   .keys({
-    buildMode: Joi.string()
+    buildMode: joi.string()
       .allow("local-docker", "cluster-docker", "kaniko")
       .default("local-docker")
       .description(dedent`
@@ -243,19 +242,19 @@ export const kubernetesConfigBase = providerConfigBaseSchema
         this is less secure than Kaniko, but in turn it is generally faster. See the
         [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
       `),
-    defaultHostname: Joi.string()
+    defaultHostname: joi.string()
       .description("A default hostname to use when no hostname is explicitly configured for a service.")
       .example("api.mydomain.com"),
     defaultUsername: joiIdentifier()
       .description("Set a default username (used for namespacing within a cluster)."),
-    forceSsl: Joi.boolean()
+    forceSsl: joi.boolean()
       .default(false)
       .description(
         "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
         "is available for a configured hostname on a `container` module.",
       ),
     imagePullSecrets: imagePullSecretsSchema,
-    resources: Joi.object()
+    resources: joi.object()
       .keys({
         builder: resourceSchema(defaultResources.builder)
           .description(dedent`
@@ -288,7 +287,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema
         Resource requests and limits for the in-cluster builder, container registry and code sync service.
         (which are automatically installed and used when \`buildMode\` is \`cluster-docker\` or \`kaniko\`).
       `),
-    storage: Joi.object()
+    storage: joi.object()
       .keys({
         builder: storageSchema(defaultStorage.builder)
           .description(dedent`
@@ -332,24 +331,24 @@ export const configSchema = kubernetesConfigBase
     context: k8sContextSchema
       .required(),
     deploymentRegistry: containerRegistryConfigSchema,
-    ingressClass: Joi.string()
+    ingressClass: joi.string()
       .description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
       `),
-    ingressHttpPort: Joi.number()
+    ingressHttpPort: joi.number()
       .default(80)
       .description("The external HTTP port of the cluster's ingress controller."),
-    ingressHttpsPort: Joi.number()
+    ingressHttpsPort: joi.number()
       .default(443)
       .description("The external HTTPS port of the cluster's ingress controller."),
-    namespace: Joi.string()
+    namespace: joi.string()
       .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to <project name>). " +
         "Note that the framework generates other namespaces as well with this name as a prefix.",
       ),
-    setupIngressController: Joi.string()
+    setupIngressController: joi.string()
       .allow("nginx", false, null)
       .default(false)
       .description("Set this to `nginx` to install/enable the NGINX ingress controller."),

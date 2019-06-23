@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { deline } from "../util/string"
-import { joiIdentifier, joiUserIdentifier, joiArray } from "./common"
+import { joiIdentifier, joiUserIdentifier, joiArray, joi } from "./common"
 import { collectTemplateReferences } from "../template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
@@ -21,13 +20,13 @@ export interface ProviderConfig {
   [key: string]: any
 }
 
-const providerFixedFieldsSchema = Joi.object()
+const providerFixedFieldsSchema = joi.object()
   .keys({
     name: joiIdentifier()
       .required()
       .description("The name of the provider plugin to use.")
       .example("local-kubernetes"),
-    environments: Joi.array().items(joiUserIdentifier())
+    environments: joi.array().items(joiUserIdentifier())
       .optional()
       .description(deline`
         If specified, this provider will only be used in the listed environments. Note that an empty array effectively
@@ -50,9 +49,9 @@ export interface Provider<T extends ProviderConfig = ProviderConfig> {
 
 export const providerSchema = providerFixedFieldsSchema
   .keys({
-    dependencies: Joi.lazy(() => providersSchema)
+    dependencies: joi.lazy(() => providersSchema)
       .required(),
-    config: Joi.lazy(() => providerConfigBaseSchema)
+    config: joi.lazy(() => providerConfigBaseSchema)
       .required(),
     moduleConfigs: joiArray(moduleConfigSchema.optional()),
   })

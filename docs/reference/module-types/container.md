@@ -265,7 +265,7 @@ hotReload:
 
 ### `dockerfile`
 
-POSIX-style name of Dockerfile, relative to project root. Defaults to $MODULE_ROOT/Dockerfile.
+POSIX-style name of Dockerfile, relative to module root.
 
 | Type     | Required |
 | -------- | -------- |

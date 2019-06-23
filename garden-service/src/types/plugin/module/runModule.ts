@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, runBaseParams, runResultSchema } from "../base"
 import { RuntimeContext } from "../../service"
-import { joiArray } from "../../../config/common"
+import { joiArray, joi } from "../../../config/common"
 
 export interface RunModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   command?: string[]
@@ -27,10 +26,10 @@ export const runModuleBaseSchema = moduleActionParamsSchema
 
 export const runModuleParamsSchema = runModuleBaseSchema
   .keys({
-    command: joiArray(Joi.string())
+    command: joiArray(joi.string())
       .optional()
       .description("The command/entrypoint to run in the module."),
-    args: joiArray(Joi.string())
+    args: joiArray(joi.string())
       .description("The arguments passed to the command/entrypoint to run in the module."),
   })
 

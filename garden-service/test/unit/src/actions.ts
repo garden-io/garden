@@ -1,4 +1,3 @@
-import * as Joi from "joi"
 
 import {
   ModuleAndRuntimeActions,
@@ -19,7 +18,7 @@ import Stream from "ts-stream"
 import { Task } from "../../../src/types/task"
 import { expect } from "chai"
 import { omit } from "lodash"
-import { validate } from "../../../src/config/common"
+import { validate, joi } from "../../../src/config/common"
 
 const now = new Date()
 
@@ -429,8 +428,8 @@ const testPlugin: PluginFactory = async () => ({
         validate(params, moduleActionDescriptions.describeType.paramsSchema)
         return {
           docs: "bla bla bla",
-          outputsSchema: Joi.object(),
-          schema: Joi.object(),
+          outputsSchema: joi.object(),
+          schema: joi.object(),
           title: "Bla",
         }
       },

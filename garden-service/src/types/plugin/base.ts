@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
 import { Module, moduleSchema } from "../module"
@@ -14,6 +13,7 @@ import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "..
 import { Task } from "../task"
 import { taskSchema } from "../../config/task"
 import { ModuleVersion, moduleVersionSchema } from "../../vcs/vcs"
+import { joi } from "../../config/common"
 
 export interface PluginActionContextParams {
   ctx: PluginContext
@@ -24,11 +24,11 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
 }
 
 // Note: not specifying this further because we will later remove it from the API
-export const logEntrySchema = Joi.object()
+export const logEntrySchema = joi.object()
   .description("Logging context handler that the handler can use to log messages and progress.")
   .required()
 
-export const actionParamsSchema = Joi.object()
+export const actionParamsSchema = joi.object()
   .keys({
     ctx: pluginContextSchema
       .required(),
@@ -64,12 +64,12 @@ export const taskActionParamsSchema = moduleActionParamsSchema
   })
 
 export const runBaseParams = {
-  interactive: Joi.boolean()
+  interactive: joi.boolean()
     .description("Whether to run the module interactively (i.e. attach to the terminal)."),
   runtimeContext: runtimeContextSchema,
-  silent: Joi.boolean()
+  silent: joi.boolean()
     .description("Set to false if the output should not be logged to the console."),
-  timeout: Joi.number()
+  timeout: joi.number()
     .optional()
     .description("If set, how long to run the command before timing out."),
 }
@@ -84,24 +84,24 @@ export interface RunResult {
   output: string
 }
 
-export const runResultSchema = Joi.object()
+export const runResultSchema = joi.object()
   .keys({
-    moduleName: Joi.string()
+    moduleName: joi.string()
       .description("The name of the module that was run."),
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .required()
       .description("The command that was run in the module."),
     version: moduleVersionSchema,
-    success: Joi.boolean()
+    success: joi.boolean()
       .required()
       .description("Whether the module was successfully run."),
-    startedAt: Joi.date()
+    startedAt: joi.date()
       .required()
       .description("When the module run was started."),
-    completedAt: Joi.date()
+    completedAt: joi.date()
       .required()
       .description("When the module run was completed."),
-    output: Joi.string()
+    output: joi.string()
       .required()
       .allow("")
       .description("The output log from the run."),

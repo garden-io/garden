@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
+import { joi } from "../../../config/common"
 
 export interface GetBuildStatusParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
 
@@ -24,9 +24,9 @@ export const getBuildStatus = {
     Called before running the \`build\` action, which is not run if this returns \`{ ready: true }\`.
   `,
   paramsSchema: moduleActionParamsSchema,
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
-      ready: Joi.boolean()
+      ready: joi.boolean()
         .required()
         .description("Whether an up-to-date build is ready for the module."),
     }),

@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
+import { joi } from "../../../config/common"
 
 export interface GetSecretParams extends PluginActionParamsBase {
   key: string
@@ -20,7 +20,7 @@ export interface GetSecretResult {
 
 export const getSecretParamsSchema = actionParamsSchema
   .keys({
-    key: Joi.string()
+    key: joi.string()
       .description("A unique identifier for the secret."),
   })
 
@@ -29,9 +29,9 @@ export const getSecret = {
     Retrieve a secret value for this plugin in the current environment (as set via \`setSecret\`).
   `,
   paramsSchema: getSecretParamsSchema,
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
-      value: Joi.string()
+      value: joi.string()
         .allow(null)
         .required()
         .description("The config value found for the specified key (as string), or null if not found."),

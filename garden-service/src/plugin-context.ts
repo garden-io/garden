@@ -8,12 +8,12 @@
 
 import { Garden } from "./garden"
 import { keyBy, cloneDeep } from "lodash"
-import * as Joi from "joi"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project"
 import { PluginError } from "./exceptions"
 import { defaultProvider, Provider, providerSchema, ProviderConfig } from "./config/provider"
 import { configStoreSchema } from "./config-store"
 import { deline } from "./util/string"
+import { joi } from "./config/common"
 
 type WrappedFromGarden = Pick<Garden,
   "projectName" |
@@ -32,13 +32,13 @@ export interface PluginContext<C extends ProviderConfig = ProviderConfig> extend
 
 // NOTE: this is used more for documentation than validation, outside of internal testing
 // TODO: validate the output from createPluginContext against this schema (in tests)
-export const pluginContextSchema = Joi.object()
+export const pluginContextSchema = joi.object()
   .options({ presence: "required" })
   .keys({
     projectName: projectNameSchema,
-    projectRoot: Joi.string()
+    projectRoot: joi.string()
       .description("The absolute path of the project root."),
-    gardenDirPath: Joi.string()
+    gardenDirPath: joi.string()
       .description(deline`
         The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
         other meta data. A custom path can be set when initialising the Garden class. Defaults to \`.garden\`.
@@ -48,7 +48,7 @@ export const pluginContextSchema = Joi.object()
     environmentName: environmentNameSchema,
     provider: providerSchema
       .description("The provider being used for this context."),
-    workingCopyId: Joi.string()
+    workingCopyId: joi.string()
       .description("A unique ID assigned to the current project working copy."),
   })
 
