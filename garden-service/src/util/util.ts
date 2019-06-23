@@ -50,7 +50,7 @@ export type Unpacked<T> =
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 
-export function shutdown(code) {
+export function shutdown(code?: number) {
   // This is a good place to log exitHookNames if needed.
   process.exit(code)
 }
