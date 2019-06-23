@@ -318,7 +318,7 @@ tests:
 
 ## Template strings
 
-String configuration values in `garden.yml` can be templated to inject, among other things, variables,
+String configuration values in `garden.yml` can be templated to inject variables,
 information about the user's environment, references to other modules/services etc.
 
 The syntax for templated strings is `${some.key}`. The key is looked up from the context available when
@@ -347,10 +347,10 @@ version as part of a URI:
       OTHER_MODULE_ENDPOINT: http://other-module/api/${modules.other-module.version}
 ```
 
-Note that while the syntax looks similar to template strings in Javascript, you can currently only do simple
-lookups of keys and not execute arbitrary JS expressions.
+Note that while this syntax looks similar to template strings in Javascript, currently, only simple lookups by key
+and conditionals are supported, whereas arbitrary JS expressions are not.
 
-Another common use case is to define `variables` in the project/environment configuration, and use template strings
+Another common use case is to define `variables` in the project/environment configuration, and to use template strings
 to propagate values to modules in the project:
 
 ```yaml
@@ -370,12 +370,12 @@ services:
       LOG_LEVEL: ${var.log-level}
 ```
 
-For a full reference of keys that are available in template strings, please look at the
+For a full reference of the keys available in template strings, please look at the
 [Template Strings Reference](../reference/template-strings.md).
 
 ### Conditionals
 
-You can do conditional statements in template strings, using the `||` operator. For example:
+You can use conditional expressions in template strings, using the `||` operator. For example:
 
 ```yaml
   # ...
@@ -385,12 +385,12 @@ You can do conditional statements in template strings, using the `||` operator. 
 ```
 
 This allows you to easily set default values when certain template keys are not available, and to configure your
-project based on varying context.
+project based on a dynamic context.
 
 ### Numbers, booleans and null values
 
-When a template string key resolves to a number, boolean or null, the output is handled in two different ways,
-depending on whether the template string is part of surrounding string or not.
+When a template string key resolves to a number, boolean or null, its output is handled in one of two different ways,
+depending on whether the template string is part of a surrounding string or not.
 
 If the template string is the whole string being interpolated, we assign the number, boolean or null directly to the
 key:
@@ -407,11 +407,11 @@ services:
   - name: my-service
     ...
     limits:
-      memory: ${var.global-memory-limit}   # <- resolves to a number, as opposed to "100" as a string
+      memory: ${var.global-memory-limit}   # <- resolves to a number, as opposed to the string "100"
 ```
 
-If however the template string is part of a surrounding string, the value is formatted into the string, as you would
-expect:
+If, however, the template string is not the whole string being interpolated, but a component of it, the value is
+formatted into the string, as you would expect:
 
 ```yaml
 kind: Project
@@ -434,6 +434,6 @@ services:
 
 We highly recommend browsing through the [Example projects](../examples/README.md) to see different examples of how projects and modules can be configured.
 
-Also be sure to look at the [Config Files Reference](../reference/config.md) for more details on each of the available
-configuration fields, and the [Template Strings Reference](../reference/template-strings.md) for available keys in
+Also, be sure to look at the [Config Files Reference](../reference/config.md) for more details on each of the available
+configuration fields, and the [Template Strings Reference](../reference/template-strings.md) for the keys available in
 template strings.

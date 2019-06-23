@@ -1,19 +1,22 @@
-# Template strings reference
+# Template string reference
 
-Below you'll find the schema for the keys available when interpolating template strings (see our
-[Configuration Files](../using-garden/configuration-files.md) guide for information and usage examples).
+Below you'll find the schema of the keys available when interpolating template strings (see our
+[Configuration Files](../using-garden/configuration-files.md) guide for more information and usage examples).
 
-Note that there are three sections below, because Project configs and Module configs have different keys available to
-them, and additional keys are available under `providers` in Project configs.
+Note that there are three sections below, since Project configs and Module configs have different keys available to
+them, and since additional keys are available under `providers` in Project configs.
 Please make sure to refer to the correct section.
 
-Modules are able to reference defined `outputs` from other modules, via the `${modules.<module-name>.outputs}` key.
-For details on which outputs are available for a module type, please refer to the
-[reference](https://docs.garden.io/reference/module-types) docs for the module type and look for the _Outputs_ section.
+Modules can reference `outputs` defined by other modules, via the `${modules.<module-name>.outputs}` key.
+For details on which outputs are available for a given module type, please refer to the
+[reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the
+_Outputs_ section.
 
 ## Project configuration context
 
-The following keys are available in template strings anywhere in Project `garden.yml` config files:
+The following keys are available in any template strings within project definitions in `garden.yml` config files
+(see the [Provider](#provider-configuration-context) section below for additional keys available when configuring
+`providers`):
 
 ```yaml
 {{{projectContext}}}
@@ -22,7 +25,7 @@ The following keys are available in template strings anywhere in Project `garden
 ## Provider configuration context
 
 The following keys are available in template strings under the `providers` key (or `environments[].providers)
-in Project `garden.yml` config files:
+in `garden.yml` project config files:
 
 ```yaml
 {{{providerContext}}}
@@ -30,7 +33,7 @@ in Project `garden.yml` config files:
 
 ## Module configuration context
 
-The following keys are available in template strings under Module `garden.yml` config files:
+The following keys are available in template strings with module definitions in `garden.yml` config files:
 
 ```yaml
 {{{moduleContext}}}
