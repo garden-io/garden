@@ -11,13 +11,12 @@ import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
+import * as CircularJSON from "circular-json"
 import {
   curryRight,
   flow,
   isArray,
   isEmpty,
-  reduce,
-  kebabCase,
   repeat,
 } from "lodash"
 import cliTruncate = require("cli-truncate")
@@ -90,14 +89,12 @@ export function renderError(entry: LogEntry) {
   if (error) {
     const { detail, message, stack } = error
     let out = stack || message
-    if (!isEmpty(detail)) {
-      const kebabCasedDetail = reduce(detail, (acc, val, key) => {
-        acc[kebabCase(key)] = val
-        return acc
-      }, {})
 
+    const sanitized = JSON.parse(CircularJSON.stringify(detail))
+
+    if (!isEmpty(detail)) {
       try {
-        const yamlDetail = yaml.safeDump(kebabCasedDetail, { noRefs: true, skipInvalid: true })
+        const yamlDetail = yaml.safeDump(sanitized, { noRefs: true, skipInvalid: true })
         out += `\nError Details:\n${yamlDetail}`
       } catch (err) {
         out += `\nUnable to render error details:\n${err.message}`
