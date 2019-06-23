@@ -95,6 +95,7 @@ export const gardenPlugin = (): GardenPlugin => ({
                 servicePort: emulatorPort,
               },
             ],
+            replicas: 1,
             volumes: [],
           }
 

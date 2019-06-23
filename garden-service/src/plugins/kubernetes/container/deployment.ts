@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { V1Container } from "@kubernetes/client-node"
 import { extend, keyBy, set, toPairs } from "lodash"
 import { RuntimeContext, Service, ServiceStatus } from "../../../types/service"
 import { ContainerModule, ContainerService } from "../../container/config"
@@ -27,6 +28,7 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { millicpuToString, kilobytesToString } from "../util"
 import { gardenAnnotationKey } from "../../../util/string"
+import chalk from "chalk"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
@@ -68,7 +70,7 @@ export async function createContainerObjects(
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, provider.config.context)
   const ingresses = await createIngressResources(api, provider, namespace, service)
-  const deployment = await createDeployment(provider, service, runtimeContext, namespace, enableHotReload)
+  const deployment = await createDeployment({ provider, service, runtimeContext, namespace, enableHotReload, log })
   const kubeservices = await createServiceResources(service, namespace)
 
   const objects = [deployment, ...kubeservices, ...ingresses]
@@ -82,16 +84,31 @@ export async function createContainerObjects(
   })
 }
 
+interface CreateDeploymentParams {
+  provider: KubernetesProvider,
+  service: ContainerService,
+  runtimeContext: RuntimeContext,
+  namespace: string,
+  enableHotReload: boolean,
+  log: LogEntry,
+}
+
 export async function createDeployment(
-  provider: KubernetesProvider, service: ContainerService,
-  runtimeContext: RuntimeContext, namespace: string, enableHotReload: boolean,
+  { provider, service, runtimeContext, namespace, enableHotReload, log }: CreateDeploymentParams,
 ): Promise<KubernetesResource> {
 
   const spec = service.spec
-  // TODO: support specifying replica count
-  const configuredReplicas = 1 // service.spec.count[env.name] || 1
+  let configuredReplicas = service.spec.replicas
   const deployment: any = deploymentConfig(service, configuredReplicas, namespace)
   const envVars = { ...runtimeContext.envVars, ...service.spec.env }
+
+  if (enableHotReload && service.spec.replicas > 1) {
+    log.warn({
+      msg: chalk.yellow(`Ignoring replicas config on container service ${service.name} while in hot-reload mode`),
+      symbol: "warning",
+    })
+    configuredReplicas = 1
+  }
 
   const env: KubeEnvVar[] = toPairs(envVars).map(([name, value]) => ({ name, value: value + "" }))
 
@@ -114,7 +131,7 @@ export async function createDeployment(
   const registryConfig = provider.config.deploymentRegistry
   const imageId = await containerHelpers.getDeploymentImageId(service.module, registryConfig)
 
-  const container: any = {
+  const container: V1Container = {
     name: service.name,
     image: imageId,
     env,
@@ -162,7 +179,7 @@ export async function createDeployment(
   const ports = spec.ports
 
   for (const port of ports) {
-    container.ports.push({
+    container.ports!.push({
       name: port.name,
       protocol: port.protocol,
       containerPort: port.containerPort,
@@ -180,7 +197,7 @@ export async function createDeployment(
       // For daemons we can expose host ports directly on the Pod, as opposed to only via the Service resource.
       // This allows us to choose any port.
       // TODO: validate that conflicting ports are not defined.
-      container.ports.push({
+      container.ports!.push({
         protocol: port.protocol,
         containerPort: port.containerPort,
         hostPort: port.hostPort,
@@ -207,7 +224,7 @@ export async function createDeployment(
   }
 
   // this is important for status checks to work correctly, because how K8s normalizes resources
-  if (!container.ports.length) {
+  if (!container.ports!.length) {
     delete container.ports
   }
 

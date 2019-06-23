@@ -303,7 +303,7 @@ The names of any services that this service depends on at runtime, and the names
 
 [services](#services) > annotations
 
-Annotations to attach to the service (Note: May not be applicable to all providers)
+Annotations to attach to the service (Note: May not be applicable to all providers).
 
 | Type | Required |
 | ---- | -------- |
@@ -351,7 +351,7 @@ services:
 
 [services](#services) > daemon
 
-Whether to run the service as a daemon (to ensure only one runs per node).
+Whether to run the service as a daemon (to ensure exactly one instance runs per node). May not be supported by all providers.
 
 | Type | Required |
 | ---- | -------- |
@@ -652,6 +652,17 @@ Set this to expose the service on the specified port on the host node (may not b
 | ---- | -------- |
 | `number` | No
 
+### `services[].replicas`
+
+[services](#services) > replicas
+
+The number of instances of the service to deploy.
+Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`, with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+
+| Type | Required |
+| ---- | -------- |
+| `number` | No
+
 ### `services[].volumes[]`
 
 [services](#services) > volumes
@@ -929,6 +940,7 @@ services:
         servicePort: <containerPort>
         hostPort:
         nodePort:
+    replicas: 1
     volumes:
       - name:
         containerPath:

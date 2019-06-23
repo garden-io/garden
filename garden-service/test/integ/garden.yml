@@ -21,6 +21,8 @@ tests:
     command: [npm, run, integ-full, --, --only=tasks, --showlog=true, --env=testing]
   - name: hot-reload # Tests for hot-reload are currently being skipped
     command: [npm, run, integ-full, --, --only=hot-reload, --showlog=true, --env=testing]
+  - name: project-variables
+    command: [npm, run, integ-full, --, --only=project-variables, --showlog=true, --env=testing]
   - name: vote-helm
     command: [npm, run, integ-full, --, --only=vote-helm, --showlog=true, --env=testing]
   - name: vote

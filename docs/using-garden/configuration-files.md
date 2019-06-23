@@ -399,15 +399,14 @@ key:
 kind: Project
 ...
 variables:
-  global-memory-limit: 100
+  default-replicas: 3
 ---
 kind: Module
 ...
 services:
   - name: my-service
     ...
-    limits:
-      memory: ${var.global-memory-limit}   # <- resolves to a number, as opposed to the string "100"
+    replicas: ${var.default-replicas}   # <- resolves to a number, as opposed to the string "3"
 ```
 
 If, however, the template string is not the whole string being interpolated, but a component of it, the value is

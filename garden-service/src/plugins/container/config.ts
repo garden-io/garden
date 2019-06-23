@@ -87,6 +87,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   hotReloadArgs?: string[],
   limits: ServiceLimitSpec,
   ports: ServicePortSpec[],
+  replicas: number,
   volumes: ServiceVolumeSpec[],
 }
 
@@ -224,7 +225,7 @@ const volumeSchema = Joi.object()
 const serviceSchema = baseServiceSpecSchema
   .keys({
     annotations: annotationsSchema
-      .description("Annotations to attach to the service (Note: May not be applicable to all providers)"),
+      .description("Annotations to attach to the service (Note: May not be applicable to all providers)."),
     command: Joi.array().items(Joi.string())
       .description("The command/entrypoint to run the container with when starting the service.")
       .example([commandExample, {}]),
@@ -233,7 +234,10 @@ const serviceSchema = baseServiceSpecSchema
       .example([["npm", "start"], {}]),
     daemon: Joi.boolean()
       .default(false)
-      .description("Whether to run the service as a daemon (to ensure only one runs per node)."),
+      .description(deline`
+        Whether to run the service as a daemon (to ensure exactly one instance runs per node).
+        May not be supported by all providers.
+      `),
     ingresses: joiArray(ingressSchema)
       .description("List of ingress endpoints that the service exposes.")
       .example([
@@ -259,6 +263,16 @@ const serviceSchema = baseServiceSpecSchema
     ports: joiArray(portSchema)
       .unique("name")
       .description("List of ports that the service container exposes."),
+    replicas: Joi.number()
+      .integer()
+      .min(1)
+      .default(1)
+      .description(deline`
+        The number of instances of the service to deploy.
+
+        Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
+        with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+      `),
     volumes: joiArray(volumeSchema)
       .unique("name")
       .description("List of volumes that should be mounted when deploying the container."),

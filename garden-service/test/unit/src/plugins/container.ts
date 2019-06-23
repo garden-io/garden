@@ -419,6 +419,7 @@ describe("plugins.container", () => {
                 containerPort: 8080,
                 servicePort: 8080,
               }],
+              replicas: 1,
               volumes: [],
             }],
             tasks: [{
@@ -485,6 +486,7 @@ describe("plugins.container", () => {
                   memory: 456,
                 },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
+                replicas: 1,
                 volumes: [],
               }],
             tasks:
@@ -535,6 +537,7 @@ describe("plugins.container", () => {
                   memory: 456,
                 },
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
+                replicas: 1,
                 volumes: [],
               },
             }],
@@ -606,6 +609,7 @@ describe("plugins.container", () => {
               limits: defaultContainerLimits,
               env: {},
               ports: [],
+              replicas: 1,
               volumes: [],
             }],
             tasks: [{
@@ -666,6 +670,7 @@ describe("plugins.container", () => {
               },
               limits: defaultContainerLimits,
               ports: [],
+              replicas: 1,
               volumes: [],
             }],
             tasks: [{
@@ -717,6 +722,7 @@ describe("plugins.container", () => {
               },
               limits: defaultContainerLimits,
               ports: [],
+              replicas: 1,
               volumes: [],
             }],
             tasks: [{
