@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, resolve } from "path"
+import { resolve } from "path"
 import * as execa from "execa"
 import { writeFile, readFile, ensureDir, pathExists, remove } from "fs-extra"
 import { getUrlChecksum } from "./support/support-util"
 import * as handlebars from "handlebars"
-import { isString, clone, extend, find } from "lodash"
+import { find } from "lodash"
 
 const Octokit = require("@octokit/rest")
 const gulp = require("gulp")
@@ -20,32 +20,9 @@ const checkLicense = require("gulp-license-check")
 const tsSources = ["garden-service/src/**/*.ts", "dashboard/src/**/*.ts*"]
 const pegjsSources = "garden-service/src/*.pegjs"
 const licenseHeaderPath = "support/license-header.txt"
-const modulePaths = ["garden-service"]
 const tmpDir = resolve(__dirname, "tmp")
 
 process.env.FORCE_COLOR = "true"
-
-// import all tasks from nested modules and put a prefix on their name (e.g. "build" -> "garden-service:build")
-modulePaths.forEach(m => {
-  // override gulp methods to automatically prefix task names
-  const prefix = (name) => `${m}:${name}`
-  const wrapTask = (nameOrFunction) => isString(nameOrFunction) ? prefix(nameOrFunction) : nameOrFunction
-
-  const gulpfilePath = join(__dirname, m, "gulpfile.ts")
-  const tasks = require(gulpfilePath)
-
-  const _gulp = clone(gulp)
-  extend(_gulp, {
-    ...gulp,
-    task: (name, ...args) => gulp.task.bind(gulp)(prefix(name), ...args),
-    series: (...args) => gulp.series.bind(gulp)(...args.map(wrapTask)),
-    parallel: (...args) => gulp.parallel.bind(gulp)(...args.map(wrapTask)),
-    watch: (sources, t) => gulp.watch.bind(gulp)(sources, wrapTask(t)),
-  })
-  tasks(_gulp)
-})
-
-gulp.task("generate-docs", gulp.parallel("garden-service:generate-docs"))
 
 gulp.task("check-licenses", () =>
   gulp.src([...tsSources, pegjsSources])
