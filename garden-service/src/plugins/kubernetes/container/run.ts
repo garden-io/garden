@@ -22,12 +22,13 @@ import { RunModuleParams } from "../../../types/plugin/module/runModule"
 import { RunResult } from "../../../types/plugin/base"
 import { RunServiceParams } from "../../../types/plugin/service/runService"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
+import { LogEntry } from "../../../logger/log-entry"
+import { getWorkloadPods } from "../util"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, log, service, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const api = await KubeApi.factory(log, provider.config.context)
   const status = await getContainerServiceStatus({ ...params, hotReload: false })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
@@ -39,22 +40,30 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
     })
   }
 
-  // get a running pod
-  // NOTE: the awkward function signature called out here: https://github.com/kubernetes-client/javascript/issues/53
-  const podsRes = await api.core.listNamespacedPod(
-    namespace,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    `service=${service.name}`,
-  )
-  const pod = podsRes.items[0]
+  return execInDeployment({ provider, log, namespace, deploymentName: service.name, command, interactive })
+}
+
+export async function execInDeployment(
+  { provider, log, namespace, deploymentName, command, interactive }:
+    {
+      provider: KubernetesProvider,
+      log: LogEntry,
+      namespace: string,
+      deploymentName: string,
+      command: string[],
+      interactive: boolean,
+    },
+) {
+  const api = await KubeApi.factory(log, provider.config.context)
+  const deployment = await api.apps.readNamespacedDeployment(deploymentName, namespace)
+  const pods = await getWorkloadPods(api, namespace, deployment)
+
+  const pod = pods[0]
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure
-    throw new DeploymentError(`Could not find running pod for ${service.name}`, {
-      serviceName: service.name,
+    throw new DeploymentError(`Could not find running pod for ${deploymentName}`, {
+      deploymentName,
     })
   }
 

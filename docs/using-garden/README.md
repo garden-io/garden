@@ -10,7 +10,14 @@ This one is all about Garden's configuration files—an overview of project and 
 
 ## [Remote Clusters](./remote-clusters.md)
 
-Most of these guides currently focus on local development. If you'd like to use a remote cluster, though, check out this guide.
+Garden can work smoothly with both local and remote clusters. If you'd like to use a remote cluster, you may have some
+additional considerations and requirements. Take a look at this guide for details.
+
+## [In-cluster building](./in-cluster-building.md)
+
+One of Garden's most powerful features is the ability to build images in your Kubernetes development cluster, thus
+avoiding the need for local Kubernetes clusters. This guide covers the requirements for in-cluster building and how
+to set it up.
 
 ## [Hot Reload](./hot-reload.md)
 

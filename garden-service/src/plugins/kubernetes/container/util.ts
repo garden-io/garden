@@ -16,7 +16,17 @@ import { PluginError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import axios from "axios"
+import axios, { AxiosRequestConfig } from "axios"
+
+export async function queryRegistry(
+  ctx: KubernetesPluginContext, log: LogEntry, path: string, opts: AxiosRequestConfig = {},
+) {
+  const registryFwd = await getRegistryPortForward(ctx, log)
+  const baseUrl = `http://localhost:${registryFwd.localPort}/v2/`
+  const url = resolve(baseUrl, path)
+
+  return axios({ url, ...opts })
+}
 
 export async function getRegistryPortForward(ctx: PluginContext, log: LogEntry) {
   return getPortForward({
@@ -31,10 +41,16 @@ export async function getRegistryPortForward(ctx: PluginContext, log: LogEntry) 
 export async function getManifestFromRegistry(
   ctx: KubernetesPluginContext, module: ContainerModule, log: LogEntry,
 ) {
-  const url = await getImageRegistryUrl(ctx, module, log, `manifests/${module.version.versionString}`)
+  const imageId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
+  const imageName = containerHelpers.unparseImageId({
+    ...containerHelpers.parseImageId(imageId),
+    host: undefined,
+    tag: undefined,
+  })
+  const path = `${imageName}/manifests/${module.version.versionString}`
 
   try {
-    const res = await axios({ url })
+    const res = await queryRegistry(ctx, log, path)
     log.silly(res.data)
     return res.data
   } catch (err) {
@@ -47,18 +63,4 @@ export async function getManifestFromRegistry(
       })
     }
   }
-}
-
-async function getImageRegistryUrl(ctx: KubernetesPluginContext, module: ContainerModule, log: LogEntry, path: string) {
-  const registryFwd = await getRegistryPortForward(ctx, log)
-  const imageId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
-  const imageName = containerHelpers.unparseImageId({
-    ...containerHelpers.parseImageId(imageId),
-    host: undefined,
-    tag: undefined,
-  })
-
-  const baseUrl = `http://localhost:${registryFwd.localPort}/v2/${imageName}/`
-
-  return resolve(baseUrl, path)
 }

@@ -13,7 +13,6 @@ import { ConfigurationError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { joiArray, PrimitiveMap, joiProviderName, joi } from "../../config/common"
 import { Module } from "../../types/module"
-import { ConfigureProviderResult } from "../../types/plugin/outputs"
 import { ServiceStatus, ServiceIngress, Service } from "../../types/service"
 import {
   ExecModuleSpec,
@@ -44,7 +43,7 @@ import { HelmModuleConfig } from "../kubernetes/helm/config"
 import { keyBy, union } from "lodash"
 import { DEFAULT_API_VERSION } from "../../constants"
 import { ExecModuleConfig } from "../exec"
-import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
+import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { KubernetesDeployment } from "../kubernetes/types"
 
 export const stackFilename = "stack.yml"

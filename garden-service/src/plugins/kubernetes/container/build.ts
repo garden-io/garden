@@ -224,9 +224,7 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
 }
 
 // TODO: we should make a simple service around this instead of execing into containers
-async function execInBuilder({ provider, log, args, timeout }: BuilderExecParams) {
-  const podName = await getBuilderPodName(provider, log)
-
+export async function execInBuilder({ provider, log, args, timeout, podName }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "-c", dockerDaemonContainerName, "--", ...args]
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
@@ -240,7 +238,7 @@ async function execInBuilder({ provider, log, args, timeout }: BuilderExecParams
   })
 }
 
-async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
+export async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
   const api = await KubeApi.factory(log, provider.config.context)
 
   const builderStatusRes = await api.apps.readNamespacedDeployment(dockerDaemonDeploymentName, systemNamespace)

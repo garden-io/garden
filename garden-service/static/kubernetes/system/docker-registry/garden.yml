@@ -4,7 +4,7 @@ name: docker-registry
 type: helm
 chart: stable/docker-registry
 releaseName: garden-docker-registry
-version: 1.7.0
+version: 1.8.0
 values:
   resources:
     limits:
@@ -19,5 +19,7 @@ values:
   service:
     port: 5000
   persistence:
+    enabled: true
     size: ${var.registry-storage-size}
     storageClass: ${var.registry-storage-class}
+    deleteEnabled: true

@@ -114,12 +114,13 @@ export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
 export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_]*$/i
 
+export const joiIdentifierDescription =
+  "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
+  "and cannot end with a dash) and must not be longer than 63 characters."
+
 export const joiIdentifier = () => joi.string()
   .regex(identifierRegex)
-  .description(
-    "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
-    "and cannot end with a dash) and must not be longer than 63 characters.",
-  )
+  .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
 
 export const joiProviderName = (name: string) => joiIdentifier().required()
   .description("The name of the provider plugin to use.")

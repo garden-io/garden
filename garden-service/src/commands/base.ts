@@ -223,10 +223,13 @@ export interface CommandResult<T = any> {
   errors?: GardenError[]
 }
 
-export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> {
+export interface CommandParamsBase<T extends Parameters = {}, U extends Parameters = {}> {
   args: ParameterValues<T>
   opts: ParameterValues<GlobalOptions & U>
   log: LogEntry
+}
+
+export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
   headerLog: LogEntry
   footerLog: LogEntry
 }
