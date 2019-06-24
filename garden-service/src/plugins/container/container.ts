@@ -16,9 +16,9 @@ import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
 import { KubernetesProvider } from "../kubernetes/config"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
-import { PublishModuleParams } from "../../types/plugin/module/publishModule"
 import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
 import { joi } from "../../config/common"
+import { publishContainerModule } from "./publish"
 
 export const containerModuleOutputsSchema = joi.object()
   .keys({
@@ -149,29 +149,7 @@ export const gardenPlugin = (): GardenPlugin => ({
       configure: configureContainerModule,
       getBuildStatus: getContainerBuildStatus,
       build: buildContainerModule,
-
-      async publishModule({ module, log }: PublishModuleParams<ContainerModule>) {
-        if (!(await containerHelpers.hasDockerfile(module))) {
-          log.setState({ msg: `Nothing to publish` })
-          return { published: false }
-        }
-
-        const localId = await containerHelpers.getLocalImageId(module)
-        const remoteId = await containerHelpers.getPublicImageId(module)
-
-        log.setState({ msg: `Publishing image ${remoteId}...` })
-
-        if (localId !== remoteId) {
-          await containerHelpers.dockerCli(module, ["tag", localId, remoteId])
-        }
-
-        // TODO: log error if it occurs
-        // TODO: stream output to log if at debug log level
-        // TODO: check if module already exists remotely?
-        await containerHelpers.dockerCli(module, ["push", remoteId])
-
-        return { published: true, message: `Published ${remoteId}` }
-      },
+      publish: publishContainerModule,
 
       async hotReloadService(_: HotReloadServiceParams) {
         return {}

@@ -343,7 +343,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   configure: Promise<ConfigureModuleResult>
   getBuildStatus: Promise<BuildStatus>
   build: Promise<BuildResult>
-  publishModule: Promise<PublishResult>
+  publish: Promise<PublishResult>
   runModule: Promise<RunResult>
   testModule: Promise<TestResult>
   getTestResult: Promise<TestResult | null>

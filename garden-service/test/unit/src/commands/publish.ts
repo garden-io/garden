@@ -29,7 +29,7 @@ const testProvider: PluginFactory = () => {
         configure: configureTestModule,
         getBuildStatus,
         build,
-        publishModule,
+        publish: publishModule,
       },
     },
   }

@@ -7,3 +7,5 @@
  */
 
 export const RSYNC_PORT = 873
+export const CLUSTER_REGISTRY_PORT = 5000
+export const CLUSTER_REGISTRY_DEPLOYMENT_NAME = "garden-docker-registry"

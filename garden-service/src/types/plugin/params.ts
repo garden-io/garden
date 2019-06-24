@@ -369,7 +369,7 @@ export interface ModuleActionParams<T extends Module = Module> {
   configure: ConfigureModuleParams<T>
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
-  publishModule: PublishModuleParams<T>
+  publish: PublishModuleParams<T>
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>

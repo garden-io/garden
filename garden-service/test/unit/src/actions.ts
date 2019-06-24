@@ -467,8 +467,8 @@ const testPlugin: PluginFactory = async () => ({
         return {}
       },
 
-      publishModule: async (params) => {
-        validate(params, moduleActionDescriptions.publishModule.paramsSchema)
+      publish: async (params) => {
+        validate(params, moduleActionDescriptions.publish.paramsSchema)
         return { published: true }
       },
 
