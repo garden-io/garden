@@ -314,14 +314,14 @@ export class TaskGraph {
   }
 
   private logTaskError(node: TaskNode, err) {
-    const divider = padEnd("", 80, "—")
+    const divider = padEnd("", 80, "━")
     const error = toGardenError(err)
     const errorMessage = error.message.trim()
 
     const msg =
-      chalk.red(`\nFailed ${node.getDescription()}. Here is the output:\n${divider}\n`) +
+      chalk.red.bold(`\nFailed ${node.getDescription()}. Here is the output:\n${divider}\n`) +
       (hasAnsi(errorMessage) ? errorMessage : chalk.red(errorMessage)) +
-      chalk.red(`\n${divider}\n`)
+      chalk.red.bold(`\n${divider}\n`)
 
     this.log.error({ msg, error })
   }

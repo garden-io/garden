@@ -8,7 +8,7 @@
 
 import { ServiceStatus } from "../../../types/service"
 import { getAppNamespace } from "../namespace"
-import { waitForResources } from "../status"
+import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
 import {

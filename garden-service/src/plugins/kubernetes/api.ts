@@ -295,7 +295,8 @@ export class KubeApi {
       ? `${basePath}/namespaces/${namespace}/${resource.name}/${name}`
       : `${basePath}/${resource.name}/${name}`
 
-    return this.request(log, apiPath)
+    const res = await this.request(log, apiPath)
+    return res.body
   }
 
   async upsert<K extends keyof CrudMapType>(

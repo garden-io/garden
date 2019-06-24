@@ -26,7 +26,8 @@ import { KubernetesProvider } from "../kubernetes/config"
 import { getNamespace, getAppNamespace } from "../kubernetes/namespace"
 import { dumpYaml, findByName } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
-import { waitForResources, checkWorkloadStatus } from "../kubernetes/status"
+import { waitForResources } from "../kubernetes/status/status"
+import { checkWorkloadStatus } from "../kubernetes/status/workload"
 import { CommonServiceSpec } from "../../config/service"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
@@ -435,7 +436,8 @@ async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusP
   const container: any = findByName(deployment.spec.template.spec.containers, service.name)
   const envVersion = findByName<any>(container.env, "GARDEN_VERSION")
   const version = envVersion ? envVersion.value : undefined
-  const status = await checkWorkloadStatus(api, namespace, deployment, log)
+  const resourceVersion = parseInt(deployment.metadata.resourceVersion!, 10)
+  const status = await checkWorkloadStatus({ api, namespace, resource: deployment, log, resourceVersion })
 
   return {
     state: status.state,

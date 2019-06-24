@@ -9,7 +9,7 @@
 import { ServiceStatus, ServiceState } from "../../../types/service"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { getExecModuleBuildStatus } from "../../exec"
-import { compareDeployedObjects } from "../status"
+import { compareDeployedObjects } from "../status/status"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import { LogEntry } from "../../../logger/log-entry"

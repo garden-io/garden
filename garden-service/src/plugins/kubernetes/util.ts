@@ -11,8 +11,9 @@ import { get, flatten, uniqBy } from "lodash"
 import { ChildProcess } from "child_process"
 import getPort = require("get-port")
 const AsyncLock = require("async-lock")
+import { V1Pod } from "@kubernetes/client-node"
 
-import { KubernetesResource, KubernetesWorkload, KubernetesPod } from "./types"
+import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
 import { splitLast } from "../../util/util"
 import { KubeApi } from "./api"
 import { PluginContext } from "../../plugin-context"
@@ -68,12 +69,17 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
  */
 export async function getPods(
   api: KubeApi, namespace: string, selector: { [key: string]: string },
-): Promise<KubernetesPod[]> {
+): Promise<KubernetesServerResource<V1Pod>[]> {
   const selectorString = Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
   const res = await api.core.listNamespacedPod(
     namespace, true, undefined, undefined, undefined, selectorString,
   )
-  return <KubernetesPod[]>res.items
+  return <KubernetesServerResource<V1Pod>[]>res.items.map(pod => {
+    // inexplicably, the API sometimes returns apiVersion and kind as undefined...
+    pod.apiVersion = "v1"
+    pod.kind = "Pod"
+    return pod
+  })
 }
 
 /**
