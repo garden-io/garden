@@ -25,7 +25,8 @@ import hasAnsi = require("has-ansi")
 
 import { LogEntry, EmojiName } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml } from "../util/util"
+import { highlightYaml, deepFilter } from "../util/util"
+import { isNumber } from "util"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -90,10 +91,14 @@ export function renderError(entry: LogEntry) {
     const { detail, message, stack } = error
     let out = stack || message
 
-    const sanitized = JSON.parse(CircularJSON.stringify(detail))
+    // We recursively filter out internal fields (i.e. having names starting with _).
+    const filteredDetail = deepFilter(detail, (_, key: string | number) => {
+      return isNumber(key) || !key.startsWith("_")
+    })
 
-    if (!isEmpty(detail)) {
+    if (!isEmpty(filteredDetail)) {
       try {
+        const sanitized = JSON.parse(CircularJSON.stringify(filteredDetail))
         const yamlDetail = yaml.safeDump(sanitized, { noRefs: true, skipInvalid: true })
         out += `\nError Details:\n${yamlDetail}`
       } catch (err) {
