@@ -85,11 +85,14 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     systemReady = systemTillerReady && sysNamespaceUpToDate && systemServiceStatus.state === "ready"
     dashboardPages = systemServiceStatus.dashboardPages
 
-    // If we require manual init and system services are outdated but none are *missing*, we warn
+    // If we require manual init and system services are ready OR outdated but none are *missing*, we warn
     // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
     // there's variance in configuration between users of the same cluster, that most likely shouldn't affect usage.
     const states = Object.values(systemServiceStatus.serviceStatuses).map(s => s.state)
-    if (needManualInit && systemServiceStatus.state === "outdated" && !states.includes("missing")) {
+    if (
+      (systemServiceStatus.state === "outdated" && !states.includes("missing"))
+      || systemServiceStatus.state === "ready"
+    ) {
       needManualInit = false
     }
 
