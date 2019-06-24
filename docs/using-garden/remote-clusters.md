@@ -75,8 +75,8 @@ and a couple of small utility services.
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
 services are shared across all users of the cluster. Please look at the
-[resources](../reference/providers/kubernetes#providers[].resources) and
-[storage](../reference/providers/kubernetes#providers[].storage) sections in the provider reference for
+[resources](../reference/providers/kubernetes.md#providers[].resources) and
+[storage](../reference/providers/kubernetes.md#providers[].storage) sections in the provider reference for
 details.
 
 ### Kaniko
@@ -95,7 +95,7 @@ The trade-off is generally in performance, at least for the moment, partly becau
 cache layers. There are also some known issues and incompatibilities, so your mileage may vary.
 
 Note the difference in how resources for the builder are allocated. See the
-[builder resources](../reference/providers/kubernetes#providers[].resources.builder) reference for details.
+[builder resources](../reference/providers/kubernetes.md#providers[].resources.builder) reference for details.
 
 ### Local Docker
 
@@ -147,7 +147,7 @@ to your registry's documentation on how to do that (for Docker Hub you simply ru
 
 ### Ingress, TLS and DNS
 
-By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes#providers[].setupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/).  You can find examples for [using Garden with Ambassador](https://github.com/garden-io/garden/tree/v0.9.12/examples/ambassador) and [with Istio](https://github.com/garden-io/garden/tree/v0.9.12/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/master/examples).
+By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providers[].setupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/).  You can find examples for [using Garden with Ambassador](https://github.com/garden-io/garden/tree/v0.9.12/examples/ambassador) and [with Istio](https://github.com/garden-io/garden/tree/v0.9.12/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/master/examples).
 
 You'll also need to point one or more DNS entries to your cluster, and configure a TLS certificate for the hostnames
 you will expose for ingress.
