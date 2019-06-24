@@ -11,13 +11,12 @@ import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
+import * as CircularJSON from "circular-json"
 import {
   curryRight,
   flow,
   isArray,
   isEmpty,
-  reduce,
-  kebabCase,
   repeat,
 } from "lodash"
 import cliTruncate = require("cli-truncate")
@@ -26,7 +25,8 @@ import hasAnsi = require("has-ansi")
 
 import { LogEntry, EmojiName } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml } from "../util/util"
+import { highlightYaml, deepFilter } from "../util/util"
+import { isNumber } from "util"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -90,14 +90,16 @@ export function renderError(entry: LogEntry) {
   if (error) {
     const { detail, message, stack } = error
     let out = stack || message
-    if (!isEmpty(detail)) {
-      const kebabCasedDetail = reduce(detail, (acc, val, key) => {
-        acc[kebabCase(key)] = val
-        return acc
-      }, {})
 
+    // We recursively filter out internal fields (i.e. having names starting with _).
+    const filteredDetail = deepFilter(detail, (_, key: string | number) => {
+      return isNumber(key) || !key.startsWith("_")
+    })
+
+    if (!isEmpty(filteredDetail)) {
       try {
-        const yamlDetail = yaml.safeDump(kebabCasedDetail, { noRefs: true, skipInvalid: true })
+        const sanitized = JSON.parse(CircularJSON.stringify(filteredDetail))
+        const yamlDetail = yaml.safeDump(sanitized, { noRefs: true, skipInvalid: true })
         out += `\nError Details:\n${yamlDetail}`
       } catch (err) {
         out += `\nUnable to render error details:\n${err.message}`
