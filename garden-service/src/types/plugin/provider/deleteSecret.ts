@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginActionParamsBase } from "../base"
 import { dedent } from "../../../util/string"
 import { getSecretParamsSchema } from "./getSecret"
+import { joi } from "../../../config/common"
 
 export interface DeleteSecretParams extends PluginActionParamsBase {
   key: string
@@ -24,9 +24,9 @@ export const deleteSecret = {
     Remove a secret for this plugin in the current environment (as set via \`setSecret\`).
   `,
   paramsSchema: getSecretParamsSchema,
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
-      found: Joi.boolean()
+      found: joi.boolean()
         .required()
         .description("Set to true if the key was deleted, false if it was not found."),
     }),

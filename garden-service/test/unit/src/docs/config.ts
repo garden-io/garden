@@ -5,24 +5,23 @@ import {
   renderConfigReference,
 } from "../../../../src/docs/config"
 import { expect } from "chai"
-import * as Joi from "joi"
 import dedent = require("dedent")
-import { joiArray } from "../../../../src/config/common"
+import { joiArray, joi } from "../../../../src/config/common"
 
 describe("config", () => {
-  const serivcePortSchema = Joi.number().default((context) => context.containerPort, "<same as containerPort>")
+  const serivcePortSchema = joi.number().default((context) => context.containerPort, "<same as containerPort>")
     .example("8080")
     .description("description")
 
-  const testDefaultSchema = Joi.number().default(() => "result", "default value")
+  const testDefaultSchema = joi.number().default(() => "result", "default value")
     .description("description")
 
-  const testObject = Joi.object()
+  const testObject = joi.object()
     .keys({
-      testKeyA: Joi.number()
+      testKeyA: joi.number()
         .required()
         .description("key a"),
-      testKeyB: Joi.string()
+      testKeyB: joi.string()
         .only("b")
         .description("key b"),
     })
@@ -31,9 +30,9 @@ describe("config", () => {
   const testArray = joiArray(serivcePortSchema)
     .description("test array")
 
-  const portSchema = Joi.object()
+  const portSchema = joi.object()
     .keys({
-      containerPort: Joi.number()
+      containerPort: joi.number()
         .required()
         .description("description"),
       servicePort: serivcePortSchema,

@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { dedent, deline } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, RunResult, runResultSchema } from "../base"
 import { ModuleVersion, moduleVersionSchema } from "../../../vcs/vcs"
+import { joi } from "../../../config/common"
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   testName: string
@@ -23,7 +23,7 @@ export interface TestResult extends RunResult {
 
 export const testResultSchema = runResultSchema
   .keys({
-    testName: Joi.string()
+    testName: joi.string()
       .required()
       .description("The name of the test that was run."),
   })
@@ -45,7 +45,7 @@ export const getTestResult = {
 
   paramsSchema: moduleActionParamsSchema
     .keys({
-      testName: Joi.string()
+      testName: joi.string()
         .description("A unique name to identify the test run."),
       testVersion: testVersionSchema,
     }),

@@ -9,12 +9,11 @@
 import Bluebird = require("bluebird")
 
 import chalk from "chalk"
-import * as Joi from "joi"
 import { fromPairs, keyBy, mapValues, omit, pickBy, values } from "lodash"
 
 import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
-import { validate } from "./config/common"
+import { validate, joi } from "./config/common"
 import { defaultProvider, Provider } from "./config/provider"
 import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
 import { ActionHandlerMap, Garden, ModuleActionHandlerMap, ModuleActionMap, PluginActionMap } from "./garden"
@@ -261,8 +260,8 @@ export class ActionHelper implements TypeGuard {
       moduleType,
       defaultHandler: async ({ }) => ({
         docs: "",
-        outputsSchema: Joi.object().options({ allowUnknown: true }),
-        schema: Joi.object().options({ allowUnknown: true }),
+        outputsSchema: joi.object().options({ allowUnknown: true }),
+        schema: joi.object().options({ allowUnknown: true }),
       }),
     })
 

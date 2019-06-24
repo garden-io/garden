@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Joi = require("@hapi/joi")
 import username = require("username")
 import { isString } from "lodash"
 import { PrimitiveMap, isPrimitive, Primitive, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
@@ -13,9 +14,9 @@ import { Provider, ProviderConfig } from "./provider"
 import { ModuleConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
-import * as Joi from "joi"
 import { Garden } from "../garden"
 import { ModuleVersion } from "../vcs/vcs"
+import { joi } from "../config/common"
 
 export type ContextKey = string[]
 
@@ -49,7 +50,7 @@ export abstract class ConfigContext {
 
   static getSchema() {
     const schemas = (<any>this)._schemas
-    return Joi.object().keys(schemas).required()
+    return joi.object().keys(schemas).required()
   }
 
   async resolve({ key, nodePath, opts }: ContextResolveParams): Promise<Primitive | undefined> {
@@ -158,14 +159,14 @@ export abstract class ConfigContext {
 
 class LocalContext extends ConfigContext {
   @schema(
-    joiStringMap(Joi.string()).description(
+    joiStringMap(joi.string()).description(
       "A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).",
     ),
   )
   public env: typeof process.env
 
   @schema(
-    Joi.string()
+    joi.string()
       .description(
         "A string indicating the platform that the framework is running on " +
         "(see https://nodejs.org/api/process.html#process_process_platform)",
@@ -175,7 +176,7 @@ class LocalContext extends ConfigContext {
   public platform: string
 
   @schema(
-    Joi.string()
+    joi.string()
       .description(
         "The current username (as resolved by https://github.com/sindresorhus/username)",
       )
@@ -212,7 +213,7 @@ export class ProjectConfigContext extends ConfigContext {
 
 class ProjectContext extends ConfigContext {
   @schema(
-    Joi.string()
+    joi.string()
       .description("The name of the Garden project.")
       .example("my-project"),
   )
@@ -226,7 +227,7 @@ class ProjectContext extends ConfigContext {
 
 class EnvironmentContext extends ConfigContext {
   @schema(
-    Joi.string()
+    joi.string()
       .description("The name of the environment Garden is running against.")
       .example("local"),
   )
@@ -242,7 +243,7 @@ const providersExample = { kubernetes: { config: { clusterHostname: "my-cluster.
 
 class ProviderContext extends ConfigContext {
   @schema(
-    Joi.object()
+    joi.object()
       .description("The resolved configuration for the provider.")
       .example(providersExample.kubernetes),
   )
@@ -300,7 +301,7 @@ const exampleVersion = "v-17ad4cb3fd"
 
 class ModuleContext extends ConfigContext {
   @schema(
-    Joi.string()
+    joi.string()
       .description("The build path of the module.")
       .example("/home/me/code/my-project/.garden/build/my-module"),
   )
@@ -316,10 +317,10 @@ class ModuleContext extends ConfigContext {
   )
   public outputs: PrimitiveMap
 
-  @schema(Joi.string().description("The local path of the module.").example("/home/me/code/my-project/my-module"))
+  @schema(joi.string().description("The local path of the module.").example("/home/me/code/my-project/my-module"))
   public path: string
 
-  @schema(Joi.string().description("The current version of the module.").example(exampleVersion))
+  @schema(joi.string().description("The current version of the module.").example(exampleVersion))
   public version: string
 
   constructor(root: ConfigContext, moduleConfig: ModuleConfig, buildPath: string, version: ModuleVersion) {

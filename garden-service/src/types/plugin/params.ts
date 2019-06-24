@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
 import { ModuleVersion, moduleVersionSchema } from "../../vcs/vcs"
-import { Primitive, joiPrimitive, joiArray } from "../../config/common"
+import { Primitive, joiPrimitive, joiArray, joi } from "../../config/common"
 import { Module, moduleSchema } from "../module"
 import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "../service"
 import { Task } from "../task"
@@ -33,11 +32,11 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
 }
 
 // Note: not specifying this further because we will later remove it from the API
-const logEntrySchema = Joi.object()
+const logEntrySchema = joi.object()
   .description("Logging context handler that the handler can use to log messages and progress.")
   .required()
 
-const actionParamsSchema = Joi.object()
+const actionParamsSchema = joi.object()
   .keys({
     ctx: pluginContextSchema
       .required(),
@@ -83,7 +82,7 @@ export interface ConfigureProviderParams<T extends ProviderConfig = any> {
   dependencies: Provider[]
   configStore: ConfigStore
 }
-export const configureProviderParamsSchema = Joi.object()
+export const configureProviderParamsSchema = joi.object()
   .keys({
     config: providerConfigBaseSchema.required(),
     log: logEntrySchema,
@@ -102,7 +101,7 @@ export interface PrepareEnvironmentParams extends PluginActionParamsBase {
 export const prepareEnvironmentParamsSchema = actionParamsSchema
   .keys({
     status: environmentStatusSchema,
-    force: Joi.boolean()
+    force: joi.boolean()
       .description("Force re-configuration of the environment."),
   })
 
@@ -115,7 +114,7 @@ export interface GetSecretParams extends PluginActionParamsBase {
 }
 export const getSecretParamsSchema = actionParamsSchema
   .keys({
-    key: Joi.string()
+    key: joi.string()
       .description("A unique identifier for the secret."),
   })
 
@@ -150,7 +149,7 @@ export interface PluginActionParams {
  * Module actions
  */
 export interface DescribeModuleTypeParams { }
-export const describeModuleTypeParamsSchema = Joi.object()
+export const describeModuleTypeParamsSchema = joi.object()
   .keys({})
 
 export interface ConfigureModuleParams<T extends Module = Module> {
@@ -158,7 +157,7 @@ export interface ConfigureModuleParams<T extends Module = Module> {
   log: LogEntry
   moduleConfig: T["_ConfigType"]
 }
-export const configureModuleParamsSchema = Joi.object()
+export const configureModuleParamsSchema = joi.object()
   .keys({
     ctx: pluginContextSchema
       .required(),
@@ -184,12 +183,12 @@ export interface RunModuleParams<T extends Module = Module> extends PluginModule
   timeout?: number
 }
 const runBaseParams = {
-  interactive: Joi.boolean()
+  interactive: joi.boolean()
     .description("Whether to run the module interactively (i.e. attach to the terminal)."),
   runtimeContext: runtimeContextSchema,
-  silent: Joi.boolean()
+  silent: joi.boolean()
     .description("Set to false if the output should not be logged to the console."),
-  timeout: Joi.number()
+  timeout: joi.number()
     .optional()
     .description("If set, how long to run the command before timing out."),
 }
@@ -197,7 +196,7 @@ const runModuleBaseSchema = moduleActionParamsSchema
   .keys(runBaseParams)
 export const runModuleParamsSchema = runModuleBaseSchema
   .keys({
-    command: joiArray(Joi.string())
+    command: joiArray(joi.string())
       .description("The command to run in the module."),
   })
 
@@ -222,7 +221,7 @@ export interface GetTestResultParams<T extends Module = Module> extends PluginMo
 }
 export const getTestResultParamsSchema = moduleActionParamsSchema
   .keys({
-    testName: Joi.string()
+    testName: joi.string()
       .description("A unique name to identify the test run."),
     testVersion: testVersionSchema,
   })
@@ -242,7 +241,7 @@ export interface GetServiceStatusParams<M extends Module = Module, S extends Mod
 export const getServiceStatusParamsSchema = serviceActionParamsSchema
   .keys({
     runtimeContext: runtimeContextSchema,
-    hotReload: Joi.boolean()
+    hotReload: joi.boolean()
       .default(false)
       .description("Whether the service should be configured for hot-reloading."),
   })
@@ -255,10 +254,10 @@ export interface DeployServiceParams<M extends Module = Module, S extends Module
 }
 export const deployServiceParamsSchema = serviceActionParamsSchema
   .keys({
-    force: Joi.boolean()
+    force: joi.boolean()
       .description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema,
-    hotReload: Joi.boolean()
+    hotReload: joi.boolean()
       .default(false)
       .description("Whether to configure the service for hot-reloading."),
   })
@@ -287,10 +286,10 @@ export interface ExecInServiceParams<M extends Module = Module, S extends Module
 }
 export const execInServiceParamsSchema = serviceActionParamsSchema
   .keys({
-    command: joiArray(Joi.string())
+    command: joiArray(joi.string())
       .description("The command to run alongside the service."),
     runtimeContext: runtimeContextSchema,
-    interactive: Joi.boolean(),
+    interactive: joi.boolean(),
   })
 
 export interface GetServiceLogsParams<M extends Module = Module, S extends Module = Module>
@@ -304,14 +303,14 @@ export interface GetServiceLogsParams<M extends Module = Module, S extends Modul
 export const getServiceLogsParamsSchema = serviceActionParamsSchema
   .keys({
     runtimeContext: runtimeContextSchema,
-    stream: Joi.object()
+    stream: joi.object()
       .description("A Stream object, to write the logs to."),
-    follow: Joi.boolean()
+    follow: joi.boolean()
       .description("Whether to keep listening for logs until aborted."),
-    tail: Joi.number()
+    tail: joi.number()
       .description("Number of lines to get from end of log. Defaults to -1, showing all log lines.")
       .default(-1),
-    startTime: Joi.date()
+    startTime: joi.date()
       .optional()
       .description("If set, only return logs that are as new or newer than this date."),
   })

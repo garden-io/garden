@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("joi")
 import { find } from "lodash"
 
 import { ServiceSpec } from "../../../config/service"
@@ -17,6 +16,7 @@ import {
   joiEnvVars,
   joiUserIdentifier,
   DeepPrimitiveMap,
+  joi,
 } from "../../../config/common"
 import { Module, FileCopySpec } from "../../../types/module"
 import { containsSource, getReleaseName } from "./common"
@@ -59,15 +59,15 @@ export interface HelmTestSpec extends BaseTestSpec {
 export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, HelmTestSpec, HelmTaskSpec> { }
 export type HelmModuleConfig = HelmModule["_ConfigType"]
 
-const resourceSchema = Joi.object()
+const resourceSchema = joi.object()
   .keys({
     // TODO: consider allowing a `resource` field, that includes the kind and name (e.g. Deployment/my-deployment).
     // TODO: allow using a Pod directly
-    kind: Joi.string()
+    kind: joi.string()
       .only(...hotReloadableKinds)
       .default("Deployment")
       .description("The type of Kubernetes resource to sync files to."),
-    name: Joi.string()
+    name: joi.string()
       .description(
         deline`The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
         this can be omitted.
@@ -77,7 +77,7 @@ const resourceSchema = Joi.object()
         directly from the template in question in order to match it. Note that you may need to add single quotes around
         the string for the YAML to be parsed correctly.`,
       ),
-    containerName: Joi.string()
+    containerName: joi.string()
       .description(
         deline`The name of a container in the target. Specify this if the target contains more than one container
         and the main container is not the first container in the spec.`,
@@ -93,7 +93,7 @@ const resourceSchema = Joi.object()
         Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\``,
       )
       .example("my-container-module"),
-    hotReloadArgs: Joi.array().items(Joi.string())
+    hotReloadArgs: joi.array().items(joi.string())
       .description(
         "If specified, overrides the arguments for the main container when running in hot-reload mode.",
       )
@@ -108,7 +108,7 @@ export const execTaskSchema = baseTestSpecSchema
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.`,
       ),
-    args: Joi.array().items(Joi.string())
+    args: joi.array().items(joi.string())
       .description("The arguments to pass to the pod used for execution."),
     env: joiEnvVars(),
   })
@@ -121,7 +121,7 @@ export const execTestSchema = baseTestSpecSchema
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.`,
       ),
-    args: Joi.array().items(Joi.string())
+    args: joi.array().items(joi.string())
       .description("The arguments to pass to the pod used for testing."),
     env: joiEnvVars(),
   })
@@ -143,13 +143,13 @@ export interface HelmServiceSpec extends ServiceSpec {
 
 export type HelmService = Service<HelmModule, ContainerModule>
 
-const parameterValueSchema = Joi.alternatives(
+const parameterValueSchema = joi.alternatives(
   joiPrimitive(),
-  Joi.array().items(Joi.lazy(() => parameterValueSchema)),
-  Joi.object().pattern(/.+/, Joi.lazy(() => parameterValueSchema)),
+  joi.array().items(joi.lazy(() => parameterValueSchema)),
+  joi.object().pattern(/.+/, joi.lazy(() => parameterValueSchema)),
 )
 
-export const helmModuleSpecSchema = Joi.object().keys({
+export const helmModuleSpecSchema = joi.object().keys({
   base: joiUserIdentifier()
     .description(
       deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across
@@ -162,14 +162,14 @@ export const helmModuleSpecSchema = Joi.object().keys({
     )
     .example("my-base-chart"),
   build: baseBuildSpecSchema,
-  chart: Joi.string()
+  chart: joi.string()
     .description(
       deline`A valid Helm chart name or URI (same as you'd input to \`helm install\`).
       Required if the module doesn't contain the Helm chart itself.`,
     )
     .example("stable/nginx-ingress"),
-  chartPath: Joi.string()
-    .uri({ relativeOnly: true })
+  chartPath: joi.string()
+    .posixPath({ subPathOnly: true })
     .description(
       deline`The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any).
       Not used when \`base\` is specified.`,
@@ -179,7 +179,7 @@ export const helmModuleSpecSchema = Joi.object().keys({
     .description("List of names of services that should be deployed before this chart."),
   releaseName: joiIdentifier()
     .description("Optionally override the release name used when installing (defaults to the module name)."),
-  repo: Joi.string()
+  repo: joi.string()
     .description("The repository URL to fetch the chart from."),
   serviceResource: resourceSchema
     .description(
@@ -191,7 +191,7 @@ export const helmModuleSpecSchema = Joi.object().keys({
       We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are
       deployed at once.`,
     ),
-  skipDeploy: Joi.boolean()
+  skipDeploy: joi.boolean()
     .default(false)
     .description(
       deline`Set this to true if the chart should only be built, but not deployed as a service.
@@ -201,9 +201,9 @@ export const helmModuleSpecSchema = Joi.object().keys({
     .description("The task definitions for this module."),
   tests: joiArray(execTestSchema)
     .description("The test suite definitions for this module."),
-  version: Joi.string()
+  version: joi.string()
     .description("The chart version to deploy."),
-  values: Joi.object()
+  values: joi.object()
     .pattern(/.+/, parameterValueSchema)
     .default(() => ({}), "{}")
     .description(

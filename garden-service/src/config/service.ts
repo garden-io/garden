@@ -7,8 +7,7 @@
  */
 
 import deline = require("deline")
-import * as Joi from "joi"
-import { joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray, joiUserIdentifier } from "./common"
+import { joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray, joiUserIdentifier, joi } from "./common"
 
 export interface ServiceSpec { }
 
@@ -23,7 +22,7 @@ export interface CommonServiceSpec extends ServiceSpec {
 
 export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
 
-export const baseServiceSpecSchema = Joi.object()
+export const baseServiceSpecSchema = joi.object()
   .keys({
     name: joiUserIdentifier().required(),
     dependencies: joiArray(joiIdentifier())
@@ -46,7 +45,7 @@ export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends Comm
 
 export const serviceConfigSchema = baseServiceSpecSchema
   .keys({
-    hotReloadable: Joi.boolean()
+    hotReloadable: joi.boolean()
       .default(false)
       .description("Set this to true if the module and service configuration supports hot reloading."),
     sourceModuleName: joiIdentifier()
@@ -56,7 +55,7 @@ export const serviceConfigSchema = baseServiceSpecSchema
         separate module from the parent module. For example, when the service belongs to a module that contains
         manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
       `),
-    spec: Joi.object()
+    spec: joi.object()
       .meta({ extendable: true })
       .description("The service's specification, as defined by its provider plugin."),
   })

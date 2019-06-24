@@ -7,8 +7,7 @@
  */
 
 import deline = require("deline")
-import * as Joi from "joi"
-import { joiArray, joiUserIdentifier } from "./common"
+import { joiArray, joiUserIdentifier, joi } from "./common"
 
 export interface TaskSpec { }
 
@@ -19,19 +18,19 @@ export interface BaseTaskSpec extends TaskSpec {
   timeout: number | null
 }
 
-export const baseTaskSpecSchema = Joi.object()
+export const baseTaskSpecSchema = joi.object()
   .keys({
     name: joiUserIdentifier()
       .required()
       .description("The name of the task."),
-    description: Joi.string().optional()
+    description: joi.string().optional()
       .description("A description of the task."),
-    dependencies: joiArray(Joi.string())
+    dependencies: joiArray(joi.string())
       .description(deline`
         The names of any tasks that must be executed, and the names of any
         services that must be running, before this task is executed.
       `),
-    timeout: Joi.number()
+    timeout: joi.number()
       .optional()
       .allow(null)
       .default(null)
@@ -46,22 +45,22 @@ export interface TaskConfig<T extends TaskSpec = TaskSpec> extends BaseTaskSpec 
 
 export const taskConfigSchema = baseTaskSpecSchema
   .keys({
-    spec: Joi.object()
+    spec: joi.object()
       .meta({ extendable: true })
       .description("The task's specification, as defined by its provider plugin."),
   })
   .description("The configuration for a module's task.")
 
-export const taskSchema = Joi.object()
+export const taskSchema = joi.object()
   .options({ presence: "required" })
   .keys({
     name: joiUserIdentifier()
       .description("The name of the task."),
-    description: Joi.string().optional()
+    description: joi.string().optional()
       .description("A description of the task."),
-    module: Joi.object().unknown(true),
+    module: joi.object().unknown(true),
     config: taskConfigSchema,
-    spec: Joi.object()
+    spec: joi.object()
       .meta({ extendable: true })
       .description("The configuration of the task (specific to each plugin)."),
   })

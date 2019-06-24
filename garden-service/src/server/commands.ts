@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("joi")
+import Joi = require("@hapi/joi")
 import Koa = require("koa")
 import { Command, Parameters, ParameterValues } from "../commands/base"
-import { validate } from "../config/common"
+import { validate, joi } from "../config/common"
 import { extend, mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
 import { LogLevel } from "../logger/log-node"
@@ -24,13 +24,13 @@ export interface CommandMap {
   }
 }
 
-const baseRequestSchema = Joi.object()
+const baseRequestSchema = joi.object()
   .keys({
-    command: Joi.string()
+    command: joi.string()
       .required()
       .description("The command name to run.")
       .example("get.status"),
-    parameters: Joi.object()
+    parameters: joi.object()
       .keys({})
       .unknown(true)
       .default(() => ({}), "{}")
@@ -94,7 +94,7 @@ export async function prepareCommands(): Promise<CommandMap> {
   function addCommand(command: Command) {
     const requestSchema = baseRequestSchema
       .keys({
-        parameters: Joi.object()
+        parameters: joi.object()
           .keys({
             ...paramsToJoi(command.arguments),
             ...paramsToJoi({ ...GLOBAL_OPTIONS, ...command.options }),

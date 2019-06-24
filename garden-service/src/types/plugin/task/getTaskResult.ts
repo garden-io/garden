@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { taskActionParamsSchema, PluginTaskActionParamsBase } from "../base"
 import { dedent, deline } from "../../../util/string"
 import { Module } from "../../module"
 import { moduleVersionSchema, ModuleVersion } from "../../../vcs/vcs"
+import { joi } from "../../../config/common"
 
 export const taskVersionSchema = moduleVersionSchema
   .description(deline`
@@ -21,26 +21,26 @@ export interface GetTaskResultParams<T extends Module = Module> extends PluginTa
   taskVersion: ModuleVersion
 }
 
-export const taskResultSchema = Joi.object()
+export const taskResultSchema = joi.object()
   .keys({
-    moduleName: Joi.string()
+    moduleName: joi.string()
       .description("The name of the module that the task belongs to."),
-    taskName: Joi.string()
+    taskName: joi.string()
       .description("The name of the task that was run."),
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .required()
       .description("The command that the task ran in the module."),
     version: moduleVersionSchema,
-    success: Joi.boolean()
+    success: joi.boolean()
       .required()
       .description("Whether the task was successfully run."),
-    startedAt: Joi.date()
+    startedAt: joi.date()
       .required()
       .description("When the task run was started."),
-    completedAt: Joi.date()
+    completedAt: joi.date()
       .required()
       .description("When the task run was completed."),
-    output: Joi.string()
+    output: joi.string()
       .required()
       .allow("")
       .description("The output log from the run."),

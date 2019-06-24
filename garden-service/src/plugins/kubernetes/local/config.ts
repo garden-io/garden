@@ -7,10 +7,9 @@
  */
 
 import * as execa from "execa"
-import * as Joi from "joi"
 import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
-import { joiProviderName } from "../../../config/common"
+import { joiProviderName, joi } from "../../../config/common"
 import { getKubeConfig } from "../api"
 import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
@@ -31,13 +30,13 @@ export const configSchema = kubernetesConfigBase
     name: joiProviderName("local-kubernetes"),
     context: k8sContextSchema
       .optional(),
-    namespace: Joi.string()
+    namespace: joi.string()
       .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
         "Note that the framework generates other namespaces as well with this name as a prefix.",
       ),
-    setupIngressController: Joi.string()
+    setupIngressController: joi.string()
       .allow("nginx", false, null)
       .default("nginx")
       .description("Set this to null or false to skip installing/enabling the `nginx` ingress controller."),

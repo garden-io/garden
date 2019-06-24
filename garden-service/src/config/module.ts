@@ -8,7 +8,6 @@
 
 import dedent = require("dedent")
 import stableStringify = require("json-stable-stringify")
-import * as Joi from "joi"
 import { ServiceConfig, ServiceSpec, serviceConfigSchema } from "./service"
 import {
   joiArray,
@@ -18,6 +17,7 @@ import {
   PrimitiveMap,
   joiIdentifierMap,
   joiPrimitive,
+  joi,
 } from "./common"
 import { TestConfig, TestSpec, testConfigSchema } from "./test"
 import { TaskConfig, TaskSpec, taskConfigSchema } from "./task"
@@ -29,16 +29,15 @@ export interface BuildCopySpec {
 }
 
 // TODO: allow : delimited string (e.g. some.file:some-dir/)
-const copySchema = Joi.object()
+const copySchema = joi.object()
   .keys({
     // TODO: allow array of strings here
-    // TODO: disallow paths outside of the module root
-    source: Joi.string()
-      .uri(<any>{ relativeOnly: true })
+    source: joi.string()
+      .posixPath({ subPathOnly: true })
       .required()
       .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
-    target: Joi.string()
-      .uri(<any>{ relativeOnly: true })
+    target: joi.string()
+      .posixPath({ subPathOnly: true })
       .default(() => "", "<same as source path>")
       .description(
         "POSIX-style path or filename to copy the directory or file(s).",
@@ -53,7 +52,7 @@ export interface BuildDependencyConfig {
   copy: BuildCopySpec[]
 }
 
-export const buildDependencySchema = Joi.object().keys({
+export const buildDependencySchema = joi.object().keys({
   name: joiIdentifier().required()
     .description("Module name to build ahead of this module."),
   plugin: joiIdentifier()
@@ -81,7 +80,7 @@ export interface BaseModuleSpec {
   repositoryUrl?: string
 }
 
-export const baseBuildSpecSchema = Joi.object()
+export const baseBuildSpecSchema = joi.object()
   .keys({
     dependencies: joiArray(buildDependencySchema)
       .description("A list of modules that must be built before this module is built.")
@@ -93,13 +92,13 @@ export const baseBuildSpecSchema = Joi.object()
   .default(() => ({ dependencies: [] }), "{}")
   .description("Specify how to build the module. Note that plugins may define additional keys on this object.")
 
-export const baseModuleSpecSchema = Joi.object()
+export const baseModuleSpecSchema = joi.object()
   .keys({
-    apiVersion: Joi.string()
+    apiVersion: joi.string()
       .default(DEFAULT_API_VERSION)
       .only(DEFAULT_API_VERSION)
       .description("The schema version of this module's config (currently not used)."),
-    kind: Joi.string().default("Module").only("Module"),
+    kind: joi.string().default("Module").only("Module"),
     type: joiIdentifier()
       .required()
       .description("The type of this module.")
@@ -108,8 +107,8 @@ export const baseModuleSpecSchema = Joi.object()
       .required()
       .description("The name of this module.")
       .example("my-sweet-module"),
-    description: Joi.string(),
-    include: Joi.array().items(Joi.string().uri({ relativeOnly: true }))
+    description: joi.string(),
+    include: joi.array().items(joi.string().posixPath({ subPathOnly: true }))
       .description(
         dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
         module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
@@ -127,7 +126,7 @@ export const baseModuleSpecSchema = Joi.object()
         Garden will import the repository source code into this module, but read the module's
         config from the local garden.yml file.`,
       ),
-    allowPublish: Joi.boolean()
+    allowPublish: joi.boolean()
       .default(true)
       .description("When false, disables pushing this module to remote registries."),
     build: baseBuildSpecSchema
@@ -162,7 +161,7 @@ export const moduleConfigSchema = baseModuleSpecSchema
   .keys({
     outputs: joiIdentifierMap(joiPrimitive())
       .description("The outputs defined by the module (referenceable in other module configs)."),
-    path: Joi.string().uri({ relativeOnly: true })
+    path: joi.string()
       .description("The filesystem path of the module."),
     plugin: joiIdentifier()
       .meta({ internal: true })
@@ -173,10 +172,10 @@ export const moduleConfigSchema = baseModuleSpecSchema
       .description("List of tasks configured by this module."),
     testConfigs: joiArray(testConfigSchema)
       .description("List of tests configured by this module."),
-    spec: Joi.object()
+    spec: joi.object()
       .meta({ extendable: true })
       .description("The module spec, as defined by the provider plugin."),
-    _ConfigType: Joi.object()
+    _ConfigType: joi.object()
       .meta({ internal: true }),
   })
   .description("The configuration for a module.")

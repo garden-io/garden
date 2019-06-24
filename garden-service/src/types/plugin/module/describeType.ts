@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
+import Joi = require("@hapi/joi")
 import { dedent } from "../../../util/string"
+import { joi } from "../../../config/common"
 
 export interface DescribeModuleTypeParams { }
-export const describeModuleTypeParamsSchema = Joi.object()
+export const describeModuleTypeParamsSchema = joi.object()
   .keys({})
 
 export interface ModuleTypeDescription {
@@ -37,27 +38,27 @@ export const describeType = {
     any network calls.
   `,
 
-  paramsSchema: Joi.object().keys({}),
+  paramsSchema: joi.object().keys({}),
 
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
-      docs: Joi.string()
+      docs: joi.string()
         .required()
         .description("Documentation for the module type, in markdown format."),
       // TODO: specify the schemas using primitives and not Joi objects
-      outputsSchema: Joi.object()
-        .default(Joi.object().keys({}), "{}")
+      outputsSchema: joi.object()
+        .default(joi.object().keys({}), "{}")
         .description(
           "A valid Joi schema describing the keys that each module outputs, for use in template strings " +
           "(e.g. \`\${modules.my-module.outputs.some-key}\`).",
         ),
-      schema: Joi.object()
+      schema: joi.object()
         .required()
         .description(
           "A valid Joi schema describing the configuration keys for the `module` " +
           "field in the module's `garden.yml`.",
         ),
-      title: Joi.string()
+      title: joi.string()
         .description(
           "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces.",
         ),

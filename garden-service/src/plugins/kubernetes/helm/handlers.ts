@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
 import { HelmModule, validateHelmModule as configureHelmModule, helmModuleSpecSchema } from "./config"
 import { buildHelmModule } from "./build"
@@ -18,10 +17,11 @@ import { hotReloadHelmChart } from "./hot-reload"
 import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
 import { dedent } from "../../../util/string"
+import { joi } from "../../../config/common"
 
-const helmModuleOutputsSchema = Joi.object()
+const helmModuleOutputsSchema = joi.object()
   .keys({
-    "release-name": Joi.string()
+    "release-name": joi.string()
       .required()
       .description("The Helm release name of the service."),
   })

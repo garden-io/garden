@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { RuntimeContext, runtimeContextSchema } from "../../service"
-import { joiArray } from "../../../config/common"
+import { joiArray, joi } from "../../../config/common"
 
 export interface ExecInServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
@@ -36,25 +35,25 @@ export const execInService = {
 
   paramsSchema: serviceActionParamsSchema
     .keys({
-      command: joiArray(Joi.string())
+      command: joiArray(joi.string())
         .description("The command to run alongside the service."),
       runtimeContext: runtimeContextSchema,
-      interactive: Joi.boolean(),
+      interactive: joi.boolean(),
     }),
 
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
-      code: Joi.number()
+      code: joi.number()
         .required()
         .description("The exit code of the command executed in the service container."),
-      output: Joi.string()
+      output: joi.string()
         .allow("")
         .required()
         .description("The output of the executed command."),
-      stdout: Joi.string()
+      stdout: joi.string()
         .allow("")
         .description("The stdout output of the executed command (if available)."),
-      stderr: Joi.string()
+      stderr: joi.string()
         .allow("")
         .description("The stderr output of the executed command (if available)."),
     }),

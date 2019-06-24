@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { mapValues } from "lodash"
 import { join } from "path"
-import { joiArray, joiEnvVars, validateWithPath } from "../config/common"
+import { joiArray, joiEnvVars, validateWithPath, joi } from "../config/common"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { Module } from "../types/module"
 import { CommonServiceSpec } from "../config/service"
@@ -36,7 +35,7 @@ export interface ExecTestSpec extends BaseTestSpec {
 
 export const execTestSchema = baseTestSpecSchema
   .keys({
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .description("The command to run in the module build context in order to test it."),
     env: joiEnvVars(),
   })
@@ -48,7 +47,7 @@ export interface ExecTaskSpec extends BaseTaskSpec {
 
 export const execTaskSpecSchema = baseTaskSpecSchema
   .keys({
-    command: Joi.array().items(Joi.string())
+    command: joi.array().items(joi.string())
       .description("The command to run in the module build context."),
   })
   .description("A task that can be run in this module.")
@@ -68,12 +67,12 @@ export type ExecModuleConfig = ModuleConfig<ExecModuleSpec>
 
 export const execBuildSpecSchema = baseBuildSpecSchema
   .keys({
-    command: joiArray(Joi.string())
+    command: joiArray(joi.string())
       .description("The command to run inside the module's directory to perform the build.")
       .example([["npm", "run", "build"], {}]),
   })
 
-export const execModuleSpecSchema = Joi.object()
+export const execModuleSpecSchema = joi.object()
   .keys({
     build: execBuildSpecSchema,
     env: joiEnvVars(),
@@ -230,7 +229,7 @@ async function describeType() {
       A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
       type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
     `,
-    outputsSchema: Joi.object().keys({}),
+    outputsSchema: joi.object().keys({}),
     schema: execModuleSpecSchema,
   }
 }

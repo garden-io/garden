@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { RuntimeContext, runtimeContextSchema, serviceStatusSchema } from "../../service"
+import { joi } from "../../../config/common"
 
 export type hotReloadStatus = "enabled" | "disabled"
 
@@ -30,7 +30,7 @@ export const getServiceStatus = {
   paramsSchema: serviceActionParamsSchema
     .keys({
       runtimeContext: runtimeContextSchema,
-      hotReload: Joi.boolean()
+      hotReload: joi.boolean()
         .default(false)
         .description("Whether the service should be configured for hot-reloading."),
     }),

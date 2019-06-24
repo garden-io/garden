@@ -1,7 +1,6 @@
 import { expect } from "chai"
-import * as Joi from "joi"
 const stripAnsi = require("strip-ansi")
-import { identifierRegex, validate, envVarRegex, userIdentifierRegex } from "../../../../src/config/common"
+import { identifierRegex, validate, envVarRegex, userIdentifierRegex, joi } from "../../../../src/config/common"
 import { expectError } from "../../../helpers"
 
 describe("envVarRegex", () => {
@@ -114,15 +113,15 @@ describe("validate", () => {
       my: "object",
     }
 
-    validate(obj, Joi.object().keys({ my: Joi.string() }))
+    validate(obj, joi.object().keys({ my: joi.string() }))
   })
 
   it("should throw a nice error when keys are missing", async () => {
     const obj = { B: {} }
-    const schema = Joi.object().keys({
-      A: Joi.string().required(),
-      B: Joi.object().keys({
-        b: Joi.string().required(),
+    const schema = joi.object().keys({
+      A: joi.string().required(),
+      B: joi.object().keys({
+        b: joi.string().required(),
       }).required(),
     })
 
@@ -133,10 +132,10 @@ describe("validate", () => {
 
   it("should throw a nice error when keys are wrong in a pattern object", async () => {
     const obj = { A: { B: { c: {} } } }
-    const schema = Joi.object().keys({
-      A: Joi.object().keys({
-        B: Joi.object().pattern(/.+/, Joi.object().keys({
-          C: Joi.string().required(),
+    const schema = joi.object().keys({
+      A: joi.object().keys({
+        B: joi.object().pattern(/.+/, joi.object().keys({
+          C: joi.string().required(),
         })).required(),
       }).required(),
     })
@@ -148,7 +147,7 @@ describe("validate", () => {
 
   it("should throw a nice error when key is invalid", async () => {
     const obj = { 123: "abc" }
-    const schema = Joi.object().pattern(/[a-z]+/, Joi.string())
+    const schema = joi.object().pattern(/[a-z]+/, joi.string())
 
     await expectError(() => validate(obj, schema), (err) => {
       expect(stripAnsi(err.detail.errorDescription)).to.equal("key \"123\" is not allowed at path .")
@@ -157,7 +156,7 @@ describe("validate", () => {
 
   it("should throw a nice error when nested key is invalid", async () => {
     const obj = { a: { 123: "abc" } }
-    const schema = Joi.object().keys({ a: Joi.object().pattern(/[a-z]+/, Joi.string()) })
+    const schema = joi.object().keys({ a: joi.object().pattern(/[a-z]+/, joi.string()) })
 
     await expectError(() => validate(obj, schema), (err) => {
       expect(stripAnsi(err.detail.errorDescription)).to.equal("key \"123\" is not allowed at path .a")
@@ -166,13 +165,76 @@ describe("validate", () => {
 
   it("should throw a nice error when xor rule fails", async () => {
     const obj = { a: 1, b: 2 }
-    const schema = Joi.object().keys({
-      a: Joi.number(),
-      b: Joi.number(),
+    const schema = joi.object().keys({
+      a: joi.number(),
+      b: joi.number(),
     }).xor("a", "b")
 
     await expectError(() => validate(obj, schema), (err) => {
       expect(stripAnsi(err.detail.errorDescription)).to.equal("object at . only allows one of [a, b]")
     })
+  })
+})
+
+describe("joi.posixPath", () => {
+  it("should validate a POSIX-style path", () => {
+    const path = "/foo/bar.js"
+    const schema = joi.string().posixPath()
+    const result = schema.validate(path)
+    expect(result.error).to.be.null
+  })
+
+  it("should return error with a Windows-style path", () => {
+    const path = "C:\\Something\\Blorg"
+    const schema = joi.string().posixPath()
+    const result = schema.validate(path)
+    expect(result.error).to.exist
+  })
+
+  it("should error if attempting to set absoluteOnly and relativeOnly at same time", async () => {
+    return expectError(
+      () => joi.string().posixPath({ absoluteOnly: true, relativeOnly: true }),
+    )
+  })
+
+  it("should error if attempting to set absoluteOnly and subPathOnly at same time", async () => {
+    return expectError(
+      () => joi.string().posixPath({ absoluteOnly: true, subPathOnly: true }),
+    )
+  })
+
+  it("should respect absoluteOnly parameter", () => {
+    const path = "foo/bar.js"
+    const schema = joi.string().posixPath({ absoluteOnly: true })
+    const result = schema.validate(path)
+    expect(result.error).to.exist
+  })
+
+  it("should respect relativeOnly parameter", () => {
+    const path = "/foo/bar.js"
+    const schema = joi.string().posixPath({ relativeOnly: true })
+    const result = schema.validate(path)
+    expect(result.error).to.exist
+  })
+
+  it("should respect subPathOnly parameter by rejecting absolute paths", () => {
+    const path = "/foo/bar.js"
+    const schema = joi.string().posixPath({ subPathOnly: true })
+    const result = schema.validate(path)
+    expect(result.error).to.exist
+  })
+
+  it("should respect subPathOnly parameter by rejecting paths with '..' segments", () => {
+    const path = "foo/../../bar"
+    const schema = joi.string().posixPath({ subPathOnly: true })
+    const result = schema.validate(path)
+    expect(result.error).to.exist
+  })
+
+  it("should allow paths with '..' segments when subPathOnly=false", () => {
+    const path = "foo/../../bar"
+    const schema = joi.string().posixPath()
+    const result = schema.validate(path)
+    expect(result.error).to.be.null
   })
 })

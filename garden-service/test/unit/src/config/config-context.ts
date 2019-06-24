@@ -8,9 +8,9 @@ import {
   ModuleConfigContext,
 } from "../../../../src/config/config-context"
 import { expectError, makeTestGardenA } from "../../../helpers"
-import * as Joi from "joi"
 import { Garden } from "../../../../src/garden"
 import { join } from "path"
+import { joi } from "../../../../src/config/common"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -165,12 +165,12 @@ describe("ConfigContext", () => {
   describe("getSchema", () => {
     it("should return a Joi object schema with all described attributes", () => {
       class Nested extends ConfigContext {
-        @schema(Joi.string().description("Nested description"))
+        @schema(joi.string().description("Nested description"))
         nestedKey: string
       }
 
       class Context extends ConfigContext {
-        @schema(Joi.string().description("Some description"))
+        @schema(joi.string().description("Some description"))
         key: string
 
         @schema(Nested.getSchema().description("A nested context"))

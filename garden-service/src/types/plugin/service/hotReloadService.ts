@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { RuntimeContext, runtimeContextSchema } from "../../service"
+import { joi } from "../../../config/common"
 
 export interface HotReloadServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
@@ -25,5 +25,5 @@ export const hotReloadService = {
   `,
   paramsSchema: serviceActionParamsSchema
     .keys({ runtimeContext: runtimeContextSchema }),
-  resultSchema: Joi.object().keys({}),
+  resultSchema: joi.object().keys({}),
 }

@@ -15,8 +15,7 @@ import { TaskSpec } from "../config/task"
 import { ModuleVersion, moduleVersionSchema } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
-import * as Joi from "joi"
-import { joiArray, joiIdentifier, joiIdentifierMap } from "../config/common"
+import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../config/common"
 import { ConfigGraph } from "../config-graph"
 import * as Bluebird from "bluebird"
 import { getConfigFilePath } from "../util/fs"
@@ -55,21 +54,18 @@ export interface Module<
 
 export const moduleSchema = moduleConfigSchema
   .keys({
-    buildPath: Joi.string()
+    buildPath: joi.string()
       .required()
-      .uri(<any>{ relativeOnly: true })
       .description("The path to the build staging directory for the module."),
-    buildMetadataPath: Joi.string()
+    buildMetadataPath: joi.string()
       .required()
-      .uri(<any>{ relativeOnly: true })
       .description("The path to the build metadata directory for the module."),
-    configPath: Joi.string()
+    configPath: joi.string()
       .required()
-      .uri(<any>{ relativeOnly: true })
       .description("The path to the module config file."),
     version: moduleVersionSchema
       .required(),
-    buildDependencies: joiIdentifierMap(Joi.lazy(() => moduleSchema))
+    buildDependencies: joiIdentifierMap(joi.lazy(() => moduleSchema))
       .required()
       .description("A map of all modules referenced under \`build.dependencies\`."),
     serviceNames: joiArray(joiIdentifier())

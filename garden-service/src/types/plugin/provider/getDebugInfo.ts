@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
-
 import { actionParamsSchema, PluginActionParamsBase } from "../base"
 import { dedent } from "../../../util/string"
+import { joi } from "../../../config/common"
 
 export interface DebugInfo {
   info: any
@@ -26,9 +25,9 @@ export const getDebugInfo = {
     Collects debug info from the provider.
   `,
   paramsSchema: actionParamsSchema,
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
-      info: Joi.any()
+      info: joi.any()
         .required()
         .description("An object representing the debug info for the project."),
     }),

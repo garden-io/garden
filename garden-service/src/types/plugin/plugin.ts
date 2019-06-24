@@ -6,8 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
-
+import Joi = require("@hapi/joi")
 import { BuildModuleParams, BuildResult, build } from "./module/build"
 import { BuildStatus, GetBuildStatusParams, getBuildStatus } from "./module/getBuildStatus"
 import { CleanupEnvironmentParams, CleanupEnvironmentResult, cleanupEnvironment } from "./provider/cleanupEnvironment"
@@ -32,7 +31,7 @@ import { RunServiceParams, runService } from "./service/runService"
 import { RunTaskParams, RunTaskResult, runTask } from "./task/runTask"
 import { SetSecretParams, SetSecretResult, setSecret } from "./provider/setSecret"
 import { TestModuleParams, testModule } from "./module/testModule"
-import { joiArray, joiIdentifier, joiIdentifierMap } from "../../config/common"
+import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../../config/common"
 
 import { LogNode } from "../../logger/log-node"
 import { Module } from "../module"
@@ -222,30 +221,30 @@ export interface Plugins {
   [name: string]: RegisterPluginParam
 }
 
-export const pluginSchema = Joi.object()
+export const pluginSchema = joi.object()
   .keys({
     // TODO: make this an OpenAPI schema for portability
-    configSchema: Joi.object({ isJoi: Joi.boolean().only(true).required() }).unknown(true),
-    dependencies: joiArray(Joi.string())
+    configSchema: joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true),
+    dependencies: joiArray(joi.string())
       .description(deline`
         Names of plugins that need to be configured prior to this plugin. This plugin will be able to reference the
         configuration from the listed plugins. Note that the dependencies will not be implicitly configured—the user
         will need to explicitly configure them in their project configuration.
       `),
     // TODO: document plugin actions further
-    actions: Joi.object().keys(mapValues(pluginActionDescriptions, () => Joi.func()))
+    actions: joi.object().keys(mapValues(pluginActionDescriptions, () => joi.func()))
       .description("A map of plugin action handlers provided by the plugin."),
     moduleActions: joiIdentifierMap(
-      Joi.object().keys(mapValues(moduleActionDescriptions, () => Joi.func()),
+      joi.object().keys(mapValues(moduleActionDescriptions, () => joi.func()),
       ).description("A map of module names and module action handlers provided by the plugin."),
     ),
   })
   .description("The schema for Garden plugins.")
 
-export const pluginModuleSchema = Joi.object()
+export const pluginModuleSchema = joi.object()
   .keys({
     name: joiIdentifier(),
-    gardenPlugin: Joi.func().required()
+    gardenPlugin: joi.func().required()
       .description("The initialization function for the plugin. Should return a valid Garden plugin object."),
   })
   .unknown(true)

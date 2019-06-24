@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { safeDump } from "js-yaml"
 import { apply, merge } from "json-merge-patch"
 import { deline } from "../util/string"
@@ -18,6 +17,7 @@ import {
   joiRepositoryUrl,
   joiUserIdentifier,
   validateWithPath,
+  joi,
 } from "./common"
 import { resolveTemplateStrings } from "../template-string"
 import { ProjectConfigContext } from "./config-context"
@@ -34,7 +34,7 @@ export interface CommonEnvironmentConfig {
   variables: { [key: string]: Primitive }
 }
 
-export const environmentConfigSchema = Joi.object()
+export const environmentConfigSchema = joi.object()
   .keys({
     providers: joiArray(providerConfigBaseSchema)
       .unique("name")
@@ -67,10 +67,10 @@ const environmentSchema = environmentConfigSchema
     name: environmentNameSchema,
   })
 
-const environmentsSchema = Joi.alternatives(
-  Joi.array().items(environmentSchema).unique("name"),
+const environmentsSchema = joi.alternatives(
+  joi.array().items(environmentSchema).unique("name"),
   // Allow a string as a shorthand for { name: foo }
-  Joi.array().items(joiUserIdentifier()),
+  joi.array().items(joiUserIdentifier()),
 )
 
 export interface SourceConfig {
@@ -78,7 +78,7 @@ export interface SourceConfig {
   repositoryUrl: string
 }
 
-export const projectSourceSchema = Joi.object()
+export const projectSourceSchema = joi.object()
   .keys({
     name: joiUserIdentifier()
       .required()
@@ -131,16 +131,16 @@ export const projectNameSchema = joiIdentifier()
   .description("The name of the project.")
   .example("my-sweet-project")
 
-export const projectSchema = Joi.object()
+export const projectSchema = joi.object()
   .keys({
-    apiVersion: Joi.string()
+    apiVersion: joi.string()
       .default(DEFAULT_API_VERSION)
       .only(DEFAULT_API_VERSION)
       .description("The schema version of this project's config (currently not used)."),
-    kind: Joi.string().default("Project").only("Project"),
-    path: Joi.string().meta({ internal: true }),
+    kind: joi.string().default("Project").only("Project"),
+    path: joi.string().meta({ internal: true }),
     name: projectNameSchema,
-    defaultEnvironment: Joi.string()
+    defaultEnvironment: joi.string()
       .allow("")
       .default("", "<first specified environment>")
       .description("The default environment to use when calling commands without the `--env` parameter."),

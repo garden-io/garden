@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("joi")
+import Joi = require("@hapi/joi")
+import stripAnsi from "strip-ansi"
 import { GardenError, RuntimeError, InternalError, ParameterError } from "../exceptions"
 import { TaskResults } from "../task-graph"
 import { LoggerType } from "../logger/logger"
@@ -15,7 +16,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { printFooter } from "../logger/util"
 import { GlobalOptions } from "../cli/cli"
-import stripAnsi from "strip-ansi"
+import { joi } from "../config/common"
 
 export interface ParameterConstructor<T> {
   help: string,
@@ -75,7 +76,7 @@ export abstract class Parameter<T> {
 
 export class StringParameter extends Parameter<string> {
   type = "string"
-  schema = Joi.string()
+  schema = joi.string()
 
   parseString(input: string) {
     return input
@@ -86,7 +87,7 @@ export class StringParameter extends Parameter<string> {
 // FIXME: Maybe use a Required<Parameter> type to enforce presence, rather that an option flag?
 export class StringOption extends Parameter<string | undefined> {
   type = "string"
-  schema = Joi.string()
+  schema = joi.string()
 
   parseString(input?: string) {
     return input
@@ -99,7 +100,7 @@ export interface StringsConstructor extends ParameterConstructor<string[]> {
 
 export class StringsParameter extends Parameter<string[] | undefined> {
   type = "array:string"
-  schema = Joi.array().items(Joi.string())
+  schema = joi.array().items(joi.string())
   delimiter: string
 
   constructor(args: StringsConstructor) {
@@ -125,7 +126,7 @@ export class StringsParameter extends Parameter<string[] | undefined> {
 
 export class PathParameter extends Parameter<string> {
   type = "path"
-  schema = Joi.string().uri({ relativeOnly: true })
+  schema = joi.string().posixPath()
 
   parseString(input: string) {
     return input
@@ -134,7 +135,7 @@ export class PathParameter extends Parameter<string> {
 
 export class PathsParameter extends Parameter<string[]> {
   type = "array:path"
-  schema = Joi.array().items(Joi.string().uri({ relativeOnly: true }))
+  schema = joi.array().items(joi.string().posixPath())
 
   parseString(input: string) {
     return input.split(",")
@@ -143,7 +144,7 @@ export class PathsParameter extends Parameter<string[]> {
 
 export class IntegerParameter extends Parameter<number> {
   type = "number"
-  schema = Joi.number().integer()
+  schema = joi.number().integer()
 
   parseString(input: string) {
     try {
@@ -164,13 +165,13 @@ export interface ChoicesConstructor extends ParameterConstructor<string> {
 export class ChoicesParameter extends Parameter<string> {
   type = "choice"
   choices: string[]
-  schema = Joi.string()
+  schema = joi.string()
 
   constructor(args: ChoicesConstructor) {
     super(args)
 
     this.choices = args.choices
-    this.schema = Joi.string().only(args.choices)
+    this.schema = joi.string().only(args.choices)
   }
 
   parseString(input: string) {
@@ -191,7 +192,7 @@ export class ChoicesParameter extends Parameter<string> {
 
 export class BooleanParameter extends Parameter<boolean> {
   type = "boolean"
-  schema = Joi.boolean()
+  schema = joi.boolean()
 
   parseString(input: any) {
     return !!input

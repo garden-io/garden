@@ -9,7 +9,6 @@
 import { Server } from "http"
 
 import chalk from "chalk"
-import * as Joi from "joi"
 import Koa = require("koa")
 import mount = require("koa-mount")
 import serve = require("koa-static")
@@ -28,6 +27,7 @@ import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events } from "../events"
 import { ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
+import { joi } from "../config/common"
 
 export const DEFAULT_PORT = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
@@ -195,13 +195,13 @@ export class GardenServer {
         const requestId = request.id
 
         try {
-          Joi.attempt(requestId, Joi.string().uuid().required())
+          joi.attempt(requestId, joi.string().uuid().required())
         } catch {
           return send("error", { message: "Message should contain an `id` field with a UUID value" })
         }
 
         try {
-          Joi.attempt(request.type, Joi.string().required())
+          joi.attempt(request.type, joi.string().required())
         } catch {
           return send("error", { message: "Message should contain a type field" })
         }

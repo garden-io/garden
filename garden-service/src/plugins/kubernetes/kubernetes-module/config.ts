@@ -6,10 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("joi")
-
 import { ServiceSpec } from "../../../config/service"
-import { joiArray, joiIdentifier } from "../../../config/common"
+import { joiArray, joiIdentifier, joi } from "../../../config/common"
 import { Module } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import { Service } from "../../../types/service"
@@ -32,18 +30,18 @@ export interface KubernetesServiceSpec extends ServiceSpec {
 
 export type KubernetesService = Service<KubernetesModule, ContainerModule>
 
-const kubernetesResourceSchema = Joi.object()
+const kubernetesResourceSchema = joi.object()
   .keys({
-    apiVersion: Joi.string()
+    apiVersion: joi.string()
       .required()
       .description("The API version of the resource."),
-    kind: Joi.string()
+    kind: joi.string()
       .required()
       .description("The kind of the resource."),
-    metadata: Joi.object()
+    metadata: joi.object()
       .required()
       .keys({
-        name: Joi.string()
+        name: joi.string()
           .required()
           .description("The name of the resource."),
       })
@@ -51,7 +49,7 @@ const kubernetesResourceSchema = Joi.object()
   })
   .unknown(true)
 
-const kubernetesModuleSpecSchema = Joi.object()
+const kubernetesModuleSpecSchema = joi.object()
   .keys({
     build: baseBuildSpecSchema,
     dependencies: joiArray(joiIdentifier())
@@ -61,7 +59,7 @@ const kubernetesModuleSpecSchema = Joi.object()
         deline`
           List of Kubernetes resource manifests to deploy. Use this instead of the \`files\` field if you need to
           resolve template strings in any of the manifests.`),
-    files: joiArray(Joi.string().uri({ relativeOnly: true }))
+    files: joiArray(joi.string().posixPath({ subPathOnly: true }))
       .description("POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."),
   })
 
@@ -79,7 +77,7 @@ export async function describeType() {
       If you need more advanced templating features you can use the
       [helm](https://docs.garden.io/reference/module-types/helm) module type.
     `,
-    outputsSchema: Joi.object().keys({}),
+    outputsSchema: joi.object().keys({}),
     schema: kubernetesModuleSpecSchema,
   }
 }

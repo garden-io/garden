@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { environmentStatusSchema, EnvironmentStatus } from "./getEnvironmentStatus"
 import { dedent } from "../../../util/string"
+import { joi } from "../../../config/common"
 
 export interface PrepareEnvironmentParams extends PluginActionParamsBase {
   manualInit: boolean
@@ -35,11 +35,11 @@ export const prepareEnvironment = {
   `,
   paramsSchema: actionParamsSchema
     .keys({
-      force: Joi.boolean()
+      force: joi.boolean()
         .description("Force re-configuration of the environment."),
-      manualInit: Joi.boolean()
+      manualInit: joi.boolean()
         .description("Set to true if the environment is being explicitly initialized via `garden init`."),
       status: environmentStatusSchema,
     }),
-  resultSchema: Joi.object().keys({}),
+  resultSchema: joi.object().keys({}),
 }

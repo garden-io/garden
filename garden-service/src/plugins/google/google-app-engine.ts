@@ -19,12 +19,12 @@ import { GardenPlugin } from "../../types/plugin/plugin"
 import { configureContainerModule } from "../container/container"
 import { ContainerModule } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/provider"
-import * as Joi from "joi"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
+import { joi } from "../../config/common"
 
 const configSchema = providerConfigBaseSchema.keys({
-  project: Joi.string()
+  project: joi.string()
     .required()
     .description("The GCP project to deploy containers to."),
 })

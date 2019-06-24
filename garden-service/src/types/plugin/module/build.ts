@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "joi"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
+import { joi } from "../../../config/common"
 
 export interface BuildModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
 
@@ -30,20 +30,20 @@ export const build = {
 
   paramsSchema: moduleActionParamsSchema,
 
-  resultSchema: Joi.object()
+  resultSchema: joi.object()
     .keys({
-      buildLog: Joi.string()
+      buildLog: joi.string()
         .allow("")
         .description("The full log from the build."),
-      fetched: Joi.boolean()
+      fetched: joi.boolean()
         .description("Set to true if the build was fetched from a remote registry."),
-      fresh: Joi.boolean()
+      fresh: joi.boolean()
         .description(
           "Set to true if the build was performed, false if it was already built, or fetched from a registry",
         ),
-      version: Joi.string()
+      version: joi.string()
         .description("The version that was built."),
-      details: Joi.object()
+      details: joi.object()
         .description("Additional information, specific to the provider."),
     }),
 }
