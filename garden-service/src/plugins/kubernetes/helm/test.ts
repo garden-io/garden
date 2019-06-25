@@ -7,7 +7,7 @@
  */
 
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
-import { storeTestResult } from "../test"
+import { storeTestResult } from "../test-results"
 import { HelmModule } from "./config"
 import { getAppNamespace } from "../namespace"
 import { runPod } from "../run"

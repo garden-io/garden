@@ -152,6 +152,7 @@ export async function runContainerTask(
   await storeTaskResult({
     ctx,
     log,
+    module,
     result,
     taskVersion,
     taskName: task.name,

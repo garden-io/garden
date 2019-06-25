@@ -413,13 +413,15 @@ async function getContextConfig(log: LogEntry, context: string): Promise<KubeCon
   return kc
 }
 
-function wrapError(err) {
+function wrapError(err: any) {
   if (!err.message) {
-    const wrapped = new KubernetesError(`Got error from Kubernetes API - ${err.body.message}`, {
-      body: err.body,
-      request: omitBy(err.response.request, (v, k) => isObject(v) || k[0] === "_"),
+    const response = err.response || {}
+    const body = response.body || err.body
+    const wrapped = new KubernetesError(`Got error from Kubernetes API - ${body.message}`, {
+      body,
+      request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
     })
-    wrapped.code = err.response.statusCode
+    wrapped.code = response.statusCode
     return wrapped
   } else {
     return err

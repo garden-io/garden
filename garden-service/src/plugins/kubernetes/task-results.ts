@@ -14,17 +14,22 @@ import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubeApi } from "./api"
 import { getMetadataNamespace } from "./namespace"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
-import { deserializeValues, serializeValues } from "../../util/util"
+import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
+import { gardenAnnotationKey, tailString } from "../../util/string"
+import { Module } from "../../types/module"
+import * as hasha from "hasha"
+import { upsertConfigMap } from "./util"
+import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "./constants"
 
 export async function getTaskResult(
-  { ctx, log, task, taskVersion }: GetTaskResultParams<ContainerModule | HelmModule>,
+  { ctx, log, module, task, taskVersion }: GetTaskResultParams<ContainerModule | HelmModule>,
 ): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
-  const resultKey = getTaskResultKey(task.name, taskVersion)
+  const resultKey = getTaskResultKey(ctx, module, task.name, taskVersion)
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, ns)
@@ -38,13 +43,16 @@ export async function getTaskResult(
   }
 }
 
-export function getTaskResultKey(taskName: string, version: ModuleVersion) {
-  return `task-result--${taskName}--${version.versionString}`
+export function getTaskResultKey(ctx: PluginContext, module: Module, taskName: string, version: ModuleVersion) {
+  const key = `${ctx.projectName}--${module.name}--${taskName}--${version.versionString}`
+  const hash = hasha(key, { algorithm: "sha1" })
+  return `task-result--${hash.slice(0, 32)}`
 }
 
 interface StoreTaskResultParams {
   ctx: PluginContext,
   log: LogEntry,
+  module: Module,
   taskName: string,
   taskVersion: ModuleVersion,
   result: RunTaskResult,
@@ -56,34 +64,25 @@ interface StoreTaskResultParams {
  * TODO: Implement a CRD for this.
  */
 export async function storeTaskResult(
-  { ctx, log, taskName, taskVersion, result }: StoreTaskResultParams,
-): Promise<RunTaskResult> {
+  { ctx, log, module, taskName, taskVersion, result }: StoreTaskResultParams,
+) {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, provider.config.context)
-  const ns = await getMetadataNamespace(ctx, log, provider)
-  const resultKey = getTaskResultKey(taskName, taskVersion)
+  const namespace = await getMetadataNamespace(ctx, log, provider)
 
-  const body = {
-    apiVersion: "v1",
-    kind: "ConfigMap",
-    metadata: {
-      name: resultKey,
-      annotations: {
-        "garden.io/generated": "true",
-      },
+  // Make sure the output isn't too large for a ConfigMap
+  result.output = tailString(result.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true)
+
+  await upsertConfigMap({
+    api,
+    namespace,
+    key: getTaskResultKey(ctx, module, taskName, taskVersion),
+    labels: {
+      [gardenAnnotationKey("module")]: module.name,
+      [gardenAnnotationKey("task")]: taskName,
+      [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
+      [gardenAnnotationKey("version")]: taskVersion.versionString,
     },
-    data: serializeValues(result),
-  }
-
-  try {
-    await api.core.createNamespacedConfigMap(ns, <any>body)
-  } catch (err) {
-    if (err.code === 409) {
-      await api.core.patchNamespacedConfigMap(resultKey, ns, body)
-    } else {
-      throw err
-    }
-  }
-
-  return result
+    data: result,
+  })
 }

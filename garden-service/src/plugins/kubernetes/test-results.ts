@@ -7,7 +7,7 @@
  */
 
 import { ContainerModule } from "../container/config"
-import { deserializeValues, serializeValues } from "../../util/util"
+import { deserializeValues } from "../../util/util"
 import { KubeApi } from "./api"
 import { Module } from "../../types/module"
 import { ModuleVersion } from "../../vcs/vcs"
@@ -18,6 +18,9 @@ import { systemMetadataNamespace } from "./system"
 import { LogEntry } from "../../logger/log-entry"
 import { GetTestResultParams, TestResult } from "../../types/plugin/module/getTestResult"
 import { RunResult } from "../../types/plugin/base"
+import * as hasha from "hasha"
+import { gardenAnnotationKey } from "../../util/string"
+import { upsertConfigMap } from "./util"
 
 const testResultNamespace = systemMetadataNamespace
 
@@ -41,7 +44,9 @@ export async function getTestResult(
 }
 
 export function getTestResultKey(ctx: PluginContext, module: Module, testName: string, version: ModuleVersion) {
-  return `test-result--${ctx.projectName}--${module.name}--${testName}--${version.versionString}`
+  const key = `${ctx.projectName}--${module.name}--${testName}--${version.versionString}`
+  const hash = hasha(key, { algorithm: "sha1" })
+  return `test-result--${hash.slice(0, 32)}`
 }
 
 interface StoreTestResultParams {
@@ -69,28 +74,18 @@ export async function storeTestResult(
     testName,
   }
 
-  const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
-  const body = {
-    apiVersion: "v1",
-    kind: "ConfigMap",
-    metadata: {
-      name: resultKey,
-      annotations: {
-        "garden.io/generated": "true",
-      },
+  await upsertConfigMap({
+    api,
+    namespace: testResultNamespace,
+    key: getTestResultKey(k8sCtx, module, testName, testVersion),
+    labels: {
+      [gardenAnnotationKey("module")]: module.name,
+      [gardenAnnotationKey("test")]: testName,
+      [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
+      [gardenAnnotationKey("version")]: testVersion.versionString,
     },
-    data: serializeValues(testResult),
-  }
-
-  try {
-    await api.core.createNamespacedConfigMap(testResultNamespace, <any>body)
-  } catch (err) {
-    if (err.code === 409) {
-      await api.core.patchNamespacedConfigMap(resultKey, testResultNamespace, body)
-    } else {
-      throw err
-    }
-  }
+    data: testResult,
+  })
 
   return testResult
 }

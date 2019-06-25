@@ -11,7 +11,7 @@ import { HelmModule, validateHelmModule as configureHelmModule, helmModuleSpecSc
 import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"
 import { deployService, deleteService } from "./deployment"
-import { getTestResult } from "../test"
+import { getTestResult } from "../test-results"
 import { runHelmTask, runHelmModule } from "./run"
 import { hotReloadHelmChart } from "./hot-reload"
 import { getServiceLogs } from "./logs"
