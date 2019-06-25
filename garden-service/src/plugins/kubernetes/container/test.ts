@@ -9,7 +9,7 @@
 import { ContainerModule } from "../../container/config"
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { runContainerModule } from "./run"
-import { storeTestResult } from "../test"
+import { storeTestResult } from "../test-results"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
 

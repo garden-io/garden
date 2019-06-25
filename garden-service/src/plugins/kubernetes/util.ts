@@ -14,13 +14,15 @@ const AsyncLock = require("async-lock")
 import { V1Pod } from "@kubernetes/client-node"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
-import { splitLast } from "../../util/util"
-import { KubeApi } from "./api"
+import { splitLast, serializeValues } from "../../util/util"
+import { KubeApi, KubernetesError } from "./api"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { KubernetesPluginContext } from "./config"
 import { kubectl } from "./kubectl"
 import { registerCleanupFunction } from "../../util/util"
+import { gardenAnnotationKey, base64 } from "../../util/string"
+import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
 
@@ -215,4 +217,45 @@ const suffixTable = {
   Ti: 3,
   Gi: 2,
   Mi: 1,
+}
+
+export async function upsertConfigMap(
+  { api, namespace, key, labels, data }:
+    { api: KubeApi, namespace: string, key: string, labels: { [key: string]: string }, data: { [key: string]: any } },
+) {
+  const serializedData = serializeValues(data)
+
+  if (base64(JSON.stringify(serializedData)).length > MAX_CONFIGMAP_DATA_SIZE) {
+    throw new KubernetesError(`Attempting to store too much data in ConfigMap ${key}`, {
+      key,
+      namespace,
+      labels,
+      data,
+    })
+  }
+
+  const body = {
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    metadata: {
+      name: key,
+      annotations: {
+        [gardenAnnotationKey("generated")]: "true",
+        // Set all the labels as annotations as well
+        ...labels,
+      },
+      labels,
+    },
+    data: serializedData,
+  }
+
+  try {
+    await api.core.createNamespacedConfigMap(namespace, <any>body)
+  } catch (err) {
+    if (err.code === 409) {
+      await api.core.patchNamespacedConfigMap(key, namespace, body)
+    } else {
+      throw err
+    }
+  }
 }

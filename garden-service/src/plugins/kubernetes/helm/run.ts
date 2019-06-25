@@ -18,6 +18,8 @@ import { storeTaskResult } from "../task-results"
 import { RunModuleParams } from "../../../types/plugin/module/runModule"
 import { RunResult } from "../../../types/plugin/base"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
+import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "../constants"
+import { tailString } from "../../../util/string"
 
 export async function runHelmModule(
   {
@@ -78,11 +80,17 @@ export async function runHelmTask(
     log,
   })
 
-  const result = { ...res, taskName: task.name }
+  const result = {
+    ...res,
+    // Make sure we don't exceed max length of ConfigMap
+    output: tailString(res.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true),
+    taskName: task.name,
+  }
 
   await storeTaskResult({
     ctx,
     log,
+    module,
     result,
     taskVersion,
     taskName: task.name,

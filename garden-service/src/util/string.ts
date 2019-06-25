@@ -16,8 +16,34 @@ export const deline = _deline
 
 const gardenAnnotationPrefix = "garden.io/"
 
-export type GardenAnnotationKey = "generated" | "service" | "version"
+export type GardenAnnotationKey = "generated" | "module" | "moduleVersion" | "service" | "task" | "test" | "version"
 
 export function gardenAnnotationKey(key: GardenAnnotationKey) {
   return gardenAnnotationPrefix + key
+}
+
+/**
+ * Truncates the first n characters from a string where n equals the number by
+ * which the string byte length exceeds the `maxLength`.
+ *
+ * Optionally scan towards the next line break after trimming the bytes, and trim to there.
+ *
+ * Note that a UTF-8 character can be 1-4 bytes so this is a naive but inexpensive approach.
+ */
+export function tailString(str: string, maxLength: number, nextLine = false) {
+  const overflow = Buffer.byteLength(str, "utf8") - maxLength
+  if (overflow > 0) {
+    if (nextLine) {
+      const lineBreakIdx = str.indexOf("\n", overflow)
+      if (lineBreakIdx) {
+        return str.substr(lineBreakIdx + 1)
+      }
+    }
+    return str.substr(overflow)
+  }
+  return str
+}
+
+export function base64(str: string) {
+  return Buffer.from(str).toString("base64")
 }

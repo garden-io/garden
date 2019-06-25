@@ -20,6 +20,7 @@ import highlight from "cli-highlight"
 import chalk from "chalk"
 import { safeDump } from "js-yaml"
 import { createHash } from "crypto"
+import { tailString } from "./string"
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -87,20 +88,6 @@ export interface SpawnOutput {
   proc: any
 }
 
-/**
- * Truncates the first n characters from a string where n equals the number by
- * which the string byte length exceeds the MAX_BUFFER_SIZE.
- *
- * Note that a utf8 character can be 1-4 bytes so this is a naive but inexpensive approach.
- */
-function naivelyTruncateBytes(str: string) {
-  const overflow = Buffer.byteLength(str, "utf8") - MAX_BUFFER_SIZE
-  if (overflow > 0) {
-    str = str.substr(overflow)
-  }
-  return str
-}
-
 // TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   const { timeout = 0, cwd, data, ignoreError = false, env, tty, wait = true } = opts
@@ -131,12 +118,12 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   } else {
     // We ensure the output strings never exceed the MAX_BUFFER_SIZE
     proc.stdout!.on("data", (s) => {
-      result.output = naivelyTruncateBytes(result.output + s)
-      result.stdout! = naivelyTruncateBytes(result.stdout! + s)
+      result.output = tailString(result.output + s, MAX_BUFFER_SIZE, true)
+      result.stdout! = tailString(result.stdout! + s, MAX_BUFFER_SIZE, true)
     })
 
     proc.stderr!.on("data", (s) => {
-      result.stderr! = naivelyTruncateBytes(result.stderr! + s)
+      result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
     })
 
     if (data) {
