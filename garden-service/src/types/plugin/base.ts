@@ -12,7 +12,6 @@ import { Module, moduleSchema } from "../module"
 import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "../service"
 import { Task } from "../task"
 import { taskSchema } from "../../config/task"
-import { ModuleVersion, moduleVersionSchema } from "../../vcs/vcs"
 import { joi } from "../../config/common"
 
 export interface PluginActionContextParams {
@@ -77,7 +76,7 @@ export const runBaseParams = {
 export interface RunResult {
   moduleName: string
   command: string[]
-  version: ModuleVersion
+  version: string
   success: boolean
   startedAt: Date
   completedAt: Date
@@ -91,7 +90,8 @@ export const runResultSchema = joi.object()
     command: joi.array().items(joi.string())
       .required()
       .description("The command that was run in the module."),
-    version: moduleVersionSchema,
+    version: joi.string()
+      .description("The string version of the module."),
     success: joi.boolean()
       .required()
       .description("Whether the module was successfully run."),

@@ -16,11 +16,7 @@ const placeholderTaskResult = (moduleName, taskName, command) => ({
   moduleName,
   taskName,
   command,
-  version: {
-    versionString: "v-1",
-    files: [],
-    dependencyVersions: {},
-  },
+  version: "v-1",
   success: true,
   startedAt: placeholderTimestamp,
   completedAt: placeholderTimestamp,

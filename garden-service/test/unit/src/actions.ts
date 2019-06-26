@@ -169,7 +169,7 @@ describe("ActionHelper", () => {
           output: "bla bla",
           success: true,
           startedAt: now,
-          version: module.version,
+          version: module.version.versionString,
         })
       })
     })
@@ -201,7 +201,7 @@ describe("ActionHelper", () => {
           success: true,
           startedAt: now,
           testName: "test",
-          version: module.version,
+          version: module.version.versionString,
         })
       })
     })
@@ -222,7 +222,7 @@ describe("ActionHelper", () => {
           success: true,
           startedAt: now,
           testName: "test",
-          version: module.version,
+          version: module.version.versionString,
         })
       })
     })
@@ -289,7 +289,7 @@ describe("ActionHelper", () => {
           output: "bla bla",
           success: true,
           startedAt: now,
-          version: service.module.version,
+          version: service.module.version.versionString,
         })
       })
     })
@@ -315,7 +315,7 @@ describe("ActionHelper", () => {
         output: "bla bla",
         success: true,
         startedAt: now,
-        version: task.module.version,
+        version: task.module.version.versionString,
       })
     })
   })
@@ -486,7 +486,7 @@ const testPlugin: PluginFactory = async () => ({
           output: "bla bla",
           success: true,
           startedAt: now,
-          version: params.module.version,
+          version: params.module.version.versionString,
         }
       },
 
@@ -500,7 +500,7 @@ const testPlugin: PluginFactory = async () => ({
           success: true,
           startedAt: now,
           testName: params.testConfig.name,
-          version: params.module.version,
+          version: params.module.version.versionString,
         }
       },
 
@@ -514,7 +514,7 @@ const testPlugin: PluginFactory = async () => ({
           success: true,
           startedAt: now,
           testName: params.testName,
-          version: params.module.version,
+          version: params.module.version.versionString,
         }
       },
 
@@ -555,7 +555,7 @@ const testPlugin: PluginFactory = async () => ({
           output: "bla bla",
           success: true,
           startedAt: now,
-          version: params.module.version,
+          version: params.module.version.versionString,
         }
       },
 
@@ -570,7 +570,7 @@ const testPlugin: PluginFactory = async () => ({
           output: "bla bla",
           success: true,
           startedAt: now,
-          version: params.module.version,
+          version: params.module.version.versionString,
         }
       },
 
@@ -585,7 +585,7 @@ const testPlugin: PluginFactory = async () => ({
           output: "bla bla",
           success: true,
           startedAt: now,
-          version: params.module.version,
+          version: params.module.version.versionString,
         }
       },
     },

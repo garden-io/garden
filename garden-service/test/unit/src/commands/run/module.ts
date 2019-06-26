@@ -37,7 +37,7 @@ describe("RunModuleCommand", () => {
       command: [],
       completedAt: testNow,
       output: "OK",
-      version: testModuleVersion,
+      version: testModuleVersion.versionString,
       startedAt: testNow,
       success: true,
     }
@@ -61,7 +61,7 @@ describe("RunModuleCommand", () => {
       command: ["my", "command"],
       completedAt: testNow,
       output: "OK",
-      version: testModuleVersion,
+      version: testModuleVersion.versionString,
       startedAt: testNow,
       success: true,
     }
@@ -85,7 +85,7 @@ describe("RunModuleCommand", () => {
       command: ["/bin/sh", "-c", "my", "command"],
       completedAt: testNow,
       output: "OK",
-      version: testModuleVersion,
+      version: testModuleVersion.versionString,
       startedAt: testNow,
       success: true,
     }

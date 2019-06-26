@@ -68,7 +68,7 @@ export class GetTaskResultCommand extends Command<Args> {
       const output: TaskResultOutput = {
         name: taskResult.taskName,
         module: taskResult.moduleName,
-        version: taskResult.version.versionString,
+        version: taskResult.version,
         output: taskResult.output,
         startedAt: taskResult.startedAt,
         completedAt: taskResult.completedAt,

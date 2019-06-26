@@ -63,14 +63,12 @@ export async function profileBlock(description: string, block: () => Promise<any
 }
 
 async function runModule(params: RunModuleParams): Promise<RunResult> {
-  const version = await params.module.version
-
   return {
     moduleName: params.module.name,
     command: [...(params.command || []), ...params.args],
     completedAt: testNow,
     output: "OK",
-    version,
+    version: params.module.version.versionString,
     startedAt: testNow,
     success: true,
   }
