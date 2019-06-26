@@ -40,6 +40,7 @@ import { ServiceStatus } from "../service"
 import { mapValues } from "lodash"
 import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./provider/getDebugInfo"
 import { deline } from "../../util/string"
+import { pluginCommandSchema, PluginCommand } from "./command"
 
 export type ServiceActions<T extends Module = Module> = {
   [P in keyof ServiceActionParams<T>]: (params: ServiceActionParams<T>[P]) => ServiceActionOutputs[P]
@@ -206,6 +207,8 @@ export interface GardenPlugin {
 
   actions?: Partial<PluginActions>
   moduleActions?: { [moduleType: string]: Partial<ModuleAndRuntimeActions> }
+
+  commands?: PluginCommand[]
 }
 
 export interface PluginFactoryParams {
@@ -223,7 +226,7 @@ export interface Plugins {
 
 export const pluginSchema = joi.object()
   .keys({
-    // TODO: make this an OpenAPI schema for portability
+    // TODO: make this a JSON/OpenAPI schema for portability
     configSchema: joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true),
     dependencies: joiArray(joi.string())
       .description(deline`
@@ -238,6 +241,9 @@ export const pluginSchema = joi.object()
       joi.object().keys(mapValues(moduleActionDescriptions, () => joi.func()),
       ).description("A map of module names and module action handlers provided by the plugin."),
     ),
+    commands: joi.array().items(pluginCommandSchema)
+      .unique("name")
+      .description("List of commands that this plugin exposes (via \`garden plugins <plugin name>\`"),
   })
   .description("The schema for Garden plugins.")
 

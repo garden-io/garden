@@ -6,17 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigureModuleParams, ConfigureProviderParams } from "../../types/plugin/params"
 import { join } from "path"
+import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
 import { GcfModule, configureGcfModule } from "../google/google-cloud-functions"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { ServiceConfig } from "../../config/service"
 import { ContainerModuleConfig } from "../container/config"
-import {
-  ContainerServiceSpec,
-  ServicePortProtocol,
-} from "../container/config"
+import { ConfigureModuleParams } from "../../types/plugin/module/configure"
+import { ContainerServiceSpec, ServicePortProtocol } from "../container/config"
 
 const pluginName = "local-google-cloud-functions"
 const emulatorModuleName = "local-gcf-container"

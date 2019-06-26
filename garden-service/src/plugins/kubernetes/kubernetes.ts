@@ -22,6 +22,7 @@ import { kubectl } from "./kubectl"
 import { KubernetesConfig, KubernetesPluginContext } from "./config"
 import { configSchema } from "./config"
 import { ConfigurationError } from "../../exceptions"
+import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
 
 export const name = "kubernetes"
 
@@ -87,6 +88,9 @@ export async function debugInfo({ ctx, log }: GetDebugInfoParams): Promise<Debug
 export function gardenPlugin(): GardenPlugin {
   return {
     configSchema,
+    commands: [
+      cleanupClusterRegistry,
+    ],
     actions: {
       configureProvider,
       getEnvironmentStatus,

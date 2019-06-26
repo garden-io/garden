@@ -28,6 +28,7 @@ import { ExecCommand } from "./exec"
 import { ServeCommand } from "./serve"
 import { OptionsCommand } from "./options"
 import { ConfigCommand } from "./config/config"
+import { PluginsCommand } from "./plugins"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -41,6 +42,7 @@ export const coreCommands: Command[] = [
   new LinkCommand(),
   new LogsCommand(),
   new OptionsCommand(),
+  new PluginsCommand(),
   new PublishCommand(),
   new RunCommand(),
   new ScanCommand(),

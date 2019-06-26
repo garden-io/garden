@@ -454,6 +454,36 @@ Prints all global options (options that can be applied to any command).
 
     garden options 
 
+### garden plugins
+
+Plugin-specific commands.
+
+Execute a command defined by a plugin in your project.
+Run without arguments to get a list of all plugin commands available.
+Run with just the plugin name to get a list of commands provided by that plugin.
+
+Examples:
+
+    # Run the `cleanup-cluster-registry` command from the `kubernetes` plugin.
+    garden plugins kubernetes cleanup-cluster-registry
+
+    # List all available commands.
+    garden plugins
+
+    # List all the commands from the `kubernetes` plugin.
+    garden plugins kubernetes
+
+##### Usage
+
+    garden plugins [plugin] [command] 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `plugin` | No | The name of the plugin, whose command you wish to run.
+  | `command` | No | The name of the command to run.
+
 ### garden publish
 
 Build and publish module(s) to a remote registry.

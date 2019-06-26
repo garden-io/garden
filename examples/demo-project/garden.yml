@@ -18,3 +18,10 @@ environments:
         namespace: demo-project-testing-${local.env.CIRCLE_BUILD_NUM || "default"}
         defaultHostname: demo-project-testing.dev-1.sys.garden
         buildMode: cluster-docker
+  - name: dev-2
+    providers:
+      - name: kubernetes
+        context: gke_garden-dev-200012_europe-west3-a_dev-2
+        namespace: ${local.env.USER || "default"}-demo-project
+        defaultHostname: ${local.env.USER || "default"}-demo-project.dev-1.sys.garden
+        buildMode: cluster-docker

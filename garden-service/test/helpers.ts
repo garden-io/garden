@@ -37,8 +37,8 @@ import { SetSecretParams } from "../src/types/plugin/provider/setSecret"
 import { GetSecretParams } from "../src/types/plugin/provider/getSecret"
 import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
-import { RunTaskParams } from "../src/types/plugin/task/runTask"
-import { RunResult, RunTaskResult } from "../src/types/plugin/outputs"
+import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
+import { RunResult } from "../src/types/plugin/base"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")

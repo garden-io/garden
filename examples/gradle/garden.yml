@@ -1,0 +1,54 @@
+kind: Project
+name: my-service
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+---
+kind: Module
+description: kafka module
+type: helm
+name: kafka
+chart: incubator/kafka
+values:
+  usePassword: false
+---
+kind: Module
+type: exec
+name: gradle
+description: gradle build
+build:
+  command:
+    - gradle
+    - clean
+    - test
+    - build
+---
+kind: Module
+name: my-service
+description: my-service container
+type: container
+build:
+  dependencies:
+    - name: gradle
+      # This is needed because builds for each module are staged separately, to avoid conflicts
+      copy:
+        - source: path/to/my.jar
+          target: path/to/my.jar
+include:
+  # List things you may need other than the JAR
+  - "other-source-files/**/*"
+services:
+  - name: my-service
+    ports:
+      - name: http
+        containerPort: 8080
+        servicePort: 80
+    dependencies:
+      - kafka
+      # - gradle    <-- Not needed, it's only a build dependency
+    env:
+      KAFKA_BROKER_ADDRESSES: kafka.my-service:9092
+      APPLICATION_ID_PREFIX: my-service
+      PRODUCER_TOPIC: data.object.persist
+      CONSUMER_TOPICS: raw.data
