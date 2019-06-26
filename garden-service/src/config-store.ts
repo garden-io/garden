@@ -254,19 +254,30 @@ export interface AnalyticsGlobalConfig {
   firstRun: boolean
 }
 
-export interface GlobalConfig {
-  analytics?: AnalyticsGlobalConfig
+export interface VersionCheckGlobalConfig {
+  lastRun: Date
 }
 
-const AnalyticsGlobalConfigSchema = joi.object()
+export interface GlobalConfig {
+  analytics?: AnalyticsGlobalConfig
+  lastVersionCheck?: VersionCheckGlobalConfig
+}
+
+const analyticsGlobalConfigSchema = joi.object()
   .keys({
     userId: joiPrimitive().allow("").optional(),
     optedIn: joi.boolean().optional(),
     firstRun: joi.boolean().optional(),
   }).meta({ internal: true })
 
+const versionCheckGlobalConfigSchema = joi.object()
+  .keys({
+    lastRun: joi.date().optional(),
+  }).meta({ internal: true })
+
 const globalConfigSchemaKeys = {
-  analytics: AnalyticsGlobalConfigSchema,
+  analytics: analyticsGlobalConfigSchema,
+  lastVersionCheck: versionCheckGlobalConfigSchema,
 }
 
 /* This contains a config key, key string pair to be used when setting/getting values in the store
