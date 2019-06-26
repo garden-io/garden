@@ -293,9 +293,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get -y install rsync
       - *attach-workspace
       - include_dashboard
-      - run: sudo npm install -g pkg
-      - run:
-          command: ./garden-service/bin/build-pkg.sh
+      - run: npm run dist
       - store_artifacts:
           path: garden-service/dist/
           destination: /downloads
