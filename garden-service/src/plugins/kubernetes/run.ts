@@ -97,7 +97,7 @@ export async function runPod(
   return {
     moduleName: module.name,
     command: [...cmd, ...args],
-    version: module.version,
+    version: module.version.versionString,
     startedAt,
     completedAt: new Date(),
     output: res.output,

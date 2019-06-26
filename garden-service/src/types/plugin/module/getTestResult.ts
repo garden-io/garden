@@ -26,6 +26,10 @@ export const testResultSchema = runResultSchema
     testName: joi.string()
       .required()
       .description("The name of the test that was run."),
+    version: joi.string()
+      .description(deline`
+        The test run's version, as a string. In addition to the parent module's version, this also
+        factors in the module versions of the test's runtime dependencies (if any).`),
   })
 
 export const testVersionSchema = moduleVersionSchema

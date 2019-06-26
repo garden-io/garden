@@ -30,7 +30,8 @@ export const taskResultSchema = joi.object()
     command: joi.array().items(joi.string())
       .required()
       .description("The command that the task ran in the module."),
-    version: moduleVersionSchema,
+    version: joi.string()
+      .description("The string version of the task."),
     success: joi.boolean()
       .required()
       .description("Whether the task was successfully run."),

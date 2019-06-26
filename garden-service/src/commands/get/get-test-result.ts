@@ -92,7 +92,7 @@ export class GetTestResultCommand extends Command<Args> {
         module: testResult.moduleName,
         startedAt: testResult.startedAt,
         completedAt: testResult.completedAt,
-        version: testResult.version.versionString,
+        version: testResult.version,
         output: testResult.output,
       }
 

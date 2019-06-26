@@ -33,7 +33,14 @@ export async function getTestResult(
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, testResultNamespace)
-    return <TestResult>deserializeValues(res.data!)
+    const result: any = deserializeValues(res.data!)
+
+    // Backwards compatibility for modified result schema
+    if (result.version.versionString) {
+      result.version = result.version.versionString
+    }
+
+    return <TestResult>result
   } catch (err) {
     if (err.code === 404) {
       return null

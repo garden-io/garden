@@ -24,7 +24,7 @@ export interface RunTaskResult extends RunResult {
   moduleName: string
   taskName: string
   command: string[]
-  version: ModuleVersion
+  version: string
   success: boolean
   startedAt: Date
   completedAt: Date

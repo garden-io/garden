@@ -33,7 +33,14 @@ export async function getTaskResult(
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, ns)
-    return <RunTaskResult>deserializeValues(res.data!)
+    const result: any = deserializeValues(res.data!)
+
+    // Backwards compatibility for modified result schema
+    if (result.version.versionString) {
+      result.version = result.version.versionString
+    }
+
+    return <RunTaskResult>result
   } catch (err) {
     if (err.code === 404) {
       return null
@@ -70,9 +77,6 @@ export async function storeTaskResult(
   const api = await KubeApi.factory(log, provider.config.context)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
-  // Make sure the output isn't too large for a ConfigMap
-  result.output = tailString(result.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true)
-
   await upsertConfigMap({
     api,
     namespace,
@@ -83,6 +87,10 @@ export async function storeTaskResult(
       [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
       [gardenAnnotationKey("version")]: taskVersion.versionString,
     },
-    data: result,
+    data: {
+      ...result,
+      // Make sure the output isn't too large for a ConfigMap
+      output: tailString(result.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true),
+    },
   })
 }
