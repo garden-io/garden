@@ -14,6 +14,15 @@
 # For more information visit https://docs.garden.io/
 
 Function CheckHyperV {
+    $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
+    if($hyperv) {
+        return $true
+    } else {
+        return $false
+    }
+}
+
+Function EnableHyperV {
     # if ((New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -eq $false) {
     #     ContinueYN("To check whether Hyper-V is enabled (and enable it if necessary), please run as Administrator. If you choose to continue the Hyper-V check will be skipped.")
     #     return
@@ -102,9 +111,17 @@ choco upgrade -y git rsync docker-for-windows
 
 [Console]::ResetColor()
 
-# Check system configuration
-CheckHyperV
-CheckKubernetes
+if (CheckHyperV) {
+    Write-Host "Hyper-V is available. Would you like to install Docker for Windows? (y/n)"
+    $response = Read-Host
+    if ( $response -eq "y" ) {
+        EnableHyperV
+        choco upgrade -y docker-for-windows
+        CheckKubernetes
+    }
+} else {
+    Write-Host "Hyper-V is NOT available. Docker for Windows is not available on this machine." -ForegroundColor Yellow
+}
 
 # Install the garden binary
 $homedir = Resolve-Path "~"
@@ -177,5 +194,5 @@ You can now run the garden command in your shell (you may need to restart your s
 Please head over to https://docs.garden.io for more information on how to get started.
 
 Note: Please see the logs above for any warnings. If Docker for Windows was just installed and/or
-      Hyper-V was just enabled, you may need to restart your computer before using Docker and Garden.
+      Hyper-V was just enabled, you may need to restart your computer before using Docker.
 ")

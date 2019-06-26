@@ -49,7 +49,11 @@ To later upgrade to the newest version, simply run `brew update` and then `brew 
 
 ### Windows
 
-You can run Garden on Windows 10 Pro or Enterprise editions (the Home edition unfortunately does not work because it does not include support for virtualization).
+You can run Garden on Windows 10 Home, Pro or Enterprise editions.
+
+_Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with
+[remote clusters](../using-garden/remote-clusters.md) and
+[in-cluster building](../using-garden/in-cluster-building.md)._
 
 To install the Garden CLI and its dependencies, please use our installation script. To run the script, open PowerShell as an administrator and run:
 
@@ -60,10 +64,11 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 The things the script will check for are the following:
 
 * The [Chocolatey](https://chocolatey.org) package manager. The script installs it automatically if necessary.
-* _git_, _rsync_ and _Docker for Windows_. The script will install or upgrade those via Chocolatey.
-* Whether you have Hyper-V enabled. This is required for _Docker for Windows_. If you do not already have it enabled,
-  the script will enable it, but you will need to restart your computer before starting Docker for Windows.
-* Whether you have Kubernetes enabled in your _Docker for Windows_ installation.
+* _git_ and _rsync_ . The script will install or upgrade those via Chocolatey.
+* Whether you have Hyper-V available and enabled. This is required for _Docker for Windows_. If it's available, the
+  installer will ask if you'd like to install _Docker for Windows_. If you do not already have it enabled,
+  the script will enable it, but you will need to restart your computer before starting Docker.
+* If applicable, whether Kubernetes is enabled in your _Docker for Windows_ installation.
 
 To later upgrade to the newest version, simply re-run the above script.
 
