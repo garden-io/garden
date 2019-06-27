@@ -81,11 +81,12 @@ export interface KubernetesConfig extends KubernetesBaseConfig {
 export type KubernetesProvider = Provider<KubernetesConfig>
 export type KubernetesPluginContext = PluginContext<KubernetesConfig>
 
+// We default to fairly low requests but high limits.
 export const defaultResources: KubernetesResources = {
   builder: {
     limits: {
-      cpu: 2000,
-      memory: 4096,
+      cpu: 4000,
+      memory: 8192,
     },
     requests: {
       cpu: 200,
@@ -104,8 +105,8 @@ export const defaultResources: KubernetesResources = {
   },
   sync: {
     limits: {
-      cpu: 200,
-      memory: 256,
+      cpu: 500,
+      memory: 512,
     },
     requests: {
       cpu: 100,
@@ -116,11 +117,11 @@ export const defaultResources: KubernetesResources = {
 
 export const defaultStorage: KubernetesStorage = {
   builder: {
-    size: 10 * 1024,
+    size: 20 * 1024,
     storageClass: null,
   },
   registry: {
-    size: 10 * 1024,
+    size: 20 * 1024,
     storageClass: null,
   },
   sync: {
