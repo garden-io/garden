@@ -12,7 +12,6 @@ import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 
 export interface PrepareEnvironmentParams extends PluginActionParamsBase {
-  manualInit: boolean
   status: EnvironmentStatus
   force: boolean
 }
@@ -25,20 +24,12 @@ export const prepareEnvironment = {
     before deploying services.
 
     Called ahead of any service runtime actions (such as \`deployService\`,
-    \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\` or
-    \`needManualInit: true\`.
-
-    Important: If your handler does require user input, please be sure to indicate that via the
-    \`getEnvironmentStatus\` handler. If this provider's \`getEnvironmentStatus\` returns \`needManualInit: true\`,
-    this is only called via the \`garden init\` command, so that the handler can safely request user input via
-    the CLI.
+    \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\`.
   `,
   paramsSchema: actionParamsSchema
     .keys({
       force: joi.boolean()
         .description("Force re-configuration of the environment."),
-      manualInit: joi.boolean()
-        .description("Set to true if the environment is being explicitly initialized via `garden init`."),
       status: environmentStatusSchema,
     }),
   resultSchema: joi.object().keys({}),

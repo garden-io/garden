@@ -45,7 +45,7 @@ export class InitCommand extends Command {
     printHeader(headerLog, `Initializing ${name} environment`, "gear")
 
     const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log, force: opts.force, manualInit: true })
+    await actions.prepareEnvironment({ log, force: opts.force })
 
     printFooter(footerLog)
 

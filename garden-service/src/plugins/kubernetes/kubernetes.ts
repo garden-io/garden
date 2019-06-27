@@ -23,6 +23,7 @@ import { KubernetesConfig, KubernetesPluginContext } from "./config"
 import { configSchema } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
+import { clusterInit } from "./commands/cluster-init"
 
 export const name = "kubernetes"
 
@@ -90,6 +91,7 @@ export function gardenPlugin(): GardenPlugin {
     configSchema,
     commands: [
       cleanupClusterRegistry,
+      clusterInit,
     ],
     actions: {
       configureProvider,
