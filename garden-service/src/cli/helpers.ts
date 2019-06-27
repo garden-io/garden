@@ -17,7 +17,15 @@ import {
   InternalError,
 } from "../exceptions"
 import { LogLevel } from "../logger/log-node"
-import { getEnumKeys } from "../util/util"
+import { getEnumKeys, getPackageVersion } from "../util/util"
+import axios from "axios"
+import qs = require("qs")
+import { platform, release } from "os"
+import { LogEntry } from "../logger/log-entry"
+import { VERSION_CHECK_URL } from "../constants"
+import { printHeader } from "../logger/util"
+import { GlobalConfigStore, globalConfigKeys } from "../config-store"
+import moment = require("moment")
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
@@ -205,5 +213,31 @@ export function failOnInvalidOptions(argv, ctx) {
   const invalid = difference(receivedOptions, validOptions)
   if (invalid.length > 0) {
     ctx.cliMessage(`Received invalid flag(s): ${invalid.join(", ")}`)
+  }
+}
+
+export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntry) {
+  const query = {
+    gardenVersion: getPackageVersion(),
+    platform: platform(),
+    platformVersion: release(),
+  }
+  try {
+    const res = await axios.get(`${VERSION_CHECK_URL}?${qs.stringify(query)}`)
+    const configObj = await config.get()
+    const showMessage = (configObj.lastVersionCheck
+      && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun)))
+
+    if (showMessage || !configObj.lastVersionCheck) {
+      if (res.data.status === "OUTDATED") {
+        printHeader(logger, res.data.message, "warning")
+      } else {
+        printHeader(logger, res.data.message, "thumbsup")
+      }
+      await config.set([globalConfigKeys.lastVersionCheck], { lastRun: new Date() })
+    }
+  } catch (err) {
+    logger.verbose("Something went wrong while checking for the latest Garden version.")
+    logger.verbose(err)
   }
 }

@@ -45,6 +45,7 @@ import {
   getLogLevelChoices,
   parseLogLevel,
   helpTextMaxWidth,
+  checkForUpdates,
 } from "./helpers"
 import { defaultEnvironments, ProjectConfig } from "../config/project"
 import {
@@ -300,6 +301,9 @@ export class GardenCli {
           // Init Analytics, track command if user opted-in
           const analytics = await new AnalyticsHandler(garden).init()
           analytics.trackCommand(command.getFullName())
+
+          // tslint:disable-next-line: no-floating-promises
+          checkForUpdates(garden.globalConfigStore, headerLog)
 
           // TODO: enforce that commands always output DeepPrimitiveMap
           result = await command.action({
