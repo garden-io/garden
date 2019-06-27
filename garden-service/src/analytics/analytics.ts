@@ -288,9 +288,11 @@ export class AnalyticsHandler {
   private async promptAnalytics() {
 
     const defaultMessage = dedent`
-      Thanks for installing Garden! We work hard to provide you the best experience we can
-      and it would help us a lot if we could collect some anonymous analytics while you use Garden.
-      Are you ok with us collecting anonymized data about your CLI usage?
+      Thanks for installing Garden! We work hard to provide you with the best experience we can.
+      It would help us a lot if we could collect some anonymous analytics while you use Garden.
+      You can read more about what we collect at https://github.com/garden-io/garden/blob/master/README.md#Analytics
+
+      Are you OK with us collecting anonymized data about your CLI usage? (Y/n)
 
     `
     const ans: any = await inquirer.prompt({
