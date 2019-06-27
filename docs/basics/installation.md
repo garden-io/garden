@@ -1,4 +1,4 @@
-## Installation
+# Installation
 
 This guide will walk you through setting up the Garden framework.
 
@@ -6,21 +6,42 @@ Please follow the guide for your operating system:
 
 * [macOS](#macos)
 * [Windows](#windows)
-* [Linux (Manual Installation)](#linux-manual-installation)
+* [Linux](#linux)
 
 And if you decide to use Minikube, please see our [Minikube Instructions](#minikube-instructions) further down in this
 document.
 
-### macOS
+## macOS
 
 For Mac, we recommend the following steps to install Garden. You can also follow the manual installation
 steps below if you prefer.
 
-#### Step 1: Install Homebrew
+### Step 1: Install Homebrew
 
 If you haven't already set up Homebrew, please follow [their installation instructions](https://brew.sh/).
 
-#### Step 2: Docker and local Kubernetes
+### Step 2: Install Garden
+
+You can easily install Garden using [Homebrew](https://brew.sh) or using our installation script.
+
+#### Homebrew
+
+```sh
+brew tap garden-io/garden
+brew install garden-cli
+```
+
+To later upgrade to the newest version, simply run `brew update` and then `brew upgrade garden-cli`.
+
+#### Installation script
+
+```sh
+curl -sL https://get.garden.io/install.sh | bash
+```
+
+To later upgrade to the latest version, simply run the script again.
+
+### Step 3 (optional): Docker and local Kubernetes
 
 To install Docker, Kubernetes and kubectl, we strongly recommend Docker for Mac. Garden itself doesn't require a local
 installation of Kubernetes, but it is in most cases the preferred way of using it.
@@ -36,18 +57,7 @@ Alternatively, you can use Minikube. We generally find it less stable and more h
 configure and use, but we do fully support it on Mac. Please look at the
 [Minikube Instructions](#minikube-instructions) section for details.
 
-#### Step 3: Install `garden-cli`
-
-We have a Homebrew tap and package that you can use to easily install `garden-cli` and its dependencies:
-
-```sh
-brew tap garden-io/garden
-brew install garden-cli
-```
-
-To later upgrade to the newest version, simply run `brew update` and then `brew upgrade garden-cli`.
-
-### Windows
+## Windows
 
 You can run Garden on Windows 10 Home, Pro or Enterprise editions.
 
@@ -72,33 +82,53 @@ The things the script will check for are the following:
 
 To later upgrade to the newest version, simply re-run the above script.
 
-### Linux (manual installation)
+## Linux
 
 You need the following dependencies on your local machine to use Garden:
 
-* [Docker](https://docs.docker.com/)
 * Git
 * rsync
-* (in most cases) A local installation of Kubernetes and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
-#### Step 1: Docker
+And if you're building and running services locally, you need the following:
+
+* [Docker](https://docs.docker.com/)
+* A local installation of Kubernetes and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+
+### Step 1: Install core dependencies
+
+Use your preferred method or package manager to install `git` and `rsync`. On Ubuntu, that's `sudo apt install git rsync`.
+
+### Step 2: Install Garden
+
+Use our installation script to install automatically:
+
+```sh
+curl -sL https://get.garden.io/install.sh | bash
+```
+
+To later upgrade to the latest version, simply run the script again.
+
+Or if you prefer to do it manually, download the Garden CLI for your platform from our
+[latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH.
+E.g. by extracting to `~/.garden/bin` and adding `export PATH=$PATH:~/.garden/bin` to your `.bashrc` or `.zshrc` file.
+
+### Step 3 (optional): Docker
 
 To install Docker, please follow the instructions in the [official documentation](https://docs.docker.com/install/).
 
-#### Step 2: Local Kubernetes
+### Step 4 (optional): Local Kubernetes
 
 For local Kubernetes, you can use [Minikube](https://github.com/kubernetes/minikube). Please see the
 [Minikube](#minikube) section below for details.
 
-#### Step 3: Install other dependencies
+## Local Kubernetes clusters
 
-Use your preferred method or package manager to install `git` and `rsync`. On Ubuntu, that's `sudo apt install git rsync`.
+For Mac and Windows, we generally recommend using [Docker for Desktop](https://docs.docker.com/engine/installation/))
+and enabling its built-in Kubernetes support. For Linux, there are many options (some of which also work on Mac).
+Below are just a couple that we have tested. Contributions to this guide and our supported local Kubernetes variants
+are most welcome :)
 
-#### Step 4: Install `garden-cli`
-
-Once you have the dependencies set up, download the Garden CLI for your platform from our [latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH. E.g. by extracting to `~/.garden/bin` and adding `export PATH=$PATH:~/.garden/bin` to your `.bashrc` or `.zshrc` file.
-
-## MicroK8s
+### MicroK8s
 
 Garden can be used with [MicroK8s](https://microk8s.io) on supported Linux platforms.
 
@@ -125,13 +155,11 @@ And then adding this to your `.bashrc`/`.zshrc`:
 export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}:$HOME/.kube/microk8s.config
 ```
 
-## Minikube
+### Minikube
 
 Garden can be used with [Minikube](https://github.com/kubernetes/minikube) on supported platforms.
 
-_NOTE: We highly recommend using Docker for Mac and Docker for Windows, on macOS and Windows respectively._
-
-### Installing Minikube
+#### Installing Minikube
 
 For Minikube installation instructions, please see the [official guide](https://github.com/kubernetes/minikube#installation).
 
@@ -151,7 +179,7 @@ minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
 You'll also need to have Docker (for macOS, we recommend [Docker for Mac](https://docs.docker.com/engine/installation/))
 and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed.
 
-### Usage
+#### Usage
 
 The `local-kubernetes` plugin attempts to automatically detect if it is installed and set the appropriate context
 for connecting to the local Kubernetes instance. In most cases you should not have to update your `garden.yml`,
@@ -171,9 +199,5 @@ If you happen to have installed both Minikube and a version of Docker for Mac wi
 `garden` will choose whichever one is configured as the current context in your `kubectl` configuration. If neither
 is set as the current context, the first available context is used.
 
-(If you're not yet familiar with Garden configuration files, see: [Configuration files](../using-garden/configuration-files.md))
-
-### Anything else?
-
-Once the above is set up, the `local-kubernetes` plugin will automatically configure everything else Garden needs to
-work. The built-in nginx ingress controller will be automatically enabled and used to route requests to services.
+(If you're not yet familiar with Garden configuration files, see:
+[Configuration files](../using-garden/configuration-files.md))
