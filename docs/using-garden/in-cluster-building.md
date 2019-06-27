@@ -126,7 +126,7 @@ image: my-repo/my-image:v1.2.3   # <- omit the tag here if you'd like to use the
 In order to avoid disk-space issues in the cluster, the `kubernetes` provider exposes a utility command:
 
 ```sh
-garden --env=<your-environment> plugins kubernetes cluster-registry-cleanup
+garden --env=<your-environment> plugins kubernetes cleanup-cluster-registry
 ```
 
 The command does the following:
