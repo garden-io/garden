@@ -58,13 +58,15 @@ export async function installTiller({ ctx, log, provider, force = false }: Insta
 
   // Need to install the RBAC stuff ahead of Tiller
   const roleResources = getRoleResources(namespace)
+  entry.setState("Applying Tiller RBAC resources...")
   await apply({ log, context, manifests: roleResources, namespace })
-  await waitForResources({ ctx, provider, serviceName: "tiller", resources: roleResources, log })
+  await waitForResources({ ctx, provider, serviceName: "tiller", resources: roleResources, log: entry })
 
   const tillerResources = await getTillerResources(ctx, provider, log)
   const pruneSelector = "app=helm,name=tiller"
+  entry.setState("Deploying Tiller...")
   await apply({ log, context, manifests: tillerResources, namespace, pruneSelector })
-  await waitForResources({ ctx, provider, serviceName: "tiller", resources: tillerResources, log })
+  await waitForResources({ ctx, provider, serviceName: "tiller", resources: tillerResources, log: entry })
 
   entry.setSuccess({ msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`), append: true })
 }
@@ -82,7 +84,9 @@ async function getTillerResources(
     "--debug",
   )
 
-  return safeLoadAll(tillerManifests)
+  const resources = safeLoadAll(tillerManifests)
+
+  return resources
 }
 
 function getRoleResources(namespace: string) {

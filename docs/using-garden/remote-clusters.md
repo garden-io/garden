@@ -39,6 +39,19 @@ The plugin will create two or more namespaces per user and project, one to run s
 metadata and configuration (this is so that your environment can be reset without
 clearing your configuration variables), and potentially more to support specific plugins/providers.
 
+## Initializing the cluster
+
+When you're connecting to a new cluster, or after you have updated your provider configuration or Garden itself,
+you need to install/update cluster-wide services that Garden needs to operate. When using `local-kubernetes` this
+happens automatically when you're deploying or testing, but for remote clusters this requires a manual step. This is
+so that different users don't end up "competing" with different configurations or versions.
+
+To initialize or update your cluster-wide services, run:
+
+```sh
+garden --env=<environment-name> plugins kubernetes cluster-init
+```
+
 ## Building and pushing images
 
 Garden supports multiple methods for building images and making them available to the cluster. Below we detail how

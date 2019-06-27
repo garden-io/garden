@@ -164,7 +164,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
   const statusLine = log.info({
     symbol: "info",
     section: serviceName,
-    msg: `Waiting for service to be ready...`,
+    msg: `Waiting for resources to be ready...`,
   })
 
   const api = await KubeApi.factory(log, provider.config.context)

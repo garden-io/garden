@@ -15,7 +15,7 @@ import { PublishModuleParams, PublishResult } from "./types/plugin/module/publis
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
 import { validate, joi } from "./config/common"
 import { defaultProvider, Provider } from "./config/provider"
-import { ConfigurationError, ParameterError, PluginError } from "./exceptions"
+import { ParameterError, PluginError } from "./exceptions"
 import { ActionHandlerMap, Garden, ModuleActionHandlerMap, ModuleActionMap, PluginActionMap } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { ProcessResults, processServices } from "./process"
@@ -156,33 +156,14 @@ export class ActionHelper implements TypeGuard {
   /**
    * Checks environment status and calls prepareEnvironment for each provider that isn't flagged as ready.
    *
-   * If any of the getEnvironmentStatus handlers return ready=false AND needManualInit=true, this throws and guides
-   * the user to run `garden init`
+   * If any of the getEnvironmentStatus handlers return ready=false.
    */
   async prepareEnvironment(
-    { force = false, pluginName, log, manualInit = false }:
-      { force?: boolean, pluginName?: string, log: LogEntry, manualInit?: boolean },
+    { force = false, pluginName, log }:
+      { force?: boolean, pluginName?: string, log: LogEntry },
   ) {
     const entry = log.info({ section: "providers", msg: "Getting status...", status: "active" })
     const statuses = await this.getEnvironmentStatus({ pluginName, log: entry })
-
-    const needManualInit = Object.entries(statuses)
-      .map(([name, status]) => ({ ...status, name }))
-      .filter(status => status.ready === false && status.needManualInit === true)
-
-    if (!manualInit && needManualInit.length > 0) {
-      const names = needManualInit.map(s => s.name).join(", ")
-      const msgPrefix = needManualInit.length === 1
-        ? `Provider ${names} has been updated or hasn't been configured, and requires manual initialization`
-        : `Providers ${names} have been updated or haven't been configured, and require manual initialization`
-
-      entry.setError()
-
-      throw new ConfigurationError(
-        `${msgPrefix}. Please run \`garden init\` and then re-run this command.`,
-        { statuses },
-      )
-    }
 
     const prepareHandlers = this.getActionHandlers("prepareEnvironment", pluginName)
 
@@ -209,7 +190,6 @@ export class ActionHelper implements TypeGuard {
 
       await handler({
         ...await this.commonParams(handler, log),
-        manualInit,
         force,
         status,
         log: envLogEntry,
