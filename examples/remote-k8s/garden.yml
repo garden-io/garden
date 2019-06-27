@@ -18,8 +18,4 @@ environments:
       secretRef:
         name: garden-example-tls
         namespace: default
-    deploymentRegistry:
-      # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
-      hostname: my.registry.io
-      # Namespace to use in the registry for this project. For GCR, use the project ID where your cluster is.
-      namespace: my-project-id
+    buildMode: cluster-docker

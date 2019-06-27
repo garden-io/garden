@@ -1,6 +1,6 @@
 # Using Garden
 
-## [Features and usage](./features-and-usage.md)
+## [Development workflows](./development-workflows.md)
 
 In this article we discuss how to set up a new Garden project, the basic development workflow, how Garden's providers work, and the basics of testing and dependencies.
 

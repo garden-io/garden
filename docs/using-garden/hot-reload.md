@@ -4,7 +4,7 @@ When the `local-kubernetes` or `kubernetes` provider is used, `container` module
 
 For example, services that can be run with a file system watcher that automatically update the running application process when sources change (e.g. nodemon, Django, Ruby on Rails, and many other web app frameworks) are a natural fit for this feature.
 
-# Usage
+## Usage
 
 Currently, services are only deployed with hot reloading enabled when their names are passed to the `--hot` option via `garden deploy` or `garden dev` commands (e.g. `garden dev --hot=foo-service,bar-service`). If these services don't belong to a module defining a `hotReload` configuration (see below for an example), an error will be thrown if their names are passed to the `--hot` option.
 
@@ -14,7 +14,7 @@ Subsequently deploying a service belonging to a module configured for hot reload
 
 Since hot reloading is triggered via Garden's file system watcher, hot reloading only occurs while a watch-mode Garden command is running.
 
-# Quick example
+## Quick example
 
 Following is a simple example of a module configured for hot reloading:
 

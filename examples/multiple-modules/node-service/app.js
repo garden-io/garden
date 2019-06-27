@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 
-// These environment variables are set differently in Dockerfile-dev and Dockerfile-prod
+// These environment variables are set differently in Dockerfile-a and Dockerfile-b
 const envName = process.env.ENVIRONMENT;
 const helloPath = process.env.HELLO_PATH
 

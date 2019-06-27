@@ -126,7 +126,7 @@ describe("DeleteEnvironmentCommand", () => {
       "service-c": { state: "missing" },
       "service-d": { state: "missing" },
     })
-    expect(deletedServices).to.eql(["service-a", "service-b", "service-c", "service-d"])
+    expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
   })
 })
 

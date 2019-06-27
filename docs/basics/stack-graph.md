@@ -1,10 +1,16 @@
 # The Stack Graph
 
-Garden centers around the _Stack Graph_, which allows you to describe your whole stack in a consistent, structured way.
+Garden centers around the _Stack Graph_, which allows you to describe your whole stack in a consistent, structured way,
+without creating massive scripts or monolithic configuration files.
+
+We believe your configuration should be distributed, like your stack, so your configuration files are located next to
+each module (such as container image, Helm chart, manifests and function). Garden scans for these configuration files,
+even across multiple repositories, validates them and compiles them into a graph that describes all the steps involved
+in building, deploying and testing your application.
 
 Garden uses the graph to detect when modules need to be re-built or re-tested, services re-deployed etc. by comparing your current code with previously built, deployed and tested versions.
 
-## Structure
+## Structure and terminology
 
 The Stack Graph is essentially an opinionated graph structure, with a handful of pre-defined entity types and verbs:
 
@@ -15,13 +21,16 @@ The Stack Graph is essentially an opinionated graph structure, with a handful of
 * **Task**: A task is something you _run_ and wait for to finish. It can depend on other services and tasks.
 * **Test**: A test is also something you run and wait for to finish, similar to tasks, but with slightly different semantics and separate commands for execution. It can depend on services and tasks (but notably services and tasks cannot depend on tests).
 
-Each part of your stack _describes itself_ using a simple configuration file. Garden collects all those declarations, validates, and compiles them into a DAG (a directed acyclic graph, meaning it should have no circular dependencies).
+Each part of your stack _describes itself_ using a simple configuration file. Garden collects all those declarations, validates, and compiles them into a DAG (a _directed acyclic graph_, meaning it must have no circular dependencies).
 
 Importantly, what happens within each of the actions that the graph describes—building, deploying, running etc.—is completely pluggable via the providers. The Stack Graph is only opinionated in terms of flows and dependencies—_what_ should happen _when_—but the _how_ is pluggable.
 
+All the Garden plugins are currently built-in; we will soon release a plugin SDK to allow any user to easily make their
+own plugins.
+
 ## Configuration
 
-As mentioned above, each part of your stack should describe itself. This avoids massive project configuration files or scripts, and makes each part of your stack easy to understand, and even re-usable across projects.
+As mentioned above, each part of your stack should describe itself. This avoids massive project configuration files or scripts, and makes each part of your stack easy to understand, and even re-usable across projects in some cases.
 
 This is done through simple configuration files, which are version controlled in your project, next to each of your code modules (if applicable). For example:
 
@@ -53,8 +62,9 @@ tests:
   dependencies: [my-other-service]
 ```
 
-Note here the first four fields, which are common across all module types—`kind`, `type`, `name` and `description`. Other fields are specified by the corresponding _provider_.
+Note here the first four fields, which are common across all module types—`kind`, `type`, `name` and `description`. Other fields are specified by the corresponding _module type_, which are defined by _providers_.
 
-Also notice that the `container` module explicitly declares a service, whereas the `helm` module does not. This is dictated by the provider. Containers often only need to be built (e.g. base images for other containers), or may contain multiple services. A Helm chart , however, is generally a single deployable so the provider makes the service implicit when configuring it.
+Also notice that the `container` module explicitly declares a service, whereas the `helm` module does not. This is dictated by the module
+type. Containers often only need to be built (e.g. base images for other containers), or may contain multiple services. A Helm chart, however, is generally a single deployable so the provider makes the service implicit when configuring it.
 
 For more details on how to configure your project, take a look at the [configuration guide](../using-garden/configuration-files.md).

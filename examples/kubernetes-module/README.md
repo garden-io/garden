@@ -15,3 +15,8 @@ To give it a spin, just run `garden deploy` in the module directory.
 
 To see that the Postgres password was correctly set, run `kubectl -n kubernetes-module get secret postgres -o yaml`
 and check that the password matches the one in the project `garden.yml` file.
+
+## Further reading
+
+There's not much more to it, but you can check out the module type
+[reference](https://docs.garden.io/reference/module-types/kubernetes) for more details.
