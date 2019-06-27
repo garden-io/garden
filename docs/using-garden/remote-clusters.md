@@ -7,6 +7,9 @@ Many of the steps are not specific to Garden as such, so you may have already pe
 and/or may need to follow the provided links in each section for details on how to perform the steps you have
 not yet completed.
 
+Our [cloud provider setup guide](./cloud-provider-setup.md) includes instructions for getting started with a few prominent
+hosted Kubernetes providers, and for configuring your Garden project to connect with them.
+
 ## Connecting to the cluster
 
 Start by making sure you have a [kubectl context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/)
