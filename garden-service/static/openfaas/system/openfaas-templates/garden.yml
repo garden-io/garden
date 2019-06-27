@@ -1,0 +1,4 @@
+kind: Module
+name: templates
+description: "OpenFaaS templates"
+type: exec
