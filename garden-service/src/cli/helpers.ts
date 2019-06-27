@@ -217,6 +217,10 @@ export function failOnInvalidOptions(argv, ctx) {
 }
 
 export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntry) {
+  if (process.env.GARDEN_DISABLE_VERSION_CHECK === "true") {
+    return
+  }
+
   const query = {
     gardenVersion: getPackageVersion(),
     platform: platform(),

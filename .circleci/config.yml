@@ -9,6 +9,8 @@ version: 2.1
   node-config: &node-config
     docker:
       - image: circleci/node:10
+        environment:
+          GARDEN_DISABLE_VERSION_CHECK: "true"
 
   # Attach's the current saved workspace
   attach-workspace: &attach-workspace
