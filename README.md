@@ -13,6 +13,8 @@
 
 > _If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
 
+![Dashboard](docs/dashboard.gif)
+
 ## Features
 
 - Spin up your whole stack with a single command, and (optionally) watch for changes. Only what’s needed gets re-built, re-deployed, and/or re-tested, so you get a **much faster feedback loop**.
