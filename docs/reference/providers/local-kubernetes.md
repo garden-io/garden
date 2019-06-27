@@ -140,7 +140,7 @@ Resource requests and limits for the in-cluster builder, container registry and 
 
 | Type     | Required | Default                                                                                                                                                                                                                                                    |
 | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `object` | No       | `{"builder":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":200,"memory":256},"requests":{"cpu":100,"memory":64}}}` |
+| `object` | No       | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":64}}}` |
 
 ### `providers[].resources.builder`
 
@@ -157,7 +157,7 @@ limits/requests, but you should evaluate based on your needs.
 
 | Type     | Required | Default                                                                     |
 | -------- | -------- | --------------------------------------------------------------------------- |
-| `object` | No       | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` |
+| `object` | No       | `{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}}` |
 
 ### `providers[].resources.builder.limits`
 
@@ -165,7 +165,7 @@ limits/requests, but you should evaluate based on your needs.
 
 | Type     | Required | Default                      |
 | -------- | -------- | ---------------------------- |
-| `object` | No       | `{"cpu":2000,"memory":4096}` |
+| `object` | No       | `{"cpu":4000,"memory":8192}` |
 
 ### `providers[].resources.builder.limits.cpu`
 
@@ -175,7 +175,7 @@ CPU limit in millicpu.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
-| `number` | No       | `2000`  |
+| `number` | No       | `4000`  |
 
 Example:
 
@@ -187,7 +187,7 @@ providers:
         ...
         limits:
           ...
-          cpu: 2000
+          cpu: 4000
 ```
 
 ### `providers[].resources.builder.limits.memory`
@@ -198,7 +198,7 @@ Memory limit in megabytes.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
-| `number` | No       | `4096`  |
+| `number` | No       | `8192`  |
 
 Example:
 
@@ -210,7 +210,7 @@ providers:
         ...
         limits:
           ...
-          memory: 4096
+          memory: 8192
 ```
 
 ### `providers[].resources.builder.requests`
@@ -399,7 +399,7 @@ defaults if you have many concurrent users.
 
 | Type     | Required | Default                                                                  |
 | -------- | -------- | ------------------------------------------------------------------------ |
-| `object` | No       | `{"limits":{"cpu":200,"memory":256},"requests":{"cpu":100,"memory":64}}` |
+| `object` | No       | `{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":64}}` |
 
 ### `providers[].resources.sync.limits`
 
@@ -407,7 +407,7 @@ defaults if you have many concurrent users.
 
 | Type     | Required | Default                    |
 | -------- | -------- | -------------------------- |
-| `object` | No       | `{"cpu":200,"memory":256}` |
+| `object` | No       | `{"cpu":500,"memory":512}` |
 
 ### `providers[].resources.sync.limits.cpu`
 
@@ -417,7 +417,7 @@ CPU limit in millicpu.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
-| `number` | No       | `200`   |
+| `number` | No       | `500`   |
 
 Example:
 
@@ -429,7 +429,7 @@ providers:
         ...
         limits:
           ...
-          cpu: 200
+          cpu: 500
 ```
 
 ### `providers[].resources.sync.limits.memory`
@@ -440,7 +440,7 @@ Memory limit in megabytes.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
-| `number` | No       | `256`   |
+| `number` | No       | `512`   |
 
 Example:
 
@@ -452,7 +452,7 @@ providers:
         ...
         limits:
           ...
-          memory: 256
+          memory: 512
 ```
 
 ### `providers[].resources.sync.requests`
@@ -521,7 +521,7 @@ factoring in how many concurrent builds you expect and how large your images and
 
 | Type     | Required | Default                                                                                                                                  |
 | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `object` | No       | `{"builder":{"size":10240,"storageClass":null},"registry":{"size":10240,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` |
+| `object` | No       | `{"builder":{"size":20480,"storageClass":null},"registry":{"size":20480,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` |
 
 ### `providers[].storage.builder`
 
@@ -533,7 +533,7 @@ Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
 | Type     | Required | Default                              |
 | -------- | -------- | ------------------------------------ |
-| `object` | No       | `{"size":10240,"storageClass":null}` |
+| `object` | No       | `{"size":20480,"storageClass":null}` |
 
 ### `providers[].storage.builder.size`
 
@@ -543,7 +543,7 @@ Volume size for the registry in megabytes.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
-| `number` | No       | `10240` |
+| `number` | No       | `20480` |
 
 ### `providers[].storage.builder.storageClass`
 
@@ -566,7 +566,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 
 | Type     | Required | Default                              |
 | -------- | -------- | ------------------------------------ |
-| `object` | No       | `{"size":10240,"storageClass":null}` |
+| `object` | No       | `{"size":20480,"storageClass":null}` |
 
 ### `providers[].storage.registry.size`
 
@@ -576,7 +576,7 @@ Volume size for the registry in megabytes.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
-| `number` | No       | `10240` |
+| `number` | No       | `20480` |
 
 ### `providers[].storage.registry.storageClass`
 
@@ -792,8 +792,8 @@ providers:
     resources:
       builder:
         limits:
-          cpu: 2000
-          memory: 4096
+          cpu: 4000
+          memory: 8192
         requests:
           cpu: 200
           memory: 512
@@ -806,17 +806,17 @@ providers:
           memory: 512
       sync:
         limits:
-          cpu: 200
-          memory: 256
+          cpu: 500
+          memory: 512
         requests:
           cpu: 100
           memory: 64
     storage:
       builder:
-        size: 10240
+        size: 20480
         storageClass: null
       registry:
-        size: 10240
+        size: 20480
         storageClass: null
       sync:
         size: 10240
