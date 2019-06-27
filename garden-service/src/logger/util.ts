@@ -129,3 +129,11 @@ export function printHeader(log: LogEntry, command: string, emoji?: EmojiName): 
 export function printFooter(log: LogEntry) {
   return printWithEmoji(log, "Done!", "heavy_check_mark")
 }
+
+export function printWarningMessage(log: LogEntry, text: string) {
+  const msg = combine([
+    [log.root.useEmoji ? printEmoji("warning") : ""],
+    [chalk.bold.yellow(text)],
+  ])
+  return log.info(msg)
+}

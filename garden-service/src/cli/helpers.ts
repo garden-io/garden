@@ -23,7 +23,7 @@ import qs = require("qs")
 import { platform, release } from "os"
 import { LogEntry } from "../logger/log-entry"
 import { VERSION_CHECK_URL } from "../constants"
-import { printHeader } from "../logger/util"
+import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import moment = require("moment")
 
@@ -228,13 +228,12 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     const showMessage = (configObj.lastVersionCheck
       && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun)))
 
+    // we check again for lastVersionCheck because in the first run it doesn't exist
     if (showMessage || !configObj.lastVersionCheck) {
       if (res.data.status === "OUTDATED") {
-        printHeader(logger, res.data.message, "warning")
-      } else {
-        printHeader(logger, res.data.message, "thumbsup")
+        printWarningMessage(logger, res.data.message)
+        await config.set([globalConfigKeys.lastVersionCheck], { lastRun: new Date() })
       }
-      await config.set([globalConfigKeys.lastVersionCheck], { lastRun: new Date() })
     }
   } catch (err) {
     logger.verbose("Something went wrong while checking for the latest Garden version.")
