@@ -79,7 +79,7 @@ commands:
           name: Build Docker Image
           command: |
             # Just build it with the approprate tag
-            docker build -t << parameters.context >> << parameters.context >>
+            docker build -t <<parameters.context>> <<parameters.context>>
 
   # Depends on attach_workspace
   include_dashboard:
@@ -123,13 +123,13 @@ commands:
             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             # Switches between git tag and master for releases
             TAG=${CIRCLE_TAG:-master}
-            docker build -t << parameters.context >> --build-arg TAG=$TAG << parameters.context >>
-            docker tag << parameters.context >>  << parameters.registry >>/<< parameters.image >>:$TAG
-            docker push << parameters.registry >>/<< parameters.image >>:$TAG
+            docker build -t <<parameters.context>> --file <<parameters.dockerfile>> --build-arg TAG=$TAG <<parameters.context>>
+            docker tag <<parameters.context>>  <<parameters.registry>>/<<parameters.image>>:$TAG
+            docker push <<parameters.registry>>/<<parameters.image>>:$TAG
             # Set the latest tag as well for tagged releases
             if [ "$TAG" == "$CIRCLE_TAG" ]; then
-              docker tag << parameters.context >>  << parameters.registry >>/<< parameters.image >>:latest
-              docker push << parameters.registry >>/<< parameters.image >>:latest
+              docker tag <<parameters.context>>  <<parameters.registry>>/<<parameters.image>>:latest
+              docker push <<parameters.registry>>/<<parameters.image>>:latest
             fi
 
   configure_kubectl_context:
