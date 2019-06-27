@@ -1,6 +1,7 @@
 # Configuration
 
-Garden is configured via `garden.yml` configuration files.
+Garden is configured via `garden.yml` configuration files, which Garden collects and compiles into a
+[Stack Graph](../basics/stack-graph.md) of your project.
 
 The [project-wide](#project-configuration) `garden.yml` file should be located in the top-level directory of the
 project's Git repository.
@@ -39,14 +40,15 @@ environments:
 The project-wide `garden.yml` defines the project's name, the default configuration used for each
 [environment](../reference/glossary.md#environment) (via the `environmentDefaults` field), and
 environment-specific [provider](../reference/glossary.md#provider) configuration. The above only configures a `local` environment, but you could add
-further environments, such as a remote Kubernetes environment, where you'd use the `kubernetes` (i.e. remote)
+further environments, such as a [remote Kubernetes](./remote-clusters.md) environment, where you'd use the `kubernetes`
 provider instead of `local-kubernetes`.
 
 Here, project-wide configuration variables can also be specified (global, and/or environment-specific). These are
 then available for substitution in any string value in any module's `garden.yml`.
 
 For example, assuming the above project configuration, `"foo-${var.my-variable}-bar"` would evaluate to
-`"foo-hello-variable-bar"` when used as a string value in a module's `garden.yml`.
+`"foo-hello-variable-bar"` when used as a string value in a module's `garden.yml`. See
+[Template strings](#template-strings) below for more on templating your configuration files.
 
 ## Module Configuration
 
@@ -275,7 +277,9 @@ Note that tasks that are not depended on by any services are not run by `garden 
 An example of this is the `db-clear` task in the `user` module above. This task will only be run when
 directly requested via `garden run task db-clear`.
 
-## Multiple Modules in the Same File
+## Advanced configuration
+
+### Multiple Modules in the Same File
 
 Sometimes, it's useful to define several modules in the same `garden.yml` file. One common situation is where more than
 one Dockerfile is in use (e.g. one for a development build and one for a production build).
@@ -283,48 +287,84 @@ one Dockerfile is in use (e.g. one for a development build and one for a product
 Another is when the dev configuration and the production configuration have different integration testing suites,
 which may depend on different external services being available.
 
-To do this, simply add a document separator (`---`) between the module definitions. Here's a simple example:
+To do this, simply add a document separator (`---`) between the module definitions. Here's a simple (if a bit contrived)
+example:
 
 ```yaml
 kind: Module
-description: Hello world container - dev configuration
+description: My container - configuration A
 type: container
-dockerfile: Dockerfile-dev
+dockerfile: Dockerfile-a
 ...
 tests:
   - name: unit
     args: [npm, test]
   - name: integ
-    args: [npm, run, integ-dev]
+    args: [npm, run, integ-a]
     dependencies:
-      - hello-function
-      - dev-integration-testing-backend
+      - a-integration-testing-backend
 
 ---
 
 kind: Module
-description: Hello world container - production configuration
+description: My container - configuration B
 type: container
-dockerfile: Dockerfile-prod
+dockerfile: Dockerfile-b
 ...
 tests:
   - name: unit
     args: [npm, test]
   - name: integ
-    args: [npm, run, integ-prod]
+    args: [npm, run, integ-b]
     dependencies:
-      - hello-function
-      - prod-integration-testing-backend
+      - b-integration-testing-backend
 ```
 
-## Template strings
+### Including/excluding files
+
+By default, all files in the same directory as a module configuration files are included as source files for that
+module. Sometimes you need more granular control over the context, not least if you have multiple modules in the
+same directory.
+
+Garden provides two different ways to achieve this:
+
+1. The `include` field in module configuration files.
+2. `.gardenignore` files.
+
+The `include` field is a simple way to explicitly specify which sources should belong to a module. It accepts a list
+of POSIX-style paths or globs. For example:
+
+```yaml
+kind: Module
+description: My container
+type: container
+include:
+  - Dockerfile
+  - my-sources/**/*.py
+...
+```
+
+Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`.
+
+`.gardenignore` files do the opposite, which is to list all files/paths that you want to ignore. They work exactly
+like `.gitignore` files and use the same syntax. For example, you might put this `.gardenignore` at the top of your
+project:
+
+```gitignore
+node_modules
+*.log
+```
+
+This would cause Garden to ignore `node_modules` directories across your project/repo, and all `.log` files.
+
+### Template strings
 
 String configuration values in `garden.yml` can be templated to inject variables,
 information about the user's environment, references to other modules/services etc.
 
 The syntax for templated strings is `${some.key}`. The key is looked up from the context available when
 resolving the string. The context depends on which top-level key the configuration value belongs to (`project`
-or `module`). See below for the full context that is available for each of those.
+or `module`).
 
 For example, for one service you might want to reference something from another module and expose it as an
 environment variable:
@@ -374,7 +414,7 @@ services:
 For a full reference of the keys available in template strings, please look at the
 [Template Strings Reference](../reference/template-strings.md).
 
-### Conditionals
+#### Conditionals
 
 You can use conditional expressions in template strings, using the `||` operator. For example:
 
@@ -388,7 +428,7 @@ You can use conditional expressions in template strings, using the `||` operator
 This allows you to easily set default values when certain template keys are not available, and to configure your
 project based on a dynamic context.
 
-### Numbers, booleans and null values
+#### Numbers, booleans and null values
 
 When a template string key resolves to a number, boolean or null, its output is handled in one of two different ways,
 depending on whether the template string is part of a surrounding string or not.
@@ -437,3 +477,6 @@ We highly recommend browsing through the [Example projects](../examples/README.m
 Also, be sure to look at the [Config Files Reference](../reference/config.md) for more details on each of the available
 configuration fields, and the [Template Strings Reference](../reference/template-strings.md) for the keys available in
 template strings.
+
+For deep-dives into specific use cases, you may want to look at the [Hot reload](./hot-reload.md) and
+[Using Helm charts](./using-helm-charts.md) guides.

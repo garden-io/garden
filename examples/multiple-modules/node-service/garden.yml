@@ -1,16 +1,16 @@
 kind: Module
-name: dev
-description: Node service (dev mode)
-dockerfile: Dockerfile-dev
+name: a
+description: Node service A
+dockerfile: Dockerfile-a
 type: container
 services:
-  - name: dev
+  - name: a
     command: [npm, start]
     ports:
       - name: http
         containerPort: 8080
     ingresses:
-      - path: /hello-dev
+      - path: /hello-a
         port: http
 tests:
   - name: unit
@@ -19,18 +19,18 @@ tests:
 ---
 
 kind: Module
-name: prod
-description: Node service (production mode)
-dockerfile: Dockerfile-prod
+name: b
+description: Node service B
+dockerfile: Dockerfile-b
 type: container
 services:
-  - name: prod
+  - name: b
     command: [npm, start]
     ports:
       - name: http
         containerPort: 8080
     ingresses:
-      - path: /hello-prod
+      - path: /hello-b
         port: http
 tests:
   - name: unit

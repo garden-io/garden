@@ -6,6 +6,10 @@ In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden
 
 You may also want to check out the full [helm module reference](../reference/config.md#helm).
 
+_Note: If you only need a way to deploy some Kubernetes manifests and don't need all the features of Helm, you can_
+_use the simpler `kubernetes` module type instead. Check out the_
+_[kubernetes-module](https://github.com/garden-io/garden/tree/master/examples/kubernetes-module) example for more info._
+
 ## Basics
 
 First off, a couple of things to note on how the Helm support is implemented, with respect to Garden primitives:
@@ -248,3 +252,12 @@ sources:
 
 The base chart can also be any `helm` module (not just "base" charts specifically made for that purpose), so you have
 a lot of flexibility in how you organize your charts.
+
+## Next steps
+
+Check out the full [helm module reference](../reference/config.md#helm) for more details, and the
+[vote-helm](https://github.com/garden-io/garden-example-vote-helm) example project for a full project that showcases
+Garden's Helm support.
+
+Also check out the [kubernetes-module](https://github.com/garden-io/garden/tree/master/examples/kubernetes-module)
+example for a simpler alternative, if you don't need all the features of Helm.
