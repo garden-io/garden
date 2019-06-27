@@ -41,11 +41,12 @@ import { GetServiceLogsParams } from "../../types/plugin/service/getServiceLogs"
 import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 import { HelmModuleConfig } from "../kubernetes/helm/config"
 import { keyBy, union } from "lodash"
-import { DEFAULT_API_VERSION } from "../../constants"
+import { DEFAULT_API_VERSION, STATIC_DIR } from "../../constants"
 import { ExecModuleConfig } from "../exec"
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { KubernetesDeployment } from "../kubernetes/types"
 
+const systemDir = join(STATIC_DIR, "openfaas", "system")
 export const stackFilename = "stack.yml"
 
 export interface OpenFaasModuleSpec extends ExecModuleSpec {
@@ -148,7 +149,7 @@ const templateModuleConfig: ExecModuleConfig = {
   },
   description: "OpenFaaS templates for building functions",
   name: "templates",
-  path: __dirname,
+  path: join(systemDir, "openfaas-templates"),
   repositoryUrl: "https://github.com/openfaas/templates.git#master",
   outputs: {},
   serviceConfigs: [],
@@ -203,7 +204,7 @@ async function configureProvider(
     description: "OpenFaaS runtime",
     name: "system",
     outputs: {},
-    path: __dirname,
+    path: join(systemDir, "openfaas-system"),
     serviceConfigs: [],
     taskConfigs: [],
     testConfigs: [],
