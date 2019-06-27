@@ -1,0 +1,6 @@
+kind: Module
+name: system
+description: "OpenFaaS runtime"
+type: helm
+chart: openfaas
+repo: "https://openfaas.github.io/faas-netes/"
