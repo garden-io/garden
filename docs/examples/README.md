@@ -18,5 +18,5 @@ This project demonstrates how to use multiple sources and repositories together 
 
 ## Other example projects
 
-You can also go straight to the [examples](https://github.com/garden-io/garden/tree/master/examples) directory in the
+You can also go straight to the [examples](https://github.com/garden-io/garden/tree/v0.10.0/examples) directory in the
 Garden repository, to look at a variety of fully defined example projects.
