@@ -61,7 +61,7 @@ Clone the repo and change into the `demo-project` directory:
 
 ```sh
     git clone https://github.com/garden-io/garden.git
-    cd garden/examples/simple-project
+    cd garden/examples/demo-project
 ```
 
 Set up your environment, build the services and deploy the project by running:
@@ -73,7 +73,7 @@ Set up your environment, build the services and deploy the project by running:
 The services are now running on the Garden framework. You can see for yourself by querying the `/hello` endpoint of `go-service`’s running container:
 
 ```sh
-    garden call go-service/hello-go
+    garden call backend/hello-backend
 ```
 
 To run tests for all modules:
