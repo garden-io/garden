@@ -70,7 +70,7 @@ Set up your environment, build the services and deploy the project by running:
     garden deploy
 ```
 
-The services are now running on the Garden framework. You can see for yourself by querying the `/hello` endpoint of `go-service`’s running container:
+The services are now running on the Garden framework. You can see for yourself by querying the `/hello-backend` endpoint of `backend`’s running container:
 
 ```sh
     garden call backend/hello-backend
