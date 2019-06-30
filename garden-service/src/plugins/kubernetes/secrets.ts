@@ -16,6 +16,7 @@ import { GetSecretParams } from "../../types/plugin/provider/getSecret"
 import { SetSecretParams } from "../../types/plugin/provider/setSecret"
 import { DeleteSecretParams } from "../../types/plugin/provider/deleteSecret"
 import { KubernetesResource } from "./types"
+import { pick } from "lodash"
 
 export async function getSecret({ ctx, log, key }: GetSecretParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -110,8 +111,11 @@ export async function ensureSecret(api: KubeApi, secretRef: SecretRef, targetNam
     return
   }
 
-  delete secret.metadata.resourceVersion
-  secret.metadata.namespace = targetNamespace
+  // Make sure we don't copy generated attributes
+  secret.metadata = {
+    ...pick(secret.metadata, ["name", "annotations", "labels"]),
+    namespace: targetNamespace,
+  }
 
   await api.upsert("Secret", targetNamespace, secret)
 }
