@@ -217,7 +217,7 @@ Calling the `backend` from the `frontend` is straightforward from within the app
 ```javascript
 const request = require('request-promise')
 
-const backendServiceEndpoint = `http://demo-project.local.app.garden/hello-backend`;
+const backendServiceEndpoint = `http://backend/hello-backend`;
 
 app.get('/call-backend', (req, res) => {
   // Query the backend and return the response
