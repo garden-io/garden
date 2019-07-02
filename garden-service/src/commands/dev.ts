@@ -24,6 +24,7 @@ import {
   StringsParameter,
   handleTaskResults,
   PrepareParams,
+  BooleanParameter,
 } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
@@ -47,6 +48,9 @@ const devOpts = {
     `,
     alias: "hot",
   }),
+  "skip-tests": new BooleanParameter({
+    help: "Disable running the tests",
+  }),
 }
 
 type Args = typeof devArgs
@@ -68,7 +72,7 @@ export class DevCommand extends Command<Args, Opts> {
     Examples:
 
         garden dev
-        garden dev --hot-reload=foo-service       # enable hot reloading for foo-service
+        garden dev --skip-tests=foo-service       # enable hot reloading for foo-service
         garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
         garden dev --hot=*                        # enable hot reloading for all compatible services
   `
@@ -129,9 +133,12 @@ export class DevCommand extends Command<Args, Opts> {
           ? (await updatedGraph.withDependantModules([module]))
           : [module]
 
-        tasks.push(...flatten(
-          await Bluebird.map(testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph })),
-        ))
+        if (!opts["skip-tests"]) {
+          tasks.push(...flatten(
+            await Bluebird.map(testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph })),
+          ))
+        }
+
 
         tasks.push(...await getDependantTasksForModule({
           garden,
