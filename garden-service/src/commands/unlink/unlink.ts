@@ -12,7 +12,7 @@ import { UnlinkModuleCommand } from "./module"
 
 export class UnlinkCommand extends Command {
   name = "unlink"
-  help = "Unlink a remote source or module from its local path"
+  help = "Unlink a remote source or module from its local path."
 
   subCommands = [
     UnlinkSourceCommand,

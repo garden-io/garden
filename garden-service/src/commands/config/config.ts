@@ -11,7 +11,7 @@ import { ConfigAnalyticsEnabled } from "./config-analytics-enabled"
 
 export class ConfigCommand extends Command {
   name = "config"
-  help = "Configure user and project settings"
+  help = "Configure user and project settings."
 
   subCommands = [
     ConfigAnalyticsEnabled,
