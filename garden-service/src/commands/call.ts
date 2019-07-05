@@ -7,7 +7,6 @@
  */
 
 import { resolve } from "url"
-import Axios from "axios"
 import chalk from "chalk"
 import { isObject } from "util"
 import {
@@ -21,6 +20,7 @@ import { ParameterError, RuntimeError } from "../exceptions"
 import { find, includes, pick } from "lodash"
 import { ServiceIngress, getIngressUrl, getServiceRuntimeContext } from "../types/service"
 import dedent = require("dedent")
+import { externalRequest } from "../util/http"
 
 const callArgs = {
   serviceAndPath: new StringParameter({
@@ -130,7 +130,7 @@ export class CallCommand extends Command<Args> {
     // this is to accept self-signed certs
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
-    const req = Axios({
+    const req = externalRequest({
       method,
       url,
       headers: {

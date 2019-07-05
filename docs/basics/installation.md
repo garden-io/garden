@@ -201,3 +201,18 @@ is set as the current context, the first available context is used.
 
 (If you're not yet familiar with Garden configuration files, see:
 [Configuration files](../using-garden/configuration-files.md))
+
+## Using Garden with SOCKS proxies
+
+If you're running Garden behind a firewall, you may need to use a proxy to route external requests. To do this,
+set the `GARDEN_SOCKS_PROXY` environment variable. For example:
+
+```sh
+export GARDEN_SOCKS_PROXY=socks://localhost:9999    # <- replace with your SOCKS proxy address
+```
+
+And then use the `garden` CLI as usual. Or you can inline the variable when invoking Garden:
+
+```sh
+GARDEN_SOCKS_PROXY=socks://localhost:9999 garden <command>
+```

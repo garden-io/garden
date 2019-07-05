@@ -18,13 +18,13 @@ import {
 } from "../exceptions"
 import { LogLevel } from "../logger/log-node"
 import { getEnumKeys, getPackageVersion } from "../util/util"
-import axios from "axios"
 import qs = require("qs")
 import { platform, release } from "os"
 import { LogEntry } from "../logger/log-entry"
 import { VERSION_CHECK_URL } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
+import { externalRequest } from "../util/http"
 import moment = require("moment")
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
@@ -227,7 +227,9 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     platformVersion: release(),
   }
   try {
-    const res = await axios.get(`${VERSION_CHECK_URL}?${qs.stringify(query)}`)
+    const res = await externalRequest({
+      url: `${VERSION_CHECK_URL}?${qs.stringify(query)}`,
+    })
     const configObj = await config.get()
     const showMessage = (configObj.lastVersionCheck
       && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun)))
