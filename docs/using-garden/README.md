@@ -8,9 +8,14 @@ In this article we discuss how to set up a new Garden project, the basic develop
 
 This one is all about Garden's configuration files—an overview of project and module configs, setting up services, and a primer on tests.
 
-## [Remote Clusters](./remote-clusters.md)
+## [Local Kubernetes](./local-kubernetes.md)
 
-Garden can work smoothly with both local and remote clusters. If you'd like to use a remote cluster, you may have some
+Garden works great with local Kubernetes setups. Here you'll find installation and usage instructions for some
+common flavors of local Kubernetes setups, such as Minikube, Docker for Desktop and MicroK8s.
+
+## [Remote Kubernetes](./remote-kubernetes.md)
+
+Garden can also work smoothly with remote Kubernetes clusters. If you'd like to use a remote cluster, you may have some
 additional considerations and requirements. Take a look at this guide for details.
 
 ## [In-cluster building](./in-cluster-building.md)

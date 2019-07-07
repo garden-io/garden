@@ -97,7 +97,7 @@ You can find Garden’s full documentation at [https://docs.garden.io](https://d
 Overview:
 
 - [Basics](https://docs.garden.io/basics)—installation instructions, our quick start guide, and an overview of the main concepts around Garden.
-- [Using Garden](https://docs.garden.io/using-garden)—features and usage, Garden configuration files, usage with remote clusters, and setting up hot reload.
+- [Using Garden](https://docs.garden.io/using-garden)—development workflows, Garden configuration files, usage with remote Kubernetes clusters, and setting up hot reload.
 - [Example Projects](https://docs.garden.io/examples)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.9.12/examples).
 - [Reference](https://docs.garden.io/reference)—glossary, commands reference, configuration files reference, and template strings reference.
 - [FAQs](https://docs.garden.io/#faqs).

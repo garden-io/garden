@@ -14,7 +14,7 @@ To use Garden in your CI pipeline you need the following:
 
 For the purposes of this example we'll be using [CircleCI](https://circleci.com) and deploying to a Google Kubernetes Engine (GKE) cluster. However, the instructions below can easily be applied to other CI platforms and cloud providers.
 
-The guide is based on the [Remote Kubernetes](https://docs.garden.io/using-garden/remote-clusters) example. In what follows we assume that you've read that guide and that you have a running Kubernetes cluster to work with.
+The guide is based on the [Remote Kubernetes](https://docs.garden.io/using-garden/remote-kubernetes) example. In what follows we assume that you've read that guide and that you have a running Kubernetes cluster to work with.
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ To see it in action, you can fork the repository and follow the set-up steps bel
 
 ## Configure remote environments
 
-Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../using-garden/remote-clusters.md). For this example, we also use [in-cluster building](../using-garden/in-cluster-building.md).
+Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../using-garden/remote-kubernetes.md). For this example, we also use [in-cluster building](../using-garden/in-cluster-building.md).
 
 For this project we're using three environments: `local`, `preview` and `staging`. The `local` environment is the default and is configured for a local Kubernetes cluster that runs on the user's machine. The other two run on remote clusters.
 

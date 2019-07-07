@@ -1,10 +1,10 @@
-# Building images in remote clusters
+# Building images in remote Kubernetes clusters
 
 One of Garden's most powerful features is the ability to build images in your Kubernetes development cluster, thus
 avoiding the need for local Kubernetes clusters. This guide covers the requirements for in-cluster building and how
 to set it up.
 
-This guide assumes you've already read through the [Remote Clusters](./remote-clusters.md) guide.
+This guide assumes you've already read through the [Remote Kubernetes](./remote-kubernetes.md) guide.
 
 ## Security considerations
 
@@ -101,7 +101,7 @@ This is the default mode. It is the least efficient one for remote clusters, but
 deployed to the cluster. For remote clusters, you do however need to explicitly configure a _deployment registry_, and
 to have Docker running locally.
 
-See the [Local Docker builds](./remote-clusters.md) section in the Remote Clusters guide for details.
+See the [Local Docker builds](./remote-kubernetes.md) section in the Remote Clusters guide for details.
 
 ## Publishing images
 
