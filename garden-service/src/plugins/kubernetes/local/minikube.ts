@@ -13,15 +13,17 @@ import * as execa from "execa"
  * TODO: it would be better to explicitly provide those to docker instead of using process.env
  */
 export async function setMinikubeDockerEnv() {
-  let minikubeEnv
+  let minikubeEnv: string
+
   try {
     minikubeEnv = await execa.stdout("minikube", ["docker-env", "--shell=bash"])
   } catch (err) {
     if (err.contains("driver does not support")) {
-      return;
+      return
     }
-    throw err;
+    throw err
   }
+
   for (const line of minikubeEnv.split("\n")) {
     const matched = line.match(/^export (\w+)="(.+)"$/)
     if (matched) {
