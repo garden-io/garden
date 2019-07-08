@@ -15,5 +15,5 @@ The `integ-full` script supports the following options:
 
 For example:
 ```
-npm run integ-full -- --binPath=/some/path/garden-bin --only=tasks
+npm run integ-full -- --binPath=/some/path/garden-bin --project=tasks
 ```

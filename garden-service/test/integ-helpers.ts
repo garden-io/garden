@@ -1,5 +1,4 @@
 import * as execa from "execa"
-import * as Bluebird from "bluebird"
 import * as mlog from "mocha-logger"
 import { remove } from "fs-extra"
 import { get, intersection } from "lodash"
@@ -14,14 +13,12 @@ import { systemMetadataNamespace } from "../src/plugins/kubernetes/system"
 
 export const parsedArgs = parseArgs(process.argv.slice(2))
 
-export async function removeExampleDotGardenDirs() {
-  await Bluebird.map(Object.values(getExampleProjects()), async (projectRoot) => {
-    try {
-      await remove(resolve(projectRoot, DEFAULT_GARDEN_DIR_NAME))
-    } catch (error) {
-      // No .garden directory found in projectRoot, so there's nothing to do here.
-    }
-  })
+export async function removeExampleDotGardenDir(projectRoot: string) {
+  try {
+    await remove(resolve(projectRoot, DEFAULT_GARDEN_DIR_NAME))
+  } catch (error) {
+    // No .garden directory found in projectRoot, so there's nothing to do here.
+  }
 }
 
 export async function deleteExampleNamespaces(projectNames?: string[]) {
@@ -59,7 +56,7 @@ export async function getAllNamespacesKubectl() {
 
 export async function deleteNamespacesKubectl(namespaces: string[]) {
   if (namespaces.length > 0) {
-    await execa("kubectl", ["delete", "ns", ...namespaces])
+    await execa("kubectl", ["delete", "--wait=false", "ns", ...namespaces])
   }
 }
 
