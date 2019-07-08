@@ -7,9 +7,9 @@
  */
 
 import { EventEmitter2 } from "eventemitter2"
-import { TaskResult } from "./task-graph"
-import { ModuleVersion } from "./vcs/vcs"
 import { LogEntry } from "./logger/log-entry"
+import { ModuleVersion } from "./vcs/vcs"
+import { TaskResult } from "./task-graph"
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function
@@ -77,21 +77,24 @@ export interface Events {
   taskPending: {
     addedAt: Date,
     key: string,
-    version: ModuleVersion,
+    type: string,
+    name: string,
   },
   taskProcessing: {
     startedAt: Date,
     key: string,
+    type: string,
+    name: string,
     version: ModuleVersion,
   },
+  taskComplete: TaskResult
+  taskError: TaskResult
   taskCancelled: {
     cancelledAt: Date,
     type: string
     key: string,
     name: string,
   },
-  taskComplete: TaskResult,
-  taskError: TaskResult,
   taskGraphProcessing: {
     startedAt: Date,
   },

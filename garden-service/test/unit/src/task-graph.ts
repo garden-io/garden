@@ -93,6 +93,7 @@ describe("task-graph", () => {
     }
 
     it("should successfully process a single task without dependencies", async () => {
+      const now = freezeTime()
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a", false)
@@ -105,6 +106,7 @@ describe("task-graph", () => {
           description: "a",
           key: "a",
           name: "a",
+          completedAt: now,
           output: {
             result: "result-a",
             dependencyResults: {},
@@ -126,9 +128,26 @@ describe("task-graph", () => {
       const result = await graph.process([task])
 
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        {
+          name: "taskPending",
+          payload: {
+            addedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
+        {
+          name: "taskProcessing",
+          payload: {
+            startedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+            version: task.version,
+          },
+        },
         { name: "taskComplete", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -156,6 +175,7 @@ describe("task-graph", () => {
         {
           name: "taskComplete",
           payload: {
+            completedAt: now,
             dependencyResults: {}, description: "a", key: task.getKey(), type: "test", name: "a",
             output: { dependencyResults: {}, result: "result-a" },
           },
@@ -173,17 +193,47 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false, { throwError: true })
 
       const result = await graph.process([task])
-
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        {
+          name: "taskPending",
+          payload: {
+            addedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
+        {
+          name: "taskProcessing",
+          payload: {
+            startedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+            version: task.version,
+          },
+        },
         { name: "taskError", payload: result["a"] },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
 
+    it("should have error property inside taskError event when failing a task", async () => {
+      freezeTime()
+
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const task = new TestTask(garden, "a", false, { throwError: true })
+
+      await graph.process([task])
+      const taskError = garden.events.eventLog.find(obj => obj.name === "taskError")
+
+      expect(taskError && taskError.payload["error"]).to.exist
+    })
+
     it("should process multiple tasks in dependency order", async () => {
+      const now = freezeTime()
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
 
@@ -247,6 +297,7 @@ describe("task-graph", () => {
         description: "a.a1",
         key: "a",
         name: "a",
+        completedAt: now,
         output: {
           result: "result-a.a1",
           dependencyResults: {},
@@ -258,6 +309,7 @@ describe("task-graph", () => {
         key: "b",
         name: "b",
         description: "b.b1",
+        completedAt: now,
         output: {
           result: "result-b.b1",
           dependencyResults: { a: resultA },
@@ -269,6 +321,7 @@ describe("task-graph", () => {
         description: "c.c1",
         key: "c",
         name: "c",
+        completedAt: now,
         output: {
           result: "result-c.c1",
           dependencyResults: { b: resultB },
@@ -285,6 +338,7 @@ describe("task-graph", () => {
           description: "d.d1",
           key: "d",
           name: "d",
+          completedAt: now,
           output: {
             result: "result-d.d1",
             dependencyResults: {
@@ -359,6 +413,7 @@ describe("task-graph", () => {
     })
 
     it("should recursively cancel a task's dependants when it throws an error", async () => {
+      const now = freezeTime()
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
 
@@ -387,6 +442,7 @@ describe("task-graph", () => {
         description: "a",
         key: "a",
         name: "a",
+        completedAt: now,
         output: {
           result: "result-a",
           dependencyResults: {},
@@ -405,19 +461,19 @@ describe("task-graph", () => {
       expect(results.b).to.have.property("error")
       expect(resultOrder).to.eql(["a", "b"])
       expect(filteredEventLog).to.eql([
-        { name: "taskPending", payload: { key: "a" } },
-        { name: "taskPending", payload: { key: "b" } },
-        { name: "taskPending", payload: { key: "c" } },
-        { name: "taskPending", payload: { key: "d" } },
+        { name: "taskPending", payload: { key: "a", name: "a", type: "test" } },
+        { name: "taskPending", payload: { key: "b", name: "b", type: "test" } },
+        { name: "taskPending", payload: { key: "c", name: "c", type: "test" } },
+        { name: "taskPending", payload: { key: "d", name: "d", type: "test" } },
         { name: "taskGraphProcessing", payload: {} },
-        { name: "taskProcessing", payload: { key: "a" } },
+        { name: "taskProcessing", payload: { key: "a", name: "a", type: "test" } },
         {
           name: "taskComplete", payload: {
             dependencyResults: {}, description: "a", key: "a", name: "a",
             output: { dependencyResults: {}, result: "result-a" }, type: "test",
           },
         },
-        { name: "taskProcessing", payload: { key: "b" } },
+        { name: "taskProcessing", payload: { key: "b", name: "b", type: "test" } },
         { name: "taskError", payload: { description: "b", key: "b", name: "b", type: "test" } },
         { name: "taskCancelled", payload: { key: "c", name: "c", type: "test" } },
         { name: "taskCancelled", payload: { key: "d", name: "d", type: "test" } },
