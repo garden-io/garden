@@ -5,6 +5,7 @@ import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, defer } from "../../helpers"
 import { Garden } from "../../../src/garden"
+import { deepFilter } from "../../../src/util/util"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -16,6 +17,12 @@ interface TestTaskOptions {
   versionString?: string
   uid?: string
   throwError?: boolean
+}
+
+const testTaskVersion = {
+  versionString: "12345-6789",
+  dependencyVersions: {},
+  files: [],
 }
 
 class TestTask extends BaseTask {
@@ -381,9 +388,36 @@ describe("task-graph", () => {
         dependencyResults: {},
       }
 
+      const filteredKeys: Set<string | number> = new Set([
+        "version", "error", "addedAt", "startedAt", "cancelledAt", "completedAt"])
+
+      const filteredEventLog = garden.events.eventLog.map(e => {
+        return deepFilter(e, (_, key) => !filteredKeys.has(key))
+      })
+
       expect(results.a).to.eql(resultA)
       expect(results.b).to.have.property("error")
       expect(resultOrder).to.eql(["a", "b"])
+      expect(filteredEventLog).to.eql([
+        { name: "taskPending", payload: { key: "a" } },
+        { name: "taskPending", payload: { key: "b" } },
+        { name: "taskPending", payload: { key: "c" } },
+        { name: "taskPending", payload: { key: "d" } },
+        { name: "taskGraphProcessing", payload: {} },
+        { name: "taskProcessing", payload: { key: "a" } },
+        {
+          name: "taskComplete", payload: {
+            dependencyResults: {}, description: "a", key: "a", name: "a",
+            output: { dependencyResults: {}, result: "result-a" }, type: "test",
+          },
+        },
+        { name: "taskProcessing", payload: { key: "b" } },
+        { name: "taskError", payload: { description: "b", key: "b", name: "b", type: "test" } },
+        { name: "taskCancelled", payload: { key: "c", name: "c", type: "test" } },
+        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test" } },
+        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test" } },
+        { name: "taskGraphComplete", payload: {} },
+      ])
     })
 
   })

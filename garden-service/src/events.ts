@@ -84,6 +84,12 @@ export interface Events {
     key: string,
     version: ModuleVersion,
   },
+  taskCancelled: {
+    cancelledAt: Date,
+    type: string
+    key: string,
+    name: string,
+  },
   taskComplete: TaskResult,
   taskError: TaskResult,
   taskGraphProcessing: {

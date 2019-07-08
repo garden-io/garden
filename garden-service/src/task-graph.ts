@@ -283,8 +283,15 @@ export class TaskGraph {
 
   // Recursively remove node's dependants, without removing node.
   private cancelDependants(node: TaskNode) {
+    const cancelledAt = new Date()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
+      this.garden.events.emit("taskCancelled", {
+        cancelledAt,
+        key: dependant.getKey(),
+        name: dependant.task.getName(),
+        type: dependant.getType(),
+      })
       this.remove(dependant)
     }
     this.rebuild()
