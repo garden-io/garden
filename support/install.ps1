@@ -9,7 +9,7 @@
 # 5. Installs or updates the garden binary.
 #
 # To execute it run the following command in PowerShell:
-# Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/garden-cli/support/install.ps1'))
+# Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/support/install.ps1'))
 #
 # For more information visit https://docs.garden.io/
 

@@ -273,7 +273,7 @@ jobs:
           context: garden-service
           image: $DOCKER_ORG/garden-gcloud
           dockerfile: gcloud.Dockerfile
-  release-service-pkg:
+  build-service-dist:
     <<: *node-config
     steps:
       - checkout
@@ -328,7 +328,7 @@ workflows:
           context: docker
           requires:
             - release-service-docker
-      - release-service-pkg:
+      - build-service-dist:
           <<: *only-master
           requires:
             - build-service
@@ -358,7 +358,7 @@ workflows:
           context: docker
           requires:
             - release-service-docker
-      - release-service-pkg:
+      - build-service-dist:
           <<: *only-tags
           requires:
             - build-service
