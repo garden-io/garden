@@ -184,6 +184,18 @@ jobs:
             - dashboard/build/
             - garden-service/build/
             - garden-service/static/
+  lint:
+    <<: *node-config
+    steps:
+      - checkout
+      - npm_install
+      - *attach-workspace
+      - run:
+          name: Make sure generated docs are up-to-date
+          command: npm run check-docs
+      - run:
+          name: lint
+          command: npm run lint
   test-service:
     <<: *node-config
     steps:
@@ -197,12 +209,6 @@ jobs:
           command: |
             git config --global user.name "Garden CI"
             git config --global user.email "admin@garden.io"
-      - run:
-          name: Make sure generated docs are up-to-date
-          command: npm run check-docs
-      - run:
-          name: lint
-          command: npm run lint
       - run:
           name: test
           command: |
@@ -288,6 +294,9 @@ workflows:
       - test-service:
           requires:
             - build-service
+      - lint:
+          requires:
+            - build-service
       - integ-test-service:
           requires:
             - build-service
@@ -299,6 +308,10 @@ workflows:
       # Duplicated here so we can reference steps that depends on it
       - build-service:
           <<: *only-master
+      - lint:
+          <<: *only-master
+          requires:
+            - build-service
       - test-service:
           <<: *only-master
           requires:
@@ -325,6 +338,10 @@ workflows:
       # Duplicated here so we can reference steps that depends on it
       - build-service:
           <<: *only-tags
+      - lint:
+          <<: *only-tags
+          requires:
+          - build-service
       - test-service:
           <<: *only-tags
           requires:
