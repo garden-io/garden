@@ -8,13 +8,13 @@
 
 import axios from "axios"
 
-import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
-import { TaskResultOutput } from "garden-cli/src/commands/get/get-task-result"
-import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
-import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
-import { CommandResult } from "garden-cli/src/commands/base"
-import { ConfigDump } from "garden-cli/src/garden"
-import { AllEnvironmentStatus } from "garden-cli/src/actions"
+import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
+import { TaskResultOutput } from "garden-service/build/src/commands/get/get-task-result"
+import { TestResultOutput } from "garden-service/build/src/commands/get/get-test-result"
+import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
+import { CommandResult } from "garden-service/build/src/commands/base"
+import { ConfigDump } from "garden-service/build/src/garden"
+import { AllEnvironmentStatus } from "garden-service/build/src/actions"
 
 export interface ApiRequest {
   command: string

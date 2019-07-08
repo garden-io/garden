@@ -13,7 +13,7 @@ import { UpdateRemoteAllCommand } from "./all"
 
 export class UpdateRemoteCommand extends Command {
   name = "update-remote"
-  help = "Pulls the latest version of remote sources or modules from their repository"
+  help = "Pulls the latest version of remote sources or modules from their repository."
 
   subCommands = [
     UpdateRemoteSourcesCommand,
