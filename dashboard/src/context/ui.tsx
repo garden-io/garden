@@ -7,8 +7,8 @@
  */
 
 import React, { useState } from "react"
-import { ServiceIngress } from "garden-cli/src/types/service"
-import { RenderedNodeType } from "garden-cli/src/config-graph"
+import { ServiceIngress } from "garden-service/build/src/types/service"
+import { RenderedNodeType } from "garden-service/build/src/config-graph"
 
 interface UiState {
   isSidebarOpen: boolean
