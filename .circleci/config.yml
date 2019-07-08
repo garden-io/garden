@@ -298,6 +298,11 @@ workflows:
           requires:
             - build-service
       - integ-test-service:
+          # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
+          filters:
+            branches:
+              # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+              ignore: /pull\/[0-9]+/
           requires:
             - build-service
       - test-dashboard:
