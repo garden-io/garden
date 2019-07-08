@@ -3,7 +3,6 @@ const request = require('request-promise')
 const app = express();
 
 const backendServiceEndpoint = `http://backend/hello-backend`
-// const backendServiceEndpoint = `http://demo-project.local.app.garden/hello-backend`
 
 app.get('/hello-frontend', (req, res) => res.send('Hello from the frontend!'));
 

@@ -10,12 +10,13 @@ import deline = require("deline")
 
 import { Module, FileCopySpec } from "../../types/module"
 import {
-  joiEnvVars,
   joiUserIdentifier,
   joiArray,
   PrimitiveMap,
   joiPrimitive,
   joi,
+  envVarRegex,
+  Primitive,
 } from "../../config/common"
 import { Service, ingressHostnameSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
@@ -133,6 +134,46 @@ export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 const annotationsSchema = joiStringMap(joi.string())
   .default(() => ({}), "{}")
 
+export interface EnvSecretRef {
+  secretRef: {
+    name: string,
+    key?: string,
+  }
+}
+
+const secretRefSchema = joi.object()
+  .keys({
+    secretRef: joi.object()
+      .keys({
+        name: joi.string()
+          .required()
+          .description("The name of the secret to refer to."),
+        key: joi.string()
+          .description("The key to read from in the referenced secret. May be required for some providers."),
+      }),
+  })
+  .description(
+    "A reference to a secret, that should be applied to the environment variable. " +
+    "Note that this secret must already be defined in the provider.",
+  )
+
+export interface ContainerEnvVars {
+  [key: string]: Primitive | EnvSecretRef
+}
+
+export const containerEnvVarsSchema = joi.object()
+  .pattern(envVarRegex, joi.alternatives(joiPrimitive(), secretRefSchema))
+  .default(() => ({}), "{}")
+  .unknown(false)
+  .description(
+    "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
+    "(must not start with `GARDEN`) and values must be primitives or references to secrets.",
+  )
+  .example([{
+    MY_VAR: "some-value",
+    MY_SECRET_VAR: { secretRef: { name: "my-secret", key: "some-key" } },
+  }, {}])
+
 const ingressSchema = joi.object()
   .keys({
     annotations: annotationsSchema
@@ -245,7 +286,7 @@ const serviceSchema = baseServiceSpecSchema
         [{ path: "/api", port: "http" }],
         {},
       ]),
-    env: joiEnvVars(),
+    env: containerEnvVarsSchema,
     healthCheck: healthCheckSchema
       .description("Specify how the service's health should be checked after deploying."),
     hotReloadCommand: joi.array().items(joi.string())
@@ -309,7 +350,7 @@ export interface ContainerService extends Service<ContainerModule> { }
 export interface ContainerTestSpec extends BaseTestSpec {
   command?: string[],
   args: string[],
-  env: { [key: string]: string },
+  env: ContainerEnvVars,
 }
 
 export const containerTestSchema = baseTestSpecSchema
@@ -320,13 +361,13 @@ export const containerTestSchema = baseTestSpecSchema
     args: joi.array().items(joi.string())
       .description("The arguments used to run the test inside the container.")
       .example([["npm", "test"], {}]),
-    env: joiEnvVars(),
+    env: containerEnvVarsSchema,
   })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
   command?: string[],
   args: string[]
-  env: PrimitiveMap
+  env: ContainerEnvVars
 }
 
 export const containerTaskSchema = baseTaskSpecSchema
@@ -337,7 +378,7 @@ export const containerTaskSchema = baseTaskSpecSchema
     args: joi.array().items(joi.string())
       .description("The arguments used to run the task inside the container.")
       .example([["rake", "db:migrate"], {}]),
-    env: joiEnvVars(),
+    env: containerEnvVarsSchema,
   })
   .description("A task that can be run in the container.")
 

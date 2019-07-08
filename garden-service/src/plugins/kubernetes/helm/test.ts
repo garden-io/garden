@@ -15,39 +15,62 @@ import { findServiceResource, getChartResources, getResourceContainer, getServic
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
+import { V1PodSpec } from "@kubernetes/client-node"
+import { uniqByName } from "../../../util/util"
+import { prepareEnvVars } from "../util"
 
 export async function testHelmModule(
   { ctx, log, interactive, module, runtimeContext, testConfig, testVersion }:
     TestModuleParams<HelmModule>,
 ): Promise<TestResult> {
-  const testName = testConfig.name
-  const { command, args } = testConfig.spec
-  runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
-  const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
-
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
+  // Get the container spec to use for running
   const chartResources = await getChartResources(k8sCtx, module, log)
   const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module)
   const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
+
+  const testName = testConfig.name
+  const { command, args } = testConfig.spec
   const image = container.image
+  const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
+
+  // Apply overrides
+  const envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
+  const env = uniqByName([...prepareEnvVars(envVars), ...container.env || []])
+
+  const spec: V1PodSpec = {
+    containers: [{
+      ...container,
+      ...command && { command },
+      ...args && { args },
+      env,
+      // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
+      volumeMounts: [],
+    }],
+  }
 
   const result = await runPod({
     context,
-    namespace,
-    module,
-    envVars: runtimeContext.envVars,
-    command,
-    args,
     image,
     interactive,
     ignoreError: true, // to ensure results get stored when an error occurs
-    timeout,
     log,
+    module,
+    namespace,
+    spec,
+    timeout,
   })
 
-  return storeTestResult({ ctx: k8sCtx, log, module, testName, testVersion, result })
+  return storeTestResult({
+    ctx: k8sCtx,
+    log,
+    module,
+    testName,
+    testVersion,
+    result,
+  })
 }

@@ -193,7 +193,9 @@ providers: {}
 #
 # Example:
 #   my-module:
+#     buildPath: /home/me/code/my-project/.garden/build/my-module
 #     path: /home/me/code/my-project/my-module
+#     outputs: {}
 #     version: v-17ad4cb3fd
 #
 modules: {}

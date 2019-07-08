@@ -16,7 +16,7 @@ import { deline } from "../../util/string"
 
 export const name = "kubernetes"
 
-export interface SecretRef {
+export interface ProviderSecretRef {
   name: string
   namespace: string
 }
@@ -24,7 +24,7 @@ export interface SecretRef {
 export interface IngressTlsCertificate {
   name: string
   hostnames?: string[]
-  secretRef: SecretRef
+  secretRef: ProviderSecretRef
 }
 
 interface KubernetesResourceSpec {
@@ -63,7 +63,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   defaultHostname?: string
   defaultUsername?: string
   forceSsl: boolean
-  imagePullSecrets: SecretRef[]
+  imagePullSecrets: ProviderSecretRef[]
   ingressHttpPort: number
   ingressHttpsPort: number
   ingressClass?: string

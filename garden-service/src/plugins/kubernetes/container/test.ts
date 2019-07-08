@@ -8,30 +8,52 @@
 
 import { ContainerModule } from "../../container/config"
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
-import { runContainerModule } from "./run"
 import { storeTestResult } from "../test-results"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
+import { uniqByName } from "../../../util/util"
+import { prepareEnvVars } from "../util"
+import { V1PodSpec } from "@kubernetes/client-node"
+import { containerHelpers } from "../../container/helpers"
+import { KubernetesProvider } from "../config"
+import { runPod } from "../run"
+import { getAppNamespace } from "../namespace"
 
 export async function testContainerModule(
   { ctx, interactive, module, runtimeContext, testConfig, testVersion, log }:
     TestModuleParams<ContainerModule>,
 ): Promise<TestResult> {
-  const testName = testConfig.name
+  const provider = ctx.provider as KubernetesProvider
   const { command, args } = testConfig.spec
-  runtimeContext.envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
+  const testName = testConfig.name
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
+  const namespace = await getAppNamespace(ctx, log, provider)
 
-  const result = await runContainerModule({
-    ctx,
-    module,
-    command,
-    args,
+  // Apply overrides
+  const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+  const envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
+  const env = uniqByName(prepareEnvVars(envVars))
+
+  const spec: V1PodSpec = {
+    containers: [{
+      name: "main",
+      image,
+      ...command && { command },
+      ...args && { args },
+      env,
+    }],
+  }
+
+  const result = await runPod({
+    context: provider.config.context,
+    image,
     interactive,
     ignoreError: true, // to ensure results get stored when an error occurs
-    runtimeContext,
-    timeout,
     log,
+    module,
+    namespace,
+    spec,
+    timeout,
   })
 
   return storeTestResult({ ctx, log, module, testName, testVersion, result })

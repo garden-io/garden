@@ -7,6 +7,7 @@
 * [Using Garden](./using-garden/README.md)
   * [Development workflows](./using-garden/development-workflows.md)
   * [Configuration files](./using-garden/configuration-files.md)
+  * [Container modules](./using-garden/container-modules.md)
   * [Local Kubernetes](./using-garden/local-kubernetes.md)
   * [Remote Kubernetes](./using-garden/remote-kubernetes.md)
   * [In-cluster building](./using-garden/in-cluster-building.md)

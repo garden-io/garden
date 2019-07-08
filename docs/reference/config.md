@@ -64,8 +64,8 @@ Example:
 
 ```yaml
 environmentDefaults:
-  providers: []
-  variables: {}
+    providers: []
+    variables: {}
 ```
 
 ### `environmentDefaults.providers[]`
@@ -92,8 +92,8 @@ Example:
 
 ```yaml
 environmentDefaults:
-  providers: []
-  variables: {}
+    providers: []
+    variables: {}
   ...
   providers:
     - name: "local-kubernetes"
@@ -113,8 +113,8 @@ Example:
 
 ```yaml
 environmentDefaults:
-  providers: []
-  variables: {}
+    providers: []
+    variables: {}
   ...
   providers:
     - environments:

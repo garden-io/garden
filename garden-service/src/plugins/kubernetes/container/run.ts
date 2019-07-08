@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { includes, extend } from "lodash"
+import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
 import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
@@ -23,7 +23,9 @@ import { RunResult } from "../../../types/plugin/base"
 import { RunServiceParams } from "../../../types/plugin/service/runService"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 import { LogEntry } from "../../../logger/log-entry"
-import { getWorkloadPods } from "../util"
+import { getWorkloadPods, prepareEnvVars } from "../util"
+import { uniqByName } from "../../../util/util"
+import { V1PodSpec } from "@kubernetes/client-node"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, log, service, command, interactive } = params
@@ -96,20 +98,32 @@ export async function runContainerModule(
   const provider = <KubernetesProvider>ctx.provider
   const context = provider.config.context
   const namespace = await getAppNamespace(ctx, log, provider)
+
+  // Apply overrides
   const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+  const envVars = runtimeContext.envVars
+  const env = uniqByName(prepareEnvVars(envVars))
+
+  const spec: V1PodSpec = {
+    containers: [{
+      name: "main",
+      image,
+      ...command && { command },
+      ...args && { args },
+      env,
+    }],
+  }
 
   return runPod({
     context,
-    namespace,
-    module,
-    envVars: runtimeContext.envVars,
-    command,
-    args,
     image,
     interactive,
     ignoreError,
-    timeout,
     log,
+    module,
+    namespace,
+    spec,
+    timeout,
   })
 }
 
@@ -132,28 +146,36 @@ export async function runContainerService(
 export async function runContainerTask(
   { ctx, log, module, task, taskVersion, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
 ): Promise<RunTaskResult> {
-  extend(runtimeContext.envVars, task.spec.env || {})
-
   const provider = <KubernetesProvider>ctx.provider
   const context = provider.config.context
   const namespace = await getAppNamespace(ctx, log, provider)
+
+  // Apply overrides
+  const { args, command } = task.spec
   const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-  const { command, args } = task.spec
+  const envVars = { ...runtimeContext.envVars, ...task.spec.env }
+  const env = uniqByName(prepareEnvVars(envVars))
+
+  const spec: V1PodSpec = {
+    containers: [{
+      name: "main",
+      image,
+      ...command && { command },
+      ...args && { args },
+      env,
+    }],
+  }
 
   const res = await runPod({
     context,
-    namespace,
-    module,
-    envVars: runtimeContext.envVars,
-    command,
-    args,
     image,
     interactive,
     ignoreError: false,
-    timeout: task.spec.timeout || 9999,
-    // Workaround to make sure sidecars are not injected, due to https://github.com/kubernetes/kubernetes/issues/25908
-    overrides: { metadata: { annotations: { "sidecar.istio.io/inject": "false" } } },
     log,
+    module,
+    namespace,
+    spec,
+    timeout: task.spec.timeout || 9999,
   })
 
   const result = { ...res, taskName: task.name }
