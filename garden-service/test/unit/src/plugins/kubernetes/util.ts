@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { millicpuToString, kilobytesToString } from "../../../../../src/plugins/kubernetes/util"
+import { millicpuToString, kilobytesToString, flattenResources } from "../../../../../src/plugins/kubernetes/util"
 
 describe("millicpuToString", () => {
   it("should return a string suffixed with 'm'", () => {
@@ -42,5 +42,139 @@ describe("kilobytesToString", () => {
 
   it("should round off floating points", () => {
     expect(kilobytesToString(100.5)).to.equal("100Ki")
+  })
+})
+
+describe("flattenResources", () => {
+  it("should return resources that don't include resources of kind List as they were", () => {
+    const resources = [
+      {
+        apiVersion: "v1",
+        kind: "ServiceAccount",
+        metadata: {
+          name: "a",
+        },
+      },
+      {
+        apiVersion: "v1",
+        kind: "ServiceAccount",
+        metadata: {
+          name: "b",
+        },
+      },
+    ]
+    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "b"])
+  })
+  it("should flatten resourcess that contain resources of kind List", () => {
+    const resources = [
+      {
+        apiVersion: "v1",
+        items: [
+          {
+            apiVersion: "v1",
+            kind: "ServiceAccount",
+            metadata: {
+              name: "a",
+            },
+          },
+          {
+            apiVersion: "v1",
+            kind: "ServiceAccount",
+            metadata: {
+              name: "b",
+            },
+          },
+        ],
+        kind: "List",
+        metadata: {
+          name: "foo",
+        },
+      },
+    ]
+    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "b"])
+  })
+  it("should flatten resources that contain List and non-List resources", () => {
+    const resources = [
+      {
+        apiVersion: "v1",
+        kind: "ServiceAccount",
+        metadata: {
+          name: "a",
+        },
+      },
+      {
+        apiVersion: "v1",
+        items: [
+          {
+            apiVersion: "v1",
+            kind: "ServiceAccount",
+            metadata: {
+              name: "b",
+            },
+          },
+          {
+            apiVersion: "v1",
+            kind: "ServiceAccount",
+            metadata: {
+              name: "c",
+            },
+          },
+        ],
+        kind: "List",
+        metadata: {
+          name: "foo",
+        },
+      },
+      {
+        apiVersion: "v1",
+        kind: "ServiceAccount",
+        metadata: {
+          name: "d",
+        },
+      },
+    ]
+    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "b", "c", "d"])
+  })
+  it("should not flatten List resources that don't have apiVersion v1", () => {
+    const resources = [
+      {
+        apiVersion: "v1",
+        kind: "ServiceAccount",
+        metadata: {
+          name: "a",
+        },
+      },
+      {
+        apiVersion: "v2",
+        items: [
+          {
+            apiVersion: "v1",
+            kind: "ServiceAccount",
+            metadata: {
+              name: "b",
+            },
+          },
+          {
+            apiVersion: "v1",
+            kind: "ServiceAccount",
+            metadata: {
+              name: "c",
+            },
+          },
+        ],
+        kind: "List",
+        metadata: {
+          name: "d",
+        },
+      },
+      {
+        apiVersion: "v2",
+        kind: "ServiceAccount",
+        metadata: {
+          name: "e",
+        },
+      },
+    ]
+    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "d", "e"])
   })
 })

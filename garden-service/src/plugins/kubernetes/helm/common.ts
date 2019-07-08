@@ -24,7 +24,7 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { Module } from "../../../types/module"
 import { findByName } from "../../../util/util"
 import { deline } from "../../../util/string"
-import { getAnnotation } from "../util"
+import { getAnnotation, flattenResources } from "../util"
 import { KubernetesPluginContext } from "../config"
 
 /**
@@ -60,7 +60,7 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
     chartPath,
   ))
 
-  return objects
+  const resources = objects
     .filter(obj => {
       const helmHook = getAnnotation(obj, "helm.sh/hook")
       if (helmHook && helmHook.startsWith("test-")) {
@@ -69,6 +69,8 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
 
       return true
     })
+
+  return flattenResources(resources)
 }
 
 /**
