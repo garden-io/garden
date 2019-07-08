@@ -446,7 +446,7 @@ Examples:
 
 ### garden options
 
-Print global options
+Print global options.
 
 Prints all global options (options that can be applied to any command).
 
