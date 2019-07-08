@@ -39,7 +39,7 @@ const linkStyle = `
   display: inline-block;
   font-size: 1rem;
   margin-left: 1.5rem;
-  padding: 0.5em 0.5em 0.5em 0;
+  padding: 0.33em 0.5em 0em 0;
   width: 100%;
 `
 

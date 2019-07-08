@@ -46,11 +46,8 @@
   div.node-container {
     text-align: center;
     padding: 1rem;
-    background-repeat: no-repeat;
-    background-position: left;
-    background-position-x: -0.5rem;
-    background-size: 4rem;
     border-radius: 4px;
+    font-size: 1.3em;
     border:none;
     cursor: pointer;
 
@@ -61,7 +58,7 @@
 
     .module-name {
       color: #343434;
-      font-weight: bold;
+      font-weight: 600;
     }
   }
 }

@@ -74,7 +74,7 @@ const Header = styled.div`
 
 const Name = styled.div`
   font-weight: 500;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   letter-spacing: 0.01em;
   color: #323C47;
 `
@@ -107,8 +107,8 @@ const FieldGroup = styled.div<FieldGroupProps>`
 
 const Key = styled.div`
   padding-right: .25rem;
-  font-size: 0.8125rem;
-  line-height: 1.1875rem;
+  font-size: 0.75rem;
+  line-height: 1.5em;
   letter-spacing: 0.01em;
   color: #4C5862;
   opacity: 0.5;
@@ -116,8 +116,8 @@ const Key = styled.div`
 
 const Value = styled.div`
   padding-right: .5rem;
-  font-size: 0.8125rem;
-  line-height: 1.1875rem;
+  font-size: 0.75rem;
+  line-height: 1.5em;
   letter-spacing: 0.01em;
 `
 

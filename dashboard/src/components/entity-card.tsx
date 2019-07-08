@@ -37,6 +37,7 @@ const EntityCard = styled.div<EntityCardProps>`
 const Header = styled.div`
   width: 100%;
   display:flex;
+  align-items: center;
   justify-content: space-between;
 `
 
@@ -44,7 +45,7 @@ const Content = styled.div`
   width: 100%;
   position: relative;
   max-height: 10rem;
-  padding-top: .75rem;
+  padding-top: .5rem;
   &:empty
   {
       display:none;
@@ -62,16 +63,15 @@ const StateContainer = styled.div<StateContainerProps>`
   align-items: center;
   border-radius: 0.25rem;
   font-weight: 500;
-  font-size: 0.6875rem;
-  line-height: 1rem;
+  font-size: 0.66rem;
+  line-height: 1.4em;
   text-align: center;
   letter-spacing: 0.02em;
   color: #FFFFFF;
   height: 1rem;
 `
 
-const Tag = styled.div`
-  display: flex;
+const Tag = styled.span`
   align-items: center;
   font-weight: 500;
   font-size: 10px;
@@ -79,13 +79,13 @@ const Tag = styled.div`
   text-align: right;
   letter-spacing: 0.01em;
   color: #90A0B7;
+  padding-left: .25rem;
 `
 
 const Name = styled.div`
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 500;
   color: rgba(0, 0, 0, .87);
-  padding-top: 0.125rem;
 `
 
 type EntityType = "service" | "test" | "task"
@@ -106,8 +106,7 @@ export default ({
     <EntityCard type={type}>
       <Header>
         <div>
-          <Tag>{type.toUpperCase()}</Tag>
-          <Name>{name}</Name>
+          <Name>{name} <Tag>{type.toUpperCase()}</Tag></Name>
         </div>
         {state && (
           <StateContainer state={state}>
