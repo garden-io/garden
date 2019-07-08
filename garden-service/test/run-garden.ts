@@ -9,6 +9,7 @@ import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { ParameterError } from "../src/exceptions"
 import { dedent, deline } from "../src/util/string"
 import { GARDEN_SERVICE_ROOT } from "../src/constants"
+import { UpdateOpts } from "../src/logger/log-entry"
 
 export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_SERVICE_ROOT, "bin", "garden")
 
@@ -85,6 +86,10 @@ export function commandReloadedStep(): WatchTestStep {
   }
 }
 
+function stringifyJsonLog(entries: UpdateOpts[]) {
+  return entries.map(l => l.msg).join("\n")
+}
+
 /**
  * This helper is for testing a non-watch-mode commands. It returns a parsed representation of its log output,
  * which can then e.g. be queried for matching log entries.
@@ -92,11 +97,21 @@ export function commandReloadedStep(): WatchTestStep {
  * The GardenWatch class below, on the other hand, is for running/testing watch-mode commands.
  */
 export async function runGarden(dir: string, command: string[]): Promise<JsonLogEntry[]> {
-  const { stdout } = await execGarden(command, dir)
-  if (showLog) {
-    console.log(stdout)
+  try {
+    const { stdout } = await execGarden(command, dir)
+    const parsedLog = parseLogEntries(stdout.split("\n").filter(Boolean))
+    if (showLog) {
+      console.log(stringifyJsonLog(parsedLog))
+    }
+    return parsedLog
+  } catch (err) {
+    let msg = err.message.split("\n")[0]
+    if (err.stdout) {
+      const parsedLog = parseLogEntries(err.stdout.split("\n").filter(Boolean))
+      msg += "\n" + stringifyJsonLog(parsedLog)
+    }
+    throw new Error(`Failed running command '${command.join(" ")}': ${msg}`)
   }
-  return parseLogEntries(stdout.split("\n").filter(Boolean))
 }
 
 export type RunGardenWatchOpts = {
