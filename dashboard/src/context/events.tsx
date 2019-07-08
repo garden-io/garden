@@ -9,11 +9,11 @@
 import React from "react"
 
 import { useEffect, useState } from "react"
-import { ServerWebsocketMessage } from "garden-cli/src/server/server"
-import { Events, EventName } from "garden-cli/src/events"
+import { ServerWebsocketMessage } from "garden-service/build/src/server/server"
+import { Events, EventName } from "garden-service/build/src/events"
 
 import getApiUrl from "../api/get-api-url"
-import { Extends } from "garden-cli/src/util/util"
+import { Extends } from "garden-service/build/src/util/util"
 
 // FIXME: We shouldn't repeat the keys for both the type and the set below
 export type SupportedEventName = Extends<

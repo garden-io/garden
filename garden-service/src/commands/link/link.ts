@@ -12,7 +12,7 @@ import { LinkModuleCommand } from "./module"
 
 export class LinkCommand extends Command {
   name = "link"
-  help = "Link a remote source or module to a local path"
+  help = "Link a remote source or module to a local path."
 
   subCommands = [
     LinkSourceCommand,

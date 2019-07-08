@@ -11,6 +11,8 @@ Please follow the guide for your operating system:
 And if you decide to use Minikube, please see our [Minikube Instructions](#minikube-instructions) further down in this
 document.
 
+If you want to install Garden from source, see the instructions in our [contributor guide](https://github.com/garden-io/garden/tree/master/CONTRIBUTING.md).
+
 ## macOS
 
 For Mac, we recommend the following steps to install Garden. You can also follow the manual installation
@@ -111,6 +113,7 @@ To later upgrade to the latest version, simply run the script again.
 Or if you prefer to do it manually, download the Garden CLI for your platform from our
 [latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH.
 E.g. by extracting to `~/.garden/bin` and adding `export PATH=$PATH:~/.garden/bin` to your `.bashrc` or `.zshrc` file.
+If you're installing manually, make sure you copy all files in the release package for your platform to the directory you're including in your PATH. For Windows and Linux, there's a `garden` binary and `static` directory, for macOS there's an additional `fse.node` binary.
 
 ### Step 3 (optional): Docker
 

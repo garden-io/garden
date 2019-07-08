@@ -1,12 +1,7 @@
 {
-  "command": {
-    "publish": {
-      "message": "chore(release): publish %s"
-    }
-  },
   "packages": [
-    "garden-service/",
-    "dashboard/"
+    "dashboard/",
+    "garden-service/"
   ],
-  "version": "0.8.0"
+  "version": "independent"
 }

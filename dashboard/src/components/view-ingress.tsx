@@ -9,7 +9,7 @@
 import React, { useContext } from "react"
 import styled from "@emotion/styled"
 import { ExternalLink } from "./links"
-import { ServiceIngress } from "garden-cli/src/types/service"
+import { ServiceIngress } from "garden-service/build/src/types/service"
 import { truncateMiddle } from "../util/helpers"
 import normalizeUrl from "normalize-url"
 import { format } from "url"
