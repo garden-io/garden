@@ -259,3 +259,18 @@ export async function upsertConfigMap(
     }
   }
 }
+
+/**
+ * Flattens an array of Kubernetes resources that contain `List` resources.
+ *
+ * If an array of resources contains a resource of kind `List`, the list items of that resource are
+ * flattened and included with the top-level resources.
+ *
+ * For example (simplified):
+ * `[{ metadata: { name: a }}, { kind: "List", items: [{ metadata: { name: b }}, { metadata: { name: c }}]}]`
+ * becomes
+ * `[{ metadata: { name: a }}, { metadata: { name: b }}, { metadata: { name: b }}]`
+ */
+export function flattenResources(resources: KubernetesResource[]) {
+  return flatten(resources.map((r: any) => r.apiVersion === "v1" && r.kind === "List" ? r.items : [r]))
+}
