@@ -7,8 +7,6 @@
  */
 
 import { EventEmitter2 } from "eventemitter2"
-import { TaskResult } from "./task-graph"
-import { ModuleVersion } from "./vcs/vcs"
 import { LogEntry } from "./logger/log-entry"
 
 /**
@@ -77,15 +75,28 @@ export interface Events {
   taskPending: {
     addedAt: Date,
     key: string,
-    version: ModuleVersion,
+    type: string,
+    name: string,
   },
   taskProcessing: {
     startedAt: Date,
     key: string,
-    version: ModuleVersion,
+    type: string,
+    name: string,
   },
-  taskComplete: TaskResult,
-  taskError: TaskResult,
+  taskComplete: {
+    completedAt: Date,
+    type: string
+    key: string,
+    name: string,
+  },
+  taskError: {
+    completedAt: Date,
+    type: string
+    key: string,
+    name: string,
+    error?: Error,
+  },
   taskGraphProcessing: {
     startedAt: Date,
   },

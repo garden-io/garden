@@ -100,7 +100,8 @@ export class TaskGraph {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
         key: task.getKey(),
-        version: task.version,
+        name: task.getName(),
+        type: task.type,
       })
     }
   }
@@ -165,11 +166,12 @@ export class TaskGraph {
 
       return Bluebird.map(batch, async (node: TaskNode) => {
         const task = node.task
+        const name = task.getName()
         const type = node.getType()
         const key = node.getKey()
         const description = node.getDescription()
 
-        let result: TaskResult = { type, description, key: task.getKey(), name: task.getName() }
+        let result: TaskResult = { type, description, key, name }
 
         try {
           this.logTask(node)
@@ -184,19 +186,31 @@ export class TaskGraph {
 
           try {
             this.garden.events.emit("taskProcessing", {
+              name,
+              type,
+              key,
               startedAt: new Date(),
-              key: task.getKey(),
-              version: task.version,
             })
             result = await node.process(dependencyResults)
 
             // Track task if user has opted-in
             analytics.trackTask(result.key, result.type)
 
-            this.garden.events.emit("taskComplete", result)
+            this.garden.events.emit("taskComplete", {
+              name,
+              type,
+              key,
+              completedAt: new Date(),
+            })
           } catch (error) {
             result.error = error
-            this.garden.events.emit("taskError", result)
+            this.garden.events.emit("taskError", {
+              name,
+              type,
+              key,
+              completedAt: new Date(),
+              error: result.error,
+            })
             this.logTaskError(node, error)
             this.cancelDependants(node)
           } finally {

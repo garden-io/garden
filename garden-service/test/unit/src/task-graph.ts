@@ -120,13 +120,36 @@ describe("task-graph", () => {
       const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a", false)
 
-      const result = await graph.process([task])
+      await graph.process([task])
 
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
+        {
+          name: "taskPending",
+          payload: {
+            addedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
-        { name: "taskComplete", payload: result["a"] },
+        {
+          name: "taskProcessing",
+          payload: {
+            startedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
+        {
+          name: "taskComplete", payload: {
+            completedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
@@ -162,15 +185,58 @@ describe("task-graph", () => {
       const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a", false, { throwError: true })
 
-      const result = await graph.process([task])
-
+      await graph.process([task])
+      const taskError = garden.events.eventLog.find(obj => obj.name === "taskError")
+      taskError && delete taskError.payload["error"]
       expect(garden.events.eventLog).to.eql([
-        { name: "taskPending", payload: { addedAt: now, key: task.getKey(), version: task.version } },
-        { name: "taskGraphProcessing", payload: { startedAt: now } },
-        { name: "taskProcessing", payload: { startedAt: now, key: task.getKey(), version: task.version } },
-        { name: "taskError", payload: result["a"] },
+        {
+          name: "taskPending",
+          payload: {
+            addedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
+        {
+          name: "taskGraphProcessing",
+          payload: {
+            startedAt: now,
+          },
+        },
+        {
+          name: "taskProcessing",
+          payload: {
+            startedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
+        {
+          name: "taskError",
+          payload: {
+            completedAt: now,
+            key: task.getKey(),
+            name: task.name,
+            type: task.type,
+          },
+        },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
+    })
+
+    it("should have error property inside taskError event when failing a task", async () => {
+      freezeTime()
+
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const task = new TestTask(garden, "a", false, { throwError: true })
+
+      await graph.process([task])
+      const taskError = garden.events.eventLog.find(obj => obj.name === "taskError")
+
+      expect(taskError && taskError.payload["error"]).to.exist
     })
 
     it("should process multiple tasks in dependency order", async () => {
