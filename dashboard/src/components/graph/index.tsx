@@ -13,16 +13,15 @@ import styled from "@emotion/styled"
 import { capitalize } from "lodash"
 import * as d3 from "d3"
 import dagreD3 from "dagre-d3"
-import { Extends } from "garden-cli/src/util/util"
-import { ConfigDump } from "garden-cli/src/garden"
+import { PickFromUnion } from "garden-cli/src/util/util"
 import Card from "../card"
 import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
 import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../context/ui"
-import { WsEventMessage, SupportedEventName } from "../../context/events"
-import { GraphOutputWithNodeStatus } from "../../context/data"
+import { SupportedEventName } from "../../context/events"
 import { FiltersButton, Filters } from "../group-filter"
+import { GraphOutputWithNodeStatus } from "../../containers/graph"
 
 interface Node {
   name: string
@@ -44,7 +43,7 @@ export interface Graph {
 }
 
 // FIXME: We shouldn't repeat the keys for both the type and the set below
-type TaskNodeEventName = Extends<
+type TaskNodeEventName = PickFromUnion<
   SupportedEventName,
   "taskPending" | "taskProcessing" | "taskComplete" | "taskError"
 >
@@ -211,12 +210,11 @@ type ChartState = {
 }
 
 interface Props {
-  config: ConfigDump
   graph: GraphOutputWithNodeStatus
   onGraphNodeSelected: SelectGraphNode
   selectedGraphNode: string | null
-  layoutChanged: boolean
-  message?: WsEventMessage
+  layoutChanged: boolean // set whenever user toggle sidebar
+  isProcessing: boolean // set whenever wsMessages are received
   filters: Filters<StackGraphSupportedFilterKeys>
   onFilter: (filterKey: StackGraphSupportedFilterKeys) => void
 }
@@ -319,12 +317,11 @@ class Chart extends Component<Props, ChartState> {
   }
 
   render() {
-    const { message } = this.props
     const chartHeightEstimate = `100vh - 2rem`
 
     let spinner: React.ReactNode = null
     let status = ""
-    if (message && message.name !== "taskGraphComplete") {
+    if (this.props.isProcessing) {
       status = "Processing..."
       spinner = <ProcessSpinner background={colors.gardenWhite} size="2rem" />
     }

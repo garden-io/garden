@@ -11,47 +11,45 @@ import React, { useContext, useEffect } from "react"
 import PageError from "../components/page-error"
 import Logs from "../components/logs"
 import { DataContext } from "../context/data"
-import { getServiceNames } from "../util/helpers"
 import Spinner from "../components/spinner"
 
 export default () => {
   const {
-    actions: { loadConfig },
-    store: { config },
+    actions: { loadConfig, loadLogs },
+    store: { entities: { logs, services }, requestStates: { fetchLogs, fetchConfig } },
   } = useContext(DataContext)
 
-  useEffect(loadConfig, [])
-
-  if (!config.data || config.loading) {
-    return <Spinner />
-  }
-
-  return <LogsContainer />
-}
-
-const LogsContainer = () => {
-  const {
-    actions: { loadLogs },
-    store: { config, logs },
-  } = useContext(DataContext)
+  const serviceNames: string[] = Object.keys(services)
 
   useEffect(() => {
-    if (config.data) {
-      loadLogs(getServiceNames(config.data.moduleConfigs))
+    async function fetchData() {
+      return await loadConfig()
     }
+    // tslint:disable-next-line: no-floating-promises
+    fetchData()
   }, [])
 
-  if (!logs.data || !config.data) {
+  useEffect(() => {
+    async function fetchData() {
+      return await loadLogs(serviceNames)
+    }
+
+    if (serviceNames.length) {
+      // tslint:disable-next-line: no-floating-promises
+      fetchData()
+    }
+  }, [fetchConfig.alreadyFetched]) // run again only after config had been fetched
+
+  if (fetchConfig.loading || fetchLogs.loading) {
     return <Spinner />
   }
-
-  if (logs.error || config.error) {
+  if (fetchConfig.error || fetchLogs.error) {
     return (
-      <PageError error={(logs.error || config.error)} />
+      <PageError error={(fetchConfig.error || fetchLogs.error)} />
     )
   }
 
   return (
-    <Logs loadLogs={loadLogs} config={config.data} logs={logs.data} />
+    <Logs onRefresh={loadLogs} logs={logs} />
   )
 }

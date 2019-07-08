@@ -6,18 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { ReactNode } from "react"
+import React from "react"
 import styled from "@emotion/styled"
-import { Entity } from "../containers/overview"
+import moment from "moment"
 import { colors } from "../styles/variables"
 import { Facebook as ContentLoader } from "react-content-loader"
+import { Fields, Field, Key, Value, FieldGroup } from "./module"
+import Ingresses from "./ingresses"
+import { getDuration } from "../util/helpers"
+import { TertiaryButton } from "./button"
+import { css } from "emotion"
+import { Service, Test, Task } from "../containers/overview"
+import { SelectEntity } from "../context/ui"
 
-interface EntityCardProps {
-  type: EntityType
-}
-const EntityCard = styled.div<EntityCardProps>`
+const Card = styled.div`
   max-height: 13rem;
-  background-color: ${props => (props && props.type && colors.cardTypes[props.type] || "white")};
+  background-color: white;
   margin-right: 1rem;
   box-shadow: 2px 2px 9px rgba(0,0,0,0.14);
   border-radius: 4px;
@@ -88,25 +92,28 @@ const Name = styled.div`
   padding-top: 0.125rem;
 `
 
-type EntityType = "service" | "test" | "task"
-
-interface Props {
-  type: EntityType
-  children: ReactNode
-  entity: Entity
+interface ServiceCardProps {
+  service: Service,
+  isLoading: boolean,
+  showInfo: boolean,
 }
 
-export default ({
-  children,
-  type,
-  entity: { name, isLoading, state },
-}: Props) => {
+export const ServiceCard = ({
+  service: {
+    name,
+    dependencies,
+    ingresses,
+    state,
+  },
+  isLoading,
+  showInfo,
+}: ServiceCardProps) => {
 
   return (
-    <EntityCard type={type}>
+    <Card>
       <Header>
         <div>
-          <Tag>{type.toUpperCase()}</Tag>
+          <Tag>SERVICE</Tag>
           <Name>{name}</Name>
         </div>
         {state && (
@@ -119,8 +126,196 @@ export default ({
         {isLoading && (
           <ContentLoader height={100} />
         )}
-        {!isLoading && children}
+        {!isLoading && (
+          <Fields visible={showInfo}>
+            <Field inline visible={dependencies.length > 0}>
+              <Key>Depends on:</Key>
+              <Value>{dependencies.join(", ")}</Value>
+            </Field>
+            <Field visible={!!ingresses && ingresses.length > 0}>
+              <Ingresses ingresses={ingresses} />
+            </Field>
+          </Fields>
+        )}
       </Content>
-    </EntityCard>
+    </Card>
+  )
+}
+
+interface TaskCardProp {
+  task: Task,
+  moduleName?: string,
+  isLoading: boolean,
+  showInfo: boolean,
+  onEntitySelected: SelectEntity,
+}
+
+export const TaskCard = ({
+  task: {
+    name,
+    dependencies,
+    state,
+    startedAt,
+    completedAt,
+  },
+  moduleName,
+  isLoading,
+  showInfo,
+  onEntitySelected,
+}: TaskCardProp) => {
+  const duration = startedAt &&
+    completedAt &&
+    getDuration(startedAt, completedAt)
+
+  const handleEntitySelected = () => {
+    if (moduleName && name) {
+      onEntitySelected({
+        type: "task",
+        name,
+        module: moduleName,
+      })
+    }
+  }
+
+  return (
+    <Card>
+      <Header>
+        <div>
+          <Tag>TASK</Tag>
+          <Name>{name}</Name>
+        </div>
+        {state && (
+          <StateContainer state={state}>
+            {state}
+          </StateContainer>
+        )}
+      </Header>
+      <Content>
+        {isLoading && (
+          <ContentLoader height={100} />
+        )}
+        {!isLoading && (
+          <Fields visible={showInfo}>
+            <Field inline visible={dependencies.length > 0}>
+              <Key>Depends on:</Key>
+              <Value>{dependencies.join(", ")}</Value>
+            </Field>
+            <FieldGroup
+              className="row between-xs middle-xs"
+              visible={!!startedAt}
+            >
+              <Field inline className="col-xs" visible={!!startedAt}>
+                <Key>Ran:</Key>
+                <Value>{moment(startedAt).fromNow()}</Value>
+              </Field>
+              <Field inline visible={state === "succeeded"}>
+                <Key>Took:</Key>
+                <Value>{duration}</Value>
+              </Field>
+            </FieldGroup>
+            <div className="row">
+              <div className="col-xs">
+                <TertiaryButton
+                  onClick={handleEntitySelected}
+                  className={css`
+                    margin-top: .5rem;
+                  `}
+                >
+                  Show result
+                </TertiaryButton>
+              </div>
+            </div>
+          </Fields>
+        )}
+      </Content>
+    </Card>
+  )
+}
+
+interface TestCardProp {
+  test: Test,
+  moduleName?: string,
+  isLoading: boolean,
+  showInfo: boolean,
+  onEntitySelected: SelectEntity
+}
+
+export const TestCard = ({
+  test: {
+    name,
+    dependencies,
+    state, startedAt, completedAt,
+  },
+  moduleName,
+  isLoading,
+  showInfo,
+  onEntitySelected,
+}: TestCardProp) => {
+  const duration = startedAt &&
+    completedAt &&
+    getDuration(startedAt, completedAt)
+
+  const handleEntitySelected = () => {
+    if (moduleName && name) {
+      onEntitySelected({
+        type: "test",
+        name,
+        module: moduleName,
+      })
+    }
+  }
+
+  return (
+    <Card>
+      <Header>
+        <div>
+          <Tag>TEST</Tag>
+          <Name>{name}</Name>
+        </div>
+        {state && (
+          <StateContainer state={state}>
+            {state}
+          </StateContainer>
+        )}
+      </Header>
+      <Content>
+        {isLoading && (
+          <ContentLoader height={100} />
+        )}
+        {!isLoading && (
+          <Fields visible={showInfo}>
+            <Field inline visible={dependencies.length > 0}>
+              <Key>Depends on:</Key>
+              <Value>{dependencies.join(", ")}</Value>
+            </Field>
+            <FieldGroup
+              className="row between-xs middle-xs"
+              visible={!!startedAt}
+            >
+              <Field inline className="col-xs" visible={!!startedAt}>
+                <Key>Ran:</Key>
+                <Value>{moment(startedAt).fromNow()}</Value>
+              </Field>
+              <Field inline visible={state === "succeeded"}>
+                <Key>Took:</Key>
+                <Value>{duration}</Value>
+              </Field>
+            </FieldGroup>
+            <div className="row">
+              <div className="col-xs">
+                <TertiaryButton
+                  onClick={handleEntitySelected}
+                  className={css`
+                    margin-top: .5rem;
+                  `}
+                >
+                  Show result
+                </TertiaryButton>
+              </div>
+            </div>
+          </Fields>
+        )}
+      </Content>
+    </Card>
   )
 }

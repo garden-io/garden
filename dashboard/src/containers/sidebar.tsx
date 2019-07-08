@@ -44,22 +44,26 @@ const builtinPages: Page[] = [
 const SidebarContainer = () => {
   const {
     actions: { loadStatus },
-    store: { status },
+    store: { entities: { providers } },
   } = useContext(DataContext)
 
-  useEffect(loadStatus, [])
+  useEffect(() => {
+    async function fetchData() {
+      return await loadStatus()
+    }
+    // tslint:disable-next-line: no-floating-promises
+    fetchData()
+  }, [])
 
   let pages: Page[] = []
 
-  if (status.data) {
-    pages = flatten(entries(status.data.providers).map(([providerName, providerStatus]) => {
-      return (providerStatus.dashboardPages || []).map(p => ({
-        ...p,
-        path: `/provider/${providerName}/${kebabCase(p.title)}`,
-        description: p.description + ` (from provider ${providerName})`,
-      }))
+  pages = flatten(entries(providers).map(([providerName, providerStatus]) => {
+    return (providerStatus.dashboardPages || []).map(p => ({
+      ...p,
+      path: `/provider/${providerName}/${kebabCase(p.title)}`,
+      description: p.description + ` (from provider ${providerName})`,
     }))
-  }
+  }))
 
   return <Sidebar pages={[...builtinPages, ...pages]} />
 }

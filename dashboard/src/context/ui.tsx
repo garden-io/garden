@@ -9,6 +9,7 @@
 import React, { useState } from "react"
 import { ServiceIngress } from "garden-cli/src/types/service"
 import { RenderedNodeType } from "garden-cli/src/config-graph"
+import { PickFromUnion } from "garden-cli/src/util/util"
 
 interface UiState {
   isSidebarOpen: boolean
@@ -32,7 +33,10 @@ export type SelectEntity = (selectedEntity: SelectedEntity | null) => void
 export type SelectIngress = (ingress: ServiceIngress | null) => void
 export type OverviewSupportedFilterKeys = "modules" | "modulesInfo" | "services" | "servicesInfo" |
   "tasks" | "tasksInfo" | "tests" | "testsInfo"
-export type StackGraphSupportedFilterKeys = Exclude<RenderedNodeType, "publish">
+export type StackGraphSupportedFilterKeys = PickFromUnion<
+  RenderedNodeType,
+  "test" | "deploy" | "build" | "run"
+>
 export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "task"
 export type SelectedEntity = {
   type: EntityResultSupportedTypes,

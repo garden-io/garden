@@ -10,51 +10,87 @@ import React, { useContext, useEffect } from "react"
 import styled from "@emotion/styled"
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
-import { EventContext } from "../context/events"
-import { DataContext } from "../context/data"
+import { DataContext, TaskState } from "../context/data"
 import { UiStateContext, StackGraphSupportedFilterKeys, EntityResultSupportedTypes } from "../context/ui"
 import EntityResult from "./entity-result"
 import Spinner from "../components/spinner"
 import { Filters } from "../components/group-filter"
 import { capitalize } from "lodash"
+import { RenderedNode } from "garden-cli/src/config-graph"
+import { GraphOutput } from "garden-cli/src/commands/get/get-graph"
 
 const Wrapper = styled.div`
 padding-left: .75rem;
 `
 
+export interface RenderedNodeWithStatus extends RenderedNode {
+  status?: TaskState
+}
+export interface GraphOutputWithNodeStatus extends GraphOutput {
+  nodes: RenderedNodeWithStatus[],
+}
+
 export default () => {
   const {
     actions: { loadGraph, loadConfig },
-    store: { config, graph },
+    store: { entities: { modules, services, tests, tasks, graph }, requestStates: { fetchGraph, fetchTaskStates } },
   } = useContext(DataContext)
-  const { message } = useContext(EventContext)
 
-  useEffect(loadConfig, [])
-  useEffect(loadGraph, [])
+  useEffect(() => {
+    async function fetchData() {
+      return await loadConfig()
+    }
+    // tslint:disable-next-line: no-floating-promises
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    async function fetchData() {
+      return await loadGraph()
+    }
+    // tslint:disable-next-line: no-floating-promises
+    fetchData()
+  }, [])
 
   const {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
     state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
   } = useContext(UiStateContext)
 
-  if (config.error || graph.error) {
-    return <PageError error={config.error || graph.error} />
+  if (fetchGraph.error) {
+    return <PageError error={fetchGraph.error} />
   }
 
-  if (!config.data || !graph.data || config.loading || graph.loading) {
+  if (fetchGraph.loading) {
     return <Spinner />
   }
-  if (message && message.type === "event") {
-    const nodeToUpdate = graph.data.nodes.find(node => node.key === (message.payload && message.payload["key"]))
-    if (nodeToUpdate) {
-      nodeToUpdate.status = message.name
-      graph.data = { ...graph.data }
+
+  const nodesWithStatus: RenderedNodeWithStatus[] = graph.nodes.map(node => {
+    let taskState: TaskState = "taskComplete"
+    switch (node.type) {
+      case "publish":
+        break
+      case "deploy":
+        taskState = services[node.name] && services[node.name].taskState || taskState
+        break
+      case "build":
+        taskState = modules[node.name] && modules[node.name].taskState || taskState
+        break
+      case "run":
+        taskState = tasks[node.name] && tasks[node.name].taskState || taskState
+        break
+      case "test":
+        taskState = tests[node.name] && tests[node.name].taskState || taskState
+        break
     }
-  }
+    return { ...node, status: taskState }
+  })
+
+  let graphWithStatus: GraphOutputWithNodeStatus = { nodes: nodesWithStatus, relationships: graph.relationships }
 
   let moreInfoPane: React.ReactNode = null
-  if (selectedGraphNode && graph.data) {
-    const node = graph.data.nodes.find(n => n.key === selectedGraphNode)
+  if (selectedGraphNode && graph) {
+    const node = graph.nodes.find(n => n.key === selectedGraphNode)
     if (node) {
       moreInfoPane = (
         <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
@@ -89,10 +125,10 @@ export default () => {
           onGraphNodeSelected={selectGraphNode}
           selectedGraphNode={selectedGraphNode}
           layoutChanged={isSidebarOpen}
-          config={config.data}
-          graph={graph.data}
+          graph={graphWithStatus}
           filters={graphFilters}
           onFilter={stackGraphToggleItemsView}
+          isProcessing={fetchTaskStates.loading}
         />
       </div>
       {moreInfoPane}

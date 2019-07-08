@@ -14,7 +14,7 @@ import { TestResultOutput } from "garden-cli/src/commands/get/get-test-result"
 import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
 import { CommandResult } from "garden-cli/src/commands/base"
 import { ConfigDump } from "garden-cli/src/garden"
-import { AllEnvironmentStatus } from "garden-cli/src/actions"
+import { StatusCommandResult } from "garden-cli/src/commands/get/get-status"
 
 export interface ApiRequest {
   command: string
@@ -35,7 +35,7 @@ export async function fetchGraph() {
 }
 
 export async function fetchStatus() {
-  return apiPost<AllEnvironmentStatus>("get.status", { output: "json" })
+  return apiPost<StatusCommandResult>("get.status", { output: "json" })
 }
 
 export async function fetchLogs(services: FetchLogsParam) {

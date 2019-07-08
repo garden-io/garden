@@ -48,7 +48,7 @@ interface Props {
 export default ({ name, moduleName, type, onClose }: Props) => {
   const {
     actions: { loadTestResult, loadTaskResult },
-    store: { testResult, taskResult },
+    store: { entities: { tasks, tests }, requestStates: { fetchTestResult, fetchTaskResult } },
   } = useContext(DataContext)
 
   const loadResults = () => {
@@ -61,29 +61,47 @@ export default ({ name, moduleName, type, onClose }: Props) => {
 
   useEffect(loadResults, [name, moduleName])
 
-  // Here we just render the node data since only nodes of types test and run have results
-  if (!(type === "test" || type === "run" || type === "task")) {
-    return (
-      <EntityResult
-        onClose={onClose}
-        name={name}
-        type={type}
-        moduleName={moduleName}
-      />
-    )
-  }
+  if (type === "test") {
+    const testResult = tests && tests[name] && tests[name].result
 
-  const result = type === "test" ? testResult : taskResult
+    if (fetchTestResult.error) {
+      return <ErrorMsg error={fetchTestResult.error} type={type} />
+    }
 
-  if (result.error) {
-    return <ErrorMsg error={result.error} type={type} />
-  }
-
-  // Loading. Either data hasn't been loaded at all or cache contains stale data
-  if (!result.data || result.data.name !== name) {
     return (
       <EntityResult
         onRefresh={loadResults}
+        loading={fetchTestResult.loading}
+        onClose={onClose}
+        name={name}
+        type={type}
+        moduleName={moduleName}
+        {...(!fetchTestResult.loading && testResult && prepareData(testResult))}
+      />
+    )
+
+  } else if (type === "task" || type === "run") {
+    const taskResult = tasks && tasks[name] && tasks[name].result
+
+    if (fetchTaskResult.error) {
+      return <ErrorMsg error={fetchTaskResult.error} type={type} />
+    }
+
+    return (
+      <EntityResult
+        onRefresh={loadResults}
+        loading={fetchTaskResult.loading}
+        onClose={onClose}
+        name={name}
+        type={type}
+        moduleName={moduleName}
+        {...(!fetchTaskResult.loading && taskResult && prepareData(taskResult))}
+
+      />
+    )
+  } else {
+    return (
+      <EntityResult
         onClose={onClose}
         name={name}
         type={type}
@@ -91,17 +109,4 @@ export default ({ name, moduleName, type, onClose }: Props) => {
       />
     )
   }
-
-  // Render info pane with result data
-  return (
-    <EntityResult
-      onRefresh={loadResults}
-      loading={result.loading}
-      onClose={onClose}
-      name={name}
-      type={type}
-      moduleName={moduleName}
-      {...prepareData(result.data)}
-    />
-  )
 }

@@ -13,10 +13,10 @@ import { ServerWebsocketMessage } from "garden-cli/src/server/server"
 import { Events, EventName } from "garden-cli/src/events"
 
 import getApiUrl from "../api/get-api-url"
-import { Extends } from "garden-cli/src/util/util"
+import { PickFromUnion } from "garden-cli/src/util/util"
 
 // FIXME: We shouldn't repeat the keys for both the type and the set below
-export type SupportedEventName = Extends<
+export type SupportedEventName = PickFromUnion<
   EventName, "taskPending" | "taskProcessing" | "taskComplete" | "taskGraphComplete" | "taskError"
 >
 

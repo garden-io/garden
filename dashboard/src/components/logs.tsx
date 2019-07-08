@@ -9,7 +9,7 @@
 import cls from "classnames"
 import { css } from "emotion"
 import styled from "@emotion/styled"
-import { max } from "lodash"
+import { max, flatten } from "lodash"
 import React, { Component } from "react"
 import Select from "react-select"
 
@@ -17,16 +17,13 @@ import Terminal from "./terminal"
 import Card, { CardTitle } from "./card"
 import { colors } from "../styles/variables"
 import { LoadLogs } from "../context/data"
-import { getServiceNames } from "../util/helpers"
 
 import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
-import { ConfigDump } from "garden-cli/src/garden"
 import { ActionIcon } from "./ActionIcon"
 
 interface Props {
-  config: ConfigDump
-  logs: ServiceLogEntry[]
-  loadLogs: LoadLogs
+  logs: { [serviceName: string]: ServiceLogEntry[] }
+  onRefresh: LoadLogs
 }
 
 interface State {
@@ -84,21 +81,25 @@ class Logs extends Component<Props, State> {
   }
 
   refresh() {
-    this.props.loadLogs(getServiceNames(this.props.config.moduleConfigs), true)
+    const serviceNames = Object.keys(this.props.logs)
+    if (!serviceNames.length) {
+      return
+    }
+    this.props.onRefresh(serviceNames, true)
     this.setState({ loading: true })
   }
 
   render() {
-    const { config, logs } = this.props
+    const { logs } = this.props
     const { loading, selectedService } = this.state
-    const serviceNames = getServiceNames(config.moduleConfigs)
+    const serviceNames = Object.keys(logs)
     const maxServiceName = (max(serviceNames) || []).length
     const options = [{ value: "all", label: "All service logs" }]
       .concat(serviceNames.map(name => ({ value: name, label: name })))
 
     const { value, label } = selectedService
     const title = value === "all" ? label : `${label} logs`
-    const filteredLogs = value === "all" ? logs : logs.filter(l => l.serviceName === value)
+    const filteredLogs = value === "all" ? flatten(Object.values(logs)) : logs[value]
 
     return (
       <div className="pl-1">
