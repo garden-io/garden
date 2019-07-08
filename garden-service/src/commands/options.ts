@@ -32,7 +32,7 @@ const tableConfig: CliTable.TableConstructorOptions = {
 
 export class OptionsCommand extends Command {
   name = "options"
-  help = "Print global options"
+  help = "Print global options."
   noProject = true
 
   description = "Prints all global options (options that can be applied to any command)."

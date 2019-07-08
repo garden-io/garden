@@ -21,7 +21,7 @@ import { Garden } from "../../garden"
 
 export class RunCommand extends Command {
   name = "run"
-  help = "Run ad-hoc instances of your modules, services and tests"
+  help = "Run ad-hoc instances of your modules, services and tests."
 
   subCommands = [
     RunModuleCommand,
