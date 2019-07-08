@@ -44,28 +44,28 @@ commands:
     steps:
       - restore_cache:
           keys:
-          - root-{{ checksum "package-lock.json" }}
+          - root-v2-{{ checksum "package-lock.json" }}
       - restore_cache:
           keys:
-          - garden-service-{{ checksum "garden-service/package-lock.json" }}
+          - garden-service-v2-{{ checksum "garden-service/package-lock.json" }}
       - restore_cache:
           keys:
-          - dashboard-{{ checksum "dashboard/package-lock.json" }}
-      # only install if node_modules wasn't cached
+          - dashboard-v2-{{ checksum "dashboard/package-lock.json" }}
+
+      # only install root dependencies if node_modules wasn't cached
       - run: if [ ! -d "node_modules" ]; then npm ci; fi
+
+      - run: npm run bootstrap
+
       - save_cache:
           paths: [node_modules]
-          key: root-{{ checksum "package-lock.json" }}
-
-      - run: if [ ! -d "garden-service/node_modules" ]; then cd garden-service && npm ci; fi
+          key: root-v2-{{ checksum "package-lock.json" }}
       - save_cache:
           paths: [garden-service/node_modules]
-          key: garden-service-{{ checksum "garden-service/package-lock.json" }}
-
-      - run: if [ ! -d "dashboard/node_modules" ]; then cd dashboard && npm ci; fi
+          key: garden-service-v2-{{ checksum "garden-service/package-lock.json" }}
       - save_cache:
           paths: [dashboard/node_modules]
-          key: dashboard-{{ checksum "dashboard/package-lock.json" }}
+          key: dashboard-v2-{{ checksum "dashboard/package-lock.json" }}
 
   docker_build:
     description: Builds and Tags a Docker Image
@@ -172,7 +172,6 @@ jobs:
       - run:
           name: build
           command: |
-            cd garden-service
             npm run build-ci
       # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
@@ -182,6 +181,7 @@ jobs:
           # Must be relative path from root
           paths:
             # Save the built output for future
+            - dashboard/build/
             - garden-service/build/
             - garden-service/static/
   test-service:
@@ -189,8 +189,7 @@ jobs:
     steps:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - npm_install
       - *attach-workspace
       - run:
@@ -229,25 +228,6 @@ jobs:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
           when: always
-  build-dashboard:
-    <<: *node-config
-    steps:
-      - checkout
-      - npm_install
-      - run:
-          name: Build dashboard
-          command: |
-            cd dashboard
-            sudo npm run build-ci
-      # Save the built output to be used for the docker image and for the release steps
-      - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
-          # taken to be the root directory of the workspace.
-          root: ./
-          # Must be relative path from root
-          paths:
-            # Save the built output for future
-            - dashboard/build/
   test-dashboard:
     <<: *node-config
     steps:
@@ -311,10 +291,9 @@ workflows:
       - integ-test-service:
           requires:
             - build-service
-      - build-dashboard
       - test-dashboard:
           requires:
-            - build-dashboard
+            - build-service
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it
@@ -324,8 +303,6 @@ workflows:
           <<: *only-master
           requires:
             - build-service
-      - build-dashboard:
-          <<: *only-master
       - test-dashboard:
           <<: *only-master
       - release-service-docker:
@@ -333,7 +310,6 @@ workflows:
           context: docker
           requires:
             - build-service
-            - build-dashboard
       - release-service-docker-gcloud:
           <<: *only-master
           context: docker
@@ -343,7 +319,6 @@ workflows:
           <<: *only-master
           requires:
             - build-service
-            - build-dashboard
 
   tags:
     jobs:
@@ -354,8 +329,6 @@ workflows:
           <<: *only-tags
           requires:
           - build-service
-      - build-dashboard:
-          <<: *only-tags
       - test-dashboard:
           <<: *only-tags
       - release-service-docker:
@@ -363,7 +336,6 @@ workflows:
           context: docker
           requires:
             - build-service
-            - build-dashboard
       - release-service-docker-gcloud:
           <<: *only-tags
           context: docker
@@ -373,4 +345,3 @@ workflows:
           <<: *only-tags
           requires:
             - build-service
-            - build-dashboard

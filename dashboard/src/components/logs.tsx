@@ -19,8 +19,8 @@ import { colors } from "../styles/variables"
 import { LoadLogs } from "../context/data"
 import { getServiceNames } from "../util/helpers"
 
-import { ServiceLogEntry } from "garden-cli/src/types/plugin/service/getServiceLogs"
-import { ConfigDump } from "garden-cli/src/garden"
+import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
+import { ConfigDump } from "garden-service/build/src/garden"
 import { ActionIcon } from "./ActionIcon"
 
 interface Props {
