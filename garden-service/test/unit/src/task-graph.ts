@@ -1,8 +1,9 @@
+import * as Bluebird from "bluebird"
 import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
-import { makeTestGarden, freezeTime, dataDir } from "../../helpers"
+import { makeTestGarden, freezeTime, dataDir, defer } from "../../helpers"
 import { Garden } from "../../../src/garden"
 
 const projectRoot = join(dataDir, "test-project-empty")
@@ -12,6 +13,7 @@ type TestTaskCallback = (name: string, result: any) => Promise<void>
 interface TestTaskOptions {
   callback?: TestTaskCallback
   dependencies?: BaseTask[],
+  versionString?: string
   uid?: string
   throwError?: boolean
 }
@@ -33,7 +35,7 @@ class TestTask extends BaseTask {
       garden,
       log: garden.log,
       version: {
-        versionString: "12345-6789",
+        versionString: (options && options.versionString) || "12345-6789",
         dependencyVersions: {},
         files: [],
       },
@@ -309,6 +311,40 @@ describe("task-graph", () => {
 
     })
 
+    it("should add at most one pending task for a given key", async () => {
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+
+      let processCount = 0
+
+      const { promise: t1StartedPromise, resolver: t1StartedResolver } = defer()
+      const { promise: t1DonePromise, resolver: t1DoneResolver } = defer()
+
+      const t1 = new TestTask(garden, "a", false, {
+        versionString: "1",
+        callback: async () => {
+          t1StartedResolver()
+          await t1DonePromise
+          processCount++
+        },
+      })
+
+      const repeatedCallback = async () => { processCount++ }
+      const t2 = new TestTask(garden, "a", false, { versionString: "2", callback: repeatedCallback })
+      const t3 = new TestTask(garden, "a", false, { versionString: "3", callback: repeatedCallback })
+
+      const firstProcess = graph.process([t1])
+
+      // We make sure t1 is being processed before adding t2 and t3. This way, one of them
+      // (but not both) should be scheduled after t1 finishes, resulting in a processCount of 2.
+      await t1StartedPromise
+      const secondProcess = graph.process([t2])
+      const thirdProcess = graph.process([t3])
+      t1DoneResolver()
+      await Bluebird.all([firstProcess, secondProcess, thirdProcess])
+      expect(processCount).to.eq(2)
+    })
+
     it("should recursively cancel a task's dependants when it throws an error", async () => {
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
@@ -321,10 +357,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask(garden, "a", false, { ...opts })
-      const taskB = new TestTask(garden, "b", false, { callback, throwError: true, dependencies: [taskA] })
-      const taskC = new TestTask(garden, "c", false, { ...opts, dependencies: [taskB] })
-      const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC] })
+      const taskA = new TestTask(garden, "a", true, { ...opts })
+      const taskB = new TestTask(garden, "b", true, { callback, throwError: true, dependencies: [taskA] })
+      const taskC = new TestTask(garden, "c", true, { ...opts, dependencies: [taskB] })
+      const taskD = new TestTask(garden, "d", true, { ...opts, dependencies: [taskB, taskC] })
 
       const results = await graph.process([
         taskA,
