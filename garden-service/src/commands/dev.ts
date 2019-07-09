@@ -82,7 +82,7 @@ export class DevCommand extends Command<Args, Opts> {
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
 
-    log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
+    log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
     this.server = await startServer(footerLog)
   }

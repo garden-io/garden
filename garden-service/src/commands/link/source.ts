@@ -51,7 +51,7 @@ export class LinkSourceCommand extends Command<Args> {
   `
 
   async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
-    printHeader(headerLog, "link source", "link")
+    printHeader(headerLog, "Link source", "link")
 
     const sourceType = "project"
 
