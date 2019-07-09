@@ -20,7 +20,8 @@ import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
-
+import minimatch = require("minimatch")
+import { find } from "lodash"
 class TestError extends Error {
   toString() {
     return this.message
@@ -164,18 +165,23 @@ export class TestTask extends BaseTask {
 }
 
 export async function getTestTasks(
-  { garden, log, graph, module, name, force = false, forceBuild = false }:
+  { garden, log, graph, module, filterNames, force = false, forceBuild = false }:
     {
       garden: Garden,
       log: LogEntry,
       graph: ConfigGraph,
       module: Module,
-      name?: string,
+      filterNames?: string[],
       force?: boolean,
       forceBuild?: boolean,
     },
 ) {
-  const configs = module.testConfigs.filter(test => !name || test.name === name)
+
+  // If there are no filters we return the test otherwise
+  // we check if the test name matches against the filterNames array
+  const configs = module.testConfigs.filter(
+    test => !filterNames || filterNames.length === 0
+      || find(filterNames, (n: string) => minimatch(test.name, n)))
 
   return Bluebird.map(configs, test => TestTask.factory({
     garden,

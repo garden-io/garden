@@ -49,7 +49,12 @@ const devOpts = {
     alias: "hot",
   }),
   "skip-tests": new BooleanParameter({
-    help: "Disable running the tests",
+    help: "Disable running the tests.",
+  }),
+  "test-names": new StringsParameter({
+    help: "The name(s) of the module(s) to test (skip to test all modules). " +
+      "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').",
+    alias: "tn",
   }),
 }
 
@@ -72,9 +77,11 @@ export class DevCommand extends Command<Args, Opts> {
     Examples:
 
         garden dev
-        garden dev --skip-tests=foo-service       # enable hot reloading for foo-service
         garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
         garden dev --hot=*                        # enable hot reloading for all compatible services
+        garden dev --skip-tests=                  # skip running any tests
+        garden dev --name integ                   # run all tests with the name 'integ' in the project
+        garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
   `
 
   options = devOpts
@@ -134,11 +141,12 @@ export class DevCommand extends Command<Args, Opts> {
           : [module]
 
         if (!opts["skip-tests"]) {
+          const filterNames = opts["test-names"]
           tasks.push(...flatten(
-            await Bluebird.map(testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph })),
+            await Bluebird.map(
+              testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph, filterNames })),
           ))
         }
-
 
         tasks.push(...await getDependantTasksForModule({
           garden,
