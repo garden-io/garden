@@ -19,9 +19,11 @@ web UI—whichever you find more convenient.
 make sure you've been authenticated via `gcloud auth login`.
 
 Make sure to run
-```
+
+```sh
 gcloud container clusters get-credentials [your-cluster-name]
 ```
+
 to add an entry for your cluster to your local Kubernetes config.
 
 If you run `kubectl config get-contexts`, the table shown should include a context with a `NAME` and `CLUSTER` equal to the cluster name you chose previously.
@@ -42,20 +44,22 @@ your-project.your-domain.com).
 ### Configure your Garden project
 
 Now, configure your Garden project for connecting to your cluster. Add to project-level `garden.yml`:
+
 ```yaml
-  - name: remote # Or any other name you prefer
+kind: Project
+name: your-project
+  - name: remote  # or any name of your choice
     providers:
       - name: kubernetes
         context: <name-of-your-gke-kubernetes-context>
-        namespace: []
-        defaultHostname: your-project.your-domain.com
-        buildMode: cluster-docker # Uses in-cluster building
-        setupIngressController: nginx
+        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
 ```
-Run `garden --env remote plugins kubernetes cluster-init`, then `garden dev --env remote `. Now you should be good to go.
+
+Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --env=remote`. Now you should be good to go.
 
 > Note: Your IAM role may need to have permissions to create `clusterRoles` and `clusterRoleBindings`.
-
 
 ## AKS (Azure)
 
@@ -66,7 +70,8 @@ Fill out the project & cluster details.
 Install Azure CLI tools (see https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest for platform-specific instructions).
 
 Now run:
-```
+
+```sh
 az login
 az aks get-credentials --resource-group [your resource group] --name [your cluster name]
 ```
@@ -87,51 +92,98 @@ Then, your project configuration should look something like this (insert the rel
 kind: Project
 name: your-project
 environments:
-  - name: azure
+  - name: azure   # or any name of your choice
     providers:
       - name: kubernetes
         context: <name-of-your-azure-kubernetes-context>
-        defaultHostname: your-project.yourdomain.com
-        buildMode: cluster-docker # Uses in-cluster building
-        setupIngressController: nginx
+        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
   - name: some-other-environment
-    ..
+    ...
 ```
-Then, run 
+
+Then, run
+
+```sh
+garden --env=azure plugins kubernetes cluster-init
 ```
-garden --env azure kubernetes cluster-init
-```
+
 and
+
+```sh
+garden --env=azure deploy
 ```
-garden deploy --env azure
-```
+
 Now you should be good to go.
 
-## EKS (Amazon)
+## AWS (EKS)
 
-Cluster creation & configuration guide coming soon.
+_Cluster creation & configuration guide coming soon!_
 
 Once you have an EKS cluster set up, configure your Garden project to connect to it:
+
 ```yaml
 kind: Project
 name: your-project
 environments:
-  - name: eks # or any name of your choice
+  - name: eks   # or any name of your choice
     providers:
       - name: kubernetes
         context: <name-of-your-eks-kubernetes-context>
-        defaultHostname: your-project.yourdomain.com
-        buildMode: cluster-docker # Uses in-cluster building
-        setupIngressController: nginx
+        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
   - name: some-other-environment
-    ..
+    ...
 ```
+
 Then, run
+
+```sh
+garden --env=eks plugins kubernetes cluster-init
 ```
-garden --env azure kubernetes cluster-init
-```
+
 and
+
+```sh
+garden --env=eks deploy
 ```
-garden deploy --env azure
-```
+
 Now you should be good to go.
+
+## AWS (kops)
+
+[kops](https://github.com/kubernetes/kops) is a handy tool for creating Kubernetes clusters on AWS. Follow [these instructions](https://github.com/kubernetes/kops/blob/master/docs/aws.md) to create your cluster.
+
+After creating the cluster, kops will create a new `kubectl` context and set it as the active context. Note the name of the context and
+create an environment for the cluster in your project `garden.yml`:
+
+```yaml
+# garden.yml
+kind: Project
+name: your-project
+environments:
+  - name: aws # or any name of your choice
+    providers:
+      - name: kubernetes
+        context: <name-of-your-kops-kubernetes-context>
+        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
+    ...
+```
+
+Once the cluster is ready (use `kops validate cluster` to check its status), initialize it with
+
+```sh
+garden --env=aws plugins kubernetes cluster-init
+```
+
+then try running
+
+```sh
+garden --env=aws deploy
+```
+
+And that's it!
