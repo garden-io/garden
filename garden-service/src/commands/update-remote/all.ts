@@ -13,8 +13,8 @@ import {
   CommandResult,
   CommandParams,
 } from "../base"
-import { UpdateRemoteSourcesCommand } from "./sources"
-import { UpdateRemoteModulesCommand } from "./modules"
+import { updateRemoteSources } from "./sources"
+import { updateRemoteModules } from "./modules"
 import { SourceConfig } from "../../config/project"
 import { printHeader } from "../../logger/util"
 
@@ -34,27 +34,18 @@ export class UpdateRemoteAllCommand extends Command {
   `
 
   async action(
-    { garden, log, headerLog, footerLog, opts }: CommandParams,
+    { garden, log, headerLog }: CommandParams,
   ): Promise<CommandResult<UpdateRemoteAllResult>> {
-    printHeader(headerLog, "update-remote all", "hammer_and_wrench")
+    printHeader(headerLog, "Update remote sources and modules", "hammer_and_wrench")
 
-    const sourcesCmd = new UpdateRemoteSourcesCommand()
-    const modulesCmd = new UpdateRemoteModulesCommand()
-
-    const { result: projectSources } = await sourcesCmd.action({
+    const { result: projectSources } = await updateRemoteSources({
       garden,
       log,
-      footerLog,
-      headerLog,
-      opts,
       args: { sources: undefined },
     })
-    const { result: moduleSources } = await modulesCmd.action({
+    const { result: moduleSources } = await updateRemoteModules({
       garden,
       log,
-      footerLog,
-      headerLog,
-      opts,
       args: { modules: undefined },
     })
 

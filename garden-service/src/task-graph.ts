@@ -41,6 +41,10 @@ export interface TaskResults {
 
 export const DEFAULT_CONCURRENCY = 6
 
+const concurrencyFromEnv = process.env.GARDEN_TASK_CONCURRENCY_LIMIT
+
+export const TASK_CONCURRENCY = (concurrencyFromEnv && parseInt(concurrencyFromEnv, 10)) || DEFAULT_CONCURRENCY
+
 export class TaskGraph {
   private roots: TaskNodeMap
   private index: TaskNodeMap
@@ -58,7 +62,7 @@ export class TaskGraph {
   private resultCache: ResultCache
   private opQueue: PQueue
 
-  constructor(private garden: Garden, private log: LogEntry, private concurrency: number = DEFAULT_CONCURRENCY) {
+  constructor(private garden: Garden, private log: LogEntry, private concurrency: number = TASK_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()

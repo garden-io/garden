@@ -8,6 +8,10 @@ In this article we discuss how to set up a new Garden project, the basic develop
 
 This one is all about Garden's configuration files—an overview of project and module configs, setting up services, and a primer on tests.
 
+## [Container modules](./container-modules.md)
+
+One of the most commonly used module types for Garden is the `container` module type. This guide walks through its usage and configuration.
+
 ## [Local Kubernetes](./local-kubernetes.md)
 
 Garden works great with local Kubernetes setups. Here you'll find installation and usage instructions for some

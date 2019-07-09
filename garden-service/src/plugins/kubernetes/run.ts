@@ -8,79 +8,77 @@
 
 import { RunResult } from "../../types/plugin/base"
 import { kubectl } from "./kubectl"
-import { PrimitiveMap } from "../../config/common"
 import { Module } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
+import { V1PodSpec } from "@kubernetes/client-node"
+import { PluginError } from "../../exceptions"
 
 interface RunPodParams {
   context: string,
   image: string,
-  envVars: PrimitiveMap,
-  command?: string[],
-  args: string[],
   interactive: boolean,
   ignoreError: boolean,
   log: LogEntry,
   module: Module,
   namespace: string,
-  overrides?: any,
+  annotations?: { [key: string]: string }
+  spec: V1PodSpec,
   podName?: string,
   timeout?: number,
 }
 
 export async function runPod(
   {
-    args,
-    command,
     context,
-    envVars,
     ignoreError,
     image,
     interactive,
     log,
     module,
     namespace,
-    overrides,
+    annotations,
+    spec,
     podName,
     timeout,
   }: RunPodParams,
 ): Promise<RunResult> {
-  const envArgs = Object.entries(envVars).map(([k, v]) => `--env=${k}=${v}`)
+  const overrides: any = {
+    metadata: {
+      annotations: {
+        // Workaround to make sure sidecars are not injected,
+        // due to https://github.com/kubernetes/kubernetes/issues/25908
+        "sidecar.istio.io/inject": "false",
+        ...annotations || {},
+      },
+    },
+    spec,
+  }
 
-  const cmd = (command && command.length) ? command : []
+  if (!spec.containers || spec.containers.length === 0) {
+    throw new PluginError(`Pod spec for runPod must contain at least one container`, {
+      spec,
+    })
+  }
 
-  const opts = [
+  const kubecmd = [
+    "run",
+    podName || `run-${module.name}-${Math.round(new Date().getTime())}`,
     `--image=${image}`,
     "--restart=Never",
     "--quiet",
     "--rm",
     // Need to attach to get the log output and exit code.
     "-i",
+    // This is a little messy, but it works...
+    "--overrides", `${JSON.stringify(overrides)}`,
   ]
-
-  if (overrides) {
-    opts.push("--overrides", `${JSON.stringify(overrides)}`)
-  }
 
   if (interactive) {
-    opts.push("--tty")
+    kubecmd.push("--tty")
   }
 
-  if (cmd.length) {
-    opts.push("--command")
-  }
-
-  const kubecmd = [
-    "run",
-    podName || `run-${module.name}-${Math.round(new Date().getTime())}`,
-    ...opts,
-    ...envArgs,
-    "--",
-    ...cmd,
-    ...args,
-  ]
-
-  log.verbose(`Running ${cmd.join(" ")} '${args.join(" ")}'`)
+  const command = [...spec.containers[0].command || [], ...spec.containers[0].args || []]
+  log.verbose(`Running '${command.join(" ")}'`)
 
   const startedAt = new Date()
 
@@ -96,7 +94,7 @@ export async function runPod(
 
   return {
     moduleName: module.name,
-    command: [...cmd, ...args],
+    command,
     version: module.version.versionString,
     startedAt,
     completedAt: new Date(),

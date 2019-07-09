@@ -13,7 +13,6 @@ import {
   joiPrimitive,
   joiArray,
   joiIdentifier,
-  joiEnvVars,
   joiUserIdentifier,
   DeepPrimitiveMap,
   joi,
@@ -26,7 +25,7 @@ import { HotReloadableKind, hotReloadableKinds } from "../hot-reload"
 import { BaseTestSpec, baseTestSpecSchema } from "../../../config/test"
 import { BaseTaskSpec } from "../../../config/task"
 import { Service } from "../../../types/service"
-import { ContainerModule } from "../../container/config"
+import { ContainerModule, ContainerEnvVars, containerEnvVarsSchema } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 
@@ -46,14 +45,14 @@ export interface HelmTaskSpec extends BaseTaskSpec {
   resource: HelmResourceSpec
   command?: string[]
   args: string[]
-  env: { [key: string]: string }
+  env: ContainerEnvVars
 }
 
 export interface HelmTestSpec extends BaseTestSpec {
   resource: HelmResourceSpec
   command?: string[]
   args: string[]
-  env: { [key: string]: string }
+  env: ContainerEnvVars
 }
 
 export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, HelmTestSpec, HelmTaskSpec> { }
@@ -110,7 +109,7 @@ export const execTaskSchema = baseTestSpecSchema
       ),
     args: joi.array().items(joi.string())
       .description("The arguments to pass to the pod used for execution."),
-    env: joiEnvVars(),
+    env: containerEnvVarsSchema,
   })
 
 export const execTestSchema = baseTestSpecSchema
@@ -123,7 +122,7 @@ export const execTestSchema = baseTestSpecSchema
       ),
     args: joi.array().items(joi.string())
       .description("The arguments to pass to the pod used for testing."),
-    env: joiEnvVars(),
+    env: containerEnvVarsSchema,
   })
 
 export interface HelmServiceSpec extends ServiceSpec {

@@ -1,8 +1,13 @@
 import { platform } from "os"
 import { expect } from "chai"
-import { ProjectConfig, resolveProjectConfig, defaultEnvironments, pickEnvironment } from "../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../src/constants"
-import { expectError } from "../../helpers"
+import {
+  ProjectConfig,
+  resolveProjectConfig,
+  defaultEnvironments,
+  pickEnvironment,
+} from "../../../../src/config/project"
+import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { expectError } from "../../../helpers"
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {

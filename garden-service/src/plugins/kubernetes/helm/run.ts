@@ -6,20 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { HelmModule, HelmResourceSpec } from "./config"
+import { HelmModule } from "./config"
 import { getAppNamespace } from "../namespace"
 import { runPod } from "../run"
 import { findServiceResource, getChartResources, getResourceContainer, getServiceResourceSpec } from "./common"
-import { PluginContext } from "../../../plugin-context"
-import { LogEntry } from "../../../logger/log-entry"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
 import { RunModuleParams } from "../../../types/plugin/module/runModule"
 import { RunResult } from "../../../types/plugin/base"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
-import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "../constants"
-import { tailString } from "../../../util/string"
+import { uniqByName } from "../../../util/util"
+import { prepareEnvVars } from "../util"
+import { V1PodSpec } from "@kubernetes/client-node"
 
 export async function runHelmModule(
   {
@@ -29,9 +28,9 @@ export async function runHelmModule(
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-  const serviceResourceSpec = getServiceResourceSpec(module)
+  const resourceSpec = getServiceResourceSpec(module)
 
-  if (!serviceResourceSpec) {
+  if (!resourceSpec) {
     throw new ConfigurationError(
       `Helm module ${module.name} does not specify a \`serviceResource\`. ` +
       `Please configure that in order to run the module ad-hoc.`,
@@ -39,51 +38,77 @@ export async function runHelmModule(
     )
   }
 
-  const image = await getImage(k8sCtx, module, log, serviceResourceSpec)
+  const chartResources = await getChartResources(k8sCtx, module, log)
+  const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
+  const container = getResourceContainer(target, resourceSpec.containerName)
+
+  // Apply overrides
+  const env = uniqByName([...prepareEnvVars(runtimeContext.envVars), ...container.env || []])
+
+  const spec: V1PodSpec = {
+    containers: [{
+      ...container,
+      ...command && { command },
+      ...args && { args },
+      env,
+    }],
+  }
 
   return runPod({
     context,
-    namespace,
-    module,
-    envVars: runtimeContext.envVars,
-    command,
-    args,
-    image,
+    image: container.image,
     interactive,
     ignoreError,
-    timeout,
     log,
+    module,
+    namespace,
+    spec,
+    timeout,
   })
 }
 
 export async function runHelmTask(
-  { ctx, log, module, task, taskVersion, interactive, runtimeContext, timeout }: RunTaskParams<HelmModule>,
+  { ctx, log, module, task, taskVersion, interactive, timeout }: RunTaskParams<HelmModule>,
 ): Promise<RunTaskResult> {
+  // TODO: deduplicate this from testHelmModule
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const { command, args } = task.spec
-  const image = await getImage(k8sCtx, module, log, task.spec.resource || getServiceResourceSpec(module))
+  const chartResources = await getChartResources(k8sCtx, module, log)
+  const resourceSpec = task.spec.resource || getServiceResourceSpec(module)
+  const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
+  const container = getResourceContainer(target, resourceSpec.containerName)
+
+  // Apply overrides
+  const env = uniqByName([...prepareEnvVars(task.spec.env), ...container.env || []])
+
+  const spec: V1PodSpec = {
+    containers: [{
+      ...container,
+      ...command && { command },
+      ...args && { args },
+      env,
+      // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
+      volumeMounts: [],
+    }],
+  }
 
   const res = await runPod({
     context,
-    namespace,
-    module,
-    envVars: { ...runtimeContext.envVars, ...task.spec.env },
-    command,
-    args,
-    image,
+    image: container.image,
     interactive,
     ignoreError: false,
-    timeout,
     log,
+    module,
+    namespace,
+    spec,
+    timeout,
   })
 
   const result = {
     ...res,
-    // Make sure we don't exceed max length of ConfigMap
-    output: tailString(res.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true),
     taskName: task.name,
   }
 
@@ -97,13 +122,4 @@ export async function runHelmTask(
   })
 
   return result
-}
-
-async function getImage(ctx: PluginContext, module: HelmModule, log: LogEntry, resourceSpec: HelmResourceSpec) {
-  // find the relevant resource, and from that the container image to run
-  const chartResources = await getChartResources(ctx, module, log)
-  const resource = await findServiceResource({ ctx, log, module, chartResources, resourceSpec })
-  const container = getResourceContainer(resource)
-
-  return container.image
 }

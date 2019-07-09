@@ -25,6 +25,12 @@ import { getPodLogs, podLogLines } from "./pod"
 import { ResourceStatus, StatusHandlerParams } from "./status"
 import { getResourceEvents } from "./events"
 
+const containerStatusFailures = [
+  "CrashLoopBackOff",
+  "CreateContainerConfigError",
+  "ImagePullBackOff",
+]
+
 type Workload = KubernetesServerResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 
 interface Condition {
@@ -122,12 +128,7 @@ export async function checkWorkloadStatus(
 
     for (const containerStatus of containerStatuses) {
       const condition = containerStatus.state && containerStatus.state.waiting && containerStatus.state.waiting
-      if (
-        condition && (
-          condition.reason === "CrashLoopBackOff" ||
-          condition.reason === "ImagePullBackOff"
-        )
-      ) {
+      if (condition && containerStatusFailures.includes(condition.reason!)) {
         return failWithCondition(condition)
       }
     }

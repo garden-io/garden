@@ -271,9 +271,7 @@ export class GardenCli {
       // framework as opposed to the logger itself. This is to give better control over where on
       // the screen the logs are printed.
       const headerLog = logger.placeholder()
-      logger.info("") // Put one line between the header and the body
       const log = logger.placeholder()
-      logger.info("") // Put one line between the body and the footer
       const footerLog = logger.placeholder()
 
       const contextOpts: GardenOpts = { environmentName: env, log }

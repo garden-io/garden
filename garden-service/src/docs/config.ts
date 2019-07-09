@@ -31,6 +31,7 @@ import { mavenContainerConfigSchema } from "../plugins/maven-container/maven-con
 import { Garden } from "../garden"
 import { GARDEN_SERVICE_ROOT } from "../constants"
 import { indent, renderMarkdownTable } from "./util"
+import { ModuleContext } from "../config/config-context"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 
@@ -288,9 +289,10 @@ export function renderSchemaDescriptionYaml(
     const isArrayItem = parent && parent.type === "array"
     const isFirstArrayItem = isArrayItem && isFirstChild
     const isPrimitive = type !== "array" && type !== "object"
-    const stringifiedDefaultVal = JSON.stringify(defaultValue)
-    const exceptionallyTreatAsPrimitive = !hasChildren && !example
-      && stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}"
+
+    const stringifiedDefaultVal = useExampleForValue ? example : JSON.stringify(defaultValue)
+    const exceptionallyTreatAsPrimitive = !hasChildren
+      && (stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}")
 
     // Prepend new line if applicable (easier then appending). We skip the new line if comments not shown.
     if (prevDesc && showComment) {
@@ -331,7 +333,8 @@ export function renderSchemaDescriptionYaml(
     let value: string | string[] | undefined
 
     if (example && useExampleForValue) {
-      value = isPrimitive ? example : indent(example.split("\n"), 1)
+      const levels = type === "object" ? 2 : 1
+      value = isPrimitive || exceptionallyTreatAsPrimitive ? example : indent(example.split("\n"), levels)
     } else {
       // Non-primitive values get rendered in the line below, indented by one
       value = isPrimitive || exceptionallyTreatAsPrimitive
@@ -398,7 +401,7 @@ function renderModuleTypeReference(
 ) {
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
-  const outputsReference = renderConfigReference(outputsSchema, "modules.<module-name>.outputs.").markdownReference
+  const outputsReference = renderConfigReference(outputsSchema, "modules.<module-name>.").markdownReference
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
   return template({ name, docs, markdownReference, yaml, outputsReference })
 }
@@ -457,10 +460,16 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
     const actions = await garden.getActionHelper()
     const { docs, outputsSchema, schema, title } = await actions.describeType(name)
 
+    const moduleOutputsSchema = ModuleContext.getSchema().keys({
+      outputs: outputsSchema
+        .required()
+        .description("The outputs defined by the module."),
+    })
+
     console.log("->", path)
     writeFileSync(path, renderModuleTypeReference(
       populateModuleSchema(schema),
-      outputsSchema,
+      moduleOutputsSchema,
       name,
       docs,
     ))

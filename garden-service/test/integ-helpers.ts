@@ -86,7 +86,7 @@ export function parseLogEntries(entries: string[]): JsonLogEntry[] {
  * For use with the GardenWatch class.
  */
 export function searchLog(entries: JsonLogEntry[], regex: RegExp): WatchTestConditionState {
-  const found = !!entries.find(e => !!e.msg.match(regex))
+  const found = !!entries.find(e => !!e.msg && !!e.msg.match(regex))
   return found ? "passed" : "waiting"
 }
 

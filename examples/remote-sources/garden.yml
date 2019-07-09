@@ -6,6 +6,9 @@ sources:
   - name: db-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
 environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
   - name: testing
     providers:
       - name: kubernetes

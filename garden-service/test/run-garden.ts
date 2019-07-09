@@ -10,6 +10,7 @@ import { ParameterError } from "../src/exceptions"
 import { dedent, deline } from "../src/util/string"
 import { GARDEN_SERVICE_ROOT } from "../src/constants"
 import { UpdateOpts } from "../src/logger/log-entry"
+import chalk from "chalk"
 
 export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_SERVICE_ROOT, "bin", "garden")
 
@@ -87,7 +88,12 @@ export function commandReloadedStep(): WatchTestStep {
 }
 
 function stringifyJsonLog(entries: UpdateOpts[]) {
-  return entries.map(l => l.msg).join("\n")
+  return entries
+    .map(l => {
+      const msg = chalk.white(<string>l.msg || "")
+      return l.section ? `${chalk.cyanBright(l.section)}${chalk.gray(":")} ${msg}` : msg
+    })
+    .join("\n")
 }
 
 /**

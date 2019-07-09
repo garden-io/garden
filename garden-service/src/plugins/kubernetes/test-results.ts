@@ -21,6 +21,7 @@ import { RunResult } from "../../types/plugin/base"
 import * as hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
+import { trimRunOutput } from "./helm/common"
 
 const testResultNamespace = systemMetadataNamespace
 
@@ -77,7 +78,7 @@ export async function storeTestResult(
   const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
 
   const testResult: TestResult = {
-    ...result,
+    ...trimRunOutput(result),
     testName,
   }
 

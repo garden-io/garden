@@ -11,7 +11,7 @@ import { get, flatten, uniqBy } from "lodash"
 import { ChildProcess } from "child_process"
 import getPort = require("get-port")
 const AsyncLock = require("async-lock")
-import { V1Pod } from "@kubernetes/client-node"
+import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
 import { splitLast, serializeValues } from "../../util/util"
@@ -23,6 +23,8 @@ import { kubectl } from "./kubectl"
 import { registerCleanupFunction } from "../../util/util"
 import { gardenAnnotationKey, base64 } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
+import { ContainerEnvVars } from "../container/config"
+import { ConfigurationError } from "../../exceptions"
 
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
 
@@ -273,4 +275,34 @@ export async function upsertConfigMap(
  */
 export function flattenResources(resources: KubernetesResource[]) {
   return flatten(resources.map((r: any) => r.apiVersion === "v1" && r.kind === "List" ? r.items : [r]))
+}
+
+/**
+ * Maps an array of env vars, as specified on a container module, to a list of Kubernetes `V1EnvVar`s.
+ */
+export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
+  return Object.entries(env)
+    .map(([name, value]) => {
+      if (value === null) {
+        return { name, value: "null" }
+      } else if (typeof value === "object") {
+        if (!value.secretRef.key) {
+          throw new ConfigurationError(`kubernetes: Must specify \`key\` on secretRef for env variable ${name}`, {
+            name,
+            value,
+          })
+        }
+        return {
+          name,
+          valueFrom: {
+            secretKeyRef: {
+              name: value.secretRef.name,
+              key: value.secretRef.key!,
+            },
+          },
+        }
+      } else {
+        return { name, value: value.toString() }
+      }
+    })
 }

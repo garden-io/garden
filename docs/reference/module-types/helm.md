@@ -461,11 +461,23 @@ The arguments to pass to the pod used for execution.
 
 [tasks](#tasks) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+Example:
+
+```yaml
+tasks:
+  - env:
+      MY_VAR: some-value
+      MY_SECRET_VAR:
+        secretRef:
+          name: my-secret
+          key: some-key
+```
 
 ### `tests`
 
@@ -602,11 +614,23 @@ The arguments to pass to the pod used for testing.
 
 [tests](#tests) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+Example:
+
+```yaml
+tests:
+  - env:
+      MY_VAR: some-value
+      MY_SECRET_VAR:
+        secretRef:
+          name: my-secret
+          key: some-key
+```
 
 ### `version`
 
@@ -684,14 +708,65 @@ values: {}
 
 ## Outputs
 
-The following keys are available via the `${modules.<module-name>.outputs}` template string key for `helm`
+The following keys are available via the `${modules.<module-name>}` template string key for `helm`
 modules.
 
+### `modules.<module-name>.buildPath`
+
+The build path of the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+buildPath: "/home/me/code/my-project/.garden/build/my-module"
+```
+
+### `modules.<module-name>.path`
+
+The local path of the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+path: "/home/me/code/my-project/my-module"
+```
+
+### `modules.<module-name>.version`
+
+The current version of the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+version: "v-17ad4cb3fd"
+```
+
+### `modules.<module-name>.outputs`
+
+The outputs defined by the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
 ### `modules.<module-name>.outputs.release-name`
+
+[outputs](#outputs) > release-name
 
 The Helm release name of the service.
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
-
