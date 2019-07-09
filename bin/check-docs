@@ -12,7 +12,7 @@ if !([ -z "$modified_docs" ] && [ -z "$modified_examples" ]); then
   # Check docs
   find docs -name '*.md' -type f | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
   # Check examples
-  find examples -name 'README.md' -type f -not -path "*/.garden/*" | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+  find examples -name 'README.md' -type f -not -path "*/.garden/*" -not -path "*/node_modules/*" | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
   # Check README.md
   find . -name 'README.md' -type f  -maxdepth 1 | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
 fi
