@@ -19,12 +19,6 @@ interface TestTaskOptions {
   throwError?: boolean
 }
 
-const testTaskVersion = {
-  versionString: "12345-6789",
-  dependencyVersions: {},
-  files: [],
-}
-
 class TestTask extends BaseTask {
   type: TaskType = "test"
   name: string
@@ -159,6 +153,13 @@ describe("task-graph", () => {
       await graph.process([repeatedTask])
 
       expect(garden.events.eventLog).to.eql([
+        {
+          name: "taskComplete",
+          payload: {
+            dependencyResults: {}, description: "a", key: task.getKey(), type: "test", name: "a",
+            output: { dependencyResults: {}, result: "result-a" },
+          },
+        },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])

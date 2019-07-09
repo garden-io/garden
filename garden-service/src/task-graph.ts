@@ -119,6 +119,11 @@ export class TaskGraph {
         key: task.getKey(),
         version: task.version,
       })
+    } else {
+      const result = this.resultCache.get(task.getKey(), task.version.versionString)
+      if (result) {
+        this.garden.events.emit("taskComplete", result)
+      }
     }
   }
 
