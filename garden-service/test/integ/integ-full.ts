@@ -20,18 +20,25 @@ of the one at ${chalk.blue("[garden-root]/bin/garden")}.
 ${chalk.green("--env")}: The environment to run the test in. \
 E.g. ${chalk.blue("local")} or ${chalk.blue("testing")}.
 
-${chalk.green("--only")}: Runs only the test sequence indicated. \
+${chalk.green("--project")}: Specify the project to run (required). \
 E.g. ${chalk.blue("demo-project")} or ${chalk.blue("vote-helm")}.
 
-Example: ./garden-service/bin/integ-full.ts --binPath=/path/to/garden --only=demo-project
+Example: ./garden-service/bin/integ-full.ts --binPath=/path/to/garden --project=demo-project
 `
 
 async function run() {
+  const project = parsedArgs.project
+
+  if (!project) {
+    throw new Error(`Must specify project name with --project parameter`)
+  }
+
   // Abort if examples dir is dirty to prevent changes being checked out
+  const projectDir = resolve(examplesDir, project)
   try {
-    await execa("git", ["diff-index", "--quiet", "HEAD", examplesDir])
+    await execa("git", ["diff-index", "--quiet", "HEAD", projectDir])
   } catch (_error) {
-    throw new InternalError("Examples directory is dirty. Aborting.", {})
+    throw new InternalError(`${project} example directory is dirty. Aborting.`, {})
   }
 
   if (parsedArgs["h"]) {
@@ -46,7 +53,7 @@ async function run() {
 
   const mochaOpts = ["--opts", "test/mocha.integ.opts"]
 
-  for (const opt of ["binPath", "only", "env"]) {
+  for (const opt of ["binPath", "project", "env"]) {
     if (parsedArgs[opt]) {
       mochaOpts.push(`--${opt}`, parsedArgs[opt])
     }

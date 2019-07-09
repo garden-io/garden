@@ -118,6 +118,10 @@ const remoteBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
 
+  if (!(await containerHelpers.hasDockerfile(module))) {
+    return {}
+  }
+
   // Sync the build context to the remote sync service
   // -> Get a tunnel to the service
   log.setState("Syncing sources to cluster...")

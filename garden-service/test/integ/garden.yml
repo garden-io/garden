@@ -16,16 +16,16 @@ name: integ-tests
 type: exec
 tests:
   - name: demo-project
-    command: [npm, run, integ-full, --, --only=demo-project, --showlog=true, --env=testing]
+    command: [npm, run, integ-full, --, --project=demo-project, --showlog=true, --env=testing]
   - name: tasks # Tests for tasks are currently being skipped
-    command: [npm, run, integ-full, --, --only=tasks, --showlog=true, --env=testing]
+    command: [npm, run, integ-full, --, --project=tasks, --showlog=true, --env=testing]
   - name: hot-reload # Tests for hot-reload are currently being skipped
-    command: [npm, run, integ-full, --, --only=hot-reload, --showlog=true, --env=testing]
+    command: [npm, run, integ-full, --, --project=hot-reload, --showlog=true, --env=testing]
   - name: project-variables
-    command: [npm, run, integ-full, --, --only=project-variables, --showlog=true, --env=testing]
+    command: [npm, run, integ-full, --, --project=project-variables, --showlog=true, --env=testing]
   - name: vote-helm
-    command: [npm, run, integ-full, --, --only=vote-helm, --showlog=true, --env=testing]
+    command: [npm, run, integ-full, --, --project=vote-helm, --showlog=true, --env=testing]
   - name: vote
-    command: [npm, run, integ-full, --, --only=vote, --showlog=true, --env=testing]
+    command: [npm, run, integ-full, --, --project=vote, --showlog=true, --env=testing]
   - name: remote-sources
-    command: [npm, run, integ-full, --, --only=remote-sources, --showlog=true, --env=testing]
+    command: [npm, run, integ-full, --, --project=remote-sources, --showlog=true, --env=testing]
