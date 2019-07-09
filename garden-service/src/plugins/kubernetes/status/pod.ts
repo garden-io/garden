@@ -16,9 +16,9 @@ import chalk from "chalk"
 
 export const podLogLines = 20
 
-export async function checkPodStatus(
+export function checkPodStatus(
   resource: KubernetesServerResource, pods: KubernetesServerResource<V1Pod>[],
-): Promise<ResourceStatus> {
+): ResourceStatus {
   for (const pod of pods) {
     // TODO: detect unhealthy state (currently we just time out)
     const ready = some(pod.status!.conditions!.map(c => c.type === "ready"))
