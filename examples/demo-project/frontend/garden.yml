@@ -24,4 +24,5 @@ tests:
   - name: integ
     args: [npm, run, integ]
     dependencies:
+      - frontend
       - backend

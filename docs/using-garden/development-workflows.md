@@ -103,6 +103,7 @@ tests:
   - name: integ
     args: [npm, run, integ]
     dependencies:
+      - frontend
       - backend
 ```
 
@@ -117,8 +118,9 @@ anything relevant for your module. The only constraint is that Garden follows th
 Garden also caches test results, based on the hash of the module source files, and (if applicable) all connected build
 and runtime dependencies. That way, Garden knows which tests to run when any source file is modified.
 
-In this example, since the `integ` tests depends on `backend`, Garden will ensure that `backend` is deployed before
-running the `integ` tests.
+In this example, since the `integ` tests depends on `frontend` and `backend`, Garden will ensure that both the `frontend`
+and `backend` are deployed with the latest code before running the `integ` tests. The `unit` test only requires a build
+of the `frontend` which is an implicit dependency for all tests in the module.
 
 ## Next steps
 

@@ -314,6 +314,7 @@ tests:
   - name: integ
     args: [npm, run, integ]
     dependencies:
+      - frontend
       - backend
 ```
 
@@ -323,7 +324,7 @@ This allows us to run individual test groups by name or all of them at once with
 garden test
 ```
 
-Notice also that the integration test depends on the `backend` being deployed.
+Notice also that the integration test depends on both the updated `frontend` and `backend` being deployed.
 
 The entire module config should now look like this:
 
@@ -348,6 +349,7 @@ tests:
   - name: integ
     args: [npm, run, integ]
     dependencies:
+      - frontend
       - backend
 ```
 
