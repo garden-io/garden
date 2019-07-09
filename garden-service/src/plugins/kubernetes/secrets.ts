@@ -9,7 +9,7 @@
 import { V1Secret } from "@kubernetes/client-node"
 
 import { KubeApi } from "./api"
-import { SecretRef, KubernetesPluginContext } from "./config"
+import { ProviderSecretRef, KubernetesPluginContext } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { getMetadataNamespace } from "./namespace"
 import { GetSecretParams } from "../../types/plugin/provider/getSecret"
@@ -88,7 +88,7 @@ export async function deleteSecret({ ctx, log, key }: DeleteSecretParams) {
 /**
  * Make sure the specified secret exists in the target namespace, copying it if necessary.
  */
-export async function ensureSecret(api: KubeApi, secretRef: SecretRef, targetNamespace: string) {
+export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string) {
   let secret: KubernetesResource<V1Secret>
 
   try {

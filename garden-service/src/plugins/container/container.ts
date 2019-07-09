@@ -26,10 +26,12 @@ export const containerModuleOutputsSchema = joi.object()
       .required()
       .description(
         "The name of the image (without tag/version) that the module uses for local builds and deployments.",
-      ),
+      )
+      .example("my-module"),
     "deployment-image-name": joi.string()
       .required()
-      .description("The name of the image (without tag/version) that the module will use during deployment."),
+      .description("The name of the image (without tag/version) that the module will use during deployment.")
+      .example("my-deployment-registry.io/my-org/my-module"),
   })
 
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {

@@ -23,9 +23,11 @@ import { HotReloadableResource } from "../hot-reload"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { Module } from "../../../types/module"
 import { findByName } from "../../../util/util"
-import { deline } from "../../../util/string"
+import { deline, tailString } from "../../../util/string"
 import { getAnnotation, flattenResources } from "../util"
 import { KubernetesPluginContext } from "../config"
+import { RunResult } from "../../../types/plugin/base"
+import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "../constants"
 
 /**
  * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
@@ -329,4 +331,11 @@ function loadTemplate(template: string) {
       }
       return obj
     })
+}
+
+export function trimRunOutput(result: RunResult): RunResult {
+  return {
+    ...result,
+    output: tailString(result.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true),
+  }
 }

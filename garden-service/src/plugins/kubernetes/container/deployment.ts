@@ -7,7 +7,7 @@
  */
 
 import { V1Container } from "@kubernetes/client-node"
-import { extend, keyBy, set, toPairs } from "lodash"
+import { extend, keyBy, set } from "lodash"
 import { RuntimeContext, Service, ServiceStatus } from "../../../types/service"
 import { ContainerModule, ContainerService } from "../../container/config"
 import { createIngressResources } from "./ingress"
@@ -19,14 +19,14 @@ import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { configureHotReload } from "../hot-reload"
-import { KubernetesResource, KubeEnvVar } from "../types"
+import { KubernetesResource } from "../types"
 import { ConfigurationError } from "../../../exceptions"
 import { getContainerServiceStatus } from "./status"
 import { containerHelpers } from "../../container/helpers"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
-import { millicpuToString, kilobytesToString } from "../util"
+import { millicpuToString, kilobytesToString, prepareEnvVars } from "../util"
 import { gardenAnnotationKey } from "../../../util/string"
 import chalk from "chalk"
 
@@ -100,7 +100,6 @@ export async function createDeployment(
   const spec = service.spec
   let configuredReplicas = service.spec.replicas
   const deployment: any = deploymentConfig(service, configuredReplicas, namespace)
-  const envVars = { ...runtimeContext.envVars, ...service.spec.env }
 
   if (enableHotReload && service.spec.replicas > 1) {
     log.warn({
@@ -110,7 +109,7 @@ export async function createDeployment(
     configuredReplicas = 1
   }
 
-  const env: KubeEnvVar[] = toPairs(envVars).map(([name, value]) => ({ name, value: value + "" }))
+  const env = prepareEnvVars({ ...runtimeContext.envVars, ...service.spec.env })
 
   // expose some metadata to the container
   env.push({
@@ -126,6 +125,11 @@ export async function createDeployment(
   env.push({
     name: "POD_IP",
     valueFrom: { fieldRef: { fieldPath: "status.podIP" } },
+  })
+
+  env.push({
+    name: "POD_SERVICE_ACCOUNT",
+    valueFrom: { fieldRef: { fieldPath: "spec.serviceAccountName" } },
   })
 
   const registryConfig = provider.config.deploymentRegistry

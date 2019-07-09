@@ -299,9 +299,10 @@ export class ProviderConfigContext extends ProjectConfigContext {
 const exampleOutputs = { endpoint: "http://my-service/path/to/endpoint" }
 const exampleVersion = "v-17ad4cb3fd"
 
-class ModuleContext extends ConfigContext {
+export class ModuleContext extends ConfigContext {
   @schema(
     joi.string()
+      .required()
       .description("The build path of the module.")
       .example("/home/me/code/my-project/.garden/build/my-module"),
   )
@@ -309,6 +310,7 @@ class ModuleContext extends ConfigContext {
 
   @schema(
     joiIdentifierMap(joiPrimitive())
+      .required()
       .description(
         "The outputs defined by the module (see individual module type " +
         "[references](https://docs.garden.io/reference/module-types) for details).",
@@ -317,10 +319,20 @@ class ModuleContext extends ConfigContext {
   )
   public outputs: PrimitiveMap
 
-  @schema(joi.string().description("The local path of the module.").example("/home/me/code/my-project/my-module"))
+  @schema(
+    joi.string()
+      .required()
+      .description("The local path of the module.")
+      .example("/home/me/code/my-project/my-module"),
+  )
   public path: string
 
-  @schema(joi.string().description("The current version of the module.").example(exampleVersion))
+  @schema(
+    joi.string()
+      .required()
+      .description("The current version of the module.")
+      .example(exampleVersion),
+  )
   public version: string
 
   constructor(root: ConfigContext, moduleConfig: ModuleConfig, buildPath: string, version: ModuleVersion) {
@@ -332,6 +344,13 @@ class ModuleContext extends ConfigContext {
   }
 }
 
+const exampleModule = {
+  buildPath: "/home/me/code/my-project/.garden/build/my-module",
+  path: "/home/me/code/my-project/my-module",
+  outputs: {},
+  version: exampleVersion,
+}
+
 /**
  * This context is available for template strings under the `module` key in configuration files.
  * It is a superset of the context available under the `project` key.
@@ -340,7 +359,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
   @schema(
     joiIdentifierMap(ModuleContext.getSchema())
       .description("Retrieve information about modules that are defined in the project.")
-      .example({ "my-module": { path: "/home/me/code/my-project/my-module", version: exampleVersion } }),
+      .example({ "my-module": exampleModule }),
   )
   public modules: Map<string, () => Promise<ModuleContext>>
 
