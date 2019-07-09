@@ -81,6 +81,7 @@ export class GardenServer {
 
     const url = `http://localhost:${this.port}`
 
+    this.log.info("")
     this.log.info({
       emoji: "sunflower",
       msg: chalk.cyan("Garden dashboard and API server running on ") + url,

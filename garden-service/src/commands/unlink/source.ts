@@ -57,7 +57,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
   async action(
     { garden, log, headerLog, args, opts }: CommandParams<Args, Opts>,
   ): Promise<CommandResult<LinkedSource[]>> {
-    printHeader(headerLog, "unlink source", "chains")
+    printHeader(headerLog, "Unlink source", "chains")
 
     const sourceType = "project"
 

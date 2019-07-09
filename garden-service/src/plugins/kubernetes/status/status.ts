@@ -31,6 +31,7 @@ import dedent = require("dedent")
 import { getPods } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkPodStatus } from "./pod"
+import { waitForServiceEndpoints } from "./service"
 
 export interface ResourceStatus {
   state: ServiceState
@@ -156,7 +157,7 @@ interface WaitParams {
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
  */
-export async function waitForResources({ ctx, provider, serviceName, resources: objects, log }: WaitParams) {
+export async function waitForResources({ ctx, provider, serviceName, resources, log }: WaitParams) {
   let loops = 0
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
@@ -171,10 +172,10 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
   const namespace = await getAppNamespace(ctx, log, provider)
 
   while (true) {
-    await sleep(2000 + 1000 * loops)
+    await sleep(2000 + 500 * loops)
     loops += 1
 
-    const statuses = await checkResourceStatuses(api, namespace, objects, log)
+    const statuses = await checkResourceStatuses(api, namespace, resources, log)
 
     for (const status of statuses) {
       if (status.state === "unhealthy") {
@@ -201,6 +202,12 @@ export async function waitForResources({ ctx, provider, serviceName, resources: 
     }
 
     if (combineStates(statuses.map(s => s.state)) === "ready") {
+      // If applicable, wait until Services properly point to each Pod in the resource list.
+      // This step is put in to give the cluster a moment to update its network routing.
+      // For example, when a Deployment passes its health check, Kubernetes doesn't instantly route Service traffic
+      // to it. We need to account for this so that dependant tasks, tests and services can reliably run after this
+      // routine resolves.
+      await waitForServiceEndpoints(api, statusLine, namespace, resources)
       break
     }
 

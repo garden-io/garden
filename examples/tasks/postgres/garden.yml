@@ -1,15 +1,17 @@
 kind: Module
-description: postgres container
-type: container
+description: Postgres database for storing voting results
+type: helm
 name: postgres
-image: postgres:9.4
-services:
-  - name: postgres
-    volumes:
-      - name: data
-        containerPath: /db-data
-    ports:
-      - name: db
-        containerPort: 5432
-    healthCheck:
-      command: [psql, -w, -U, postgres, -d, postgres, -c, "SELECT 1"]
+chart: stable/postgresql
+version: 5.3.11
+values:
+  # This is a more digestable name than the default one in the template
+  fullnameOverride: postgres
+  # This should of course not be used in production
+  postgresqlPassword: postgres
+  # The postgres health check appears to go through before the server accepts remote connections,
+  # so we set a long initial delay.
+  # https://github.com/CrunchyData/crunchy-containers/issues/653
+  readinessProbe:
+    initialDelaySeconds: 15
+    successThreshold: 2

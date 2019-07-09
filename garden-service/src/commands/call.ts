@@ -21,6 +21,7 @@ import { ParameterError, RuntimeError } from "../exceptions"
 import { find, includes, pick } from "lodash"
 import { ServiceIngress, getIngressUrl, getServiceRuntimeContext } from "../types/service"
 import dedent = require("dedent")
+import { printHeader } from "../logger/util"
 
 const callArgs = {
   serviceAndPath: new StringParameter({
@@ -49,7 +50,9 @@ export class CallCommand extends Command<Args> {
 
   arguments = callArgs
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult> {
+    printHeader(headerLog, "Call", "telephone_receiver")
+
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist
@@ -155,7 +158,7 @@ export class CallCommand extends Command<Args> {
 
     const resStr = isObject(res.data) ? JSON.stringify(res.data, null, 2) : res.data
 
-    res.data && log.info(chalk.white(resStr) + "\n")
+    res.data && log.info(chalk.white(resStr))
 
     return {
       result: {

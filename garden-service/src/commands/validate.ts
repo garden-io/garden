@@ -23,7 +23,7 @@ export class ValidateCommand extends Command {
   `
 
   async action({ garden, headerLog }: CommandParams): Promise<CommandResult> {
-    printHeader(headerLog, "validate", "heavy_check_mark")
+    printHeader(headerLog, "Validate", "heavy_check_mark")
 
     const graph = await garden.getConfigGraph()
     await graph.getModules()

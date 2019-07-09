@@ -2,7 +2,7 @@ kind: Module
 description: Postgres container for storing voting results
 type: container
 name: postgres
-image: postgres:9.4
+image: postgres:11.4-alpine
 services:
   - name: db
     volumes:
@@ -21,14 +21,12 @@ services:
       ]
 tasks:
   - name: db-init
+    command: [/bin/sh, -c]
+    # The postgres health check appears to go through before the server accepts remote connections, so we need to
+    # sleep for a while.
+    # https://github.com/CrunchyData/crunchy-containers/issues/653
     args: [
-      psql,
-      -w,
-      -U, postgres,
-      --host=db,
-      --port=5432,
-      -d, postgres,
-      -c, "CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)"
+      "sleep 15 && psql -w -U postgres --host=db --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
     ]
     dependencies:
       - db

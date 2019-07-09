@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as nodeEmoji from "node-emoji"
+import chalk from "chalk"
 import { LogNode } from "./log-node"
 import { LogEntry, CreateOpts, EmojiName } from "./log-entry"
-import { combine, printEmoji } from "./renderers"
-import chalk from "chalk"
 
 export interface Node {
   children: any[]
@@ -114,26 +114,26 @@ export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
   return columns
 }
 
-function printWithEmoji(log: LogEntry, text: string, emoji?: EmojiName) {
-  const msg = combine([
-    [chalk.bold.magenta(text)],
-    [emoji && log.root.useEmoji ? " " + printEmoji(emoji) : ""],
-  ])
-  return log.info(msg)
+/**
+ * Prints emoji if supported and adds padding to the right (otherwise subsequent text flows over the emoji).
+ */
+export function printEmoji(emoji: EmojiName, log: LogEntry) {
+  if (log.root.useEmoji && nodeEmoji.hasEmoji(emoji)) {
+    return `${nodeEmoji.get(emoji)} `
+  }
+  return ""
 }
 
-export function printHeader(log: LogEntry, command: string, emoji?: EmojiName): LogEntry {
-  return printWithEmoji(log, command, emoji)
+export function printHeader(log: LogEntry, command: string, emoji: EmojiName): LogEntry {
+  log.info(chalk.bold.magenta(command) + " " + printEmoji(emoji, log))
+  return log.info("") // Print new line after header
 }
 
 export function printFooter(log: LogEntry) {
-  return printWithEmoji(log, "Done!", "heavy_check_mark")
+  log.info("") // Print new line before footer
+  return log.info(chalk.bold.magenta("Done!") + " " + printEmoji("heavy_check_mark", log))
 }
 
 export function printWarningMessage(log: LogEntry, text: string) {
-  const msg = combine([
-    [log.root.useEmoji ? printEmoji("warning") : ""],
-    [chalk.bold.yellow(text)],
-  ])
-  return log.info(msg)
+  return log.info({ emoji: "warning", msg: chalk.bold.yellow(text) })
 }
