@@ -36,7 +36,8 @@ const testArgs = {
 
 const testOpts = {
   "name": new StringOption({
-    help: "Only run tests with the specfied name (e.g. unit or integ).",
+    help: "Only run tests with the specfied name (e.g. unit or integ). " +
+      "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration')",
     alias: "n",
   }),
   "force": new BooleanParameter({ help: "Force re-test of module(s).", alias: "f" }),
@@ -67,6 +68,7 @@ export class TestCommand extends Command<Args, Opts> {
         garden test               # run all tests in the project
         garden test my-module     # run all tests in the my-module module
         garden test --name integ  # run all tests with the name 'integ' in the project
+        garden test --name integ* # run all tests with the name starting with 'integ' in the project
         garden test --force       # force tests to be re-run, even if they've already run successfully
         garden test --watch       # watch for changes to code
   `
@@ -102,7 +104,7 @@ export class TestCommand extends Command<Args, Opts> {
     const actions = await garden.getActionHelper()
     await actions.prepareEnvironment({ log })
 
-    const name = opts.name
+    const filterNames = opts.name ? [opts.name] : []
     const force = opts.force
     const forceBuild = opts["force-build"]
 
@@ -114,13 +116,13 @@ export class TestCommand extends Command<Args, Opts> {
       modules,
       watch: opts.watch,
       handler: async (updatedGraph, module) => getTestTasks({
-        garden, log, graph: updatedGraph, module, name, force, forceBuild,
+        garden, log, graph: updatedGraph, module, filterNames, force, forceBuild,
       }),
       changeHandler: async (updatedGraph, module) => {
         const modulesToProcess = await updatedGraph.withDependantModules([module])
         return flatten(await Bluebird.map(
           modulesToProcess,
-          m => getTestTasks({ garden, log, graph: updatedGraph, module: m, name, force, forceBuild })))
+          m => getTestTasks({ garden, log, graph: updatedGraph, module: m, filterNames, force, forceBuild })))
       },
     })
 
