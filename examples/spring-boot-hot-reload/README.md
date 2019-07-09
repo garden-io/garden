@@ -8,7 +8,7 @@ You'll need to have Java and [Maven](https://maven.apache.org/install.html) inst
 
 ## Overview
 
-This project consists of a single module (in the `devtools` directory), which is a minimally modified version of the [Spring Boot devtools sample project found here](https://github.com/spring-projects/spring-boot/tree/master/spring-boot-samples/spring-boot-sample-devtools).
+This project consists of a single module (in the `devtools` directory), which is a minimally modified version of the [Spring Boot devtools sample project found here](https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-devtools).
 
 We've changed the parent pom from `spring-boot-samples` to `spring-boot-starter-parent`, and added a dependency on `spring-boot-starter-actuator` (to enable the health check endpoint for k8s readiness and liveness probes). We've also removed the artificial 5 second delay that was added by the `slowRestart` method in `MyController`.
 
