@@ -178,9 +178,9 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
     } catch (err) {
       if (!allowInvalid) {
         throw err
-      } else {
-        path = resolve(path, "..")
       }
+    } finally {
+      path = resolve(path, "..")
     }
   }
 
