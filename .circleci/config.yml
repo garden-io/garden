@@ -12,6 +12,7 @@ version: 2.1
         environment:
           GARDEN_DISABLE_VERSION_CHECK: "true"
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
+    resource_class: large
 
   # Attach's the current saved workspace
   attach-workspace: &attach-workspace
