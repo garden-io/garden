@@ -3,7 +3,7 @@ description: Postgres database for storing voting results
 type: helm
 name: postgres
 chart: stable/postgresql
-version: 3.9.2
+version: 5.3.11
 serviceResource:
   kind: StatefulSet
   name: postgres
@@ -41,3 +41,8 @@ values:
   fullnameOverride: postgres
   # This should of course not be used in production
   postgresqlPassword: postgres
+  # The postgres health check appears to go through before the server accepts remote connections,
+  # so we set a long initial delay.
+  # https://github.com/CrunchyData/crunchy-containers/issues/653
+  readinessProbe:
+    initialDelaySeconds: 15

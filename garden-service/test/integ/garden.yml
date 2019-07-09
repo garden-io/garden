@@ -8,6 +8,7 @@ environments:
         namespace: integ-tests
         defaultHostname: dev-1.sys.garden
         buildMode: cluster-docker
+        setupIngressController: nginx
 
 ---
 
