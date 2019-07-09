@@ -17,11 +17,11 @@ import { Extends } from "garden-service/build/src/util/util"
 
 // FIXME: We shouldn't repeat the keys for both the type and the set below
 export type SupportedEventName = Extends<
-  EventName, "taskPending" | "taskProcessing" | "taskComplete" | "taskGraphComplete" | "taskError"
+  EventName, "taskPending" | "taskProcessing" | "taskComplete" | "taskGraphComplete" | "taskError" | "taskCancelled"
 >
 
 export const supportedEventNames: Set<SupportedEventName> = new Set(
-  ["taskPending", "taskProcessing", "taskComplete", "taskGraphComplete", "taskError"],
+  ["taskPending", "taskProcessing", "taskComplete", "taskGraphComplete", "taskError", "taskCancelled"],
 )
 
 export type WsEventMessage = ServerWebsocketMessage & {

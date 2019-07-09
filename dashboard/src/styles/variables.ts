@@ -94,4 +94,11 @@ export const colors = {
       },
     },
   },
+  taskState: {
+    cancelled: "#BBB",
+    pending: "#ed83cc",
+    processing: "#ed83cc",
+    ready: "#66ffcc",
+    error: "red",
+  },
 }
