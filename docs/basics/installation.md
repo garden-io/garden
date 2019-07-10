@@ -117,3 +117,17 @@ To install Docker, please follow the instructions in the [official documentation
 
 If you'd like to use a local Kubernetes cluster, please refer to the [local Kubernetes guide](../using-garden/local-kubernetes.md)
 for installation and usage information.
+
+## Using Garden with proxies
+
+If you're running Garden behind a firewall, you may need to use a proxy to route external requests. To do this,
+you need to set the `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment variables. For example:
+
+ ```sh
+export HTTP_PROXY=http://localhost:9999               # <- Replace with your proxy address.
+export HTTPS_PROXY=$HTTP_PROXY                        # <- Replace if you use a separate proxy for HTTPS.
+export NO_PROXY=local.app.garden,localhost,127.0.0.1  # <- This is important! See below.
+```
+
+The `NO_PROXY` variable should include any other hostnames you might use for local development, since you likely
+don't want to route local traffic through the proxy.
