@@ -9,14 +9,12 @@ serviceResource:
   name: postgres
 tasks:
   - name: db-init
+    command: [/bin/sh, -c]
+    # The postgres health check appears to go through before the server accepts remote connections, so we need to
+    # sleep for a while.
+    # https://github.com/CrunchyData/crunchy-containers/issues/653
     args: [
-      psql,
-      -w,
-      -U, postgres,
-      --host, postgres,
-      --port=5432,
-      -d, postgres,
-      -c, "CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)"
+      "sleep 15 && psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
     ]
     env:
       PGPASSWORD: postgres
@@ -41,8 +39,3 @@ values:
   fullnameOverride: postgres
   # This should of course not be used in production
   postgresqlPassword: postgres
-  # The postgres health check appears to go through before the server accepts remote connections,
-  # so we set a long initial delay.
-  # https://github.com/CrunchyData/crunchy-containers/issues/653
-  readinessProbe:
-    initialDelaySeconds: 15

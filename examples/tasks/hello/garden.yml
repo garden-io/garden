@@ -18,7 +18,8 @@ tests:
     args: [npm, test]
 tasks:
   - name: node-migration
-    args: [knex, migrate:latest]
+    command: [/bin/sh, -c]
+    args: ["sleep 15 && knex migrate:latest"]
     description: Creates the users table.
     dependencies:
       - postgres
