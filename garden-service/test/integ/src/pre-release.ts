@@ -19,6 +19,7 @@ import {
   searchLog,
   removeExampleDotGardenDir,
 } from "../../integ-helpers"
+import username = require("username")
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command
 describe("PreReleaseTests", () => {
@@ -31,7 +32,7 @@ describe("PreReleaseTests", () => {
   }
 
   function getProjectNamespaces() {
-    const ns = `${project}-testing-${process.env.CIRCLE_BUILD_NUM || "default"}`
+    const ns = `${project}-testing-${process.env.CIRCLE_BUILD_NUM || username.sync()}`
     return [ns, ns + "--metadata"]
   }
 

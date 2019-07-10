@@ -8,6 +8,6 @@ environments:
     providers:
       - name: kubernetes
         context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-        namespace: vote-helm-testing-${local.env.CIRCLE_BUILD_NUM || "default"}
+        namespace: vote-helm-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
         defaultHostname: vote-helm-testing.dev-1.sys.garden
         buildMode: cluster-docker
