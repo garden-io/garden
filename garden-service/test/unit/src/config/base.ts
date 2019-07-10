@@ -89,6 +89,10 @@ describe("loadConfig", () => {
           tests: [{
             name: "unit",
             command: ["echo", "OK"],
+          },
+          {
+            name: "integration",
+            command: ["echo", "OK"],
           }],
         },
 

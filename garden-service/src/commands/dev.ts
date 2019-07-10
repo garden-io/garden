@@ -52,7 +52,7 @@ const devOpts = {
     help: "Disable running the tests.",
   }),
   "test-names": new StringsParameter({
-    help: "The name(s) of the module(s) to test (skip to test all modules). " +
+    help: "Filter the tests to run by test name across all modules (leave unset to run all tests). " +
       "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').",
     alias: "tn",
   }),
