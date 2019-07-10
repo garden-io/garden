@@ -189,11 +189,9 @@ as you modify the code.
 Examples:
 
     garden dev
+    garden dev --hot-reload=foo-service       # enable hot reloading for foo-service
     garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
     garden dev --hot=*                        # enable hot reloading for all compatible services
-    garden dev --skip-tests=foo-service       # skip running any tests
-    garden dev --name integ                   # run all tests with the name 'integ' in the project
-    garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
 
 ##### Usage
 
@@ -204,8 +202,6 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
-  | `--skip-tests` |  | boolean | Disable running the tests
-  | `--test-names` | `-tn` | array:string | The name(s) of the module(s) to test (skip to test all modules). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;)
 
 ### garden exec
 
@@ -700,7 +696,6 @@ Examples:
     garden test               # run all tests in the project
     garden test my-module     # run all tests in the my-module module
     garden test --name integ  # run all tests with the name 'integ' in the project
-    garden test --name integ* # run all tests with the name starting with 'integ' in the project
     garden test --force       # force tests to be re-run, even if they've already run successfully
     garden test --watch       # watch for changes to code
 
@@ -718,7 +713,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` | `-n` | string | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;)
+  | `--name` | `-n` | string | Only run tests with the specfied name (e.g. unit or integ).
   | `--force` | `-f` | boolean | Force re-test of module(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.

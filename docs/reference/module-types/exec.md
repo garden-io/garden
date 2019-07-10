@@ -8,9 +8,6 @@ guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-`exec` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
-See the [Outputs](#outputs) section below for details.
-
 ## Configuration keys
 
 ### `apiVersion`
@@ -338,7 +335,8 @@ build:
       copy:
         - source:
           target: <same as source path>
-  command: []
+  command:
+    []
 env: {}
 tasks:
   - name:
@@ -353,58 +351,3 @@ tests:
     command:
     env: {}
 ```
-
-## Outputs
-
-The following keys are available via the `${modules.<module-name>}` template string key for `exec`
-modules.
-
-### `modules.<module-name>.buildPath`
-
-The build path of the module.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-buildPath: "/home/me/code/my-project/.garden/build/my-module"
-```
-
-### `modules.<module-name>.path`
-
-The local path of the module.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-path: "/home/me/code/my-project/my-module"
-```
-
-### `modules.<module-name>.version`
-
-The current version of the module.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-version: "v-17ad4cb3fd"
-```
-
-### `modules.<module-name>.outputs`
-
-The outputs defined by the module.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
