@@ -91,7 +91,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   volumes: ServiceVolumeSpec[],
 }
 
-const commandExample = ["/bin/sh", "-c"]
+export const commandExample = ["/bin/sh", "-c"]
 
 const hotReloadSyncSchema = joi.object()
   .keys({

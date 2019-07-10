@@ -338,17 +338,27 @@ The task definitions for this module.
 
 [tasks](#tasks) > name
 
-The name of the test.
+The name of the task.
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
 
+### `tasks[].description`
+
+[tasks](#tasks) > description
+
+A description of the task.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `tasks[].dependencies[]`
 
 [tasks](#tasks) > dependencies
 
-The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
+The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
@@ -358,7 +368,7 @@ The names of any services that must be running, and the names of any tasks that 
 
 [tasks](#tasks) > timeout
 
-Maximum duration (in seconds) of the test run.
+Maximum duration (in seconds) of the task's execution.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
@@ -447,6 +457,25 @@ tasks:
         - my-server.js
 ```
 
+### `tasks[].command[]`
+
+[tasks](#tasks) > command
+
+The command/entrypoint used to run the task inside the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - command:
+    - /bin/sh
+    - '-c'
+```
+
 ### `tasks[].args[]`
 
 [tasks](#tasks) > args
@@ -456,6 +485,15 @@ The arguments to pass to the pod used for execution.
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - args:
+    - rake
+    - 'db:migrate'
+```
 
 ### `tasks[].env`
 
@@ -680,6 +718,7 @@ serviceResource:
 skipDeploy: false
 tasks:
   - name:
+    description:
     dependencies: []
     timeout: null
     resource:
@@ -688,6 +727,7 @@ tasks:
       containerName:
       containerModule:
       hotReloadArgs:
+    command:
     args:
     env: {}
 tests:
