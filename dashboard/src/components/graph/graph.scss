@@ -19,6 +19,10 @@
     stroke: #02f2b4;
   }
 
+  g.taskCancelled > rect {
+    stroke: #BBB;
+  }
+
   g.taskError > rect {
     stroke: red;
   }
