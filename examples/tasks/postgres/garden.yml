@@ -9,9 +9,3 @@ values:
   fullnameOverride: postgres
   # This should of course not be used in production
   postgresqlPassword: postgres
-  # The postgres health check appears to go through before the server accepts remote connections,
-  # so we set a long initial delay.
-  # https://github.com/CrunchyData/crunchy-containers/issues/653
-  readinessProbe:
-    initialDelaySeconds: 15
-    successThreshold: 2
