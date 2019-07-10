@@ -193,6 +193,15 @@ jobs:
       - npm_install
       - *attach-workspace
       - run:
+          name: Test generating docs
+          command: npm run generate-docs
+      - run:
+          name: Git status
+          command: git status
+      - run:
+          name: Git diff
+          command: git diff
+      - run:
           name: Make sure generated docs are up-to-date
           command: npm run check-docs
       - run:
