@@ -15,6 +15,7 @@ import { some } from "lodash"
 import * as uuid from "uuid"
 import { join, basename, win32, posix, relative, parse } from "path"
 import { ValidationError } from "../exceptions"
+import { platform } from "os"
 // NOTE: Importing from ignore/ignore doesn't work on Windows
 const ignore = require("ignore")
 
@@ -185,6 +186,10 @@ export function toCygwinPath(path: string) {
 
   // make sure trailing slash is retained
   return path.endsWith(win32.sep) ? cygpath + posix.sep : cygpath
+}
+
+export function normalizeLocalRsyncPath(path: string) {
+  return platform() === "win32" ? toCygwinPath(path) : path
 }
 
 /**
