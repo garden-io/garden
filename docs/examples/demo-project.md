@@ -315,7 +315,6 @@ tests:
     args: [npm, run, integ]
     dependencies:
       - frontend
-      - backend
 ```
 
 This allows us to run individual test groups by name or all of them at once with the test command:
@@ -325,6 +324,7 @@ garden test
 ```
 
 Notice also that the integration test depends on both the updated `frontend` and `backend` being deployed.
+The `backend` is a transitive depedency of the integration test because it is a dependency of the `frontend` service.
 
 The entire module config should now look like this:
 
@@ -350,7 +350,6 @@ tests:
     args: [npm, run, integ]
     dependencies:
       - frontend
-      - backend
 ```
 
 And that's it! Our services are up and running locally, dependencies are resolved, and tests are ready to run.
