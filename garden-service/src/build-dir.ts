@@ -15,20 +15,12 @@ import {
   sep,
   relative,
 } from "path"
-import {
-  emptyDir,
-  ensureDir,
-} from "fs-extra"
+import { emptyDir, ensureDir } from "fs-extra"
 import { ConfigurationError } from "./exceptions"
-import {
-  FileCopySpec,
-  Module,
-  getModuleKey,
-} from "./types/module"
+import { FileCopySpec, Module, getModuleKey } from "./types/module"
 import { zip } from "lodash"
 import * as execa from "execa"
-import { platform } from "os"
-import { toCygwinPath } from "./util/fs"
+import { normalizeLocalRsyncPath } from "./util/fs"
 import { ModuleConfig } from "./config/module"
 import { LogEntry } from "./logger/log-entry"
 
@@ -116,11 +108,9 @@ export class BuildDir {
     const destinationDir = parse(destinationPath).dir
     await ensureDir(destinationDir)
 
-    if (platform() === "win32") {
-      // this is so that the cygwin-based rsync client can deal with the paths
-      sourcePath = toCygwinPath(sourcePath)
-      destinationPath = toCygwinPath(destinationPath)
-    }
+    // this is so that the cygwin-based rsync client can deal with the paths
+    sourcePath = normalizeLocalRsyncPath(sourcePath)
+    destinationPath = normalizeLocalRsyncPath(destinationPath)
 
     // the correct way to copy all contents of a folder is using a trailing slash and not a wildcard
     sourcePath = stripWildcard(sourcePath)
