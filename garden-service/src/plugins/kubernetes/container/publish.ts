@@ -12,7 +12,6 @@ import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext } from "../config"
 import { publishContainerModule } from "../../container/publish"
 import { getRegistryPortForward } from "./util"
-import execa = require("execa")
 
 export async function k8sPublishContainerModule(params: PublishModuleParams<ContainerModule>) {
   const { ctx, module, log } = params
@@ -41,7 +40,11 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
       host: `local.app.garden:${fwd.localPort}`,
     })
 
-    await execa("docker", ["pull", pullImageName])
+    await containerHelpers.dockerCli(module, ["pull", pullImageName])
+
+    // We need to tag the remote image with the local ID before we publish it
+    const localId = await containerHelpers.getLocalImageId(module)
+    await containerHelpers.dockerCli(module, ["tag", pullImageName, localId])
   }
 
   return publishContainerModule(params)
