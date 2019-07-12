@@ -6,10 +6,10 @@ import {
 } from "../../../../src/docs/config"
 import { expect } from "chai"
 import dedent = require("dedent")
-import { joiArray, joi } from "../../../../src/config/common"
+import { joiArray, joi, joiEnvVars } from "../../../../src/config/common"
 
 describe("config", () => {
-  const serivcePortSchema = joi.number().default((context) => context.containerPort, "<same as containerPort>")
+  const servicePortSchema = joi.number().default((context) => context.containerPort, "<same as containerPort>")
     .example("8080")
     .description("description")
 
@@ -27,7 +27,7 @@ describe("config", () => {
     })
     .description("test object")
 
-  const testArray = joiArray(serivcePortSchema)
+  const testArray = joiArray(servicePortSchema)
     .description("test array")
 
   const portSchema = joi.object()
@@ -35,7 +35,7 @@ describe("config", () => {
       containerPort: joi.number()
         .required()
         .description("description"),
-      servicePort: serivcePortSchema,
+      servicePort: servicePortSchema,
       testObject,
       testArray,
     })
@@ -121,6 +121,27 @@ describe("config", () => {
         testArray: []
       `)
     })
+
+    it("should correctly render object example values", () => {
+      const schema = joi.object()
+        .keys({
+          env: joiEnvVars()
+            .example({
+              foo: "bar",
+              boo: "far",
+            }),
+        })
+      const schemaDescriptions = normalizeDescriptions(schema.describe())
+      const yaml = renderSchemaDescriptionYaml(
+        schemaDescriptions,
+        { showComment: false, showEllipsisBetweenKeys: true, useExampleForValue: true },
+      )
+      expect(yaml).to.equal(dedent`
+        env:
+            foo: bar
+            boo: far
+      `)
+    })
   })
 
   describe("getDefaultValue", () => {
@@ -130,7 +151,7 @@ describe("config", () => {
     })
 
     it("should get the default value of a function with context", () => {
-      const value = getDefaultValue(serivcePortSchema.describe())
+      const value = getDefaultValue(servicePortSchema.describe())
       expect(value).to.eq("<same as containerPort>")
     })
   })

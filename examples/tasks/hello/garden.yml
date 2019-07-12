@@ -18,7 +18,11 @@ tests:
     args: [npm, test]
 tasks:
   - name: node-migration
-    args: [knex, migrate:latest]
+    command: [/bin/sh, -c]
+    # The postgres health check appears to go through before the server accepts remote connections,
+    # so we set a long initial delay.
+    # https://github.com/CrunchyData/crunchy-containers/issues/653
+    args: ["sleep 15 && knex migrate:latest"]
     description: Creates the users table.
     dependencies:
       - postgres

@@ -24,6 +24,7 @@ import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
 import { KubernetesResource } from "./types"
+import { normalizeLocalRsyncPath } from "../../util/fs"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 
@@ -199,9 +200,11 @@ export function removeTrailingSlashes(path: string) {
   return path.replace(/\/*$/, "")
 }
 
-export function rsyncSourcePath(modulePath: string, sourcePath: string) {
-  return resolvePath(modulePath, sourcePath)
+function rsyncSourcePath(modulePath: string, sourcePath: string) {
+  const path = resolvePath(modulePath, sourcePath)
     .replace(/\/*$/, "/") // ensure (exactly one) trailing slash
+
+  return normalizeLocalRsyncPath(path)
 }
 
 /**
@@ -210,7 +213,7 @@ export function rsyncSourcePath(modulePath: string, sourcePath: string) {
  * Converts /src/foo into src/foo/
  * @param target
  */
-export function rsyncTargetPath(path: string) {
+function rsyncTargetPath(path: string) {
   return path.replace(/^\/*/, "")
     .replace(/\/*$/, "/")
 }

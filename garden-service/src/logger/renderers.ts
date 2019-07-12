@@ -7,7 +7,6 @@
  */
 
 import * as logSymbols from "log-symbols"
-import * as nodeEmoji from "node-emoji"
 import * as yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
@@ -23,10 +22,11 @@ import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
-import { LogEntry, EmojiName } from "./log-entry"
+import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, deepFilter } from "../util/util"
 import { isNumber } from "util"
+import { printEmoji } from "./util"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -65,13 +65,6 @@ export function combine(renderers: Renderers): string {
   return applyRenderers(renderers)(initOutput).join("")
 }
 
-export function printEmoji(emoji: EmojiName) {
-  if (nodeEmoji.hasEmoji(emoji)) {
-    return `${nodeEmoji.get(emoji)}  `
-  }
-  return ""
-}
-
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
   return "".padStart((entry.opts.indent || 0) * 3)
@@ -79,8 +72,8 @@ export function leftPad(entry: LogEntry): string {
 
 export function renderEmoji(entry: LogEntry): string {
   const { emoji } = entry.opts
-  if (emoji && entry.root.useEmoji) {
-    return printEmoji(emoji)
+  if (emoji) {
+    return printEmoji(emoji, entry) + " "
   }
   return ""
 }

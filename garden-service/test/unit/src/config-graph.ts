@@ -212,6 +212,12 @@ describe("ConfigGraph", () => {
           key: "test.module-c.unit",
         },
         {
+          type: "test",
+          name: "integ",
+          moduleName: "module-c",
+          key: "test.module-c.integ",
+        },
+        {
           type: "run",
           name: "task-c",
           moduleName: "module-c",
@@ -228,6 +234,12 @@ describe("ConfigGraph", () => {
           name: "unit",
           moduleName: "module-a",
           key: "test.module-a.unit",
+        },
+        {
+          type: "test",
+          name: "integration",
+          moduleName: "module-a",
+          key: "test.module-a.integration",
         },
         {
           type: "run",

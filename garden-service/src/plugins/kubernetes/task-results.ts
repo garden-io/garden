@@ -17,11 +17,11 @@ import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
-import { gardenAnnotationKey, tailString } from "../../util/string"
+import { gardenAnnotationKey } from "../../util/string"
 import { Module } from "../../types/module"
 import * as hasha from "hasha"
 import { upsertConfigMap } from "./util"
-import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "./constants"
+import { trimRunOutput } from "./helm/common"
 
 export async function getTaskResult(
   { ctx, log, module, task, taskVersion }: GetTaskResultParams<ContainerModule | HelmModule>,
@@ -87,10 +87,6 @@ export async function storeTaskResult(
       [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
       [gardenAnnotationKey("version")]: taskVersion.versionString,
     },
-    data: {
-      ...result,
-      // Make sure the output isn't too large for a ConfigMap
-      output: tailString(result.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true),
-    },
+    data: trimRunOutput(result),
   })
 }

@@ -21,6 +21,7 @@ import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
+import { printEmoji } from "./logger/util"
 
 export type ProcessHandler = (graph: ConfigGraph, module: Module) => Promise<BaseTask[]>
 
@@ -89,11 +90,13 @@ export async function processModules(
 
   if (watch && !!footerLog) {
     garden.events.on("taskGraphProcessing", () => {
-      footerLog.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
+      const emoji = printEmoji("hourglass_flowing_sand", footerLog)
+      footerLog.setState(`\n${emoji}Processing...`)
     })
 
     garden.events.on("taskGraphComplete", () => {
-      footerLog.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes") })
+      const emoji = printEmoji("clock2", footerLog)
+      footerLog.setState(`\n${emoji}${chalk.gray("Waiting for code changes...")}`)
     })
   }
 

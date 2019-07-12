@@ -86,9 +86,3 @@ export type KubernetesWorkload =
   KubernetesResource<V1Deployment> |
   KubernetesResource<V1ReplicaSet> |
   KubernetesResource<V1StatefulSet>
-
-export interface KubeEnvVar {
-  name: string
-  value?: string
-  valueFrom?: { fieldRef: { fieldPath: string } }
-}

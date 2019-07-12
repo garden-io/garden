@@ -1,0 +1,13 @@
+kind: Project
+name: kubernetes-secrets
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+  - name: testing
+    providers:
+      - name: kubernetes
+        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        namespace: kubernetes-secrets-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+        defaultHostname: kubernetes-secrets-testing-${local.env.CIRCLE_BUILD_NUM || local.username}.dev-1.sys.garden
+        buildMode: cluster-docker

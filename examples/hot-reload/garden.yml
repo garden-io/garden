@@ -11,6 +11,6 @@ environments:
     providers:
       - name: kubernetes
         context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-        namespace: hot-reload-testing-${local.env.CIRCLE_BUILD_NUM || "default"}
+        namespace: hot-reload-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
         defaultHostname: hot-reload-testing.dev-1.sys.garden
         buildMode: cluster-docker

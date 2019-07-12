@@ -13,7 +13,6 @@ import {
   joiPrimitive,
   joiArray,
   joiIdentifier,
-  joiEnvVars,
   joiUserIdentifier,
   DeepPrimitiveMap,
   joi,
@@ -24,9 +23,9 @@ import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
 import { HotReloadableKind, hotReloadableKinds } from "../hot-reload"
 import { BaseTestSpec, baseTestSpecSchema } from "../../../config/test"
-import { BaseTaskSpec } from "../../../config/task"
+import { BaseTaskSpec, baseTaskSpecSchema } from "../../../config/task"
 import { Service } from "../../../types/service"
-import { ContainerModule } from "../../container/config"
+import { ContainerModule, ContainerEnvVars, containerEnvVarsSchema, commandExample } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 
@@ -46,14 +45,14 @@ export interface HelmTaskSpec extends BaseTaskSpec {
   resource: HelmResourceSpec
   command?: string[]
   args: string[]
-  env: { [key: string]: string }
+  env: ContainerEnvVars
 }
 
 export interface HelmTestSpec extends BaseTestSpec {
   resource: HelmResourceSpec
   command?: string[]
   args: string[]
-  env: { [key: string]: string }
+  env: ContainerEnvVars
 }
 
 export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, HelmTestSpec, HelmTaskSpec> { }
@@ -100,7 +99,7 @@ const resourceSchema = joi.object()
       .example([["nodemon", "my-server.js"], {}]),
   })
 
-export const execTaskSchema = baseTestSpecSchema
+export const execTaskSchema = baseTaskSpecSchema
   .keys({
     resource: resourceSchema
       .description(
@@ -108,9 +107,13 @@ export const execTaskSchema = baseTestSpecSchema
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.`,
       ),
+    command: joi.array().items(joi.string())
+      .description("The command/entrypoint used to run the task inside the container.")
+      .example([commandExample, {}]),
     args: joi.array().items(joi.string())
-      .description("The arguments to pass to the pod used for execution."),
-    env: joiEnvVars(),
+      .description("The arguments to pass to the pod used for execution.")
+      .example([["rake", "db:migrate"], {}]),
+    env: containerEnvVarsSchema,
   })
 
 export const execTestSchema = baseTestSpecSchema
@@ -123,7 +126,7 @@ export const execTestSchema = baseTestSpecSchema
       ),
     args: joi.array().items(joi.string())
       .description("The arguments to pass to the pod used for testing."),
-    env: joiEnvVars(),
+    env: containerEnvVarsSchema,
   })
 
 export interface HelmServiceSpec extends ServiceSpec {

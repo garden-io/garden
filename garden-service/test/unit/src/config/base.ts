@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { loadConfig } from "../../../../src/config/base"
+import { loadConfig, findProjectConfig } from "../../../../src/config/base"
 import { resolve } from "path"
 import { dataDir, expectError, getDataDir } from "../../../helpers"
 
@@ -88,6 +88,10 @@ describe("loadConfig", () => {
           }],
           tests: [{
             name: "unit",
+            command: ["echo", "OK"],
+          },
+          {
+            name: "integration",
             command: ["echo", "OK"],
           }],
         },
@@ -312,4 +316,17 @@ describe("loadConfig", () => {
     expect(parsed).to.eql([])
   })
 
+})
+
+describe("findProjectConfig", async () => {
+  it("should find the project config when path is projectRoot", async () => {
+    const project = await findProjectConfig(projectPathA)
+    expect(project && project.path).to.eq(projectPathA)
+  })
+
+  it("should find the project config when path is a subdir of projectRoot", async () => {
+    // modulePathA is a subdir of projectPathA
+    const project = await findProjectConfig(modulePathA)
+    expect(project && project.path).to.eq(projectPathA)
+  })
 })

@@ -11,7 +11,7 @@ import * as PQueue from "p-queue"
 import chalk from "chalk"
 import * as yaml from "js-yaml"
 import hasAnsi = require("has-ansi")
-import { merge, padEnd, pick, flatten } from "lodash"
+import { flatten, merge, padEnd, pick } from "lodash"
 import { BaseTask, TaskDefinitionError } from "./tasks/base"
 
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
@@ -41,11 +41,23 @@ export interface TaskResults {
 
 export const DEFAULT_CONCURRENCY = 6
 
+const concurrencyFromEnv = process.env.GARDEN_TASK_CONCURRENCY_LIMIT
+
+export const TASK_CONCURRENCY = (concurrencyFromEnv && parseInt(concurrencyFromEnv, 10)) || DEFAULT_CONCURRENCY
+
 export class TaskGraph {
   private roots: TaskNodeMap
   private index: TaskNodeMap
-
   private inProgress: TaskNodeMap
+
+  /**
+   * latestTasks[key] is the most recently requested task (via process) for that key.
+   * We use this table to ensure that the last requested task version is used as
+   * we deduplicate tasks by key.
+   */
+  private latestTasks: { [key: string]: BaseTask }
+  private pendingKeys: Set<string>
+
   private logEntryMap: LogEntryMap
 
   /**
@@ -57,10 +69,12 @@ export class TaskGraph {
   private resultCache: ResultCache
   private opQueue: PQueue
 
-  constructor(private garden: Garden, private log: LogEntry, private concurrency: number = DEFAULT_CONCURRENCY) {
+  constructor(private garden: Garden, private log: LogEntry, private concurrency: number = TASK_CONCURRENCY) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
+    this.latestTasks = {}
+    this.pendingKeys = new Set()
     this.taskDependencyCache = {}
     this.resultCache = new ResultCache()
     this.opQueue = new PQueue({ concurrency: 1 })
@@ -68,7 +82,22 @@ export class TaskGraph {
   }
 
   async process(tasks: BaseTask[]): Promise<TaskResults> {
-    return this.opQueue.add(() => this.processTasksInternal(tasks))
+    for (const t of tasks) {
+      this.latestTasks[t.getKey()] = t
+    }
+
+    // We want at most one pending (i.e. not in-progress) task for a given key at any given time,
+    // so we deduplicate here.
+    const tasksToProcess = tasks.filter(t => !this.pendingKeys.has(t.getKey()))
+    for (const t of tasksToProcess) {
+      this.pendingKeys.add(t.getKey())
+    }
+
+    // Regardless of whether it was added by this call to this.processTasksInternal, we want
+    // to return the latest result for each requested task.
+    const resultKeys = tasks.map(t => t.getKey())
+
+    return this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys))
   }
 
   /**
@@ -102,6 +131,11 @@ export class TaskGraph {
         key: task.getKey(),
         version: task.version,
       })
+    } else {
+      const result = this.resultCache.get(task.getKey(), task.version.versionString)
+      if (result) {
+        this.garden.events.emit("taskComplete", result)
+      }
     }
   }
 
@@ -129,9 +163,9 @@ export class TaskGraph {
   /**
    * Process the graph until it's complete.
    */
-  private async processTasksInternal(tasks: BaseTask[]): Promise<TaskResults> {
+  private async processTasksInternal(tasks: BaseTask[], resultKeys: string[]): Promise<TaskResults> {
     for (const task of tasks) {
-      await this.addTask(task)
+      await this.addTask(this.latestTasks[task.getKey()])
     }
 
     this.log.silly("")
@@ -183,6 +217,7 @@ export class TaskGraph {
             pick(results, dependencyBaseKeys))
 
           try {
+            this.pendingKeys.delete(task.getKey())
             this.garden.events.emit("taskProcessing", {
               startedAt: new Date(),
               key: task.getKey(),
@@ -214,6 +249,15 @@ export class TaskGraph {
     await loop()
 
     this.rebuild()
+
+    for (const resultKey of resultKeys) {
+      if (!results[resultKey]) {
+        // We know there's a cached result for resultKey, since each key in resultKeys
+        // corresponds to a task that was processed during this run of processTasks, or
+        // during a previous run of processTasks. See the process method above for details.
+        results[resultKey] = this.resultCache.getNewest(resultKey)!
+      }
+    }
 
     return results
   }
@@ -251,12 +295,20 @@ export class TaskGraph {
   private remove(node: TaskNode) {
     this.index.removeNode(node)
     this.inProgress.removeNode(node)
+    this.pendingKeys.delete(node.getKey())
   }
 
   // Recursively remove node's dependants, without removing node.
   private cancelDependants(node: TaskNode) {
+    const cancelledAt = new Date()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
+      this.garden.events.emit("taskCancelled", {
+        cancelledAt,
+        key: dependant.getKey(),
+        name: dependant.task.getName(),
+        type: dependant.getType(),
+      })
       this.remove(dependant)
     }
     this.rebuild()

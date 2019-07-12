@@ -47,8 +47,8 @@ environments:
     providers:
       - name: kubernetes
         context: my-preview-cluster
-        defaultHostname: ci-demo-project-${local.env.CIRCLE_BRANCH || "default"}.preview.my-domain
-        namespace: ci-demo-project-${local.env.CIRCLE_BRANCH || "default"}
+        defaultHostname: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}.preview.my-domain
+        namespace: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}
         buildMode: cluster-docker
 ```
 

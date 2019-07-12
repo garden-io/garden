@@ -325,6 +325,22 @@ export function stubModuleAction<T extends keyof ModuleActions<any>>(
   return td.replace(garden["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
 }
 
+/**
+ * Returns a promise that can be "manually" resolved/rejected by calling resolver/rejecter.
+ *
+ * This is useful e.g. when testing async control flows where concurrent long-running operations need to be simulated.
+ */
+export function defer() {
+  let outerResolve
+  let outerReject
+  const promise = new Promise((res, rej) => {
+    outerResolve = res
+    outerReject = rej
+  })
+
+  return { promise, resolver: outerResolve, rejecter: outerReject }
+}
+
 export async function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
   try {
     await fn()

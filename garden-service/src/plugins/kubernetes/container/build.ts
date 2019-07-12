@@ -25,6 +25,7 @@ import { PluginError } from "../../../exceptions"
 import { runPod } from "../run"
 import { getRegistryHostname } from "../init"
 import { getManifestFromRegistry } from "./util"
+import { normalizeLocalRsyncPath } from "../../../util/fs"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -135,9 +136,10 @@ const remoteBuild: BuildHandler = async (params) => {
 
   // -> Run rsync
   const buildRoot = resolve(module.buildPath, "..")
-  // This trick is used to automatically create the correct target directory with rsync:
+  // The '/./' trick is used to automatically create the correct target directory with rsync:
   // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
-  const src = `${buildRoot}/./${module.name}/`
+  let src = normalizeLocalRsyncPath(`${buildRoot}/./${module.name}/`)
+
   const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
 
   log.debug(`Syncing from ${src} to ${destination}`)
@@ -264,71 +266,62 @@ async function runKaniko(provider: KubernetesProvider, log: LogEntry, module: Co
   const registryHostname = getRegistryHostname()
 
   return runPod({
-    args,
     context: provider.config.context,
-    envVars: {},
     ignoreError: false,
     image: kanikoImage,
     interactive: false,
+    log,
     module,
     namespace: systemNamespace,
-    log,
-    overrides: {
-      metadata: {
-        // Workaround to make sure sidecars are not injected,
-        // due to https://github.com/kubernetes/kubernetes/issues/25908
-        annotations: { "sidecar.istio.io/inject": "false" },
-      },
-      spec: {
-        shareProcessNamespace: true,
-        containers: [
-          {
-            name: "kaniko",
-            image: kanikoImage,
-            args,
-            volumeMounts: [{
-              name: syncDataVolumeName,
-              mountPath: "/garden-build",
-            }],
-            resources: {
-              limits: {
-                cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
-                memory: megabytesToString(provider.config.resources.builder.limits.memory),
-              },
-              requests: {
-                cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
-                memory: megabytesToString(provider.config.resources.builder.requests.memory),
-              },
+    spec: {
+      shareProcessNamespace: true,
+      containers: [
+        {
+          name: "kaniko",
+          image: kanikoImage,
+          args,
+          volumeMounts: [{
+            name: syncDataVolumeName,
+            mountPath: "/garden-build",
+          }],
+          resources: {
+            limits: {
+              cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
+              memory: megabytesToString(provider.config.resources.builder.limits.memory),
+            },
+            requests: {
+              cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
+              memory: megabytesToString(provider.config.resources.builder.requests.memory),
             },
           },
-          {
+        },
+        {
+          name: "proxy",
+          image: "basi/socat:v0.1.0",
+          command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
+          ports: [{
             name: "proxy",
-            image: "basi/socat:v0.1.0",
-            command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
-            ports: [{
-              name: "proxy",
-              containerPort: registryPort,
-              protocol: "TCP",
-            }],
-            readinessProbe: {
-              tcpSocket: { port: registryPort },
-            },
+            containerPort: registryPort,
+            protocol: "TCP",
+          }],
+          readinessProbe: {
+            tcpSocket: { port: registryPort },
           },
-          // This is a little workaround so that the socat proxy doesn't just keep running after the build finishes.
-          {
-            name: "killer",
-            image: "busybox",
-            command: [
-              "sh", "-c",
-              "while true; do if pidof executor > /dev/null; then sleep 0.5; else killall socat; exit 0; fi done",
-            ],
-          },
-        ],
-        volumes: [{
-          name: syncDataVolumeName,
-          persistentVolumeClaim: { claimName: syncDataVolumeName },
-        }],
-      },
+        },
+        // This is a little workaround so that the socat proxy doesn't just keep running after the build finishes.
+        {
+          name: "killer",
+          image: "busybox",
+          command: [
+            "sh", "-c",
+            "while true; do if pidof executor > /dev/null; then sleep 0.5; else killall socat; exit 0; fi done",
+          ],
+        },
+      ],
+      volumes: [{
+        name: syncDataVolumeName,
+        persistentVolumeClaim: { claimName: syncDataVolumeName },
+      }],
     },
     podName,
     timeout: buildTimeout,

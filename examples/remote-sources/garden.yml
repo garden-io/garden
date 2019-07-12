@@ -6,10 +6,13 @@ sources:
   - name: db-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
 environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
   - name: testing
     providers:
       - name: kubernetes
         context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-        namespace: remote-sources-testing-${local.env.CIRCLE_BUILD_NUM || "default"}
+        namespace: remote-sources-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
         defaultHostname: remote-sources-testing.dev-1.sys.garden
         buildMode: cluster-docker

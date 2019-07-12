@@ -423,11 +423,23 @@ The name of the container port where the specified paths should be routed.
 
 [services](#services) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+Example:
+
+```yaml
+services:
+  - env:
+      MY_VAR: some-value
+      MY_SECRET_VAR:
+        secretRef:
+          name: my-secret
+          key: some-key
+```
 
 ### `services[].healthCheck`
 
@@ -781,11 +793,23 @@ tests:
 
 [tests](#tests) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+Example:
+
+```yaml
+tests:
+  - env:
+      MY_VAR: some-value
+      MY_SECRET_VAR:
+        secretRef:
+          name: my-secret
+          key: some-key
+```
 
 ### `tasks`
 
@@ -877,11 +901,23 @@ tasks:
 
 [tasks](#tasks) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+Example:
+
+```yaml
+tasks:
+  - env:
+      MY_VAR: some-value
+      MY_SECRET_VAR:
+        secretRef:
+          name: my-secret
+          key: some-key
+```
 
 
 ## Complete YAML schema
@@ -964,10 +1000,62 @@ tasks:
 
 ## Outputs
 
-The following keys are available via the `${modules.<module-name>.outputs}` template string key for `container`
+The following keys are available via the `${modules.<module-name>}` template string key for `container`
 modules.
 
+### `modules.<module-name>.buildPath`
+
+The build path of the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+buildPath: "/home/me/code/my-project/.garden/build/my-module"
+```
+
+### `modules.<module-name>.path`
+
+The local path of the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+path: "/home/me/code/my-project/my-module"
+```
+
+### `modules.<module-name>.version`
+
+The current version of the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+version: "v-17ad4cb3fd"
+```
+
+### `modules.<module-name>.outputs`
+
+The outputs defined by the module.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
 ### `modules.<module-name>.outputs.local-image-name`
+
+[outputs](#outputs) > local-image-name
 
 The name of the image (without tag/version) that the module uses for local builds and deployments.
 
@@ -975,7 +1063,17 @@ The name of the image (without tag/version) that the module uses for local build
 | -------- | -------- |
 | `string` | Yes      |
 
+Example:
+
+```yaml
+outputs:
+  ...
+  local-image-name: "my-module"
+```
+
 ### `modules.<module-name>.outputs.deployment-image-name`
+
+[outputs](#outputs) > deployment-image-name
 
 The name of the image (without tag/version) that the module will use during deployment.
 
@@ -983,3 +1081,10 @@ The name of the image (without tag/version) that the module will use during depl
 | -------- | -------- |
 | `string` | Yes      |
 
+Example:
+
+```yaml
+outputs:
+  ...
+  deployment-image-name: "my-deployment-registry.io/my-org/my-module"
+```

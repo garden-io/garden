@@ -384,7 +384,7 @@ class Chart extends Component<Props, ChartState> {
             <Span>
               <span
                 className={css`
-                    color: ${colors.gardenGreen};
+                    color: ${colors.taskState.ready};
                   `}
               >
                 —{" "}
@@ -394,7 +394,7 @@ class Chart extends Component<Props, ChartState> {
             <Span>
               <span
                 className={css`
-                    color: ${colors.gardenPink};
+                    color: ${colors.taskState.pending};
                   `}
               >
                 —{" "}
@@ -404,7 +404,7 @@ class Chart extends Component<Props, ChartState> {
             <Span>
               <span
                 className={css`
-                    color: ${colors.gardenPink};
+                    color: ${colors.taskState.processing};
                   `}
               >
                 --{" "}
@@ -414,7 +414,17 @@ class Chart extends Component<Props, ChartState> {
             <Span>
               <span
                 className={css`
-                    color: red;
+                 color: ${colors.taskState.cancelled};
+                  `}
+              >
+                —{" "}
+              </span>
+              Cancelled
+              </Span>
+            <Span>
+              <span
+                className={css`
+                 color: ${colors.taskState.error};
                   `}
               >
                 —{" "}

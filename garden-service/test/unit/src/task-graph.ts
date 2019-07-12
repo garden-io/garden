@@ -1,9 +1,11 @@
+import * as Bluebird from "bluebird"
 import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
-import { makeTestGarden, freezeTime, dataDir } from "../../helpers"
+import { makeTestGarden, freezeTime, dataDir, defer } from "../../helpers"
 import { Garden } from "../../../src/garden"
+import { deepFilter } from "../../../src/util/util"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -12,6 +14,7 @@ type TestTaskCallback = (name: string, result: any) => Promise<void>
 interface TestTaskOptions {
   callback?: TestTaskCallback
   dependencies?: BaseTask[],
+  versionString?: string
   uid?: string
   throwError?: boolean
 }
@@ -33,7 +36,7 @@ class TestTask extends BaseTask {
       garden,
       log: garden.log,
       version: {
-        versionString: "12345-6789",
+        versionString: (options && options.versionString) || "12345-6789",
         dependencyVersions: {},
         files: [],
       },
@@ -150,6 +153,13 @@ describe("task-graph", () => {
       await graph.process([repeatedTask])
 
       expect(garden.events.eventLog).to.eql([
+        {
+          name: "taskComplete",
+          payload: {
+            dependencyResults: {}, description: "a", key: task.getKey(), type: "test", name: "a",
+            output: { dependencyResults: {}, result: "result-a" },
+          },
+        },
         { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -309,6 +319,45 @@ describe("task-graph", () => {
 
     })
 
+    it("should add at most one pending task for a given key", async () => {
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+
+      const processedVersions: string[] = []
+
+      const { promise: t1StartedPromise, resolver: t1StartedResolver } = defer()
+      const { promise: t1DonePromise, resolver: t1DoneResolver } = defer()
+
+      const t1 = new TestTask(garden, "a", false, {
+        versionString: "1",
+        uid: "1",
+        callback: async () => {
+          t1StartedResolver()
+          processedVersions.push("1")
+          await t1DonePromise
+        },
+      })
+
+      const repeatedCallback = (version: string) => {
+        return async () => {
+          processedVersions.push(version)
+        }
+      }
+      const t2 = new TestTask(garden, "a", false, { uid: "2", versionString: "2", callback: repeatedCallback("2") })
+      const t3 = new TestTask(garden, "a", false, { uid: "3", versionString: "3", callback: repeatedCallback("3") })
+
+      const firstProcess = graph.process([t1])
+
+      // We make sure t1 is being processed before adding t2 and t3. Since t3 is added after t2,
+      // only t1 and t3 should be processed (since t2 and t3 have the same key, "a").
+      await t1StartedPromise
+      const secondProcess = graph.process([t2])
+      const thirdProcess = graph.process([t3])
+      t1DoneResolver()
+      await Bluebird.all([firstProcess, secondProcess, thirdProcess])
+      expect(processedVersions).to.eql(["1", "3"])
+    })
+
     it("should recursively cancel a task's dependants when it throws an error", async () => {
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
@@ -321,10 +370,10 @@ describe("task-graph", () => {
 
       const opts = { callback }
 
-      const taskA = new TestTask(garden, "a", false, { ...opts })
-      const taskB = new TestTask(garden, "b", false, { callback, throwError: true, dependencies: [taskA] })
-      const taskC = new TestTask(garden, "c", false, { ...opts, dependencies: [taskB] })
-      const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC] })
+      const taskA = new TestTask(garden, "a", true, { ...opts })
+      const taskB = new TestTask(garden, "b", true, { callback, throwError: true, dependencies: [taskA] })
+      const taskC = new TestTask(garden, "c", true, { ...opts, dependencies: [taskB] })
+      const taskD = new TestTask(garden, "d", true, { ...opts, dependencies: [taskB, taskC] })
 
       const results = await graph.process([
         taskA,
@@ -345,9 +394,36 @@ describe("task-graph", () => {
         dependencyResults: {},
       }
 
+      const filteredKeys: Set<string | number> = new Set([
+        "version", "error", "addedAt", "startedAt", "cancelledAt", "completedAt"])
+
+      const filteredEventLog = garden.events.eventLog.map(e => {
+        return deepFilter(e, (_, key) => !filteredKeys.has(key))
+      })
+
       expect(results.a).to.eql(resultA)
       expect(results.b).to.have.property("error")
       expect(resultOrder).to.eql(["a", "b"])
+      expect(filteredEventLog).to.eql([
+        { name: "taskPending", payload: { key: "a" } },
+        { name: "taskPending", payload: { key: "b" } },
+        { name: "taskPending", payload: { key: "c" } },
+        { name: "taskPending", payload: { key: "d" } },
+        { name: "taskGraphProcessing", payload: {} },
+        { name: "taskProcessing", payload: { key: "a" } },
+        {
+          name: "taskComplete", payload: {
+            dependencyResults: {}, description: "a", key: "a", name: "a",
+            output: { dependencyResults: {}, result: "result-a" }, type: "test",
+          },
+        },
+        { name: "taskProcessing", payload: { key: "b" } },
+        { name: "taskError", payload: { description: "b", key: "b", name: "b", type: "test" } },
+        { name: "taskCancelled", payload: { key: "c", name: "c", type: "test" } },
+        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test" } },
+        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test" } },
+        { name: "taskGraphComplete", payload: {} },
+      ])
     })
 
   })

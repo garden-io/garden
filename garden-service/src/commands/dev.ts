@@ -24,6 +24,7 @@ import {
   StringsParameter,
   handleTaskResults,
   PrepareParams,
+  BooleanParameter,
 } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
@@ -47,6 +48,14 @@ const devOpts = {
     `,
     alias: "hot",
   }),
+  "skip-tests": new BooleanParameter({
+    help: "Disable running the tests.",
+  }),
+  "test-names": new StringsParameter({
+    help: "Filter the tests to run by test name across all modules (leave unset to run all tests). " +
+      "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').",
+    alias: "tn",
+  }),
 }
 
 type Args = typeof devArgs
@@ -68,9 +77,11 @@ export class DevCommand extends Command<Args, Opts> {
     Examples:
 
         garden dev
-        garden dev --hot-reload=foo-service       # enable hot reloading for foo-service
         garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
         garden dev --hot=*                        # enable hot reloading for all compatible services
+        garden dev --skip-tests=                  # skip running any tests
+        garden dev --name integ                   # run all tests with the name 'integ' in the project
+        garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
   `
 
   options = devOpts
@@ -82,7 +93,7 @@ export class DevCommand extends Command<Args, Opts> {
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
 
-    log.info(chalk.gray.italic(`\nGood ${getGreetingTime()}! Let's get your environment wired up...\n`))
+    log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
     this.server = await startServer(footerLog)
   }
@@ -129,9 +140,13 @@ export class DevCommand extends Command<Args, Opts> {
           ? (await updatedGraph.withDependantModules([module]))
           : [module]
 
-        tasks.push(...flatten(
-          await Bluebird.map(testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph })),
-        ))
+        if (!opts["skip-tests"]) {
+          const filterNames = opts["test-names"]
+          tasks.push(...flatten(
+            await Bluebird.map(
+              testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph, filterNames })),
+          ))
+        }
 
         tasks.push(...await getDependantTasksForModule({
           garden,

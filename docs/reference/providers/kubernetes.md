@@ -684,8 +684,8 @@ Example:
 providers:
   - tlsCertificates:
       - secretRef:
-        name: my-tls-secret
-        namespace: default
+          name: my-tls-secret
+          namespace: default
 ```
 
 ### `providers[].tlsCertificates[].secretRef.name`
@@ -704,8 +704,8 @@ Example:
 providers:
   - tlsCertificates:
       - secretRef:
-        name: my-tls-secret
-        namespace: default
+          name: my-tls-secret
+          namespace: default
           ...
           name: "my-secret"
 ```
