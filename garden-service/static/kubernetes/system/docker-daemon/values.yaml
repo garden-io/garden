@@ -23,7 +23,7 @@ resources:
     cpu: 200m
     memory: 256Mi
 storage:
-  request: 20Gi
+  size: 20Gi
 registry:
   hostname: garden-docker-registry
 
