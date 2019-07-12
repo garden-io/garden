@@ -323,34 +323,39 @@ describe("task-graph", () => {
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
 
-      let processCount = 0
+      const processedVersions: string[] = []
 
       const { promise: t1StartedPromise, resolver: t1StartedResolver } = defer()
       const { promise: t1DonePromise, resolver: t1DoneResolver } = defer()
 
       const t1 = new TestTask(garden, "a", false, {
         versionString: "1",
+        uid: "1",
         callback: async () => {
           t1StartedResolver()
+          processedVersions.push("1")
           await t1DonePromise
-          processCount++
         },
       })
 
-      const repeatedCallback = async () => { processCount++ }
-      const t2 = new TestTask(garden, "a", false, { versionString: "2", callback: repeatedCallback })
-      const t3 = new TestTask(garden, "a", false, { versionString: "3", callback: repeatedCallback })
+      const repeatedCallback = (version: string) => {
+        return async () => {
+          processedVersions.push(version)
+        }
+      }
+      const t2 = new TestTask(garden, "a", false, { uid: "2", versionString: "2", callback: repeatedCallback("2") })
+      const t3 = new TestTask(garden, "a", false, { uid: "3", versionString: "3", callback: repeatedCallback("3") })
 
       const firstProcess = graph.process([t1])
 
-      // We make sure t1 is being processed before adding t2 and t3. This way, one of them
-      // (but not both) should be scheduled after t1 finishes, resulting in a processCount of 2.
+      // We make sure t1 is being processed before adding t2 and t3. Since t3 is added after t2,
+      // only t1 and t3 should be processed (since t2 and t3 have the same key, "a").
       await t1StartedPromise
       const secondProcess = graph.process([t2])
       const thirdProcess = graph.process([t3])
       t1DoneResolver()
       await Bluebird.all([firstProcess, secondProcess, thirdProcess])
-      expect(processCount).to.eq(2)
+      expect(processedVersions).to.eql(["1", "3"])
     })
 
     it("should recursively cancel a task's dependants when it throws an error", async () => {
