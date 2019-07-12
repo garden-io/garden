@@ -55,6 +55,14 @@ To initialize or update your cluster-wide services, run:
 garden --env=<environment-name> plugins kubernetes cluster-init
 ```
 
+To later uninstall the installed services, you can run:
+
+```sh
+garden --env=<environment-name> plugins kubernetes uninstall-garden-services
+```
+
+This will remove all services from the `garden-system` namespace, as well as any installed cluster-scoped resources.
+
 ## Building and pushing images
 
 Garden supports multiple methods for building images and making them available to the cluster. Below we detail how
