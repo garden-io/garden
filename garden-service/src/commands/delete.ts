@@ -20,7 +20,6 @@ import { ServiceStatus, getServiceRuntimeContext, ServiceStatusMap } from "../ty
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
-import chalk from "chalk"
 
 export class DeleteCommand extends Command {
   name = "delete"
@@ -103,27 +102,9 @@ export class DeleteEnvironmentCommand extends Command {
     printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
 
     const actions = await garden.getActionHelper()
-    const graph = await garden.getConfigGraph()
+    const result = await actions.deleteEnvironment(log)
 
-    const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
-
-    const services = await graph.getServices()
-    const serviceStatuses: { [key: string]: ServiceStatus } = {}
-
-    await Bluebird.map(services, async (service) => {
-      const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
-      serviceStatuses[service.name] = await actions.deleteService({ log: servicesLog, service, runtimeContext })
-    })
-
-    servicesLog.setSuccess()
-
-    log.info("")
-
-    const envLog = log.info({ msg: chalk.white("Cleaning up environments..."), status: "active" })
-    const environmentStatuses = await actions.cleanupEnvironment({ log: envLog })
-    envLog.setSuccess()
-
-    return { result: { serviceStatuses, environmentStatuses } }
+    return { result }
   }
 }
 
