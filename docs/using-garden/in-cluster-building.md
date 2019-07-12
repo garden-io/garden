@@ -59,11 +59,9 @@ all users of the clusters, along with a handful of other supporting services. En
 
 In this mode, builds are executed as follows:
 
-1. Your code (build context) is synchronized to a sync service in the cluster, making it available to the
-   Docker daemon.
+1. Your code (build context) is synchronized to a sync service in the cluster, making it available to the Docker daemon.
 2. A build is triggered in the Docker daemon.
-3. The built image is pushed to an in-cluster registry (which is automatically installed), which makes it available
-   to the cluster.
+3. The built image is pushed to an in-cluster registry (which is automatically installed), which makes it available to the cluster.
 
 After enabling this mode (we currently still default to the `local` mode), you will need to run `garden init` for each
 applicable environment, in order to install the
@@ -131,13 +129,11 @@ garden --env=<your-environment> plugins kubernetes cleanup-cluster-registry
 
 The command does the following:
 
-1. Looks through all Pods in the cluster to see which images/tags are in use, and flags all other images as deleted in
-   the in-cluster registry.
+1. Looks through all Pods in the cluster to see which images/tags are in use, and flags all other images as deleted in the in-cluster registry.
 2. Restarts the registry in read-only mode.
 3. Runs the registry garbage collection.
 4. Restarts the registry again without the read-only mode.
-5. When using the `cluster-docker` build mode, we additionally untag in the Docker daemon all images that are no longer
-   in the registry, and then clean up the dangling image layers by running `docker image prune`.
+5. When using the `cluster-docker` build mode, we additionally untag in the Docker daemon all images that are no longer in the registry, and then clean up the dangling image layers by running `docker image prune`.
 
 There are plans to do this automatically when disk-space runs low, but for now you can run this manually or set up
 your own cron jobs.

@@ -180,8 +180,7 @@ Garden, as a company, is also a proud member of the [CNCF](https://www.cncf.io/)
 
 ## Analytics
 
-When running Garden for the first time, we'll ask you to opt in to our analytics.  
-We are trying to make Garden the best tool possible, and it's very useful for us to inform the future development of Garden with data on how it's being used.  
+When running Garden for the first time, we'll ask you to opt in to our analytics. We are trying to make Garden the best tool possible, and it's very useful for us to inform the future development of Garden with data on how it's being used.
 
 When you opt-in we will collect information about the commands you run, the tasks getting executed, the project and operating system. We care about your privacy and we take special care to anonymize all the information. For example, we hash module names, and use randomly generated IDs to identify projects.
 
