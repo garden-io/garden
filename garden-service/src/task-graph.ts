@@ -49,6 +49,13 @@ export class TaskGraph {
   private roots: TaskNodeMap
   private index: TaskNodeMap
   private inProgress: TaskNodeMap
+
+  /**
+   * latestTasks[key] is the most recently requested task (via process) for that key.
+   * We use this table to ensure that the last requested task version is used as
+   * we deduplicate tasks by key.
+   */
+  private latestTasks: { [key: string]: BaseTask }
   private pendingKeys: Set<string>
 
   private logEntryMap: LogEntryMap
@@ -66,6 +73,7 @@ export class TaskGraph {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
+    this.latestTasks = {}
     this.pendingKeys = new Set()
     this.taskDependencyCache = {}
     this.resultCache = new ResultCache()
@@ -74,6 +82,10 @@ export class TaskGraph {
   }
 
   async process(tasks: BaseTask[]): Promise<TaskResults> {
+    for (const t of tasks) {
+      this.latestTasks[t.getKey()] = t
+    }
+
     // We want at most one pending (i.e. not in-progress) task for a given key at any given time,
     // so we deduplicate here.
     const tasksToProcess = tasks.filter(t => !this.pendingKeys.has(t.getKey()))
@@ -153,7 +165,7 @@ export class TaskGraph {
    */
   private async processTasksInternal(tasks: BaseTask[], resultKeys: string[]): Promise<TaskResults> {
     for (const task of tasks) {
-      await this.addTask(task)
+      await this.addTask(this.latestTasks[task.getKey()])
     }
 
     this.log.silly("")

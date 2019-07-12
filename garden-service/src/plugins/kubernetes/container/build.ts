@@ -25,6 +25,7 @@ import { PluginError } from "../../../exceptions"
 import { runPod } from "../run"
 import { getRegistryHostname } from "../init"
 import { getManifestFromRegistry } from "./util"
+import { normalizeLocalRsyncPath } from "../../../util/fs"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -135,9 +136,10 @@ const remoteBuild: BuildHandler = async (params) => {
 
   // -> Run rsync
   const buildRoot = resolve(module.buildPath, "..")
-  // This trick is used to automatically create the correct target directory with rsync:
+  // The '/./' trick is used to automatically create the correct target directory with rsync:
   // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
-  const src = `${buildRoot}/./${module.name}/`
+  let src = normalizeLocalRsyncPath(`${buildRoot}/./${module.name}/`)
+
   const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
 
   log.debug(`Syncing from ${src} to ${destination}`)
