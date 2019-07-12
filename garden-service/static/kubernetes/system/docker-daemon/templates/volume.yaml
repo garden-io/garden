@@ -7,7 +7,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.storage.request }}
+      storage: {{ .Values.storage.size }}
 {{- if .Values.storage.storageClass }}
 {{- if (eq "-" .Values.storage.storageClass) }}
   storageClassName: ""
