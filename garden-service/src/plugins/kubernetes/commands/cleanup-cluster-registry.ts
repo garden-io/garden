@@ -20,11 +20,14 @@ import * as Bluebird from "bluebird"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME } from "../constants"
 import { systemNamespace } from "../system"
 import { PluginError } from "../../../exceptions"
-import { apply } from "../kubectl"
+import { apply, kubectl } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { execInDeployment } from "../container/run"
 import { dedent } from "../../../util/string"
-import { execInBuilder, getBuilderPodName } from "../container/build"
+import { execInBuilder, getBuilderPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
+import { getPods } from "../util"
+
+const workspaceSyncDirTtl = 0.5 * 86400   // 2 days
 
 export const cleanupClusterRegistry: PluginCommand = {
   name: "cleanup-cluster-registry",
@@ -42,9 +45,11 @@ export const cleanupClusterRegistry: PluginCommand = {
       })
     }
 
-    const api = await KubeApi.factory(log, provider.config.context)
+    // Clean old directories from build sync volume
+    await cleanupBuildSyncVolume(provider, log)
 
     // Scan through all Pods in cluster
+    const api = await KubeApi.factory(log, provider.config.context)
     const imagesInUse = await getImagesInUse(api, provider, log)
 
     // Get images in registry
@@ -297,4 +302,66 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
   await execInBuilder({ provider, log, args: ["docker", "image", "prune", "-f"], podName, timeout: 300 })
 
   log.setSuccess()
+}
+
+async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntry) {
+  log = log.info({
+    msg: chalk.white(`Cleaning up old workspaces from build sync volume...`),
+    status: "active",
+  })
+
+  const podName = await getBuildSyncPodName(provider, log)
+  const statArgs = ["sh", "-c", 'stat /data/* -c "%n %X"']
+  const stat = await execInBuildSync({ provider, log, args: statArgs, timeout: 30, podName })
+
+  // Filter to directories last accessed more than workspaceSyncDirTtl ago
+  const minTimestamp = new Date().getTime() / 1000 - workspaceSyncDirTtl
+
+  const dirsToDelete = stat.stdout.split("\n")
+    .filter(Boolean)
+    .map(line => {
+      const [dirname, lastAccessed] = line.trim().split(" ")
+      return { dirname, lastAccessed: parseInt(lastAccessed, 10) }
+    })
+    .filter(({ lastAccessed }) => lastAccessed < minTimestamp)
+
+  // Delete the director
+  log.info(`Deleting ${dirsToDelete.length} workspace directories.`)
+  const deleteArgs = ["rm", "-rf", ...dirsToDelete.map(d => d.dirname)]
+  await execInBuildSync({ provider, log, args: deleteArgs, timeout: 30, podName })
+
+  log.setSuccess()
+}
+
+// Returns the name for one of the build-sync pods in the cluster
+// (doesn't matter which one, they all use the same volume)
+async function getBuildSyncPodName(provider: KubernetesProvider, log: LogEntry) {
+  const api = await KubeApi.factory(log, provider.config.context)
+
+  const builderStatusRes = await api.apps.readNamespacedDeployment(buildSyncDeploymentName, systemNamespace)
+  const builderPods = await getPods(api, systemNamespace, builderStatusRes.spec.selector.matchLabels)
+  const pod = builderPods[0]
+
+  if (!pod) {
+    throw new PluginError(`Could not find running image builder`, {
+      builderDeploymentName: buildSyncDeploymentName,
+      systemNamespace,
+    })
+  }
+
+  return builderPods[0].metadata.name
+}
+
+async function execInBuildSync({ provider, log, args, timeout, podName }: BuilderExecParams) {
+  const execCmd = ["exec", "-i", podName, "--", ...args]
+
+  log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
+
+  return kubectl.exec({
+    args: execCmd,
+    context: provider.config.context,
+    log,
+    namespace: systemNamespace,
+    timeout,
+  })
 }
