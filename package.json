@@ -65,7 +65,7 @@
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-push": "npm run check-all && npm test && npm run integ"
+      "pre-push": "npm run check-all && npm test"
     }
   },
   "snyk": true
