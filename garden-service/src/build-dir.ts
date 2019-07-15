@@ -21,7 +21,6 @@ import { FileCopySpec, Module, getModuleKey } from "./types/module"
 import { zip } from "lodash"
 import * as execa from "execa"
 import { normalizeLocalRsyncPath } from "./util/fs"
-import { ModuleConfig } from "./config/module"
 import { LogEntry } from "./logger/log-entry"
 
 // Lazily construct a directory of modules inside which all build steps are performed.
@@ -37,13 +36,18 @@ export class BuildDir {
     return new BuildDir(projectRoot, buildDirPath, buildMetadataDirPath)
   }
 
-  async syncFromSrc(module: ModuleConfig, log: LogEntry) {
-    await this.sync(
-      resolve(this.projectRoot, module.path) + sep,
-      await this.buildPath(module.name),
-      true,
+  async syncFromSrc(module: Module, log: LogEntry) {
+    const files = module.version.files
+      .map(f => relative(module.path, f))
+
+    await this.sync({
+      module,
+      sourcePath: resolve(this.projectRoot, module.path) + sep,
+      destinationPath: module.buildPath,
+      withDelete: true,
       log,
-    )
+      files,
+    })
   }
 
   async syncDependencyProducts(module: Module, log: LogEntry) {
@@ -74,7 +78,7 @@ export class BuildDir {
 
         const sourcePath = join(sourceBuildPath, copy.source)
         const destinationPath = join(buildPath, copy.target)
-        return this.sync(sourcePath, destinationPath, false, log)
+        return this.sync({ module, sourcePath, destinationPath, withDelete: false, log })
       })
     })
   }
@@ -104,7 +108,17 @@ export class BuildDir {
    *
    * If withDelete = true, files/folders in destinationPath that are not in sourcePath will also be deleted.
    */
-  private async sync(sourcePath: string, destinationPath: string, withDelete: boolean, log: LogEntry): Promise<void> {
+  private async sync(
+    { module, sourcePath, destinationPath, withDelete, log, files }:
+      {
+        module: Module,
+        sourcePath: string,
+        destinationPath: string,
+        withDelete: boolean,
+        log: LogEntry,
+        files?: string[],
+      },
+  ): Promise<void> {
     const destinationDir = parse(destinationPath).dir
     await ensureDir(destinationDir)
 
@@ -118,12 +132,13 @@ export class BuildDir {
 
     // --exclude is required for modules where the module and project are in the same directory
     const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`]
+
     if (withDelete) {
       syncOpts.push("--delete")
     }
 
-    let logMsg =
-      `Syncing from ${relative(this.projectRoot, sourcePath)} to ${relative(this.projectRoot, destinationPath)}`
+    let logMsg = `Syncing ${module.version.files.length} files from ` +
+      `${relative(this.projectRoot, sourcePath)} to ${relative(this.projectRoot, destinationPath)}`
 
     if (withDelete) {
       logMsg += " (with delete)"
@@ -131,7 +146,14 @@ export class BuildDir {
 
     log.debug(logMsg)
 
-    await execa("rsync", [...syncOpts, sourcePath, destinationPath])
+    let input: string | undefined
+
+    if (files !== undefined) {
+      syncOpts.push("--files-from=-")
+      input = files.join("\n")
+    }
+
+    await execa("rsync", [...syncOpts, sourcePath, destinationPath], { input })
   }
 }
 

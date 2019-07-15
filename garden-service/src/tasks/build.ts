@@ -67,7 +67,7 @@ export class BuildTask extends BaseTask {
 
     const log = this.log.info({
       section: this.getName(),
-      msg: `Staging build...`,
+      msg: `Preparing build (${module.version.files.length} files)...`,
       status: "active",
     })
 

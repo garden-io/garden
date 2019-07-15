@@ -1,6 +1,5 @@
 import {
   VcsHandler,
-  NEW_MODULE_VERSION,
   TreeVersions,
   TreeVersion,
   getVersionString,
@@ -13,6 +12,7 @@ import { ModuleConfigContext } from "../../../../src/config/config-context"
 import { ModuleConfig } from "../../../../src/config/module"
 import { GitHandler } from "../../../../src/vcs/git"
 import { resolve } from "path"
+import * as td from "testdouble"
 
 class TestVcsHandler extends VcsHandler {
   name = "test"
@@ -22,10 +22,8 @@ class TestVcsHandler extends VcsHandler {
     return []
   }
 
-  async getTreeVersion(path: string) {
-    return this.testVersions[path] || {
-      contentHash: NEW_MODULE_VERSION,
-    }
+  async getTreeVersion(path: string, include: string[] | null) {
+    return this.testVersions[path] || super.getTreeVersion(path, include)
   }
 
   setTestVersion(path: string, version: TreeVersion) {
@@ -57,9 +55,20 @@ describe("VcsHandler", () => {
   })
 
   describe("getTreeVersion", () => {
-    const includeProjectRoot = getDataDir("test-projects", "include-field")
+    it("should sort the list of files in the returned version", async () => {
+      const getFiles = td.replace(handler, "getFiles")
+      const path = "foo"
+      td.when(getFiles(path, undefined)).thenResolve([
+        { path: "c", hash: "c" },
+        { path: "b", hash: "b" },
+        { path: "d", hash: "d" },
+      ])
+      const version = await handler.getTreeVersion(path, null)
+      expect(version.files).to.eql(["b", "c", "d"])
+    })
 
     it("should respect the include field, if specified", async () => {
+      const includeProjectRoot = getDataDir("test-projects", "include-field")
       const includeGarden = await makeTestGarden(includeProjectRoot)
       const module = await includeGarden.resolveModuleConfig("module-a")
       const includeHandler = new GitHandler(includeGarden.gardenDirPath)

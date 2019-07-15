@@ -609,9 +609,9 @@ export class Garden {
       }
     }
 
-    const config = this.moduleConfigs[moduleName]
+    const config = await this.resolveModuleConfig(moduleName)
     const dependencyKeys = moduleDependencies.map(dep => getModuleKey(dep.name, dep.plugin))
-    const dependencies = Object.values(pickKeys(this.moduleConfigs, dependencyKeys, "module config"))
+    const dependencies = await this.resolveModuleConfigs(dependencyKeys)
     const cacheContexts = dependencies.concat([config]).map(c => getModuleCacheContext(c))
 
     const version = await this.vcs.resolveVersion(config, dependencies)
