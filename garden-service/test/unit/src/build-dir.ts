@@ -47,7 +47,9 @@ describe("BuildDir", () => {
 
   it("should sync sources to the build dir", async () => {
     const garden = await makeGarden()
-    const moduleA = await garden.resolveModuleConfig("module-a")
+    await garden.buildDir.clear()
+    const graph = await garden.getConfigGraph()
+    const moduleA = await graph.getModule("module-a")
     await garden.buildDir.syncFromSrc(moduleA, garden.log)
     const buildDirA = await garden.buildDir.buildPath(moduleA.name)
 
@@ -59,6 +61,21 @@ describe("BuildDir", () => {
     for (const p of copiedPaths) {
       expect(await pathExists(p)).to.eql(true)
     }
+  })
+
+  it("should respect the file list in the module's version", async () => {
+    const garden = await makeGarden()
+    await garden.buildDir.clear()
+    const graph = await garden.getConfigGraph()
+    const moduleA = await graph.getModule("module-a")
+
+    moduleA.version.files = [await getConfigFilePath(moduleA.path)]
+
+    await garden.buildDir.syncFromSrc(moduleA, garden.log)
+    const buildDirA = await garden.buildDir.buildPath(moduleA.name)
+
+    expect(await pathExists(await getConfigFilePath(buildDirA))).to.eql(true)
+    expect(await pathExists(join(buildDirA, "some-dir", "some-file"))).to.eql(false)
   })
 
   it("should sync dependency products to their specified destinations", async () => {
