@@ -1,11 +1,26 @@
 #!/bin/bash -e
 
+# Usage ./build-pkg.sh [version]
+#
+# Use the optional version argument to override the version that is included in the
+# zip file names. Used for setting the version on unstable releases.
+# Defaults to the version in garden-service/package.json.
+# Note that this is only for the version string used in the file name, not the version of the
+# code that is built.
+
 garden_service_root=$(cd `dirname $0` && cd .. && pwd)
 
 cd ${garden_service_root}
 
 commit_hash=$(git rev-parse --short HEAD)
-version="v$(cat package.json | jq -r .version)"
+
+# Use version argument if provided, otherwise read version from package.json
+if [ -n "$1" ]; then
+  version=$1
+else
+  version="v$(cat package.json | jq -r .version)"
+fi
+
 
 echo "Packaging version ${version}-${commit_hash}"
 

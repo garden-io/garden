@@ -35,7 +35,7 @@
     "lerna": "^3.15.0",
     "lodash": "^4.17.11",
     "markdown-link-check": "^3.7.2",
-    "replace-in-file": "^3.4.4",
+    "replace-in-file": "^4.1.1",
     "semver": "^5.6.0",
     "shx": "^0.3.2",
     "snyk": "^1.136.1",
