@@ -14,6 +14,12 @@ version: 2.1
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
     resource_class: large
 
+  # Configuration for release jobs
+  release-config: &release-config
+    docker:
+      # Image that contains ghr for publishing releases to Github
+      - image: cibuilds/github:0.10
+
   # Attach's the current saved workspace
   attach-workspace: &attach-workspace
     attach_workspace:
@@ -161,6 +167,29 @@ commands:
             gcloud --quiet config set project $GOOGLE_PROJECT_ID && gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet auth configure-docker
+
+  build_service_dist:
+    description: Package built code into executables and persist to garden-service/dist directory
+    parameters:
+      version:
+        description: |
+          The version tag used when building. Use to set the version string in the generated zip file names,
+          e.g. when creating unstable releases. The script defaults to using the version from garden-service/package.json.
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - npm_install
+      - run: sudo apt-get update && sudo apt-get -y install rsync
+      - *attach-workspace
+      - include_dashboard
+      - run:
+          name: Run dist command with the appropriate argument
+          command: npm run dist -- -- <<parameters.version>>
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - garden-service/dist/
 #
 # Jobs section
 #
@@ -278,15 +307,53 @@ jobs:
   build-service-dist:
     <<: *node-config
     steps:
+      - build_service_dist:
+          version: $(./garden-service/bin/garden --version)
+  build-service-dist-next:
+    <<: *node-config
+    steps:
+      - build_service_dist:
+          version: next
+  release-service-dist:
+    <<: *release-config
+    steps:
+      # Need to checkout to read version from garden-service/package.json
       - checkout
-      - npm_install
-      - run: sudo apt-get update && sudo apt-get -y install rsync
       - *attach-workspace
-      - include_dashboard
-      - run: npm run dist
-      - store_artifacts:
-          path: garden-service/dist/
-          destination: /downloads
+      - run:
+          name: Create a release on GitHub. If the release is a pre-release we publish it right away, otherwise we make a draft.
+          command: |
+            VERSION="v$(cat garden-service/package.json | jq -r .version)"
+            PRERELEASE=""
+            DRAFT=""
+            if [[ $VERSION == *"-"* ]]; then DRAFT=-draft; PRERELEASE=-prerelease; fi
+            ghr \
+              -t ${GITHUB_TOKEN} \
+              -u ${CIRCLE_PROJECT_USERNAME} \
+              -r ${CIRCLE_PROJECT_REPONAME} \
+              -c ${CIRCLE_SHA1} \
+              -n ${VERSION} \
+              -delete \
+              ${DRAFT} \
+              ${PRERELEASE} \
+              ${VERSION} ./garden-service/dist
+  release-service-dist-next:
+    <<: *release-config
+    steps:
+      - *attach-workspace
+      - run:
+          name: Publish a pre-release on GitHub with the tag 'next'
+          command: |
+            VERSION=next
+            ghr \
+              -t ${GITHUB_TOKEN} \
+              -u ${CIRCLE_PROJECT_USERNAME} \
+              -r ${CIRCLE_PROJECT_REPONAME} \
+              -c ${CIRCLE_SHA1} \
+              -n ${VERSION} \
+              -delete \
+              -prerelease \
+              ${VERSION} ./garden-service/dist
 
 workflows:
   version: 2
@@ -310,6 +377,7 @@ workflows:
       - test-dashboard:
           requires:
             - build-service
+
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it
@@ -335,10 +403,14 @@ workflows:
           context: docker
           requires:
             - release-service-docker
-      - build-service-dist:
+      - build-service-dist-next:
           <<: *only-master
           requires:
             - build-service
+      - release-service-dist-next:
+          <<: *only-master
+          requires:
+            - build-service-dist-next
 
   tags:
     jobs:
@@ -369,3 +441,8 @@ workflows:
           <<: *only-tags
           requires:
             - build-service
+      - release-service-dist:
+          <<: *only-tags
+          requires:
+            - build-service-dist
+

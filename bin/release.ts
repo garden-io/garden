@@ -5,9 +5,10 @@ import * as semver from "semver"
 import * as inquirer from "inquirer"
 import chalk from "chalk"
 import parseArgs = require("minimist")
-import replace = require("replace-in-file")
 import deline = require("deline")
 import { join, resolve } from "path"
+import { ReplaceResults } from "replace-in-file"
+const replace = require("replace-in-file")
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
@@ -22,23 +23,24 @@ const gardenServiceRoot = join(gardenRoot, "garden-service")
  * 5. Update the changelog.
  * 6. Add and commit CHANGELOG.md, garden-service/package.json and garden-service/package-lock.json
  * 7. Tag the commit.
- * 8. Push the tag. This triggers CircleCI process that creates the release artifacts.
+ * 8. Push the tag. This triggers a CircleCI job that creates the release artifacts and publishes them to Github.
  * 9. If we're making a minor release, update links to examples and re-push the tag.
  * 10. Pushes the release branch to Github.
  *
- * Usage: ./bin/release.ts <minor | patch | preminor | prepatch | prerelease> [--force]
+ * Usage: ./bin/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
  */
 async function release() {
   // Parse arguments
   const argv = parseArgs(process.argv.slice(2))
   const releaseType = <ReleaseType>argv._[0]
-  const force = argv.force
+  const force = !!argv.force
+  const dryRun = !!argv["dry-run"]
 
   // Check if branch is clean
   try {
     await execa("git", ["diff", "--exit-code"], { cwd: gardenRoot })
   } catch (_) {
-    // throw new Error("Current branch has unstaged changes, aborting.")
+    throw new Error("Current branch has unstaged changes, aborting.")
   }
 
   if (!RELEASE_TYPES.includes(releaseType)) {
@@ -127,8 +129,10 @@ async function release() {
   ], { cwd: gardenRoot })
 
   // Tag the commit and push the tag
-  console.log("Pushing tag...")
-  await createTag(version, force)
+  if (!dryRun) {
+    console.log("Pushing tag...")
+    await createTag(version, force)
+  }
 
   // Reset local tag state (after stripping release tags)
   await execa("git", ["fetch", "origin", "--tags"], { cwd: gardenRoot })
@@ -149,11 +153,19 @@ async function release() {
     await execa("git", ["commit", "--amend", "--no-edit"], { cwd: gardenRoot })
 
     // Tag the commit and force push the tag after updating the links (this triggers another CI build)
-    await createTag(version, true)
+    if (!dryRun) {
+      await createTag(version, true)
+    }
   }
 
-  console.log("Pushing release branch...")
-  await execa("git", ["push", "origin", branchName, "--no-verify"], { cwd: gardenRoot })
+  if (!dryRun) {
+    console.log("Pushing release branch...")
+    const pushArgs = ["push", "origin", branchName, "--no-verify"]
+    if (force) {
+      pushArgs.push("-f")
+    }
+    await execa("git", pushArgs, { cwd: gardenRoot })
+  }
 
   console.log(deline`
     \nVersion ${chalk.bold.cyan(version)} has been ${chalk.bold("tagged")}, ${chalk.bold("committed")},
@@ -191,8 +203,8 @@ async function updateExampleLinks(version: string) {
     from: /github\.com\/garden-io\/garden\/tree\/[^\/]*\/examples/g,
     to: `github.com/garden-io/garden/tree/${version}/examples`,
   }
-  const changes = await replace(options)
-  console.log("Modified files:", changes.join(", "))
+  const results = await replace(options) as ReplaceResults[]
+  console.log("Modified files:", results.filter(r => r.hasChanged).map(r => r.file).join(", "))
 }
 
 async function rollBack() {
