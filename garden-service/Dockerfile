@@ -1,4 +1,4 @@
-FROM node:10.15.3-alpine
+FROM node:10.16.0-alpine
 
 # system dependencies
 RUN apk add --no-cache \
@@ -12,21 +12,11 @@ RUN apk add --no-cache \
   tar \
   gzip
 
-WORKDIR /garden
-
-# npm dependencies
-ADD package.json package-lock.json /garden/
-
-RUN npm install --production && npm cache clean --force
-
-# garden code
-ADD bin /garden/bin
-ADD build /garden/build
-ADD static /garden/static
+ADD dist/alpine-amd64/ /garden
 
 WORKDIR /project
 
-RUN ln -s /garden/bin/garden /bin/garden \
+RUN ln -s /garden/garden /bin/garden \
   && chmod +x /bin/garden
 
-ENTRYPOINT ["/garden/bin/garden"]
+ENTRYPOINT ["/garden/garden"]

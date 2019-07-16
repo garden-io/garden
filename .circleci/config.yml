@@ -75,73 +75,6 @@ commands:
           paths: [dashboard/node_modules]
           key: dashboard-v2-{{ checksum "dashboard/package-lock.json" }}
 
-  docker_build:
-    description: Builds and Tags a Docker Image
-    parameters:
-      context:
-        description: Directory to build in
-        type: string
-        default: .
-    steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          name: Build Docker Image
-          command: |
-            # Just build it with the approprate tag
-            docker build -t <<parameters.context>> <<parameters.context>>
-
-  # Depends on attach_workspace
-  include_dashboard:
-    description: Copies the dashboard build directory into the garden service static directory
-    steps:
-      - run:
-          name: Copy dashboard build to static dir
-          command: |
-            mkdir ./garden-service/static/dashboard
-            cp -r ./dashboard/build/* ./garden-service/static/dashboard/
-
-  docker_release:
-    description: |
-      Builds and publishes a docker image to the public registry.
-      It automatically switches between git tag and `:master`
-    parameters:
-      context:
-        description: Directory to build in
-        type: string
-        default: .
-      dockerfile:
-        description: Name of dockerfile to use. Defaults to Dockerfile in working directory.
-        type: string
-        default: Dockerfile
-      image:
-        description: Name of image to create. Defaults to a combination of $DOCKER_ORG/$CIRCLE_PROJECT_REPONAME.
-        type: string
-        default: $DOCKER_ORG/$CIRCLE_PROJECT_REPONAME
-      registry:
-        description: Name of registry to use. Defaults to docker.io.
-        type: string
-        default: docker.io
-    steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
-      # TODO: use garden publish here
-      - deploy:
-          name: Release docker image
-          command: |
-            # These values are inject from context docker
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            # Switches between git tag and master for releases
-            TAG=${CIRCLE_TAG:-master}
-            docker build -t <<parameters.context>> --file <<parameters.context>>/<<parameters.dockerfile>> --build-arg TAG=$TAG <<parameters.context>>
-            docker tag <<parameters.context>>  <<parameters.registry>>/<<parameters.image>>:$TAG
-            docker push <<parameters.registry>>/<<parameters.image>>:$TAG
-            # Set the latest tag as well for tagged releases
-            if [ "$TAG" == "$CIRCLE_TAG" ]; then
-              docker tag <<parameters.context>>  <<parameters.registry>>/<<parameters.image>>:latest
-              docker push <<parameters.registry>>/<<parameters.image>>:latest
-            fi
-
   configure_kubectl_context:
     description: Configure the kubectl context so that we can access our remote cluster. Used for integration testing.
     steps:
@@ -182,7 +115,6 @@ commands:
       - npm_install
       - run: sudo apt-get update && sudo apt-get -y install rsync
       - *attach-workspace
-      - include_dashboard
       - run:
           name: Run dist command with the appropriate argument
           command: npm run dist -- -- <<parameters.version>>
@@ -194,7 +126,7 @@ commands:
 # Jobs section
 #
 jobs:
-  build-service:
+  build:
     <<: *node-config
     steps:
       - checkout
@@ -203,7 +135,7 @@ jobs:
       - run:
           name: build
           command: |
-            npm run build-ci
+            npm run build
       # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -215,6 +147,16 @@ jobs:
             - dashboard/build/
             - garden-service/build/
             - garden-service/static/
+  build-dist:
+    <<: *node-config
+    steps:
+      - build_service_dist:
+          version: $(./garden-service/bin/garden --version)
+  build-dist-next:
+    <<: *node-config
+    steps:
+      - build_service_dist:
+          version: next
   lint:
     <<: *node-config
     steps:
@@ -276,44 +218,40 @@ jobs:
           command: |
             cd dashboard
             npm test
-  build-service-docker:
+  build-docker:
     <<: *node-config
     steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
       # This is to copy the pre-build build output from test-service (this should be a different step)
       - *attach-workspace
-      - include_dashboard
-      - docker_build:
-          context: garden-service
+      - run:
+          name: Build docker images
+          command: |
+            ./garden-service/bin/build-containers.sh
   release-service-docker:
     <<: *node-config
     steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
       # This is to copy the pre-build build output from test-service (this should be a different step)
       - *attach-workspace
-      - docker_release:
-          context: garden-service
-          image: $DOCKER_ORG/garden
-  release-service-docker-gcloud:
-    <<: *node-config
-    steps:
-      - checkout
-      # This is to copy the pre-build build output from test-service (this should be a different step)
-      - *attach-workspace
-      - docker_release:
-          context: garden-service
-          image: $DOCKER_ORG/garden-gcloud
-          dockerfile: gcloud.Dockerfile
-  build-service-dist:
-    <<: *node-config
-    steps:
-      - build_service_dist:
-          version: $(./garden-service/bin/garden --version)
-  build-service-dist-next:
-    <<: *node-config
-    steps:
-      - build_service_dist:
-          version: next
+      # TODO: use garden publish here
+      - deploy:
+          name: Release docker images
+          command: |
+            # These values are inject from context docker
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            # Switches between git tag and master for releases
+            TAG=${CIRCLE_TAG:-master}
+            # Push the container
+            ./garden-service/bin/push-containers.sh $TAG
+            # Push again with latest tag for non-pre-release tags
+            if [[ "$TAG" == "$CIRCLE_TAG" ]] && [[ $VERSION != *"-"* ]]; then
+              ./garden-service/bin/push-containers.sh latest
+            fi
   release-service-dist:
     <<: *release-config
     steps:
@@ -359,13 +297,19 @@ workflows:
   version: 2
   commit:
     jobs:
-      - build-service
+      - build
+      - build-dist:
+          requires:
+            - build
+      - build-docker:
+          requires:
+            - build-dist
       - test-service:
           requires:
-            - build-service
+            - build
       - lint:
           requires:
-            - build-service
+            - build
       - integ-test-service:
           # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
           filters:
@@ -373,76 +317,66 @@ workflows:
               # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
               ignore: /pull\/[0-9]+/
           requires:
-            - build-service
+            - build
       - test-dashboard:
           requires:
-            - build-service
+            - build
 
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it
-      - build-service:
+      - build:
           <<: *only-master
+      - build-dist-next:
+          <<: *only-master
+          requires:
+            - build
       - lint:
           <<: *only-master
           requires:
-            - build-service
+            - build
       - test-service:
           <<: *only-master
           requires:
-            - build-service
+            - build
       - test-dashboard:
           <<: *only-master
       - release-service-docker:
           <<: *only-master
           context: docker
           requires:
-            - build-service
-      - release-service-docker-gcloud:
-          <<: *only-master
-          context: docker
-          requires:
-            - release-service-docker
-      - build-service-dist-next:
-          <<: *only-master
-          requires:
-            - build-service
+            - build-dist-next
       - release-service-dist-next:
           <<: *only-master
           requires:
-            - build-service-dist-next
+            - build-dist-next
 
   tags:
     jobs:
       # Duplicated here so we can reference steps that depends on it
-      - build-service:
+      - build:
           <<: *only-tags
+      - build-dist:
+          <<: *only-tags
+          requires:
+            - build
       - lint:
           <<: *only-tags
           requires:
-          - build-service
+          - build
       - test-service:
           <<: *only-tags
           requires:
-          - build-service
+          - build
       - test-dashboard:
           <<: *only-tags
       - release-service-docker:
           <<: *only-tags
           context: docker
           requires:
-            - build-service
-      - release-service-docker-gcloud:
-          <<: *only-tags
-          context: docker
-          requires:
-            - release-service-docker
-      - build-service-dist:
-          <<: *only-tags
-          requires:
-            - build-service
+            - build-dist
       - release-service-dist:
           <<: *only-tags
           requires:
-            - build-service-dist
+            - build-dist
 
