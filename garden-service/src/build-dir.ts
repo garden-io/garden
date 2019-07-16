@@ -38,7 +38,7 @@ export class BuildDir {
 
   async syncFromSrc(module: Module, log: LogEntry) {
     const files = module.version.files
-      .map(f => relative(module.path, f))
+      .map(f => isAbsolute(f) ? relative(module.path, f) : f)
 
     await this.sync({
       module,
