@@ -35,7 +35,7 @@ const buildTimeout = 600
 const kanikoImage = "gcr.io/kaniko-project/executor:v0.8.0"
 const registryPort = 5000
 const syncDataVolumeName = "garden-build-sync"
-const syncDeploymentName = "garden-build-sync"
+export const buildSyncDeploymentName = "garden-build-sync"
 
 export async function k8sGetContainerBuildStatus(
   params: GetBuildStatusParams<ContainerModule>,
@@ -130,7 +130,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ctx,
     log,
     namespace: systemNamespace,
-    targetDeployment: `Deployment/${syncDeploymentName}`,
+    targetDeployment: `Deployment/${buildSyncDeploymentName}`,
     port: RSYNC_PORT,
   })
 
@@ -215,7 +215,7 @@ const remoteBuild: BuildHandler = async (params) => {
   }
 }
 
-interface BuilderExecParams {
+export interface BuilderExecParams {
   provider: KubernetesProvider,
   log: LogEntry,
   args: string[],

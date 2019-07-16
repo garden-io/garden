@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Joi from "@hapi/joi"
 import * as Bluebird from "bluebird"
 import { mapValues, keyBy, sortBy, omit } from "lodash"
 import { createHash } from "crypto"
@@ -85,7 +86,7 @@ export abstract class VcsHandler {
 
   // Note: explicitly requiring the include variable or null, to make sure it's specified
   async getTreeVersion(path: string, include: string[] | null): Promise<TreeVersion> {
-    const files = await this.getFiles(path, include || undefined)
+    const files = sortBy(await this.getFiles(path, include || undefined), "path")
     const contentHash = files.length > 0 ? hashFileHashes(files.map(f => f.hash)) : NEW_MODULE_VERSION
     return { contentHash, files: files.map(f => f.path) }
   }
@@ -140,12 +141,12 @@ export abstract class VcsHandler {
   /**
    * Returns the path to the remote source directory, relative to the project level Garden directory (.garden)
    */
-  getRemoteSourceRelPath(name, url, sourceType) {
+  getRemoteSourceRelPath(name: string, url: string, sourceType: ExternalSourceType) {
     return getRemoteSourceRelPath({ name, url, sourceType })
   }
 }
 
-async function readVersionFile(path: string, schema): Promise<any> {
+async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
   if (!(await pathExists(path))) {
     return null
   }
