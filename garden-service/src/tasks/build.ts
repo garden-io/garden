@@ -8,6 +8,7 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
+import pluralize = require("pluralize")
 import { Module, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/module/build"
 import { BaseTask, TaskType } from "../tasks/base"
@@ -67,7 +68,7 @@ export class BuildTask extends BaseTask {
 
     const log = this.log.info({
       section: this.getName(),
-      msg: `Preparing build (${module.version.files.length} files)...`,
+      msg: `Preparing build (${pluralize("file", module.version.files.length, true)})...`,
       status: "active",
     })
 
