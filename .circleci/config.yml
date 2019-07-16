@@ -18,7 +18,7 @@ version: 2.1
   release-config: &release-config
     docker:
       # Image that contains ghr for publishing releases to Github
-      - image: cibuilds/github:0.10
+      - image: cibuilds/github:0.12.2
 
   # Attach's the current saved workspace
   attach-workspace: &attach-workspace
