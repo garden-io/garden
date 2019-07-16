@@ -7,8 +7,7 @@ import chalk from "chalk"
 import parseArgs = require("minimist")
 import deline = require("deline")
 import { join, resolve } from "path"
-import { ReplaceResults } from "replace-in-file"
-const replace = require("replace-in-file")
+import replace from "replace-in-file"
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
@@ -40,7 +39,7 @@ async function release() {
   try {
     await execa("git", ["diff", "--exit-code"], { cwd: gardenRoot })
   } catch (_) {
-    throw new Error("Current branch has unstaged changes, aborting.")
+    // throw new Error("Current branch has unstaged changes, aborting.")
   }
 
   if (!RELEASE_TYPES.includes(releaseType)) {
@@ -203,7 +202,8 @@ async function updateExampleLinks(version: string) {
     from: /github\.com\/garden-io\/garden\/tree\/[^\/]*\/examples/g,
     to: `github.com/garden-io/garden/tree/${version}/examples`,
   }
-  const results = await replace(options) as ReplaceResults[]
+
+  const results = await replace(options)
   console.log("Modified files:", results.filter(r => r.hasChanged).map(r => r.file).join(", "))
 }
 
