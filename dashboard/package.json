@@ -44,8 +44,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "npm run build-ci && ./bin/copy-to-static",
-    "build-ci": "react-scripts build",
+    "build": "react-scripts build && ./bin/copy-to-static",
     "dev": "npm run start",
     "test-watch": "react-scripts test",
     "test": "CI=true react-scripts test",
