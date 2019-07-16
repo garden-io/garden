@@ -321,12 +321,12 @@ jobs:
       - checkout
       - *attach-workspace
       - run:
+          # Note that we currently flag all releases as drafts and pre-releases. This is because of an issue with lerna that prevents us from creating actual pre-releases. See https://github.com/garden-io/garden/issues/972.
+          # Once the issue is resolved, we should add -prerelease flag to pre-releases and -draft flag
+          # to normal releases.
           name: Create a release on GitHub. If the release is a pre-release we publish it right away, otherwise we make a draft.
           command: |
             VERSION="v$(cat garden-service/package.json | jq -r .version)"
-            PRERELEASE=""
-            DRAFT=""
-            if [[ $VERSION == *"-"* ]]; then DRAFT=-draft; PRERELEASE=-prerelease; fi
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
@@ -334,8 +334,8 @@ jobs:
               -c ${CIRCLE_SHA1} \
               -n ${VERSION} \
               -delete \
-              ${DRAFT} \
-              ${PRERELEASE} \
+              -prerelease \
+              -draft \
               ${VERSION} ./garden-service/dist
   release-service-dist-next:
     <<: *release-config
