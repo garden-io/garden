@@ -23,18 +23,19 @@ spec:
     spec:
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              # (Roughly) figure out the CIDR range in the cluster. This is important because we don't want to allow
-              # public connections here, in case there's no firewall in front of the cluster to block external access
-              # to the hostPort.
-              export CIDR_RANGE=$(echo $KUBERNETES_SERVICE_HOST | cut -d '.' -f 1).0.0.0/8
-              # Proxy node connections on 127.0.0.1:5000 to the docker registry
-              socat -d TCP-LISTEN:5000,fork,range=$CIDR_RANGE TCP:{{ .Values.registry.hostname }}:5000
+          image: envoyproxy/envoy-alpine:v1.11.0
+          imagePullPolicy: IfNotPresent
+          command: ["envoy"]
+          args: ["-c", "/etc/envoy.yaml", "--service-cluster", "$(POD_NAME)"]
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: envoy-yaml
+              mountPath: /etc/envoy.yaml
+              subPath: envoy.yaml
           ports:
             - name: docker
               containerPort: 5000
@@ -42,6 +43,10 @@ spec:
               protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: envoy-yaml
+          configMap:
+            name: {{ include "registry-proxy.fullname" . }}-envoy
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

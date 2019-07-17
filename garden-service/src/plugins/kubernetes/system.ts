@@ -195,6 +195,7 @@ export async function prepareSystemServices(
       log,
       serviceNames,
       force,
+      forceBuild: force,
     })
 
     const failed = values(results.taskResults).filter(r => !!r.error).length
