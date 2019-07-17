@@ -194,7 +194,7 @@ and does the following:
 * Commits the changes, tags the commit, and pushes the tag and branch.
 * Pushing the tag triggers a CI process the creates the release artifacts and publishes them to Github. If the the release is not a pre-release, we create a draft instead of actually publishing.
 
-On every merge to `master` we also publish an **unstable** release with the version `next` that is always flagged as a pre-release.
+On every merge to `master` we also publish an **unstable** release with the version `edge` that is always flagged as a pre-release.
 
 ### Steps
 
