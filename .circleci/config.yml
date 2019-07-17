@@ -265,7 +265,7 @@ jobs:
             PRERELEASE=""
             DRAFT=-draft
             # If pre-release, we flag it as pre-release and not as a draft
-            if [[ $VERSION == *"-"* ]]; then DRAFT=""; PRERELEASE=-prerelease; f
+            if [[ $VERSION == *"-"* ]]; then DRAFT=""; PRERELEASE=-prerelease; fi
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
