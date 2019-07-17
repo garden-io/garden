@@ -138,7 +138,7 @@ const remoteBuild: BuildHandler = async (params) => {
   const buildRoot = resolve(module.buildPath, "..")
   // The '/./' trick is used to automatically create the correct target directory with rsync:
   // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
-  let src = normalizeLocalRsyncPath(`${buildRoot}/./${module.name}/`)
+  let src = normalizeLocalRsyncPath(`${buildRoot}`) + `/./${module.name}/`
 
   const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
 

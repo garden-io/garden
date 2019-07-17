@@ -12,8 +12,8 @@ import { Logger } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { resolve, relative } from "path"
 import * as Bluebird from "bluebird"
-import { writeFile } from "fs-extra"
-import { STATIC_DIR } from "../constants"
+import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "../constants"
+import { writeTreeVersionFile } from "../vcs/vcs"
 
 // make sure logger is initialized
 try {
@@ -30,18 +30,14 @@ async function addVersionFiles() {
 
   return Bluebird.map(moduleConfigs, async (config) => {
     const path = config.path
-    const versionFilePath = resolve(path, ".garden-version")
+    const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
 
     const vcsHandler = new GitHandler(garden.gardenDirPath)
     const treeVersion = await vcsHandler.getTreeVersion(path, config.include || null)
 
-    treeVersion.files = treeVersion.files
-      .map(f => relative(path, f))
-      .filter(f => f !== ".garden-version")
-
     console.log(`${config.name} -> ${relative(STATIC_DIR, versionFilePath)}`)
 
-    return writeFile(versionFilePath, JSON.stringify(treeVersion, null, 4) + "\n")
+    return writeTreeVersionFile(path, treeVersion)
   })
 }
 

@@ -8,11 +8,12 @@
 
 import * as Joi from "@hapi/joi"
 import * as Bluebird from "bluebird"
+import normalize = require("normalize-path")
 import { mapValues, keyBy, sortBy, omit } from "lodash"
 import { createHash } from "crypto"
 import { validate, joiArray, joi } from "../config/common"
-import { join } from "path"
-import { GARDEN_VERSIONFILE_NAME } from "../constants"
+import { join, relative, isAbsolute } from "path"
+import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
@@ -93,7 +94,7 @@ export abstract class VcsHandler {
 
   async resolveTreeVersion(path: string, include: string[] | null): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
-    const versionFilePath = join(path, GARDEN_VERSIONFILE_NAME)
+    const versionFilePath = join(path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
     return fileVersion || this.getTreeVersion(path, include)
   }
@@ -176,16 +177,30 @@ export async function readTreeVersionFile(path: string): Promise<TreeVersion | n
   return readVersionFile(path, treeVersionSchema)
 }
 
-export async function writeTreeVersionFile(path: string, version: TreeVersion) {
-  await writeFile(path, JSON.stringify(version))
-}
-
 export async function readModuleVersionFile(path: string): Promise<ModuleVersion | null> {
   return readVersionFile(path, moduleVersionSchema)
 }
 
+/**
+ * Writes a normalized TreeVersion file to the specified directory
+ *
+ * @param dir The directory to write the file to
+ * @param version The TreeVersion for the directory
+ */
+export async function writeTreeVersionFile(dir: string, version: TreeVersion) {
+  const processed = {
+    ...version,
+    files: version.files
+      // Always write relative paths, normalized to POSIX style
+      .map(f => normalize(isAbsolute(f) ? relative(dir, f) : f))
+      .filter(f => f !== GARDEN_TREEVERSION_FILENAME),
+  }
+  const path = join(dir, GARDEN_TREEVERSION_FILENAME)
+  await writeFile(path, JSON.stringify(processed, null, 4) + "\n")
+}
+
 export async function writeModuleVersionFile(path: string, version: ModuleVersion) {
-  await writeFile(path, JSON.stringify(version))
+  await writeFile(path, JSON.stringify(version, null, 4) + "\n")
 }
 
 /**
