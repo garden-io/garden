@@ -152,11 +152,11 @@ jobs:
     steps:
       - build_service_dist:
           version: $(./garden-service/bin/garden --version)
-  build-dist-next:
+  build-dist-master:
     <<: *node-config
     steps:
       - build_service_dist:
-          version: next
+          version: master
   lint:
     <<: *node-config
     steps:
@@ -276,14 +276,14 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./garden-service/dist
-  release-service-dist-next:
+  release-service-dist-master:
     <<: *release-config
     steps:
       - *attach-workspace
       - run:
-          name: Publish a pre-release on GitHub with the tag 'next'
+          name: Publish a pre-release on GitHub with the tag 'master'
           command: |
-            VERSION=next
+            VERSION=master
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
@@ -328,7 +328,7 @@ workflows:
       # Duplicated here so we can reference steps that depends on it
       - build:
           <<: *only-master
-      - build-dist-next:
+      - build-dist-master:
           <<: *only-master
           requires:
             - build
@@ -346,11 +346,11 @@ workflows:
           <<: *only-master
           context: docker
           requires:
-            - build-dist-next
-      - release-service-dist-next:
+            - build-dist-master
+      - release-service-dist-master:
           <<: *only-master
           requires:
-            - build-dist-next
+            - build-dist-master
 
   tags:
     jobs:
