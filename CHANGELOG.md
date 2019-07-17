@@ -1,4 +1,16 @@
 
+<a name="0.10.1-alpha.0"></a>
+## [0.10.1-alpha.0](https://github.com/garden-io/garden/compare/master...0.10.1-alpha.0) (2019-07-16)
+
+
+<a name="master"></a>
+## [master](https://github.com/garden-io/garden/compare/v0.10.1-2...master) (2019-07-17)
+
+### Improvement
+
+* updated PATH to include all gcloud bin-s ([413fd02a](https://github.com/garden-io/garden/commit/413fd02a))
+
+
 <a name="v0.10.1-2"></a>
 ## [v0.10.1-2](https://github.com/garden-io/garden/compare/v0.10.1-1...v0.10.1-2) (2019-07-16)
 
