@@ -152,11 +152,11 @@ jobs:
     steps:
       - build_service_dist:
           version: $(./garden-service/bin/garden --version)
-  build-dist-master:
+  build-dist-edge:
     <<: *node-config
     steps:
       - build_service_dist:
-          version: master
+          version: edge
   lint:
     <<: *node-config
     steps:
@@ -276,14 +276,14 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./garden-service/dist
-  release-service-dist-master:
+  release-service-dist-edge:
     <<: *release-config
     steps:
       - *attach-workspace
       - run:
-          name: Publish a pre-release on GitHub with the tag 'master'
+          name: Publish a pre-release on GitHub with the tag 'edge'
           command: |
-            VERSION=master
+            VERSION=edge
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
@@ -328,7 +328,7 @@ workflows:
       # Duplicated here so we can reference steps that depends on it
       - build:
           <<: *only-master
-      - build-dist-master:
+      - build-dist-edge:
           <<: *only-master
           requires:
             - build
@@ -346,11 +346,11 @@ workflows:
           <<: *only-master
           context: docker
           requires:
-            - build-dist-master
-      - release-service-dist-master:
+            - build-dist-edge
+      - release-service-dist-edge:
           <<: *only-master
           requires:
-            - build-dist-master
+            - build-dist-edge
 
   tags:
     jobs:
