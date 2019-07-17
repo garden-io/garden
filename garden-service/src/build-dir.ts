@@ -7,6 +7,7 @@
  */
 
 import { map as bluebirdMap } from "bluebird"
+import normalize = require("normalize-path")
 import {
   isAbsolute,
   join,
@@ -38,7 +39,8 @@ export class BuildDir {
 
   async syncFromSrc(module: Module, log: LogEntry) {
     const files = module.version.files
-      .map(f => isAbsolute(f) ? relative(module.path, f) : f)
+      // Normalize to relative POSIX-style paths
+      .map(f => normalize(isAbsolute(f) ? relative(module.path, f) : f))
 
     await this.sync({
       module,
@@ -150,7 +152,9 @@ export class BuildDir {
 
     if (files !== undefined) {
       syncOpts.push("--files-from=-")
+      files = files.sort()
       input = files.join("\n")
+      log.silly(`File list: ${JSON.stringify(files)}`)
     }
 
     await execa("rsync", [...syncOpts, sourcePath, destinationPath], { input })
