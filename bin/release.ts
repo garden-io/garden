@@ -96,7 +96,7 @@ async function release() {
 
   // Pull remote tags
   console.log("Pulling remote tags...")
-  await execa("git", ["fetch", "origin", "--tags"], { cwd: gardenRoot })
+  await execa("git", ["fetch", "origin", "--tags", "-f"], { cwd: gardenRoot })
 
   // Verify tag doesn't exist
   const tags = (await execa.stdout("git", ["tag"], { cwd: gardenRoot })).split("\n")
@@ -124,7 +124,9 @@ async function release() {
   console.log("Committing changes...")
   await execa("git", [
     "add",
-    "CHANGELOG.md", "garden-service/package.json", "garden-service/package-lock.json",
+    "CHANGELOG.md",
+    "garden-service/package.json", "garden-service/package-lock.json",
+    "dashboard/package.json", "dashboard/package-lock.json",
   ], { cwd: gardenRoot })
   await execa("git", [
     "commit",
