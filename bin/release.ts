@@ -124,7 +124,9 @@ async function release() {
   console.log("Committing changes...")
   await execa("git", [
     "add",
-    "CHANGELOG.md", "garden-service/package.json", "garden-service/package-lock.json",
+    "CHANGELOG.md",
+    "garden-service/package.json", "garden-service/package-lock.json",
+    "dashboard/package.json", "dashboard/package-lock.json",
   ], { cwd: gardenRoot })
   await execa("git", [
     "commit",

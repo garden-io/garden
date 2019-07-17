@@ -1,10 +1,18 @@
 
-<a name="0.10.1-alpha.0"></a>
-## [0.10.1-alpha.0](https://github.com/garden-io/garden/compare/master...0.10.1-alpha.0) (2019-07-16)
+<a name="0.10.1-alpha.4"></a>
+## [0.10.1-alpha.4](https://github.com/garden-io/garden/compare/edge...0.10.1-alpha.4) (2019-07-17)
+
+### Bug Fixes
+
+* various issues with path handling on Windows ([ea001d40](https://github.com/garden-io/garden/commit/ea001d40))
 
 
-<a name="master"></a>
-## [master](https://github.com/garden-io/garden/compare/v0.10.1-2...master) (2019-07-17)
+<a name="edge"></a>
+## [edge](https://github.com/garden-io/garden/compare/v0.10.1-alpha.3...edge) (2019-07-17)
+
+
+<a name="v0.10.1-alpha.3"></a>
+## [v0.10.1-alpha.3](https://github.com/garden-io/garden/compare/v0.10.1-2...v0.10.1-alpha.3) (2019-07-17)
 
 ### Improvement
 
