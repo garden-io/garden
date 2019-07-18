@@ -8,11 +8,13 @@
 
 import _dedent = require("dedent")
 import _deline = require("deline")
+import _urlJoin = require("proper-url-join")
 
 // Exporting these here for convenience and ease of imports (otherwise we need to require modules instead of using
 // the import syntax, and it for some reason doesn't play nice with IDEs).
 export const dedent = _dedent
 export const deline = _deline
+export const urlJoin = _urlJoin as (...args: string[]) => string
 
 const gardenAnnotationPrefix = "garden.io/"
 
