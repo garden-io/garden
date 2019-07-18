@@ -7,9 +7,7 @@ import chalk from "chalk"
 import parseArgs = require("minimist")
 import deline = require("deline")
 import { join, resolve } from "path"
-import * as Replace from "replace-in-file"
-
-const replace = Replace.default
+const replace = require("replace-in-file")
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
@@ -54,7 +52,7 @@ async function release() {
   ], { cwd: gardenServiceRoot })
 
   // Read the version from garden-service/package.json after setting it (rather than parsing the lerna output)
-  const version = require("../garden-service/package.json").version
+  const version = "v" + require("../garden-service/package.json").version
   const branchName = `release-${version}`
 
   // Check if branch already exists locally
