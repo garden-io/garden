@@ -54,7 +54,7 @@ async function release() {
   ], { cwd: gardenServiceRoot })
 
   // Read the version from garden-service/package.json after setting it (rather than parsing the lerna output)
-  const version = require("../garden-service/package.json").version
+  const version = "v" + require("../garden-service/package.json").version
   const branchName = `release-${version}`
 
   // Check if branch already exists locally
