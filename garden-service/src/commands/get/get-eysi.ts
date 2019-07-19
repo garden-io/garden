@@ -9,14 +9,14 @@
 import {
   Command,
   CommandResult,
-} from "./base"
+} from "../base"
 import dedent = require("dedent")
 import { readFile } from "fs-extra"
-import { STATIC_DIR } from "../constants"
+import { STATIC_DIR } from "../../constants"
 import { join } from "path"
 import execa = require("execa")
 
-export class EysiCommand extends Command {
+export class GetEysiCommand extends Command {
   name = "eysi"
   help = "Meet our CTO."
 
@@ -32,7 +32,7 @@ export class EysiCommand extends Command {
 
     try {
       // Close enough.
-      await execa("say", ["Hello", "I", "am", "Aysey"])
+      await execa("say", ["Hello", ",", "I", "am", "Aysey"])
     } catch (_) { }
 
     return { result: { eysi } }

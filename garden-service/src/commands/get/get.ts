@@ -9,6 +9,7 @@
 import { Command } from "../base"
 import { GetGraphCommand } from "./get-graph"
 import { GetConfigCommand } from "./get-config"
+import { GetEysiCommand } from "./get-eysi"
 import { GetSecretCommand } from "./get-secret"
 import { GetStatusCommand } from "./get-status"
 import { GetTasksCommand } from "./get-tasks"
@@ -23,6 +24,7 @@ export class GetCommand extends Command {
   subCommands = [
     GetGraphCommand,
     GetConfigCommand,
+    GetEysiCommand,
     GetSecretCommand,
     GetStatusCommand,
     GetTasksCommand,
