@@ -118,43 +118,62 @@ With the Stack Graph, each part of your stack can *describe itself* using simple
 
 ## FAQs
 
-**Is Garden a CI platform/tool?**
+<details>
+<summary><b>Is Garden a CI platform/tool?</b></summary>
 
 Not exactly, but you can certainly use Garden to make your CI faster and easier to work with. We highly recommend [running Garden from your CI setup](https://docs.garden.io/examples/using-garden-in-ci), so that you can re-use the same structure and config, as well as your build and test result caches (if you're using shared dev clusters).
-
-**Does Garden work with Docker Swarm/Mesos/<insert platform>?**
+</details>
+<br>
+<details>
+<summary><b>Does Garden work with Docker Swarm/Mesos/&lt;other platform&gt;?</b></summary>
 
 We currently primarily support Kubernetes, but Garden is designed to be pluggable to work with any operational platform. Our focus is on making development and testing of *distributed systems* faster and easier, but Kubernetes is where we're focusing our efforts today.
 
 That said, we have made experimental plugins for Docker Swarm, Google Cloud Functions and more. When we release our plugin SDK later this year, we plan on working with the developer community to support a variety of platforms, including a number of serverless/FaaS platforms. This will allow users to pick and choose platforms for individual services, but keep the same development and testing workflows across the board.
-
-**How is Garden different from Skaffold/Tilt?**
+</details>
+<br>
+<details>
+<summary><b>How is Garden different from Skaffold/Tilt?</b></summary>
 
 Garden generally has a broader focus, and has a lot of features to manage dependencies, tests and other relationships between different parts of your stack. In turn, Garden may be slightly more complex to get started with, and has some additional terminology to learn. Skaffold and Tilt are also coupled to Kubernetes, whereas Garden is designed to be more extensible and flexible.
 
 This has pros and cons in either direction, since tight coupling can in some cases enable some more specific Kubernetes-related features. However, we feel strongly that your developer tools should be adaptable across platforms, especially considering all the interesting technologies that are on the horizon, such as WASM, serverless, edge functions, etc.
 
-**Should I use Garden to deploy to production?**
+</details>
+<br>
+<details>
+<summary><b>Should I use Garden to deploy to production?</b></summary>
 
-You *can* use `garden deploy` to deploy to production if you don't need gradual rollouts, canary deployments, etc. but Garden is primarily designed for development and testing.
+You can use `garden deploy` to deploy to production if you don't need gradual rollouts, canary deployments, etc. but Garden does _not yet_ support those directly.
 
 As your needs evolve (if they haven't already), we recommend using `helm` modules or raw Kubernetes manifests using the `kubernetes` module type. You can then use those same Helm charts and manifests with any CD/GitOps tool of your choosing.
 
-**How much does Garden cost?**
+</details>
+<br>
+<details>
+<summary><b>How much does Garden cost?</b></summary>
 
 Garden is free and open source. We are working on SaaS and Enterprise products that *use* the open-source project, but we will not make a closed-source version of this project. If you need professional support, please [reach out](https://garden.io/#get-demo).
 
-**Why TypeScript?**
+</details>
+<br>
+<details>
+<summary><b>Why TypeScript?</b></summary>
 
 We find TypeScript strikes a good balance between power and simplicity, and it handles asynchronous work really well. We also get rid of some of the key weaknesses of Node.js by using Zeit's [pkg](https://github.com/zeit/pkg) to distribute Garden as a single binary, so users don't need to think about npm and all that stuff.
 
 We do plan on splitting Garden into more components, some of which will be written in Go, and to make plugin SDKs for both TypeScript/JavaScript and Go.
 
-**Why the name "Garden?"**
+</details>
+<br>
+<details>
+<summary><b>Why the name "Garden?</b></summary>
 
 We feel it's a nice and welcoming name :) And we like the notion that your software grows in a living environment. Like a well kept garden of flowers and plants, your software stack is a living system of living things.
 
 Seasons change, as technologies do. New ideas come alive and some die or fall out of favor. Most importantly, all of them need to work and thrive together in their little ecosystem—your own Garden.
+
+</details>
 
 ## Status
 
