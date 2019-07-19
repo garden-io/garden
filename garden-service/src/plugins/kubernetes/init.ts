@@ -35,7 +35,7 @@ import { combineStates, ServiceStatusMap } from "../../types/service"
  */
 export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const variables = getVariables(k8sCtx.provider.config)
+  const variables = getKubernetesSystemVariables(k8sCtx.provider.config)
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {})
   const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
@@ -131,7 +131,7 @@ export async function prepareSystem(
 ) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const variables = getVariables(provider.config)
+  const variables = getKubernetesSystemVariables(provider.config)
 
   const systemReady = status.detail && !!status.detail.systemReady && !force
   const systemServiceNames = k8sCtx.provider.config._systemServices
@@ -206,7 +206,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   return {}
 }
 
-function getVariables(config: KubernetesConfig) {
+export function getKubernetesSystemVariables(config: KubernetesConfig) {
   return {
     "namespace": systemNamespace,
 

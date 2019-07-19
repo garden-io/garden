@@ -9,7 +9,6 @@
 // No idea why tslint complains over this line
 // tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
-import { resolve } from "url"
 import {
   KubeConfig,
   V1Secret,
@@ -37,6 +36,7 @@ import { GardenBaseError, RuntimeError, ConfigurationError } from "../../excepti
 import { KubernetesResource, KubernetesServerResource, KubernetesServerList } from "./types"
 import { LogEntry } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
+import { urlJoin } from "../../util/string"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -261,7 +261,7 @@ export class KubeApi {
 
   async request(log: LogEntry, path: string, opts: Omit<request.OptionsWithUrl, "url"> = {}): Promise<any> {
     const baseUrl = this.config.getCurrentCluster()!.server
-    const url = resolve(baseUrl, path)
+    const url = urlJoin(baseUrl, path)
 
     // set some default values
     const requestOpts = {

@@ -424,6 +424,33 @@ export class ActionHelper implements TypeGuard {
     })
   }
 
+  /**
+   * Deletes all services and cleans up the specified environment.
+   */
+  async deleteEnvironment(log: LogEntry) {
+    const graph = await this.garden.getConfigGraph()
+
+    const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
+
+    const services = await graph.getServices()
+    const serviceStatuses: { [key: string]: ServiceStatus } = {}
+
+    await Bluebird.map(services, async (service) => {
+      const runtimeContext = await getServiceRuntimeContext(this.garden, graph, service)
+      serviceStatuses[service.name] = await this.deleteService({ log: servicesLog, service, runtimeContext })
+    })
+
+    servicesLog.setSuccess()
+
+    log.info("")
+
+    const envLog = log.info({ msg: chalk.white("Cleaning up environments..."), status: "active" })
+    const environmentStatuses = await this.cleanupEnvironment({ log: envLog })
+    envLog.setSuccess()
+
+    return { serviceStatuses, environmentStatuses }
+  }
+
   async getDebugInfo({ log }: { log: LogEntry }): Promise<DebugInfoMap> {
     const handlers = this.getActionHandlers("getDebugInfo")
     return Bluebird.props(mapValues(handlers, async (h) => h({ ...await this.commonParams(h, log) })))

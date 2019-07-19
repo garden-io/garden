@@ -24,6 +24,7 @@ import { configSchema } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
 import { clusterInit } from "./commands/cluster-init"
+import { uninstallGardenServices } from "./commands/uninstall-garden-services"
 
 export const name = "kubernetes"
 
@@ -92,6 +93,7 @@ export function gardenPlugin(): GardenPlugin {
     commands: [
       cleanupClusterRegistry,
       clusterInit,
+      uninstallGardenServices,
     ],
     actions: {
       configureProvider,

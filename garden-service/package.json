@@ -1,6 +1,6 @@
 {
   "name": "garden-service",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
@@ -87,6 +87,7 @@
     "p-retry": "^4.1.0",
     "path-is-inside": "^1.0.2",
     "pluralize": "^8.0.0",
+    "proper-url-join": "^2.0.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "source-map-support": "^0.5.12",
