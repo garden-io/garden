@@ -207,16 +207,6 @@ Examples:
   | `--skip-tests` |  | boolean | Disable running the tests.
   | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 
-### garden eysi
-
-Meet our CTO.
-
-Just try it.
-
-##### Usage
-
-    garden eysi 
-
 ### garden exec
 
 Executes a command (such as an interactive shell) in a running service.
@@ -264,6 +254,16 @@ Outputs the fully resolved configuration for this project and environment.
 ##### Usage
 
     garden get config 
+
+### garden get eysi
+
+Meet our CTO.
+
+Just try it.
+
+##### Usage
+
+    garden get eysi 
 
 ### garden get secret
 

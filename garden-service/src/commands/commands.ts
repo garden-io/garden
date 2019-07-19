@@ -29,7 +29,6 @@ import { ServeCommand } from "./serve"
 import { OptionsCommand } from "./options"
 import { ConfigCommand } from "./config/config"
 import { PluginsCommand } from "./plugins"
-import { EysiCommand } from "./eysi"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -37,7 +36,6 @@ export const coreCommands: Command[] = [
   new DeleteCommand(),
   new DeployCommand(),
   new DevCommand(),
-  new EysiCommand(),
   new ExecCommand(),
   new GetCommand(),
   new InitCommand(),
