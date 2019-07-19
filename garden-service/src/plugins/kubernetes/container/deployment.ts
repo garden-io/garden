@@ -267,7 +267,7 @@ function deploymentConfig(service: Service, configuredReplicas: number, namespac
   // TODO: moar type-safety
   return {
     kind: "Deployment",
-    apiVersion: "extensions/v1beta1",
+    apiVersion: "apps/v1",
     metadata: {
       name: service.name,
       annotations: {
