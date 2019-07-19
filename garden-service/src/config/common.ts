@@ -165,12 +165,13 @@ export const joiArray = (schema) => Joi
 export const joiRepositoryUrl = () => Joi
   .string()
   .uri({
-    // TODO Support other protocols?
     scheme: [
       "git",
       /git\+https?/,
+      /git\+ssh?/,
       "https",
       "file",
+      "ssh",
     ],
   })
   .description(
