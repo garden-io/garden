@@ -1,6 +1,13 @@
 import { expect } from "chai"
 const stripAnsi = require("strip-ansi")
-import { identifierRegex, validate, envVarRegex, userIdentifierRegex, joi } from "../../../../src/config/common"
+import {
+  identifierRegex,
+  validate,
+  envVarRegex,
+  userIdentifierRegex,
+  joi,
+  joiRepositoryUrl,
+} from "../../../../src/config/common"
 import { expectError } from "../../../helpers"
 
 describe("envVarRegex", () => {
@@ -236,5 +243,70 @@ describe("joi.posixPath", () => {
     const schema = joi.string().posixPath()
     const result = schema.validate(path)
     expect(result.error).to.be.null
+  })
+})
+
+describe("joiRepositoryUrl", () => {
+  it("should accept a git:// URL", () => {
+    const url = "git://github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.null
+  })
+
+  it("should accept an HTTPS Git URL", () => {
+    const url = "https://github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.null
+  })
+
+  it("should accept an scp-like SSH GitHub URL", () => {
+    const url = "git@github.com:garden-io/garden-example-remote-sources-web-services.git#my-tag"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.null
+  })
+
+  it("should accept an ssh:// GitHub URL", () => {
+    const url = "ssh://git@github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.null
+  })
+
+  it("should accept a git+https// URL", () => {
+    const url = "git+https://git@github.com:garden-io/garden-example-remote-sources-web-services.git#my-tag"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.null
+  })
+
+  it("should accept a git+ssh// URL", () => {
+    const url = "git+ssh://git@github.com:garden-io/garden-example-remote-sources-web-services.git#my-tag"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.null
+  })
+
+  it("should accept a local file:// URL", () => {
+    const url = "file:///some/dir"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.null
+  })
+
+  it("should reject non-string values", () => {
+    const url = 123
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.exist
+  })
+
+  it("should require a branch/tag name", () => {
+    const url = "https://github.com/garden-io/garden-example-remote-sources-web-services.git"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.exist
   })
 })

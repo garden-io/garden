@@ -12,6 +12,8 @@ import * as uuid from "uuid"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
+import { splitLast } from "../util/util"
+import isGitUrl = require("is-git-url")
 
 export type Primitive = string | number | boolean | null
 
@@ -26,6 +28,10 @@ export const enumToArray = Enum => (
   Object.values(Enum).filter(k => typeof k === "string") as string[]
 )
 
+interface JoiGitUrlParams {
+  requireHash?: boolean
+}
+
 interface JoiPathParams {
   absoluteOnly?: boolean
   relativeOnly?: boolean
@@ -34,6 +40,7 @@ interface JoiPathParams {
 
 // Extend the Joi module with our custom rules
 export interface CustomStringSchema extends Joi.StringSchema {
+  gitUrl: (params: JoiGitUrlParams) => CustomStringSchema
   posixPath: (params?: JoiPathParams) => CustomStringSchema
 }
 
@@ -45,12 +52,48 @@ export const joi: Joi.Root = Joi.extend({
   base: Joi.string(),
   name: "string",
   language: {
+    gitUrl: "must be a valid Git repository URL",
+    requireHash: "must specify a branch/tag hash",
     posixPath: "must be a POSIX-style path", // Used below as 'string.posixPath'
     absoluteOnly: "must be a an absolute path",
     relativeOnly: "must be a relative path (may not be an absolute path)",
     subPathOnly: "must be a relative sub-path (may not contain '..' or be an absolute path)",
   },
   rules: [
+    {
+      name: "gitUrl",
+      params: {
+        options: Joi.object()
+          .keys({
+            requireHash: Joi.boolean()
+              .description("Only allow Git URLs with a branch/tag hash."),
+          }),
+      },
+      validate(params: { options?: JoiGitUrlParams }, value: string, state, prefs) {
+        // Make sure it's a string
+        const baseSchema = Joi.string()
+        const result = baseSchema.validate(value)
+
+        if (result.error) {
+          return result.error
+        }
+
+        if (!isGitUrl(value)) {
+          // tslint:disable-next-line:no-invalid-this
+          return this.createError("string.gitUrl", { v: value }, state, prefs)
+        }
+
+        if (params.options && params.options.requireHash === true) {
+          const url = splitLast(value, "#")[0]
+          if (!url) {
+            // tslint:disable-next-line:no-invalid-this
+            return this.createError("string.requireHash", { v: value }, state, prefs)
+          }
+        }
+
+        return value
+      },
+    },
     {
       name: "posixPath",
       params: {
@@ -127,7 +170,7 @@ export const joiProviderName = (name: string) => joiIdentifier().required()
   .default(name)
   .example(name)
 
-export const joiStringMap = (valueSchema: JoiObject) => Joi
+export const joiStringMap = (valueSchema: JoiObject) => joi
   .object().pattern(/.+/, valueSchema)
 
 export const joiUserIdentifier = () => joi.string()
@@ -138,18 +181,18 @@ export const joiUserIdentifier = () => joi.string()
     "or be longer than 63 characters.",
   )
 
-export const joiIdentifierMap = (valueSchema: JoiObject) => Joi
+export const joiIdentifierMap = (valueSchema: JoiObject) => joi
   .object().pattern(identifierRegex, valueSchema)
   .default(() => ({}), "{}")
   .description("Key/value map. Keys must be valid identifiers.")
 
-export const joiVariables = () => Joi
+export const joiVariables = () => joi
   .object().pattern(/[\w\d]+/i, joiPrimitive())
   .default(() => ({}), "{}")
   .unknown(false)
   .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
 
-export const joiEnvVars = () => Joi
+export const joiEnvVars = () => joi
   .object().pattern(envVarRegex, joiPrimitive())
   .default(() => ({}), "{}")
   .unknown(false)
@@ -158,22 +201,15 @@ export const joiEnvVars = () => Joi
     "(must not start with `GARDEN`) and values must be primitives.",
   )
 
-export const joiArray = (schema) => Joi
+export const joiArray = (schema) => joi
   .array().items(schema)
   .default(() => [], "[]")
 
-export const joiRepositoryUrl = () => Joi
-  .string()
-  .uri({
-    scheme: [
-      "git",
-      /git\+https?/,
-      /git\+ssh?/,
-      "https",
-      "file",
-      "ssh",
-    ],
-  })
+export const joiRepositoryUrl = () => joi.alternatives(
+  joi.string().gitUrl({ requireHash: true }),
+  // Allow file URLs as well
+  joi.string().uri({ scheme: ["file"] }),
+)
   .description(
     "A remote repository URL. Currently only supports git servers. Must contain a hash suffix" +
     " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>",

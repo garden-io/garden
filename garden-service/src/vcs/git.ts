@@ -17,6 +17,7 @@ import { ConfigurationError, RuntimeError } from "../exceptions"
 import * as Bluebird from "bluebird"
 import { matchGlobs } from "../util/fs"
 import { deline } from "../util/string"
+import { splitLast } from "../util/util"
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -27,9 +28,8 @@ export function getCommitIdFromRefList(refList: string[]): string {
 }
 
 export function parseGitUrl(url: string) {
-  const parts = url.split("#")
-  const parsed = { repositoryUrl: parts[0], hash: parts[1] }
-  if (!parsed.hash) {
+  const parts = splitLast(url, "#")
+  if (!parts[0]) {
     throw new ConfigurationError(
       deline`
         Repository URLs must contain a hash part pointing to a specific branch or tag
@@ -37,6 +37,7 @@ export function parseGitUrl(url: string) {
       { repositoryUrl: url },
     )
   }
+  const parsed = { repositoryUrl: parts[0], hash: parts[1] }
   return parsed
 }
 
