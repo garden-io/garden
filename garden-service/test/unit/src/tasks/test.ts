@@ -20,8 +20,6 @@ describe("TestTask", () => {
   })
 
   it("should correctly resolve version for tests with dependencies", async () => {
-    process.env.TEST_VARIABLE = "banana"
-
     const resolveVersion = td.replace(garden, "resolveVersion")
 
     const versionA: ModuleVersion = {
@@ -63,5 +61,26 @@ describe("TestTask", () => {
     })
 
     expect(task.version).to.eql(versionA)
+  })
+
+  describe("getDependencies", () => {
+    it("should include task dependencies", async () => {
+      const moduleA = await graph.getModule("module-a")
+      const testConfig = moduleA.testConfigs[0]
+
+      const task = await TestTask.factory({
+        garden,
+        log,
+        graph,
+        module: moduleA,
+        testConfig,
+        force: true,
+        forceBuild: false,
+      })
+
+      const deps = await task.getDependencies()
+
+      expect(deps.map(d => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
+    })
   })
 })
