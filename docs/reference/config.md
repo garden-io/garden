@@ -136,9 +136,9 @@ A key/value map of variables that modules can reference when using this environm
 
 A list of environments to configure for the project.
 
-| Type           | Required |
-| -------------- | -------- |
-| `alternatives` | No       |
+| Type                            | Required |
+| ------------------------------- | -------- |
+| `array[object] | array[string]` | No       |
 
 Example:
 
