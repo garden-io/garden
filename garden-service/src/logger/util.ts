@@ -8,6 +8,7 @@
 
 import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
+import * as CircularJSON from "circular-json"
 import { LogNode } from "./log-node"
 import { LogEntry, CreateOpts, EmojiName } from "./log-entry"
 
@@ -136,4 +137,11 @@ export function printFooter(log: LogEntry) {
 
 export function printWarningMessage(log: LogEntry, text: string) {
   return log.info({ emoji: "warning", msg: chalk.bold.yellow(text) })
+}
+
+/**
+ * Strips undefined values and circular references from an object.
+ */
+export function sanitizeObject(obj: any) {
+  return JSON.parse(CircularJSON.stringify(obj))
 }
