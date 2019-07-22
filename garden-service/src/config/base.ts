@@ -44,6 +44,9 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     throw new ConfigurationError(`Could not parse ${basename(absPath)} in directory ${path} as valid YAML`, err)
   }
 
+  // Ignore empty resources
+  rawSpecs = rawSpecs.filter(Boolean)
+
   const resources: GardenResource[] = flatten(rawSpecs.map(s => prepareResources(s, path, projectRoot)))
 
   const projectSpecs = resources.filter(s => s.kind === "Project")
