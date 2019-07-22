@@ -11,7 +11,7 @@ import * as nodeEmoji from "node-emoji"
 import { flatten } from "lodash"
 
 import { LogNode, LogLevel } from "./log-node"
-import { getChildEntries, findParentEntry } from "./util"
+import { getChildEntries, findParentEntry, sanitizeObject } from "./util"
 import { GardenError } from "../exceptions"
 import { Omit } from "../util/util"
 import { Logger } from "./logger"
@@ -196,11 +196,11 @@ export class LogEntry extends LogNode {
   }
 
   inspect() {
-    console.log(JSON.stringify({
+    console.log(JSON.stringify(sanitizeObject({
       ...this.opts,
       level: this.level,
       children: this.children,
-    }))
+    })))
   }
 
   filterBySection(section: string): LogEntry[] {

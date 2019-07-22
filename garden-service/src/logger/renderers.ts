@@ -10,7 +10,6 @@ import * as logSymbols from "log-symbols"
 import * as yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
-import * as CircularJSON from "circular-json"
 import {
   curryRight,
   flow,
@@ -26,7 +25,7 @@ import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, deepFilter } from "../util/util"
 import { isNumber } from "util"
-import { printEmoji } from "./util"
+import { printEmoji, sanitizeObject } from "./util"
 
 export type ToRender = string | ((...args: any[]) => string)
 export type Renderer = [ToRender, any[]] | ToRender[]
@@ -91,7 +90,7 @@ export function renderError(entry: LogEntry) {
 
     if (!isEmpty(filteredDetail)) {
       try {
-        const sanitized = JSON.parse(CircularJSON.stringify(filteredDetail))
+        const sanitized = sanitizeObject(filteredDetail)
         const yamlDetail = yaml.safeDump(sanitized, { noRefs: true, skipInvalid: true })
         out += `\nError Details:\n${yamlDetail}`
       } catch (err) {
