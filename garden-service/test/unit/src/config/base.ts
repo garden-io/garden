@@ -2,6 +2,7 @@ import { expect } from "chai"
 import { loadConfig, findProjectConfig } from "../../../../src/config/base"
 import { resolve } from "path"
 import { dataDir, expectError, getDataDir } from "../../../helpers"
+import { DEFAULT_API_VERSION } from "../../../../src/constants"
 
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -316,6 +317,18 @@ describe("loadConfig", () => {
     expect(parsed).to.eql([])
   })
 
+  it("should ignore empty documents in multi-doc YAML", async () => {
+    const path = resolve(dataDir, "test-projects", "empty-doc")
+    const parsed = await loadConfig(path, path)
+    expect(parsed).to.eql([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "foo",
+        path,
+      },
+    ])
+  })
 })
 
 describe("findProjectConfig", async () => {
