@@ -8,6 +8,9 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
+import { find } from "lodash"
+import minimatch = require("minimatch")
+
 import { Module } from "../types/module"
 import { TestConfig } from "../config/test"
 import { ModuleVersion } from "../vcs/vcs"
@@ -20,8 +23,8 @@ import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
-import minimatch = require("minimatch")
-import { find } from "lodash"
+import { TaskTask } from "./task"
+
 class TestError extends Error {
   toString() {
     return this.message
@@ -69,27 +72,38 @@ export class TestTask extends BaseTask {
     }
 
     const dg = this.graph
-    const services = (await dg.getDependencies("test", this.getName(), false)).service
+    const deps = await dg.getDependencies("test", this.getName(), false)
 
-    const deps: BaseTask[] = [new BuildTask({
+    const buildTask = new BuildTask({
       garden: this.garden,
       log: this.log,
       module: this.module,
       force: this.forceBuild,
-    })]
+    })
 
-    for (const service of services) {
-      deps.push(new DeployTask({
+    const taskTasks = await Bluebird.map(deps.task, (task) => {
+      return TaskTask.factory({
+        task,
+        garden: this.garden,
+        log: this.log,
+        graph: this.graph,
+        force: this.force,
+        forceBuild: this.forceBuild,
+      })
+    })
+
+    const serviceTasks = deps.service.map(service =>
+      new DeployTask({
         garden: this.garden,
         graph: this.graph,
         log: this.log,
         service,
         force: false,
         forceBuild: this.forceBuild,
-      }))
-    }
+      }),
+    )
 
-    return Bluebird.all(deps)
+    return [buildTask, ...serviceTasks, ...taskTasks]
   }
 
   getName() {
@@ -205,6 +219,9 @@ async function getTestDependencies(graph: ConfigGraph, testConfig: TestConfig) {
 export async function getTestVersion(
   garden: Garden, graph: ConfigGraph, module: Module, testConfig: TestConfig,
 ): Promise<ModuleVersion> {
-  const moduleDeps = await graph.resolveDependencyModules(module.build.dependencies, testConfig.dependencies)
+  const moduleDeps = (await graph.resolveDependencyModules(module.build.dependencies, testConfig.dependencies))
+    // Don't include the module itself in the dependencies here
+    .filter(m => m.name !== module.name)
+
   return garden.resolveVersion(module.name, moduleDeps)
 }
