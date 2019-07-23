@@ -143,8 +143,11 @@ function normalizeKeyDescription(description: Description): NormalizedDescriptio
   let hasChildren: boolean = false
   let arrayType: string | undefined
   const { type } = description
+  const formattedType = formatType(description)
+
   const children = type === "object" && Object.entries(description.children || {})
   const items = type === "array" && description.items
+
   if (children && children.length > 0) {
     hasChildren = true
   } else if (items && items.length > 0) {
@@ -164,7 +167,6 @@ function normalizeKeyDescription(description: Description): NormalizedDescriptio
   }
 
   const formattedName = type === "array" ? `${description.name}[]` : description.name
-  const formattedType = (type === "array" && arrayType ? `array[${arrayType}]` : type) || ""
 
   return {
     ...description,
@@ -175,6 +177,22 @@ function normalizeKeyDescription(description: Description): NormalizedDescriptio
     allowedValues,
     formattedExample,
     hasChildren,
+  }
+}
+
+function formatType(description: Description) {
+  const { type } = description
+  const items = type === "array" && description.items
+
+  if (items && items.length > 0) {
+    // We don't consider an array of primitives as children
+    const arrayType = items[0].type
+    return `array[${arrayType}]`
+  } else if (type === "alternatives") {
+    // returns e.g. "string|number"
+    return uniq(description.alternatives.map(formatType)).join(" | ")
+  } else {
+    return type || ""
   }
 }
 

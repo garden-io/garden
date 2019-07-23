@@ -65,6 +65,8 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should resolve template strings on fields other than provider configs", async () => {
+    const repositoryUrl = "git://github.com/foo/bar.git#boo"
+
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -90,7 +92,7 @@ describe("resolveProjectConfig", () => {
       sources: [
         {
           name: "\${local.env.TEST_ENV_VAR}",
-          repositoryUrl: "git://\${local.env.TEST_ENV_VAR}",
+          repositoryUrl,
         },
       ],
       variables: {
@@ -118,7 +120,7 @@ describe("resolveProjectConfig", () => {
       sources: [
         {
           name: "foo",
-          repositoryUrl: "git://foo",
+          repositoryUrl,
         },
       ],
       variables: {
