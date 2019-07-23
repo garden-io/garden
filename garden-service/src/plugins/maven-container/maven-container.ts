@@ -133,13 +133,6 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
 
   const configured = await configureContainerModule({ ...params, moduleConfig: containerConfig })
 
-  const hasOwnDockerfile = await containerHelpers.hasDockerfile(moduleConfig)
-
-  if (!hasOwnDockerfile) {
-    // Set the default Dockerfile provided by the plugin
-    configured.spec.dockerfile = "maven-container.Dockerfile"
-  }
-
   return {
     ...configured,
     spec: {
