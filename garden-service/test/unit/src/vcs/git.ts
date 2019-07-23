@@ -6,6 +6,13 @@ import { join, resolve } from "path"
 import { expectError } from "../../../helpers"
 import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
 
+async function addToGardenIgnore(tmpPath: string, pathToExclude: string) {
+  const gardenignorePath = resolve(tmpPath, ".gardenignore")
+
+  await createFile(gardenignorePath)
+  await writeFile(gardenignorePath, pathToExclude)
+}
+
 describe("GitHandler", () => {
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
@@ -170,6 +177,27 @@ describe("GitHandler", () => {
       expect(await handler.getFiles(tmpPath, ["foo.*"])).to.eql([
         { path, hash },
       ])
+    })
+
+    it("should exclude untracked files that are listed in .gardenignore", async () => {
+      const name = "foo.txt"
+      const path = resolve(tmpPath, name)
+      await createFile(path)
+      await addToGardenIgnore(tmpPath, name)
+
+      expect((await handler.getFiles(tmpPath)).filter(f => !f.path.includes(".gardenignore"))).to.eql([])
+    })
+
+    it("should exclude tracked files that are listed in .gardenignore", async () => {
+      const name = "foo.txt"
+      const path = resolve(tmpPath, name)
+      await createFile(path)
+      await addToGardenIgnore(tmpPath, name)
+
+      await git("add", path)
+      await git("commit", "-m", "foo")
+
+      expect((await handler.getFiles(tmpPath)).filter(f => !f.path.includes(".gardenignore"))).to.eql([])
     })
   })
 

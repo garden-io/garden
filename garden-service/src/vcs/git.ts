@@ -8,6 +8,7 @@
 
 import * as execa from "execa"
 import { join, resolve } from "path"
+import { flatten } from "lodash"
 import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
 import { PassThrough } from "stream"
 import * as hasha from "hasha"
@@ -87,7 +88,12 @@ export class GitHandler extends VcsHandler {
        * whose config is colocated with the project config, and that don't specify include paths/patterns.
        */
       lines = await git("ls-files", "-s", "--other", "--exclude=.garden", path)
-      ignored = await git("ls-files", "--ignored", "--exclude-per-directory=.gardenignore", path)
+
+      // List ignored files from .gardenignore. We need to run ls-files twice to get both tracked and untracked files.
+      const lsFilesCmd = ["ls-files", "--ignored", "--exclude-per-directory=.gardenignore"]
+      const lsFilesUntrackedCmd = [...lsFilesCmd, "--others"]
+
+      ignored = flatten(await Bluebird.map([lsFilesCmd, lsFilesUntrackedCmd], async (cmd) => git(...cmd, path)))
     } catch (err) {
       // if we get 128 we're not in a repo root, so we get no files
       if (err.code !== 128) {
