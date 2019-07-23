@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pathExists } from "fs-extra"
 import { join } from "path"
 import * as semver from "semver"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
@@ -21,13 +20,6 @@ interface ParsedImageId {
   namespace?: string
   repository: string
   tag?: string
-}
-
-function getDockerfilePath(basePath: string, dockerfile?: string) {
-  if (dockerfile) {
-    return join(basePath, dockerfile)
-  }
-  return join(basePath, "Dockerfile")
 }
 
 // TODO: This is done to make it easy to stub when testing.
@@ -271,10 +263,11 @@ const helpers = {
     }
   },
 
-  async hasDockerfile(moduleConfig: ContainerModuleConfig) {
+  async hasDockerfile(module: ContainerModule): Promise<Boolean> {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-    return moduleConfig.spec.dockerfile || pathExists(helpers.getDockerfileSourcePath(moduleConfig))
+    const dockerfileSourcePath = helpers.getDockerfileSourcePath(module)
+    return !!module.spec.dockerfile || module.version.files.includes(dockerfileSourcePath)
   },
 
   getDockerfileBuildPath(module: ContainerModule) {
@@ -291,4 +284,8 @@ export const containerHelpers = helpers
 // Ugh, Docker doesn't use valid semver. Here's a hacky fix.
 function fixDockerVersionString(v: string) {
   return semver.coerce(v.replace(/\.0([\d]+)/g, ".$1"))!
+}
+
+function getDockerfilePath(basePath: string, dockerfile = "Dockerfile") {
+  return join(basePath, dockerfile)
 }
