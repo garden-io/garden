@@ -54,7 +54,6 @@ describe("BuildDir", () => {
     const buildDirA = await garden.buildDir.buildPath(moduleA.name)
 
     const copiedPaths = [
-      await getConfigFilePath(buildDirA),
       join(buildDirA, "some-dir", "some-file"),
     ]
 

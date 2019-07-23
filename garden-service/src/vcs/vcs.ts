@@ -85,22 +85,27 @@ export abstract class VcsHandler {
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
 
-  // Note: explicitly requiring the include variable or null, to make sure it's specified
-  async getTreeVersion(path: string, include: string[] | null): Promise<TreeVersion> {
-    const files = sortBy(await this.getFiles(path, include || undefined), "path")
-    const contentHash = files.length > 0 ? hashFileHashes(files.map(f => f.hash)) : NEW_MODULE_VERSION
+  async getTreeVersion(moduleConfig: ModuleConfig): Promise<TreeVersion> {
+    const configPath = moduleConfig.configPath
+
+    const files = sortBy(await this.getFiles(moduleConfig.path, moduleConfig.include), "path")
+      // Don't include the config file in the file list
+      .filter(f => !configPath || f.path !== configPath)
+
+    const contentHash = files.length > 0 ? hashStrings(files.map(f => f.hash)) : NEW_MODULE_VERSION
+
     return { contentHash, files: files.map(f => f.path) }
   }
 
-  async resolveTreeVersion(path: string, include: string[] | null): Promise<TreeVersion> {
+  async resolveTreeVersion(moduleConfig: ModuleConfig): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
-    const versionFilePath = join(path, GARDEN_TREEVERSION_FILENAME)
+    const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || this.getTreeVersion(path, include)
+    return fileVersion || this.getTreeVersion(moduleConfig)
   }
 
   async resolveVersion(moduleConfig: ModuleConfig, dependencies: ModuleConfig[]): Promise<ModuleVersion> {
-    const treeVersion = await this.resolveTreeVersion(moduleConfig.path, moduleConfig.include || null)
+    const treeVersion = await this.resolveTreeVersion(moduleConfig)
 
     validate(treeVersion, treeVersionSchema, {
       context: `${this.name} tree version for module at ${moduleConfig.path}`,
@@ -120,7 +125,7 @@ export abstract class VcsHandler {
 
     const namedDependencyVersions = await Bluebird.map(
       dependencies,
-      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(m.path, m.include || null) }),
+      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(m) }),
     )
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), v => omit(v, "name"))
 
@@ -221,10 +226,10 @@ export function hashVersions(moduleConfig: ModuleConfig, versions: NamedTreeVers
   const configString = serializeConfig(moduleConfig)
   const versionStrings = sortBy(versions, "name")
     .map(v => `${v.name}_${v.contentHash}`)
-  return hashFileHashes([configString, ...versionStrings])
+  return hashStrings([configString, ...versionStrings])
 }
 
-export function hashFileHashes(hashes: string[]) {
+export function hashStrings(hashes: string[]) {
   const versionHash = createHash("sha256")
   versionHash.update(hashes.join("."))
   return versionHash.digest("hex").slice(0, 10)

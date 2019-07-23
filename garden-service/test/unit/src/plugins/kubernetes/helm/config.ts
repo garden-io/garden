@@ -46,6 +46,7 @@ describe("validateHelmModule", () => {
       build: {
         dependencies: [],
       },
+      configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",
       include: undefined,
       name: "api",

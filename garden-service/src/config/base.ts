@@ -10,7 +10,7 @@ import { sep, resolve, relative, basename } from "path"
 import * as yaml from "js-yaml"
 import { readFile } from "fs-extra"
 import { omit, flatten, isPlainObject, find } from "lodash"
-import { baseModuleSpecSchema, ModuleResource } from "./module"
+import { ModuleResource, moduleConfigSchema } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
@@ -23,17 +23,17 @@ export interface GardenResource {
   path: string
 }
 
-const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().children).concat(["kind"])
+const baseModuleSchemaKeys = Object.keys(moduleConfigSchema.describe().children).concat(["kind"])
 
 export async function loadConfig(projectRoot: string, path: string): Promise<GardenResource[]> {
   // TODO: nicer error messages when load/validation fails
-  const absPath = await getConfigFilePath(path)
+  const configPath = await getConfigFilePath(path)
   let fileData: Buffer
   let rawSpecs: any[]
 
   // loadConfig returns undefined if config file is not found in the given directory
   try {
-    fileData = await readFile(absPath)
+    fileData = await readFile(configPath)
   } catch (err) {
     return []
   }
@@ -41,13 +41,13 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   try {
     rawSpecs = yaml.safeLoadAll(fileData.toString()) || []
   } catch (err) {
-    throw new ConfigurationError(`Could not parse ${basename(absPath)} in directory ${path} as valid YAML`, err)
+    throw new ConfigurationError(`Could not parse ${basename(configPath)} in directory ${path} as valid YAML`, err)
   }
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
-  const resources: GardenResource[] = flatten(rawSpecs.map(s => prepareResources(s, path, projectRoot)))
+  const resources: GardenResource[] = flatten(rawSpecs.map(s => prepareResources(s, path, configPath, projectRoot)))
 
   const projectSpecs = resources.filter(s => s.kind === "Project")
 
@@ -72,15 +72,15 @@ export type ConfigKind = "Module" | "Project"
  * definitions). The kind key is removed before validation, so that specs following both styles can be validated
  * with the same schema.
  */
-function prepareResources(spec: any, path: string, projectRoot: string): GardenResource[] {
+function prepareResources(spec: any, path: string, configPath: string, projectRoot: string): GardenResource[] {
   if (!isPlainObject(spec)) {
     throw new ConfigurationError(`Invalid configuration found in ${path}`, { spec, path })
   }
 
   if (spec.kind) {
-    return [prepareFlatConfigDoc(spec, path, projectRoot)]
+    return [prepareFlatConfigDoc(spec, path, configPath, projectRoot)]
   } else {
-    return prepareScopedConfigDoc(spec, path)
+    return prepareScopedConfigDoc(spec, path, configPath)
   }
 }
 
@@ -89,13 +89,13 @@ function prepareResources(spec: any, path: string, projectRoot: string): GardenR
  *
  * The spec defines either a project or a module (determined by its "kind" field).
  */
-function prepareFlatConfigDoc(spec: any, path: string, projectRoot: string): GardenResource {
+function prepareFlatConfigDoc(spec: any, path: string, configPath: string, projectRoot: string): GardenResource {
   const kind = spec.kind
 
   if (kind === "Project") {
-    return prepareProjectConfig(spec, path)
+    return prepareProjectConfig(spec, path, configPath)
   } else if (kind === "Module") {
-    return prepareModuleResource(spec, path)
+    return prepareModuleResource(spec, path, configPath)
   } else {
     const relPath = `${relative(projectRoot, path)}/garden.yml`
     throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, { kind, path: relPath })
@@ -108,32 +108,33 @@ function prepareFlatConfigDoc(spec: any, path: string, projectRoot: string): Gar
  * The spec defines a project and/or a module, with the config for each nested under the "project" / "module" field,
  * respectively.
  */
-function prepareScopedConfigDoc(spec: any, path: string): GardenResource[] {
+function prepareScopedConfigDoc(spec: any, path: string, configPath: string): GardenResource[] {
   const resources: GardenResource[] = []
 
   if (spec.project) {
-    resources.push(prepareProjectConfig(spec.project, path))
+    resources.push(prepareProjectConfig(spec.project, path, configPath))
   }
 
   if (spec.module) {
-    resources.push(prepareModuleResource(spec.module, path))
+    resources.push(prepareModuleResource(spec.module, path, configPath))
   }
 
   return resources
 }
 
-function prepareProjectConfig(spec: any, path: string): ProjectResource {
+function prepareProjectConfig(spec: any, path: string, configPath: string): ProjectResource {
   if (!spec.apiVersion) {
     spec.apiVersion = DEFAULT_API_VERSION
   }
 
   spec.kind = "Project"
   spec.path = path
+  spec.configPath = configPath
 
   return spec
 }
 
-function prepareModuleResource(spec: any, path: string): ModuleResource {
+function prepareModuleResource(spec: any, path: string, configPath: string): ModuleResource {
   /**
    * We allow specifying modules by name only as a shorthand:
    *   dependencies:
@@ -152,6 +153,7 @@ function prepareModuleResource(spec: any, path: string): ModuleResource {
     build: {
       dependencies,
     },
+    configPath,
     description: spec.description,
     include: spec.include,
     name: spec.name,

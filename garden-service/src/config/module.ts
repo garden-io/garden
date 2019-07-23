@@ -148,6 +148,7 @@ export interface ModuleConfig
 
   outputs: PrimitiveMap
   path: string
+  configPath?: string
   plugin?: string   // used to identify modules that are bundled as part of a plugin
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]
@@ -163,6 +164,8 @@ export const moduleConfigSchema = baseModuleSpecSchema
       .description("The outputs defined by the module (referenceable in other module configs)."),
     path: joi.string()
       .description("The filesystem path of the module."),
+    configPath: joi.string()
+      .description("The filesystem path of the module config file."),
     plugin: joiIdentifier()
       .meta({ internal: true })
       .description("The name of a the parent plugin of the module, if applicable."),

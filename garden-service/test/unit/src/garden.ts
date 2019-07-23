@@ -654,7 +654,7 @@ describe("Garden", () => {
     })
 
     it("should scan and add modules for projects with configs defining multiple modules", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-project-multiple-module-config"))
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "multiple-module-config"))
       await garden.scanModules()
 
       const modules = await garden.resolveModuleConfigs()

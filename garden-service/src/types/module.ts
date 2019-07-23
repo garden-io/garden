@@ -19,7 +19,6 @@ import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../config/common
 import { ConfigGraph } from "../config-graph"
 import * as Bluebird from "bluebird"
 import { getConfigFilePath } from "../util/fs"
-import { relative } from "path"
 
 export interface FileCopySpec {
   source: string
@@ -93,14 +92,7 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
 
 export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, config: ModuleConfig): Promise<Module> {
   const configPath = await getConfigFilePath(config.path)
-  const relativeConfigPath = relative(config.path, configPath)
   const version = await garden.resolveVersion(config.name, config.build.dependencies)
-
-  // Always include configuration file
-  // TODO: move this logic to resolveVersion()
-  if (!version.files.includes(configPath) && !version.files.includes(relativeConfigPath)) {
-    version.files.push(configPath)
-  }
 
   const module: Module = {
     ...cloneDeep(config),

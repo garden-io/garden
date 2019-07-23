@@ -80,7 +80,7 @@ export class BuildTask extends BaseTask {
     await this.garden.buildDir.syncDependencyProducts(this.module, log)
 
     if (!this.force) {
-      log.setState({ msg: `Getting build status...` })
+      log.setState({ msg: `Getting build status for ${module.version.versionString}...` })
       const status = await actions.getBuildStatus({ log: this.log, module })
 
       if (status.ready) {

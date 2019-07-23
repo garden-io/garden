@@ -96,6 +96,7 @@ export interface ProjectConfig {
   kind: "Project",
   name: string
   path: string
+  configPath?: string
   defaultEnvironment: string
   environmentDefaults?: CommonEnvironmentConfig
   environments: EnvironmentConfig[]
@@ -138,7 +139,12 @@ export const projectSchema = joi.object()
       .only(DEFAULT_API_VERSION)
       .description("The schema version of this project's config (currently not used)."),
     kind: joi.string().default("Project").only("Project"),
-    path: joi.string().meta({ internal: true }),
+    path: joi.string()
+      .meta({ internal: true })
+      .description("The path to the project root."),
+    configPath: joi.string()
+      .meta({ internal: true })
+      .description("The path to the project config file."),
     name: projectNameSchema,
     defaultEnvironment: joi.string()
       .allow("")
