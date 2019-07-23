@@ -150,8 +150,7 @@ jobs:
   build-dist:
     <<: *node-config
     steps:
-      - build_service_dist:
-          version: $(./garden-service/bin/garden --version)
+      - build_service_dist
   build-dist-edge:
     <<: *node-config
     steps:
