@@ -10,5 +10,5 @@ support/**/*.map
 support/**/*.d.ts
 test/*.js
 test/src/**/*.js
-test/integ/**/*.js
+test/e2e/**/*.js
 test/data/plugins/**/*.js

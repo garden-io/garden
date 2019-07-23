@@ -102,11 +102,11 @@ cd garden-service
 npm test -- -g "taskGraph"
 ```
 
-Integration tests are run with:
+End-to-end tests are run with:
 
 
 ```sh
-npm run integ
+npm run e2e
 ```
 
 ### Commit messages
@@ -151,7 +151,7 @@ npm run generate-docs
 
 ### Pre-push hook
 
-Before pushing, we automatically run the `check-all` script from above, as well as unit and integration tests. To skip these, run push with the `--no-verify` flag:
+Before pushing, we automatically run the `check-all` script from above, as well as unit tests. To skip these, run push with the `--no-verify` flag:
 
 ```sh
 git push origin <my-branch> --no-verify

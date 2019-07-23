@@ -1,0 +1,32 @@
+kind: Project
+name: e2e-tests
+environments:
+  - name: testing
+    providers:
+      - name: kubernetes
+        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        namespace: e2e-tests
+        defaultHostname: dev-1.sys.garden
+        buildMode: cluster-docker
+        setupIngressController: nginx
+
+---
+
+kind: Module
+name: e2e-tests
+type: exec
+tests:
+  - name: demo-project
+    command: [npm, run, e2e, --, --project=demo-project, --showlog=true, --env=testing]
+  - name: tasks # Tests for tasks are currently being skipped
+    command: [npm, run, e2e, --, --project=tasks, --showlog=true, --env=testing]
+  - name: hot-reload # Tests for hot-reload are currently being skipped
+    command: [npm, run, e2e, --, --project=hot-reload, --showlog=true, --env=testing]
+  - name: project-variables
+    command: [npm, run, e2e, --, --project=project-variables, --showlog=true, --env=testing]
+  - name: vote-helm
+    command: [npm, run, e2e, --, --project=vote-helm, --showlog=true, --env=testing]
+  - name: vote
+    command: [npm, run, e2e, --, --project=vote, --showlog=true, --env=testing]
+  - name: remote-sources
+    command: [npm, run, e2e, --, --project=remote-sources, --showlog=true, --env=testing]

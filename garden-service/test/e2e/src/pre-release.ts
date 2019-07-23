@@ -18,7 +18,7 @@ import {
   parsedArgs,
   searchLog,
   removeExampleDotGardenDir,
-} from "../../integ-helpers"
+} from "../../e2e-helpers"
 import username = require("username")
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command

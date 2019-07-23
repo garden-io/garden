@@ -3,8 +3,8 @@
   "include": [
     "src/**/*.ts",
     "test/*.ts",
-    "test/integ/*.ts",
-    "test/integ/**/*.ts",
+    "test/e2e/*.ts",
+    "test/e2e/**/*.ts",
     "test/unit/*.ts",
     "test/unit/src/**/*.ts"
   ]
