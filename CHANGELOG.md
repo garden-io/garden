@@ -1,4 +1,31 @@
 
+<a name="v0.10.2"></a>
+## [v0.10.2](https://github.com/garden-io/garden/compare/v0.10.1...v0.10.2) (2019-07-23)
+
+### Bug Fixes
+
+* **config:** ignore empty docs in garden.yml files ([d66cf5de](https://github.com/garden-io/garden/commit/d66cf5de))
+* **container:** respect include field when checking for Dockerfile ([0df7a8dd](https://github.com/garden-io/garden/commit/0df7a8dd))
+* **core:** task dependencies were not automatically run ahead of tests ([46fb474f](https://github.com/garden-io/garden/commit/46fb474f))
+* **core:** ensure untracked files from .gardenignore are excluded ([a10bb289](https://github.com/garden-io/garden/commit/a10bb289))
+* **core:** properly handle joining K8s api server url and path ([8a56d199](https://github.com/garden-io/garden/commit/8a56d199))
+* **k8s:** update deprecated Deployment API versions ahead of 1.16 ([7cab3711](https://github.com/garden-io/garden/commit/7cab3711))
+* **k8s:** remote building broken with certain cluster network configs ([bf9a25ee](https://github.com/garden-io/garden/commit/bf9a25ee))
+* **log:** error when logging object with circular refs ([61bf65ff](https://github.com/garden-io/garden/commit/61bf65ff))
+* **vcs:** fixed support for GitHub SSH URLs and added tests ([6e40f18c](https://github.com/garden-io/garden/commit/6e40f18c))
+* **vcs:** garden.yml changes now only affect relevant module version ([#1009](https://github.com/garden-io/garden/issues/1009)) ([2ff4edfb](https://github.com/garden-io/garden/commit/2ff4edfb))
+* **vcs:** allow ssh for git repo URLs ([fef8ea5b](https://github.com/garden-io/garden/commit/fef8ea5b))
+
+### Features
+
+* **k8s:** add uninstall-garden-services command ([93521763](https://github.com/garden-io/garden/commit/93521763))
+
+### Improvement
+
+* **core:** crucial enhancements to command ([4dbdc154](https://github.com/garden-io/garden/commit/4dbdc154))
+* **core:** make contributor more visible in CLI ([0f9a7ffc](https://github.com/garden-io/garden/commit/0f9a7ffc))
+
+
 <a name="v0.10.1"></a>
 ## [v0.10.1](https://github.com/garden-io/garden/compare/v0.10.0...v0.10.1) (2019-07-17)
 
