@@ -156,6 +156,7 @@ function prepareModuleResource(spec: any, path: string, configPath: string): Mod
     configPath,
     description: spec.description,
     include: spec.include,
+    exclude: spec.exclude,
     name: spec.name,
     outputs: {},
     path,

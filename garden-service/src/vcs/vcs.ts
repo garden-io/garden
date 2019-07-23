@@ -81,14 +81,14 @@ export abstract class VcsHandler {
   constructor(protected gardenDirPath: string) { }
 
   abstract name: string
-  abstract async getFiles(path: string, include?: string[]): Promise<VcsFile[]>
+  abstract async getFiles(path: string, include?: string[], exclude?: string[]): Promise<VcsFile[]>
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
 
   async getTreeVersion(moduleConfig: ModuleConfig): Promise<TreeVersion> {
     const configPath = moduleConfig.configPath
 
-    const files = sortBy(await this.getFiles(moduleConfig.path, moduleConfig.include), "path")
+    const files = sortBy(await this.getFiles(moduleConfig.path, moduleConfig.include, moduleConfig.exclude), "path")
       // Don't include the config file in the file list
       .filter(f => !configPath || f.path !== configPath)
 
