@@ -7,7 +7,7 @@ import { DEFAULT_API_VERSION } from "../../../../src/constants"
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
 
-const projectPathMultipleModules = resolve(dataDir, "test-project-multiple-module-config")
+const projectPathMultipleModules = resolve(dataDir, "test-projects", "multiple-module-config")
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = resolve(dataDir, "test-project-duplicate-project-config")
@@ -34,12 +34,14 @@ describe("loadConfig", () => {
   // TODO: test more cases
   it("should load and parse a project config", async () => {
     const parsed = await loadConfig(projectPathA, projectPathA)
+    const configPath = resolve(projectPathA, "garden.yml")
 
     expect(parsed).to.eql([
       {
         apiVersion: "garden.io/v0",
         kind: "Project",
         path: projectPathA,
+        configPath,
         name: "test-project-a",
         environmentDefaults: {
           variables: { some: "variable" },
@@ -62,6 +64,7 @@ describe("loadConfig", () => {
 
   it("should load and parse a module config", async () => {
     const parsed = await loadConfig(projectPathA, modulePathA)
+    const configPath = resolve(modulePathA, "garden.yml")
 
     expect(parsed).to.eql([
       {
@@ -69,6 +72,7 @@ describe("loadConfig", () => {
         kind: "Module",
         name: "module-a",
         type: "test",
+        configPath,
         description: undefined,
         include: undefined,
         repositoryUrl: undefined,
@@ -106,11 +110,13 @@ describe("loadConfig", () => {
 
   it("should load and parse a config file defining a project and a module", async () => {
     const parsed = await loadConfig(projectPathMultipleModules, projectPathMultipleModules)
+    const configPath = resolve(projectPathMultipleModules, "garden.yml")
 
     expect(parsed).to.eql([
       {
         apiVersion: "garden.io/v0",
         kind: "Project",
+        configPath,
         path: projectPathMultipleModules,
         environmentDefaults: {
           variables: {
@@ -136,6 +142,7 @@ describe("loadConfig", () => {
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
+        configPath,
         description: undefined,
         include: undefined,
         repositoryUrl: undefined,
@@ -158,6 +165,7 @@ describe("loadConfig", () => {
 
   it("should load and parse a config file defining multiple modules", async () => {
     const parsed = await loadConfig(projectPathMultipleModules, modulePathAMultiple)
+    const configPath = resolve(modulePathAMultiple, "garden.yml")
 
     expect(parsed).to.eql([
       {
@@ -165,6 +173,7 @@ describe("loadConfig", () => {
         kind: "Module",
         name: "module-a1",
         type: "test",
+        configPath,
         allowPublish: undefined,
         description: undefined,
         include: undefined,
@@ -196,6 +205,7 @@ describe("loadConfig", () => {
         kind: "Module",
         name: "module-a2",
         type: "test",
+        configPath,
         allowPublish: undefined,
         description: undefined,
         include: undefined,
@@ -221,12 +231,14 @@ describe("loadConfig", () => {
 
   it("should parse a config file using the flat config style", async () => {
     const parsed = await loadConfig(projectPathFlat, projectPathFlat)
+    const configPath = resolve(projectPathFlat, "garden.yml")
 
     expect(parsed).to.eql([
       {
         apiVersion: "garden.io/v0",
         kind: "Project",
         path: projectPathFlat,
+        configPath,
         environmentDefaults: {
           variables: { some: "variable" },
         },
@@ -249,6 +261,7 @@ describe("loadConfig", () => {
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
+        configPath,
         description: undefined,
         build: {
           dependencies: [],
@@ -280,6 +293,7 @@ describe("loadConfig", () => {
         apiVersion: "garden.io/v0",
         kind: "Project",
         path: projectPath,
+        configPath: resolve(projectPath, "garden.yml"),
         name: "test-project-a",
         environmentDefaults: {
           variables: { some: "variable" },
@@ -326,6 +340,7 @@ describe("loadConfig", () => {
         kind: "Project",
         name: "foo",
         path,
+        configPath: resolve(path, "garden.yml"),
       },
     ])
   })

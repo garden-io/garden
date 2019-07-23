@@ -128,10 +128,14 @@ export abstract class VcsHandler {
     const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }]
       .concat(namedDependencyVersions)
 
+    // Don't include the config file in the file list
+    const configPath = moduleConfig.configPath
+    const files = treeVersion.files.filter(f => !configPath || f !== configPath)
+
     return {
       dependencyVersions,
       versionString: getVersionString(moduleConfig, allVersions),
-      files: treeVersion.files,
+      files,
     }
   }
 

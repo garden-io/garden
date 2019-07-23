@@ -16,7 +16,7 @@ import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"
 import * as td from "testdouble"
 import * as tmp from "tmp-promise"
-import { realpath } from "fs-extra"
+import { realpath, readFile, writeFile } from "fs-extra"
 import { GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
 
 class TestVcsHandler extends VcsHandler {
@@ -45,8 +45,8 @@ class TestVcsHandler extends VcsHandler {
 
 }
 describe("VcsHandler", () => {
-  let handler: TestVcsHandler
-  let garden: Garden
+  let handlerA: TestVcsHandler
+  let gardenA: Garden
 
   // note: module-a has a version file with this content
   const versionA = {
@@ -55,20 +55,20 @@ describe("VcsHandler", () => {
   }
 
   beforeEach(async () => {
-    handler = new TestVcsHandler(projectRootA)
-    garden = await makeTestGardenA()
+    handlerA = new TestVcsHandler(projectRootA)
+    gardenA = await makeTestGardenA()
   })
 
   describe("getTreeVersion", () => {
     it("should sort the list of files in the returned version", async () => {
-      const getFiles = td.replace(handler, "getFiles")
+      const getFiles = td.replace(handlerA, "getFiles")
       const path = "foo"
       td.when(getFiles(path, undefined)).thenResolve([
         { path: "c", hash: "c" },
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
       ])
-      const version = await handler.getTreeVersion(path, null)
+      const version = await handlerA.getTreeVersion(path, null)
       expect(version.files).to.eql(["b", "c", "d"])
     })
 
@@ -99,23 +99,23 @@ describe("VcsHandler", () => {
     })
 
     it("should call getTreeVersion if there is no version file", async () => {
-      const module = await garden.resolveModuleConfig("module-b")
+      const module = await gardenA.resolveModuleConfig("module-b")
 
       const version = {
         contentHash: "qwerty",
         files: [],
       }
-      handler.setTestVersion(module.path, version)
+      handlerA.setTestVersion(module.path, version)
 
-      const result = await handler.resolveTreeVersion(module.path, null)
+      const result = await handlerA.resolveTreeVersion(module.path, null)
       expect(result).to.eql(version)
     })
   })
 
   describe("resolveTreeVersion", () => {
     it("should return the version from a version file if it exists", async () => {
-      const module = await garden.resolveModuleConfig("module-a")
-      const result = await handler.resolveTreeVersion(module.path, null)
+      const module = await gardenA.resolveModuleConfig("module-a")
+      const result = await handlerA.resolveTreeVersion(module.path, null)
 
       expect(result).to.eql({
         contentHash: "1234567890",
@@ -124,15 +124,15 @@ describe("VcsHandler", () => {
     })
 
     it("should call getTreeVersion if there is no version file", async () => {
-      const module = await garden.resolveModuleConfig("module-b")
+      const module = await gardenA.resolveModuleConfig("module-b")
 
       const version = {
         contentHash: "qwerty",
         files: [],
       }
-      handler.setTestVersion(module.path, version)
+      handlerA.setTestVersion(module.path, version)
 
-      const result = await handler.resolveTreeVersion(module.path, null)
+      const result = await handlerA.resolveTreeVersion(module.path, null)
       expect(result).to.eql(version)
     })
   })
@@ -200,7 +200,7 @@ describe("VcsHandler", () => {
 
     describe("hashVersions", () => {
       it("is stable with respect to key order in moduleConfig", async () => {
-        const originalConfig = await garden.resolveModuleConfig("module-a")
+        const originalConfig = await gardenA.resolveModuleConfig("module-a")
         const stirredConfig = cloneDeep(originalConfig)
         delete stirredConfig.name
         stirredConfig.name = originalConfig.name
@@ -210,7 +210,7 @@ describe("VcsHandler", () => {
       })
 
       it("is stable with respect to named version order", async () => {
-        const config = await garden.resolveModuleConfig("module-a")
+        const config = await gardenA.resolveModuleConfig("module-a")
 
         expect(getVersionString(config, [namedVersionA, namedVersionB, namedVersionC]))
           .to.eql(getVersionString(config, [namedVersionB, namedVersionA, namedVersionC]))
@@ -219,10 +219,9 @@ describe("VcsHandler", () => {
   })
 
   describe("resolveVersion", () => {
-
     it("should return module version if there are no dependencies", async () => {
-      const module = await garden.resolveModuleConfig("module-a")
-      const result = await handler.resolveVersion(module, [])
+      const module = await gardenA.resolveModuleConfig("module-a")
+      const result = await handlerA.resolveVersion(module, [])
 
       expect(result).to.eql({
         versionString: getVersionString(module, [{ ...versionA, name: "module-a" }]),
@@ -232,23 +231,23 @@ describe("VcsHandler", () => {
     })
 
     it("should hash together the version of the module and all dependencies", async () => {
-      const [moduleA, moduleB, moduleC] = await garden.resolveModuleConfigs(["module-a", "module-b", "module-c"])
+      const [moduleA, moduleB, moduleC] = await gardenA.resolveModuleConfigs(["module-a", "module-b", "module-c"])
 
       const versionStringB = "qwerty"
       const versionB = {
         contentHash: versionStringB,
         files: [],
       }
-      handler.setTestVersion(moduleB.path, versionB)
+      handlerA.setTestVersion(moduleB.path, versionB)
 
       const versionStringC = "asdfgh"
       const versionC = {
         contentHash: versionStringC,
         files: [],
       }
-      handler.setTestVersion(moduleC.path, versionC)
+      handlerA.setTestVersion(moduleC.path, versionC)
 
-      expect(await handler.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
+      expect(await handlerA.resolveVersion(moduleC, [moduleA, moduleB])).to.eql({
         versionString: getVersionString(moduleC, [
           { ...versionA, name: "module-a" },
           { ...versionB, name: "module-b" },
@@ -260,6 +259,37 @@ describe("VcsHandler", () => {
         },
         files: [],
       })
+    })
+
+    it("should not include module's garden.yml in version file list", async () => {
+      const moduleConfig = await gardenA.resolveModuleConfig("module-a")
+      const version = await handlerA.resolveVersion(moduleConfig, [])
+      expect(version.files).to.not.include(moduleConfig.configPath!)
+    })
+
+    it("should be affected by changes to the module's config", async () => {
+      const moduleConfig = await gardenA.resolveModuleConfig("module-a")
+      const version1 = await handlerA.resolveVersion(moduleConfig, [])
+      moduleConfig.name = "foo"
+      const version2 = await handlerA.resolveVersion(moduleConfig, [])
+      expect(version1).to.not.eql(version2)
+    })
+
+    it("should not be affected by changes to the module's garden.yml that don't affect the module config", async () => {
+      const projectRoot = getDataDir("test-projects", "multiple-module-config")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfigA1 = await garden.resolveModuleConfig("module-a1")
+      const configPath = moduleConfigA1.configPath!
+      const orgConfig = await readFile(configPath)
+
+      try {
+        const version1 = await garden.vcs.resolveVersion(moduleConfigA1, [])
+        await writeFile(configPath, orgConfig + "\n---")
+        const version2 = await garden.vcs.resolveVersion(moduleConfigA1, [])
+        expect(version1).to.eql(version2)
+      } finally {
+        await writeFile(configPath, orgConfig)
+      }
     })
   })
 })

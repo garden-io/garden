@@ -31,7 +31,7 @@ import { loadConfig, findProjectConfig } from "./config/base"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
-import { BuildDependencyConfig, ModuleConfig, baseModuleSpecSchema, ModuleResource } from "./config/module"
+import { BuildDependencyConfig, ModuleConfig, ModuleResource, moduleConfigSchema } from "./config/module"
 import { ModuleConfigContext, ContextResolveOpts } from "./config/config-context"
 import { createPluginContext } from "./plugin-context"
 import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
@@ -495,6 +495,7 @@ export class Garden {
       config = await resolveTemplateStrings(cloneDeep(config), opts.configContext!, opts)
       const description = await actions.describeType(config.type)
 
+      // Validate the module-type specific spec
       config.spec = validateWithPath({
         config: config.spec,
         schema: description.schema,
@@ -515,9 +516,10 @@ export class Garden {
           .map(dep => typeof dep === "string" ? { name: dep, copy: [] } : dep)
       }
 
+      // Validate the base config schema
       config = validateWithPath({
         config,
-        schema: baseModuleSpecSchema,
+        schema: moduleConfigSchema,
         configType: "module",
         name: config.name,
         path: config.path,

@@ -106,23 +106,25 @@ export class Watcher {
     return (path: string) => {
       this.log.debug(`Watcher: File ${path} ${type}`)
 
-      const changedModules = modules.filter(m => m.version.files.includes(path))
+      const changedModules = modules
+        .filter(m => m.version.files.includes(path) || m.configPath === path)
 
       this.sourcesChanged(modules, changedModules, path, type)
     }
   }
 
   private sourcesChanged(modules: Module[], changedModules: Module[], path: string, type: string) {
-    const changedModuleNames = changedModules.map(m => m.name)
-
     const parsed = parse(path)
     const filename = parsed.base
 
     if (isConfigFilename(filename) || filename === ".gitignore" || filename === ".gardenignore") {
       this.invalidateCached(modules)
 
-      if (changedModuleNames.length > 0) {
-        this.garden.events.emit("moduleConfigChanged", { names: changedModuleNames, path })
+      const changedModuleConfigs = changedModules.filter(m => m.configPath === path)
+
+      if (changedModuleConfigs.length > 0) {
+        const names = changedModuleConfigs.map(m => m.name)
+        this.garden.events.emit("moduleConfigChanged", { names, path })
       } else if (isConfigFilename(filename)) {
         if (parsed.dir === this.garden.projectRoot) {
           this.garden.events.emit("projectConfigChanged", {})
@@ -138,9 +140,10 @@ export class Watcher {
       return
     }
 
-    if (changedModuleNames.length > 0) {
+    if (changedModules.length > 0) {
+      const names = changedModules.map(m => m.name)
       this.invalidateCached(changedModules)
-      this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
+      this.garden.events.emit("moduleSourcesChanged", { names, pathChanged: path })
     }
   }
 
