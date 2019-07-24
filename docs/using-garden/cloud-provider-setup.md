@@ -32,15 +32,6 @@ Select this context if it isn't already selected.
 
 Run `kubectl get ns` to verify that you're able to connect to your cluster.
 
-### Configure DNS
-
-Next, run `gcloud container clusters list`, and write down the `MASTER_IP` for the
-cluster you've just created.
-
-Then, create a DNS record with your provider of choice, pointing at the IP address you
-wrote down in the previous step (e.g. an `A` record pointing that IP address at
-your-project.your-domain.com).
-
 ### Configure your Garden project
 
 Now, configure your Garden project for connecting to your cluster. Add to project-level `garden.yml`:
@@ -58,6 +49,12 @@ name: your-project
 ```
 
 Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --env=remote`. Now you should be good to go.
+
+### Optional: Configure DNS
+
+First, get the public IP address of the ingress controller you set up in the previous step. If you configured Garden to set up _nginx_, run: `kubectl describe service --namespace=garden-system garden-nginx-nginx-ingress-controller | grep 'LoadBalancer Ingress'` and make note of returned IP address. 
+
+Then, create a DNS record with your provider of choice, pointing at the IP address you wrote down in the previous step (e.g. an `A` record pointing your-project.your-domain.com at that IP). We recommend setting up a wildcard record as well (e.g *.your-project.your-domain.com).
 
 > Note: Your IAM role may need to have permissions to create `clusterRoles` and `clusterRoleBindings`.
 
