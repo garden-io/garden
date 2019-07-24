@@ -32,7 +32,7 @@ export class GetEysiCommand extends Command {
 
     try {
       // Close enough.
-      await execa("say", ["Hello", ",", "I", "am", "Aysey"])
+      await execa("say", ["Hello", ",", "I", "am", "Aysey", "--channels=2"])
     } catch (_) { }
 
     return { result: { eysi } }
