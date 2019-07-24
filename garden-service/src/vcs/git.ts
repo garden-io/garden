@@ -90,7 +90,7 @@ export class GitHandler extends VcsHandler {
       lines = await git("ls-files", "-s", "--other", "--exclude=.garden", path)
 
       // List ignored files from .gardenignore. We need to run ls-files twice to get both tracked and untracked files.
-      const lsFilesCmd = ["ls-files", "--ignored", "--exclude-per-directory=.gardenignore"]
+      const lsFilesCmd = ["ls-files", "--ignored", ...this.ignoreFiles.map(f => `--exclude-per-directory=${f}`)]
       const lsFilesUntrackedCmd = [...lsFilesCmd, "--others"]
 
       ignored = flatten(await Bluebird.map([lsFilesCmd, lsFilesUntrackedCmd], async (cmd) => git(...cmd, path)))
@@ -140,11 +140,15 @@ export class GitHandler extends VcsHandler {
     }).filter(f => f.hash !== "")
   }
 
+  private async cloneRemoteSource(remoteSourcesPath: string, repositoryUrl: string, hash: string, absPath: string) {
+    const git = this.gitCli(remoteSourcesPath)
+    return git("clone", "--depth=1", `--branch=${hash}`, repositoryUrl, absPath)
+  }
+
   // TODO Better auth handling
   async ensureRemoteSource({ url, name, log, sourceType }: RemoteSourceParams): Promise<string> {
     const remoteSourcesPath = join(this.gardenDirPath, this.getRemoteSourcesDirname(sourceType))
     await ensureDir(remoteSourcesPath)
-    const git = this.gitCli(remoteSourcesPath)
 
     const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
     const isCloned = await pathExists(absPath)
@@ -154,7 +158,7 @@ export class GitHandler extends VcsHandler {
       const { repositoryUrl, hash } = parseGitUrl(url)
 
       try {
-        await git("clone", "--depth=1", `--branch=${hash}`, repositoryUrl, absPath)
+        await this.cloneRemoteSource(remoteSourcesPath, repositoryUrl, hash, absPath)
       } catch (err) {
         entry.setError()
         throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {

@@ -1,0 +1,9 @@
+kind: Project
+name: include-exclude
+dotIgnoreFiles:
+  - .gardenignore
+  - .customignore
+environments:
+  - name: local
+    providers:
+      - name: test-plugin

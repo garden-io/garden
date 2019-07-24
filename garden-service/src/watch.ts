@@ -7,27 +7,20 @@
  */
 
 import { watch, FSWatcher } from "chokidar"
-import { parse, relative } from "path"
+import { parse } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
-import * as klaw from "klaw"
 import { registerCleanupFunction } from "./util/util"
 import * as Bluebird from "bluebird"
 import { some } from "lodash"
-import { isConfigFilename, Ignorer } from "./util/fs"
+import { isConfigFilename } from "./util/fs"
 
 // IMPORTANT: We must use a single global instance of the watcher, because we may otherwise get
 // segmentation faults on macOS! See https://github.com/fsevents/fsevents/issues/273
 let watcher: FSWatcher | undefined
-let ignorer: Ignorer
 let projectRoot: string
-
-const ignored = (path: string, _: any) => {
-  const relpath = relative(projectRoot, path)
-  return relpath && ignorer.ignores(relpath)
-}
 
 // The process hangs after tests if we don't do this
 registerCleanupFunction("stop watcher", () => {
@@ -48,13 +41,11 @@ export class Watcher {
 
   constructor(private garden: Garden, private log: LogEntry, modules: Module[]) {
     projectRoot = this.garden.projectRoot
-    ignorer = this.garden.ignorer
 
     this.log.debug(`Watcher: Watching ${projectRoot}`)
 
     if (watcher === undefined) {
       watcher = watch(projectRoot, {
-        ignored,
         ignoreInitial: true,
         persistent: true,
       })
@@ -117,7 +108,16 @@ export class Watcher {
     const parsed = parse(path)
     const filename = parsed.base
 
-    if (isConfigFilename(filename) || filename === ".gitignore" || filename === ".gardenignore") {
+    const isIgnoreFile = this.garden.dotIgnoreFiles.includes(filename)
+
+    if (isIgnoreFile) {
+      // TODO: check to see if the project structure actually changed after the ignore file change
+      this.invalidateCached(modules)
+      this.garden.events.emit("projectConfigChanged", {})
+      return
+    }
+
+    if (isConfigFilename(filename)) {
       this.invalidateCached(modules)
 
       const changedModuleConfigs = changedModules.filter(m => m.configPath === path)
@@ -125,16 +125,12 @@ export class Watcher {
       if (changedModuleConfigs.length > 0) {
         const names = changedModuleConfigs.map(m => m.name)
         this.garden.events.emit("moduleConfigChanged", { names, path })
-      } else if (isConfigFilename(filename)) {
-        if (parsed.dir === this.garden.projectRoot) {
-          this.garden.events.emit("projectConfigChanged", {})
-        } else {
-          if (type === "added") {
-            this.garden.events.emit("configAdded", { path })
-          } else {
-            this.garden.events.emit("configRemoved", { path })
-          }
-        }
+      } else if (parsed.dir === this.garden.projectRoot) {
+        this.garden.events.emit("projectConfigChanged", {})
+      } else if (type === "added") {
+        this.garden.events.emit("configAdded", { path })
+      } else {
+        this.garden.events.emit("configRemoved", { path })
       }
 
       return
@@ -148,52 +144,29 @@ export class Watcher {
   }
 
   private makeDirAddedHandler(modules: Module[]) {
-    const scanOpts = {
-      filter: (path) => {
-        const relPath = relative(this.garden.projectRoot, path)
-        return !this.garden.ignorer.ignores(relPath)
-      },
-    }
-
-    return (path: string) => {
+    return this.wrapAsync(async (path: string) => {
       this.log.debug(`Watcher: Directory ${path} added`)
 
-      let configChanged = false
+      const configPaths = await this.garden.scanForConfigs(path)
 
-      // Scan the added path to see if it contains a garden.yml file
-      klaw(path, scanOpts)
-        .on("data", (item) => {
-          const parsed = parse(item.path)
-          if (item.path !== path && isConfigFilename(parsed.base)) {
-            configChanged = true
-            this.garden.events.emit("configAdded", { path: item.path })
-          }
-        })
-        .on("error", (err) => {
-          if ((<any>err).code === "ENOENT") {
-            // This can happen if the directory is removed while scanning
-            return
-          } else {
-            throw err
-          }
-        })
-        .on("end", () => {
-          if (configChanged) {
-            // The added/removed dir contains one or more garden.yml files
-            this.invalidateCached(modules)
-            return
-          }
+      if (configPaths.length > 0) {
+        // The added/removed dir contains one or more garden.yml files
+        this.invalidateCached(modules)
+        for (const configPath of configPaths) {
+          this.garden.events.emit("configAdded", { path: configPath })
+        }
+        return
+      }
 
-          // changedModules will only have more than one element when the changed path belongs to >= 2 modules.
-          const changedModules = modules.filter(m => path.startsWith(m.path))
-          const changedModuleNames = changedModules.map(m => m.name)
+      // changedModules will only have more than one element when the changed path belongs to >= 2 modules.
+      const changedModules = modules.filter(m => path.startsWith(m.path))
+      const changedModuleNames = changedModules.map(m => m.name)
 
-          if (changedModules.length > 0) {
-            this.invalidateCached(changedModules)
-            this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
-          }
-        })
-    }
+      if (changedModules.length > 0) {
+        this.invalidateCached(changedModules)
+        this.garden.events.emit("moduleSourcesChanged", { names: changedModuleNames, pathChanged: path })
+      }
+    })
   }
 
   private makeDirRemovedHandler(modules: Module[]) {

@@ -76,6 +76,14 @@ describe("Watcher", () => {
     ])
   })
 
+  it("should emit a projectConfigChanged changed event when ignore files are changed", async () => {
+    const path = join(await getConfigFilePath(garden.projectRoot), ".gardenignore")
+    emitEvent("change", path)
+    expect(garden.events.eventLog).to.eql([
+      { name: "projectConfigChanged", payload: {} },
+    ])
+  })
+
   it("should clear all module caches when project config is changed", async () => {
     const path = await getConfigFilePath(garden.projectRoot)
     emitEvent("change", path)
@@ -175,6 +183,7 @@ describe("Watcher", () => {
   it("should clear a module's cache when a directory is added under a module directory", async () => {
     const pathChanged = resolve(modulePath, "subdir")
     emitEvent("addDir", pathChanged)
+    await waitForEvent("moduleSourcesChanged")
     expect(garden.cache.getByContext(moduleContext)).to.eql(new Map())
   })
 

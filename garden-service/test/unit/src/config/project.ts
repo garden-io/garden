@@ -8,6 +8,7 @@ import {
 } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError } from "../../../helpers"
+import { defaultDotIgnoreFiles } from "../../../../src/util/fs"
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
@@ -17,6 +18,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         { name: "default", variables: {} },
       ],
@@ -46,6 +48,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "local",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       providers: [
         { name: "some-provider" },
@@ -73,6 +76,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environmentDefaults: {
         variables: {
           defaultEnvVar: "\${local.env.TEST_ENV_VAR}",
@@ -139,6 +143,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environmentDefaults: {
         providers: [
           {
@@ -220,6 +225,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       providers: [
         { name: "some-provider" },
@@ -246,6 +252,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       providers: [
         { name: "some-provider" },
@@ -272,6 +279,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environmentDefaults: {
         providers: [
           {
@@ -339,6 +347,7 @@ describe("resolveProjectConfig", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environmentDefaults: {
         providers: [
           {
@@ -406,6 +415,7 @@ describe("pickEnvironment", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         { name: "default", variables: {} },
       ],
@@ -423,6 +433,7 @@ describe("pickEnvironment", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         { name: "default", variables: {} },
       ],
@@ -446,6 +457,7 @@ describe("pickEnvironment", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         { name: "default", variables: {} },
       ],
@@ -475,6 +487,7 @@ describe("pickEnvironment", () => {
       name: "my-project",
       path: "/tmp/foo",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         { name: "default", variables: {} },
       ],

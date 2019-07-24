@@ -19,7 +19,7 @@ type: container
 name: my-container
 ```
 
-If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explictly [include or exclude](./configuration-files.md#including-excluding-files) files in the build context.
+If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explictly [include or exclude](./configuration-files.md#including-excluding-files-and-directories) files in the build context.
 
 ## Using remote images
 

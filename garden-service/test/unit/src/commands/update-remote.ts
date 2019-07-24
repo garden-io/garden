@@ -14,7 +14,6 @@ import {
   getDataDir,
   expectError,
   stubExtSources,
-  stubGitCli,
   makeTestGarden,
   withDefaultGlobalOpts,
 } from "../../../helpers"
@@ -22,6 +21,8 @@ import { UpdateRemoteSourcesCommand } from "../../../../src/commands/update-remo
 import { UpdateRemoteModulesCommand } from "../../../../src/commands/update-remote/modules"
 import { Garden } from "../../../../src/garden"
 import { LogEntry } from "../../../../src/logger/log-entry"
+import * as td from "testdouble"
+import { ModuleVersion } from "../../../../src/vcs/vcs"
 
 describe("UpdateRemoteCommand", () => {
   describe("UpdateRemoteSourcesCommand", () => {
@@ -31,7 +32,7 @@ describe("UpdateRemoteCommand", () => {
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
       log = garden.log
-      stubGitCli(garden)
+      stubExtSources(garden)
     })
 
     const projectRoot = getDataDir("test-project-ext-project-sources")
@@ -96,10 +97,20 @@ describe("UpdateRemoteCommand", () => {
     let garden: Garden
     let log: LogEntry
 
+    const dummyVersion: ModuleVersion = {
+      versionString: "foo",
+      dependencyVersions: {},
+      files: [],
+    }
+
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
       log = garden.log
       stubExtSources(garden)
+      const resolveVersion = td.replace(garden, "resolveVersion")
+      td.when(resolveVersion("module-a", [])).thenResolve(dummyVersion)
+      td.when(resolveVersion("module-b", [])).thenResolve(dummyVersion)
+      td.when(resolveVersion("module-c", [])).thenResolve(dummyVersion)
     })
 
     const projectRoot = getDataDir("test-project-ext-module-sources")

@@ -16,16 +16,17 @@ import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
 import { getPackageVersion } from "../../util/util"
 import { platform, release } from "os"
-import { join, relative, basename } from "path"
+import { join, relative, basename, dirname } from "path"
 import execa = require("execa")
 import { LogEntry } from "../../logger/log-entry"
 import { deline } from "../../util/string"
-import { getModulesPathsFromPath, getConfigFilePath } from "../../util/fs"
+import { findConfigPathsInPath, getConfigFilePath, defaultDotIgnoreFiles } from "../../util/fs"
 import { ERROR_LOG_FILENAME } from "../../constants"
 import dedent = require("dedent")
 import { Garden } from "../../garden"
 import { zipFolder } from "../../util/archive"
 import chalk from "chalk"
+import { GitHandler } from "../../vcs/git"
 
 export const TEMP_DEBUG_ROOT = "tmp"
 export const SYSTEM_INFO_FILENAME = "system-info.json"
@@ -50,6 +51,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
       Couldn't find a garden.yml with a valid project definition.
       Please run this command from the root of your Garden project.`)
     process.exit(1)
+    return
   }
 
   // Create temporary folder inside .garden/ at root of project
@@ -67,10 +69,14 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   }
 
   // Find all services paths
-  const paths = await getModulesPathsFromPath(root, gardenDirPath)
+  const vcs = new GitHandler(root, config.dotIgnoreFiles || defaultDotIgnoreFiles)
+  const include = config.modules && config.modules.include
+  const exclude = config.modules && config.modules.exclude
+  const paths = await findConfigPathsInPath(vcs, root, { include, exclude })
 
   // Copy all the service configuration files
-  for (const servicePath of paths) {
+  for (const configPath of paths) {
+    const servicePath = dirname(configPath)
     const tempServicePath = join(tempPath, relative(root, servicePath))
     await ensureDir(tempServicePath)
     const moduleConfigFilePath = await getConfigFilePath(servicePath)

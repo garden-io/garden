@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { join, basename } from "path"
-import { getDataDir, expectError } from "../../../helpers"
+import { getDataDir, expectError, makeTestGardenA } from "../../../helpers"
 import {
   scanDirectory,
   toCygwinPath,
@@ -8,6 +8,7 @@ import {
   isConfigFilename,
   getConfigFilePath,
   getWorkingCopyId,
+  findConfigPathsInPath,
 } from "../../../../src/util/fs"
 import { withDir } from "tmp-promise"
 
@@ -118,6 +119,50 @@ describe("util", () => {
 
         expect(idA).to.equal(idB)
       }, { unsafeCleanup: true })
+    })
+  })
+
+  describe("findConfigPathsInPath", () => {
+    it("should find all garden configs in a directory", async () => {
+      const garden = await makeTestGardenA()
+      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot)
+      expect(files).to.eql([
+        join(garden.projectRoot, "garden.yml"),
+        join(garden.projectRoot, "module-a", "garden.yml"),
+        join(garden.projectRoot, "module-b", "garden.yml"),
+        join(garden.projectRoot, "module-c", "garden.yml"),
+      ])
+    })
+
+    it("should respect the include option, if specified", async () => {
+      const garden = await makeTestGardenA()
+      const include = ["module-a/**/*"]
+      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot, { include })
+      expect(files).to.eql([
+        join(garden.projectRoot, "module-a", "garden.yml"),
+      ])
+    })
+
+    it("should respect the exclude option, if specified", async () => {
+      const garden = await makeTestGardenA()
+      const exclude = ["module-a/**/*"]
+      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot, { exclude })
+      expect(files).to.eql([
+        join(garden.projectRoot, "garden.yml"),
+        join(garden.projectRoot, "module-b", "garden.yml"),
+        join(garden.projectRoot, "module-c", "garden.yml"),
+      ])
+    })
+
+    it("should respect the include and exclude options, if both are specified", async () => {
+      const garden = await makeTestGardenA()
+      const include = ["module*/**/*"]
+      const exclude = ["module-a/**/*"]
+      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot, { include, exclude })
+      expect(files).to.eql([
+        join(garden.projectRoot, "module-b", "garden.yml"),
+        join(garden.projectRoot, "module-c", "garden.yml"),
+      ])
     })
   })
 })

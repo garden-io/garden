@@ -24,6 +24,9 @@ export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap 
 //   spec: Omit<T, keyof S> & Partial<S>
 // }
 
+export const includeGuideLink =
+  "https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories"
+
 export const enumToArray = Enum => (
   Object.values(Enum).filter(k => typeof k === "string") as string[]
 )
@@ -36,6 +39,7 @@ interface JoiPathParams {
   absoluteOnly?: boolean
   relativeOnly?: boolean
   subPathOnly?: boolean
+  filenameOnly?: boolean
 }
 
 // Extend the Joi module with our custom rules
@@ -57,7 +61,8 @@ export const joi: Joi.Root = Joi.extend({
     posixPath: "must be a POSIX-style path", // Used below as 'string.posixPath'
     absoluteOnly: "must be a an absolute path",
     relativeOnly: "must be a relative path (may not be an absolute path)",
-    subPathOnly: "must be a relative sub-path (may not contain '..' or be an absolute path)",
+    subPathOnly: "must be a relative sub-path (may not contain '..' segments or be an absolute path)",
+    filenameOnly: "must be a filename (may not contain slashes)",
   },
   rules: [
     {
@@ -105,8 +110,11 @@ export const joi: Joi.Root = Joi.extend({
               .description("Disallow absolute paths (starting with /)."),
             subPathOnly: Joi.boolean()
               .description("Only allow sub-paths. That is, disallow '..' path segments and absolute paths."),
+            filenameOnly: Joi.boolean()
+              .description("Only allow filenames. That is, disallow '/' in the path."),
           })
           .oxor("absoluteOnly", "relativeOnly")
+          .oxor("absoluteOnly", "filenameOnly")
           .oxor("absoluteOnly", "subPathOnly"),
       },
       validate(params: { options?: JoiPathParams }, value: string, state, prefs) {
@@ -137,6 +145,11 @@ export const joi: Joi.Root = Joi.extend({
             // tslint:disable-next-line:no-invalid-this
             return this.createError("string.relativeOnly", { v: value }, state, prefs)
           }
+        }
+
+        if (options.filenameOnly && value.includes("/")) {
+          // tslint:disable-next-line:no-invalid-this
+          return this.createError("string.filenameOnly", { v: value }, state, prefs)
         }
 
         return value // Everything is OK

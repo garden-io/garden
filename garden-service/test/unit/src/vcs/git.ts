@@ -6,8 +6,11 @@ import { join, resolve } from "path"
 import { expectError } from "../../../helpers"
 import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
 
-async function addToGardenIgnore(tmpPath: string, pathToExclude: string) {
-  const gardenignorePath = resolve(tmpPath, ".gardenignore")
+// Overriding this to make sure any ignorefile name is respected
+const ignoreFileName = ".testignore"
+
+async function addToIgnore(tmpPath: string, pathToExclude: string) {
+  const gardenignorePath = resolve(tmpPath, ignoreFileName)
 
   await createFile(gardenignorePath)
   await writeFile(gardenignorePath, pathToExclude)
@@ -22,7 +25,7 @@ describe("GitHandler", () => {
   beforeEach(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath)
+    handler = new GitHandler(tmpPath, [ignoreFileName])
     git = (<any>handler).gitCli(tmpPath)
     await git("init")
   })
@@ -202,29 +205,29 @@ describe("GitHandler", () => {
       expect(files).to.eql([pathC])
     })
 
-    it("should exclude untracked files that are listed in .gardenignore", async () => {
+    it("should exclude untracked files that are listed in ignore file", async () => {
       const name = "foo.txt"
       const path = resolve(tmpPath, name)
       await createFile(path)
-      await addToGardenIgnore(tmpPath, name)
+      await addToIgnore(tmpPath, name)
 
       const files = (await handler.getFiles(tmpPath, undefined, []))
-        .filter(f => !f.path.includes(".gardenignore"))
+        .filter(f => !f.path.includes(ignoreFileName))
 
       expect(files).to.eql([])
     })
 
-    it("should exclude tracked files that are listed in .gardenignore", async () => {
+    it("should exclude tracked files that are listed in ignore file", async () => {
       const name = "foo.txt"
       const path = resolve(tmpPath, name)
       await createFile(path)
-      await addToGardenIgnore(tmpPath, name)
+      await addToIgnore(tmpPath, name)
 
       await git("add", path)
       await git("commit", "-m", "foo")
 
       const files = (await handler.getFiles(tmpPath, undefined, []))
-        .filter(f => !f.path.includes(".gardenignore"))
+        .filter(f => !f.path.includes(ignoreFileName))
 
       expect(files).to.eql([])
     })

@@ -59,7 +59,6 @@
     "get-port": "^5.0.0",
     "has-ansi": "^3.0.0",
     "hasha": "^5.0.0",
-    "ignore": "^5.1.1",
     "indent-string": "^4.0.0",
     "inquirer": "^6.3.1",
     "is-git-url": "^1.0.0",
