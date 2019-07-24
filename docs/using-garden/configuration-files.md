@@ -325,7 +325,7 @@ belong to which module. See the next section for details.
 
 ### Including/excluding files
 
-By default, all files in the same directory as a module configuration files are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
+By default, all files in the same directory as a module configuration file are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
 
 Garden provides two different ways to achieve this:
 
