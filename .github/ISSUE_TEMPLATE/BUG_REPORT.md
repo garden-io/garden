@@ -37,5 +37,6 @@ about: Create a report to help make garden better
 <!-- Please run and copy and paste the results  -->
 `garden version`
 
-<!-- Please run the "get debug-info" command and attach the output zip file -->
-`garden get debug-info`
+`kubectl version`
+
+`docker version`
