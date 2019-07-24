@@ -49,6 +49,7 @@ describe("validateHelmModule", () => {
       configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",
       include: undefined,
+      exclude: undefined,
       name: "api",
       outputs: {
         "release-name": "api-release",

@@ -38,6 +38,21 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("value-suffix")
   })
 
+  it("should interpolate a format string with a prefix with whitespace", async () => {
+    const res = await resolveTemplateString("prefix ${some}", new TestContext({ some: "value" }))
+    expect(res).to.equal("prefix value")
+  })
+
+  it("should interpolate a format string with a suffix with whitespace", async () => {
+    const res = await resolveTemplateString("${some} suffix", new TestContext({ some: "value" }))
+    expect(res).to.equal("value suffix")
+  })
+
+  it("should correctly interpolate a format string with surrounding whitespace", async () => {
+    const res = await resolveTemplateString("prefix ${some} suffix", new TestContext({ some: "value" }))
+    expect(res).to.equal("prefix value suffix")
+  })
+
   it("should handle a nested key", async () => {
     const res = await resolveTemplateString("${some.nested}", new TestContext({ some: { nested: "value" } }))
     expect(res).to.equal("value")

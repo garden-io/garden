@@ -76,6 +76,7 @@ export interface BaseModuleSpec {
   build: BaseBuildSpec
   description?: string
   include?: string[]
+  exclude?: string[]
   type: string
   repositoryUrl?: string
 }
@@ -112,13 +113,26 @@ export const baseModuleSpecSchema = joi.object()
       .description(
         dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
         module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
-        as well as when responding to filesystem watch events.
+        when responding to filesystem watch events, and when staging builds.
 
-        Note that you can also _exclude_ files by placing \`.gardenignore\` files in your source tree, which use the
-        same format as \`.gitignore\` files.
+        Note that you can also _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your
+        source tree, which use the same format as \`.gitignore\` files. See the
+        [Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files)
+        for details.
 
         Also note that specifying an empty list here means _no sources_ should be included.`)
       .example([["Dockerfile", "my-app.js"], {}]),
+    exclude: joi.array().items(joi.string().posixPath({ subPathOnly: true }))
+      .description(
+        dedent`Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
+        match these paths or globs are excluded when computing the version of the module, when responding to filesystem
+        watch events, and when staging builds.
+
+        Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the
+        \`include\` field, the files/patterns specified here are filtered from the files matched by \`include\`. See the
+        [Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files)
+        for details.`)
+      .example([["tmp/**/*", "*.log"], {}]),
     repositoryUrl: joiRepositoryUrl()
       .description(
         dedent`${joiRepositoryUrl().describe().description}

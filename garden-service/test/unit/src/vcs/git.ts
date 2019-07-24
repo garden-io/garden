@@ -174,9 +174,32 @@ describe("GitHandler", () => {
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       await createFile(path)
 
-      expect(await handler.getFiles(tmpPath, ["foo.*"])).to.eql([
+      expect(await handler.getFiles(tmpPath, ["foo.*"], [])).to.eql([
         { path, hash },
       ])
+    })
+
+    it("should filter out files that match the exclude filter, if specified", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+      await createFile(path)
+
+      expect(await handler.getFiles(tmpPath, [], ["foo.*"])).to.eql([])
+    })
+
+    it("should respect include and exclude patterns, if both are specified", async () => {
+      const dir = resolve(tmpPath, "module-a")
+      const pathA = resolve(dir, "yes.txt")
+      const pathB = resolve(tmpPath, "no.txt")
+      const pathC = resolve(dir, "yes.pass")
+      await mkdir(dir)
+      await createFile(pathA)
+      await createFile(pathB)
+      await createFile(pathC)
+
+      const files = (await handler.getFiles(tmpPath, ["module-a/**/*"], ["**/*.txt"]))
+        .map(f => f.path)
+
+      expect(files).to.eql([pathC])
     })
 
     it("should exclude untracked files that are listed in .gardenignore", async () => {
@@ -185,7 +208,10 @@ describe("GitHandler", () => {
       await createFile(path)
       await addToGardenIgnore(tmpPath, name)
 
-      expect((await handler.getFiles(tmpPath)).filter(f => !f.path.includes(".gardenignore"))).to.eql([])
+      const files = (await handler.getFiles(tmpPath, undefined, []))
+        .filter(f => !f.path.includes(".gardenignore"))
+
+      expect(files).to.eql([])
     })
 
     it("should exclude tracked files that are listed in .gardenignore", async () => {
@@ -197,7 +223,10 @@ describe("GitHandler", () => {
       await git("add", path)
       await git("commit", "-m", "foo")
 
-      expect((await handler.getFiles(tmpPath)).filter(f => !f.path.includes(".gardenignore"))).to.eql([])
+      const files = (await handler.getFiles(tmpPath, undefined, []))
+        .filter(f => !f.path.includes(".gardenignore"))
+
+      expect(files).to.eql([])
     })
   })
 

@@ -48,10 +48,10 @@ InvalidFormatString
   }
 
 FormatStart
-  = ws "${" ws
+  = "${" ws
 
 FormatEnd
-  = ws "}" ws
+  = ws "}"
 
 Identifier
   = [a-zA-Z][a-zA-Z0-9_\-]* { return text() }

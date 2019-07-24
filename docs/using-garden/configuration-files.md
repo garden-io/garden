@@ -287,7 +287,7 @@ one Dockerfile is in use (e.g. one for a development build and one for a product
 Another is when the dev configuration and the production configuration have different integration testing suites,
 which may depend on different external services being available.
 
-To do this, simply add a document separator (`---`) between the module definitions. Here's a simple (if a bit contrived)
+To do this, add a document separator (`---`) between the module definitions. Here's a simple (if a bit contrived)
 example:
 
 ```yaml
@@ -320,19 +320,21 @@ tests:
       - b-integration-testing-backend
 ```
 
+Please note that in many cases you need to specify `include` or `exclude` directives to specify which files should
+belong to which module. See the next section for details.
+
 ### Including/excluding files
 
-By default, all files in the same directory as a module configuration files are included as source files for that
-module. Sometimes you need more granular control over the context, not least if you have multiple modules in the
-same directory.
+By default, all files in the same directory as a module configuration file are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
 
 Garden provides two different ways to achieve this:
 
-1. The `include` field in module configuration files.
+1. The `include` and `exclude` fields in module configuration files.
 2. `.gardenignore` files.
 
-The `include` field is a simple way to explicitly specify which sources should belong to a module. It accepts a list
-of POSIX-style paths or globs. For example:
+#### Module include/exclude
+
+The `include` and `exclude` fields are a simple way to explicitly specify which sources should belong to a particular module. They both accept a list of POSIX-style paths or globs. For example:
 
 ```yaml
 kind: Module
@@ -341,21 +343,25 @@ type: container
 include:
   - Dockerfile
   - my-sources/**/*.py
+exclude:
+  - my-sources/tmp/**/*
 ...
 ```
 
-Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`.
+Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp` directory.
 
-`.gardenignore` files do the opposite, which is to list all files/paths that you want to ignore. They work exactly
-like `.gitignore` files and use the same syntax. For example, you might put this `.gardenignore` at the top of your
-project:
+If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude` files or patterns, those are filtered out of the files matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all files in the module directory.
+
+#### .gardenignore
+
+`.gardenignore` files work like `.gitignore` files and use the same syntax. You can use those to exclude files and directories across the project, _including from being scanned for Garden modules_. For example, you might put this `.gardenignore` in your project root directory:
 
 ```gitignore
 node_modules
 *.log
 ```
 
-This would cause Garden to ignore `node_modules` directories across your project/repo, and all `.log` files.
+This would cause Garden to ignore `node_modules` directories across your project/repo, and all `.log` files. You can place `.gardenignore` files anywhere in your repository, much like `.gitignore` files, and follow the same semantics.
 
 ### Template strings
 

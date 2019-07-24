@@ -63,7 +63,7 @@ describe("VcsHandler", () => {
     it("should sort the list of files in the returned version", async () => {
       const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModuleConfig("module-a")
-      td.when(getFiles(moduleConfig.path, undefined)).thenResolve([
+      td.when(getFiles(moduleConfig.path, undefined, undefined)).thenResolve([
         { path: "c", hash: "c" },
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
@@ -75,7 +75,7 @@ describe("VcsHandler", () => {
     it("should not include the module config file in the file list", async () => {
       const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModuleConfig("module-a")
-      td.when(getFiles(moduleConfig.path, undefined)).thenResolve([
+      td.when(getFiles(moduleConfig.path, undefined, undefined)).thenResolve([
         { path: moduleConfig.configPath, hash: "c" },
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
@@ -85,29 +85,42 @@ describe("VcsHandler", () => {
     })
 
     it("should respect the include field, if specified", async () => {
-      const includeProjectRoot = getDataDir("test-projects", "include-field")
-      const includeGarden = await makeTestGarden(includeProjectRoot)
-      const moduleConfig = await includeGarden.resolveModuleConfig("module-a")
-      const includeHandler = new GitHandler(includeGarden.gardenDirPath)
+      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfig = await garden.resolveModuleConfig("module-a")
+      const handler = new GitHandler(garden.gardenDirPath)
 
-      const withInclude = await includeHandler.getTreeVersion(moduleConfig)
-      const configWithoutInclude = { ...moduleConfig, include: undefined }
-      const withoutInclude = await includeHandler.getTreeVersion(configWithoutInclude)
+      const version = await handler.getTreeVersion(moduleConfig)
 
-      expect(withInclude).to.eql({
-        contentHash: "6413e73ab3",
-        files: [
-          resolve(moduleConfig.path, "yes.txt"),
-        ],
-      })
+      expect(version.files).to.eql([
+        resolve(moduleConfig.path, "yes.txt"),
+      ])
+    })
 
-      expect(withoutInclude).to.eql({
-        contentHash: "6dfaa33e8f",
-        files: [
-          resolve(moduleConfig.path, "nope.txt"),
-          resolve(moduleConfig.path, "yes.txt"),
-        ],
-      })
+    it("should respect the exclude field, if specified", async () => {
+      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfig = await garden.resolveModuleConfig("module-b")
+      const handler = new GitHandler(garden.gardenDirPath)
+
+      const version = await handler.getTreeVersion(moduleConfig)
+
+      expect(version.files).to.eql([
+        resolve(moduleConfig.path, "yes.txt"),
+      ])
+    })
+
+    it("should respect both include and exclude fields, if specified", async () => {
+      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfig = await garden.resolveModuleConfig("module-c")
+      const handler = new GitHandler(garden.gardenDirPath)
+
+      const version = await handler.getTreeVersion(moduleConfig)
+
+      expect(version.files).to.eql([
+        resolve(moduleConfig.path, "yes.txt"),
+      ])
     })
 
     it("should not be affected by changes to the module's garden.yml that don't affect the module config", async () => {

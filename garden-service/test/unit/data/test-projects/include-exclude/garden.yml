@@ -1,5 +1,5 @@
 project:
-  name: include-filter
+  name: include-exclude
   environments:
     - name: local
       providers:

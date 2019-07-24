@@ -70,7 +70,7 @@ export class GitHandler extends VcsHandler {
     }
   }
 
-  async getFiles(path: string, include?: string[]): Promise<VcsFile[]> {
+  async getFiles(path: string, include?: string[], exclude?: string[]): Promise<VcsFile[]> {
     const git = this.gitCli(path)
 
     let lines: string[] = []
@@ -117,6 +117,7 @@ export class GitHandler extends VcsHandler {
 
     const filtered = files
       .filter(f => !include || matchGlobs(f.path, include))
+      .filter(f => !exclude || !matchGlobs(f.path, exclude))
       .filter(f => !ignored.includes(f.path))
 
     return Bluebird.map(filtered, async (f) => {
