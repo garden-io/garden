@@ -187,14 +187,16 @@ describe("GitHandler", () => {
     })
 
     it("should respect include and exclude patterns, if both are specified", async () => {
-      const pathA = resolve(tmpPath, "yes.txt")
+      const dir = resolve(tmpPath, "module-a")
+      const pathA = resolve(dir, "yes.txt")
       const pathB = resolve(tmpPath, "no.txt")
-      const pathC = resolve(tmpPath, "yes.pass")
+      const pathC = resolve(dir, "yes.pass")
+      await mkdir(dir)
       await createFile(pathA)
       await createFile(pathB)
       await createFile(pathC)
 
-      const files = (await handler.getFiles(tmpPath, ["yes.*"], ["*.txt"]))
+      const files = (await handler.getFiles(tmpPath, ["module-a/**/*"], ["**/*.txt"]))
         .map(f => f.path)
 
       expect(files).to.eql([pathC])
