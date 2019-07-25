@@ -8,10 +8,11 @@
 
 import * as Bluebird from "bluebird"
 import * as execa from "execa"
+import normalizePath = require("normalize-path")
 import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
-import { resolve as resolvePath, normalize, dirname } from "path"
+import { resolve as resolvePath, dirname } from "path"
 import { deline } from "../../util/string"
 import { set } from "lodash"
 import { Service } from "../../types/service"
@@ -189,8 +190,11 @@ export async function hotReloadContainer(
  */
 export function makeCopyCommand(syncTargets: string[]) {
   const commands = syncTargets.map((target) => {
-    const syncCopySource = normalize(`${target}/`)
-    const syncVolumeTarget = normalize(`/.garden/hot_reload/${target}/`)
+    // Note that we're using `normalizePath` as opposed to `path.normalize` since the latter will produce
+    // Win32 style paths on Windows, whereas the command produced runs inside a container that expects
+    // POSIX style paths.
+    const syncCopySource = normalizePath(`${target}/`, false)
+    const syncVolumeTarget = normalizePath(`/.garden/hot_reload/${target}/`, false)
     return `mkdir -p ${dirname(syncVolumeTarget)} && cp -r ${syncCopySource} ${syncVolumeTarget}`
   })
   return commands.join(" && ")
@@ -200,11 +204,11 @@ export function removeTrailingSlashes(path: string) {
   return path.replace(/\/*$/, "")
 }
 
-function rsyncSourcePath(modulePath: string, sourcePath: string) {
+export function rsyncSourcePath(modulePath: string, sourcePath: string) {
   const path = resolvePath(modulePath, sourcePath)
-    .replace(/\/*$/, "/") // ensure (exactly one) trailing slash
 
   return normalizeLocalRsyncPath(path)
+    .replace(/\/*$/, "/") // ensure (exactly one) trailing slash
 }
 
 /**
@@ -246,6 +250,9 @@ export async function syncToService(
     return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
       const src = rsyncSourcePath(service.sourceModule.path, source)
       const destination = `rsync://localhost:${portForward.localPort}/volume/${rsyncTargetPath(target)}`
+
+      log.debug(`Hot-reloading from ${src} to ${destination}`)
+
       return execa("rsync", ["-vrpztgo", src, destination])
     })
   } catch (error) {
