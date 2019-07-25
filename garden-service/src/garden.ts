@@ -40,7 +40,7 @@ import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId, fixedExcludes } from "./util/fs"
+import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId } from "./util/fs"
 import { Provider, ProviderConfig, getProviderDependencies } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionHelper } from "./actions"
@@ -144,7 +144,7 @@ export class Garden {
     this.workingCopyId = params.workingCopyId
     this.dotIgnoreFiles = params.dotIgnoreFiles
     this.moduleIncludePatterns = params.moduleIncludePatterns
-    this.moduleExcludePatterns = [...params.moduleExcludePatterns || [], ...fixedExcludes]
+    this.moduleExcludePatterns = params.moduleExcludePatterns || []
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -629,6 +629,9 @@ export class Garden {
     return version
   }
 
+  /**
+   * Scans the specified directories for Garden config files and returns a list of paths.
+   */
   async scanForConfigs(path: string) {
     return findConfigPathsInPath(
       this.vcs, path, { include: this.moduleIncludePatterns, exclude: this.moduleExcludePatterns },
