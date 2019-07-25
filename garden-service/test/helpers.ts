@@ -407,6 +407,10 @@ export function withDefaultGlobalOpts(opts: any) {
   return extend(mapValues(GLOBAL_OPTIONS, (opt) => opt.defaultValue), opts)
 }
 
+export function setPlatform(platform: string) {
+  Object.defineProperty(process, "platform", { value: platform })
+}
+
 export function freezeTime(date?: Date) {
   if (!date) {
     date = new Date()
