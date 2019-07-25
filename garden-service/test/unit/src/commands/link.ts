@@ -13,10 +13,18 @@ import {
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { Garden } from "../../../../src/garden"
 import { LogEntry } from "../../../../src/logger/log-entry"
+import { ModuleVersion } from "../../../../src/vcs/vcs"
+import * as td from "testdouble"
 
 describe("LinkCommand", () => {
   let garden: Garden
   let log: LogEntry
+
+  const dummyVersion: ModuleVersion = {
+    versionString: "foo",
+    dependencyVersions: {},
+    files: [],
+  }
 
   describe("LinkModuleCommand", () => {
     const cmd = new LinkModuleCommand()
@@ -26,6 +34,10 @@ describe("LinkCommand", () => {
       garden = await makeTestGarden(projectRoot)
       log = garden.log
       stubExtSources(garden)
+      const resolveVersion = td.replace(garden, "resolveVersion")
+      td.when(resolveVersion("module-a", [])).thenResolve(dummyVersion)
+      td.when(resolveVersion("module-b", [])).thenResolve(dummyVersion)
+      td.when(resolveVersion("module-c", [])).thenResolve(dummyVersion)
     })
 
     afterEach(async () => {

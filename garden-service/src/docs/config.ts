@@ -32,6 +32,7 @@ import { Garden } from "../garden"
 import { GARDEN_SERVICE_ROOT } from "../constants"
 import { indent, renderMarkdownTable } from "./util"
 import { ModuleContext } from "../config/config-context"
+import { defaultDotIgnoreFiles } from "../util/fs"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 
@@ -450,6 +451,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
       kind: "Project",
       name: "generate-docs",
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       providers: moduleProviders,
       variables: {},
       environments: [

@@ -7,7 +7,7 @@
  */
 
 import Bluebird = require("bluebird")
-import { parse, relative, resolve, sep } from "path"
+import { parse, relative, resolve, sep, dirname } from "path"
 import { flatten, isString, cloneDeep, sortBy, set, zip } from "lodash"
 const AsyncLock = require("async-lock")
 
@@ -40,7 +40,7 @@ import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import { getIgnorer, Ignorer, getModulesPathsFromPath, getConfigFilePath, getWorkingCopyId } from "./util/fs"
+import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId } from "./util/fs"
 import { Provider, ProviderConfig, getProviderDependencies } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionHelper } from "./actions"
@@ -86,7 +86,6 @@ export interface GardenParams {
   buildDir: BuildDir,
   environmentName: string,
   gardenDirPath: string,
-  ignorer: Ignorer,
   opts: GardenOpts,
   plugins: Plugins,
   projectName: string,
@@ -95,6 +94,9 @@ export interface GardenParams {
   providerConfigs: ProviderConfig[],
   variables: PrimitiveMap,
   workingCopyId: string,
+  dotIgnoreFiles: string[]
+  moduleIncludePatterns?: string[]
+  moduleExcludePatterns?: string[]
 }
 
 export class Garden {
@@ -122,16 +124,17 @@ export class Garden {
   public readonly projectSources: SourceConfig[]
   public readonly buildDir: BuildDir
   public readonly gardenDirPath: string
-  public readonly ignorer: Ignorer
   public readonly opts: GardenOpts
   private readonly providerConfigs: ProviderConfig[]
   public readonly workingCopyId: string
+  public readonly dotIgnoreFiles: string[]
+  public readonly moduleIncludePatterns?: string[]
+  public readonly moduleExcludePatterns: string[]
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
     this.environmentName = params.environmentName
     this.gardenDirPath = params.gardenDirPath
-    this.ignorer = params.ignorer
     this.opts = params.opts
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
@@ -139,6 +142,9 @@ export class Garden {
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
     this.workingCopyId = params.workingCopyId
+    this.dotIgnoreFiles = params.dotIgnoreFiles
+    this.moduleIncludePatterns = params.moduleIncludePatterns
+    this.moduleExcludePatterns = params.moduleExcludePatterns || []
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -155,7 +161,7 @@ export class Garden {
     this.modulesScanned = false
     this.log = this.opts.log || getLogger().placeholder()
     // TODO: Support other VCS options.
-    this.vcs = new GitHandler(this.gardenDirPath)
+    this.vcs = new GitHandler(this.gardenDirPath, this.dotIgnoreFiles)
     this.configStore = new LocalConfigStore(this.gardenDirPath)
     this.globalConfigStore = new GlobalConfigStore()
     this.cache = new TreeCache()
@@ -208,7 +214,6 @@ export class Garden {
 
     gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
-    const ignorer = await getIgnorer(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
     const garden = new this({
@@ -219,11 +224,13 @@ export class Garden {
       projectSources,
       buildDir,
       gardenDirPath,
-      ignorer,
       opts,
       plugins,
       providerConfigs: providers,
       workingCopyId,
+      dotIgnoreFiles: config.dotIgnoreFiles,
+      moduleIncludePatterns: (config.modules || {}).include,
+      moduleExcludePatterns: (config.modules || {}).exclude,
     }) as InstanceType<T>
 
     return garden
@@ -622,6 +629,15 @@ export class Garden {
     return version
   }
 
+  /**
+   * Scans the specified directories for Garden config files and returns a list of paths.
+   */
+  async scanForConfigs(path: string) {
+    return findConfigPathsInPath(
+      this.vcs, path, { include: this.moduleIncludePatterns, exclude: this.moduleExcludePatterns },
+    )
+  }
+
   /*
     Scans the project root for modules and adds them to the context.
    */
@@ -641,14 +657,12 @@ export class Garden {
       }
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
-      const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
-        return await getModulesPathsFromPath(dir, this.gardenDirPath)
-      })).filter(Boolean)
+      const modulePaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
 
       const rawConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]
 
       await Bluebird.map(modulePaths, async path => {
-        const configs = await this.loadModuleConfigs(path)
+        const configs = await this.loadModuleConfigs(dirname(path))
         if (configs) {
           rawConfigs.push(...configs)
         }
@@ -695,7 +709,9 @@ export class Garden {
    * @param path Directory containing the module
    */
   private async loadModuleConfigs(path: string): Promise<ModuleConfig[]> {
-    const resources = await loadConfig(this.projectRoot, resolve(this.projectRoot, path))
+    path = resolve(this.projectRoot, path)
+    this.log.info(`Load module configs from ${path}`)
+    const resources = await loadConfig(this.projectRoot, path)
     return <ModuleResource[]>resources.filter(r => r.kind === "Module")
   }
 

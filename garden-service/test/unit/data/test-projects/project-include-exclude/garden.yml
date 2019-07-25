@@ -1,0 +1,11 @@
+kind: Project
+name: include-exclude
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+modules:
+  include:
+    - module*/**/*
+  exclude:
+    - module-c/**/*

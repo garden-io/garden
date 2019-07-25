@@ -25,6 +25,7 @@ import { DashboardPage } from "../../config/dashboard"
 import { PrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
 import { KubernetesResource } from "./types"
+import { defaultDotIgnoreFiles } from "../../util/fs"
 
 const GARDEN_VERSION = getPackageVersion()
 const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
@@ -58,6 +59,7 @@ export async function getSystemGarden(ctx: KubernetesPluginContext, variables: P
       kind: "Project",
       name: systemNamespace,
       defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         { name: "default", variables: {} },
       ],

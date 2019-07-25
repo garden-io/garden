@@ -8,7 +8,7 @@
 
 import { safeDump } from "js-yaml"
 import { apply, merge } from "json-merge-patch"
-import { deline } from "../util/string"
+import { deline, dedent } from "../util/string"
 import {
   joiArray,
   joiIdentifier,
@@ -18,6 +18,7 @@ import {
   joiUserIdentifier,
   validateWithPath,
   joi,
+  includeGuideLink,
 } from "./common"
 import { resolveTemplateStrings } from "../template-string"
 import { ProjectConfigContext } from "./config-context"
@@ -28,6 +29,7 @@ import { fixedPlugins } from "../plugins/plugins"
 import { cloneDeep, omit } from "lodash"
 import { providerConfigBaseSchema, Provider, ProviderConfig } from "./provider"
 import { DEFAULT_API_VERSION } from "../constants"
+import { defaultDotIgnoreFiles } from "../util/fs"
 
 export interface CommonEnvironmentConfig {
   providers?: ProviderConfig[]  // further validated by each plugin
@@ -98,8 +100,13 @@ export interface ProjectConfig {
   path: string
   configPath?: string
   defaultEnvironment: string
+  dotIgnoreFiles: string[]
   environmentDefaults?: CommonEnvironmentConfig
   environments: EnvironmentConfig[]
+  modules?: {
+    include?: string[],
+    exclude?: string[],
+  },
   providers: ProviderConfig[]
   sources?: SourceConfig[]
   variables: PrimitiveMap
@@ -132,6 +139,28 @@ export const projectNameSchema = joiIdentifier()
   .description("The name of the project.")
   .example("my-sweet-project")
 
+const projectModulesSchema = joi.object()
+  .keys({
+    include: joi.array().items(joi.string().posixPath({ subPathOnly: true }))
+      .description(
+        dedent`Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+
+        Note that you can also _exclude_ path using the \`exclude\` field or by placing \`.gardenignore\` files in your
+        source tree, which use the same format as \`.gitignore\` files. See the
+        [Configuration Files guide](${includeGuideLink}) for details.
+
+        Also note that specifying an empty list here means _no paths_ should be included.`)
+      .example([["modules/**/*"], {}]),
+    exclude: joi.array().items(joi.string().posixPath({ subPathOnly: true }))
+      .description(
+        deline`Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+
+        Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the
+        \`include\` field, the paths/patterns specified here are filtered from the files matched by \`include\`. See the
+        [Configuration Files guide](${includeGuideLink}) for details.`)
+      .example([["public/**/*", "tmp/**/*"], {}]),
+  })
+
 export const projectSchema = joi.object()
   .keys({
     apiVersion: joi.string()
@@ -150,6 +179,20 @@ export const projectSchema = joi.object()
       .allow("")
       .default("", "<first specified environment>")
       .description("The default environment to use when calling commands without the `--env` parameter."),
+    dotIgnoreFiles: joiArray(joi.string().posixPath({ filenameOnly: true }))
+      .default(defaultDotIgnoreFiles)
+      .description(deline`
+        Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
+        semantics as \`.gitignore\` files. By default, patterns matched in \`.gitignore\` and \`.gardenignore\`
+        files, found anywhere in the project, are ignored when scanning for modules and module sources.
+
+        Note that these take precedence over the project \`module.include\` field, and module \`include\` fields,
+        so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+
+        See the [Configuration Files guide]
+        (https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories)
+        for details.
+      `),
     environmentDefaults: environmentConfigSchema
       .default(() => emptyEnvironmentDefaults, safeDump(emptyEnvironmentDefaults))
       .example([emptyEnvironmentDefaults, {}])
@@ -162,6 +205,7 @@ export const projectSchema = joi.object()
     environments: environmentsSchema
       .description("A list of environments to configure for the project.")
       .example([defaultEnvironments, {}]),
+    modules: projectModulesSchema,
     providers: joiArray(providerConfigBaseSchema)
       .description(
         "A list of providers that should be used for this project, and their configuration. " +

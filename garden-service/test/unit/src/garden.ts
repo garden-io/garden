@@ -11,7 +11,6 @@ import {
   stubExtSources,
   getDataDir,
   cleanProject,
-  stubGitCli,
   testModuleVersion,
   TestGarden,
   testPlugin,
@@ -28,9 +27,10 @@ import { ProjectConfig } from "../../../src/config/project"
 import { ModuleConfig } from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
-import { keyBy } from "lodash"
+import { keyBy, set } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
+import { defaultDotIgnoreFiles } from "../../../src/util/fs"
 
 describe("Garden", () => {
   beforeEach(async () => {
@@ -290,6 +290,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -315,6 +316,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -347,6 +349,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -405,6 +408,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -440,6 +444,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -475,6 +480,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -511,6 +517,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -550,6 +557,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -588,6 +596,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -621,6 +630,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
           { name: "default", variables: {} },
         ],
@@ -640,6 +650,50 @@ describe("Garden", () => {
           "test: Error validating provider (/garden.yml): key .foo must be a string",
         ),
       )
+    })
+  })
+
+  describe("scanForConfigs", () => {
+    it("should find all garden configs in the project directory", async () => {
+      const garden = await makeTestGardenA()
+      const files = await garden.scanForConfigs(garden.projectRoot)
+      expect(files).to.eql([
+        join(garden.projectRoot, "garden.yml"),
+        join(garden.projectRoot, "module-a", "garden.yml"),
+        join(garden.projectRoot, "module-b", "garden.yml"),
+        join(garden.projectRoot, "module-c", "garden.yml"),
+      ])
+    })
+
+    it("should respect the include option, if specified", async () => {
+      const garden = await makeTestGardenA()
+      set(garden, "moduleIncludePatterns", ["module-a/**/*"])
+      const files = await garden.scanForConfigs(garden.projectRoot)
+      expect(files).to.eql([
+        join(garden.projectRoot, "module-a", "garden.yml"),
+      ])
+    })
+
+    it("should respect the exclude option, if specified", async () => {
+      const garden = await makeTestGardenA()
+      set(garden, "moduleExcludePatterns", ["module-a/**/*"])
+      const files = await garden.scanForConfigs(garden.projectRoot)
+      expect(files).to.eql([
+        join(garden.projectRoot, "garden.yml"),
+        join(garden.projectRoot, "module-b", "garden.yml"),
+        join(garden.projectRoot, "module-c", "garden.yml"),
+      ])
+    })
+
+    it("should respect the include and exclude options, if both are specified", async () => {
+      const garden = await makeTestGardenA()
+      set(garden, "moduleIncludePatterns", ["module*/**/*"])
+      set(garden, "moduleExcludePatterns", ["module-a/**/*"])
+      const files = await garden.scanForConfigs(garden.projectRoot)
+      expect(files).to.eql([
+        join(garden.projectRoot, "module-b", "garden.yml"),
+        join(garden.projectRoot, "module-c", "garden.yml"),
+      ])
     })
   })
 
@@ -680,6 +734,7 @@ describe("Garden", () => {
         .thenReturn(join("sources", "project", "source-b"))
       td.when(getRemoteSourceRelPath("source-c"), { ignoreExtraArgs: true })
         .thenReturn(join("sources", "project", "source-c"))
+
       stubExtSources(garden)
 
       await garden.scanModules()
@@ -703,6 +758,31 @@ describe("Garden", () => {
       const garden = await makeTestGarden(getDataDir("test-project-yaml-file-extensions"))
       const modules = await garden.resolveModuleConfigs()
       expect(getNames(modules).sort()).to.eql(["module-yaml", "module-yml"])
+    })
+
+    it("should respect the modules.include and modules.exclude fields, if specified", async () => {
+      const projectRoot = getDataDir("test-projects", "project-include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfigs = await garden.resolveModuleConfigs()
+
+      // Should NOT include "nope" and "module-c"
+      expect(getNames(moduleConfigs).sort()).to.eql(["module-a", "module-b"])
+    })
+
+    it("should respect .gitignore and .gardenignore files", async () => {
+      const projectRoot = getDataDir("test-projects", "dotignore")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfigs = await garden.resolveModuleConfigs()
+
+      expect(getNames(moduleConfigs).sort()).to.eql(["module-a"])
+    })
+
+    it("should respect custom dotignore files", async () => {
+      const projectRoot = getDataDir("test-projects", "dotignore")
+      const garden = await makeTestGarden(projectRoot)
+      const moduleConfigs = await garden.resolveModuleConfigs()
+
+      expect(getNames(moduleConfigs).sort()).to.eql(["module-a"])
     })
   })
 
@@ -738,7 +818,7 @@ describe("Garden", () => {
     it("should resolve module path to external sources dir if module has a remote source", async () => {
       const projectRoot = resolve(dataDir, "test-project-ext-module-sources")
       const garden = await makeTestGarden(projectRoot)
-      stubGitCli(garden)
+      stubExtSources(garden)
 
       const module = await garden.resolveModuleConfig("module-a")
       const repoUrlHash = hashRepoUrl(module!.repositoryUrl!)
@@ -820,7 +900,7 @@ describe("Garden", () => {
 
     const makeGarden = async (root) => {
       garden = await makeTestGarden(root)
-      stubGitCli(garden)
+      stubExtSources(garden)
       return garden
     }
 

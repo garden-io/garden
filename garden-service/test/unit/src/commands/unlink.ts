@@ -14,6 +14,8 @@ import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { UnlinkSourceCommand } from "../../../../src/commands/unlink/source"
 import { Garden } from "../../../../src/garden"
 import { LogEntry } from "../../../../src/logger/log-entry"
+import * as td from "testdouble"
+import { ModuleVersion } from "../../../../src/vcs/vcs"
 
 describe("UnlinkCommand", () => {
   let garden: Garden
@@ -24,10 +26,21 @@ describe("UnlinkCommand", () => {
     const linkCmd = new LinkModuleCommand()
     const unlinkCmd = new UnlinkModuleCommand()
 
+    const dummyVersion: ModuleVersion = {
+      versionString: "foo",
+      dependencyVersions: {},
+      files: [],
+    }
+
     beforeEach(async () => {
       garden = await makeTestGarden(projectRoot)
       log = garden.log
       stubExtSources(garden)
+
+      const resolveVersion = td.replace(garden, "resolveVersion")
+      td.when(resolveVersion("module-a", [])).thenResolve(dummyVersion)
+      td.when(resolveVersion("module-b", [])).thenResolve(dummyVersion)
+      td.when(resolveVersion("module-c", [])).thenResolve(dummyVersion)
 
       await linkCmd.action({
         garden,

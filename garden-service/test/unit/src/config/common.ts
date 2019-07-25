@@ -210,6 +210,12 @@ describe("joi.posixPath", () => {
     )
   })
 
+  it("should error if attempting to set absoluteOnly and filenameOnly at same time", async () => {
+    return expectError(
+      () => joi.string().posixPath({ absoluteOnly: true, filenameOnly: true }),
+    )
+  })
+
   it("should respect absoluteOnly parameter", () => {
     const path = "foo/bar.js"
     const schema = joi.string().posixPath({ absoluteOnly: true })
@@ -243,6 +249,13 @@ describe("joi.posixPath", () => {
     const schema = joi.string().posixPath()
     const result = schema.validate(path)
     expect(result.error).to.be.null
+  })
+
+  it("should respect filenameOnly parameter", () => {
+    const path = "foo/bar.js"
+    const schema = joi.string().posixPath({ filenameOnly: true })
+    const result = schema.validate(path)
+    expect(result.error).to.exist
   })
 })
 

@@ -18,6 +18,7 @@ import * as td from "testdouble"
 import * as tmp from "tmp-promise"
 import { realpath, readFile, writeFile } from "fs-extra"
 import { GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
+import { defaultDotIgnoreFiles } from "../../../../src/util/fs"
 
 class TestVcsHandler extends VcsHandler {
   name = "test"
@@ -55,7 +56,7 @@ describe("VcsHandler", () => {
   }
 
   beforeEach(async () => {
-    handlerA = new TestVcsHandler(projectRootA)
+    handlerA = new TestVcsHandler(projectRootA, defaultDotIgnoreFiles)
     gardenA = await makeTestGardenA()
   })
 
@@ -88,7 +89,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModuleConfig("module-a")
-      const handler = new GitHandler(garden.gardenDirPath)
+      const handler = new GitHandler(garden.gardenDirPath, garden.dotIgnoreFiles)
 
       const version = await handler.getTreeVersion(moduleConfig)
 
@@ -101,7 +102,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModuleConfig("module-b")
-      const handler = new GitHandler(garden.gardenDirPath)
+      const handler = new GitHandler(garden.gardenDirPath, garden.dotIgnoreFiles)
 
       const version = await handler.getTreeVersion(moduleConfig)
 
@@ -114,7 +115,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModuleConfig("module-c")
-      const handler = new GitHandler(garden.gardenDirPath)
+      const handler = new GitHandler(garden.gardenDirPath, garden.dotIgnoreFiles)
 
       const version = await handler.getTreeVersion(moduleConfig)
 

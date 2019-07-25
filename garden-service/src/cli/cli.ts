@@ -57,6 +57,7 @@ import {
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
+import { defaultDotIgnoreFiles } from "../util/fs"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -77,6 +78,7 @@ export const MOCK_CONFIG: ProjectConfig = {
   kind: "Project",
   name: "mock-project",
   defaultEnvironment: "local",
+  dotIgnoreFiles: defaultDotIgnoreFiles,
   environments: defaultEnvironments,
   providers: [
     {

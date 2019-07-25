@@ -78,7 +78,7 @@ export interface VcsFile {
 }
 
 export abstract class VcsHandler {
-  constructor(protected gardenDirPath: string) { }
+  constructor(protected gardenDirPath: string, protected ignoreFiles: string[]) { }
 
   abstract name: string
   abstract async getFiles(path: string, include?: string[], exclude?: string[]): Promise<VcsFile[]>

@@ -323,16 +323,40 @@ tests:
 Please note that in many cases you need to specify `include` or `exclude` directives to specify which files should
 belong to which module. See the next section for details.
 
-### Including/excluding files
+### Including/excluding files and directories
 
-By default, all files in the same directory as a module configuration file are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
+By default, all directories under the project root are scanned for Garden modules, and all files in the same directory as a module configuration file are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
 
-Garden provides two different ways to achieve this:
+Garden provides three different ways to achieve this:
 
-1. The `include` and `exclude` fields in module configuration files.
-2. `.gardenignore` files.
+1. The `modules.include` and `modules.exclude` fields in _project_ configuration files.
+2. The `include` and `exclude` fields in _module_ configuration files.
+3. ".ignore" files, e.g. `.gitignore` and `.gardenignore`.
+
+#### Project include/exclude
+
+By default, all directories under the project root are scanned for Garden modules, except those matching your ignore files. You may want to limit the scope, for example if you only want certain modules as part of a project, or if all your modules are contained in a single directory (in which case it is more efficient to scan only that directory).
+
+The `modules.include` and `modules.exclude` fields are a simple way to explicitly specify which directories should be scanned for modules. They both accept a list of POSIX-style paths or globs. For example:
+
+```yaml
+kind: Project
+name: my-project
+modules:
+  include:
+    - modules/**/*
+  exclude:
+    - modules/tmp/**/*
+...
+```
+
+Here we only scan the `modules` directory, but exclude the `modules/tmp` directory.
+
+If you specify a list with `include`, only those patterns are included. If you then specify one or more `exclude` patterns, those are filtered out of the ones matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all paths in the project directory.
 
 #### Module include/exclude
+
+By default, all files in the same directory as a module configuration file are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
 
 The `include` and `exclude` fields are a simple way to explicitly specify which sources should belong to a particular module. They both accept a list of POSIX-style paths or globs. For example:
 
@@ -352,16 +376,29 @@ Here we only include the `Dockerfile` and all the `.py` files under `my-sources/
 
 If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude` files or patterns, those are filtered out of the files matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all files in the module directory.
 
-#### .gardenignore
+#### .ignore files
 
-`.gardenignore` files work like `.gitignore` files and use the same syntax. You can use those to exclude files and directories across the project, _including from being scanned for Garden modules_. For example, you might put this `.gardenignore` in your project root directory:
+By default, Garden respects `.gitignore` and `.gardenignore` files and excludes any patterns matched in those files.
+
+You can use those to exclude files and directories across the project, _both from being scanned for Garden modules and when selecting source files for individual module_. For example, you might put this `.gardenignore` file in your project root directory:
 
 ```gitignore
 node_modules
+public
 *.log
 ```
 
-This would cause Garden to ignore `node_modules` directories across your project/repo, and all `.log` files. You can place `.gardenignore` files anywhere in your repository, much like `.gitignore` files, and follow the same semantics.
+This would cause Garden to ignore `node_modules` and `public` directories across your project/repo, and all `.log` files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.
+
+Note that _these take precedence over both `module.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
+
+You can override which filenames to use as ".ignore" files using the `dotIgnoreFiles` field in your project configuration. For example, you might choose to only use `.gardenignore` files and not exclude paths based on your `.gitignore` files:
+
+```yaml
+kind: Project
+name: my-project
+dotIgnoreFiles: [.gardenignore]
+```
 
 ### Template strings
 

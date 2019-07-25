@@ -281,6 +281,12 @@ class TestEventBus extends EventBus {
   }
 }
 
+export const testPlugins = {
+  "test-plugin": testPlugin,
+  "test-plugin-b": testPluginB,
+  "test-plugin-c": testPluginC,
+}
+
 export class TestGarden extends Garden {
   events: TestEventBus
 
@@ -293,13 +299,7 @@ export class TestGarden extends Garden {
 export const makeTestGarden = async (
   projectRoot: string, { extraPlugins, gardenDirPath }: { extraPlugins?: Plugins, gardenDirPath?: string } = {},
 ): Promise<TestGarden> => {
-  const testPlugins = {
-    "test-plugin": testPlugin,
-    "test-plugin-b": testPluginB,
-    "test-plugin-c": testPluginC,
-  }
   const plugins = { ...testPlugins, ...extraPlugins }
-
   return TestGarden.factory(projectRoot, { plugins, gardenDirPath })
 }
 
@@ -379,16 +379,14 @@ export const cleanProject = async (gardenDirPath: string) => {
   return remove(gardenDirPath)
 }
 
-export function stubGitCli(garden: Garden) {
-  td.replace(garden.vcs, "gitCli", () => async () => "")
-}
-
 /**
  * Prevents git cloning. Use if creating a Garden instance with test-project-ext-module-sources
  * or test-project-ext-project-sources as project root.
  */
 export function stubExtSources(garden: Garden) {
-  stubGitCli(garden)
+  td.replace(garden.vcs, "cloneRemoteSource", async () => undefined)
+  td.replace(garden.vcs, "updateRemoteSource", async () => undefined)
+
   const getRemoteSourcesDirname = td.replace(garden.vcs, "getRemoteSourcesDirname")
 
   td.when(getRemoteSourcesDirname("module")).thenReturn(join("sources", "module"))

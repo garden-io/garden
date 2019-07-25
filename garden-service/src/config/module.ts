@@ -18,6 +18,7 @@ import {
   joiIdentifierMap,
   joiPrimitive,
   joi,
+  includeGuideLink,
 } from "./common"
 import { TestConfig, TestSpec, testConfigSchema } from "./test"
 import { TaskConfig, TaskSpec, taskConfigSchema } from "./task"
@@ -117,8 +118,7 @@ export const baseModuleSpecSchema = joi.object()
 
         Note that you can also _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your
         source tree, which use the same format as \`.gitignore\` files. See the
-        [Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files)
-        for details.
+        [Configuration Files guide](${includeGuideLink}) for details.
 
         Also note that specifying an empty list here means _no sources_ should be included.`)
       .example([["Dockerfile", "my-app.js"], {}]),
@@ -130,8 +130,7 @@ export const baseModuleSpecSchema = joi.object()
 
         Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the
         \`include\` field, the files/patterns specified here are filtered from the files matched by \`include\`. See the
-        [Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files)
-        for details.`)
+        [Configuration Files guide](${includeGuideLink})for details.`)
       .example([["tmp/**/*", "*.log"], {}]),
     repositoryUrl: joiRepositoryUrl()
       .description(
