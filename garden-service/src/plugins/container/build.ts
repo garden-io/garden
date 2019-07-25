@@ -70,7 +70,15 @@ export function getDockerBuildFlags(module: ContainerModule) {
   const args: string[] = []
 
   for (const [key, value] of Object.entries(module.spec.buildArgs)) {
-    args.push("--build-arg", `${key}=${value}`)
+
+    // 0 is falsy
+    if (value || value === 0) {
+      args.push("--build-arg", `${key}=${value}`)
+    } else {
+      // If the value of a build-arg is null, Docker pulls it from
+      // the environment: https://docs.docker.com/engine/reference/commandline/build/
+      args.push("--build-arg", `${key}`)
+    }
   }
 
   if (module.spec.build.targetImage) {
