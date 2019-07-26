@@ -451,9 +451,9 @@ export class ActionHelper implements TypeGuard {
     return { serviceStatuses, environmentStatuses }
   }
 
-  async getDebugInfo({ log }: { log: LogEntry }): Promise<DebugInfoMap> {
+  async getDebugInfo({ log, includeProject }: { log: LogEntry, includeProject: boolean }): Promise<DebugInfoMap> {
     const handlers = this.getActionHandlers("getDebugInfo")
-    return Bluebird.props(mapValues(handlers, async (h) => h({ ...await this.commonParams(h, log) })))
+    return Bluebird.props(mapValues(handlers, async (h) => h({ ...await this.commonParams(h, log), includeProject })))
   }
 
   //endregion

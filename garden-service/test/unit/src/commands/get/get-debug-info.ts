@@ -147,7 +147,7 @@ describe("GetDebugInfoCommand", () => {
       const expectedProviderFolderName = "test-plugin"
       const providerInfoFilePath = join(expectedProviderFolderName, `${PROVIDER_INFO_FILENAME_NO_EXT}.${format}`)
 
-      await collectProviderDebugInfo(garden, log, format)
+      await collectProviderDebugInfo(garden, log, format, false)
 
       // Check if the temporary folder exists
       expect(await pathExists(gardenDebugTmp)).to.equal(true)

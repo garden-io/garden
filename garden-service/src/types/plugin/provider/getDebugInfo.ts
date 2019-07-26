@@ -18,7 +18,9 @@ export interface DebugInfoMap {
   [key: string]: DebugInfo
 }
 
-export interface GetDebugInfoParams extends PluginActionParamsBase { }
+export interface GetDebugInfoParams extends PluginActionParamsBase {
+  includeProject: boolean,
+}
 
 export const getDebugInfo = {
   description: dedent`

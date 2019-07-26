@@ -25,6 +25,7 @@ import { ConfigurationError } from "../../exceptions"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
 import { clusterInit } from "./commands/cluster-init"
 import { uninstallGardenServices } from "./commands/uninstall-garden-services"
+import chalk from "chalk"
 
 export const name = "kubernetes"
 
@@ -65,20 +66,26 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
   return { name: config.name, config }
 }
 
-export async function debugInfo({ ctx, log }: GetDebugInfoParams): Promise<DebugInfo> {
+export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams): Promise<DebugInfo> {
   const k8sContext = <KubernetesPluginContext>ctx
   const { context } = k8sContext.provider.config
-  const appNamespace = await getAppNamespace(k8sContext, log, k8sContext.provider)
-  const appMetadataNamespace = await getMetadataNamespace(k8sContext, log, k8sContext.provider)
-
-  const namespacesList = [appNamespace, appMetadataNamespace, systemNamespace, systemMetadataNamespace]
+  const entry = log.info({ section: ctx.provider.name, msg: "collecting provider configuration", status: "active" })
+  const namespacesList = [systemNamespace, systemMetadataNamespace]
+  if (includeProject) {
+    const appNamespace = await getAppNamespace(k8sContext, log, k8sContext.provider)
+    const appMetadataNamespace = await getMetadataNamespace(k8sContext, log, k8sContext.provider)
+    namespacesList.push(appNamespace, appMetadataNamespace)
+  }
   const namespaces = await Bluebird.map(namespacesList, async (ns) => {
+    const nsEntry = entry.info({ section: ns, msg: "collecting namespace configuration", status: "active" })
     const out = await kubectl.stdout({ log, context, args: ["get", "all", "--namespace", ns, "--output", "json"] })
+    nsEntry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     return {
       namespace: ns,
       output: JSON.parse(out),
     }
   })
+  entry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
   const version = await kubectl.stdout({ log, context, args: ["version", "--output", "json"] })
 
