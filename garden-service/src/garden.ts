@@ -710,7 +710,7 @@ export class Garden {
    */
   private async loadModuleConfigs(path: string): Promise<ModuleConfig[]> {
     path = resolve(this.projectRoot, path)
-    this.log.info(`Load module configs from ${path}`)
+    this.log.silly(`Load module configs from ${path}`)
     const resources = await loadConfig(this.projectRoot, path)
     return <ModuleResource[]>resources.filter(r => r.kind === "Module")
   }
