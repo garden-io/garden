@@ -432,7 +432,7 @@ export class Garden {
       })
       const taskResults = await this.processTasks(tasks)
 
-      const failed = Object.values(taskResults).filter(r => !!r.error)
+      const failed = Object.values(taskResults).filter(r => r && r.error)
 
       if (failed.length) {
         const messages = failed.map(r => `- ${r.name}: ${r.error!.message}`)

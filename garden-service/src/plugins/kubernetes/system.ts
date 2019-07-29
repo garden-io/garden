@@ -200,7 +200,7 @@ export async function prepareSystemServices(
       forceBuild: force,
     })
 
-    const failed = values(results.taskResults).filter(r => !!r.error).length
+    const failed = values(results.taskResults).filter(r => r && r.error).length
 
     if (failed) {
       throw new PluginError(`${provider.name}: ${failed} errors occurred when configuring environment`, {
