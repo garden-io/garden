@@ -26,7 +26,11 @@ export const getDebugInfo = {
   description: dedent`
     Collects debug info from the provider.
   `,
-  paramsSchema: actionParamsSchema,
+  paramsSchema: actionParamsSchema
+    .keys({
+      includeProject: joi.boolean()
+        .description("If set, include project-specific information from configured providers."),
+    }),
   resultSchema: joi.object()
     .keys({
       info: joi.any()

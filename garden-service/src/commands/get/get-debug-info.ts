@@ -113,7 +113,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
 export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEntry) {
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
-  const dockerLog = log.info({ section: "docker", msg: "collecting info", status: "active" })
+  const dockerLog = log.info({ section: "Docker", msg: "collecting info", status: "active" })
   let dockerVersion = ""
   try {
     dockerVersion = await execa.stdout("docker", ["--version"])
@@ -123,7 +123,7 @@ export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEnt
     log.error(error)
   }
   const systemLog = log.info({ section: "Operating System", msg: "collecting info", status: "active" })
-  const gardenLog = log.info({ section: "garden", msg: "collecting garden version", status: "active" })
+  const gardenLog = log.info({ section: "Garden", msg: "getting version", status: "active" })
 
   const systemInfo = {
     gardenVersion: getPackageVersion(),
@@ -158,7 +158,6 @@ export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, fo
 
   // Create a provider folder and report for each provider.
   for (const [providerName, info] of Object.entries(providersDebugInfo)) {
-    // const entry = log.info({ section: providerName, msg: "collecting configuration", status: "active" })
     const prividerPath = join(tempPath, providerName)
     await ensureDir(prividerPath)
     const outputFileName = `${PROVIDER_INFO_FILENAME_NO_EXT}.${format}`
@@ -228,7 +227,8 @@ const debugInfoOptions = {
     defaultValue: "json",
   }),
   "include-project": new BooleanParameter({
-    help: "Includes the provider info for the project namespace.",
+    help: "Include project-specific information from configured providers. \
+    Note that this may include sensitive data, depending on the provider and your configuration.",
     defaultValue: false,
   }),
 }
@@ -252,8 +252,8 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
     Examples:
 
     garden get debug-info                    # create a zip file at the root of the project with debug information
-    garden get debug-info --format yaml      # output the provider info as yaml files (default as json)
-    garden get debug-info --include-project  # Include the provider info for the project namespace. Default is disabled
+    garden get debug-info --format yaml      # output provider info as YAML files (default is JSON)
+    garden get debug-info --include-project  # include provider info for the project namespace (disabled by default)
   `
 
   arguments = debugInfoArguments
@@ -306,8 +306,8 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
 
     footer.setWarn({
       msg: chalk.yellow(dedent`
-        NOTE: Please be aware the output file might contain sensitive information.
-        If you plan to make the file available to the general public (eg. github), please review manually the content.
+        NOTE: Please be aware that the output file might contain sensitive information.
+        If you plan to make the file available to the general public (eg. GitHub), please review the content first.
         If you need to share a file containing sensitive information with the Garden team, please contact us on
         the #garden-dev channel on https://slack.k8s.io.
       `), append: true,
