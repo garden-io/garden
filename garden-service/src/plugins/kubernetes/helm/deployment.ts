@@ -59,6 +59,9 @@ export async function deployService(
       "--name", releaseName,
       "--namespace", namespace,
       "--values", valuesPath,
+      // Make sure chart gets purged if it fails to install
+      "--atomic",
+      "--timeout", "600",
     ]
     if (force) {
       installArgs.push("--replace")
