@@ -114,6 +114,8 @@ export function deduplicateResources(resources: KubernetesResource[]) {
 }
 
 export interface PortForward {
+  targetDeployment: string
+  port: number
   localPort: number
   proc: ChildProcess
 }
@@ -122,17 +124,30 @@ const registeredPortForwards: { [key: string]: PortForward } = {}
 const portForwardRegistrationLock = new AsyncLock()
 
 registerCleanupFunction("kill-port-forward-procs", () => {
-  for (const { proc } of Object.values(registeredPortForwards)) {
-    !proc.killed && proc.kill()
+  for (const { targetDeployment, port } of Object.values(registeredPortForwards)) {
+    killPortForward(targetDeployment, port)
   }
 })
+
+export function killPortForward(targetDeployment: string, port: number) {
+  const key = getPortForwardKey(targetDeployment, port)
+  const fwd = registeredPortForwards[key]
+  if (fwd) {
+    const { proc } = fwd
+    !proc.killed && proc.kill()
+  }
+}
+
+function getPortForwardKey(targetDeployment: string, port: number) {
+  return `${targetDeployment}:${port}`
+}
 
 export async function getPortForward(
   { ctx, log, namespace, targetDeployment, port }:
     { ctx: PluginContext, log: LogEntry, namespace: string, targetDeployment: string, port: number },
 ): Promise<PortForward> {
   // Using lock here to avoid concurrency issues (multiple parallel requests for same forward).
-  const key = `${targetDeployment}:${port}`
+  const key = getPortForwardKey(targetDeployment, port)
 
   return portForwardRegistrationLock.acquire("register-port-forward", (async () => {
     let localPort: number
@@ -169,7 +184,7 @@ export async function getPortForward(
         log.silly(`[${targetDeployment} port forwarder] ${line}`)
 
         if (line.toString().includes("Forwarding from ")) {
-          const portForward = { proc, localPort }
+          const portForward = { targetDeployment, port, proc, localPort }
           registeredPortForwards[key] = portForward
           resolve(portForward)
         }

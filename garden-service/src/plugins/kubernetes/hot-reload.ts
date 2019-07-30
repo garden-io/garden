@@ -19,7 +19,7 @@ import { Service } from "../../types/service"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
 import { waitForContainerService } from "./container/status"
-import { getPortForward } from "./util"
+import { getPortForward, killPortForward } from "./util"
 import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./config"
@@ -244,7 +244,7 @@ export async function syncToService(
   const targetDeployment = `${targetKind.toLowerCase()}/${targetName}`
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
 
-  try {
+  const doSync = async () => {
     const portForward = await getPortForward({ ctx, log, namespace, targetDeployment, port: RSYNC_PORT })
 
     return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
@@ -255,6 +255,20 @@ export async function syncToService(
 
       return execa("rsync", ["-vrpztgo", src, destination])
     })
+  }
+
+  try {
+    try {
+      await doSync()
+    } catch (error) {
+      if (error.message.includes("did not see server greeting")) {
+        log.debug(`Port-forward to ${targetDeployment} disconnected. Retrying.`)
+        killPortForward(targetDeployment, RSYNC_PORT)
+        await doSync()
+      } else {
+        throw error
+      }
+    }
   } catch (error) {
     throw new RuntimeError(`Unexpected error while synchronising to service ${service.name}: ${error.message}`, {
       error,
