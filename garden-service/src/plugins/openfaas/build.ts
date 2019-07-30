@@ -1,0 +1,75 @@
+/*
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { join } from "path"
+import { PrimitiveMap } from "../../config/common"
+import { KubernetesProvider } from "../kubernetes/config"
+import { dumpYaml } from "../../util/util"
+import { faasCli } from "./faas-cli"
+import { BuildModuleParams } from "../../types/plugin/module/build"
+import { containerHelpers } from "../container/helpers"
+import { k8sBuildContainer, k8sGetContainerBuildStatus } from "../kubernetes/container/build"
+import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
+import { OpenFaasModule, getK8sProvider, getContainerModule, OpenFaasProvider } from "./config"
+
+export const stackFilename = "stack.yml"
+
+export async function getOpenfaasModuleBuildStatus({ ctx, log, module }: GetBuildStatusParams<OpenFaasModule>) {
+  const containerModule = getContainerModule(module)
+  const k8sProvider = getK8sProvider(ctx.provider.dependencies)
+  const k8sCtx = { ...ctx, provider: k8sProvider }
+  return k8sGetContainerBuildStatus({ ctx: k8sCtx, log, module: containerModule })
+}
+
+export async function buildOpenfaasModule({ ctx, log, module }: BuildModuleParams<OpenFaasModule>) {
+  const k8sProvider = getK8sProvider(ctx.provider.dependencies)
+  await writeStackFile(<OpenFaasProvider>ctx.provider, k8sProvider, module, {})
+
+  const buildLog = await faasCli.stdout({
+    log,
+    cwd: module.buildPath,
+    args: ["build", "--shrinkwrap", "-f", stackFilename],
+  })
+
+  const containerModule = getContainerModule(module)
+  const k8sCtx = { ...ctx, provider: k8sProvider }
+  const result = await k8sBuildContainer({ ctx: k8sCtx, log, module: containerModule })
+
+  return { fresh: true, buildLog: buildLog + "\n" + result.buildLog }
+}
+
+export async function writeStackFile(
+  provider: OpenFaasProvider, k8sProvider: KubernetesProvider, module: OpenFaasModule, envVars: PrimitiveMap,
+) {
+  const containerModule = getContainerModule(module)
+  const image = await containerHelpers.getDeploymentImageId(containerModule, k8sProvider.config.deploymentRegistry)
+
+  const stackPath = join(module.buildPath, stackFilename)
+
+  return dumpYaml(stackPath, {
+    provider: {
+      name: "faas",
+      gateway: getExternalGatewayUrl(provider),
+    },
+    functions: {
+      [module.name]: {
+        lang: module.spec.lang,
+        handler: module.spec.handler,
+        image,
+        environment: envVars,
+      },
+    },
+  })
+}
+
+function getExternalGatewayUrl(provider: OpenFaasProvider) {
+  const k8sProvider = getK8sProvider(provider.dependencies)
+  const hostname = provider.config.hostname
+  const ingressPort = k8sProvider.config.ingressHttpPort
+  return `http://${hostname}:${ingressPort}`
+}

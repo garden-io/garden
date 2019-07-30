@@ -1,4 +1,4 @@
 kind: Module
 description: Hello world npm package
-type: npm-package
+type: exec
 name: hello-npm-package
