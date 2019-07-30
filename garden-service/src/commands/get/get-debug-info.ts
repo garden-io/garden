@@ -30,7 +30,7 @@ import chalk from "chalk"
 import { GitHandler } from "../../vcs/git"
 
 export const TEMP_DEBUG_ROOT = "tmp"
-export const SYSTEM_INFO_FILENAME = "system-info.json"
+export const SYSTEM_INFO_FILENAME_NO_EXT = "system-info"
 export const DEBUG_ZIP_FILENAME = "debug-info-TIMESTAMP.zip"
 export const PROVIDER_INFO_FILENAME_NO_EXT = "info"
 
@@ -110,7 +110,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
  * @param {string} gardenDirPath Path to the Garden cache directory
  * @param {LogEntry} log Logger
  */
-export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEntry) {
+export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEntry, format: string) {
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
   const dockerLog = log.info({ section: "Docker", msg: "collecting info", status: "active" })
@@ -135,8 +135,8 @@ export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEnt
   systemLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
   gardenLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
-  await writeFile(join(tempPath, SYSTEM_INFO_FILENAME), JSON.stringify(systemInfo, null, 4), "utf8")
-
+  const outputFileName = `${SYSTEM_INFO_FILENAME_NO_EXT}.${format}`
+  await writeFile(join(tempPath, outputFileName), renderInfo(systemInfo, format), "utf8")
 }
 
 /**
@@ -176,7 +176,14 @@ export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, fo
  * @param {string} root
  * @param {LogEntry} log
  */
-export async function generateBasicDebugInfoReport(root: string, gardenDirPath: string, log: LogEntry) {
+export async function generateBasicDebugInfoReport(
+  root: string, gardenDirPath: string, log: LogEntry, format = "json") {
+  log.setWarn({
+    msg: chalk.yellow(
+      "It looks like Garden couldn't validate your project: generating basic report.",
+    ), append: true,
+  })
+
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   const entry = log.info({ msg: "Collecting basic debug info", status: "active" })
   // Collect project info
@@ -186,7 +193,7 @@ export async function generateBasicDebugInfoReport(root: string, gardenDirPath: 
 
   // Run system diagnostic
   const systemEntry = entry.info({ section: "System", msg: "collecting info", status: "active" })
-  await collectSystemDiagnostic(gardenDirPath, systemEntry)
+  await collectSystemDiagnostic(gardenDirPath, systemEntry, format)
   systemEntry.setSuccess({ msg: chalk.green(`Done (took ${systemEntry.getDuration(1)} sec)`), append: true })
 
   // Zip report folder
@@ -227,8 +234,9 @@ const debugInfoOptions = {
     defaultValue: "json",
   }),
   "include-project": new BooleanParameter({
-    help: "Include project-specific information from configured providers. \
-    Note that this may include sensitive data, depending on the provider and your configuration.",
+    help: dedent`
+      Include project-specific information from configured providers.
+      Note that this may include sensitive data, depending on the provider and your configuration.`,
     defaultValue: false,
   }),
 }
@@ -271,7 +279,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
 
     // Run system diagnostic
     const systemEntry = entry.info({ section: "System", msg: "collecting info", status: "active" })
-    await collectSystemDiagnostic(garden.projectRoot, systemEntry)
+    await collectSystemDiagnostic(garden.projectRoot, systemEntry, opts.format)
     systemEntry.setSuccess({ msg: chalk.green(`Done (took ${systemEntry.getDuration(1)} sec)`), append: true })
 
     // Collect providers info
@@ -307,7 +315,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
     footer.setWarn({
       msg: chalk.yellow(dedent`
         NOTE: Please be aware that the output file might contain sensitive information.
-        If you plan to make the file available to the general public (eg. GitHub), please review the content first.
+        If you plan to make the file available to the general public (e.g. GitHub), please review the content first.
         If you need to share a file containing sensitive information with the Garden team, please contact us on
         the #garden-dev channel on https://slack.k8s.io.
       `), append: true,

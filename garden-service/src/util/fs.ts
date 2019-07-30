@@ -21,7 +21,7 @@ import { VcsHandler } from "../vcs/vcs"
 const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
 const metadataFilename = "metadata.json"
 export const defaultDotIgnoreFiles = [".gitignore", ".gardenignore"]
-export const fixedExcludes = [".git", ".garden", "debug-info-*"]
+export const fixedExcludes = [".git", ".garden", "debug-info*/**"]
 
 /*
   Warning: Don't make any async calls in the loop body when using this function, since this may cause
