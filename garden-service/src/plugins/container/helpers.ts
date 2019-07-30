@@ -105,7 +105,8 @@ const helpers = {
    * Returns the image ID to be used when pushing to deployment registries. This always has the module version
    * set as the tag.
    */
-  async getDeploymentImageId(module: ContainerModule, registryConfig?: ContainerRegistryConfig) {
+  // Requiring 2nd parameter to avoid accidentally missing it
+  async getDeploymentImageId(module: ContainerModule, registryConfig: ContainerRegistryConfig | undefined) {
     if (await helpers.hasDockerfile(module)) {
       // If building, return the deployment image name, with the current module version.
       const imageName = await helpers.getDeploymentImageName(module, registryConfig)

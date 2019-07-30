@@ -140,7 +140,7 @@ describe("containerHelpers", () => {
 
       td.replace(helpers, "hasDockerfile", async () => true)
 
-      expect(await helpers.getDeploymentImageId(module)).to.equal("test:1234")
+      expect(await helpers.getDeploymentImageId(module, undefined)).to.equal("test:1234")
     })
 
     it("should return image name with module version if there is a Dockerfile and image name is set", async () => {
@@ -150,7 +150,7 @@ describe("containerHelpers", () => {
 
       td.replace(helpers, "hasDockerfile", async () => true)
 
-      expect(await helpers.getDeploymentImageId(module)).to.equal("some/image:1234")
+      expect(await helpers.getDeploymentImageId(module, undefined)).to.equal("some/image:1234")
     })
 
     it("should return configured image tag if there is no Dockerfile", async () => {
@@ -160,7 +160,7 @@ describe("containerHelpers", () => {
 
       td.replace(helpers, "hasDockerfile", async () => false)
 
-      expect(await helpers.getDeploymentImageId(module)).to.equal("some/image:1.1")
+      expect(await helpers.getDeploymentImageId(module, undefined)).to.equal("some/image:1.1")
     })
 
     it("should throw if no image name is set and there is no Dockerfile", async () => {
@@ -169,7 +169,7 @@ describe("containerHelpers", () => {
 
       td.replace(helpers, "hasDockerfile", async () => false)
 
-      await expectError(() => helpers.getDeploymentImageId(module), "configuration")
+      await expectError(() => helpers.getDeploymentImageId(module, undefined), "configuration")
     })
   })
 

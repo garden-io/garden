@@ -505,6 +505,7 @@ describe("plugins.container", () => {
       const result = await build({ ctx, log, module })
 
       expect(result).to.eql({
+        buildLog: undefined,
         fresh: true,
         details: { identifier: "some/image" },
       })
@@ -527,6 +528,7 @@ describe("plugins.container", () => {
       const result = await build({ ctx, log, module })
 
       expect(result).to.eql({
+        buildLog: undefined,
         fresh: true,
         details: { identifier: "some/image" },
       })
@@ -550,6 +552,7 @@ describe("plugins.container", () => {
       const result = await build({ ctx, log, module })
 
       expect(result).to.eql({
+        buildLog: undefined,
         fresh: true,
         details: { identifier: "some/image" },
       })
