@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import * as tmp from "tmp-promise"
-import { createFile, writeFile, realpath, mkdir, remove } from "fs-extra"
+import { createFile, writeFile, realpath, mkdir, remove, symlink } from "fs-extra"
 import { join, resolve } from "path"
 
 import { expectError } from "../../../helpers"
@@ -225,6 +225,21 @@ describe("GitHandler", () => {
 
       await git("add", path)
       await git("commit", "-m", "foo")
+
+      const files = (await handler.getFiles(tmpPath, undefined, []))
+        .filter(f => !f.path.includes(ignoreFileName))
+
+      expect(files).to.eql([])
+    })
+
+    it("should exclude an untracked symlink to a directory", async () => {
+      const tmpDir2 = await tmp.dir({ unsafeCleanup: true })
+      const tmpPathB = await realpath(tmpDir2.path)
+
+      const name = "a-symlink-to-a-directory"
+      const path = resolve(tmpPath, name)
+
+      await symlink(tmpPathB, path)
 
       const files = (await handler.getFiles(tmpPath, undefined, []))
         .filter(f => !f.path.includes(ignoreFileName))
