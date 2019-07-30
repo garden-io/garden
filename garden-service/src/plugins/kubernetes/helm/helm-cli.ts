@@ -49,5 +49,7 @@ export async function helm(namespace: string, context: string, log: LogEntry, ..
   return helmCmd.stdout({
     log,
     args,
+    // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
+    timeout: 3600,
   })
 }
