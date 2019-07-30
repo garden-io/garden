@@ -41,6 +41,7 @@ export const gardenPlugin = (): GardenPlugin => ({
             dependencies: [],
           },
           buildArgs: {},
+          commandArgs: {},
           services: [],
           tasks: [],
           tests: [],

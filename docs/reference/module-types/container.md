@@ -222,6 +222,14 @@ Specify build arguments to use when building the container image.
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
 
+### `commandArgs`
+
+Specify command arguments to use when building the container image.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
+
 ### `image`
 
 Specify the image name for the container. Should be a valid Docker image identifier. If specified and the module does not contain a Dockerfile, this image will be used to deploy services for this module. If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.
@@ -962,6 +970,7 @@ build:
           target: <same as source path>
   targetImage:
 buildArgs: {}
+commandArgs: {}
 image:
 hotReload:
   sync:
