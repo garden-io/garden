@@ -42,6 +42,7 @@ describe("containerHelpers", () => {
     spec: {
       build: { dependencies: [] },
       buildArgs: {},
+      commandArgs: {},
       services: [],
       tasks: [],
       tests: [],
@@ -233,6 +234,7 @@ describe("containerHelpers", () => {
         spec: {
           build: { dependencies: [] },
           buildArgs: {},
+          commandArgs: {},
           image: "some/image",
           services: [],
           tasks: [],
