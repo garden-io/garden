@@ -126,7 +126,12 @@ export class GitHandler extends VcsHandler {
         // If we can't compute the hash, i.e. the file is gone, we filter it out below
         let hash = ""
         try {
-          hash = await this.hashObject(resolvedPath) || ""
+          // "git ls-files" returns a symlink even if it points to a directory.
+          // We filter symlinked directories out, since hashObject() will fail to
+          // process them.
+          if (!(await stat(resolvedPath)).isDirectory()) {
+            hash = await this.hashObject(resolvedPath) || ""
+          }
         } catch (err) {
           // 128 = File no longer exists
           if (err.code !== 128 && err.code !== "ENOENT") {
