@@ -42,6 +42,13 @@ version: 2.1
         # Technically could be a better regex but for now just starting with v feels good enough
         only: /v.*/
 
+  # Only run for PRs from core team
+  only-internal-prs: &only-internal-prs
+    filters:
+      branches:
+        # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+        ignore: /pull\/[0-9]+/
+
 # Reuseable commands to execute in jobs
 # see https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version21
 # and example https://github.com/mapbox/mapbox-gl-native/blob/master/circle.yml
@@ -76,7 +83,7 @@ commands:
           key: dashboard-v2-{{ checksum "dashboard/package-lock.json" }}
 
   configure_kubectl_context:
-    description: Configure the kubectl context so that we can access our remote cluster. Used for integration testing.
+    description: Configure the kubectl context so that we can access our remote cluster. Used for e2e testing.
     steps:
       - run:
           name: Install binary dependencies
@@ -188,7 +195,7 @@ jobs:
             npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
-  integ-test-service:
+  e2e-test-service:
     <<: *node-config
     steps:
       - checkout
@@ -198,10 +205,10 @@ jobs:
       - *attach-workspace
       - run:
           name: Init Garden
-          command: ./garden-service/bin/garden init --root garden-service/test/integ --logger-type basic
+          command: ./garden-service/bin/garden init --root garden-service/test/e2e --logger-type basic
       - run:
-          name: Run integration tests
-          command: ./garden-service/bin/garden test integ-tests --root garden-service/test/integ --logger-type basic
+          name: Run e2e tests
+          command: ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
       - run:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
@@ -292,6 +299,27 @@ jobs:
               -delete \
               -prerelease \
               ${VERSION} ./garden-service/dist
+  test-dist:
+    <<: *node-config
+    steps:
+      # Need to checkout to run example project
+      - checkout
+      - configure_kubectl_context
+      - *attach-workspace
+      - run: sudo apt-get update && sudo apt-get -y install rsync
+      - run:
+          name: Extract binary and add to $HOME dir
+          command: |
+            GARDEN_DIR=${HOME}/.garden
+            mkdir -p ${GARDEN_DIR}
+            tar xvfz ./garden-service/dist/*linux-amd64.tar.gz --strip-components=1 -C ${GARDEN_DIR}
+      - run:
+          name: Deploy demo-project with binary
+          command: $HOME/.garden/garden deploy --root examples/demo-project --env testing --logger-type basic
+      - run:
+          name: Cleanup
+          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
+          when: always
 
 workflows:
   version: 2
@@ -310,14 +338,16 @@ workflows:
       - lint:
           requires:
             - build
-      - integ-test-service:
-          # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
-          filters:
-            branches:
-              # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-              ignore: /pull\/[0-9]+/
+      - e2e-test-service:
+          # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
           requires:
             - build
+      - test-dist:
+          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires:
+            - build-dist
       - test-dashboard:
           requires:
             - build
@@ -346,10 +376,17 @@ workflows:
           context: docker
           requires:
             - build-dist-edge
+      - test-dist:
+          <<: *only-master
+          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires:
+            - build-dist-edge
       - release-service-dist-edge:
           <<: *only-master
           requires:
             - build-dist-edge
+            - test-dist
 
   tags:
     jobs:
@@ -375,8 +412,12 @@ workflows:
           context: docker
           requires:
             - build-dist
+      - test-dist:
+          <<: *only-tags
+          requires:
+            - build-dist
       - release-service-dist:
           <<: *only-tags
           requires:
             - build-dist
-
+            - test-dist

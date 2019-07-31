@@ -7,7 +7,7 @@
  */
 
 import * as Bluebird from "bluebird"
-import { get, flatten, uniqBy } from "lodash"
+import { get, flatten, uniqBy, sortBy } from "lodash"
 import { ChildProcess } from "child_process"
 import getPort = require("get-port")
 const AsyncLock = require("async-lock")
@@ -65,7 +65,30 @@ export async function getAllPodNames(api: KubeApi, namespace: string, resources:
  */
 export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
   const selector = resource.spec.selector.matchLabels
-  return getPods(api, resource.metadata.namespace || namespace, selector)
+  const pods = await getPods(api, resource.metadata.namespace || namespace, selector)
+
+  if (resource.kind === "Deployment") {
+    // Make sure we only return the pods from the current ReplicaSet
+    const selectorString = labelSelectorToString(selector)
+    const replicaSets = await api.apps.listNamespacedReplicaSet(
+      resource.metadata.namespace || namespace, false, undefined, undefined, undefined, selectorString,
+    )
+
+    if (replicaSets.items.length === 0) {
+      return []
+    }
+
+    const sorted = sortBy(replicaSets.items, r => r.metadata.creationTimestamp!)
+    const currentReplicaSet = sorted[replicaSets.items.length - 1]
+
+    return pods.filter(pod => pod.metadata.name.startsWith(currentReplicaSet.metadata.name))
+  } else {
+    return pods
+  }
+}
+
+export function labelSelectorToString(selector: { [key: string]: string }) {
+  return Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
 }
 
 /**
@@ -74,7 +97,7 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
 export async function getPods(
   api: KubeApi, namespace: string, selector: { [key: string]: string },
 ): Promise<KubernetesServerResource<V1Pod>[]> {
-  const selectorString = Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
+  const selectorString = labelSelectorToString(selector)
   const res = await api.core.listNamespacedPod(
     namespace, true, undefined, undefined, undefined, selectorString,
   )
@@ -114,6 +137,8 @@ export function deduplicateResources(resources: KubernetesResource[]) {
 }
 
 export interface PortForward {
+  targetDeployment: string
+  port: number
   localPort: number
   proc: ChildProcess
 }
@@ -122,17 +147,30 @@ const registeredPortForwards: { [key: string]: PortForward } = {}
 const portForwardRegistrationLock = new AsyncLock()
 
 registerCleanupFunction("kill-port-forward-procs", () => {
-  for (const { proc } of Object.values(registeredPortForwards)) {
-    !proc.killed && proc.kill()
+  for (const { targetDeployment, port } of Object.values(registeredPortForwards)) {
+    killPortForward(targetDeployment, port)
   }
 })
+
+export function killPortForward(targetDeployment: string, port: number) {
+  const key = getPortForwardKey(targetDeployment, port)
+  const fwd = registeredPortForwards[key]
+  if (fwd) {
+    const { proc } = fwd
+    !proc.killed && proc.kill()
+  }
+}
+
+function getPortForwardKey(targetDeployment: string, port: number) {
+  return `${targetDeployment}:${port}`
+}
 
 export async function getPortForward(
   { ctx, log, namespace, targetDeployment, port }:
     { ctx: PluginContext, log: LogEntry, namespace: string, targetDeployment: string, port: number },
 ): Promise<PortForward> {
   // Using lock here to avoid concurrency issues (multiple parallel requests for same forward).
-  const key = `${targetDeployment}:${port}`
+  const key = getPortForwardKey(targetDeployment, port)
 
   return portForwardRegistrationLock.acquire("register-port-forward", (async () => {
     let localPort: number
@@ -169,7 +207,7 @@ export async function getPortForward(
         log.silly(`[${targetDeployment} port forwarder] ${line}`)
 
         if (line.toString().includes("Forwarding from ")) {
-          const portForward = { proc, localPort }
+          const portForward = { targetDeployment, port, proc, localPort }
           registeredPortForwards[key] = portForward
           resolve(portForward)
         }

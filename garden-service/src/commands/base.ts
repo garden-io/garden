@@ -315,7 +315,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 export async function handleTaskResults(
   log: LogEntry, taskType: string, results: ProcessResults,
 ): Promise<CommandResult<TaskResults>> {
-  const failed = Object.values(results.taskResults).filter(r => !!r.error).length
+  const failed = Object.values(results.taskResults).filter(r => r && r.error).length
 
   if (failed) {
     const error = new RuntimeError(`${failed} ${taskType} task(s) failed!`, {

@@ -200,7 +200,7 @@
     "dist": "npm run build && ./bin/build-pkg.sh",
     "generate-docs": "node ./build/src/bin/generate-docs.js",
     "integ": "./test/integ/run",
-    "integ-full": "node ./build/test/integ/integ-full.js",
+    "e2e-full": "node ./build/test/e2e/e2e-full.js",
     "prepare": "npm run snyk-protect",
     "snyk-protect": "snyk protect",
     "test": "node_modules/.bin/mocha",

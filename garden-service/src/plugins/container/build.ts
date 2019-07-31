@@ -63,9 +63,9 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
 
   // TODO: log error if it occurs
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli(module, [...cmdOpts, buildPath])
+  const buildLog = await containerHelpers.dockerCli(module, [...cmdOpts, buildPath])
 
-  return { fresh: true, details: { identifier } }
+  return { fresh: true, buildLog, details: { identifier } }
 }
 
 export function getDockerBuildFlags(module: ContainerModule) {

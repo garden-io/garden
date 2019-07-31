@@ -22,7 +22,7 @@ export async function removeExampleDotGardenDir(projectRoot: string) {
 }
 
 export async function deleteExampleNamespaces(projectNames?: string[]) {
-  // TODO: Accept context parameter in integ script.
+  // TODO: Accept context parameter in e2e script.
   const existingNamespaces = await getAllNamespacesKubectl()
   let namespacesToDelete: string[] = []
   let exampleProjectNames = projectNames || Object.keys(getExampleProjects())
@@ -61,7 +61,7 @@ export async function deleteNamespacesKubectl(namespaces: string[]) {
 }
 
 export async function deleteExistingNamespacesKubectl(namespaces: string[]) {
-  // TODO: Accept context parameter in integ script.
+  // TODO: Accept context parameter in e2e script.
   const existingNamespaces = await getAllNamespacesKubectl()
   await deleteNamespacesKubectl(intersection(existingNamespaces, namespaces))
 }

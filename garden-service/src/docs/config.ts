@@ -25,7 +25,7 @@ import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { configSchema as localK8sConfigSchema } from "../plugins/kubernetes/local/config"
 import { configSchema as k8sConfigSchema } from "../plugins/kubernetes/config"
-import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/openfaas"
+import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/config"
 import { joiArray, joi } from "../config/common"
 import { mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
 import { Garden } from "../garden"
