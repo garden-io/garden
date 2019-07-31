@@ -1,6 +1,6 @@
 --require source-map-support/register
 --watch-dirs build/
---exclude build/test/integ/**/*.js
+--exclude build/test/e2e/**/*.js
 --exclude test/,src/
 --watch-extensions js,json,pegjs
 --reporter spec

@@ -7,4 +7,4 @@
 --timeout 0
 --exit
 build/test/setup.js
-build/test/integ/src/**/*.js
+build/test/e2e/src/**/*.js

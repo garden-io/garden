@@ -10,7 +10,7 @@ import { GARDEN_SERVICE_ROOT } from "../../src/constants"
 export const parsedArgs = parseArgs(process.argv.slice(2))
 
 const usageStr = dedent`
-Runs the integ tests. The following options are supported:
+Runs the e2e tests. The following options are supported:
 
 ${chalk.green("-h")}: Prints this message and quits.
 
@@ -23,7 +23,7 @@ E.g. ${chalk.blue("local")} or ${chalk.blue("testing")}.
 ${chalk.green("--project")}: Specify the project to run (required). \
 E.g. ${chalk.blue("demo-project")} or ${chalk.blue("vote-helm")}.
 
-Example: ./garden-service/bin/integ-full.ts --binPath=/path/to/garden --project=demo-project
+Example: ./garden-service/bin/e2e-full.ts --binPath=/path/to/garden --project=demo-project
 `
 
 async function run() {
@@ -47,11 +47,11 @@ async function run() {
   }
 
   console.log(chalk.grey("Call this script with -h for usage information."))
-  console.log("Starting integ tests.")
+  console.log("Starting e2e tests.")
 
   console.log("Running tests...")
 
-  const mochaOpts = ["--opts", "test/mocha.integ.opts"]
+  const mochaOpts = ["--opts", "test/mocha.e2e.opts"]
 
   for (const opt of ["binPath", "project", "env"]) {
     if (parsedArgs[opt]) {
