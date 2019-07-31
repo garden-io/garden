@@ -36,6 +36,13 @@ cp -r build/src tmp/dist/build/src
 cp bin/garden tmp/dist/bin
 rsync -r --exclude=.garden --exclude=.git static tmp/dist
 
+# IMPORTANT: We 'git init' the static dir. This is because in general, Garden only works
+# with projects that are inside git repos. However, the modules for the garden-system project reside
+# in the static directory, and it's simply easier to make that a git repo as well,
+# as opposed of dealing with a bunch of special cases.
+echo "-> Run 'git init' inside static dir"
+git init tmp/dist/static
+
 echo "-> Building executables..."
 cd dist
 pkg --target node10-macos-x64,node10-linux-x64,node10-win-x64,node10-alpine-x64 ../tmp/dist
