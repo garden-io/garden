@@ -308,11 +308,14 @@ jobs:
       - *attach-workspace
       - run: sudo apt-get update && sudo apt-get -y install rsync
       - run:
-          name: Extract binary
-          command: tar xvfz ./garden-service/dist/*linux-amd64.tar.gz
+          name: Extract binary and add to $HOME dir
+          command: |
+            GARDEN_DIR=${HOME}/.garden
+            mkdir -p ${GARDEN_DIR}
+            tar xvfz ./garden-service/dist/*linux-amd64.tar.gz --strip-components=1 -C ${GARDEN_DIR}
       - run:
           name: Deploy demo-project with binary
-          command: linux-amd64/garden deploy --root examples/demo-project --env testing --logger-type basic
+          command: $HOME/.garden/garden deploy --root examples/demo-project --env testing --logger-type basic
       - run:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
