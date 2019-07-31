@@ -76,7 +76,7 @@ commands:
           key: dashboard-v2-{{ checksum "dashboard/package-lock.json" }}
 
   configure_kubectl_context:
-    description: Configure the kubectl context so that we can access our remote cluster. Used for integration testing.
+    description: Configure the kubectl context so that we can access our remote cluster. Used for e2e testing.
     steps:
       - run:
           name: Install binary dependencies
@@ -188,7 +188,7 @@ jobs:
             npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
-  integ-test-service:
+  e2e-test-service:
     <<: *node-config
     steps:
       - checkout
@@ -198,10 +198,10 @@ jobs:
       - *attach-workspace
       - run:
           name: Init Garden
-          command: ./garden-service/bin/garden init --root garden-service/test/integ --logger-type basic
+          command: ./garden-service/bin/garden init --root garden-service/test/e2e --logger-type basic
       - run:
-          name: Run integration tests
-          command: ./garden-service/bin/garden test integ-tests --root garden-service/test/integ --logger-type basic
+          name: Run e2e tests
+          command: ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
       - run:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
@@ -310,8 +310,8 @@ workflows:
       - lint:
           requires:
             - build
-      - integ-test-service:
-          # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
+      - e2e-test-service:
+          # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
           filters:
             branches:
               # Forked pull requests have CIRCLE_BRANCH set to pull/XXX

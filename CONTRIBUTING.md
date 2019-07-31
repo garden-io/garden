@@ -104,10 +104,11 @@ npm test -- -g "taskGraph"
 
 Integration tests are run with:
 
-
 ```sh
 npm run integ
 ```
+
+End to end tests are run in CI by using Garden itself to test the project defined in `./garden-service/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
 
 ### Commit messages
 
@@ -151,7 +152,7 @@ npm run generate-docs
 
 ### Pre-push hook
 
-Before pushing, we automatically run the `check-all` script from above, as well as unit and integration tests. To skip these, run push with the `--no-verify` flag:
+Before pushing, we automatically run the `check-all` script from above, as well as unit tests. To skip these, run push with the `--no-verify` flag:
 
 ```sh
 git push origin <my-branch> --no-verify
@@ -159,7 +160,7 @@ git push origin <my-branch> --no-verify
 
 ## CI
 
-We use [Circle CI](https://circleci.com) for integration testing. Sometimes
+We use [Circle CI](https://circleci.com) for integration and end to end testing. Sometimes
 it can be useful to test and debug the CI build locally, particularly when
 updating or adding dependencies. You can use their
 [CLI](https://circleci.com/docs/2.0/local-jobs/) for that, which

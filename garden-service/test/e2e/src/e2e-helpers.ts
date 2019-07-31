@@ -4,7 +4,7 @@ import {
   findTasks,
   deleteExistingNamespacesKubectl,
   parsedArgs,
-} from "../../integ-helpers"
+} from "../../e2e-helpers"
 import { examplesDir } from "../../helpers"
 import {
   runGarden,
@@ -19,10 +19,10 @@ const voteExamplePath = resolve(examplesDir, "vote")
 
 let testEntries: JsonLogEntry[]
 
-if (parsedArgs["only"] === "integ-helpers") {
-  describe("integ-helpers", () => {
+if (parsedArgs["only"] === "e2e-helpers") {
+  describe("e2e-helpers", () => {
     /**
-     * These only need to be run when the integ helpers themselves are changed.
+     * These only need to be run when the e2e helpers themselves are changed.
      */
 
     describe("findTasks", () => {
