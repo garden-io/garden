@@ -8,7 +8,6 @@ import {
 } from "../../../src/types/plugin/plugin"
 import { RuntimeContext, Service, getServiceRuntimeContext } from "../../../src/types/service"
 import { expectError, makeTestGardenA } from "../../helpers"
-
 import { ActionHelper } from "../../../src/actions"
 import { Garden } from "../../../src/garden"
 import { LogEntry } from "../../../src/logger/log-entry"
@@ -46,53 +45,38 @@ describe("ActionHelper", () => {
   // Note: The test plugins below implicitly validate input params for each of the tests
   describe("environment actions", () => {
     describe("getEnvironmentStatus", () => {
-      it("should return a map of statuses for providers that have a getEnvironmentStatus handler", async () => {
-        const result = await actions.getEnvironmentStatus({ log })
-        expect(result).to.eql({
-          "test-plugin": { ready: false, dashboardPages: [] },
-          "test-plugin-b": { ready: false, dashboardPages: [] },
-        })
-      })
-
-      it("should optionally filter to single plugin", async () => {
+      it("should return the environment status for a provider", async () => {
         const result = await actions.getEnvironmentStatus({ log, pluginName: "test-plugin" })
         expect(result).to.eql({
-          "test-plugin": { ready: false, dashboardPages: [] },
+          ready: false,
+          outputs: {},
+          dashboardPages: [],
         })
       })
     })
 
     describe("prepareEnvironment", () => {
-      it("should prepare the environment for each configured provider", async () => {
-        const result = await actions.prepareEnvironment({ log })
-        expect(result).to.eql({
-          "test-plugin": true,
-          "test-plugin-b": true,
+      it("should prepare the environment for a configured provider", async () => {
+        const result = await actions.prepareEnvironment({
+          log,
+          pluginName: "test-plugin",
+          force: false,
+          status: { ready: true, outputs: {} },
         })
-      })
-
-      it("should optionally filter to single plugin", async () => {
-        const result = await actions.prepareEnvironment({ log, pluginName: "test-plugin" })
         expect(result).to.eql({
-          "test-plugin": true,
+          status: {
+            ready: true,
+            outputs: {},
+            dashboardPages: [],
+          },
         })
       })
     })
 
     describe("cleanupEnvironment", () => {
-      it("should clean up environment for each configured provider", async () => {
-        const result = await actions.cleanupEnvironment({ log })
-        expect(result).to.eql({
-          "test-plugin": { ready: false, dashboardPages: [] },
-          "test-plugin-b": { ready: false, dashboardPages: [] },
-        })
-      })
-
-      it("should optionally filter to single plugin", async () => {
+      it("should clean up environment for a provider", async () => {
         const result = await actions.cleanupEnvironment({ log, pluginName: "test-plugin" })
-        expect(result).to.eql({
-          "test-plugin": { ready: false, dashboardPages: [] },
-        })
+        expect(result).to.eql({})
       })
     })
 
@@ -322,7 +306,7 @@ describe("ActionHelper", () => {
 
   describe("getActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = actions.getActionHandlers("prepareEnvironment")
+      const handlers = await actions.getActionHandlers("prepareEnvironment")
 
       expect(Object.keys(handlers)).to.eql([
         "test-plugin",
@@ -333,7 +317,7 @@ describe("ActionHelper", () => {
 
   describe("getModuleActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = actions.getModuleActionHandlers({ actionType: "build", moduleType: "exec" })
+      const handlers = await actions.getModuleActionHandlers({ actionType: "build", moduleType: "exec" })
 
       expect(Object.keys(handlers)).to.eql([
         "exec",
@@ -341,29 +325,22 @@ describe("ActionHelper", () => {
     })
   })
 
-  describe("getActionHelper", () => {
-    it("should return last configured handler for specified action type", async () => {
+  describe("getActionHandler", () => {
+    it("should return the configured handler for specified action type and plugin name", async () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionHelper()
-      const handler = actionsA.getActionHelper({ actionType: "prepareEnvironment" })
+      const pluginName = "test-plugin-b"
+      const handler = await actionsA.getActionHandler({ actionType: "prepareEnvironment", pluginName })
 
       expect(handler["actionType"]).to.equal("prepareEnvironment")
-      expect(handler["pluginName"]).to.equal("test-plugin-b")
-    })
-
-    it("should optionally filter to only handlers for the specified module type", async () => {
-      const gardenA = await makeTestGardenA()
-      const actionsA = await gardenA.getActionHelper()
-      const handler = actionsA.getActionHelper({ actionType: "prepareEnvironment" })
-
-      expect(handler["actionType"]).to.equal("prepareEnvironment")
-      expect(handler["pluginName"]).to.equal("test-plugin-b")
+      expect(handler["pluginName"]).to.equal(pluginName)
     })
 
     it("should throw if no handler is available", async () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionHelper()
-      await expectError(() => actionsA.getActionHelper({ actionType: "cleanupEnvironment" }), "parameter")
+      const pluginName = "test-plugin-b"
+      await expectError(() => actionsA.getActionHandler({ actionType: "cleanupEnvironment", pluginName }), "plugin")
     })
   })
 
@@ -371,7 +348,7 @@ describe("ActionHelper", () => {
     it("should return last configured handler for specified module action type", async () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionHelper()
-      const handler = actionsA.getModuleActionHandler({ actionType: "deployService", moduleType: "test" })
+      const handler = await actionsA.getModuleActionHandler({ actionType: "deployService", moduleType: "test" })
 
       expect(handler["actionType"]).to.equal("deployService")
       expect(handler["pluginName"]).to.equal("test-plugin-b")
@@ -394,12 +371,13 @@ const testPlugin: PluginFactory = async () => ({
       validate(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
       return {
         ready: false,
+        outputs: {},
       }
     },
 
     prepareEnvironment: async (params) => {
       validate(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
-      return {}
+      return { status: { ready: true, outputs: {} } }
     },
 
     cleanupEnvironment: async (params) => {

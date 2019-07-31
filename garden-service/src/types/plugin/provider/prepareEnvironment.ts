@@ -7,16 +7,19 @@
  */
 
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
-import { environmentStatusSchema, EnvironmentStatus } from "./getEnvironmentStatus"
+import { EnvironmentStatus } from "./getEnvironmentStatus"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
+import { environmentStatusSchema } from "../../../config/status"
 
 export interface PrepareEnvironmentParams extends PluginActionParamsBase {
   status: EnvironmentStatus
   force: boolean
 }
 
-export interface PrepareEnvironmentResult { }
+export interface PrepareEnvironmentResult {
+  status: EnvironmentStatus,
+}
 
 export const prepareEnvironment = {
   description: dedent`
@@ -32,5 +35,8 @@ export const prepareEnvironment = {
         .description("Force re-configuration of the environment."),
       status: environmentStatusSchema,
     }),
-  resultSchema: joi.object().keys({}),
+  resultSchema: joi.object()
+    .keys({
+      status: environmentStatusSchema,
+    }),
 }

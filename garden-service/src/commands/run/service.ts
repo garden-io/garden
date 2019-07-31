@@ -65,7 +65,6 @@ export class RunServiceCommand extends Command<Args, Opts> {
     )
 
     const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log })
 
     const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
     await garden.processTasks([buildTask])

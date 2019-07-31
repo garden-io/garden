@@ -7,10 +7,9 @@
  */
 
 import { Garden } from "./garden"
-import { keyBy, cloneDeep } from "lodash"
+import { cloneDeep } from "lodash"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project"
-import { PluginError } from "./exceptions"
-import { defaultProvider, Provider, providerSchema, ProviderConfig } from "./config/provider"
+import { Provider, providerSchema, ProviderConfig } from "./config/provider"
 import { configStoreSchema } from "./config-store"
 import { deline } from "./util/string"
 import { joi } from "./config/common"
@@ -52,18 +51,7 @@ export const pluginContextSchema = joi.object()
       .description("A unique ID assigned to the current project working copy."),
   })
 
-export async function createPluginContext(garden: Garden, providerName: string): Promise<PluginContext> {
-  const providers = keyBy(await garden.resolveProviders(), "name")
-  let provider = providers[providerName]
-
-  if (providerName === "_default") {
-    provider = defaultProvider
-  }
-
-  if (!provider) {
-    throw new PluginError(`Could not find provider '${providerName}'`, { providerName, providers })
-  }
-
+export function createPluginContext(garden: Garden, provider: Provider): PluginContext {
   return {
     environmentName: garden.environmentName,
     projectName: garden.projectName,

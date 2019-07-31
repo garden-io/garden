@@ -249,17 +249,17 @@ class ProviderContext extends ConfigContext {
   )
   public config: ProviderConfig
 
-  // TODO: Need further steps to be able to reference runtime outputs for providers.
-  // @schema(
-  //   joiIdentifierMap(joiPrimitive())
-  //     .description("The outputs defined by the provider (see individual plugin docs for details).")
-  //     .example({ "cluster-ip": "1.2.3.4" }),
-  // )
-  // public outputs: PrimitiveMap
+  @schema(
+    joiIdentifierMap(joiPrimitive())
+      .description("The outputs defined by the provider (see individual plugin docs for details).")
+      .example({ "cluster-ip": "1.2.3.4" }),
+  )
+  public outputs: PrimitiveMap
 
-  constructor(root: ConfigContext, config: ProviderConfig) {
+  constructor(root: ConfigContext, provider: Provider) {
     super(root)
-    this.config = config
+    this.config = provider.config
+    this.outputs = provider.status.outputs
   }
 }
 

@@ -7,32 +7,21 @@
  */
 
 import Joi = require("@hapi/joi")
-import {
-  readFileSync,
-  writeFileSync,
-} from "fs"
+import { readFileSync, writeFileSync } from "fs"
 import { safeDump } from "js-yaml"
 import * as linewrap from "linewrap"
 import { resolve } from "path"
-import {
-  get,
-  flatten,
-  uniq,
-  startCase,
-} from "lodash"
+import { get, flatten, startCase, uniq } from "lodash"
 import { projectSchema } from "../config/project"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
-import { configSchema as localK8sConfigSchema } from "../plugins/kubernetes/local/config"
-import { configSchema as k8sConfigSchema } from "../plugins/kubernetes/config"
-import { configSchema as openfaasConfigSchema } from "../plugins/openfaas/config"
 import { joiArray, joi } from "../config/common"
-import { mavenContainerConfigSchema } from "../plugins/maven-container/maven-container"
 import { Garden } from "../garden"
 import { GARDEN_SERVICE_ROOT } from "../constants"
 import { indent, renderMarkdownTable } from "./util"
 import { ModuleContext } from "../config/config-context"
 import { defaultDotIgnoreFiles } from "../util/fs"
+import { providerConfigBaseSchema } from "../config/provider"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 
@@ -52,14 +41,6 @@ const moduleTypes = [
   { name: "kubernetes", pluginName: "local-kubernetes" },
   { name: "maven-container" },
   { name: "openfaas", pluginName: "local-kubernetes" },
-]
-
-const providers = [
-  { name: "local-kubernetes", schema: localK8sConfigSchema },
-  { name: "kubernetes", schema: k8sConfigSchema },
-  { name: "local-openfaas", schema: openfaasConfigSchema },
-  { name: "maven-container", schema: mavenContainerConfigSchema },
-  { name: "openfaas", schema: openfaasConfigSchema },
 ]
 
 interface RenderOpts {
@@ -404,11 +385,15 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefi
  * Generates the provider reference from the provider.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderProviderReference(schema: Joi.ObjectSchema, name: string) {
+function renderProviderReference(schema: Joi.ObjectSchema, name: string, outputsSchema?: Joi.ObjectSchema) {
   const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
+
+  const outputsReference = outputsSchema
+    && renderConfigReference(outputsSchema, "providers.<provider-name>.").markdownReference
+
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
-  return template({ name, markdownReference, yaml })
+  return template({ name, markdownReference, yaml, outputsReference })
 }
 
 /**
@@ -443,7 +428,6 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const configPath = resolve(referenceDir, "config.md")
 
-  const moduleProviders = uniq(moduleTypes.map(m => m.pluginName || m.name)).map(name => ({ name }))
   const garden = await Garden.factory(__dirname, {
     config: {
       path: __dirname,
@@ -452,24 +436,35 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
       name: "generate-docs",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      providers: moduleProviders,
       variables: {},
       environments: [
         {
           name: "default",
-          providers: [],
           variables: {},
         },
+      ],
+      providers: [
+        { name: "local-kubernetes" },
+        { name: "kubernetes" },
+        { name: "local-openfaas" },
+        { name: "maven-container" },
+        { name: "openfaas" },
       ],
     },
   })
 
-  // Render provider docs
   const providerDir = resolve(referenceDir, "providers")
-  for (const { name, schema } of providers) {
+  for (const [name, plugin] of Object.entries(await garden.getPlugins())) {
+    // Currently nothing to document for these
+    if (name === "container" || name === "exec") {
+      continue
+    }
+
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
-    writeFileSync(path, renderProviderReference(populateProviderSchema(schema), name))
+    const schema = populateProviderSchema(plugin.configSchema || providerConfigBaseSchema)
+    const outputsSchema = plugin.outputsSchema
+    writeFileSync(path, renderProviderReference(schema, name, outputsSchema))
   }
 
   // Render module type docs

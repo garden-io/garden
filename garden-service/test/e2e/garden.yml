@@ -22,9 +22,8 @@ tests:
     command: [npm, run, e2e-full, --, --project=tasks, --showlog=true, --env=testing]
   - name: hot-reload # Tests for hot-reload are currently being skipped
     command: [npm, run, e2e-full, --, --project=hot-reload, --showlog=true, --env=testing]
-  # Disabling until https://github.com/garden-io/garden/issues/1045 is fixed
-  # - name: openfaas
-  #   command: [npm, run, e2e-full, --, --project=openfaas, --showlog=true, --env=testing]
+  - name: openfaas
+    command: [npm, run, e2e-full, --, --project=openfaas, --showlog=true, --env=testing]
   - name: project-variables
     command: [npm, run, e2e-full, --, --project=project-variables, --showlog=true, --env=testing]
   - name: vote-helm

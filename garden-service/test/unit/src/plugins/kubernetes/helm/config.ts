@@ -2,11 +2,12 @@ import { resolve } from "path"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 
-import { TestGarden, dataDir, makeTestGarden, expectError } from "../../../../../helpers"
+import { TestGarden, expectError } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { deline } from "../../../../../../src/util/string"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
+import { getHelmTestGarden } from "./common"
 
 describe("validateHelmModule", () => {
   let garden: TestGarden
@@ -14,9 +15,9 @@ describe("validateHelmModule", () => {
   let moduleConfigs: { [key: string]: ModuleConfig }
 
   before(async () => {
-    const projectRoot = resolve(dataDir, "test-projects", "helm")
-    garden = await makeTestGarden(projectRoot)
-    ctx = await garden.getPluginContext("local-kubernetes")
+    garden = await getHelmTestGarden()
+    const provider = await garden.resolveProvider("local-kubernetes")
+    ctx = await garden.getPluginContext(provider)
     await garden.resolveModuleConfigs()
     moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
   })

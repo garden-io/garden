@@ -94,7 +94,7 @@ const templateModuleConfig: ExecModuleConfig = {
 }
 
 async function configureProvider(
-  { log, config, projectName, dependencies, configStore }: ConfigureProviderParams<OpenFaasConfig>,
+  { log, config, projectName, dependencies }: ConfigureProviderParams<OpenFaasConfig>,
 ): Promise<ConfigureProviderResult> {
   const k8sProvider = getK8sProvider(dependencies)
 
@@ -110,7 +110,6 @@ async function configureProvider(
   }
 
   const namespace = await getNamespace({
-    configStore,
     log,
     provider: k8sProvider,
     projectName,

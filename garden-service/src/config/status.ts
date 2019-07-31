@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiArray, joi } from "./common"
+import { joiArray, joi, joiVariables } from "./common"
 
 export interface DashboardPage {
   title: string
@@ -36,4 +36,21 @@ export const dashboardPageSchema = joi.object()
   })
 
 export const dashboardPagesSchema = joiArray(dashboardPageSchema)
+  .optional()
   .description("One or more pages to add to the Garden dashboard.")
+
+export const environmentStatusSchema = joi.object()
+  .keys({
+    ready: joi.boolean()
+      .required()
+      .description("Set to true if the environment is fully configured for a provider."),
+    dashboardPages: dashboardPagesSchema,
+    detail: joi.object()
+      .optional()
+      .meta({ extendable: true })
+      .description("Use this to include additional information that is specific to the provider."),
+    outputs: joiVariables()
+      .meta({ extendable: true })
+      .description("Output variables that modules and other variables can reference."),
+  })
+  .description("Description of an environment's status for a provider.")

@@ -11,10 +11,10 @@ import { join } from "path"
 import { resolve as urlResolve } from "url"
 import { ConfigurationError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import { joiArray, joiProviderName, joi } from "../../config/common"
+import { joiArray, joiProviderName, joi, joiEnvVars } from "../../config/common"
 import { Module } from "../../types/module"
 import { Service } from "../../types/service"
-import { ExecModuleSpec, execModuleSpecSchema, ExecTestSpec } from "../exec"
+import { ExecModuleSpec, ExecTestSpec, execTestSchema } from "../exec"
 import { KubernetesProvider } from "../kubernetes/config"
 import { CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
@@ -30,10 +30,11 @@ export interface OpenFaasModuleSpec extends ExecModuleSpec {
   lang: string
 }
 
-export const openfaasModuleSpecSchema = execModuleSpecSchema
+export const openfaasModuleSpecSchema = joi.object()
   .keys({
     dependencies: joiArray(joi.string())
       .description("The names of services/functions that this function depends on at runtime."),
+    env: joiEnvVars(),
     handler: joi.string()
       .default(".")
       .posixPath({ subPathOnly: true })
@@ -43,6 +44,8 @@ export const openfaasModuleSpecSchema = execModuleSpecSchema
     lang: joi.string()
       .required()
       .description("The OpenFaaS language template to use to build this function."),
+    tests: joiArray(execTestSchema)
+      .description("A list of tests to run in the module."),
   })
   .unknown(false)
   .description("The module specification for an OpenFaaS module.")
@@ -84,8 +87,8 @@ export type OpenFaasPluginContext = PluginContext<OpenFaasConfig>
 export async function describeType() {
   return {
     docs: dedent`
-      Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`kubernetes\` or
-      \`local-kubernetes\` provider to be configured. Everything else is installed automatically.
+      Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`openfaas\` or
+      \`local-openfaas\` provider to be configured.
     `,
     outputsSchema: openfaasModuleOutputsSchema,
     schema: openfaasModuleSpecSchema,
@@ -175,7 +178,6 @@ export async function configureModule(
 async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>, log: LogEntry) {
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
   const namespace = await getNamespace({
-    configStore: ctx.configStore,
     log,
     projectName: ctx.projectName,
     provider: k8sProvider,

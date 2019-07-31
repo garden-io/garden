@@ -13,6 +13,8 @@ import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
 import { uniq } from "lodash"
 import { GardenPlugin } from "../types/plugin/plugin"
+import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
+import { environmentStatusSchema } from "./status"
 
 export interface ProviderConfig {
   name: string
@@ -45,6 +47,7 @@ export interface Provider<T extends ProviderConfig = ProviderConfig> {
   environments?: string[]
   moduleConfigs: ModuleConfig[]
   config: T
+  status: EnvironmentStatus
 }
 
 export const providerSchema = providerFixedFieldsSchema
@@ -54,6 +57,7 @@ export const providerSchema = providerFixedFieldsSchema
     config: joi.lazy(() => providerConfigBaseSchema)
       .required(),
     moduleConfigs: joiArray(moduleConfigSchema.optional()),
+    status: environmentStatusSchema,
   })
 
 export const providersSchema = joiArray(providerSchema)
@@ -71,16 +75,18 @@ export const defaultProvider: Provider = {
   dependencies: [],
   moduleConfigs: [],
   config: { name: "_default" },
+  status: { ready: true, outputs: {} },
 }
 
 export function providerFromConfig(
-  config: ProviderConfig, dependencies: Provider[], moduleConfigs: ModuleConfig[],
+  config: ProviderConfig, dependencies: Provider[], moduleConfigs: ModuleConfig[], status: EnvironmentStatus,
 ): Provider {
   return {
     name: config.name,
     dependencies,
     moduleConfigs,
     config,
+    status,
   }
 }
 
@@ -91,12 +97,12 @@ export async function getProviderDependencies(plugin: GardenPlugin, config: Prov
   const references = await collectTemplateReferences(config)
 
   for (const key of references) {
-    if (key[0] === "provider") {
+    if (key[0] === "providers") {
       const providerName = key[1]
       if (!providerName) {
         throw new ConfigurationError(deline`
           Invalid template key '${key.join(".")}' in configuration for provider '${config.name}'. You must
-          specify a provider name as well (e.g. \${provider.my-provider}).
+          specify a provider name as well (e.g. \${providers.my-provider}).
         `, { config, key: key.join(".") },
         )
       }

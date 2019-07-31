@@ -57,6 +57,7 @@ const basicProvider: KubernetesProvider = {
   config: basicConfig,
   dependencies: [],
   moduleConfigs: [],
+  status: { ready: true, outputs: {} },
 }
 
 const singleTlsConfig: KubernetesConfig = {
@@ -76,6 +77,7 @@ const singleTlsProvider: KubernetesProvider = {
   config: singleTlsConfig,
   dependencies: [],
   moduleConfigs: [],
+  status: { ready: true, outputs: {} },
 }
 
 const multiTlsConfig: KubernetesConfig = {
@@ -111,6 +113,7 @@ const multiTlsProvider: KubernetesProvider = {
   config: multiTlsConfig,
   dependencies: [],
   moduleConfigs: [],
+  status: { ready: true, outputs: {} },
 }
 
 // generated with `openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out certificate.pem`
@@ -373,7 +376,8 @@ describe("createIngressResources", () => {
       testConfigs: [],
     }
 
-    const ctx = await garden.getPluginContext("container")
+    const provider = await garden.resolveProvider("container")
+    const ctx = await garden.getPluginContext(provider)
     const parsed = await configure({ ctx, moduleConfig, log: garden.log })
     const graph = await garden.getConfigGraph()
     const module = await moduleFromConfig(garden, graph, parsed)
@@ -639,6 +643,7 @@ describe("createIngressResources", () => {
       },
       dependencies: [],
       moduleConfigs: [],
+      status: { ready: true, outputs: {} },
     }
 
     const err: any = new Error("nope")
@@ -668,6 +673,7 @@ describe("createIngressResources", () => {
       },
       dependencies: [],
       moduleConfigs: [],
+      status: { ready: true, outputs: {} },
     }
 
     const api = await getKubeApi(basicConfig.context)
@@ -699,6 +705,7 @@ describe("createIngressResources", () => {
       },
       dependencies: [],
       moduleConfigs: [],
+      status: { ready: true, outputs: {} },
     }
 
     const api = await getKubeApi(basicConfig.context)
@@ -788,6 +795,7 @@ describe("createIngressResources", () => {
       },
       dependencies: [],
       moduleConfigs: [],
+      status: { ready: true, outputs: {} },
     }
 
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve(myDomainCertSecret)

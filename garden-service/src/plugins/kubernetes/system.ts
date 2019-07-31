@@ -21,7 +21,7 @@ import { getPackageVersion } from "../../util/util"
 import { deline, gardenAnnotationKey } from "../../util/string"
 import { deleteNamespaces } from "./namespace"
 import { PluginError } from "../../exceptions"
-import { DashboardPage } from "../../config/dashboard"
+import { DashboardPage } from "../../config/status"
 import { PrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
 import { KubernetesResource } from "./types"
@@ -41,7 +41,9 @@ export const systemMetadataNamespace = "garden-system--metadata"
  * stored at the project level. This way we can run several Garden processes at the same time
  * without them all modifying the same system build directory, which can cause unexpected issues.
  */
-export async function getSystemGarden(ctx: KubernetesPluginContext, variables: PrimitiveMap): Promise<Garden> {
+export async function getSystemGarden(
+  ctx: KubernetesPluginContext, variables: PrimitiveMap, log: LogEntry,
+): Promise<Garden> {
   const sysProvider: KubernetesConfig = {
     ...ctx.provider.config,
     environments: ["default"],
@@ -66,6 +68,7 @@ export async function getSystemGarden(ctx: KubernetesPluginContext, variables: P
       providers: [sysProvider],
       variables,
     },
+    log: log.info({ section: "garden-system", msg: "Initializing...", status: "active", indent: 1 }),
   })
 }
 

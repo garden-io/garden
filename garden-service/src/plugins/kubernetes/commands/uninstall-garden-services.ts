@@ -26,7 +26,7 @@ export const uninstallGardenServices: PluginCommand = {
     const k8sCtx = <KubernetesPluginContext>ctx
     const variables = getKubernetesSystemVariables(k8sCtx.provider.config)
 
-    const sysGarden = await getSystemGarden(k8sCtx, variables || {})
+    const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
     const actions = await sysGarden.getActionHelper()
 
     const result = await actions.deleteEnvironment(entry)

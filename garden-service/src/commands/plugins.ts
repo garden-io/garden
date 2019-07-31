@@ -7,13 +7,14 @@
  */
 
 import chalk from "chalk"
-import { max, padEnd, fromPairs } from "lodash"
+import { max, padEnd, fromPairs, zip } from "lodash"
 import { findByName } from "../util/util"
 import { dedent } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams, StringParameter } from "./base"
+import * as Bluebird from "bluebird"
 
 const pluginArgs = {
   plugin: new StringParameter({
@@ -62,7 +63,7 @@ export class PluginsCommand extends Command<Args> {
     }
 
     // We're executing a command
-    const plugin = garden.getPlugin(args.plugin)
+    const plugin = await garden.getPlugin(args.plugin)
     const command = findByName(plugin.commands || [], args.command)
 
     if (!command) {
@@ -76,7 +77,8 @@ export class PluginsCommand extends Command<Args> {
       }
     }
 
-    const ctx = await garden.getPluginContext(args.plugin)
+    const provider = await garden.resolveProvider(args.plugin)
+    const ctx = await garden.getPluginContext(provider)
 
     try {
       const { result, errors = [] } = await command.handler({ ctx, log })
@@ -90,12 +92,12 @@ export class PluginsCommand extends Command<Args> {
 async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[]) {
   log.info(chalk.white.bold("PLUGIN COMMANDS"))
 
-  for (const pluginName of pluginsToList) {
-    const plugin = garden.getPlugin(pluginName)
+  const plugins = await Bluebird.map(pluginsToList, async (pluginName) => {
+    const plugin = await garden.getPlugin(pluginName)
 
     const commands = plugin.commands || []
     if (commands.length === 0) {
-      continue
+      return plugin
     }
 
     const maxNameLength = max(commands.map(c => c.name.length))!
@@ -107,8 +109,10 @@ async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[
 
     // Line between different plugins
     log.info("")
-  }
 
-  const result = fromPairs(pluginsToList.map(name => [name, garden.getPlugin(name).commands || []]))
+    return plugin
+  })
+
+  const result = fromPairs(zip(pluginsToList, plugins))
   return { result }
 }

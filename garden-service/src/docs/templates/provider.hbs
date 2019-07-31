@@ -14,3 +14,10 @@ The values in the schema below are the default values.
 ```yaml
 {{{yaml}}}
 ```
+{{#if outputsReference}}
+
+## Outputs
+
+The following keys are available via the `${providers.<provider-name>}` template string key for `{{{name}}}`
+providers.
+{{{outputsReference}}}{{/if}}

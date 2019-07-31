@@ -200,8 +200,9 @@ export const pluginActionNames: PluginActionName[] = <PluginActionName[]>Object.
 export const moduleActionNames: ModuleActionName[] = <ModuleActionName[]>Object.keys(moduleActionDescriptions)
 
 export interface GardenPlugin {
-  configSchema?: Joi.Schema,
+  configSchema?: Joi.ObjectSchema,
   configKeys?: string[]
+  outputsSchema?: Joi.ObjectSchema,
 
   dependencies?: string[]
 
@@ -228,6 +229,7 @@ export const pluginSchema = joi.object()
   .keys({
     // TODO: make this a JSON/OpenAPI schema for portability
     configSchema: joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true),
+    outputsSchema: joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true),
     dependencies: joiArray(joi.string())
       .description(deline`
         Names of plugins that need to be configured prior to this plugin. This plugin will be able to reference the

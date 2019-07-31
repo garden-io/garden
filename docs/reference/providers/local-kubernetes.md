@@ -832,3 +832,24 @@ providers:
     namespace:
     setupIngressController: nginx
 ```
+
+## Outputs
+
+The following keys are available via the `${providers.<provider-name>}` template string key for `local-kubernetes`
+providers.
+
+### `providers.<provider-name>.app-namespace`
+
+The primary namespace used for resource deployments.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `providers.<provider-name>.metadata-namespace`
+
+The namespace used for Garden metadata.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |

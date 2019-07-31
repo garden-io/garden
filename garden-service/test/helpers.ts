@@ -129,7 +129,7 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
   return {
     actions: {
       async prepareEnvironment() {
-        return {}
+        return { status: { ready: true, outputs: {} } }
       },
 
       async setSecret({ key, value }: SetSecretParams) {

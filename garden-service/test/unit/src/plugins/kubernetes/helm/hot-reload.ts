@@ -1,18 +1,17 @@
-import { resolve } from "path"
 import { expect } from "chai"
 
-import { dataDir, makeTestGarden, TestGarden, expectError } from "../../../../../helpers"
+import { TestGarden, expectError } from "../../../../../helpers"
 import { getHotReloadSpec } from "../../../../../../src/plugins/kubernetes/helm/hot-reload"
 import { deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
+import { getHelmTestGarden } from "./common"
 
 describe("getHotReloadSpec", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 
   before(async () => {
-    const projectRoot = resolve(dataDir, "test-projects", "helm")
-    garden = await makeTestGarden(projectRoot)
+    garden = await getHelmTestGarden()
     graph = await garden.getConfigGraph()
   })
 

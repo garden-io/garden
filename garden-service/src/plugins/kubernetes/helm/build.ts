@@ -20,7 +20,6 @@ import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/bui
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
-    configStore: ctx.configStore,
     log,
     projectName: k8sCtx.projectName,
     provider: k8sCtx.provider,

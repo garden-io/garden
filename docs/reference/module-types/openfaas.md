@@ -1,6 +1,7 @@
 # `openfaas` reference
 
-
+Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the `openfaas` or
+`local-openfaas` provider to be configured.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-files.md).
@@ -198,6 +199,104 @@ POSIX-style path or filename to copy the directory or file(s).
 | -------- | -------- | ------------------------- |
 | `string` | No       | `"<same as source path>"` |
 
+### `dependencies`
+
+The names of services/functions that this function depends on at runtime.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[string]` | No       | `[]`    |
+
+### `env`
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
+
+### `handler`
+
+Specify which directory under the module contains the handler file/function.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"."`   |
+
+### `image`
+
+The image name to use for the built OpenFaaS container (defaults to the module name)
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `lang`
+
+The OpenFaaS language template to use to build this function.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tests`
+
+A list of tests to run in the module.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
+
+### `tests[].name`
+
+[tests](#tests) > name
+
+The name of the test.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tests[].dependencies[]`
+
+[tests](#tests) > dependencies
+
+The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[string]` | No       | `[]`    |
+
+### `tests[].timeout`
+
+[tests](#tests) > timeout
+
+Maximum duration (in seconds) of the test run.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `null`  |
+
+### `tests[].command[]`
+
+[tests](#tests) > command
+
+The command to run in the module build context in order to test it.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tests[].env`
+
+[tests](#tests) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
+
 
 ## Complete YAML schema
 ```yaml
@@ -216,6 +315,17 @@ build:
       copy:
         - source:
           target: <same as source path>
+dependencies: []
+env: {}
+handler: .
+image:
+lang:
+tests:
+  - name:
+    dependencies: []
+    timeout: null
+    command:
+    env: {}
 ```
 
 ## Outputs
@@ -272,3 +382,13 @@ The outputs defined by the module.
 | Type     | Required |
 | -------- | -------- |
 | `object` | Yes      |
+
+### `modules.<module-name>.outputs.endpoint`
+
+[outputs](#outputs) > endpoint
+
+The full URL to query this service _from within_ the cluster.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |

@@ -11,7 +11,7 @@ import React, { useContext, useEffect } from "react"
 
 import Sidebar from "../components/sidebar"
 import { DataContext } from "../context/data"
-import { DashboardPage } from "garden-service/build/src/config/dashboard"
+import { DashboardPage } from "garden-service/build/src/config/status"
 
 export interface Page extends DashboardPage {
   path: string

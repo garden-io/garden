@@ -1,7 +1,7 @@
 import { TestGarden, makeTestGarden, dataDir, expectError } from "../../../../../helpers"
 import { resolve } from "path"
 import { expect } from "chai"
-import { first } from "lodash"
+import { first, set } from "lodash"
 
 import {
   containsSource,
@@ -21,6 +21,29 @@ import { deline } from "../../../../../../src/util/string"
 import { HotReloadableResource } from "../../../../../../src/plugins/kubernetes/hot-reload"
 import { getServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { ConfigGraph } from "../../../../../../src/config-graph"
+import { Provider } from "../../../../../../src/config/provider"
+
+const helmProvider: Provider = {
+  name: "local-kubernetes",
+  config: {
+    name: "local-kubernetes",
+    buildMode: "local-docker",
+  },
+  dependencies: [],
+  moduleConfigs: [],
+  status: {
+    ready: true,
+    outputs: {},
+  },
+}
+
+export async function getHelmTestGarden() {
+  const projectRoot = resolve(dataDir, "test-projects", "helm")
+  const garden = await makeTestGarden(projectRoot)
+  // Avoid having to resolve the provider
+  set(garden, "resolvedProviders", [helmProvider])
+  return garden
+}
 
 describe("Helm common functions", () => {
   let garden: TestGarden
@@ -29,10 +52,11 @@ describe("Helm common functions", () => {
   let log: LogEntry
 
   before(async () => {
-    const projectRoot = resolve(dataDir, "test-projects", "helm")
-    garden = await makeTestGarden(projectRoot)
+    garden = await getHelmTestGarden()
+    // Avoid having to resolve the provider
+    set(garden, "resolvedProviders", [helmProvider])
     graph = await garden.getConfigGraph()
-    ctx = await garden.getPluginContext("local-kubernetes")
+    ctx = await garden.getPluginContext(helmProvider)
     log = garden.log
     await buildModules()
   })
@@ -46,7 +70,7 @@ describe("Helm common functions", () => {
     const tasks = modules.map(module => new BuildTask({ garden, log, module, force: false }))
     const results = await garden.processTasks(tasks)
 
-    const err = first(Object.values(results).map(r => r.error))
+    const err = first(Object.values(results).map(r => r && r.error))
 
     if (err) {
       throw err
@@ -68,7 +92,6 @@ describe("Helm common functions", () => {
   describe("getChartResources", () => {
     it("should render and return resources for a local template", async () => {
       const module = await graph.getModule("api")
-      const imageModule = await graph.getModule("api-image")
       const resources = await getChartResources(ctx, module, log)
 
       expect(resources).to.eql([
@@ -133,7 +156,7 @@ describe("Helm common functions", () => {
                 containers: [
                   {
                     name: "api",
-                    image: "api-image:" + imageModule.version.versionString,
+                    image: resources[1].spec.template.spec.containers[0].image,
                     imagePullPolicy: "IfNotPresent",
                     args: [
                       "python",
