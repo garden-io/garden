@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { V1ServicePort } from "@kubernetes/client-node"
 import { ContainerService } from "../../container/config"
 
 export async function createServiceResources(service: ContainerService, namespace: string) {
   const services: any = []
 
-  const addService = (name: string, type: string, servicePorts: any[]) => {
+  const addService = (name: string, type: string, servicePorts: V1ServicePort[]) => {
     services.push({
       apiVersion: "v1",
       kind: "Service",
@@ -43,17 +44,21 @@ export async function createServiceResources(service: ContainerService, namespac
   }
 
   // optionally add a NodePort service for externally open ports, if applicable
-  // TODO: explore nicer ways to do this
   const exposedPorts = ports.filter(portSpec => portSpec.nodePort)
 
   if (exposedPorts.length > 0) {
-    const nodePorts = exposedPorts.map(portSpec => ({
-      // TODO: do the parsing and defaults when loading the yaml
-      name: portSpec.name,
-      protocol: portSpec.protocol,
-      port: portSpec.containerPort,
-      nodePort: portSpec.nodePort,
-    }))
+    const nodePorts = exposedPorts.map(portSpec => {
+      const port: V1ServicePort = {
+        name: portSpec.name,
+        protocol: portSpec.protocol,
+        port: portSpec.servicePort,
+        targetPort: portSpec.containerPort,
+      }
+      if (portSpec.nodePort !== true) {
+        port.nodePort = portSpec.nodePort
+      }
+      return port
+    })
 
     addService(service.name + "-nodeport", "NodePort", nodePorts)
   }
