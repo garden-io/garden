@@ -389,7 +389,7 @@ export interface ContainerBuildSpec extends BaseBuildSpec {
 export interface ContainerModuleSpec extends ModuleSpec {
   build: ContainerBuildSpec,
   buildArgs: PrimitiveMap,
-  commandArgs: PrimitiveMap,
+  extraFlags: string[],
   image?: string,
   dockerfile?: string,
   hotReload?: ContainerHotReloadSpec,
@@ -418,10 +418,10 @@ export const containerModuleSpecSchema = joi.object()
       .pattern(/.+/, joiPrimitive())
       .default(() => ({}), "{}")
       .description("Specify build arguments to use when building the container image."),
-    commandArgs: joi.object()
-      .pattern(/.+/, joiPrimitive())
-      .default(() => ({}), "{}")
-      .description("Specify command arguments to use when building the container image."),
+    extraFlags: joi.array()
+      .items(joi.string())
+      .description(deline`Specify extra flags to use when building the container image.
+      Note that arguments may not be portable across implementations`),
     // TODO: validate the image name format
     image: joi.string()
       .description(deline`

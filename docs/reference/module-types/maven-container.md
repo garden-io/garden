@@ -227,13 +227,13 @@ Specify build arguments to use when building the container image.
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
 
-### `commandArgs`
+### `extraFlags`
 
-Specify command arguments to use when building the container image.
+Specify extra flags to use when building the container image. Note that arguments may not be portable across implementations
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `image`
 
@@ -1005,7 +1005,7 @@ build:
           target: <same as source path>
   targetImage:
 buildArgs: {}
-commandArgs: {}
+extraFlags:
 image:
 hotReload:
   sync:
