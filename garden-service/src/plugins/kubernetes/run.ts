@@ -12,9 +12,10 @@ import { Module } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
 import { V1PodSpec } from "@kubernetes/client-node"
 import { PluginError } from "../../exceptions"
+import { KubernetesProvider } from "./config"
 
 interface RunPodParams {
-  context: string,
+  provider: KubernetesProvider,
   image: string,
   interactive: boolean,
   ignoreError: boolean,
@@ -29,7 +30,7 @@ interface RunPodParams {
 
 export async function runPod(
   {
-    context,
+    provider,
     ignoreError,
     image,
     interactive,
@@ -93,7 +94,7 @@ export async function runPod(
 
   const res = await kubectl.spawnAndWait({
     log,
-    context,
+    provider,
     namespace,
     ignoreError,
     args: kubecmd,

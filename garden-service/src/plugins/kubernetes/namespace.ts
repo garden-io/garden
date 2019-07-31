@@ -76,7 +76,7 @@ export async function getNamespace(
   }
 
   if (!skipCreate) {
-    const api = await KubeApi.factory(log, provider.config.context)
+    const api = await KubeApi.factory(log, provider)
     await ensureNamespace(api, namespace)
   }
 
@@ -111,11 +111,10 @@ export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
  */
 export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const kubeContext = k8sCtx.provider.config.context
 
   try {
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
-    await kubectl.exec({ log, context: kubeContext, args: ["version"] })
+    await kubectl.exec({ log, provider: k8sCtx.provider, args: ["version"] })
   } catch (err) {
     let message = err.message
     if (err.stdout) {
@@ -128,7 +127,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
       `Unable to connect to Kubernetes cluster. ` +
       `Please make sure it is running, reachable and that you have the right context configured.`,
       {
-        kubeContext,
+        providerConfig: k8sCtx.provider.config,
         message,
       },
     )

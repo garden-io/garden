@@ -67,6 +67,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   ingressHttpPort: number
   ingressHttpsPort: number
   ingressClass?: string
+  kubeconfig?: string
   namespace?: string
   resources: KubernetesResources
   storage: KubernetesStorage

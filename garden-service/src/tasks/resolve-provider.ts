@@ -88,7 +88,6 @@ export class ResolveProviderTask extends BaseTask {
     this.log.silly(`Resolving template strings for plugin ${this.config.name}`)
     let resolvedConfig = await resolveTemplateStrings(this.config, context)
 
-    resolvedConfig.path = this.garden.projectRoot
     const providerName = resolvedConfig.name
 
     this.log.silly(`Validating ${providerName} config`)
@@ -96,12 +95,14 @@ export class ResolveProviderTask extends BaseTask {
       resolvedConfig = validateWithPath({
         config: resolvedConfig,
         schema: this.plugin.configSchema,
-        path: resolvedConfig.path,
+        path: this.garden.projectRoot,
         projectRoot: this.garden.projectRoot,
         configType: "provider",
         ErrorClass: ConfigurationError,
       })
     }
+
+    resolvedConfig.path = this.garden.projectRoot
 
     const configureHandler = (this.plugin.actions || {}).configureProvider
 
@@ -115,6 +116,7 @@ export class ResolveProviderTask extends BaseTask {
         config: resolvedConfig,
         configStore: this.garden.configStore,
         projectName: this.garden.projectName,
+        projectRoot: this.garden.projectRoot,
         dependencies: resolvedProviders,
       })
 

@@ -29,7 +29,7 @@ export async function getTestResult(
   { ctx, log, module, testName, testVersion }: GetTestResultParams<ContainerModule | HelmModule>,
 ): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, k8sCtx.provider)
   const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
 
   try {
@@ -75,7 +75,7 @@ export async function storeTestResult(
   { ctx, log, module, testName, testVersion, result }: StoreTestResultParams,
 ): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, k8sCtx.provider)
 
   const testResult: TestResult = {
     ...trimRunOutput(result),

@@ -64,7 +64,7 @@ export async function execInDeployment(
       interactive: boolean,
     },
 ) {
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const deployment = await api.apps.readNamespacedDeployment(deploymentName, namespace)
   const pods = await getWorkloadPods(api, namespace, deployment)
 
@@ -87,7 +87,7 @@ export async function execInDeployment(
   const kubecmd = ["exec", ...opts, pod.metadata.name, "--", ...command]
   const res = await kubectl.spawnAndWait({
     log,
-    context: api.context,
+    provider,
     namespace,
     args: kubecmd,
     ignoreError: true,
@@ -104,7 +104,6 @@ export async function runContainerModule(
   }: RunModuleParams<ContainerModule>,
 ): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const context = provider.config.context
   const namespace = await getAppNamespace(ctx, log, provider)
 
   // Apply overrides
@@ -123,7 +122,7 @@ export async function runContainerModule(
   }
 
   return runPod({
-    context,
+    provider,
     image,
     interactive,
     ignoreError,
@@ -155,7 +154,6 @@ export async function runContainerTask(
   { ctx, log, module, task, taskVersion, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
 ): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const context = provider.config.context
   const namespace = await getAppNamespace(ctx, log, provider)
 
   // Apply overrides
@@ -175,7 +173,7 @@ export async function runContainerTask(
   }
 
   const res = await runPod({
-    context,
+    provider,
     image,
     interactive,
     ignoreError: false,

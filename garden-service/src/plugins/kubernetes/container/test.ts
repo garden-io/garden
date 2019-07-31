@@ -45,7 +45,7 @@ export async function testContainerModule(
   }
 
   const result = await runPod({
-    context: provider.config.context,
+    provider,
     image,
     interactive,
     ignoreError: true, // to ensure results get stored when an error occurs

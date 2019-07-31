@@ -396,8 +396,8 @@ describe("createIngressResources", () => {
     }
   }
 
-  async function getKubeApi(context: string) {
-    const api = await KubeApi.factory(garden.log, context)
+  async function getKubeApi(provider: KubernetesProvider) {
+    const api = await KubeApi.factory(garden.log, provider)
 
     const core = td.replace(api, "core")
     td.when(core.readNamespacedSecret("somesecret", "somenamespace")).thenResolve(myDomainCertSecret)
@@ -416,7 +416,7 @@ describe("createIngressResources", () => {
       port: "http",
     })
 
-    const api = await getKubeApi(basicProvider.config.context)
+    const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
     expect(ingresses).to.eql([{
@@ -458,7 +458,7 @@ describe("createIngressResources", () => {
       port: "http",
     })
 
-    const api = await getKubeApi(basicProvider.config.context)
+    const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
     expect(ingresses).to.eql([{
@@ -509,7 +509,7 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = await getKubeApi(basicProvider.config.context)
+    const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
     expect(ingresses).to.eql([
@@ -581,7 +581,7 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = await getKubeApi(singleTlsProvider.config.context)
+    const api = await getKubeApi(singleTlsProvider)
     const ingresses = await createIngressResources(api, singleTlsProvider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, myDomainCertSecret))
@@ -630,7 +630,7 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = await getKubeApi(basicConfig.context)
+    const api = await getKubeApi(basicProvider)
 
     const provider = {
       name: "kubernetes",
@@ -676,7 +676,7 @@ describe("createIngressResources", () => {
       status: { ready: true, outputs: {} },
     }
 
-    const api = await getKubeApi(basicConfig.context)
+    const api = await getKubeApi(basicProvider)
 
     const err: any = new Error("nope")
     err.code = 404
@@ -708,7 +708,7 @@ describe("createIngressResources", () => {
       status: { ready: true, outputs: {} },
     }
 
-    const api = await getKubeApi(basicConfig.context)
+    const api = await getKubeApi(basicProvider)
 
     const err: any = new Error("nope")
     err.code = 404
@@ -731,7 +731,7 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = await getKubeApi(multiTlsProvider.config.context)
+    const api = await getKubeApi(multiTlsProvider)
     const ingresses = await createIngressResources(api, multiTlsProvider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, wildcardDomainCertSecret))
@@ -781,7 +781,7 @@ describe("createIngressResources", () => {
       },
     )
 
-    const api = await getKubeApi(basicConfig.context)
+    const api = await getKubeApi(basicProvider)
 
     const provider = {
       name: "kubernetes",

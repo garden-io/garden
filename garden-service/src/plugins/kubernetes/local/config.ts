@@ -54,7 +54,15 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
-    const kubeConfig = await getKubeConfig(log)
+    // create dummy provider with just enough info needed for the getKubeConfig function
+    const provider = {
+      name: config.name,
+      dependencies: [],
+      config,
+      moduleConfigs: [],
+      status: { ready: true, outputs: {} },
+    }
+    const kubeConfig = await getKubeConfig(log, provider)
     const currentContext = kubeConfig["current-context"]
 
     if (currentContext && supportedContexts.includes(currentContext)) {

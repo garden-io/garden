@@ -24,19 +24,18 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const context = ctx.provider.config.context
   const baseModule = getBaseModule(module)
 
   if (!baseModule && !(await containsSource(module))) {
     log.debug("Fetching chart...")
     try {
-      await fetchChart(namespace, context, log, module)
+      await fetchChart(k8sCtx, namespace, log, module)
     } catch {
       // update the local helm repo and retry
       log.debug("Updating Helm repo...")
-      await helm(namespace, context, log, ...["repo", "update"])
+      await helm({ ctx: k8sCtx, namespace, log, args: [...["repo", "update"]] })
       log.debug("Fetching chart (after updating)...")
-      await fetchChart(namespace, context, log, module)
+      await fetchChart(k8sCtx, namespace, log, module)
     }
   }
 
@@ -54,10 +53,10 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
   return { fresh: true }
 }
 
-async function fetchChart(namespace: string, context: string, log: LogEntry, module: HelmModule) {
+async function fetchChart(ctx: KubernetesPluginContext, namespace: string, log: LogEntry, module: HelmModule) {
   const buildPath = module.buildPath
 
-  await helm(namespace, context, log, "init", "--client-only")
+  await helm({ ctx, namespace, log, args: ["init", "--client-only"] })
 
   const fetchArgs = [
     "fetch", module.spec.chart!,
@@ -70,5 +69,5 @@ async function fetchChart(namespace: string, context: string, log: LogEntry, mod
   if (module.spec.repo) {
     fetchArgs.push("--repo", module.spec.repo)
   }
-  await helm(namespace, context, log, ...fetchArgs)
+  await helm({ ctx, namespace, log, args: [...fetchArgs] })
 }

@@ -47,10 +47,9 @@ export async function deployService(
   const provider = k8sCtx.provider
   const chartPath = await getChartPath(module)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const context = provider.config.context
   const releaseName = getReleaseName(module)
 
-  const releaseStatus = await getReleaseStatus(namespace, provider.config.context, releaseName, log)
+  const releaseStatus = await getReleaseStatus(k8sCtx, releaseName, log)
 
   if (releaseStatus.state === "missing") {
     log.silly(`Installing Helm release ${releaseName}`)
@@ -66,7 +65,7 @@ export async function deployService(
     if (force) {
       installArgs.push("--replace")
     }
-    await helm(namespace, context, log, ...installArgs)
+    await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
     const upgradeArgs = [
@@ -78,7 +77,7 @@ export async function deployService(
     if (force) {
       upgradeArgs.push("--force")
     }
-    await helm(namespace, context, log, ...upgradeArgs)
+    await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
   }
 
   if (hotReload && hotReloadSpec && hotReloadTarget) {
@@ -93,7 +92,7 @@ export async function deployService(
       containerName: resourceSpec && resourceSpec.containerName,
     })
 
-    await apply({ log, context: provider.config.context, manifests: [hotReloadTarget], namespace })
+    await apply({ log, provider, manifests: [hotReloadTarget], namespace })
   }
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
@@ -113,11 +112,9 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
   const { ctx, log, module } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-  const context = k8sCtx.provider.config.context
   const releaseName = getReleaseName(module)
 
-  await helm(namespace, context, log, "delete", "--purge", releaseName)
+  await helm({ ctx: k8sCtx, log, args: ["delete", "--purge", releaseName] })
   log.setSuccess("Service deleted")
 
   return { state: "missing" }

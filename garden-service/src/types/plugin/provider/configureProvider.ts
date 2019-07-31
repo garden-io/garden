@@ -20,6 +20,7 @@ export interface ConfigureProviderParams<T extends ProviderConfig = any> {
   config: T
   log: LogEntry
   projectName: string
+  projectRoot: string
   dependencies: Provider[]
   configStore: ConfigStore
 }

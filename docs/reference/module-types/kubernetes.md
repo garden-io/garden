@@ -208,7 +208,7 @@ POSIX-style path or filename to copy the directory or file(s).
 
 ### `dependencies`
 
-List of names of services that should be deployed before this chart.
+The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |

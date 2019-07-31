@@ -237,7 +237,7 @@ export async function execInBuilder({ provider, log, args, timeout, podName }: B
 
   return kubectl.exec({
     args: execCmd,
-    context: provider.config.context,
+    provider,
     log,
     namespace: systemNamespace,
     timeout,
@@ -245,7 +245,7 @@ export async function execInBuilder({ provider, log, args, timeout, podName }: B
 }
 
 export async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
 
   const builderStatusRes = await api.apps.readNamespacedDeployment(dockerDaemonDeploymentName, systemNamespace)
   const builderPods = await getPods(api, systemNamespace, builderStatusRes.spec.selector.matchLabels)
@@ -266,7 +266,7 @@ async function runKaniko(provider: KubernetesProvider, log: LogEntry, module: Co
   const registryHostname = getRegistryHostname()
 
   return runPod({
-    context: provider.config.context,
+    provider,
     ignoreError: false,
     image: kanikoImage,
     interactive: false,

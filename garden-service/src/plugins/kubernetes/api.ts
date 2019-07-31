@@ -29,6 +29,7 @@ import AsyncLock = require("async-lock")
 import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad, safeDump } from "js-yaml"
+import { readFile } from "fs-extra"
 
 import { Omit } from "../../util/util"
 import { zip, omitBy, isObject, isPlainObject, keyBy } from "lodash"
@@ -37,6 +38,7 @@ import { KubernetesResource, KubernetesServerResource, KubernetesServerList } fr
 import { LogEntry } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
 import { urlJoin } from "../../util/string"
+import { KubernetesProvider } from "./config"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -153,9 +155,9 @@ export class KubeApi {
     }
   }
 
-  static async factory(log: LogEntry, context: string) {
-    const config = await getContextConfig(log, context)
-    return new KubeApi(context, config)
+  static async factory(log: LogEntry, provider: KubernetesProvider) {
+    const config = await getContextConfig(log, provider)
+    return new KubeApi(provider.config.context, config)
   }
 
   async getApiInfo(): Promise<ApiInfo> {
@@ -338,7 +340,7 @@ export class KubeApi {
           return Reflect.get(target, name, receiver)
         }
 
-        return function(...args) {
+        return function (...args) {
           const defaultHeaders = target["defaultHeaders"]
 
           if (name.startsWith("patch")) {
@@ -375,12 +377,16 @@ function getGroupBasePath(groupId: string) {
   return groupId.includes("/") ? `/apis/${groupId}` : `/api/${groupId}`
 }
 
-export async function getKubeConfig(log: LogEntry) {
+export async function getKubeConfig(log: LogEntry, provider: KubernetesProvider) {
   let kubeConfigStr: string
 
   try {
-    // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
-    kubeConfigStr = await kubectl.stdout({ log, args: ["config", "view", "--raw"] })
+    if (provider.config.kubeconfig) {
+      kubeConfigStr = (await readFile(provider.config.kubeconfig)).toString()
+    } else {
+      // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
+      kubeConfigStr = await kubectl.stdout({ log, provider, args: ["config", "view", "--raw"] })
+    }
     return safeLoad(kubeConfigStr)
   } catch (error) {
     throw new RuntimeError(`Unable to load kubeconfig: ${error}`, {
@@ -389,12 +395,16 @@ export async function getKubeConfig(log: LogEntry) {
   }
 }
 
-async function getContextConfig(log: LogEntry, context: string): Promise<KubeConfig> {
-  if (cachedConfigs[context]) {
-    return cachedConfigs[context]
+async function getContextConfig(log: LogEntry, provider: KubernetesProvider): Promise<KubeConfig> {
+  const kubeconfigPath = provider.config.kubeconfig
+  const context = provider.config.context
+  const cacheKey = kubeconfigPath ? `${kubeconfigPath}:${context}` : context
+
+  if (cachedConfigs[cacheKey]) {
+    return cachedConfigs[cacheKey]
   }
 
-  const rawConfig = await getKubeConfig(log)
+  const rawConfig = await getKubeConfig(log, provider)
   const kc = new KubeConfig()
 
   // There doesn't appear to be a method to just load the parsed config :/

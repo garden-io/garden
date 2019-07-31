@@ -51,16 +51,20 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const context = ctx.provider.config.context
   const releaseName = getReleaseName(module)
 
-  const objects = <KubernetesResource[]>loadTemplate(await helm(namespace, context, log,
-    "template",
-    "--name", releaseName,
-    "--namespace", namespace,
-    ...await getValueFileArgs(module),
-    chartPath,
-  ))
+  const objects = <KubernetesResource[]>loadTemplate(await helm({
+    ctx: k8sCtx,
+    log,
+    namespace,
+    args: [
+      "template",
+      "--name", releaseName,
+      "--namespace", namespace,
+      ...await getValueFileArgs(module),
+      chartPath,
+    ],
+  }))
 
   const resources = objects
     .filter(obj => {
@@ -301,19 +305,23 @@ async function renderHelmTemplateString(
     skipCreate: true,
   })
   const releaseName = getReleaseName(module)
-  const context = ctx.provider.config.context
 
   try {
     await writeFile(tempFilePath, value)
 
-    const objects = loadTemplate(await helm(namespace, context, log,
-      "template",
-      "--name", releaseName,
-      "--namespace", namespace,
-      ...await getValueFileArgs(module),
-      "-x", tempFilePath,
-      chartPath,
-    ))
+    const objects = loadTemplate(await helm({
+      ctx: k8sCtx,
+      log,
+      namespace,
+      args: [
+        "template",
+        "--name", releaseName,
+        "--namespace", namespace,
+        ...await getValueFileArgs(module),
+        "-x", tempFilePath,
+        chartPath,
+      ],
+    }))
 
     return objects[0]
 

@@ -188,7 +188,7 @@ interface PrepareSystemServicesParams extends GetSystemServicesStatusParams {
 export async function prepareSystemServices(
   { ctx, sysGarden, log, namespace, serviceNames, force }: PrepareSystemServicesParams,
 ) {
-  const api = await KubeApi.factory(log, ctx.provider.config.context)
+  const api = await KubeApi.factory(log, ctx.provider)
 
   const contextForLog = `Preparing environment for plugin "${ctx.provider.name}"`
   const outdated = !(await systemNamespaceUpToDate(api, log, namespace, contextForLog))

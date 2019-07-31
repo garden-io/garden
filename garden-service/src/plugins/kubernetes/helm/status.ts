@@ -62,7 +62,7 @@ export async function getServiceStatus(
   }
 
   const provider = k8sCtx.provider
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   let { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, chartResources, log, false)
@@ -80,11 +80,11 @@ export async function getServiceStatus(
 }
 
 export async function getReleaseStatus(
-  namespace: string, context: string, releaseName: string, log: LogEntry,
+  ctx: KubernetesPluginContext, releaseName: string, log: LogEntry,
 ): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
-    const res = JSON.parse(await helm(namespace, context, log, "status", releaseName, "--output", "json"))
+    const res = JSON.parse(await helm({ ctx, log, args: ["status", releaseName, "--output", "json"] }))
     const statusCode = res.info.status.code
     return {
       state: helmStatusCodeMap[statusCode],

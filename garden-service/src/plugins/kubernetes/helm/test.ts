@@ -24,7 +24,7 @@ export async function testHelmModule(
     TestModuleParams<HelmModule>,
 ): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
+  const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // Get the container spec to use for running
@@ -54,7 +54,7 @@ export async function testHelmModule(
   }
 
   const result = await runPod({
-    context,
+    provider,
     image,
     interactive,
     ignoreError: true, // to ensure results get stored when an error occurs

@@ -27,10 +27,13 @@ import { clusterInit } from "./commands/cluster-init"
 import { uninstallGardenServices } from "./commands/uninstall-garden-services"
 import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common"
+import { resolve } from "path"
 
 export const name = "kubernetes"
 
-export async function configureProvider({ projectName, config }: ConfigureProviderParams<KubernetesConfig>) {
+export async function configureProvider(
+  { projectName, projectRoot, config }: ConfigureProviderParams<KubernetesConfig>,
+) {
   config._systemServices = []
 
   if (!config.namespace) {
@@ -69,22 +72,26 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
     )
   }
 
+  if (config.kubeconfig) {
+    config.kubeconfig = resolve(projectRoot, config.kubeconfig)
+  }
+
   return { name: config.name, config }
 }
 
 export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams): Promise<DebugInfo> {
-  const k8sContext = <KubernetesPluginContext>ctx
-  const { context } = k8sContext.provider.config
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
   const entry = log.info({ section: ctx.provider.name, msg: "collecting provider configuration", status: "active" })
   const namespacesList = [systemNamespace, systemMetadataNamespace]
   if (includeProject) {
-    const appNamespace = await getAppNamespace(k8sContext, log, k8sContext.provider)
-    const appMetadataNamespace = await getMetadataNamespace(k8sContext, log, k8sContext.provider)
+    const appNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+    const appMetadataNamespace = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
     namespacesList.push(appNamespace, appMetadataNamespace)
   }
   const namespaces = await Bluebird.map(namespacesList, async (ns) => {
     const nsEntry = entry.info({ section: ns, msg: "collecting namespace configuration", status: "active" })
-    const out = await kubectl.stdout({ log, context, args: ["get", "all", "--namespace", ns, "--output", "json"] })
+    const out = await kubectl.stdout({ log, provider, args: ["get", "all", "--namespace", ns, "--output", "json"] })
     nsEntry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     return {
       namespace: ns,
@@ -93,7 +100,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   })
   entry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
-  const version = await kubectl.stdout({ log, context, args: ["version", "--output", "json"] })
+  const version = await kubectl.stdout({ log, provider, args: ["version", "--output", "json"] })
 
   return {
     info: { version: JSON.parse(version), namespaces },

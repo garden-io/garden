@@ -20,11 +20,12 @@ import { Service } from "../../types/service"
 import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import * as Bluebird from "bluebird"
+import { KubernetesProvider } from "./config"
 
 interface GetLogsBaseParams {
   log: LogEntry
-  context: string
   namespace: string
+  provider: KubernetesProvider
   service: Service
   stream: Stream<ServiceLogEntry>
   follow: boolean
@@ -64,12 +65,12 @@ export async function getPodLogs(params: GetPodLogsParams) {
  * Stream all logs for the given resources and service.
  */
 export async function getAllLogs(params: GetAllLogsParams) {
-  const api = await KubeApi.factory(params.log, params.context)
+  const api = await KubeApi.factory(params.log, params.provider)
   const podNames = await getAllPodNames(api, params.namespace, params.resources)
   return getPodLogs({ ...params, podNames })
 }
 
-async function getLogs({ log, context, namespace, service, stream, tail, follow, podName }: GetLogsParams) {
+async function getLogs({ log, provider, namespace, service, stream, tail, follow, podName }: GetLogsParams) {
   // TODO: do this via API instead of kubectl
   const kubectlArgs = [
     "logs",
@@ -84,7 +85,7 @@ async function getLogs({ log, context, namespace, service, stream, tail, follow,
 
   kubectlArgs.push(`pod/${podName}`)
 
-  const proc = await kubectl.spawn({ log, context, namespace, args: kubectlArgs })
+  const proc = await kubectl.spawn({ log, provider, namespace, args: kubectlArgs })
   let timestamp: Date
 
   proc.stdout!

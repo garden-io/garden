@@ -17,11 +17,11 @@ import { emptyRuntimeContext } from "../../../runtime-context"
 export async function getServiceLogs(params: GetServiceLogsParams<ContainerModule>) {
   const { ctx, log, service } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const provider = k8sCtx.provider
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   const resources = [await createDeployment({
-    provider: k8sCtx.provider,
+    provider,
     service,
     // No need for the proper context here
     runtimeContext: emptyRuntimeContext,
@@ -30,5 +30,5 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
     log,
   })]
 
-  return getAllLogs({ ...params, context, namespace, resources })
+  return getAllLogs({ ...params, provider, namespace, resources })
 }

@@ -255,13 +255,14 @@ export class BinaryCmd extends Library {
     return path
   }
 
-  async exec({ args, cwd, env, log, timeout, input }: ExecParams) {
+  async exec({ args, cwd, env, log, timeout, input, ignoreError }: ExecParams) {
     const path = await this.getPath(log)
     return execa(path, args || [], {
       cwd: cwd || dirname(path),
       timeout: this.getTimeout(timeout) * 1000,
       env,
       input,
+      reject: !ignoreError,
     })
   }
 

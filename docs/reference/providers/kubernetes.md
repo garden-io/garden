@@ -847,6 +847,16 @@ The external HTTPS port of the cluster's ingress controller.
 | -------- | -------- | ------- |
 | `number` | No       | `443`   |
 
+### `providers[].kubeconfig`
+
+[providers](#providers) > kubeconfig
+
+Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `providers[].namespace`
 
 [providers](#providers) > namespace
@@ -929,6 +939,7 @@ providers:
     ingressClass:
     ingressHttpPort: 80
     ingressHttpsPort: 443
+    kubeconfig:
     namespace:
     setupIngressController: false
 ```

@@ -44,7 +44,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const namespaces = await prepareNamespaces({ ctx, log })
 
   // Check Tiller status in project namespace
-  if (await checkTillerStatus(k8sCtx, k8sCtx.provider, log) !== "ready") {
+  if (await checkTillerStatus(k8sCtx, log) !== "ready") {
     projectReady = false
   }
 
@@ -84,14 +84,14 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(sysProvider)
 
   // Check Tiller status in system namespace
-  const tillerStatus = await checkTillerStatus(sysCtx, sysCtx.provider, log)
+  const tillerStatus = await checkTillerStatus(sysCtx, log)
 
   if (tillerStatus !== "ready") {
     result.ready = false
     detail.systemTillerReady = false
   }
 
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const contextForLog = `Checking Garden system service status for plugin "${ctx.provider.name}"`
   const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, systemNamespace, contextForLog)
 
@@ -217,7 +217,7 @@ export async function prepareSystem(
 
 export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, k8sCtx.provider)
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const entry = log.info({
     section: "kubernetes",

@@ -53,7 +53,7 @@ export const cleanupClusterRegistry: PluginCommand = {
     await cleanupBuildSyncVolume(provider, log)
 
     // Scan through all Pods in cluster
-    const api = await KubeApi.factory(log, provider.config.context)
+    const api = await KubeApi.factory(log, provider)
     const imagesInUse = await getImagesInUse(api, provider, log)
 
     // Get images in registry
@@ -219,7 +219,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
   delete modifiedDeployment.status
 
-  await apply({ log, context: provider.config.context, manifests: [modifiedDeployment], namespace: systemNamespace })
+  await apply({ log, provider, manifests: [modifiedDeployment], namespace: systemNamespace })
 
   // -> Wait for registry to be up again
   await waitForResources({ ctx, provider, log, serviceName: "docker-registry", resources: [modifiedDeployment] })
@@ -249,7 +249,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
 
   await apply({
     log,
-    context: provider.config.context,
+    provider,
     manifests: [writableRegistry],
     namespace: systemNamespace,
   })
@@ -352,7 +352,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
 // Returns the name for one of the build-sync pods in the cluster
 // (doesn't matter which one, they all use the same volume)
 async function getBuildSyncPodName(provider: KubernetesProvider, log: LogEntry) {
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
 
   const builderStatusRes = await api.apps.readNamespacedDeployment(buildSyncDeploymentName, systemNamespace)
   const builderPods = await getPods(api, systemNamespace, builderStatusRes.spec.selector.matchLabels)
@@ -375,7 +375,7 @@ async function execInBuildSync({ provider, log, args, timeout, podName }: Builde
 
   return kubectl.exec({
     args: execCmd,
-    context: provider.config.context,
+    provider,
     log,
     namespace: systemNamespace,
     timeout,
