@@ -168,7 +168,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources, 
     msg: `Waiting for resources to be ready...`,
   })
 
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const namespace = await getAppNamespace(ctx, log, provider)
 
   while (true) {
@@ -273,10 +273,10 @@ export async function compareDeployedObjects(
     // with exit code 1 if there is a mismatch, but may also fail with the same exit code for a number of other reasons,
     // including the cluster not supporting dry-runs, certain CRDs not supporting dry-runs etc.
     const yamlResources = await encodeYamlMulti(resources)
-    const context = ctx.provider.config.context
+    const provider = ctx.provider
 
     try {
-      await kubectl.exec({ log, context, namespace, args: ["diff", "-f", "-"], input: Buffer.from(yamlResources) })
+      await kubectl.exec({ log, provider, namespace, args: ["diff", "-f", "-"], input: Buffer.from(yamlResources) })
 
       // If the commands exits succesfully, the check was successful and the diff is empty.
       log.verbose(`kubectl diff indicates all resources match the deployed resources.`)
@@ -384,7 +384,7 @@ export async function compareDeployedObjects(
 async function getDeployedResource(
   ctx: PluginContext, provider: KubernetesProvider, resource: KubernetesResource, log: LogEntry,
 ): Promise<KubernetesResource | null> {
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const namespace = resource.metadata.namespace || await getAppNamespace(ctx, log, provider)
 
   try {

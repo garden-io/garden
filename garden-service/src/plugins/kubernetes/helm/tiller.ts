@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesResource } from "../types"
 import { helm } from "./helm-cli"
@@ -16,18 +15,18 @@ import { getAppNamespace } from "../namespace"
 import { checkResourceStatuses, waitForResources } from "../status/status"
 import { combineStates } from "../../../types/service"
 import { apply } from "../kubectl"
-import { KubernetesProvider } from "../config"
+import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import chalk from "chalk"
 
 const serviceAccountName = "garden-tiller"
 
-export async function checkTillerStatus(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
-  const api = await KubeApi.factory(log, provider.config.context)
-  const namespace = await getAppNamespace(ctx, log, provider)
+export async function checkTillerStatus(ctx: KubernetesPluginContext, log: LogEntry) {
+  const api = await KubeApi.factory(log, ctx.provider)
+  const namespace = await getAppNamespace(ctx, log, ctx.provider)
 
   const resources = [
     ...getRoleResources(namespace),
-    ...await getTillerResources(ctx, provider, log),
+    ...await getTillerResources(ctx, log),
   ]
 
   const statuses = await checkResourceStatuses(api, namespace, resources, log)
@@ -36,19 +35,18 @@ export async function checkTillerStatus(ctx: PluginContext, provider: Kubernetes
 }
 
 interface InstallTillerParams {
-  ctx: PluginContext
+  ctx: KubernetesPluginContext
   provider: KubernetesProvider
   log: LogEntry
   force?: boolean
 }
 
 export async function installTiller({ ctx, log, provider, force = false }: InstallTillerParams) {
-  if (!force && await checkTillerStatus(ctx, provider, log) === "ready") {
+  if (!force && await checkTillerStatus(ctx, log) === "ready") {
     return
   }
 
   const namespace = await getAppNamespace(ctx, log, provider)
-  const context = provider.config.context
 
   const entry = log.info({
     section: "tiller",
@@ -59,30 +57,31 @@ export async function installTiller({ ctx, log, provider, force = false }: Insta
   // Need to install the RBAC stuff ahead of Tiller
   const roleResources = getRoleResources(namespace)
   entry.setState("Applying Tiller RBAC resources...")
-  await apply({ log, context, manifests: roleResources, namespace })
+  await apply({ log, provider, manifests: roleResources, namespace })
   await waitForResources({ ctx, provider, serviceName: "tiller", resources: roleResources, log: entry })
 
-  const tillerResources = await getTillerResources(ctx, provider, log)
+  const tillerResources = await getTillerResources(ctx, log)
   const pruneSelector = "app=helm,name=tiller"
   entry.setState("Deploying Tiller...")
-  await apply({ log, context, manifests: tillerResources, namespace, pruneSelector })
+  await apply({ log, provider, manifests: tillerResources, namespace, pruneSelector })
   await waitForResources({ ctx, provider, serviceName: "tiller", resources: tillerResources, log: entry })
 
   entry.setSuccess({ msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`), append: true })
 }
 
 async function getTillerResources(
-  ctx: PluginContext, provider: KubernetesProvider, log: LogEntry,
+  ctx: KubernetesPluginContext, log: LogEntry,
 ): Promise<KubernetesResource[]> {
-  const namespace = await getAppNamespace(ctx, log, provider)
-  const context = provider.config.context
-
-  const tillerManifests = await helm(namespace, context, log,
-    "init",
-    "--service-account", serviceAccountName,
-    "--dry-run",
-    "--debug",
-  )
+  const tillerManifests = await helm({
+    ctx,
+    log,
+    args: [
+      "init",
+      "--service-account", serviceAccountName,
+      "--dry-run",
+      "--debug",
+    ],
+  })
 
   const resources = safeLoadAll(tillerManifests)
 

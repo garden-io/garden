@@ -26,8 +26,8 @@ export async function runHelmModule(
   }: RunModuleParams<HelmModule>,
 ): Promise<RunResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const provider = k8sCtx.provider
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
   const resourceSpec = getServiceResourceSpec(module)
 
   if (!resourceSpec) {
@@ -55,7 +55,7 @@ export async function runHelmModule(
   }
 
   return runPod({
-    context,
+    provider,
     image: container.image,
     interactive,
     ignoreError,
@@ -72,7 +72,7 @@ export async function runHelmTask(
 ): Promise<RunTaskResult> {
   // TODO: deduplicate this from testHelmModule
   const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
+  const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const { command, args } = task.spec
@@ -96,7 +96,7 @@ export async function runHelmTask(
   }
 
   const res = await runPod({
-    context,
+    provider,
     image: container.image,
     interactive,
     ignoreError: false,

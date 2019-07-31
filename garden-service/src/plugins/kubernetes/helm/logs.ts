@@ -16,10 +16,10 @@ import { getChartResources } from "./common"
 export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
   const { ctx, module, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const provider = k8sCtx.provider
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   const resources = await getChartResources(k8sCtx, module, log)
 
-  return getAllLogs({ ...params, context, namespace, resources })
+  return getAllLogs({ ...params, provider, namespace, resources })
 }

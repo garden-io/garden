@@ -27,7 +27,7 @@ export async function getTaskResult(
   { ctx, log, module, task, taskVersion }: GetTaskResultParams<ContainerModule | HelmModule>,
 ): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
   const resultKey = getTaskResultKey(ctx, module, task.name, taskVersion)
 
@@ -86,7 +86,7 @@ export async function storeTaskResult(
   { ctx, log, module, taskName, taskVersion, result }: StoreTaskResultParams,
 ) {
   const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
   result = trimRunOutput(result)

@@ -42,10 +42,10 @@ export async function deployContainerService(params: DeployServiceParams<Contain
   const manifests = await createContainerObjects(k8sCtx, log, service, runtimeContext, hotReload)
 
   // TODO: use Helm instead of kubectl apply
-  const context = k8sCtx.provider.config.context
+  const provider = k8sCtx.provider
   const pruneSelector = "service=" + service.name
 
-  await apply({ log, context, manifests, force, namespace, pruneSelector })
+  await apply({ log, provider, manifests, force, namespace, pruneSelector })
 
   await waitForResources({
     ctx: k8sCtx,
@@ -69,7 +69,7 @@ export async function createContainerObjects(
   const version = service.module.version
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const api = await KubeApi.factory(log, provider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const ingresses = await createIngressResources(api, provider, namespace, service)
   const deployment = await createDeployment({ provider, service, runtimeContext, namespace, enableHotReload, log })
   const kubeservices = await createServiceResources(service, namespace)
@@ -412,11 +412,10 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const provider = k8sCtx.provider
 
-  const context = provider.config.context
-  await deleteContainerDeployment({ namespace, context, serviceName: service.name, log })
+  await deleteContainerDeployment({ namespace, provider, serviceName: service.name, log })
   await deleteObjectsByLabel({
     log,
-    context,
+    provider,
     namespace,
     labelKey: "service",
     labelValue: service.name,
@@ -428,11 +427,12 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
 }
 
 export async function deleteContainerDeployment(
-  { namespace, context, serviceName, log }: { namespace: string, context: string, serviceName: string, log: LogEntry },
+  { namespace, provider, serviceName, log }:
+    { namespace: string, provider: KubernetesProvider, serviceName: string, log: LogEntry },
 ) {
 
   let found = true
-  const api = await KubeApi.factory(log, context)
+  const api = await KubeApi.factory(log, provider)
 
   try {
     await api.extensions.deleteNamespacedDeployment(serviceName, namespace, <any>{})

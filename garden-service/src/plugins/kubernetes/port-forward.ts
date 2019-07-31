@@ -89,7 +89,7 @@ export async function getPortForward(
     const portForwardArgs = ["port-forward", targetResource, portMapping]
     log.silly(`Running 'kubectl ${portForwardArgs.join(" ")}'`)
 
-    const proc = await kubectl.spawn({ log, context: k8sCtx.provider.config.context, namespace, args: portForwardArgs })
+    const proc = await kubectl.spawn({ log, provider: k8sCtx.provider, namespace, args: portForwardArgs })
 
     return new Promise((resolve) => {
       proc.on("error", (error) => {

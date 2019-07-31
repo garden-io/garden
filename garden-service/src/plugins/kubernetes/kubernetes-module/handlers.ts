@@ -57,8 +57,7 @@ async function getServiceStatus(
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const context = ctx.provider.config.context
-  const api = await KubeApi.factory(log, context)
+  const api = await KubeApi.factory(log, k8sCtx.provider)
   const manifests = await getManifests(module)
 
   const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
@@ -85,11 +84,10 @@ async function deployService(
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const context = ctx.provider.config.context
   const manifests = await getManifests(module)
 
   const pruneSelector = getSelector(service)
-  await apply({ log, context, manifests, force, namespace, pruneSelector })
+  await apply({ log, provider: k8sCtx.provider, manifests, force, namespace, pruneSelector })
 
   await waitForResources({
     ctx: k8sCtx,
@@ -109,10 +107,9 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
   const provider = k8sCtx.provider
   const manifests = await getManifests(module)
 
-  const context = provider.config.context
   await deleteObjectsByLabel({
     log,
-    context,
+    provider,
     namespace,
     labelKey: gardenAnnotationKey("service"),
     labelValue: service.name,
@@ -126,11 +123,11 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
 async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
   const { ctx, log, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const context = k8sCtx.provider.config.context
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const provider = k8sCtx.provider
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
   const manifests = await getManifests(module)
 
-  return getAllLogs({ ...params, context, namespace, resources: manifests })
+  return getAllLogs({ ...params, provider, namespace, resources: manifests })
 }
 
 function getSelector(service: KubernetesService) {

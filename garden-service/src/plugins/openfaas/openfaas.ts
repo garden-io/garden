@@ -186,14 +186,13 @@ async function configureProvider(
 
 async function getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
   const { ctx, log, service } = params
-  const k8sProvider = getK8sProvider(ctx.provider.dependencies)
-  const context = k8sProvider.config.context
-  const namespace = await getAppNamespace(ctx, log, k8sProvider)
+  const provider = getK8sProvider(ctx.provider.dependencies)
+  const namespace = await getAppNamespace(ctx, log, provider)
 
-  const api = await KubeApi.factory(log, k8sProvider.config.context)
+  const api = await KubeApi.factory(log, provider)
   const resources = await getResources(api, service, namespace)
 
-  return getAllLogs({ ...params, context, namespace, resources })
+  return getAllLogs({ ...params, provider, namespace, resources })
 }
 
 async function deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
@@ -212,7 +211,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
 
   // wait until deployment is ready
   const namespace = await getAppNamespace(ctx, log, k8sProvider)
-  const api = await KubeApi.factory(log, k8sProvider.config.context)
+  const api = await KubeApi.factory(log, k8sProvider)
   const resources = await getResources(api, service, namespace)
 
   await waitForResources({
@@ -281,7 +280,7 @@ async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusP
   }]
 
   const namespace = await getAppNamespace(openFaasCtx, log, k8sProvider)
-  const api = await KubeApi.factory(log, k8sProvider.config.context)
+  const api = await KubeApi.factory(log, k8sProvider)
 
   let deployment: KubernetesDeployment
 

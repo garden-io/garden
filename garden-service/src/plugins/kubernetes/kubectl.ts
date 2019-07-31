@@ -10,10 +10,11 @@ import * as _spawn from "cross-spawn"
 import { encodeYamlMulti } from "../../util/util"
 import { BinaryCmd, ExecParams } from "../../util/ext-tools"
 import { LogEntry } from "../../logger/log-entry"
+import { KubernetesProvider } from "./config"
 
 export interface ApplyParams {
   log: LogEntry,
-  context: string,
+  provider: KubernetesProvider
   manifests: object[],
   dryRun?: boolean,
   force?: boolean,
@@ -24,7 +25,7 @@ export interface ApplyParams {
 export const KUBECTL_DEFAULT_TIMEOUT = 300
 
 export async function apply(
-  { log, context, manifests: objects, dryRun = false, force = false, namespace, pruneSelector }: ApplyParams,
+  { log, provider, manifests: objects, dryRun = false, force = false, namespace, pruneSelector }: ApplyParams,
 ) {
   const input = Buffer.from(encodeYamlMulti(objects))
 
@@ -34,7 +35,7 @@ export async function apply(
   pruneSelector && args.push("--prune", "--selector", pruneSelector)
   args.push("--output=json", "-f", "-")
 
-  const result = await kubectl.stdout({ log, context, namespace, args, input })
+  const result = await kubectl.stdout({ log, provider, namespace, args, input })
 
   try {
     return JSON.parse(result)
@@ -45,7 +46,7 @@ export async function apply(
 
 export interface DeleteObjectsParams {
   log: LogEntry,
-  context: string,
+  provider: KubernetesProvider
   namespace: string,
   labelKey: string,
   labelValue: string,
@@ -56,7 +57,7 @@ export interface DeleteObjectsParams {
 export async function deleteObjectsByLabel(
   {
     log,
-    context,
+    provider,
     namespace,
     labelKey,
     labelValue,
@@ -73,7 +74,7 @@ export async function deleteObjectsByLabel(
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  const result = await kubectl.stdout({ context, namespace, args, log })
+  const result = await kubectl.stdout({ provider, namespace, args, log })
 
   try {
     return JSON.parse(result)
@@ -84,7 +85,7 @@ export async function deleteObjectsByLabel(
 
 interface KubectlParams extends ExecParams {
   log: LogEntry
-  context?: string
+  provider: KubernetesProvider
   namespace?: string
   configPath?: string
   args: string[]
@@ -127,12 +128,14 @@ class Kubectl extends BinaryCmd {
   }
 
   private prepareArgs(params: KubectlParams) {
-    const { context, namespace, configPath, args } = params
+    const { provider, namespace, configPath, args } = params
 
-    const opts: string[] = []
+    const opts: string[] = [
+      `--context=${provider.config.context}`,
+    ]
 
-    if (context) {
-      opts.push(`--context=${context}`)
+    if (provider.config.kubeconfig) {
+      opts.push(`--kubeconfig=${provider.config.kubeconfig}`)
     }
 
     if (namespace) {

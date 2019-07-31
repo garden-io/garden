@@ -8,6 +8,8 @@
 
 import { BinaryCmd } from "../../../util/ext-tools"
 import { LogEntry } from "../../../logger/log-entry"
+import { KubernetesPluginContext } from "../config"
+import { getAppNamespace } from "../namespace";
 
 const helmCmd = new BinaryCmd({
   name: "helm",
@@ -39,16 +41,26 @@ const helmCmd = new BinaryCmd({
   },
 })
 
-export async function helm(namespace: string, context: string, log: LogEntry, ...args: string[]) {
-  args = [
+export async function helm(
+  { ctx, namespace, log, args }:
+    { ctx: KubernetesPluginContext, namespace?: string, log: LogEntry, args: string[]; },
+) {
+  if (!namespace) {
+    namespace = await getAppNamespace(ctx, log, ctx.provider)
+  }
+
+  const opts = [
     "--tiller-namespace", namespace,
-    "--kube-context", context,
-    ...args,
+    "--kube-context", ctx.provider.config.context,
   ]
+
+  if (ctx.provider.config.kubeconfig) {
+    opts.push("--kubeconfig", ctx.provider.config.kubeconfig)
+  }
 
   return helmCmd.stdout({
     log,
-    args,
+    args: [...opts, ...args],
     // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
     timeout: 3600,
   })
