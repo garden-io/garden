@@ -46,7 +46,7 @@ describe("plugins.container", () => {
     spec: {
       build: { dependencies: [] },
       buildArgs: {},
-      commandArgs: {},
+      extraFlags: [],
       services: [],
       tasks: [],
       tests: [],
@@ -97,7 +97,7 @@ describe("plugins.container", () => {
         spec: {
           build: { dependencies: [] },
           buildArgs: {},
-          commandArgs: {},
+          extraFlags: [],
           services: [{
             name: "service-a",
             annotations: {},
@@ -175,7 +175,7 @@ describe("plugins.container", () => {
         {
           build: { dependencies: [] },
           buildArgs: {},
-          commandArgs: {},
+          extraFlags: [],
           services:
             [{
               name: "service-a",
@@ -305,7 +305,7 @@ describe("plugins.container", () => {
         spec: {
           build: { dependencies: [] },
           buildArgs: {},
-          commandArgs: {},
+          extraFlags: [],
           services: [{
             name: "service-a",
             annotations: {},
@@ -367,7 +367,7 @@ describe("plugins.container", () => {
         spec: {
           build: { dependencies: [] },
           buildArgs: {},
-          commandArgs: {},
+          extraFlags: [],
           services: [{
             name: "service-a",
             annotations: {},
@@ -423,7 +423,7 @@ describe("plugins.container", () => {
         spec: {
           build: { dependencies: [] },
           buildArgs: {},
-          commandArgs: {},
+          extraFlags: [],
           services: [{
             name: "service-a",
             annotations: {},
