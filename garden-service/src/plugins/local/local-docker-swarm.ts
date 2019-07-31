@@ -117,8 +117,8 @@ export const gardenPlugin = (): GardenPlugin => ({
         let swarmServiceStatus
         let serviceId
 
-        if (serviceStatus.providerId) {
-          const swarmService = await docker.getService(serviceStatus.providerId)
+        if (serviceStatus.externalId) {
+          const swarmService = await docker.getService(serviceStatus.externalId)
           swarmServiceStatus = await swarmService.inspect()
           opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
           log.verbose({
@@ -126,7 +126,7 @@ export const gardenPlugin = (): GardenPlugin => ({
             msg: `Updating existing Swarm service (version ${opts.version})`,
           })
           await swarmService.update(opts)
-          serviceId = serviceStatus.providerId
+          serviceId = serviceStatus.externalId
         } else {
           log.verbose({
             section: service.name,
@@ -263,7 +263,7 @@ async function getServiceStatus({ ctx, service }: GetServiceStatusParams<Contain
   const { lastState, lastError } = await getServiceState(swarmServiceStatus.ID)
 
   return {
-    providerId: swarmServiceStatus.ID,
+    externalId: swarmServiceStatus.ID,
     version,
     runningReplicas: swarmServiceStatus.Spec.Mode.Replicated.Replicas,
     state: mapContainerState(lastState),

@@ -63,6 +63,7 @@ export class GetTasksCommand extends Command<Args> {
 
   async prepare({ headerLog }: PrepareParams<Args>) {
     printHeader(headerLog, "Tasks", "open_book")
+    return { persistent: false }
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {

@@ -72,6 +72,7 @@ export interface GardenOpts {
   config?: ProjectConfig,
   gardenDirPath?: string,
   environmentName?: string,
+  persistent?: boolean,
   log?: LogEntry,
   plugins?: Plugins,
 }
@@ -130,6 +131,7 @@ export class Garden {
   public readonly dotIgnoreFiles: string[]
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
+  public readonly persistent: boolean
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
@@ -145,6 +147,7 @@ export class Garden {
     this.dotIgnoreFiles = params.dotIgnoreFiles
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
+    this.persistent = !!params.opts.persistent
 
     // make sure we're on a supported platform
     const currentPlatform = platform()

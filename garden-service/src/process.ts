@@ -91,12 +91,12 @@ export async function processModules(
   if (watch && !!footerLog) {
     garden.events.on("taskGraphProcessing", () => {
       const emoji = printEmoji("hourglass_flowing_sand", footerLog)
-      footerLog.setState(`\n${emoji}Processing...`)
+      footerLog.setState(`\n${emoji} Processing...`)
     })
 
     garden.events.on("taskGraphComplete", () => {
       const emoji = printEmoji("clock2", footerLog)
-      footerLog.setState(`\n${emoji}${chalk.gray("Waiting for code changes...")}`)
+      footerLog.setState(`\n${emoji} ${chalk.gray("Waiting for code changes...")}`)
     })
   }
 

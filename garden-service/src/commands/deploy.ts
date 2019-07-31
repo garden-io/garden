@@ -87,9 +87,13 @@ export class DeployCommand extends Command<Args, Opts> {
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
     printHeader(headerLog, "Deploy", "rocket")
 
-    if (!!opts.watch || !!opts["hot-reload"]) {
+    const persistent = !!opts.watch || !!opts["hot-reload"]
+
+    if (persistent) {
       this.server = await startServer(footerLog)
     }
+
+    return { persistent }
   }
 
   async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {

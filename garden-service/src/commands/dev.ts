@@ -96,6 +96,8 @@ export class DevCommand extends Command<Args, Opts> {
     log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...\n`))
 
     this.server = await startServer(footerLog)
+
+    return { persistent: true }
   }
 
   async action({ garden, log, footerLog, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {

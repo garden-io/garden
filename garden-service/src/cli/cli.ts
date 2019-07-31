@@ -283,13 +283,15 @@ export class GardenCli {
       let garden: Garden
       let result: any
 
-      await command.prepare({
+      const { persistent } = await command.prepare({
         log,
         headerLog,
         footerLog,
         args: parsedArgs,
         opts: parsedOpts,
       })
+
+      contextOpts.persistent = persistent
 
       do {
         try {

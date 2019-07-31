@@ -8,19 +8,11 @@
 
 import * as Bluebird from "bluebird"
 import { get, flatten, uniqBy, sortBy } from "lodash"
-import { ChildProcess } from "child_process"
-import getPort = require("get-port")
-const AsyncLock = require("async-lock")
 import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
 import { splitLast, serializeValues } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { PluginContext } from "../../plugin-context"
-import { LogEntry } from "../../logger/log-entry"
-import { KubernetesPluginContext } from "./config"
-import { kubectl } from "./kubectl"
-import { registerCleanupFunction } from "../../util/util"
 import { gardenAnnotationKey, base64 } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/config"
@@ -134,86 +126,6 @@ export function isBuiltIn(resource: KubernetesResource) {
 
 export function deduplicateResources(resources: KubernetesResource[]) {
   return uniqBy(resources, r => `${r.apiVersion}/${r.kind}`)
-}
-
-export interface PortForward {
-  targetDeployment: string
-  port: number
-  localPort: number
-  proc: ChildProcess
-}
-
-const registeredPortForwards: { [key: string]: PortForward } = {}
-const portForwardRegistrationLock = new AsyncLock()
-
-registerCleanupFunction("kill-port-forward-procs", () => {
-  for (const { targetDeployment, port } of Object.values(registeredPortForwards)) {
-    killPortForward(targetDeployment, port)
-  }
-})
-
-export function killPortForward(targetDeployment: string, port: number) {
-  const key = getPortForwardKey(targetDeployment, port)
-  const fwd = registeredPortForwards[key]
-  if (fwd) {
-    const { proc } = fwd
-    !proc.killed && proc.kill()
-  }
-}
-
-function getPortForwardKey(targetDeployment: string, port: number) {
-  return `${targetDeployment}:${port}`
-}
-
-export async function getPortForward(
-  { ctx, log, namespace, targetDeployment, port }:
-    { ctx: PluginContext, log: LogEntry, namespace: string, targetDeployment: string, port: number },
-): Promise<PortForward> {
-  // Using lock here to avoid concurrency issues (multiple parallel requests for same forward).
-  const key = getPortForwardKey(targetDeployment, port)
-
-  return portForwardRegistrationLock.acquire("register-port-forward", (async () => {
-    let localPort: number
-
-    const registered = registeredPortForwards[key]
-
-    if (registered && !registered.proc.killed) {
-      log.debug(`Reusing local port ${registered.localPort} for ${targetDeployment} container`)
-      return registered
-    }
-
-    const k8sCtx = <KubernetesPluginContext>ctx
-
-    // Forward random free local port to the remote rsync container.
-    localPort = await getPort()
-    const portMapping = `${localPort}:${port}`
-
-    log.debug(`Forwarding local port ${localPort} to ${targetDeployment} container port ${port}`)
-
-    // TODO: use the API directly instead of kubectl (need to reverse engineer kubectl a bit to get how that works)
-    const portForwardArgs = ["port-forward", targetDeployment, portMapping]
-    log.silly(`Running 'kubectl ${portForwardArgs.join(" ")}'`)
-
-    const proc = await kubectl.spawn({ log, context: k8sCtx.provider.config.context, namespace, args: portForwardArgs })
-
-    return new Promise((resolve) => {
-      proc.on("error", (error) => {
-        !proc.killed && proc.kill()
-        throw error
-      })
-
-      proc.stdout!.on("data", (line) => {
-        // This is unfortunately the best indication that we have that the connection is up...
-        log.silly(`[${targetDeployment} port forwarder] ${line}`)
-
-        if (line.toString().includes("Forwarding from ")) {
-          const portForward = { targetDeployment, port, proc, localPort }
-          registeredPortForwards[key] = portForward
-          resolve(portForward)
-        }
-      })
-    })
-  }))
 }
 
 /**
