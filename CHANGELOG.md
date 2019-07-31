@@ -1,4 +1,32 @@
 
+<a name="v0.10.3-alpha.0"></a>
+## [v0.10.3-alpha.0](https://github.com/garden-io/garden/compare/v0.10.2...v0.10.3-alpha.0) (2019-07-31)
+
+### Bug Fixes
+
+* handle blank build args appropriately ([33c12ebb](https://github.com/garden-io/garden/commit/33c12ebb))
+* fix 'cannot read property error of null' error ([c7bc3d90](https://github.com/garden-io/garden/commit/c7bc3d90))
+* exclude symlinks to directories from hashing ([#1044](https://github.com/garden-io/garden/issues/1044)) ([514f9f57](https://github.com/garden-io/garden/commit/514f9f57))
+* review update (TBS) ([df608246](https://github.com/garden-io/garden/commit/df608246))
+* **config:** whitespace was incorrrectly stripped around format strings ([ee325573](https://github.com/garden-io/garden/commit/ee325573))
+* **core:** log level was 'info' when it should have been 'silly' ([fa9aff97](https://github.com/garden-io/garden/commit/fa9aff97))
+* **hot-reload:** fix path handling for Windows and add tests ([50c57208](https://github.com/garden-io/garden/commit/50c57208))
+* **k8s:** ignore older ReplicaSet Pods when checking Deployment status ([a8cfe635](https://github.com/garden-io/garden/commit/a8cfe635))
+* **k8s:** hot reloading stopped working after config reload ([a914d4b5](https://github.com/garden-io/garden/commit/a914d4b5))
+* **k8s:** avoid "no deployed releases" errors after Helm install failure ([#1046](https://github.com/garden-io/garden/issues/1046)) ([87dc9225](https://github.com/garden-io/garden/commit/87dc9225))
+
+### Features
+
+* **core:** make module scans more configurable and ignores more robust ([#1019](https://github.com/garden-io/garden/issues/1019)) ([4afeebf4](https://github.com/garden-io/garden/commit/4afeebf4))
+* **core:** add exclude field for modules ([92210c50](https://github.com/garden-io/garden/commit/92210c50))
+* **openfaas:** enable remote building for openfaas modules ([a0d913d8](https://github.com/garden-io/garden/commit/a0d913d8))
+
+### Improvement
+
+* install kubectl in garden-gcloud image ([#1035](https://github.com/garden-io/garden/issues/1035)) ([2a49adc3](https://github.com/garden-io/garden/commit/2a49adc3))
+* removed get debug-info request due ([6bd8af1c](https://github.com/garden-io/garden/commit/6bd8af1c))
+
+
 <a name="v0.10.2"></a>
 ## [v0.10.2](https://github.com/garden-io/garden/compare/v0.10.1...v0.10.2) (2019-07-23)
 
