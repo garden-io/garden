@@ -1,6 +1,14 @@
 
-<a name="v0.10.3-alpha.0"></a>
-## [v0.10.3-alpha.0](https://github.com/garden-io/garden/compare/v0.10.2...v0.10.3-alpha.0) (2019-07-31)
+<a name="v0.10.3-alpha.2"></a>
+## [v0.10.3-alpha.2](https://github.com/garden-io/garden/compare/v0.10.3-alpha.1...v0.10.3-alpha.2) (2019-07-31)
+
+### Bug Fixes
+
+* update ansi-escapes to fix spinner issue on macOS Terminal.app ([be9f6883](https://github.com/garden-io/garden/commit/be9f6883))
+
+
+<a name="v0.10.3-alpha.1"></a>
+## [v0.10.3-alpha.1](https://github.com/garden-io/garden/compare/v0.10.2...v0.10.3-alpha.1) (2019-07-31)
 
 ### Bug Fixes
 
