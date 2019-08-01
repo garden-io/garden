@@ -18,7 +18,6 @@ import { ModuleConfig } from "../config/module"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { validateWithPath } from "../config/common"
 import * as Bluebird from "bluebird"
-import { createPluginContext } from "../plugin-context"
 import { defaultEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 
 interface Params extends TaskParams {
@@ -136,7 +135,7 @@ export class ResolveProviderTask extends BaseTask {
   private async ensurePrepared(tmpProvider: Provider) {
     const pluginName = tmpProvider.name
     const actions = await this.garden.getActionHelper()
-    const ctx = createPluginContext(this.garden, tmpProvider)
+    const ctx = this.garden.getPluginContext(tmpProvider)
 
     const log = this.log.placeholder()
 

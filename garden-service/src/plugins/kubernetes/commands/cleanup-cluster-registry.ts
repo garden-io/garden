@@ -33,6 +33,8 @@ export const cleanupClusterRegistry: PluginCommand = {
   name: "cleanup-cluster-registry",
   description: "Clean up unused images in the in-cluster registry and cache.",
 
+  title: "Cleaning up caches and unused images from the in-cluster registry",
+
   handler: async ({ ctx, log }) => {
     const result = {}
 

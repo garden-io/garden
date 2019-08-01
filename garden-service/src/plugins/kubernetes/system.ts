@@ -68,6 +68,7 @@ export async function getSystemGarden(
       providers: [sysProvider],
       variables,
     },
+    commandInfo: ctx.command,
     log: log.info({ section: "garden-system", msg: "Initializing...", status: "active", indent: 1 }),
   })
 }

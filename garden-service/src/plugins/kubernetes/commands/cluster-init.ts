@@ -14,29 +14,27 @@ export const clusterInit: PluginCommand = {
   name: "cluster-init",
   description: "Initialize or update cluster-wide Garden services.",
 
-  handler: async ({ ctx, log }) => {
-    const entry = log.info({
-      msg: chalk.bold.magenta(
-        `Initializing/updating cluster-wide services for ${chalk.white(ctx.environmentName)} environment`,
-      ),
-    })
+  title: ({ environmentName }) => {
+    return `Initializing/updating cluster-wide services for ${chalk.white(environmentName)} environment`
+  },
 
+  handler: async ({ ctx, log }) => {
     const status = await getEnvironmentStatus({ ctx, log })
     let result = {}
 
     if (status.ready) {
-      entry.info("All services already initialized!")
+      log.info("All services already initialized!")
     } else {
       result = await prepareSystem({
         ctx,
-        log: entry,
+        log,
         force: true,
         status,
         clusterInit: true,
       })
     }
 
-    log.info(chalk.green("Done!"))
+    log.info(chalk.green("\nDone!"))
 
     return { result }
   },

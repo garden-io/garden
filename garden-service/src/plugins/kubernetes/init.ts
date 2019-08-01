@@ -157,21 +157,29 @@ export async function prepareSystem(
   // If we require manual init and system services are ready OR outdated but none are *missing*, we warn
   // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
   // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
-  if (!clusterInit && remoteCluster && combinedState === "outdated" && !serviceStates.includes("missing")) {
-    log.warn({
-      symbol: "warning",
-      msg: chalk.yellow(deline`
-        One or more cluster-wide system services are outdated or their configuration does not match your current
-        configuration. You may want to run \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
-        to update them, or contact a cluster admin to do so.
-      `),
-    })
+  if (!clusterInit && remoteCluster) {
+    if (combinedState === "outdated" && !serviceStates.includes("missing")) {
+      log.warn({
+        symbol: "warning",
+        msg: chalk.yellow(deline`
+          One or more cluster-wide system services are outdated or their configuration does not match your current
+          configuration. You may want to run \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
+          to update them, or contact a cluster admin to do so.
+        `),
+      })
+    }
     return {}
   }
 
   // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
   // between users or unnecessary work.
   if (!clusterInit && remoteCluster && !systemReady) {
+    // Special-case so that this doesn't error when attempting to run the cluster init
+    const initCommandName = `plugins ${ctx.provider.name} cluster-init`
+    if (ctx.command && ctx.command.name === initCommandName) {
+      return {}
+    }
+
     throw new KubernetesError(deline`
       One or more cluster-wide system services are missing or not ready. You need to run
       \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`

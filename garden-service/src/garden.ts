@@ -33,7 +33,7 @@ import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig, ModuleResource, moduleConfigSchema } from "./config/module"
 import { ModuleConfigContext, ContextResolveOpts } from "./config/config-context"
-import { createPluginContext } from "./plugin-context"
+import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActions, Plugins, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME } from "./constants"
 import { platform, arch } from "os"
@@ -71,6 +71,7 @@ export type ModuleActionMap = {
 
 export interface GardenOpts {
   config?: ProjectConfig,
+  commandInfo?: CommandInfo,
   gardenDirPath?: string,
   environmentName?: string,
   log?: LogEntry,
@@ -244,7 +245,7 @@ export class Garden {
   }
 
   getPluginContext(provider: Provider) {
-    return createPluginContext(this, provider)
+    return createPluginContext(this, provider, this.opts.commandInfo)
   }
 
   async clearBuilds() {

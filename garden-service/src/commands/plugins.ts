@@ -15,6 +15,7 @@ import { LogEntry } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams, StringParameter } from "./base"
 import * as Bluebird from "bluebird"
+import { printHeader } from "../logger/util"
 
 const pluginArgs = {
   plugin: new StringParameter({
@@ -53,8 +54,8 @@ export class PluginsCommand extends Command<Args> {
   arguments = pluginArgs
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const providers = await garden.resolveProviders()
-    const configuredPlugins = providers.map(p => p.name)
+    const providerConfigs = await garden.getRawProviderConfigs()
+    const configuredPlugins = providerConfigs.map(p => p.name)
 
     if (!args.command) {
       // We're listing commands, not executing one
@@ -75,6 +76,12 @@ export class PluginsCommand extends Command<Args> {
           }),
         ],
       }
+    }
+
+    if (command.title) {
+      const environmentName = garden.environmentName
+      const title = typeof command.title === "function" ? await command.title({ environmentName }) : command.title
+      printHeader(log, title, "gear")
     }
 
     const provider = await garden.resolveProvider(args.plugin)
