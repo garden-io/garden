@@ -108,29 +108,6 @@ describe("createServiceResources", () => {
               protocol: "TCP",
               targetPort: 8080,
               port: 8080,
-            },
-          ],
-          selector: {
-            service: "service-a",
-          },
-          type: "ClusterIP",
-        },
-      },
-      {
-        apiVersion: "v1",
-        kind: "Service",
-        metadata: {
-          name: "service-a-nodeport",
-          namespace: "my-namespace",
-          annotations: {},
-        },
-        spec: {
-          ports: [
-            {
-              name: "http",
-              protocol: "TCP",
-              targetPort: 8080,
-              port: 8080,
               nodePort: 12345,
             },
           ],
@@ -157,29 +134,6 @@ describe("createServiceResources", () => {
         kind: "Service",
         metadata: {
           name: "service-a",
-          namespace: "my-namespace",
-          annotations: {},
-        },
-        spec: {
-          ports: [
-            {
-              name: "http",
-              protocol: "TCP",
-              targetPort: 8080,
-              port: 8080,
-            },
-          ],
-          selector: {
-            service: "service-a",
-          },
-          type: "ClusterIP",
-        },
-      },
-      {
-        apiVersion: "v1",
-        kind: "Service",
-        metadata: {
-          name: "service-a-nodeport",
           namespace: "my-namespace",
           annotations: {},
         },

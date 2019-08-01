@@ -35,37 +35,27 @@ export async function createServiceResources(service: ContainerService, namespac
   const ports = service.spec.ports
 
   if (ports.length) {
-    addService(service.name, "ClusterIP", ports.map(portSpec => ({
-      name: portSpec.name,
-      protocol: portSpec.protocol,
-      targetPort: portSpec.containerPort,
-      port: portSpec.servicePort,
-    })))
-  }
+    const serviceType = ports.filter(portSpec => !!portSpec.nodePort).length > 0 ? "NodePort" : "ClusterIP"
 
-  // optionally add a NodePort service for externally open ports, if applicable
-  const exposedPorts = ports.filter(portSpec => portSpec.nodePort)
-
-  if (exposedPorts.length > 0) {
-    const nodePorts = exposedPorts.map(portSpec => {
+    addService(service.name, serviceType, ports.map(portSpec => {
       const port: V1ServicePort = {
         name: portSpec.name,
         protocol: portSpec.protocol,
         port: portSpec.servicePort,
         targetPort: portSpec.containerPort,
       }
-      if (portSpec.nodePort !== true) {
+
+      if (portSpec.nodePort && portSpec.nodePort !== true) {
         port.nodePort = portSpec.nodePort
       }
-      return port
-    })
 
-    addService(service.name + "-nodeport", "NodePort", nodePorts)
+      return port
+    }))
   }
 
   return services
 }
 
-export function rsyncPortName(serviceName) {
+export function rsyncPortName(serviceName: string) {
   return `garden-rsync-${serviceName}`
 }
