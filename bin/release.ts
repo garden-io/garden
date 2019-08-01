@@ -6,14 +6,13 @@ import * as inquirer from "inquirer"
 import chalk from "chalk"
 import parseArgs = require("minimist")
 import deline = require("deline")
-import { join, resolve } from "path"
+import { resolve } from "path"
 const replace = require("replace-in-file")
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
 
 const gardenRoot = resolve(__dirname, "..")
-const gardenServiceRoot = join(gardenRoot, "garden-service")
 
 /**
  * Performs the following steps to prepare for a release:
@@ -45,11 +44,10 @@ async function release() {
   if (!RELEASE_TYPES.includes(releaseType)) {
     throw new Error(`Invalid release type ${releaseType}, available types are: ${RELEASE_TYPES.join(", ")}`)
   }
-
   // Update package.json versions
-  await execa.stdout("lerna", [
+  await execa("node_modules/.bin/lerna", [
     "version", "--no-git-tag-version", "--yes", releaseType,
-  ], { cwd: gardenServiceRoot })
+  ], { cwd: gardenRoot })
 
   // Read the version from garden-service/package.json after setting it (rather than parsing the lerna output)
   const version = "v" + require("../garden-service/package.json").version
@@ -92,12 +90,24 @@ async function release() {
     return
   }
 
+  // Lerna doesn't update package-lock.json so we need the following workaround.
+  // See this issue for details: https://github.com/lerna/lerna/issues/1415
+  console.log("Updating package-lock.json for all packages")
+  await execa("node_modules/.bin/lerna", ["clean", "--yes"], { cwd: gardenRoot })
+  await execa("node_modules/.bin/lerna", [
+    "bootstrap",
+    "--ignore-scripts",
+    "--",
+    "--package-lock-only",
+    "--no-audit",
+  ], { cwd: gardenRoot })
+
   // Pull remote tags
   console.log("Pulling remote tags...")
   await execa("git", ["fetch", "origin", "--tags", "-f"], { cwd: gardenRoot })
 
   // Verify tag doesn't exist
-  const tags = (await execa.stdout("git", ["tag"], { cwd: gardenRoot })).split("\n")
+  const tags = (await execa("git", ["tag"], { cwd: gardenRoot })).stdout.split("\n")
   if (tags.includes(version) && !force) {
     await rollBack()
     throw new Error(`Tag ${version} already exists. Use "--force" to override.`)
@@ -190,7 +200,7 @@ async function createTag(version: string, force: boolean) {
   if (force) {
     createTagArgs.push("-f")
   }
-  await execa.stdout("git", createTagArgs, { cwd: gardenRoot })
+  await execa("git", createTagArgs, { cwd: gardenRoot })
 
   // Push the tag
   const pushTagArgs = ["push", "origin", version, "--no-verify"]
@@ -213,7 +223,7 @@ async function updateExampleLinks(version: string) {
 async function rollBack() {
   // Undo any file changes. This is safe since we know the branch is clean.
   console.log("Undoing file changes")
-  await execa.stdout("git", ["checkout", "."], { cwd: gardenRoot })
+  await execa("git", ["checkout", "."], { cwd: gardenRoot })
 }
 
 async function prompt(version: string): Promise<boolean> {
@@ -246,12 +256,12 @@ async function stripPrereleaseTags(tags: string[], version: string) {
     // E.g., if the current tag is v0.5.0-2 and we're releasing v0.9.0-2, we remove it.
     // If the current tag is v0.9.0-0 and we're releasing v0.9.0-2, we keep it.
     if (!semver.prerelease(version) || semver.diff(version, tag) !== "prerelease") {
-      await execa.stdout("git", ["tag", "-d", tag])
+      await execa("git", ["tag", "-d", tag])
     }
   }
 
   // We also need to remove the "edge" tag
-  await execa.stdout("git", ["tag", "-d", "edge"])
+  await execa("git", ["tag", "-d", "edge"])
 }
 
 (async () => {
