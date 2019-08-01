@@ -60,12 +60,19 @@ export async function runPod(
     })
   }
 
+  if (interactive) {
+    spec.containers[0].stdin = true
+    spec.containers[0].stdinOnce = true
+    spec.containers[0].tty = true
+  }
+
+  const runPodName = podName || `run-${module.name}-${Math.round(new Date().getTime())}`
+
   const kubecmd = [
     "run",
-    podName || `run-${module.name}-${Math.round(new Date().getTime())}`,
+    runPodName,
     `--image=${image}`,
     "--restart=Never",
-    "--quiet",
     "--rm",
     // Need to attach to get the log output and exit code.
     "-i",
@@ -75,10 +82,12 @@ export async function runPod(
 
   if (interactive) {
     kubecmd.push("--tty")
+  } else {
+    kubecmd.push("--quiet")
   }
 
   const command = [...spec.containers[0].command || [], ...spec.containers[0].args || []]
-  log.verbose(`Running '${command.join(" ")}'`)
+  log.verbose(`Running '${command.join(" ")}' in Pod ${runPodName}`)
 
   const startedAt = new Date()
 
