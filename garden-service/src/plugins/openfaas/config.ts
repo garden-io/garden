@@ -112,6 +112,7 @@ export function getContainerModule(module: OpenFaasModule): ContainerModule {
       ...module.spec,
       buildArgs: {},
       dockerfile: "Dockerfile",
+      extraFlags: [],
       services: [],
       tasks: [],
       tests: [],

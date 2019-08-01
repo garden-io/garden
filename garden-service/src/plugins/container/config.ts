@@ -423,8 +423,10 @@ export const containerModuleSpecSchema = joi.object()
       .description("Specify build arguments to use when building the container image."),
     extraFlags: joi.array()
       .items(joi.string())
-      .description(deline`Specify extra flags to use when building the container image.
-      Note that arguments may not be portable across implementations`),
+      .description(deline`
+        Specify extra flags to use when building the container image.
+        Note that arguments may not be portable across implementations.`,
+      ),
     // TODO: validate the image name format
     image: joi.string()
       .description(deline`

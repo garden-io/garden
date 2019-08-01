@@ -229,7 +229,7 @@ Specify build arguments to use when building the container image.
 
 ### `extraFlags`
 
-Specify extra flags to use when building the container image. Note that arguments may not be portable across implementations
+Specify extra flags to use when building the container image. Note that arguments may not be portable across implementations.
 
 | Type            | Required |
 | --------------- | -------- |
