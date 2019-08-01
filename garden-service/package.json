@@ -27,7 +27,7 @@
     "@kubernetes/client-node": "git+https://github.com/garden-io/javascript.git#client-cert-auth",
     "JSONStream": "^1.3.5",
     "analytics-node": "3.3.0",
-    "ansi-escapes": "^4.1.0",
+    "ansi-escapes": "^4.2.1",
     "archiver": "^3.0.0",
     "async-exit-hook": "^2.0.1",
     "async-lock": "^1.2.0",
