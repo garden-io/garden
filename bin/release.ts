@@ -92,7 +92,7 @@ async function release() {
 
   // Lerna doesn't update package-lock.json so we need the following workaround.
   // See this issue for details: https://github.com/lerna/lerna/issues/1415
-  console.log("Updating package-lock.json for all packages")
+  console.log("Updating package-lock.json for all packages...")
   await execa("node_modules/.bin/lerna", ["clean", "--yes"], { cwd: gardenRoot })
   await execa("node_modules/.bin/lerna", [
     "bootstrap",
