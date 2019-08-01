@@ -361,7 +361,8 @@ garden get debug-info --include-project  # include provider info for the project
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--format` |  | `json` `yaml`  | The output format for plugin-generated debug info.
-  | `--include-project` |  | boolean | Include project-specific information from configured providers.     Note that this may include sensitive data, depending on the provider and your configuration.
+  | `--include-project` |  | boolean | Include project-specific information from configured providers.
+Note that this may include sensitive data, depending on the provider and your configuration.
 
 ### garden init
 
