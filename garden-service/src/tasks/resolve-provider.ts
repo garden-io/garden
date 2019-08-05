@@ -137,8 +137,6 @@ export class ResolveProviderTask extends BaseTask {
     const actions = await this.garden.getActionHelper()
     const ctx = this.garden.getPluginContext(tmpProvider)
 
-    const log = this.log.placeholder()
-
     this.log.silly(`Getting status for ${pluginName}`)
 
     const handler = await actions.getActionHandler({
@@ -147,7 +145,7 @@ export class ResolveProviderTask extends BaseTask {
       defaultHandler: async () => defaultEnvironmentStatus,
     })
 
-    let status = await handler({ ctx, log })
+    let status = await handler({ ctx, log: this.log })
 
     this.log.silly(`${pluginName} status: ${status.ready ? "ready" : "not ready"}`)
 
@@ -155,7 +153,7 @@ export class ResolveProviderTask extends BaseTask {
       // Deliberately setting the text on the parent log here
       this.log.setState(`Preparing environment...`)
 
-      const envLogEntry = log.info({
+      const envLogEntry = this.log.info({
         status: "active",
         section: pluginName,
         msg: "Configuring...",
@@ -166,7 +164,7 @@ export class ResolveProviderTask extends BaseTask {
         pluginName,
         defaultHandler: async () => ({ status }),
       })
-      const result = await prepareHandler({ ctx, log, force: this.forceInit, status })
+      const result = await prepareHandler({ ctx, log: this.log, force: this.forceInit, status })
 
       status = result.status
 

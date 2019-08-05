@@ -100,6 +100,8 @@ const outputsSchema = joi.object()
     "app-namespace": joiIdentifier()
       .required()
       .description("The primary namespace used for resource deployments."),
+    "default-hostname": joi.string()
+      .description("The default hostname configured on the provider."),
     "metadata-namespace": joiIdentifier()
       .required()
       .description("The namespace used for Garden metadata."),

@@ -23,6 +23,7 @@ import { ContainerModule } from "../container/config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { getNamespace } from "../kubernetes/namespace"
 import { LogEntry } from "../../logger/log-entry"
+import { baseBuildSpecSchema } from "../../config/module"
 
 export interface OpenFaasModuleSpec extends ExecModuleSpec {
   handler: string
@@ -32,6 +33,7 @@ export interface OpenFaasModuleSpec extends ExecModuleSpec {
 
 export const openfaasModuleSpecSchema = joi.object()
   .keys({
+    build: baseBuildSpecSchema,
     dependencies: joiArray(joi.string())
       .description("The names of services/functions that this function depends on at runtime."),
     env: joiEnvVars(),

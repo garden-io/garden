@@ -35,6 +35,7 @@ import { combineStates, ServiceStatusMap } from "../../types/service"
  */
 export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
 
   let projectReady = true
 
@@ -61,6 +62,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     dashboardPages: [],
     outputs: {
       ...namespaces,
+      "default-hostname": provider.config.defaultHostname || null,
     },
   }
 
@@ -69,14 +71,14 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     systemServiceNames.length === 0
     ||
     // Make sure we don't recurse infinitely
-    k8sCtx.provider.config.namespace === systemNamespace
+    provider.config.namespace === systemNamespace
   ) {
     return result
   }
 
-  const variables = getKubernetesSystemVariables(k8sCtx.provider.config)
+  const variables = getKubernetesSystemVariables(provider.config)
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-  const sysProvider = await sysGarden.resolveProvider(k8sCtx.provider.name)
+  const sysProvider = await sysGarden.resolveProvider(provider.name)
   const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(sysProvider)
 
   // Check Tiller status in system namespace
@@ -87,7 +89,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     detail.systemTillerReady = false
   }
 
-  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, provider.config.context)
   const contextForLog = `Checking Garden system service status for plugin "${ctx.provider.name}"`
   const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, systemNamespace, contextForLog)
 
@@ -122,7 +124,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
  *  3. Deploys system services (if provider has system services)
  */
 export async function prepareEnvironment(params: PrepareEnvironmentParams): Promise<PrepareEnvironmentResult> {
-  const { ctx, log, force } = params
+  const { ctx, log, force, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Install Tiller to project namespace
@@ -131,7 +133,7 @@ export async function prepareEnvironment(params: PrepareEnvironmentParams): Prom
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
 
-  return { status: { ready: true, outputs: {} } }
+  return { status: { ready: true, outputs: status.outputs } }
 }
 
 export async function prepareSystem(

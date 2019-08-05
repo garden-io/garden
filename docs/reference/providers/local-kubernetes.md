@@ -846,6 +846,14 @@ The primary namespace used for resource deployments.
 | -------- | -------- |
 | `string` | Yes      |
 
+### `providers.<provider-name>.default-hostname`
+
+The default hostname configured on the provider.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `providers.<provider-name>.metadata-namespace`
 
 The namespace used for Garden metadata.
