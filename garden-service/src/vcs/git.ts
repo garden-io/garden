@@ -87,7 +87,8 @@ export class GitHandler extends VcsHandler {
        * We need to exclude .garden to avoid errors when path is the project root. This happens e.g. for modules
        * whose config is colocated with the project config, and that don't specify include paths/patterns.
        */
-      // FIXME: We should use `garden.gardenDirPath` instead of ".garden" since the dir name can be variable
+      // FIXME: We should use `garden.gardenDirPath` instead of ".garden" since the gardenDirPath
+      // property is configurable.
       lines = await git("ls-files", "-s", "--others", "--exclude=.garden", path)
 
       // List ignored files from .gardenignore. We need to run ls-files twice to get both tracked and untracked files.

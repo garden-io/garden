@@ -5,43 +5,33 @@ import { LinkModuleCommand } from "../../../../src/commands/link/module"
 import { UnlinkModuleCommand } from "../../../../src/commands/unlink/module"
 import {
   getDataDir,
-  stubExtSources,
-  cleanProject,
-  makeTestGarden,
   withDefaultGlobalOpts,
+  makeExtProjectSourcesGarden,
+  makeExtModuleSourcesGarden,
+  resetLocalConfig,
 } from "../../../helpers"
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { UnlinkSourceCommand } from "../../../../src/commands/unlink/source"
 import { Garden } from "../../../../src/garden"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import * as td from "testdouble"
-import { ModuleVersion } from "../../../../src/vcs/vcs"
 
 describe("UnlinkCommand", () => {
   let garden: Garden
   let log: LogEntry
 
   describe("UnlinkModuleCommand", () => {
-    const projectRoot = getDataDir("test-project-ext-module-sources")
     const linkCmd = new LinkModuleCommand()
     const unlinkCmd = new UnlinkModuleCommand()
+    const linkedModulePathA = join(getDataDir("test-project-local-module-sources"), "module-a")
+    const linkedModulePathB = join(getDataDir("test-project-local-module-sources"), "module-b")
+    const linkedModulePathC = join(getDataDir("test-project-local-module-sources"), "module-c")
 
-    const dummyVersion: ModuleVersion = {
-      versionString: "foo",
-      dependencyVersions: {},
-      files: [],
-    }
+    before(async () => {
+      garden = await makeExtModuleSourcesGarden()
+      log = garden.log
+    })
 
     beforeEach(async () => {
-      garden = await makeTestGarden(projectRoot)
-      log = garden.log
-      stubExtSources(garden)
-
-      const resolveVersion = td.replace(garden, "resolveVersion")
-      td.when(resolveVersion("module-a", [])).thenResolve(dummyVersion)
-      td.when(resolveVersion("module-b", [])).thenResolve(dummyVersion)
-      td.when(resolveVersion("module-c", [])).thenResolve(dummyVersion)
-
       await linkCmd.action({
         garden,
         log,
@@ -49,7 +39,7 @@ describe("UnlinkCommand", () => {
         footerLog: log,
         args: {
           module: "module-a",
-          path: join(projectRoot, "mock-local-path", "module-a"),
+          path: linkedModulePathA,
         },
         opts: withDefaultGlobalOpts({}),
       })
@@ -60,7 +50,7 @@ describe("UnlinkCommand", () => {
         footerLog: log,
         args: {
           module: "module-b",
-          path: join(projectRoot, "mock-local-path", "module-b"),
+          path: linkedModulePathB,
         },
         opts: withDefaultGlobalOpts({}),
       })
@@ -71,14 +61,14 @@ describe("UnlinkCommand", () => {
         footerLog: log,
         args: {
           module: "module-c",
-          path: join(projectRoot, "mock-local-path", "module-c"),
+          path: linkedModulePathC,
         },
         opts: withDefaultGlobalOpts({}),
       })
     })
 
     afterEach(async () => {
-      await cleanProject(garden.gardenDirPath)
+      await resetLocalConfig(garden.gardenDirPath)
     })
 
     it("should unlink the provided modules", async () => {
@@ -92,7 +82,7 @@ describe("UnlinkCommand", () => {
       })
       const { linkedModuleSources } = await garden.configStore.get()
       expect(linkedModuleSources).to.eql([
-        { name: "module-c", path: join(projectRoot, "mock-local-path", "module-c") },
+        { name: "module-c", path: linkedModulePathC },
       ])
     })
 
@@ -111,16 +101,18 @@ describe("UnlinkCommand", () => {
   })
 
   describe("UnlinkSourceCommand", () => {
-    const projectRoot = getDataDir("test-project-ext-project-sources")
     const linkCmd = new LinkSourceCommand()
     const unlinkCmd = new UnlinkSourceCommand()
+    const linkedSourcePathA = join(getDataDir("test-project-local-project-sources"), "source-a")
+    const linkedSourcePathB = join(getDataDir("test-project-local-project-sources"), "source-b")
+    const linkedSourcePathC = join(getDataDir("test-project-local-project-sources"), "source-c")
+
+    before(async () => {
+      garden = await makeExtProjectSourcesGarden()
+      log = garden.log
+    })
 
     beforeEach(async () => {
-      garden = await makeTestGarden(projectRoot)
-      log = garden.log
-
-      stubExtSources(garden)
-
       await linkCmd.action({
         garden,
         log,
@@ -128,7 +120,7 @@ describe("UnlinkCommand", () => {
         footerLog: log,
         args: {
           source: "source-a",
-          path: join(projectRoot, "mock-local-path", "source-a"),
+          path: linkedSourcePathA,
         },
         opts: withDefaultGlobalOpts({}),
       })
@@ -139,7 +131,7 @@ describe("UnlinkCommand", () => {
         footerLog: log,
         args: {
           source: "source-b",
-          path: join(projectRoot, "mock-local-path", "source-b"),
+          path: linkedSourcePathB,
         },
         opts: withDefaultGlobalOpts({}),
       })
@@ -150,14 +142,14 @@ describe("UnlinkCommand", () => {
         footerLog: log,
         args: {
           source: "source-c",
-          path: join(projectRoot, "mock-local-path", "source-c"),
+          path: linkedSourcePathC,
         },
         opts: withDefaultGlobalOpts({}),
       })
     })
 
     afterEach(async () => {
-      await cleanProject(garden.gardenDirPath)
+      await resetLocalConfig(garden.gardenDirPath)
     })
 
     it("should unlink the provided sources", async () => {
@@ -171,7 +163,7 @@ describe("UnlinkCommand", () => {
       })
       const { linkedProjectSources } = await garden.configStore.get()
       expect(linkedProjectSources).to.eql([
-        { name: "source-c", path: join(projectRoot, "mock-local-path", "source-c") },
+        { name: "source-c", path: linkedSourcePathC },
       ])
     })
 

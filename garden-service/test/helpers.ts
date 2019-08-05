@@ -7,9 +7,12 @@
  */
 
 import * as td from "testdouble"
+import Bluebird = require("bluebird")
 import { resolve, join } from "path"
 import { extend } from "lodash"
-import { remove, readdirSync, existsSync } from "fs-extra"
+import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate } from "fs-extra"
+import execa = require("execa")
+
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
@@ -25,7 +28,7 @@ import { Garden, GardenParams } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_SERVICE_ROOT } from "../src/constants"
+import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
@@ -39,6 +42,7 @@ import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { RunResult } from "../src/types/plugin/base"
+import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -49,6 +53,10 @@ export const testModuleVersion: ModuleVersion = {
   dependencyVersions: {},
   files: [],
 }
+
+// All test projects use this git URL
+export const testGitUrl = "https://my-git-server.com/my-repo.git#master"
+export const testGitUrlHash = hashRepoUrl(testGitUrl)
 
 export function getDataDir(...names: string[]) {
   return resolve(dataDir, ...names)
@@ -379,20 +387,6 @@ export const cleanProject = async (gardenDirPath: string) => {
   return remove(gardenDirPath)
 }
 
-/**
- * Prevents git cloning. Use if creating a Garden instance with test-project-ext-module-sources
- * or test-project-ext-project-sources as project root.
- */
-export function stubExtSources(garden: Garden) {
-  td.replace(garden.vcs, "cloneRemoteSource", async () => undefined)
-  td.replace(garden.vcs, "updateRemoteSource", async () => undefined)
-
-  const getRemoteSourcesDirname = td.replace(garden.vcs, "getRemoteSourcesDirname")
-
-  td.when(getRemoteSourcesDirname("module")).thenReturn(join("sources", "module"))
-  td.when(getRemoteSourcesDirname("project")).thenReturn(join("sources", "project"))
-}
-
 export function getExampleProjects() {
   const names = readdirSync(examplesDir).filter(n => {
     const basePath = join(examplesDir, n)
@@ -415,4 +409,57 @@ export function freezeTime(date?: Date) {
   }
   timekeeper.freeze(date)
   return date
+}
+
+export async function resetLocalConfig(gardenDirPath: string) {
+  const path = join(gardenDirPath, LOCAL_CONFIG_FILENAME)
+  if (await pathExists(path)) {
+    await truncate(path)
+  }
+}
+
+/**
+ * Idempotently initializes the test-project-ext-project-sources project and returns
+ * the Garden class.
+ */
+export async function makeExtProjectSourcesGarden() {
+  const projectRoot = resolve(dataDir, "test-project-ext-project-sources")
+  // Borrow the external sources from here:
+  const extSourcesRoot = resolve(dataDir, "test-project-local-project-sources")
+  const sourceNames = ["source-a", "source-b", "source-c"]
+  return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "project" })
+}
+
+/**
+ * Idempotently initializes the test-project-ext-project-sources project and returns
+ * the Garden class.
+ */
+export async function makeExtModuleSourcesGarden() {
+  const projectRoot = resolve(dataDir, "test-project-ext-module-sources")
+  // Borrow the external sources from here:
+  const extSourcesRoot = resolve(dataDir, "test-project-local-module-sources")
+  const sourceNames = ["module-a", "module-b", "module-c"]
+  return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "module" })
+}
+
+/**
+ * Helper function for idempotently initializing the ext-sources projects.
+ * Copies the external sources into the .garden directory and git inits them.
+ */
+async function prepareRemoteGarden({
+  projectRoot, extSourcesRoot, sourceNames, type,
+}: { projectRoot: string, extSourcesRoot: string, sourceNames: string[], type: ExternalSourceType }) {
+  const garden = await makeTestGarden(projectRoot)
+  const sourcesPath = join(projectRoot, ".garden", "sources", type)
+
+  await mkdirp(sourcesPath)
+  // Copy the sources to the `.garden/sources` dir and git init them
+  await Bluebird.map(sourceNames, async (name) => {
+    const remoteSourceRelPath = getRemoteSourceRelPath({ name, url: testGitUrl, sourceType: type })
+    const targetPath = join(projectRoot, ".garden", remoteSourceRelPath)
+    await copy(join(extSourcesRoot, name), targetPath)
+    await execa("git", ["init"], { cwd: targetPath })
+  })
+
+  return garden
 }

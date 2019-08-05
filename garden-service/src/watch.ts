@@ -22,7 +22,7 @@ import { isConfigFilename } from "./util/fs"
 let watcher: FSWatcher | undefined
 
 // Export so that we can clean up the global watcher instance when running tests
-export function cleanUp() {
+export function cleanUpGlobalWatcher() {
   if (watcher) {
     watcher.close()
     watcher = undefined
@@ -30,7 +30,7 @@ export function cleanUp() {
 }
 
 // The process hangs after tests if we don't do this
-registerCleanupFunction("stop watcher", cleanUp)
+registerCleanupFunction("stop watcher", cleanUpGlobalWatcher)
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
