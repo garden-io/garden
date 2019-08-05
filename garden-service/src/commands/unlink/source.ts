@@ -71,7 +71,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
 
     const linkedProjectSources = await removeLinkedSources({ garden, sourceType, names: sources })
 
-    log.info(`Unlinked source(s) ${sources}`)
+    log.info(`Unlinked source(s) ${sources.join(" ")}`)
 
     return { result: linkedProjectSources }
   }

@@ -20,15 +20,17 @@ import { isConfigFilename } from "./util/fs"
 // IMPORTANT: We must use a single global instance of the watcher, because we may otherwise get
 // segmentation faults on macOS! See https://github.com/fsevents/fsevents/issues/273
 let watcher: FSWatcher | undefined
-let projectRoot: string
 
-// The process hangs after tests if we don't do this
-registerCleanupFunction("stop watcher", () => {
+// Export so that we can clean up the global watcher instance when running tests
+export function cleanUp() {
   if (watcher) {
     watcher.close()
     watcher = undefined
   }
-})
+}
+
+// The process hangs after tests if we don't do this
+registerCleanupFunction("stop watcher", cleanUp)
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
@@ -39,13 +41,11 @@ export type ChangeHandler = (module: Module | null, configChanged: boolean) => P
 export class Watcher {
   private watcher: FSWatcher
 
-  constructor(private garden: Garden, private log: LogEntry, modules: Module[]) {
-    projectRoot = this.garden.projectRoot
-
-    this.log.debug(`Watcher: Watching ${projectRoot}`)
+  constructor(private garden: Garden, private log: LogEntry, paths: string[], modules: Module[]) {
+    log.debug(`Watcher: Watching paths ${paths.join(", ")}`)
 
     if (watcher === undefined) {
-      watcher = watch(projectRoot, {
+      watcher = watch(paths, {
         ignoreInitial: true,
         persistent: true,
       })

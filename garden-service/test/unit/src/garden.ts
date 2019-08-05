@@ -56,6 +56,15 @@ describe("Garden", () => {
       expect(garden).to.be.ok
     })
 
+    it("should always exclude the garden dir", async () => {
+      const gardenA = await makeTestGardenA()
+      const gardenCustomDir = await makeTestGarden(getDataDir("test-project-a"), {
+        gardenDirPath: "custom/garden-dir",
+      })
+      expect(gardenA.moduleExcludePatterns).to.include(".garden/**/*")
+      expect(gardenCustomDir.moduleExcludePatterns).to.include("custom/garden-dir/**/*")
+    })
+
     it("should throw if a project has config files with yaml and yml extensions in the same dir", async () => {
       const path = getDataDir("test-project-duplicate-yaml-file-extensions")
       await expectError(async () => makeTestGarden(path), "validation")

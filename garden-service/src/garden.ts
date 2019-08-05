@@ -220,6 +220,10 @@ export class Garden {
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
+    // We always exclude the garden dir
+    const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
+    const moduleExcludePatterns = [...((config.modules || {}).exclude || []), gardenDirExcludePattern]
+
     const garden = new this({
       projectRoot,
       projectName,
@@ -231,10 +235,10 @@ export class Garden {
       opts,
       plugins,
       providerConfigs: providers,
+      moduleExcludePatterns,
       workingCopyId,
       dotIgnoreFiles: config.dotIgnoreFiles,
       moduleIncludePatterns: (config.modules || {}).include,
-      moduleExcludePatterns: (config.modules || {}).exclude,
     }) as InstanceType<T>
 
     return garden
@@ -265,7 +269,9 @@ export class Garden {
    */
   async startWatcher(graph: ConfigGraph) {
     const modules = await graph.getModules()
-    this.watcher = new Watcher(this, this.log, modules)
+    const linkedPaths = (await getLinkedSources(this)).map(s => s.path)
+    const paths = [this.projectRoot, ...linkedPaths]
+    this.watcher = new Watcher(this, this.log, paths, modules)
   }
 
   private registerPlugin(name: string, moduleOrFactory: RegisterPluginParam) {

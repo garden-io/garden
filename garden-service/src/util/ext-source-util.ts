@@ -60,14 +60,21 @@ export function isModuleLinked(module: Module, garden: Garden) {
   return !pathIsInside(module.path, garden.projectRoot) && !isPluginModule
 }
 
-export async function getLinkedSources(
-  garden: Garden,
-  type: ExternalSourceType,
-): Promise<LinkedSource[]> {
+/**
+ * Returns an array of linked sources by type, as read from the local config store.
+ * Returns all linked sources if typed not specified.
+ */
+export async function getLinkedSources(garden: Garden, type?: ExternalSourceType): Promise<LinkedSource[]> {
   const localConfig = await garden.configStore.get()
-  return (type === "project"
-    ? localConfig.linkedProjectSources
-    : localConfig.linkedModuleSources) || []
+  const linkedModuleSources = localConfig.linkedModuleSources || []
+  const linkedProjectSources = localConfig.linkedProjectSources || []
+  if (type === "module") {
+    return linkedModuleSources
+  } else if (type === "project") {
+    return linkedProjectSources
+  } else {
+    return [...linkedModuleSources, ...linkedProjectSources]
+  }
 }
 
 export async function addLinkedSources({ garden, sourceType, sources }: {

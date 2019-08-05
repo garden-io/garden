@@ -71,7 +71,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
 
     const linkedModuleSources = await removeLinkedSources({ garden, sourceType, names: modules })
 
-    log.info(`Unlinked module(s) ${module}`)
+    log.info(`Unlinked module(s) ${modules.join(" ")}`)
 
     return { result: linkedModuleSources }
   }
