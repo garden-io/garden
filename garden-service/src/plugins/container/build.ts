@@ -55,6 +55,8 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
 
   const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(module)]
 
+  cmdOpts.push(...module.spec.extraFlags || [])
+
   if (module.spec.dockerfile) {
     cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
   }
