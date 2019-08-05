@@ -686,7 +686,7 @@ services:
 
 [services](#services) > [ports](#services[].ports[]) > nodePort
 
-Set this to expose the service on the specified port on the host node (may not be supported by all providers).
+Set this to expose the service on the specified port on the host node (may not be supported by all providers). Set to `true` to have the cluster pick a port automatically, which is most often advisable if the cluster is shared by multiple users.
 
 | Type     | Required |
 | -------- | -------- |

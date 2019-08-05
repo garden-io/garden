@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { V1ServicePort } from "@kubernetes/client-node"
 import { ContainerService } from "../../container/config"
 
 export async function createServiceResources(service: ContainerService, namespace: string) {
   const services: any = []
 
-  const addService = (name: string, type: string, servicePorts: any[]) => {
+  const addService = (name: string, type: string, servicePorts: V1ServicePort[]) => {
     services.push({
       apiVersion: "v1",
       kind: "Service",
@@ -34,33 +35,27 @@ export async function createServiceResources(service: ContainerService, namespac
   const ports = service.spec.ports
 
   if (ports.length) {
-    addService(service.name, "ClusterIP", ports.map(portSpec => ({
-      name: portSpec.name,
-      protocol: portSpec.protocol,
-      targetPort: portSpec.containerPort,
-      port: portSpec.servicePort,
-    })))
-  }
+    const serviceType = ports.filter(portSpec => !!portSpec.nodePort).length > 0 ? "NodePort" : "ClusterIP"
 
-  // optionally add a NodePort service for externally open ports, if applicable
-  // TODO: explore nicer ways to do this
-  const exposedPorts = ports.filter(portSpec => portSpec.nodePort)
+    addService(service.name, serviceType, ports.map(portSpec => {
+      const port: V1ServicePort = {
+        name: portSpec.name,
+        protocol: portSpec.protocol,
+        port: portSpec.servicePort,
+        targetPort: portSpec.containerPort,
+      }
 
-  if (exposedPorts.length > 0) {
-    const nodePorts = exposedPorts.map(portSpec => ({
-      // TODO: do the parsing and defaults when loading the yaml
-      name: portSpec.name,
-      protocol: portSpec.protocol,
-      port: portSpec.containerPort,
-      nodePort: portSpec.nodePort,
+      if (portSpec.nodePort && portSpec.nodePort !== true) {
+        port.nodePort = portSpec.nodePort
+      }
+
+      return port
     }))
-
-    addService(service.name + "-nodeport", "NodePort", nodePorts)
   }
 
   return services
 }
 
-export function rsyncPortName(serviceName) {
+export function rsyncPortName(serviceName: string) {
   return `garden-rsync-${serviceName}`
 }

@@ -47,7 +47,7 @@ export interface ServicePortSpec {
   // Defaults to containerPort
   servicePort: number
   hostPort?: number
-  nodePort?: number | null
+  nodePort?: number | true
 }
 
 export interface ServiceVolumeSpec {
@@ -247,9 +247,12 @@ export const portSchema = joi.object()
     hostPort: joi.number()
       .meta({ deprecated: true }),
     nodePort: joi.number()
+      .allow(true)
       .description(deline`
-        Set this to expose the service on the specified port on the host node
-        (may not be supported by all providers).`),
+        Set this to expose the service on the specified port on the host node (may not be supported by all providers).
+        Set to \`true\` to have the cluster pick a port automatically, which is most often advisable if the cluster is
+        shared by multiple users.
+      `),
   })
 
 const volumeSchema = joi.object()
