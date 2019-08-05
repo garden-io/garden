@@ -28,6 +28,7 @@ import { Garden } from "../../garden"
 import { zipFolder } from "../../util/archive"
 import chalk from "chalk"
 import { GitHandler } from "../../vcs/git"
+import { ValidationError } from "../../exceptions"
 
 export const TEMP_DEBUG_ROOT = "tmp"
 export const SYSTEM_INFO_FILENAME_NO_EXT = "system-info"
@@ -48,11 +49,9 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   // Find project definition
   const config = await findProjectConfig(root, true)
   if (!config) {
-    log.error(deline`
-      Couldn't find a garden.yml with a valid project definition.
-      Please run this command from the root of your Garden project.`)
-    process.exit(1)
-    return
+    throw new ValidationError(deline`
+      Couldn't find a garden.yml with a project definition.
+      Please run this command from the root of your Garden project.`, {})
   }
 
   // Create temporary folder inside .garden/ at root of project
