@@ -7,18 +7,19 @@
  */
 
 import { expect } from "chai"
+import * as yaml from "js-yaml"
 import { makeTestGardenA, cleanProject, withDefaultGlobalOpts } from "../../../../helpers"
 import {
   generateBasicDebugInfoReport,
   TEMP_DEBUG_ROOT,
   collectBasicDebugInfo,
-  SYSTEM_INFO_FILENAME,
+  SYSTEM_INFO_FILENAME_NO_EXT,
   collectSystemDiagnostic,
   collectProviderDebugInfo,
   PROVIDER_INFO_FILENAME_NO_EXT,
   GetDebugInfoCommand,
 } from "../../../../../src/commands/get/get-debug-info"
-import { readdirSync, remove, pathExists, readJSONSync } from "fs-extra"
+import { readdir, remove, pathExists, readJSON, readFile } from "fs-extra"
 import { ERROR_LOG_FILENAME } from "../../../../../src/constants"
 import { join, relative } from "path"
 import { Garden } from "../../../../../src/garden"
@@ -28,7 +29,7 @@ import { getConfigFilePath } from "../../../../../src/util/fs"
 const debugZipFileRegex = new RegExp(/debug-info-.*?.zip/)
 
 async function cleanupTmpDebugFiles(root: string, gardenDirPath: string) {
-  const allFiles = readdirSync(root)
+  const allFiles = await readdir(root)
   await remove(join(gardenDirPath, TEMP_DEBUG_ROOT))
   const deleteFilenames = allFiles.filter((fileName) => {
     return fileName.match(debugZipFileRegex)
@@ -72,7 +73,7 @@ describe("GetDebugInfoCommand", () => {
 
         expect(res.result).to.eql(0)
 
-        const gardenProjectRootFiles = readdirSync(garden.projectRoot)
+        const gardenProjectRootFiles = await readdir(garden.projectRoot)
         const zipFiles = gardenProjectRootFiles.filter((fileName) => {
           return fileName.match(debugZipFileRegex)
         })
@@ -85,7 +86,7 @@ describe("GetDebugInfoCommand", () => {
     it("should generate a zip file containing a *basic* debug info report in the root folder of the project",
       async () => {
         await generateBasicDebugInfoReport(garden.projectRoot, garden.gardenDirPath, log)
-        const gardenProjectRootFiles = readdirSync(garden.projectRoot)
+        const gardenProjectRootFiles = await readdir(garden.projectRoot)
         const zipFiles = gardenProjectRootFiles.filter((fileName) => {
           return fileName.match(debugZipFileRegex)
         })
@@ -123,17 +124,37 @@ describe("GetDebugInfoCommand", () => {
 
   describe("collectSystemDiagnostic", () => {
     it("should create a system info report in a temporary folder", async () => {
-      await collectSystemDiagnostic(garden.gardenDirPath, log)
+      const format = "json"
+      await collectSystemDiagnostic(garden.gardenDirPath, log, format)
 
       // Check if the temporary folder exists
       expect(await pathExists(gardenDebugTmp)).to.equal(true)
 
       // Checks if system debug file is created
-      const systemInfoFilePath = join(gardenDebugTmp, SYSTEM_INFO_FILENAME)
+      const systemInfoFilePath = join(gardenDebugTmp, `${SYSTEM_INFO_FILENAME_NO_EXT}.${format}`)
       expect(await pathExists(systemInfoFilePath)).to.equal(true)
 
       // Check structure of systemInfoFile
-      const systemInfoFile = readJSONSync(systemInfoFilePath)
+      const systemInfoFile = await readJSON(systemInfoFilePath)
+      expect(systemInfoFile).to.have.property("gardenVersion")
+      expect(systemInfoFile).to.have.property("platform")
+      expect(systemInfoFile).to.have.property("platformVersion")
+      expect(systemInfoFile).to.have.property("dockerVersion")
+    })
+
+    it("should create a system info report in a temporary folder with yaml format", async () => {
+      const format = "yaml"
+      await collectSystemDiagnostic(garden.gardenDirPath, log, format)
+
+      // Check if the temporary folder exists
+      expect(await pathExists(gardenDebugTmp)).to.equal(true)
+
+      // Checks if system debug file is created
+      const systemInfoFilePath = join(gardenDebugTmp, `${SYSTEM_INFO_FILENAME_NO_EXT}.${format}`)
+      expect(await pathExists(systemInfoFilePath)).to.equal(true)
+
+      // Check structure of systemInfoFile
+      const systemInfoFile = yaml.safeLoad(await readFile(systemInfoFilePath, "utf8"))
       expect(systemInfoFile).to.have.property("gardenVersion")
       expect(systemInfoFile).to.have.property("platform")
       expect(systemInfoFile).to.have.property("platformVersion")
@@ -147,7 +168,7 @@ describe("GetDebugInfoCommand", () => {
       const expectedProviderFolderName = "test-plugin"
       const providerInfoFilePath = join(expectedProviderFolderName, `${PROVIDER_INFO_FILENAME_NO_EXT}.${format}`)
 
-      await collectProviderDebugInfo(garden, log, format)
+      await collectProviderDebugInfo(garden, log, format, false)
 
       // Check if the temporary folder exists
       expect(await pathExists(gardenDebugTmp)).to.equal(true)
@@ -159,7 +180,7 @@ describe("GetDebugInfoCommand", () => {
       expect(await pathExists(join(gardenDebugTmp, providerInfoFilePath))).to.equal(true)
 
       // Check structure of provider info file
-      const systemInfoFile = readJSONSync(join(gardenDebugTmp, providerInfoFilePath))
+      const systemInfoFile = await readJSON(join(gardenDebugTmp, providerInfoFilePath))
       expect(systemInfoFile).to.have.property("info")
 
     })

@@ -5,6 +5,7 @@ import { join, resolve } from "path"
 
 import { expectError } from "../../../helpers"
 import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
+import { fixedExcludes } from "../../../../src/util/fs"
 
 // Overriding this to make sure any ignorefile name is respected
 const ignoreFileName = ".testignore"
@@ -227,6 +228,20 @@ describe("GitHandler", () => {
       await git("commit", "-m", "foo")
 
       const files = (await handler.getFiles(tmpPath, undefined, []))
+        .filter(f => !f.path.includes(ignoreFileName))
+
+      expect(files).to.eql([])
+    })
+
+    it("should exclude files that are exclude by default", async () => {
+      for (const exclude of fixedExcludes) {
+        const name = "foo.txt"
+        const updatedExclude = exclude.replace("**", "a-folder").replace("*", "-a-value/sisis")
+        const path = resolve(join(tmpPath, updatedExclude), name)
+        await createFile(path)
+      }
+
+      const files = (await handler.getFiles(tmpPath, undefined, [...fixedExcludes]))
         .filter(f => !f.path.includes(ignoreFileName))
 
       expect(files).to.eql([])

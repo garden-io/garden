@@ -322,8 +322,7 @@ export class GardenCli {
           // Other exceptions are handled within the implementation of "get debug-info".
           if (command.name === "debug-info") {
             // Use default Garden dir name as fallback since Garden class hasn't been initialised
-            await generateBasicDebugInfoReport(root, join(root, DEFAULT_GARDEN_DIR_NAME), log)
-            return
+            await generateBasicDebugInfoReport(root, join(root, DEFAULT_GARDEN_DIR_NAME), log, parsedOpts.format)
           }
           throw err
         }

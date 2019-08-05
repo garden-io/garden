@@ -348,8 +348,9 @@ Outputs the status of your environment for debug purposes.
 
 Examples:
 
-garden get debug-info                # create a zip file at the root of the project with debug information
-garden get debug-info --format yaml  # output the provider info as yaml files (default as json)
+garden get debug-info                    # create a zip file at the root of the project with debug information
+garden get debug-info --format yaml      # output provider info as YAML files (default is JSON)
+garden get debug-info --include-project  # include provider info for the project namespace (disabled by default)
 
 ##### Usage
 
@@ -360,6 +361,8 @@ garden get debug-info --format yaml  # output the provider info as yaml files (d
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--format` |  | `json` `yaml`  | The output format for plugin-generated debug info.
+  | `--include-project` |  | boolean | Include project-specific information from configured providers.
+Note that this may include sensitive data, depending on the provider and your configuration.
 
 ### garden init
 
