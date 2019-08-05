@@ -106,6 +106,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
       args: args.arguments || [],
       runtimeContext,
       interactive: opts.interactive,
+      timeout: opts.interactive ? 999999 : undefined,
     })
 
     return { result }

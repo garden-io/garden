@@ -78,6 +78,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
       service,
       runtimeContext,
       interactive: true,
+      timeout: 999999,
     })
 
     return { result }
