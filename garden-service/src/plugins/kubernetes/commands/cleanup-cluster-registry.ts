@@ -7,6 +7,8 @@
  */
 
 import chalk from "chalk"
+import { chunk } from "lodash"
+import pluralize = require("pluralize")
 import { PluginCommand } from "../../../types/plugin/command"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { KubeApi } from "../api"
@@ -23,7 +25,7 @@ import { PluginError } from "../../../exceptions"
 import { apply, kubectl } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { execInDeployment } from "../container/run"
-import { dedent } from "../../../util/string"
+import { dedent, deline } from "../../../util/string"
 import { execInBuilder, getBuilderPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
 import { getPods } from "../util"
 
@@ -137,9 +139,9 @@ async function getImagesInRegistry(ctx: KubernetesPluginContext, log: LogEntry) 
 
     while (nextUrl) {
       const res = await queryRegistry(ctx, log, nextUrl)
-
-      images.push(...res.data.tags.map((tag: string) => `${repo}:${tag}`))
-
+      if (res.data.tags) {
+        images.push(...res.data.tags.map((tag: string) => `${repo}:${tag}`))
+      }
       // Paginate
       const linkHeader = res.headers["link"]
       if (linkHeader) {
@@ -292,9 +294,21 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
   if (imagesToDelete.length === 0) {
     log.info(`Nothing to clean up.`)
   } else {
-    log.info(`Cleaning up ${imagesToDelete.length} images...`)
-    const args = ["docker", "rmi", ...imagesToDelete]
-    await execInBuilder({ provider, log, args, podName, timeout: 300 })
+    const batchSize = 100
+    const imagesBatches: string[][] = chunk(imagesToDelete, batchSize)
+
+    let counter = imagesBatches.length
+    log.info(dedent
+      `Cleaning up ${counter} batches of images (total of ${imagesToDelete.length} images)...`)
+
+    await Bluebird.map(imagesBatches, async (images) => {
+      const args = ["docker", "rmi", ...images]
+      await execInBuilder({ provider, log, args, podName, timeout: 300 })
+      log.setState(deline`
+        Deleting images:
+         ${pluralize("batch", counter, true)} of ${imagesBatches.length} left...`)
+      counter -= 1
+    }, { concurrency: 25 })
   }
 
   // Run a prune operation
