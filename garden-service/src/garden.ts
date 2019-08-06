@@ -387,6 +387,8 @@ export class Garden {
         return
       }
 
+      this.log.silly(`Resolving providers`)
+
       const rawConfigs = this.getRawProviderConfigs()
       const plugins = await Bluebird.map(rawConfigs, async (config) => this.loadPlugin(config.name))
 
@@ -487,6 +489,8 @@ export class Garden {
   async resolveModuleConfigs(keys?: string[], opts: ModuleConfigResolveOpts = {}): Promise<ModuleConfig[]> {
     const actions = await this.getActionHelper()
     const configs = await this.getRawModuleConfigs(keys)
+
+    keys ? this.log.silly(`Resolving module configs ${keys.join(", ")}`) : this.log.silly(`Resolving module configs`)
 
     if (!opts.configContext) {
       opts.configContext = new ModuleConfigContext(
@@ -606,6 +610,8 @@ export class Garden {
    * and the versions of its dependencies (in sorted order).
    */
   async resolveVersion(moduleName: string, moduleDependencies: (Module | BuildDependencyConfig)[], force = false) {
+    this.log.silly(`Resolving version for module ${moduleName}`)
+
     const depModuleNames = moduleDependencies.map(m => m.name)
     depModuleNames.sort()
     const cacheKey = ["moduleVersions", moduleName, ...depModuleNames]
@@ -620,7 +626,7 @@ export class Garden {
 
     const config = await this.resolveModuleConfig(moduleName)
     const dependencyKeys = moduleDependencies.map(dep => getModuleKey(dep.name, dep.plugin))
-    const dependencies = await this.resolveModuleConfigs(dependencyKeys)
+    const dependencies = await this.getRawModuleConfigs(dependencyKeys)
     const cacheContexts = dependencies.concat([config]).map(c => getModuleCacheContext(c))
 
     const version = await this.vcs.resolveVersion(config, dependencies)
@@ -670,6 +676,8 @@ export class Garden {
 
       await Bluebird.map(rawConfigs, async (config) => this.addModule(config))
 
+      this.log.silly(`Scanned and found ${rawConfigs.length} modules`)
+
       this.modulesScanned = true
     })
   }
@@ -687,6 +695,7 @@ export class Garden {
    */
   private async addModule(config: ModuleConfig) {
     const key = getModuleKey(config.name, config.plugin)
+    this.log.silly(`Adding module ${key}`)
 
     if (this.moduleConfigs[key]) {
       const paths = [this.moduleConfigs[key].path, config.path]
@@ -712,6 +721,7 @@ export class Garden {
     path = resolve(this.projectRoot, path)
     this.log.silly(`Load module configs from ${path}`)
     const resources = await loadConfig(this.projectRoot, path)
+    this.log.silly(`Loaded module configs from ${path}`)
     return <ModuleResource[]>resources.filter(r => r.kind === "Module")
   }
 

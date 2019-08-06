@@ -1,0 +1,20 @@
+kind: Project
+name: issue-1067
+---
+kind: Module
+name: container-module
+type: container
+allowPublish: false
+build:
+  dependencies:
+    - name: exec-module
+---
+kind: Module
+type: exec
+allowPublish: false
+include: []
+name: exec-module
+build:
+  command:
+    - echo
+    - "${modules.container-module.path}"
