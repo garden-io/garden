@@ -132,7 +132,7 @@ describe("PreReleaseTests", () => {
     * TimeoutError: Knex: Timeout acquiring a connection. The pool is probably full.
     * Are you missing a .transacting(trx) call?
     */
-    describe.skip("tasks", () => {
+    describe("tasks", () => {
       it("calls the hello service to fetch the usernames populated by the ruby migration", async () => {
         /**
          * Verify that the output includes the usernames populated by the ruby-migration task.
@@ -152,7 +152,7 @@ describe("PreReleaseTests", () => {
     * Got error from Kubernetes API - a container name must be specified for pod node-service-85f48587df-lvjlp,
     * choose one of: [node-service garden-rsync] or one of the init containers: [garden-sync-init]
     */
-    describe.skip("hot-reload", () => {
+    describe("hot-reload", () => {
       it("runs the dev command with hot reloading enabled", async () => {
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
         const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])
