@@ -216,21 +216,21 @@ describe("ActionHelper", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
-        expect(result).to.eql({ state: "ready" })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
       })
     })
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
-        expect(result).to.eql({ state: "ready" })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
       })
     })
 
     describe("deleteService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.deleteService({ log, service, runtimeContext })
-        expect(result).to.eql({ state: "ready" })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
       })
     })
 
@@ -535,6 +535,19 @@ const testPlugin: PluginFactory = async () => ({
           startedAt: now,
           version: params.module.version.versionString,
         }
+      },
+
+      getPortForward: async (params) => {
+        validate(params, moduleActionDescriptions.getPortForward.paramsSchema)
+        return {
+          hostname: "bla",
+          port: 123,
+        }
+      },
+
+      stopPortForward: async (params) => {
+        validate(params, moduleActionDescriptions.stopPortForward.paramsSchema)
+        return {}
       },
 
       getTaskResult: async (params) => {

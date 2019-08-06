@@ -22,6 +22,7 @@ import { configureMavenContainerModule, MavenContainerModule } from "../../maven
 import { getTaskResult } from "../task-results"
 import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./build"
 import { k8sPublishContainerModule } from "./publish"
+import { getPortForwardHandler } from "../port-forward"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   params.moduleConfig = await configureContainerModule(params)
@@ -41,6 +42,7 @@ export const containerHandlers = {
   deleteService,
   execInService,
   getBuildStatus: k8sGetContainerBuildStatus,
+  getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus: getContainerServiceStatus,
   getTestResult,

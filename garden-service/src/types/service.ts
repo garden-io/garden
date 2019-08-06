@@ -7,7 +7,16 @@
  */
 
 import { getEnvVarName, uniqByName } from "../util/util"
-import { PrimitiveMap, joiEnvVars, joiIdentifierMap, joiPrimitive, joiUserIdentifier, joi } from "../config/common"
+import {
+  PrimitiveMap,
+  joiEnvVars,
+  joiIdentifierMap,
+  joiPrimitive,
+  joiUserIdentifier,
+  joi,
+  joiIdentifier,
+  joiArray,
+} from "../config/common"
 import { Module, getModuleKey } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
@@ -131,19 +140,48 @@ export const serviceIngressSchema = serviceIngressSpecSchema
   .unknown(true)
   .description("A description of a deployed service ingress.")
 
-// TODO: revise this schema
+export interface ForwardablePort {
+  name?: string
+  // TODO: support other protocols
+  protocol: "TCP"
+  targetHostname?: string
+  targetPort: number
+  urlProtocol?: string
+}
+
+export const forwardablePortKeys = {
+  name: joiIdentifier()
+    .description("A descriptive name for the port. Should correspond to user-configured ports where applicable."),
+  protocol: joi.string()
+    .allow("TCP")
+    .default("TCP")
+    .description("The protocol of the port."),
+  targetHostname: joi.string()
+    .description("The target hostname of the service (only used for informational purposes)."),
+  targetPort: joi.number()
+    .integer()
+    .required()
+    .description("The target port on the service."),
+  urlProtocol: joi.string()
+    .description("The protocol to use for URLs pointing at the port. This can be any valid URI protocol."),
+}
+
+const forwardablePortSchema = joi.object()
+  .keys(forwardablePortKeys)
+
 export interface ServiceStatus {
-  providerId?: string
-  providerVersion?: string
-  version?: string
-  state?: ServiceState
-  runningReplicas?: number
+  createdAt?: string
+  detail?: any
+  externalId?: string
+  externalVersion?: string
+  forwardablePorts?: ForwardablePort[],
   ingresses?: ServiceIngress[],
   lastMessage?: string
   lastError?: string
-  createdAt?: string
+  runningReplicas?: number
+  state?: ServiceState
   updatedAt?: string
-  detail?: any
+  version?: string
 }
 
 export interface ServiceStatusMap {
@@ -152,18 +190,17 @@ export interface ServiceStatusMap {
 
 export const serviceStatusSchema = joi.object()
   .keys({
-    providerId: joi.string()
+    createdAt: joi.string()
+      .description("When the service was first deployed by the provider."),
+    detail: joi.object()
+      .meta({ extendable: true })
+      .description("Additional detail, specific to the provider."),
+    externalId: joi.string()
       .description("The ID used for the service by the provider (if not the same as the service name)."),
-    providerVersion: joi.string()
+    externalVersion: joi.string()
       .description("The provider version of the deployed service (if different from the Garden module version."),
-    version: joi.string()
-      .description("The Garden module version of the deployed service."),
-    state: joi.string()
-      .only("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
-      .default("unknown")
-      .description("The current deployment status of the service."),
-    runningReplicas: joi.number()
-      .description("How many replicas of the service are currently running."),
+    forwardablePorts: joiArray(forwardablePortSchema)
+      .description("A list of ports that can be forwarded to from the Garden agent by the provider."),
     ingresses: joi.array()
       .items(serviceIngressSchema)
       .description("List of currently deployed ingress endpoints for the service."),
@@ -172,13 +209,16 @@ export const serviceStatusSchema = joi.object()
       .description("Latest status message of the service (if any)."),
     lastError: joi.string()
       .description("Latest error status message of the service (if any)."),
-    createdAt: joi.string()
-      .description("When the service was first deployed by the provider."),
+    runningReplicas: joi.number()
+      .description("How many replicas of the service are currently running."),
+    state: joi.string()
+      .only("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
+      .default("unknown")
+      .description("The current deployment status of the service."),
     updatedAt: joi.string()
       .description("When the service was last updated by the provider."),
-    detail: joi.object()
-      .meta({ extendable: true })
-      .description("Additional detail, specific to the provider."),
+    version: joi.string()
+      .description("The Garden module version of the deployed service."),
   })
 
 export type RuntimeContext = {

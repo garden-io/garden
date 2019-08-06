@@ -926,6 +926,14 @@ describe("Garden", () => {
       // We template in the value for the module's allowPublish field to test this
       expect(module.allowPublish).to.equal(false)
     })
+
+    it("should handle module references within single file", async () => {
+      const projectRoot = getDataDir("test-projects", "1067-module-ref-within-file")
+      const garden = await makeTestGarden(projectRoot)
+
+      // This should just complete successfully
+      await garden.resolveModuleConfigs()
+    })
   })
 
   describe("resolveVersion", () => {

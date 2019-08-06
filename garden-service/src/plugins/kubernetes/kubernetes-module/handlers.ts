@@ -28,6 +28,7 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { gardenAnnotationKey } from "../../../util/string"
+import { getForwardablePorts, getPortForwardHandler } from "../port-forward"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModule>> = {
   build,
@@ -35,6 +36,7 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModul
   deleteService,
   deployService,
   describeType,
+  getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus,
 }
@@ -61,7 +63,10 @@ async function getServiceStatus(
 
   const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
 
+  const forwardablePorts = getForwardablePorts(remoteObjects)
+
   return {
+    forwardablePorts,
     state,
     version: state === "ready" ? module.version.versionString : undefined,
     detail: { remoteObjects },

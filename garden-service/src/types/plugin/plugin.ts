@@ -41,6 +41,8 @@ import { mapValues } from "lodash"
 import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./provider/getDebugInfo"
 import { deline } from "../../util/string"
 import { pluginCommandSchema, PluginCommand } from "./command"
+import { getPortForward, GetPortForwardParams, GetPortForwardResult } from "./service/getPortForward"
+import { StopPortForwardParams, stopPortForward } from "./service/stopPortForward"
 
 export type ServiceActions<T extends Module = Module> = {
   [P in keyof ServiceActionParams<T>]: (params: ServiceActionParams<T>[P]) => ServiceActionOutputs[P]
@@ -115,33 +117,39 @@ export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDe
 }
 
 export interface ServiceActionParams<T extends Module = Module> {
-  getServiceStatus: GetServiceStatusParams<T>
   deployService: DeployServiceParams<T>
-  hotReloadService: HotReloadServiceParams<T>
   deleteService: DeleteServiceParams<T>
   execInService: ExecInServiceParams<T>
+  getPortForward: GetPortForwardParams<T>
   getServiceLogs: GetServiceLogsParams<T>
+  getServiceStatus: GetServiceStatusParams<T>
+  hotReloadService: HotReloadServiceParams<T>
   runService: RunServiceParams<T>
+  stopPortForward: StopPortForwardParams<T>
 }
 
 export interface ServiceActionOutputs {
-  getServiceStatus: Promise<ServiceStatus>
   deployService: Promise<ServiceStatus>
-  hotReloadService: Promise<HotReloadServiceResult>
   deleteService: Promise<ServiceStatus>
   execInService: Promise<ExecInServiceResult>
+  getPortForward: Promise<GetPortForwardResult>
   getServiceLogs: Promise<{}>
+  getServiceStatus: Promise<ServiceStatus>
+  hotReloadService: Promise<HotReloadServiceResult>
   runService: Promise<RunResult>
+  stopPortForward: Promise<{}>
 }
 
 export const serviceActionDescriptions: { [P in ServiceActionName]: PluginActionDescription } = {
-  getServiceStatus,
   deployService,
-  hotReloadService,
   deleteService,
   execInService,
+  getPortForward,
   getServiceLogs,
+  getServiceStatus,
+  hotReloadService,
   runService,
+  stopPortForward,
 }
 
 export interface TaskActionParams<T extends Module = Module> {

@@ -75,6 +75,8 @@ import { Service, ServiceStatus, ServiceStatusMap, getServiceRuntimeContext } fr
 import { Omit } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
+import { GetPortForwardParams } from "./types/plugin/service/getPortForward"
+import { StopPortForwardParams } from "./types/plugin/service/stopPortForward"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -309,6 +311,14 @@ export class ActionHelper implements TypeGuard {
 
   async runService(params: ServiceActionHelperParams<RunServiceParams>): Promise<RunResult> {
     return this.callServiceHandler({ params, actionType: "runService" })
+  }
+
+  async getPortForward(params: ServiceActionHelperParams<GetPortForwardParams>) {
+    return this.callServiceHandler({ params, actionType: "getPortForward" })
+  }
+
+  async stopPortForward(params: ServiceActionHelperParams<StopPortForwardParams>) {
+    return this.callServiceHandler({ params, actionType: "stopPortForward" })
   }
 
   //endregion

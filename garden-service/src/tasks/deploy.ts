@@ -16,6 +16,7 @@ import { Garden } from "../garden"
 import { TaskTask } from "./task"
 import { BuildTask } from "./build"
 import { ConfigGraph } from "../config-graph"
+import { startPortProxies } from "../proxy"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -157,6 +158,21 @@ export class DeployTask extends BaseTask {
 
     for (const ingress of status.ingresses || []) {
       log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getIngressUrl(ingress)))
+    }
+
+    if (this.garden.persistent) {
+      const proxies = await startPortProxies(this.garden, log, this.service, status)
+
+      for (const proxy of proxies) {
+        const targetHost = proxy.spec.targetHostname || this.service.name
+
+        log.info(chalk.gray(
+          `→ Forward: `
+          + chalk.underline(proxy.localUrl)
+          + ` → ${targetHost}:${proxy.spec.targetPort}`
+          + (proxy.spec.name ? ` (${proxy.spec.name})` : ""),
+        ))
+      }
     }
 
     return status

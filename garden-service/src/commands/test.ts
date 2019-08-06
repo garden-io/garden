@@ -81,9 +81,13 @@ export class TestCommand extends Command<Args, Opts> {
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
     printHeader(headerLog, `Running tests`, "thermometer")
 
-    if (!!opts.watch) {
+    const persistent = !!opts.watch
+
+    if (persistent) {
       this.server = await startServer(footerLog)
     }
+
+    return { persistent }
   }
 
   async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {

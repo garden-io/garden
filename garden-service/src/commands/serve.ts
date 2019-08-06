@@ -45,6 +45,7 @@ export class ServeCommand extends Command<Args, Opts> {
 
   async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
     this.server = await startServer(footerLog, opts.port)
+    return { persistent: true }
   }
 
   async action({ garden }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {

@@ -27,6 +27,7 @@ import { ContainerHotReloadSpec } from "../../container/config"
 import { getHotReloadSpec } from "./hot-reload"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
+import { getForwardablePorts } from "../port-forward"
 
 export async function deployService(
   { ctx, module, service, log, force, hotReload }: DeployServiceParams<HelmModule>,
@@ -100,7 +101,13 @@ export async function deployService(
   // they may be legitimately inconsistent.
   await waitForResources({ ctx, provider, serviceName: service.name, resources: chartResources, log })
 
-  return {}
+  const forwardablePorts = getForwardablePorts(chartResources)
+
+  return {
+    forwardablePorts,
+    state: "ready",
+    version: module.version.versionString,
+  }
 }
 
 export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
