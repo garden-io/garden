@@ -20,6 +20,7 @@ import { buildHelmModule } from "./build"
 import { configureHotReload } from "../hot-reload"
 import { getHotReloadSpec } from "./hot-reload"
 import { KubernetesPluginContext } from "../config"
+import { getForwardablePorts } from "../port-forward"
 
 const helmStatusCodeMap: { [code: number]: ServiceState } = {
   // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto
@@ -63,10 +64,15 @@ export async function getServiceStatus(
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, provider.config.context)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
+
   let { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, chartResources, log, false)
+
+  const forwardablePorts = getForwardablePorts(remoteObjects)
+
   const detail = { remoteObjects }
 
   return {
+    forwardablePorts,
     state,
     version: state === "ready" ? module.version.versionString : undefined,
     detail,

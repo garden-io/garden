@@ -8,7 +8,7 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { RuntimeContext, Service, ServiceStatus } from "../../../types/service"
+import { RuntimeContext, Service, ServiceStatus, ForwardablePort } from "../../../types/service"
 import { createContainerObjects } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
@@ -37,7 +37,20 @@ export async function getContainerServiceStatus(
   const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, objects, log, true)
   const ingresses = await getIngresses(service, api, provider)
 
+  const forwardablePorts: ForwardablePort[] = service.spec.ports
+    .filter(p => p.protocol === "TCP")
+    .map(p => {
+      return {
+        name: p.name,
+        protocol: "TCP",
+        targetPort: p.servicePort,
+        // TODO: this needs to be configurable
+        // urlProtocol: "http",
+      }
+    })
+
   return {
+    forwardablePorts,
     ingresses,
     state,
     version: state === "ready" ? version.versionString : undefined,

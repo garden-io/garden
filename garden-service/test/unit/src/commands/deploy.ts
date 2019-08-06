@@ -112,10 +112,10 @@ describe("DeployCommand", () => {
       "build.module-c": {},
       "task.task-a": taskResultA,
       "task.task-c": taskResultC,
-      "deploy.service-a": { version: "1", state: "ready" },
-      "deploy.service-b": { version: "1", state: "ready" },
-      "deploy.service-c": { version: "1", state: "ready" },
-      "deploy.service-d": { version: "1", state: "ready" },
+      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready" },
+      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready" },
+      "deploy.service-c": { forwardablePorts: [], version: "1", state: "ready" },
+      "deploy.service-d": { forwardablePorts: [], version: "1", state: "ready" },
     })
   })
 
@@ -150,8 +150,8 @@ describe("DeployCommand", () => {
       "build.module-c": {},
       "task.task-a": taskResultA,
       "task.task-c": taskResultC,
-      "deploy.service-a": { version: "1", state: "ready" },
-      "deploy.service-b": { version: "1", state: "ready" },
+      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready" },
+      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready" },
     })
   })
 })

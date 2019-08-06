@@ -64,9 +64,13 @@ export class BuildCommand extends Command<Args, Opts> {
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
     printHeader(headerLog, "Build", "hammer")
 
-    if (!!opts.watch) {
+    const persistent = !!opts.watch
+
+    if (persistent) {
       this.server = await startServer(footerLog)
     }
+
+    return { persistent }
   }
 
   async action(

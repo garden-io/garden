@@ -238,6 +238,11 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
   garden: Garden
 }
 
+interface PrepareOutput {
+  // Commands should set this to true if the command is long-running
+  persistent: boolean
+}
+
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
   abstract help: string
@@ -302,7 +307,8 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
    * Called by the CLI before the command's action is run, but is not called again
    * if the command restarts. Useful for commands in watch mode.
    */
-  async prepare(_: PrepareParams<T, U>) {
+  async prepare(_: PrepareParams<T, U>): Promise<PrepareOutput> {
+    return { persistent: false }
   }
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),

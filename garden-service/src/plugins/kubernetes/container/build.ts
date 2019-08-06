@@ -12,7 +12,7 @@ import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import { getPortForward, getPods, millicpuToString, megabytesToString } from "../util"
+import { getPods, millicpuToString, megabytesToString } from "../util"
 import { systemNamespace } from "../system"
 import { RSYNC_PORT } from "../constants"
 import execa = require("execa")
@@ -26,6 +26,7 @@ import { runPod } from "../run"
 import { getRegistryHostname } from "../init"
 import { getManifestFromRegistry } from "./util"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
+import { getPortForward } from "../port-forward"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -130,7 +131,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ctx,
     log,
     namespace: systemNamespace,
-    targetDeployment: `Deployment/${buildSyncDeploymentName}`,
+    targetResource: `Deployment/${buildSyncDeploymentName}`,
     port: RSYNC_PORT,
   })
 

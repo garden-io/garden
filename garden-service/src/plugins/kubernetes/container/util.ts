@@ -8,7 +8,7 @@
 
 import { resolve } from "url"
 import { ContainerModule } from "../../container/config"
-import { getPortForward } from "../util"
+import { getPortForward } from "../port-forward"
 import { systemNamespace } from "../system"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { containerHelpers } from "../../container/helpers"
@@ -33,7 +33,7 @@ export async function getRegistryPortForward(ctx: PluginContext, log: LogEntry) 
     ctx,
     log,
     namespace: systemNamespace,
-    targetDeployment: `Deployment/${CLUSTER_REGISTRY_DEPLOYMENT_NAME}`,
+    targetResource: `Deployment/${CLUSTER_REGISTRY_DEPLOYMENT_NAME}`,
     port: CLUSTER_REGISTRY_PORT,
   })
 }

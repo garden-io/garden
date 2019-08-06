@@ -18,6 +18,7 @@ import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
+import { getPortForwardHandler } from "../port-forward"
 
 const helmModuleOutputsSchema = joi.object()
   .keys({
@@ -44,6 +45,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActions<HelmModule>> = {
   deleteService,
   deployService,
   describeType,
+  getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus,
   getTestResult,

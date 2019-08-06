@@ -151,8 +151,8 @@ export async function getServiceStatus(
   const state: ServiceState = status.status === "ACTIVE" ? "ready" : "unhealthy"
 
   return {
-    providerId,
-    providerVersion: status.versionId,
+    externalId: providerId,
+    externalVersion: status.versionId,
     version: status.labels[gardenAnnotationKey("version")],
     state,
     updatedAt: status.updateTime,

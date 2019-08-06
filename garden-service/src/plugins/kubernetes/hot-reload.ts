@@ -19,7 +19,7 @@ import { Service } from "../../types/service"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
 import { waitForContainerService } from "./container/status"
-import { getPortForward, killPortForward } from "./util"
+import { getPortForward, killPortForward } from "./port-forward"
 import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./config"
@@ -224,14 +224,6 @@ function rsyncTargetPath(path: string) {
 
 /**
  * Ensure a tunnel is set up for connecting to the target service's sync container, and perform a sync.
- *
- * Before performing a sync, we set up a port-forward from a randomly allocated local port to the rsync sidecar
- * container attached to the target service's container.
- *
- * Since hot-reloading is a time-sensitive operation for the end-user, and because setting up this port-forward
- * can take several tens of milliseconds, we maintain a simple in-process cache of previously allocated ports.
- * Therefore, subsequent hot reloads after the initial one (during the execution
- * of the enclosing Garden command) finish more quickly.
  */
 export async function syncToService(
   ctx: KubernetesPluginContext,
@@ -241,11 +233,11 @@ export async function syncToService(
   targetName: string,
   log: LogEntry,
 ) {
-  const targetDeployment = `${targetKind.toLowerCase()}/${targetName}`
+  const targetResource = `${targetKind.toLowerCase()}/${targetName}`
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
 
   const doSync = async () => {
-    const portForward = await getPortForward({ ctx, log, namespace, targetDeployment, port: RSYNC_PORT })
+    const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: RSYNC_PORT })
 
     return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
       const src = rsyncSourcePath(service.sourceModule.path, source)
@@ -262,8 +254,8 @@ export async function syncToService(
       await doSync()
     } catch (error) {
       if (error.message.includes("did not see server greeting")) {
-        log.debug(`Port-forward to ${targetDeployment} disconnected. Retrying.`)
-        killPortForward(targetDeployment, RSYNC_PORT)
+        log.debug(`Port-forward to ${targetResource} disconnected. Retrying.`)
+        killPortForward(targetResource, RSYNC_PORT)
         await doSync()
       } else {
         throw error
