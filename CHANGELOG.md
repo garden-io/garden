@@ -1,4 +1,25 @@
 
+<a name="v0.10.4-alpha.0"></a>
+## [v0.10.4-alpha.0](https://github.com/garden-io/garden/compare/v0.10.3...v0.10.4-alpha.0) (2019-08-06)
+
+### Bug Fixes
+
+* handle case when the docker repo doesn't contain tags ([b0e80951](https://github.com/garden-io/garden/commit/b0e80951))
+* **container:** allow setting nodePort=true on container modules ([8d75188c](https://github.com/garden-io/garden/commit/8d75188c))
+* **core:** error in some cases when referencing modules within file ([377fd2e4](https://github.com/garden-io/garden/commit/377fd2e4))
+* **k8s:** create a single NodePort Service when a node port is set ([f8d1b4b3](https://github.com/garden-io/garden/commit/f8d1b4b3))
+* **run:** interactive run module/service commands not working ([8ccc06d1](https://github.com/garden-io/garden/commit/8ccc06d1))
+
+### Features
+
+* automatic port forwarding for deployed services ([43b414f5](https://github.com/garden-io/garden/commit/43b414f5))
+* **container:** add extraFlags option for docker builder ([2a740686](https://github.com/garden-io/garden/commit/2a740686))
+
+### Improvement
+
+* update the get debug-info command ([117efe30](https://github.com/garden-io/garden/commit/117efe30))
+
+
 <a name="v0.10.3"></a>
 ## [v0.10.3](https://github.com/garden-io/garden/compare/v0.10.2...v0.10.3) (2019-08-01)
 
