@@ -184,6 +184,14 @@ Our release process generates the following packages:
 
 ### Process
 
+We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/master/bin/release.ts). Once we're ready to release, we reset the `latest-release` branch to `master` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `master` and cherry pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+
+This procedure allows us to continue merging features into `master` without them being included in the release.
+
+On every merge to `master` we also publish an **unstable** release with the version `edge` that is always flagged as a pre-release.
+
+### Release script
+
 The [release script](https://github.com/garden-io/garden/blob/master/bin/release.ts) has the signature:
 ```sh
 ./bin/release.tsx <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
@@ -193,27 +201,31 @@ and does the following:
 * Checks out a branch named `release-<version>`.
 * Updates `garden-service/package.json`, `garden-service/package-lock.json` and `CHANGELOG.md`.
 * Commits the changes, tags the commit, and pushes the tag and branch.
-* Pushing the tag triggers a CI process the creates the release artifacts and publishes them to Github. If the the release is not a pre-release, we create a draft instead of actually publishing.
-
-On every merge to `master` we also publish an **unstable** release with the version `edge` that is always flagged as a pre-release.
+* Pushing the tag triggers a CI process that creates the release artifacts and publishes them to Github. If the the release is not a pre-release, we create a draft instead of actually publishing.
 
 ### Steps
 
 To make a new release, set your current working directory to the garden root directory and follow the steps below.
 
-1. The first step depends on the release type:
-    * If you're making the first pre-release, run `./bin/release.ts prerelease` from `master`.
-    * If you’ve already created a prerelease, e.g. `v1.2.3-0`, and want to create a new prerelease `v1.2.3-1` which includes changes made on master since `v1.2.3-0` was created, do the following:
-        * `git checkout v1.2.3-0`
-        * `git rebase master`
-        * `./bin/release.ts prerelease`
-    * If you’re ready to make a proper release, run `./bin/release.ts minor | patch` from `master`. This way, the version bump commits created by the prereleases are omitted from the final history.
-2. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases tab](https://github.com/garden-io/garden/releases). Otherwise go to **step 3**.
-3. Go to our Github [Releases tab](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
-4. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release. (To generate a changelog for just that tag, run `git-chglog <tag-name>`.)
-5. Click the **Publish release** button.
-6. Make a pull request for the branch that was pushed by the script.
-7. Update the Homebrew package: `gulp update-brew`.
+1. **Checkout to the `latest-release` branch**.
+2. The next step depends on the release type:
+    * If you're making the first pre-release:
+        1. Reset `latest-release` to `master` with `git reset --hard origin/master`
+        2. Run `./bin/release.ts prerelease`.
+    * If you’ve already created a prerelease, e.g. `v1.2.3-0`, and want to create a new prerelease `v1.2.3-1` which includes fixes merged to master since `v1.2.3-0` was created, do the following:
+        1. Checkout to `latest-release` and cherry-pick the appropriate commits from `master`
+        2. Then checkout to the version branch: `git checkout release-v1.2.3-0`
+        3. Rebase the version branch with the release branch: `git rebase latest-release`
+        4. Run `./bin/release.ts prerelease`
+    * If you’re ready to make a proper release, run `./bin/release.ts minor | patch` from `latest-release`. This way, the version bump commits created by the prereleases are omitted from the final history.
+3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases). Otherwise go to **step 4**.
+4. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
+5. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
+    * To generate a changelog for just that tag, run `git-chglog <tag-name>`
+    * To get a list of all contributors between releases, ordered by count, run: `git log <previous-tag>..<current-tag> --no-merges "$@" | grep ^Author | sort | uniq -c | sort -nr`. Note that authors of squashed commits won't show up so it might be good to do a quick sanity check on Github as well.
+6. Click the **Publish release** button.
+7. Make a pull request for the branch that was pushed by the script.
+8. **Update the Homebrew package: `gulp update-brew`.**
 
 ## Changelog
 
