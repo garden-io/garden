@@ -1,11 +1,6 @@
 project:
   name: test-project-ext-project-sources
-  environmentDefaults:
-    variables:
-      some: variable
   environments:
     - name: local
       providers:
         - name: test-plugin
-        - name: test-plugin-b
-    - name: other

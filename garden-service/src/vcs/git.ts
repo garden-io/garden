@@ -87,13 +87,15 @@ export class GitHandler extends VcsHandler {
        * We need to exclude .garden to avoid errors when path is the project root. This happens e.g. for modules
        * whose config is colocated with the project config, and that don't specify include paths/patterns.
        */
-      lines = await git("ls-files", "-s", "--other", "--exclude=.garden", path)
+      // FIXME: We should use `garden.gardenDirPath` instead of ".garden" since the gardenDirPath
+      // property is configurable.
+      lines = await git("ls-files", "-s", "--others", "--exclude=.garden", path)
 
       // List ignored files from .gardenignore. We need to run ls-files twice to get both tracked and untracked files.
-      const lsFilesCmd = ["ls-files", "--ignored", ...this.ignoreFiles.map(f => `--exclude-per-directory=${f}`)]
-      const lsFilesUntrackedCmd = [...lsFilesCmd, "--others"]
+      const lsIgnoredFiles = ["ls-files", "--ignored", ...this.ignoreFiles.map(f => `--exclude-per-directory=${f}`)]
+      const lsUntrackedIgnoredFiles = [...lsIgnoredFiles, "--others"]
 
-      ignored = flatten(await Bluebird.map([lsFilesCmd, lsFilesUntrackedCmd], async (cmd) => git(...cmd, path)))
+      ignored = flatten(await Bluebird.map([lsIgnoredFiles, lsUntrackedIgnoredFiles], async (cmd) => git(...cmd, path)))
     } catch (err) {
       // if we get 128 we're not in a repo root, so we get no files
       if (err.code !== 128) {

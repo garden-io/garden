@@ -8,7 +8,7 @@ import {
   getRemoteSourceRelPath,
   hashRepoUrl,
 } from "../../../../src/util/ext-source-util"
-import { cleanProject, expectError, makeTestGardenA } from "../../../helpers"
+import { expectError, makeTestGardenA } from "../../../helpers"
 import { Garden } from "../../../../src/garden"
 import { join } from "path"
 
@@ -18,10 +18,6 @@ describe("ext-source-util", () => {
 
   beforeEach(async () => {
     garden = await makeTestGardenA()
-  })
-
-  afterEach(async () => {
-    await cleanProject(garden.gardenDirPath)
   })
 
   describe("getExtSourcesDirName", () => {

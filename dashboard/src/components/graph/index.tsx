@@ -135,7 +135,7 @@ function drawChart(
   const svgGroup = svg.append("g")
 
   // Set up zoom support
-  const zoom = d3.zoom<SVGSVGElement, {}>().on("zoom", () => {
+  const zoom = d3.zoom<SVGSVGElement, any>().on("zoom", () => {
     svgGroup.attr("transform", d3.event.transform)
   })
   svg.call(zoom)
