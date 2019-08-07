@@ -74,7 +74,7 @@
     "koa-router": "7.4.0",
     "koa-static": "^5.0.0",
     "koa-websocket": "^5.0.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.13",
     "log-symbols": "^3.0.0",
     "minimatch": "^3.0.4",
     "mocha-logger": "^1.0.6",
