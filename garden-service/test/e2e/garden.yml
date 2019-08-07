@@ -9,6 +9,9 @@ environments:
         defaultHostname: dev-1.sys.garden
         buildMode: cluster-docker
         setupIngressController: nginx
+  - name: local
+    providers:
+        - name: local-kubernetes
 
 ---
 
@@ -18,9 +21,9 @@ type: exec
 tests:
   - name: demo-project
     command: [npm, run, e2e-full, --, --project=demo-project, --showlog=true, --env=testing]
-  - name: tasks # Tests for tasks are currently being skipped
+  - name: tasks
     command: [npm, run, e2e-full, --, --project=tasks, --showlog=true, --env=testing]
-  - name: hot-reload # Tests for hot-reload are currently being skipped
+  - name: hot-reload
     command: [npm, run, e2e-full, --, --project=hot-reload, --showlog=true, --env=testing]
   # Disabling until https://github.com/garden-io/garden/issues/1045 is fixed
   # - name: openfaas
