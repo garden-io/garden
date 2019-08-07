@@ -7,7 +7,6 @@ import { examplesDir } from "../../helpers"
 import {
   changeFileStep,
   commandReloadedStep,
-  dashboardUpStep,
   GardenWatch,
   runGarden,
   taskCompletedStep,
@@ -138,6 +137,7 @@ describe("PreReleaseTests", () => {
          * Verify that the output includes the usernames populated by the ruby-migration task.
          * The users table was created by the node-migration task.
          */
+        await runWithEnv(["deploy"])
         const logEntries = await runWithEnv(["call", "hello"])
         expect(searchLog(logEntries, /John, Paul, George, Ringo/), "expected to find populated usernames in log output")
           .to.eql("passed")
@@ -152,20 +152,20 @@ describe("PreReleaseTests", () => {
     * Got error from Kubernetes API - a container name must be specified for pod node-service-85f48587df-lvjlp,
     * choose one of: [node-service garden-rsync] or one of the init containers: [garden-sync-init]
     */
-    describe.skip("hot-reload", () => {
+    describe("hot-reload", () => {
       it("runs the dev command with hot reloading enabled", async () => {
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
         const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])
 
         const testSteps = [
-          dashboardUpStep(),
+          waitingForChangesStep(),
           {
-            description: "change 'Node' -> 'Edge' in node-service/app.js",
+            description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
               await replace({
                 files: resolve(hotReloadProjectPath, "node-service/app.js"),
                 from: /Hello from Node/,
-                to: "Hello from Edge",
+                to: "Hello from foo",
               })
             },
           },
@@ -173,7 +173,35 @@ describe("PreReleaseTests", () => {
             description: "node-service returns the updated response text",
             condition: async () => {
               const callLogEntries = await runWithEnv(["call", "node-service"])
-              return searchLog(callLogEntries, /Hello from Edge/)
+              return searchLog(callLogEntries, /Hello from foo/)
+            },
+          },
+        ]
+
+        await gardenWatch.run({ testSteps })
+      })
+
+      it("runs the dev command with hot reloading enabled, using a post-sync command", async () => {
+        const hotReloadProjectPath = resolve(examplesDir, "hot-reload-post-sync-command")
+        const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])
+
+        const testSteps = [
+          waitingForChangesStep(),
+          {
+            description: "change 'Node' -> 'foo' in node-service/app.js",
+            action: async () => {
+              await replace({
+                files: resolve(hotReloadProjectPath, "node-service/app.js"),
+                from: /Hello from Node/,
+                to: "Hello from foo",
+              })
+            },
+          },
+          {
+            description: "node-service returns the updated response text",
+            condition: async () => {
+              const callLogEntries = await runWithEnv(["call", "node-service"])
+              return searchLog(callLogEntries, /Hello from foo/)
             },
           },
         ]
@@ -181,6 +209,7 @@ describe("PreReleaseTests", () => {
         await gardenWatch.run({ testSteps })
       })
     })
+
   }
 
   if (project === "vote-helm") {
