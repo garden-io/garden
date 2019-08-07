@@ -40,12 +40,11 @@ export class InitCommand extends Command {
 
   options = initOpts
 
-  async action({ garden, log, footerLog, headerLog, opts }: CommandParams<{}, Opts>): Promise<CommandResult<{}>> {
+  async action({ garden, footerLog, headerLog, opts }: CommandParams<{}, Opts>): Promise<CommandResult<{}>> {
     const name = garden.environmentName
     printHeader(headerLog, `Initializing ${name} environment`, "gear")
 
-    const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log, force: opts.force })
+    await garden.resolveProviders(opts.force)
 
     printFooter(footerLog)
 

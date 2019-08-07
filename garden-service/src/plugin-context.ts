@@ -7,13 +7,11 @@
  */
 
 import { Garden } from "./garden"
-import { keyBy, cloneDeep } from "lodash"
+import { cloneDeep } from "lodash"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project"
-import { PluginError } from "./exceptions"
-import { defaultProvider, Provider, providerSchema, ProviderConfig } from "./config/provider"
-import { configStoreSchema } from "./config-store"
+import { Provider, providerSchema, ProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi } from "./config/common"
+import { joi, joiVariables, PrimitiveMap } from "./config/common"
 
 type WrappedFromGarden = Pick<Garden,
   "projectName" |
@@ -22,11 +20,17 @@ type WrappedFromGarden = Pick<Garden,
   "gardenDirPath" |
   "workingCopyId" |
   // TODO: remove this from the interface
-  "configStore" |
   "environmentName"
 >
 
+export interface CommandInfo {
+  name: string
+  args: PrimitiveMap
+  opts: PrimitiveMap
+}
+
 export interface PluginContext<C extends ProviderConfig = ProviderConfig> extends WrappedFromGarden {
+  command?: CommandInfo
   provider: Provider<C>
 }
 
@@ -35,42 +39,44 @@ export interface PluginContext<C extends ProviderConfig = ProviderConfig> extend
 export const pluginContextSchema = joi.object()
   .options({ presence: "required" })
   .keys({
-    projectName: projectNameSchema,
-    projectRoot: joi.string()
-      .description("The absolute path of the project root."),
+    command: joi.object()
+      .optional()
+      .keys({
+        name: joi.string()
+          .required()
+          .description("The command name currently being executed."),
+        args: joiVariables()
+          .required()
+          .description("The positional arguments passed to the command."),
+        opts: joiVariables()
+          .required()
+          .description("The optional flags passed to the command."),
+      })
+      .description("Information about the command being executed, if applicable."),
+    environmentName: environmentNameSchema,
     gardenDirPath: joi.string()
       .description(deline`
         The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
         other meta data. A custom path can be set when initialising the Garden class. Defaults to \`.garden\`.
       `),
+    projectName: projectNameSchema,
+    projectRoot: joi.string()
+      .description("The absolute path of the project root."),
     projectSources: projectSourcesSchema,
-    configStore: configStoreSchema,
-    environmentName: environmentNameSchema,
     provider: providerSchema
       .description("The provider being used for this context."),
     workingCopyId: joi.string()
       .description("A unique ID assigned to the current project working copy."),
   })
 
-export async function createPluginContext(garden: Garden, providerName: string): Promise<PluginContext> {
-  const providers = keyBy(await garden.resolveProviders(), "name")
-  let provider = providers[providerName]
-
-  if (providerName === "_default") {
-    provider = defaultProvider
-  }
-
-  if (!provider) {
-    throw new PluginError(`Could not find provider '${providerName}'`, { providerName, providers })
-  }
-
+export function createPluginContext(garden: Garden, provider: Provider, command?: CommandInfo): PluginContext {
   return {
+    command,
     environmentName: garden.environmentName,
+    gardenDirPath: garden.gardenDirPath,
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
-    gardenDirPath: garden.gardenDirPath,
     projectSources: cloneDeep(garden.projectSources),
-    configStore: garden.configStore,
     provider,
     workingCopyId: garden.workingCopyId,
   }

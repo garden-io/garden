@@ -16,22 +16,20 @@ export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
   description: "Clean up all installed cluster-wide Garden services.",
 
-  handler: async ({ ctx, log }) => {
-    const entry = log.info({
-      msg: chalk.bold.magenta(
-        `Removing cluster-wide services for ${chalk.white(ctx.environmentName)} environment`,
-      ),
-    })
+  title: ({ environmentName }) => {
+    return `Removing cluster-wide services for ${chalk.white(environmentName)} environment`
+  },
 
+  handler: async ({ ctx, log }) => {
     const k8sCtx = <KubernetesPluginContext>ctx
     const variables = getKubernetesSystemVariables(k8sCtx.provider.config)
 
-    const sysGarden = await getSystemGarden(k8sCtx, variables || {})
+    const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
     const actions = await sysGarden.getActionHelper()
 
-    const result = await actions.deleteEnvironment(entry)
+    const result = await actions.deleteEnvironment(log)
 
-    log.info(chalk.green("Done!"))
+    log.info(chalk.green("\nDone!"))
 
     return { result }
   },

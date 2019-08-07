@@ -18,7 +18,7 @@ import {
   systemNamespace,
 } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
-import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
+import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
 import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
@@ -35,17 +35,11 @@ import { combineStates, ServiceStatusMap } from "../../types/service"
  */
 export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const variables = getKubernetesSystemVariables(k8sCtx.provider.config)
-
-  const sysGarden = await getSystemGarden(k8sCtx, variables || {})
-  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
+  const provider = k8sCtx.provider
 
   let projectReady = true
 
-  // Ensure project and system namespaces. We need the system namespace independent of system services
-  // because we store test results in the system metadata namespace.
-  await prepareNamespaces({ ctx, log })
-  await prepareNamespaces({ ctx: sysCtx, log })
+  const namespaces = await prepareNamespaces({ ctx, log })
 
   // Check Tiller status in project namespace
   if (await checkTillerStatus(k8sCtx, k8sCtx.provider, log) !== "ready") {
@@ -66,12 +60,26 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     ready: projectReady,
     detail,
     dashboardPages: [],
+    outputs: {
+      ...namespaces,
+      "default-hostname": provider.config.defaultHostname || null,
+    },
   }
 
-  // No need to continue if we don't need any system services
-  if (systemServiceNames.length === 0) {
+  if (
+    // No need to continue if we don't need any system services
+    systemServiceNames.length === 0
+    ||
+    // Make sure we don't recurse infinitely
+    provider.config.namespace === systemNamespace
+  ) {
     return result
   }
+
+  const variables = getKubernetesSystemVariables(provider.config)
+  const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
+  const sysProvider = await sysGarden.resolveProvider(provider.name)
+  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(sysProvider)
 
   // Check Tiller status in system namespace
   const tillerStatus = await checkTillerStatus(sysCtx, sysCtx.provider, log)
@@ -81,7 +89,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     detail.systemTillerReady = false
   }
 
-  const api = await KubeApi.factory(log, k8sCtx.provider.config.context)
+  const api = await KubeApi.factory(log, provider.config.context)
   const contextForLog = `Checking Garden system service status for plugin "${ctx.provider.name}"`
   const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, systemNamespace, contextForLog)
 
@@ -104,6 +112,8 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   detail.serviceStatuses = systemServiceStatus.serviceStatuses
   detail.systemServiceState = systemServiceStatus.state
 
+  sysGarden.log.setSuccess()
+
   return result
 }
 
@@ -113,8 +123,8 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
  *  2. Installs Tiller in system namespace (if provider has system services)
  *  3. Deploys system services (if provider has system services)
  */
-export async function prepareEnvironment(params: PrepareEnvironmentParams) {
-  const { ctx, log, force } = params
+export async function prepareEnvironment(params: PrepareEnvironmentParams): Promise<PrepareEnvironmentResult> {
+  const { ctx, log, force, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Install Tiller to project namespace
@@ -123,7 +133,7 @@ export async function prepareEnvironment(params: PrepareEnvironmentParams) {
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
 
-  return {}
+  return { status: { ready: true, outputs: status.outputs } }
 }
 
 export async function prepareSystem(
@@ -149,21 +159,29 @@ export async function prepareSystem(
   // If we require manual init and system services are ready OR outdated but none are *missing*, we warn
   // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
   // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
-  if (!clusterInit && remoteCluster && combinedState === "outdated" && !serviceStates.includes("missing")) {
-    log.warn({
-      symbol: "warning",
-      msg: chalk.yellow(deline`
-        One or more cluster-wide system services are outdated or their configuration does not match your current
-        configuration. You may want to run \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
-        to update them, or contact a cluster admin to do so.
-      `),
-    })
+  if (!clusterInit && remoteCluster) {
+    if (combinedState === "outdated" && !serviceStates.includes("missing")) {
+      log.warn({
+        symbol: "warning",
+        msg: chalk.yellow(deline`
+          One or more cluster-wide system services are outdated or their configuration does not match your current
+          configuration. You may want to run \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
+          to update them, or contact a cluster admin to do so.
+        `),
+      })
+    }
     return {}
   }
 
   // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
   // between users or unnecessary work.
   if (!clusterInit && remoteCluster && !systemReady) {
+    // Special-case so that this doesn't error when attempting to run the cluster init
+    const initCommandName = `plugins ${ctx.provider.name} cluster-init`
+    if (ctx.command && ctx.command.name === initCommandName) {
+      return {}
+    }
+
     throw new KubernetesError(deline`
       One or more cluster-wide system services are missing or not ready. You need to run
       \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
@@ -174,8 +192,10 @@ export async function prepareSystem(
   }
 
   // Install Tiller to system namespace
-  const sysGarden = await getSystemGarden(k8sCtx, variables || {})
-  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(k8sCtx.provider.name)
+  const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
+  const sysProvider = await sysGarden.resolveProvider(k8sCtx.provider.name)
+  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(sysProvider)
+
   await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
 
   // Install system services
@@ -187,6 +207,8 @@ export async function prepareSystem(
     ctx: k8sCtx,
     serviceNames: systemServiceNames,
   })
+
+  sysGarden.log.setSuccess()
 
   return {}
 }

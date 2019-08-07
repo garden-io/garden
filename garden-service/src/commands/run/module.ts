@@ -88,7 +88,6 @@ export class RunModuleCommand extends Command<Args, Opts> {
     printHeader(headerLog, msg, "runner")
 
     const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log })
 
     const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
     await garden.processTasks([buildTask])

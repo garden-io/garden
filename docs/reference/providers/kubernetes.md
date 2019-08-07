@@ -928,3 +928,32 @@ providers:
     namespace:
     setupIngressController: false
 ```
+
+## Outputs
+
+The following keys are available via the `${providers.<provider-name>}` template string key for `kubernetes`
+providers.
+
+### `providers.<provider-name>.app-namespace`
+
+The primary namespace used for resource deployments.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `providers.<provider-name>.default-hostname`
+
+The default hostname configured on the provider.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers.<provider-name>.metadata-namespace`
+
+The namespace used for Garden metadata.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |

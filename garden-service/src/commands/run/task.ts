@@ -59,9 +59,6 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
     printHeader(headerLog, msg, "runner")
 
-    const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log })
-
     const taskTask = await TaskTask.factory({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
     const result = (await garden.processTasks([taskTask]))[taskTask.getKey()]
 

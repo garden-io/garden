@@ -26,6 +26,7 @@ import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
 import { clusterInit } from "./commands/cluster-init"
 import { uninstallGardenServices } from "./commands/uninstall-garden-services"
 import chalk from "chalk"
+import { joi, joiIdentifier } from "../../config/common"
 
 export const name = "kubernetes"
 
@@ -94,9 +95,22 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   }
 }
 
+const outputsSchema = joi.object()
+  .keys({
+    "app-namespace": joiIdentifier()
+      .required()
+      .description("The primary namespace used for resource deployments."),
+    "default-hostname": joi.string()
+      .description("The default hostname configured on the provider."),
+    "metadata-namespace": joiIdentifier()
+      .required()
+      .description("The namespace used for Garden metadata."),
+  })
+
 export function gardenPlugin(): GardenPlugin {
   return {
     configSchema,
+    outputsSchema,
     commands: [
       cleanupClusterRegistry,
       clusterInit,

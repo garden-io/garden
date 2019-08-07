@@ -12,6 +12,23 @@ The reference is divided into two sections. The [first section](#configuration-k
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
+### `providers[].name`
+
+[providers](#providers) > name
+
+The name of the provider plugin to use.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+providers:
+  - name: "local-kubernetes"
+```
+
 ### `providers[].environments[]`
 
 [providers](#providers) > environments
@@ -31,23 +48,6 @@ providers:
     - stage
 ```
 
-### `providers[].name`
-
-[providers](#providers) > name
-
-The name of the provider plugin to use.
-
-| Type     | Required | Default             |
-| -------- | -------- | ------------------- |
-| `string` | Yes      | `"maven-container"` |
-
-Example:
-
-```yaml
-providers:
-  - name: "maven-container"
-```
-
 
 ## Complete YAML schema
 
@@ -55,6 +55,6 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  - environments:
-    name: maven-container
+  - name:
+    environments:
 ```

@@ -19,6 +19,7 @@ import { containerHelpers } from "../container/helpers"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { ExecInServiceParams } from "../../types/plugin/service/execInService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
+import { EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 
 // should this be configurable and/or global across providers?
 const DEPLOY_TIMEOUT = 30
@@ -212,7 +213,7 @@ export const gardenPlugin = (): GardenPlugin => ({
   },
 })
 
-async function getEnvironmentStatus() {
+async function getEnvironmentStatus(): Promise<EnvironmentStatus> {
   const docker = getDocker()
 
   try {
@@ -220,13 +221,14 @@ async function getEnvironmentStatus() {
 
     return {
       ready: true,
+      outputs: {},
     }
   } catch (err) {
     if (err.statusCode === 503) {
       // swarm has not been initialized
       return {
         ready: false,
-        services: [],
+        outputs: {},
       }
     } else {
       throw err
@@ -236,7 +238,7 @@ async function getEnvironmentStatus() {
 
 async function prepareEnvironment() {
   await getDocker().swarmInit({})
-  return {}
+  return { status: { ready: true, dashboardPages: [], outputs: {} } }
 }
 
 async function getServiceStatus({ ctx, service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {

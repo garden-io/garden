@@ -39,11 +39,14 @@ export interface TaskResults {
   [key: string]: TaskResult
 }
 
-export const DEFAULT_CONCURRENCY = 6
-
+const DEFAULT_CONCURRENCY = 6
 const concurrencyFromEnv = process.env.GARDEN_TASK_CONCURRENCY_LIMIT
 
-export const TASK_CONCURRENCY = (concurrencyFromEnv && parseInt(concurrencyFromEnv, 10)) || DEFAULT_CONCURRENCY
+export const defaultTaskConcurrency = (concurrencyFromEnv && parseInt(concurrencyFromEnv, 10)) || DEFAULT_CONCURRENCY
+
+export interface ProcessTasksOpts {
+  concurrencyLimit?: number
+}
 
 export class TaskGraph {
   private roots: TaskNodeMap
@@ -69,7 +72,7 @@ export class TaskGraph {
   private resultCache: ResultCache
   private opQueue: PQueue
 
-  constructor(private garden: Garden, private log: LogEntry, private concurrency: number = TASK_CONCURRENCY) {
+  constructor(private garden: Garden, private log: LogEntry) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
@@ -81,7 +84,7 @@ export class TaskGraph {
     this.logEntryMap = {}
   }
 
-  async process(tasks: BaseTask[]): Promise<TaskResults> {
+  async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
     for (const t of tasks) {
       this.latestTasks[t.getKey()] = t
     }
@@ -97,7 +100,7 @@ export class TaskGraph {
     // to return the latest result for each requested task.
     const resultKeys = tasks.map(t => t.getKey())
 
-    return this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys))
+    return this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
   }
 
   /**
@@ -163,7 +166,11 @@ export class TaskGraph {
   /**
    * Process the graph until it's complete.
    */
-  private async processTasksInternal(tasks: BaseTask[], resultKeys: string[]): Promise<TaskResults> {
+  private async processTasksInternal(
+    tasks: BaseTask[], resultKeys: string[], opts?: ProcessTasksOpts,
+  ): Promise<TaskResults> {
+    const { concurrencyLimit = defaultTaskConcurrency } = opts || {}
+
     for (const task of tasks) {
       await this.addTask(this.latestTasks[task.getKey()])
     }
@@ -188,7 +195,7 @@ export class TaskGraph {
 
       const batch = _this.roots.getNodes()
         .filter(n => !this.inProgress.contains(n))
-        .slice(0, _this.concurrency - this.inProgress.length)
+        .slice(0, concurrencyLimit - this.inProgress.length)
 
       batch.forEach(n => this.inProgress.addNode(n))
       this.rebuild()

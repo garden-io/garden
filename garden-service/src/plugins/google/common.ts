@@ -7,12 +7,13 @@
  */
 
 import { Module } from "../../types/module"
-import { PrepareEnvironmentParams } from "../../types/plugin/provider/prepareEnvironment"
+import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
 import { ConfigurationError } from "../../exceptions"
 import { ExecTestSpec } from "../exec"
 import { GCloud } from "./gcloud"
 import { ModuleSpec } from "../../config/module"
 import { CommonServiceSpec } from "../../config/service"
+import { EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 
 export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 
@@ -23,9 +24,9 @@ export interface GoogleCloudModule<
   > extends Module<M, S, T> { }
 
 export async function getEnvironmentStatus() {
-  let sdkInfo
+  let sdkInfo: any
 
-  const output = {
+  const output: EnvironmentStatus = {
     ready: true,
     detail: {
       sdkInstalled: true,
@@ -33,6 +34,7 @@ export async function getEnvironmentStatus() {
       betaComponentsInstalled: true,
       sdkInfo: {},
     },
+    outputs: {},
   }
 
   try {
@@ -55,7 +57,7 @@ export async function getEnvironmentStatus() {
   return output
 }
 
-export async function prepareEnvironment({ status, log }: PrepareEnvironmentParams) {
+export async function prepareEnvironment({ status, log }: PrepareEnvironmentParams): Promise<PrepareEnvironmentResult> {
   if (!status.detail.sdkInstalled) {
     throw new ConfigurationError(
       "Google Cloud SDK is not installed. " +
@@ -81,7 +83,7 @@ export async function prepareEnvironment({ status, log }: PrepareEnvironmentPara
     await gcloud().call(["init"], { timeout: 600, tty: true })
   }
 
-  return {}
+  return { status: { ready: true, outputs: {} } }
 }
 
 export function gcloud(project?: string, account?: string) {

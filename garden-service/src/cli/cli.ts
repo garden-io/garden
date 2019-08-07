@@ -276,7 +276,15 @@ export class GardenCli {
       const log = logger.placeholder()
       const footerLog = logger.placeholder()
 
-      const contextOpts: GardenOpts = { environmentName: env, log }
+      const contextOpts: GardenOpts = {
+        commandInfo: {
+          name: command.getFullName(),
+          args: parsedArgs,
+          opts: parsedOpts,
+        },
+        environmentName: env,
+        log,
+      }
       if (command.noProject) {
         contextOpts.config = MOCK_CONFIG
       }

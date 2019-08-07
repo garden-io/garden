@@ -70,12 +70,12 @@ describe("DeleteEnvironmentCommand", () => {
     const testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
 
     const cleanupEnvironment = async () => {
-      testEnvStatuses[name] = { ready: false }
+      testEnvStatuses[name] = { ready: false, outputs: {} }
       return {}
     }
 
     const getEnvironmentStatus = async () => {
-      return testEnvStatuses[name]
+      return testEnvStatuses[name] || { ready: true, outputs: {} }
     }
 
     const deleteService = async ({ service }): Promise<ServiceStatus> => {

@@ -12,13 +12,11 @@ import { intersection } from "lodash"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
-import { name as providerName } from "./kubernetes"
-import { AuthenticationError, DeploymentError, TimeoutError } from "../../exceptions"
+import { DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
 import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
 import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
-import { ConfigStore } from "../../config-store"
 import { gardenAnnotationKey } from "../../util/string"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -61,7 +59,6 @@ export async function createNamespace(api: KubeApi, namespace: string) {
 }
 
 interface GetNamespaceParams {
-  configStore: ConfigStore,
   log: LogEntry,
   projectName: string,
   provider: KubernetesProvider,
@@ -70,33 +67,9 @@ interface GetNamespaceParams {
 }
 
 export async function getNamespace(
-  { projectName, configStore: localConfigStore, log, provider, suffix, skipCreate }: GetNamespaceParams,
+  { projectName, log, provider, suffix, skipCreate }: GetNamespaceParams,
 ): Promise<string> {
-  let namespace
-
-  if (provider.config.namespace !== undefined) {
-    namespace = provider.config.namespace
-  } else {
-    // Note: The local-kubernetes always defines a namespace name, so this logic only applies to the kubernetes provider
-    // TODO: Move this logic out to the kubernetes plugin init/validation
-    const localConfig = await localConfigStore.get()
-    const k8sConfig = localConfig.kubernetes || {}
-    let { username, ["previous-usernames"]: previousUsernames } = k8sConfig
-
-    if (!username) {
-      username = provider.config.defaultUsername
-    }
-
-    if (!username) {
-      throw new AuthenticationError(
-        `User not logged into provider ${providerName}. Please specify defaultUsername in provider ` +
-        `config or run garden init.`,
-        { previousUsernames, provider: providerName },
-      )
-    }
-
-    namespace = `${username}--${projectName}`
-  }
+  let namespace = provider.config.namespace || projectName
 
   if (suffix) {
     namespace = `${namespace}--${suffix}`
@@ -112,7 +85,6 @@ export async function getNamespace(
 
 export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
   return getNamespace({
-    configStore: ctx.configStore,
     log,
     projectName: ctx.projectName,
     provider,
@@ -121,7 +93,6 @@ export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provide
 
 export function getMetadataNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
   return getNamespace({
-    configStore: ctx.configStore,
     log,
     projectName: ctx.projectName,
     provider,
@@ -163,10 +134,10 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     )
   }
 
-  await Bluebird.all([
-    getMetadataNamespace(k8sCtx, log, k8sCtx.provider),
-    getAppNamespace(k8sCtx, log, k8sCtx.provider),
-  ])
+  return Bluebird.props({
+    "app-namespace": getAppNamespace(k8sCtx, log, k8sCtx.provider),
+    "metadata-namespace": getMetadataNamespace(k8sCtx, log, k8sCtx.provider),
+  })
 }
 
 export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?: LogEntry) {

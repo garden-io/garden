@@ -38,6 +38,7 @@ export interface PluginCommandHandler<T extends object = object> {
 export interface PluginCommand {
   name: string
   description: string
+  title?: string | ((params: { environmentName: string }) => string | Promise<string>)
   // TODO: allow arguments
   handler: PluginCommandHandler
 }
@@ -51,6 +52,8 @@ export const pluginCommandSchema = joi.object()
       .required()
       .max(80)
       .description("A one-line description of the command (max 80 chars)."),
+    title: joi.alternatives(joi.string(), joi.func())
+      .description("A heading to print ahead of calling the command handler, or a function that returns it."),
     handler: joi.func()
       // TODO: see if we can define/output the function schema somehow
       .description("The command handler."),

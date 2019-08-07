@@ -124,10 +124,6 @@ export class DeployCommand extends Command<Args, Opts> {
       watch = opts.watch
     }
 
-    // TODO: make this a task
-    const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log })
-
     const results = await processServices({
       garden,
       graph: initGraph,

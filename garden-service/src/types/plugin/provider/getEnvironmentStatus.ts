@@ -6,34 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DashboardPage, dashboardPagesSchema } from "../../../config/dashboard"
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { joi } from "../../../config/common"
+import { PrimitiveMap } from "../../../config/common"
+import { DashboardPage, environmentStatusSchema } from "../../../config/status"
 
 export interface GetEnvironmentStatusParams extends PluginActionParamsBase { }
 
-export interface EnvironmentStatus {
+export interface EnvironmentStatus<T extends PrimitiveMap = PrimitiveMap> {
   ready: boolean
   dashboardPages?: DashboardPage[]
   detail?: any
+  outputs: T
 }
+
+export const defaultEnvironmentStatus: EnvironmentStatus = { ready: true, outputs: {} }
 
 export interface EnvironmentStatusMap {
   [providerName: string]: EnvironmentStatus
 }
-
-export const environmentStatusSchema = joi.object()
-  .keys({
-    ready: joi.boolean()
-      .required()
-      .description("Set to true if the environment is fully configured for a provider."),
-    dashboardPages: dashboardPagesSchema,
-    detail: joi.object()
-      .meta({ extendable: true })
-      .description("Use this to include additional information that is specific to the provider."),
-  })
-  .description("Description of an environment's status for a provider.")
 
 export const getEnvironmentStatus = {
   description: dedent`

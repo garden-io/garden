@@ -105,9 +105,6 @@ export class TestCommand extends Command<Args, Opts> {
       modules = await graph.getModules()
     }
 
-    const actions = await garden.getActionHelper()
-    await actions.prepareEnvironment({ log })
-
     const filterNames = opts.name ? [opts.name] : []
     const force = opts.force
     const forceBuild = opts["force-build"]

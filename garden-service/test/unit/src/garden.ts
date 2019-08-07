@@ -76,6 +76,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "container",
@@ -85,6 +89,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "test-plugin",
@@ -95,6 +103,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "test-plugin-b",
@@ -105,6 +117,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
       ])
 
@@ -133,6 +149,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "container",
@@ -142,6 +162,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "test-plugin",
@@ -152,6 +176,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
       ])
 
@@ -235,6 +263,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "container",
@@ -244,6 +276,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "test-plugin",
@@ -254,6 +290,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
         {
           name: "test-plugin-b",
@@ -264,6 +304,10 @@ describe("Garden", () => {
           },
           dependencies: [],
           moduleConfigs: [],
+          status: {
+            ready: true,
+            outputs: {},
+          },
         },
       ])
     })
@@ -522,8 +566,8 @@ describe("Garden", () => {
           { name: "default", variables: {} },
         ],
         providers: [
-          { name: "test-a", foo: "\${provider.test-b.outputs.foo}" },
-          { name: "test-b", foo: "\${provider.test-a.outputs.foo}" },
+          { name: "test-a", foo: "\${providers.test-b.outputs.foo}" },
+          { name: "test-b", foo: "\${providers.test-a.outputs.foo}" },
         ],
         variables: {},
       }
@@ -562,7 +606,7 @@ describe("Garden", () => {
           { name: "default", variables: {} },
         ],
         providers: [
-          { name: "test-a", foo: "\${provider.test-b.outputs.foo}" },
+          { name: "test-a", foo: "\${providers.test-b.outputs.foo}" },
           { name: "test-b" },
         ],
         variables: {},
@@ -650,6 +694,49 @@ describe("Garden", () => {
           "test: Error validating provider (/garden.yml): key .foo must be a string",
         ),
       )
+    })
+
+    it("should allow providers to reference each others' outputs", async () => {
+      const testA: PluginFactory = (): GardenPlugin => {
+        return {
+          actions: {
+            getEnvironmentStatus: async () => {
+              return {
+                ready: true,
+                outputs: { foo: "bar" },
+              }
+            },
+          },
+        }
+      }
+
+      const testB: PluginFactory = (): GardenPlugin => {
+        return {}
+      }
+
+      const projectConfig: ProjectConfig = {
+        apiVersion: "garden.io/v0",
+        kind: "Project",
+        name: "test",
+        path: projectRootA,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
+        environments: [
+          { name: "default", variables: {} },
+        ],
+        providers: [
+          { name: "test-a" },
+          { name: "test-b", foo: "\${providers.test-a.outputs.foo}" },
+        ],
+        variables: {},
+      }
+
+      const plugins: Plugins = { "test-a": testA, "test-b": testB }
+      const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
+
+      const providerB = await garden.resolveProvider("test-b")
+
+      expect(providerB.config.foo).to.equal("bar")
     })
   })
 

@@ -52,7 +52,6 @@ async function getServiceStatus(
 ): Promise<ServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
-    configStore: ctx.configStore,
     log,
     projectName: k8sCtx.projectName,
     provider: k8sCtx.provider,
@@ -81,7 +80,6 @@ async function deployService(
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
-    configStore: ctx.configStore,
     log,
     projectName: k8sCtx.projectName,
     provider: k8sCtx.provider,

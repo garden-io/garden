@@ -45,7 +45,6 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
   const valuesPath = getValuesPath(chartPath)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
-    configStore: k8sCtx.configStore,
     log,
     projectName: k8sCtx.projectName,
     provider: k8sCtx.provider,
@@ -280,7 +279,6 @@ async function renderHelmTemplateString(
   const valuesPath = getValuesPath(chartPath)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
-    configStore: k8sCtx.configStore,
     log,
     projectName: k8sCtx.projectName,
     provider: k8sCtx.provider,
