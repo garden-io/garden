@@ -31,7 +31,7 @@
     "archiver": "^3.0.0",
     "async-exit-hook": "^2.0.1",
     "async-lock": "^1.2.0",
-    "axios": "^0.18.0",
+    "axios": "^0.18.1",
     "bluebird": "^3.5.4",
     "certpem": "^1.1.3",
     "chalk": "^2.4.2",
