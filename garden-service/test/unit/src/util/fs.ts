@@ -125,7 +125,11 @@ describe("util", () => {
   describe("findConfigPathsInPath", () => {
     it("should find all garden configs in a directory", async () => {
       const garden = await makeTestGardenA()
-      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot)
+      const files = await findConfigPathsInPath({
+        vcs: garden.vcs,
+        dir: garden.projectRoot,
+        log: garden.log,
+      })
       expect(files).to.eql([
         join(garden.projectRoot, "garden.yml"),
         join(garden.projectRoot, "module-a", "garden.yml"),
@@ -137,7 +141,12 @@ describe("util", () => {
     it("should respect the include option, if specified", async () => {
       const garden = await makeTestGardenA()
       const include = ["module-a/**/*"]
-      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot, { include })
+      const files = await findConfigPathsInPath({
+        vcs: garden.vcs,
+        dir: garden.projectRoot,
+        log: garden.log,
+        include,
+      })
       expect(files).to.eql([
         join(garden.projectRoot, "module-a", "garden.yml"),
       ])
@@ -146,7 +155,12 @@ describe("util", () => {
     it("should respect the exclude option, if specified", async () => {
       const garden = await makeTestGardenA()
       const exclude = ["module-a/**/*"]
-      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot, { exclude })
+      const files = await findConfigPathsInPath({
+        vcs: garden.vcs,
+        dir: garden.projectRoot,
+        log: garden.log,
+        exclude,
+      })
       expect(files).to.eql([
         join(garden.projectRoot, "garden.yml"),
         join(garden.projectRoot, "module-b", "garden.yml"),
@@ -158,7 +172,13 @@ describe("util", () => {
       const garden = await makeTestGardenA()
       const include = ["module*/**/*"]
       const exclude = ["module-a/**/*"]
-      const files = await findConfigPathsInPath(garden.vcs, garden.projectRoot, { include, exclude })
+      const files = await findConfigPathsInPath({
+        vcs: garden.vcs,
+        dir: garden.projectRoot,
+        log: garden.log,
+        include,
+        exclude,
+      })
       expect(files).to.eql([
         join(garden.projectRoot, "module-b", "garden.yml"),
         join(garden.projectRoot, "module-c", "garden.yml"),

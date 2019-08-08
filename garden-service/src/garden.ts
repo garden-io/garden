@@ -267,11 +267,11 @@ export class Garden {
    * Enables the file watcher for the project.
    * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
    */
-  async startWatcher(graph: ConfigGraph) {
+  async startWatcher(graph: ConfigGraph, bufferInterval?: number) {
     const modules = await graph.getModules()
     const linkedPaths = (await getLinkedSources(this)).map(s => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
-    this.watcher = new Watcher(this, this.log, paths, modules)
+    this.watcher = new Watcher(this, this.log, paths, modules, bufferInterval)
   }
 
   private registerPlugin(name: string, moduleOrFactory: RegisterPluginParam) {
@@ -692,7 +692,7 @@ export class Garden {
     const dependencies = await this.getRawModuleConfigs(dependencyKeys)
     const cacheContexts = dependencies.concat([config]).map(c => getModuleCacheContext(c))
 
-    const version = await this.vcs.resolveVersion(config, dependencies)
+    const version = await this.vcs.resolveVersion(this.log, config, dependencies)
 
     this.cache.set(cacheKey, version, ...cacheContexts)
     return version
@@ -702,9 +702,13 @@ export class Garden {
    * Scans the specified directories for Garden config files and returns a list of paths.
    */
   async scanForConfigs(path: string) {
-    return findConfigPathsInPath(
-      this.vcs, path, { include: this.moduleIncludePatterns, exclude: this.moduleExcludePatterns },
-    )
+    return findConfigPathsInPath({
+      vcs: this.vcs,
+      dir: path,
+      include: this.moduleIncludePatterns,
+      exclude: this.moduleExcludePatterns,
+      log: this.log,
+    })
   }
 
   /*

@@ -3,9 +3,10 @@ import * as tmp from "tmp-promise"
 import { createFile, writeFile, realpath, mkdir, remove, symlink } from "fs-extra"
 import { join, resolve } from "path"
 
-import { expectError } from "../../../helpers"
+import { expectError, makeTestGardenA } from "../../../helpers"
 import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
 import { fixedExcludes } from "../../../../src/util/fs"
+import { LogEntry } from "../../../../src/logger/log-entry"
 
 // Overriding this to make sure any ignorefile name is respected
 const ignoreFileName = ".testignore"
@@ -22,12 +23,15 @@ describe("GitHandler", () => {
   let tmpPath: string
   let git
   let handler: GitHandler
+  let log: LogEntry
 
   beforeEach(async () => {
+    const garden = await makeTestGardenA()
+    log = garden.log
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     tmpPath = await realpath(tmpDir.path)
     handler = new GitHandler(tmpPath, [ignoreFileName])
-    git = (<any>handler).gitCli(tmpPath)
+    git = (<any>handler).gitCli(log, tmpPath)
     await git("init")
   })
 
@@ -37,7 +41,7 @@ describe("GitHandler", () => {
 
   describe("getFiles", () => {
     it("should work with no commits in repo", async () => {
-      expect(await handler.getFiles(tmpPath)).to.eql([])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([])
     })
 
     it("should return tracked files as absolute paths with hash", async () => {
@@ -50,7 +54,7 @@ describe("GitHandler", () => {
 
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      expect(await handler.getFiles(tmpPath)).to.eql([
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
         { path, hash },
       ])
     })
@@ -65,7 +69,7 @@ describe("GitHandler", () => {
       await writeFile(path, "my change")
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      expect(await handler.getFiles(tmpPath)).to.eql([
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
         { path, hash },
       ])
     })
@@ -87,10 +91,10 @@ describe("GitHandler", () => {
           await git("commit", "-m", "foo")
 
           await writeFile(filePath, "my change")
-          const beforeHash = (await handler.getFiles(dirPath))[0].hash
+          const beforeHash = (await handler.getFiles({ path: dirPath, log }))[0].hash
 
           await writeFile(filePath, "ch-ch-ch-ch-changes")
-          const afterHash = (await handler.getFiles(dirPath))[0].hash
+          const afterHash = (await handler.getFiles({ path: dirPath, log }))[0].hash
 
           expect(beforeHash).to.not.eql(afterHash)
         })
@@ -100,7 +104,7 @@ describe("GitHandler", () => {
           await createFile(join(dirPath, "foo.txt"))
           const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-          expect(await handler.getFiles(dirPath)).to.eql([
+          expect(await handler.getFiles({ path: dirPath, log })).to.eql([
             { path: resolve(dirPath, "foo.txt"), hash },
           ])
         })
@@ -113,7 +117,7 @@ describe("GitHandler", () => {
       await createFile(join(dirPath, "file.txt"))
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getFiles(dirPath)).to.eql([
+      expect(await handler.getFiles({ path: dirPath, log })).to.eql([
         { path: resolve(dirPath, "file.txt"), hash },
       ])
     })
@@ -125,7 +129,7 @@ describe("GitHandler", () => {
       await git("commit", "-m", "foo")
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getFiles(tmpPath)).to.eql([
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
         { path: resolve(tmpPath, "my file.txt"), hash },
       ])
     })
@@ -140,7 +144,7 @@ describe("GitHandler", () => {
 
       const hash = "099673697c6cbf5c1a96c445ef3eab123740c778"
 
-      expect(await handler.getFiles(tmpPath)).to.eql([
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
         { path: resolve(tmpPath, "my file.txt"), hash },
       ])
     })
@@ -153,7 +157,7 @@ describe("GitHandler", () => {
 
       await remove(filePath)
 
-      expect(await handler.getFiles(tmpPath)).to.eql([])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([])
     })
 
     it("should work with untracked files with spaces in the name", async () => {
@@ -161,7 +165,7 @@ describe("GitHandler", () => {
       await createFile(filePath)
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getFiles(tmpPath)).to.eql([
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
         { path: resolve(tmpPath, "my file.txt"), hash },
       ])
     })
@@ -170,7 +174,7 @@ describe("GitHandler", () => {
       const path = resolve(tmpPath, "foo.txt")
       await createFile(path)
 
-      expect(await handler.getFiles(tmpPath, [])).to.eql([])
+      expect(await handler.getFiles({ path: tmpPath, include: [], log })).to.eql([])
     })
 
     it("should include files that match the include filter, if specified", async () => {
@@ -178,7 +182,7 @@ describe("GitHandler", () => {
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       await createFile(path)
 
-      expect(await handler.getFiles(tmpPath, ["foo.*"], [])).to.eql([
+      expect(await handler.getFiles({ path: tmpPath, include: ["foo.*"], exclude: [], log })).to.eql([
         { path, hash },
       ])
     })
@@ -187,7 +191,7 @@ describe("GitHandler", () => {
       const path = resolve(tmpPath, "foo.txt")
       await createFile(path)
 
-      expect(await handler.getFiles(tmpPath, [], ["foo.*"])).to.eql([])
+      expect(await handler.getFiles({ path: tmpPath, include: [], exclude: ["foo.*"], log })).to.eql([])
     })
 
     it("should respect include and exclude patterns, if both are specified", async () => {
@@ -200,7 +204,7 @@ describe("GitHandler", () => {
       await createFile(pathB)
       await createFile(pathC)
 
-      const files = (await handler.getFiles(tmpPath, ["module-a/**/*"], ["**/*.txt"]))
+      const files = (await handler.getFiles({ path: tmpPath, include: ["module-a/**/*"], exclude: ["**/*.txt"], log }))
         .map(f => f.path)
 
       expect(files).to.eql([pathC])
@@ -212,7 +216,7 @@ describe("GitHandler", () => {
       await createFile(path)
       await addToIgnore(tmpPath, name)
 
-      const files = (await handler.getFiles(tmpPath, undefined, []))
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
         .filter(f => !f.path.includes(ignoreFileName))
 
       expect(files).to.eql([])
@@ -227,7 +231,7 @@ describe("GitHandler", () => {
       await git("add", path)
       await git("commit", "-m", "foo")
 
-      const files = (await handler.getFiles(tmpPath, undefined, []))
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
         .filter(f => !f.path.includes(ignoreFileName))
 
       expect(files).to.eql([])
@@ -241,7 +245,7 @@ describe("GitHandler", () => {
         await createFile(path)
       }
 
-      const files = (await handler.getFiles(tmpPath, undefined, [...fixedExcludes]))
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [...fixedExcludes], log }))
         .filter(f => !f.path.includes(ignoreFileName))
 
       expect(files).to.eql([])
@@ -256,7 +260,7 @@ describe("GitHandler", () => {
 
       await symlink(tmpPathB, path)
 
-      const files = (await handler.getFiles(tmpPath, undefined, []))
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
         .filter(f => !f.path.includes(ignoreFileName))
 
       expect(files).to.eql([])

@@ -18,7 +18,7 @@ import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
-import { LogNode } from "../logger/log-node"
+import { LogEntry } from "../logger/log-entry"
 
 export const NEW_MODULE_VERSION = "0000000000"
 
@@ -65,11 +65,18 @@ export const moduleVersionSchema = joi.object()
     files: fileNamesSchema,
   })
 
+export interface GetFilesParams {
+  log: LogEntry,
+  path: string,
+  include?: string[],
+  exclude?: string[],
+}
+
 export interface RemoteSourceParams {
   url: string,
   name: string,
   sourceType: ExternalSourceType,
-  log: LogNode,
+  log: LogEntry,
 }
 
 export interface VcsFile {
@@ -81,14 +88,21 @@ export abstract class VcsHandler {
   constructor(protected gardenDirPath: string, protected ignoreFiles: string[]) { }
 
   abstract name: string
-  abstract async getFiles(path: string, include?: string[], exclude?: string[]): Promise<VcsFile[]>
+  abstract async getFiles(params: GetFilesParams): Promise<VcsFile[]>
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
 
-  async getTreeVersion(moduleConfig: ModuleConfig): Promise<TreeVersion> {
+  async getTreeVersion(log: LogEntry, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     const configPath = moduleConfig.configPath
 
-    const files = sortBy(await this.getFiles(moduleConfig.path, moduleConfig.include, moduleConfig.exclude), "path")
+    let files = await this.getFiles({
+      log,
+      path: moduleConfig.path,
+      include: moduleConfig.include,
+      exclude: moduleConfig.exclude,
+    })
+
+    files = sortBy(files, "path")
       // Don't include the config file in the file list
       .filter(f => !configPath || f.path !== configPath)
 
@@ -97,15 +111,17 @@ export abstract class VcsHandler {
     return { contentHash, files: files.map(f => f.path) }
   }
 
-  async resolveTreeVersion(moduleConfig: ModuleConfig): Promise<TreeVersion> {
+  async resolveTreeVersion(log: LogEntry, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || this.getTreeVersion(moduleConfig)
+    return fileVersion || this.getTreeVersion(log, moduleConfig)
   }
 
-  async resolveVersion(moduleConfig: ModuleConfig, dependencies: ModuleConfig[]): Promise<ModuleVersion> {
-    const treeVersion = await this.resolveTreeVersion(moduleConfig)
+  async resolveVersion(
+    log: LogEntry, moduleConfig: ModuleConfig, dependencies: ModuleConfig[],
+  ): Promise<ModuleVersion> {
+    const treeVersion = await this.resolveTreeVersion(log, moduleConfig)
 
     validate(treeVersion, treeVersionSchema, {
       context: `${this.name} tree version for module at ${moduleConfig.path}`,
@@ -125,7 +141,7 @@ export abstract class VcsHandler {
 
     const namedDependencyVersions = await Bluebird.map(
       dependencies,
-      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(m) }),
+      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(log, m) }),
     )
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), v => omit(v, "name"))
 

@@ -72,7 +72,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   const vcs = new GitHandler(root, config.dotIgnoreFiles || defaultDotIgnoreFiles)
   const include = config.modules && config.modules.include
   const exclude = config.modules && config.modules.exclude
-  const paths = await findConfigPathsInPath(vcs, root, { include, exclude })
+  const paths = await findConfigPathsInPath({ vcs, dir: root, include, exclude, log })
 
   // Copy all the service configuration files
   for (const configPath of paths) {
