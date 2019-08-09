@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node main.js",
-    "dev": "nodemon main.js",
+    "dev": "nodemon main.js --watch hotreloadfile",
     "test": "echo OK"
   },
   "author": "garden.io <info@garden.io>",

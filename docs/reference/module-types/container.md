@@ -307,6 +307,25 @@ hotReload:
     - target: "/app/src"
 ```
 
+### `hotReload.postSyncCommand[]`
+
+[hotReload](#hotreload) > postSyncCommand
+
+An optional command to run inside the container after syncing.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+hotReload:
+  ...
+  postSyncCommand:
+    - rebuild-static-assets.sh
+```
+
 ### `dockerfile`
 
 POSIX-style name of Dockerfile, relative to module root.
@@ -1015,6 +1034,7 @@ hotReload:
   sync:
     - source: .
       target:
+  postSyncCommand:
 dockerfile:
 services:
   - name:

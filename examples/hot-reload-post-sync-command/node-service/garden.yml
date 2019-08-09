@@ -1,0 +1,22 @@
+kind: Module
+description: Node greeting service
+name: node-service
+type: container
+hotReload:
+  sync:
+    - target: /app/
+  postSyncCommand: [touch, /app/hotreloadfile]
+services:
+  - name: node-service
+    args: [npm, start]
+    hotReloadArgs: [npm, run, dev]
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /hello
+        port: http
+    healthCheck:
+      httpGet:
+        path: /_ah/health
+        port: http
