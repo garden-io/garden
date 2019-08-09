@@ -104,6 +104,7 @@ export interface GardenParams {
 }
 
 export class Garden {
+
   public readonly log: LogEntry
   private loadedPlugins: { [key: string]: GardenPlugin }
   private moduleConfigs: ModuleConfigMap

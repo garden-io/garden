@@ -79,6 +79,7 @@ export interface Events {
     key: string,
     type: string,
     name: string,
+    version: ModuleVersion,
   },
   taskProcessing: {
     startedAt: Date,

@@ -32,6 +32,8 @@ describe("commands.build", () => {
     const footerLog = garden.log
     const command = new BuildCommand()
 
+    console.log("hello")
+
     const { result } = await command.action({
       garden,
       log,

@@ -188,6 +188,20 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   })
 }
 
+/**
+ * Returns a promise that can be resolved/rejected by calling resolver/rejecter.
+ */
+export function defer<T>() {
+  let outerResolve
+  let outerReject
+  const promise = new Promise<T>((res, rej) => {
+    outerResolve = res
+    outerReject = rej
+  })
+
+  return { promise, resolver: outerResolve, rejecter: outerReject }
+}
+
 export async function dumpYaml(yamlPath, data) {
   return writeFile(yamlPath, yaml.safeDump(data, { noRefs: true }))
 }

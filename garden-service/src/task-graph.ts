@@ -7,17 +7,25 @@
  */
 
 import Bluebird from "bluebird"
-import PQueue from "p-queue"
+import { Mutex } from "async-mutex"
 import chalk from "chalk"
 import yaml from "js-yaml"
 import hasAnsi = require("has-ansi")
-import { flatten, merge, padEnd, pick } from "lodash"
+import {
+  flatten,
+  merge,
+  padEnd,
+  pick,
+  sortBy,
+  without,
+} from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError } from "./exceptions"
 import { Garden } from "./garden"
 import { AnalyticsHandler } from "./analytics/analytics"
+import { defer } from "./util/util"
 
 class TaskGraphError extends Error { }
 
@@ -28,7 +36,7 @@ export interface TaskResult {
   name: string
   output?: any
   dependencyResults?: TaskResults
-  completedAt: Date
+  completedAt?: Date
   error?: Error
 }
 
@@ -53,6 +61,11 @@ export class TaskGraph {
   private roots: TaskNodeMap
   private index: TaskNodeMap
   private inProgress: TaskNodeMap
+  private processRequests: ProcessRequest[]
+  private addTasksMutex: Mutex
+  private processing: boolean // flag to prevent concurrent calls to processTasks.
+
+  private taskGraphOrd: Number
 
   /**
    * latestTasks[key] is the most recently requested task (via process) for that key.
@@ -60,8 +73,7 @@ export class TaskGraph {
    * we deduplicate tasks by key.
    */
   private latestTasks: { [key: string]: BaseTask }
-  private pendingKeys: Set<string>
-
+  private pendingTasks: BaseTask[]
   private logEntryMap: LogEntryMap
 
   /**
@@ -71,17 +83,18 @@ export class TaskGraph {
   private taskDependencyCache: { [id: string]: Set<string> } // sets of keys
 
   private resultCache: ResultCache
-  private opQueue: PQueue
 
   constructor(private garden: Garden, private log: LogEntry) {
+    this.addTasksMutex = new Mutex()
+    this.processing = false
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
-    this.latestTasks = {}
-    this.pendingKeys = new Set()
+    this.processRequests = []
+    this.pendingTasks = []
+    this.latestTasks = {} // TODO: Describe invariant for this map's contents
     this.taskDependencyCache = {}
     this.resultCache = new ResultCache()
-    this.opQueue = new PQueue({ concurrency: 1 })
     this.logEntryMap = {}
   }
 
@@ -92,16 +105,19 @@ export class TaskGraph {
 
     // We want at most one pending (i.e. not in-progress) task for a given key at any given time,
     // so we deduplicate here.
-    const tasksToProcess = tasks.filter(t => !this.pendingKeys.has(t.getKey()))
-    for (const t of tasksToProcess) {
-      this.pendingKeys.add(t.getKey())
-    }
+    const keysForRequest = await keysWithDependencies(tasks)
+    const tasksToAdd = tasks.filter(t => !this.pendingTasks.find(pt => pt.getKey() === t.getKey()))
+    this.pendingTasks.push(...tasksToAdd)
 
-    // Regardless of whether it was added by this call to this.processTasksInternal, we want
-    // to return the latest result for each requested task.
-    const resultKeys = tasks.map(t => t.getKey())
+    const processRequest = new ProcessRequest(keysForRequest)
+    this.processRequests.push(processRequest)
 
-    return this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
+    this.processTasks()
+        .catch(err => {
+          console.error(chalk.red(`Graph ${this.taskGraphOrd} Exception in processTasks: ${err.message}`))
+        })
+
+    return processRequest.requestPromise
   }
 
   /**
@@ -126,22 +142,32 @@ export class TaskGraph {
     this.roots.setNodes(newRootNodes)
   }
 
-  private async addTask(task: BaseTask) {
-    await this.addNodeWithDependencies(task)
-    this.rebuild()
-    if (this.index.getNode(task)) {
-      this.garden.events.emit("taskPending", {
-        addedAt: new Date(),
-        key: task.getKey(),
-        name: task.getName(),
-        type: task.type,
-      })
-    } else {
-      const result = this.resultCache.get(task.getKey(), task.version.versionString)
-      if (result) {
-        this.garden.events.emit("taskComplete", result)
+  private async addTasks(tasks: BaseTask[]) {
+    const release = await this.addTasksMutex.acquire()
+    for (const task of tasks) {
+      await this.addNodeWithDependencies(task)
+      this.rebuild()
+      if (this.index.getNode(task)) {
+        this.garden.events.emit("taskPending", {
+          addedAt: new Date(),
+          key: task.getKey(),
+          type: task.type,
+          name: task.getName(),
+          version: task.version,
+        })
+      } else {
+        const result = this.resultCache.get(task.getKey(), task.version.versionString)
+        if (result) {
+          const withDeps = await withDependencies(task)
+          const resultWithDeps = <TaskResult[]>withDeps
+            .map(t => this.resultCache.getNewest(t.getKey()))
+            .filter(Boolean)
+          this.garden.events.emit("taskComplete", result)
+          this.provideCachedResultToProcessRequests(result, resultWithDeps)
+        }
       }
     }
+    release()
   }
 
   private getNode(task: BaseTask): TaskNode | null {
@@ -156,6 +182,8 @@ export class TaskGraph {
       return existing
     } else {
       const cachedResultExists = !!this.resultCache.get(task.getKey(), task.version.versionString)
+      if (cachedResultExists) {
+      }
       if (cachedResultExists && !task.force) {
         // No need to add task or its dependencies.
         return null
@@ -168,113 +196,156 @@ export class TaskGraph {
   /**
    * Process the graph until it's complete.
    */
-  private async processTasksInternal(
-    tasks: BaseTask[], resultKeys: string[], opts?: ProcessTasksOpts,
-  ): Promise<TaskResults> {
-    const { concurrencyLimit = defaultTaskConcurrency } = opts || {}
-
-    for (const task of tasks) {
-      await this.addTask(this.latestTasks[task.getKey()])
+  private async processTasks(): Promise<void> {
+    // console.log(chalk.blue(`starting processTasks`))
+    if (this.processing) {
+      return
     }
+
+    const concurrencyLimit = defaultTaskConcurrency
 
     this.log.silly("")
     this.log.silly("TaskGraph: this.index before processing")
     this.log.silly("---------------------------------------")
     this.log.silly(yaml.safeDump(this.index.inspect(), { noRefs: true, skipInvalid: true }))
 
-    const _this = this
     const results: TaskResults = {}
 
     this.garden.events.emit("taskGraphProcessing", { startedAt: new Date() })
 
     const loop = async () => {
-      if (_this.index.length === 0) {
+      const availableConcurrency = concurrencyLimit - this.inProgress.length
+
+      // We don't add tasks that have one or more dependencies in progress.
+      const pendingRootCount = this.roots.getNodes()
+        .filter(n => !this.inProgress.contains(n))
+        .length
+
+      // TODO: Explain logic
+      if (availableConcurrency - pendingRootCount > 0) {
+        const tasksToAdd = this.pendingTasks
+          .splice(0, availableConcurrency - pendingRootCount)
+          .map(t => this.latestTasks[t.getKey()])
+        await this.addTasks(tasksToAdd)
+      }
+
+      // console.log(chalk.magenta(`loop: this.index.length ${this.index.length} this.pendingTasks.length ${this.pendingTasks.length}`))
+
+      if (this.index.length === 0 && this.pendingTasks.length === 0) {
         // done!
         this.logEntryMap.counter && this.logEntryMap.counter.setDone({ symbol: "info" })
+        this.processing = false
         this.garden.events.emit("taskGraphComplete", { completedAt: new Date() })
         return
       }
 
-      const batch = _this.roots.getNodes()
+      const pendingRootNodes = this.roots.getNodes()
         .filter(n => !this.inProgress.contains(n))
-        .slice(0, concurrencyLimit - this.inProgress.length)
+
+      // We process the oldest root notes first.
+      const batch = sortBy(pendingRootNodes, n => n.nodeCreatedAt)
+        .slice(0, availableConcurrency)
 
       batch.forEach(n => this.inProgress.addNode(n))
       this.rebuild()
 
       this.initLogging()
 
-      const analytics = await new AnalyticsHandler(this.garden).init()
+      // TODO-DODDI: add async factory method for TaskGraph and init & assign this there (adapt unit tests as needed)
+      // const analytics = await new AnalyticsHandler(this.garden).init()
 
-      return Bluebird.map(batch, async (node: TaskNode) => {
+      Bluebird.each(batch, async (node: TaskNode) => {
         const task = node.task
         const name = task.getName()
         const type = node.getType()
         const key = node.getKey()
         const description = node.getDescription()
 
-        let result: TaskResult
-        let success = true
+        let result: TaskResult = { type, description, key: task.getKey(), name: task.getName() }
 
         try {
           this.logTask(node)
           this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
-          const dependencyBaseKeys = (await task.getDependencies())
+          const dependencyKeys = (await task.getDependencies())
             .map(dep => dep.getKey())
 
           const dependencyResults = merge(
-            this.resultCache.pick(dependencyBaseKeys),
-            pick(results, dependencyBaseKeys))
+            this.resultCache.pick(dependencyKeys),
+            pick(results, dependencyKeys))
+
+          const startedAt = new Date()
 
           try {
-            this.pendingKeys.delete(task.getKey())
             this.garden.events.emit("taskProcessing", {
               name,
               type,
-              key,
-              startedAt: new Date(),
+              startedAt,
+              key: task.getKey(),
               version: task.version,
             })
             result = await node.process(dependencyResults)
 
+            // TODO-DODDI: uncomment
             // Track task if user has opted-in
-            analytics.trackTask(result.key, result.type)
+            // analytics.trackTask(result.key, result.type)
 
             this.garden.events.emit("taskComplete", result)
           } catch (error) {
-            success = false
-            result = { type, description, key, name, error, completedAt: new Date() }
+            result.error = error
+            result.completedAt = new Date()
             this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
-            this.cancelDependants(node)
+            this.cancelDependants(node, startedAt)
           } finally {
-            // We know the result got assigned in either the try or catch clause
-            results[key] = result!
-            this.resultCache.put(key, task.version.versionString, result!)
+            results[key] = result
+            this.resultCache.put(key, task.version.versionString, result)
+            this.provideResultToProcessRequests(result)
           }
         } finally {
-          this.completeTask(node, success)
+          this.completeTask(node, !result.error)
         }
 
         return loop()
       })
     }
-
     await loop()
-
+    // this.garden.events.emit("taskGraphComplete", { completedAt: new Date() })
     this.rebuild()
+    this.processing = false
+  }
 
-    for (const resultKey of resultKeys) {
-      if (!results[resultKey]) {
-        // We know there's a cached result for resultKey, since each key in resultKeys
-        // corresponds to a task that was processed during this run of processTasks, or
-        // during a previous run of processTasks. See the process method above for details.
-        results[resultKey] = this.resultCache.getNewest(resultKey)!
+  private provideResultToProcessRequests(result: TaskResult): void {
+    const fulfilled: ProcessRequest[] = []
+    for (const request of this.processRequests) {
+      const requestFulfilled = request.taskFinished(result)
+      if (requestFulfilled) {
+        fulfilled.push(request)
       }
     }
+    this.processRequests = without(this.processRequests, ...fulfilled)
+  }
 
-    return results
+  private provideCachedResultToProcessRequests(result: TaskResult, depResults: TaskResult[]) {
+    const fulfilled: ProcessRequest[] = []
+    for (const request of this.processRequests) {
+      const requestFulfilled = request.taskCached(result, depResults)
+      if (requestFulfilled) {
+        fulfilled.push(request)
+      }
+    }
+    this.processRequests = without(this.processRequests, ...fulfilled)
+  }
+
+  private cancelKeyForProcessRequests(key: string, addedAt: Date): void {
+    const fulfilled: ProcessRequest[] = []
+    for (const request of this.processRequests) {
+      const requestFulfilled = request.cancelKey(key, addedAt)
+      if (requestFulfilled) {
+        fulfilled.push(request)
+      }
+    }
+    this.processRequests = without(this.processRequests, ...fulfilled)
   }
 
   private addNode(task: BaseTask): TaskNode | null {
@@ -299,7 +370,8 @@ export class TaskGraph {
 
   private completeTask(node: TaskNode, success: boolean) {
     if (node.getDependencies().length > 0) {
-      throw new TaskGraphError(`Task ${node.getId()} still has unprocessed dependencies`)
+      const incompleteDeps = node.getDependencies().map(d => d.getKey())
+      throw new TaskGraphError(`Task ${node.getId()} still has unprocessed dependencies: ${incompleteDeps}`)
     }
 
     this.remove(node)
@@ -310,11 +382,11 @@ export class TaskGraph {
   private remove(node: TaskNode) {
     this.index.removeNode(node)
     this.inProgress.removeNode(node)
-    this.pendingKeys.delete(node.getKey())
+    // this.pendingKeys.delete(node.getKey())
   }
 
   // Recursively remove node's dependants, without removing node.
-  private cancelDependants(node: TaskNode) {
+  private cancelDependants(node: TaskNode, startedAt: Date) {
     const cancelledAt = new Date()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
@@ -325,6 +397,7 @@ export class TaskGraph {
         type: dependant.getType(),
       })
       this.remove(dependant)
+      this.cancelKeyForProcessRequests(dependant.getKey(), startedAt)
     }
     this.rebuild()
   }
@@ -479,11 +552,13 @@ class TaskNodeMap {
 
 class TaskNode {
   task: BaseTask
+  nodeCreatedAt: Date // Used for sorting when picking batches during processing.
 
   private dependencies: TaskNodeMap
 
   constructor(task: BaseTask) {
     this.task = task
+    this.nodeCreatedAt = new Date()
     this.dependencies = new TaskNodeMap()
   }
 
@@ -539,6 +614,78 @@ class TaskNode {
   }
 }
 
+class ProcessRequest {
+
+  requestedAt: Date
+  remainingKeys: Set<string>
+  results: TaskResults
+
+  requestPromise: Promise<TaskResults>
+  resolveRequest: any
+  rejectRequest: any
+
+  number: number
+
+  constructor(taskKeys: string[]) {
+    this.requestedAt = new Date()
+    this.remainingKeys = new Set(taskKeys)
+    this.results = {}
+    const { promise, resolver, rejecter } = defer<TaskResults>()
+    this.requestPromise = promise
+    this.resolveRequest = resolver
+    this.rejectRequest = rejecter
+  }
+
+  /**
+   * Used for taskComplete and taskError.
+   */
+  taskFinished(result: TaskResult): boolean {
+    const key = result.key
+    if (result.completedAt! < this.requestedAt || !this.remainingKeys.has(key)) {
+      return false
+    }
+
+    this.results[key] = result
+    this.remainingKeys.delete(key)
+    if (this.remainingKeys.size === 0) {
+      this.resolveRequest(this.results)
+      return true
+    } else {
+      return false
+    }
+  }
+
+  taskCached(result: TaskResult, depResults: TaskResult[]): boolean {
+    this.results[result.key] = result
+    this.remainingKeys.delete(result.key)
+    for (const depResult of depResults) {
+      this.results[depResult.key] = depResult
+      this.remainingKeys.delete(depResult.key)
+    }
+    if (this.remainingKeys.size === 0) {
+      this.resolveRequest(this.results)
+      return true
+    } else {
+      return false
+    }
+  }
+
+  cancelKey(key: string, addedAt: Date): boolean {
+    if (addedAt < this.requestedAt || !this.remainingKeys.has(key)) {
+      return false
+    }
+
+    this.remainingKeys.delete(key)
+    if (this.remainingKeys.size === 0) {
+      this.resolveRequest(this.results)
+      return true
+    } else {
+      return false
+    }
+  }
+
+}
+
 interface CachedResult {
   result: TaskResult,
   versionString: string
@@ -587,6 +734,31 @@ class ResultCache {
     return results
   }
 
+}
+
+async function withDependencies(task: BaseTask): Promise<BaseTask[]> {
+  const taskWithDependencies: BaseTask[] = []
+
+  const withDeps = async (t: BaseTask, tasks: BaseTask[]) => {
+    tasks.push(t)
+    await Bluebird.map(await t.getDependencies(), (dep) => withDeps(dep, tasks))
+  }
+
+  await withDeps(task, taskWithDependencies)
+  taskWithDependencies.splice(0)
+  return taskWithDependencies
+}
+
+async function keysWithDependencies(tasks: BaseTask[]): Promise<string[]> {
+  const keySet = new Set<string>()
+
+  const getKeys = async (task: BaseTask, keys: Set<string>) => {
+    keys.add(task.getKey())
+    await Bluebird.map(await task.getDependencies(), (dep) => getKeys(dep, keys))
+  }
+
+  await Bluebird.map(tasks, (task) => getKeys(task, keySet))
+  return [...keySet]
 }
 
 interface LogEntryMap { [key: string]: LogEntry }

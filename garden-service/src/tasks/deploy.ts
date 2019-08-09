@@ -149,9 +149,7 @@ export class DeployTask extends BaseTask {
     })
 
     const actions = await this.garden.getActionHelper()
-
     let status = serviceStatuses[this.service.name]
-
     const { versionString } = version
 
     const log = this.log.info({
