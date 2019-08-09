@@ -194,6 +194,10 @@ describe("startServer", () => {
     it("should correctly map arguments and options to commands", (done) => {
       const id = uuid.v4()
       onMessage((req) => {
+        // Ignore other events such as taskPending and taskProcessing and wait for the command result
+        if ((<any>req).type !== "commandResult") {
+          return
+        }
         const taskResult = taskResultOutputs((<any>req).result)
         const result = {
           ...req,
