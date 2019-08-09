@@ -66,10 +66,6 @@ export async function resolveRequest(
   // Prepare arguments for command action.
   const command = commandSpec.command
 
-  // TODO: Creating a new Garden instance is not ideal,
-  //       need to revisit once we've refactored the TaskGraph and config resolution.
-  const cmdGarden = await Garden.factory(garden.projectRoot, garden.opts)
-
   // We generally don't want actions to log anything in the server.
   const cmdLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
 
@@ -78,7 +74,7 @@ export async function resolveRequest(
   const cmdOpts = mapParams(ctx, request.parameters, optParams)
 
   return command.action({
-    garden: cmdGarden,
+    garden,
     log: cmdLog,
     headerLog: cmdLog,
     footerLog: cmdLog,
