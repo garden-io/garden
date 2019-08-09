@@ -299,6 +299,26 @@ hotReload:
     - target: "/app/src"
 ```
 
+### `hotReload.sync[].callback[]`
+
+[hotReload](#hotreload) > [sync](#hotreload.sync[]) > callback
+
+A optional command to run inside the container after syncing. Applies only to files belonging to this source/target pair.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+hotReload:
+  ...
+  sync:
+    - callback:
+      - rebuild-static-assets.sh
+```
+
 ### `dockerfile`
 
 POSIX-style name of Dockerfile, relative to module root.
@@ -1011,6 +1031,7 @@ hotReload:
   sync:
     - source: .
       target:
+      callback:
 dockerfile:
 services:
   - name:

@@ -109,10 +109,20 @@ const hotReloadSyncSchema = joi.object()
         POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
         not allowed.`)
       .example("/app/src"),
+    callback: joi.array().items(joi.string())
+      .optional()
+      .description(deline`
+        A optional command to run inside the container after syncing. Applies only to files belonging to this
+        source/target pair.`)
+      .example([["rebuild-static-assets.sh"], {}]),
   })
 
+export interface HotReloadSyncPairSpec extends FileCopySpec {
+  callback?: string[]
+}
+
 export interface ContainerHotReloadSpec {
-  sync: FileCopySpec[]
+  sync: HotReloadSyncPairSpec[]
 }
 
 const hotReloadConfigSchema = joi.object()

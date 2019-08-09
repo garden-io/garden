@@ -18,6 +18,7 @@ import { set } from "lodash"
 import { Service } from "../../types/service"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
+import { execInDeployment } from "./container/run"
 import { waitForContainerService } from "./container/status"
 import { getPortForward, killPortForward } from "./port-forward"
 import { RSYNC_PORT } from "./constants"
@@ -239,13 +240,29 @@ export async function syncToService(
   const doSync = async () => {
     const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: RSYNC_PORT })
 
-    return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
+    return Bluebird.map(hotReloadSpec.sync, async ({ source, target, callback }) => {
       const src = rsyncSourcePath(service.sourceModule.path, source)
       const destination = `rsync://localhost:${portForward.localPort}/volume/${rsyncTargetPath(target)}`
 
       log.debug(`Hot-reloading from ${src} to ${destination}`)
 
-      return execa("rsync", ["-vrpztgo", src, destination])
+      const rsyncResult = await execa("rsync", ["-vrpztgo", src, destination])
+
+      // TODO: Allow DaemonSet and StatefulSet?
+      if (callback && targetKind === "Deployment") {
+        // Run post-sync callback inside the pod
+        const callbackResult = await execInDeployment({
+          log,
+          namespace,
+          command: callback,
+          provider: ctx.provider,
+          deploymentName: targetName,
+          interactive: false,
+        })
+        log.debug(`Running callback "${callback}" for ${targetName}, output: ${callbackResult.output}`)
+      }
+
+      return rsyncResult
     })
   }
 
