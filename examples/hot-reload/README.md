@@ -17,6 +17,7 @@ In the `garden.yml` file of the `node-service` module we first enable hot-reload
 hotReload:
   sync:
     - target: /app/
+
 ...
 
 ```
