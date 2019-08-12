@@ -13,12 +13,13 @@ import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
 import { PassThrough } from "stream"
 import * as hasha from "hasha"
 
-import { VcsHandler, RemoteSourceParams, VcsFile } from "./vcs"
+import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import * as Bluebird from "bluebird"
-import { matchGlobs } from "../util/fs"
+import { matchPath } from "../util/fs"
 import { deline } from "../util/string"
 import { splitLast } from "../util/util"
+import { LogEntry } from "../logger/log-entry"
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -50,8 +51,9 @@ interface GitCli {
 export class GitHandler extends VcsHandler {
   name = "git"
 
-  private gitCli(cwd: string): GitCli {
+  private gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: string[]) => {
+      log.silly(`Calling git with args '${args.join(" ")}`)
       const output = await execa.stdout("git", args, { cwd })
       return output.split("\n").filter(line => line.length > 0)
     }
@@ -70,8 +72,8 @@ export class GitHandler extends VcsHandler {
     }
   }
 
-  async getFiles(path: string, include?: string[], exclude?: string[]): Promise<VcsFile[]> {
-    const git = this.gitCli(path)
+  async getFiles({ log, path, include, exclude }: GetFilesParams): Promise<VcsFile[]> {
+    const git = this.gitCli(log, path)
 
     let lines: string[] = []
     let ignored: string[] = []
@@ -118,8 +120,7 @@ export class GitHandler extends VcsHandler {
     const modified = new Set(modifiedArr)
 
     const filtered = files
-      .filter(f => !include || matchGlobs(f.path, include))
-      .filter(f => !exclude || !matchGlobs(f.path, exclude))
+      .filter(f => matchPath(f.path, include, exclude))
       .filter(f => !ignored.includes(f.path))
 
     return Bluebird.map(filtered, async (f) => {
@@ -147,8 +148,10 @@ export class GitHandler extends VcsHandler {
     }).filter(f => f.hash !== "")
   }
 
-  private async cloneRemoteSource(remoteSourcesPath: string, repositoryUrl: string, hash: string, absPath: string) {
-    const git = this.gitCli(remoteSourcesPath)
+  private async cloneRemoteSource(
+    log: LogEntry, remoteSourcesPath: string, repositoryUrl: string, hash: string, absPath: string,
+  ) {
+    const git = this.gitCli(log, remoteSourcesPath)
     return git("clone", "--depth=1", `--branch=${hash}`, repositoryUrl, absPath)
   }
 
@@ -165,7 +168,7 @@ export class GitHandler extends VcsHandler {
       const { repositoryUrl, hash } = parseGitUrl(url)
 
       try {
-        await this.cloneRemoteSource(remoteSourcesPath, repositoryUrl, hash, absPath)
+        await this.cloneRemoteSource(log, remoteSourcesPath, repositoryUrl, hash, absPath)
       } catch (err) {
         entry.setError()
         throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
@@ -182,7 +185,7 @@ export class GitHandler extends VcsHandler {
 
   async updateRemoteSource({ url, name, sourceType, log }: RemoteSourceParams) {
     const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
-    const git = this.gitCli(absPath)
+    const git = this.gitCli(log, absPath)
     const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, log })

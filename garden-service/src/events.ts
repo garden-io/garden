@@ -68,7 +68,7 @@ export interface Events {
   },
   moduleSourcesChanged: {
     names: string[],
-    pathChanged: string,
+    pathsChanged: string[],
   },
   moduleRemoved: {
   },

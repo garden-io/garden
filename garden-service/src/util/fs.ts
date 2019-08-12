@@ -17,6 +17,7 @@ import { join, basename, win32, posix } from "path"
 import { ValidationError } from "../exceptions"
 import { platform } from "os"
 import { VcsHandler } from "../vcs/vcs"
+import { LogEntry } from "../logger/log-entry"
 
 const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
 const metadataFilename = "metadata.json"
@@ -111,11 +112,11 @@ export async function getChildDirNames(parentDir: string): Promise<string[]> {
  * @param {string} dir The directory to scan
  */
 export async function findConfigPathsInPath(
-  vcs: VcsHandler, dir: string,
-  { include, exclude }: { include?: string[], exclude?: string[] } = {},
+  { vcs, dir, include, exclude, log }:
+    { vcs: VcsHandler, dir: string, include?: string[], exclude?: string[], log: LogEntry },
 ) {
   // TODO: we could make this lighter/faster using streaming
-  const files = await vcs.getFiles(dir, include, [...exclude || [], ...fixedExcludes])
+  const files = await vcs.getFiles({ path: dir, include, exclude: [...exclude || [], ...fixedExcludes], log })
   return files
     .map(f => f.path)
     .filter(f => isConfigFilename(basename(f)))
@@ -143,6 +144,21 @@ export function normalizeLocalRsyncPath(path: string) {
  */
 export function matchGlobs(path: string, patterns: string[]): boolean {
   return some(patterns, pattern => minimatch(path, pattern))
+}
+
+/**
+ * Check if a path passes through given include/exclude filters.
+ *
+ * @param path A POSIX-style path
+ * @param include List of globs to match for inclusion, or undefined
+ * @param exclude List of globs to match for exclusion, or undefined
+ */
+export function matchPath(path: string, include?: string[], exclude?: string[]) {
+  return (
+    (!include || matchGlobs(path, include))
+    &&
+    (!exclude || !matchGlobs(path, exclude))
+  )
 }
 
 /**

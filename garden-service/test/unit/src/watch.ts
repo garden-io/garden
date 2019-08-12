@@ -36,10 +36,23 @@ describe("Watcher", () => {
     doubleModulePath = resolve(garden.projectRoot, "double-module")
     includeModulePath = resolve(garden.projectRoot, "with-include")
     moduleContext = pathToCacheContext(modulePath)
-    await garden.startWatcher(await garden.getConfigGraph())
+    await garden.startWatcher(await garden.getConfigGraph(), 10)
   })
 
   beforeEach(async () => {
+    garden.events.clearLog()
+    garden["watcher"]["addBuffer"] = {}
+    garden["watcher"].start()
+  })
+
+  afterEach(async () => {
+    garden["watcher"].stop()
+
+    // Wait for processing to complete
+    while (garden["watcher"].processing) {
+      await sleep(100)
+    }
+
     garden.events.clearLog()
   })
 
@@ -84,6 +97,7 @@ describe("Watcher", () => {
   it("should emit a projectConfigChanged changed event when project config is removed", async () => {
     const path = await getConfigFilePath(garden.projectRoot)
     emitEvent(garden, "unlink", path)
+    await waitForEvent("projectConfigChanged")
     expect(garden.events.eventLog).to.eql([
       { name: "projectConfigChanged", payload: {} },
     ])
@@ -110,8 +124,9 @@ describe("Watcher", () => {
   })
 
   it("should emit a configRemoved event when removing a garden.yml file", async () => {
-    const path = await getConfigFilePath(join(garden.projectRoot, "module-b"))
+    const path = await getConfigFilePath(join(garden.projectRoot, "module-a"))
     emitEvent(garden, "unlink", path)
+    await waitForEvent("configRemoved")
     expect(garden.events.eventLog).to.eql([
       { name: "configRemoved", payload: { path } },
     ])
@@ -119,36 +134,36 @@ describe("Watcher", () => {
 
   context("should emit a moduleSourcesChanged event", () => {
     it("containing the module's name when one of its files is changed", async () => {
-      const pathChanged = resolve(modulePath, "foo.txt")
-      emitEvent(garden, "change", pathChanged)
+      const pathsChanged = [resolve(modulePath, "foo.txt")]
+      emitEvent(garden, "change", pathsChanged[0])
       expect(garden.events.eventLog).to.eql([
-        { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathChanged } },
+        { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathsChanged } },
       ])
     })
 
     it("if a file is changed and it matches a module's include list", async () => {
-      const pathChanged = resolve(includeModulePath, "subdir", "foo2.txt")
-      emitEvent(garden, "change", pathChanged)
+      const pathsChanged = [resolve(includeModulePath, "subdir", "foo2.txt")]
+      emitEvent(garden, "change", pathsChanged[0])
       expect(garden.events.eventLog).to.eql([
-        { name: "moduleSourcesChanged", payload: { names: ["with-include"], pathChanged } },
+        { name: "moduleSourcesChanged", payload: { names: ["with-include"], pathsChanged } },
       ])
     })
 
     it("if a file is added to a module", async () => {
-      const pathChanged = resolve(modulePath, "new.txt")
+      const path = resolve(modulePath, "new.txt")
       try {
-        await createFile(pathChanged)
-        expect(await waitForEvent("moduleSourcesChanged")).to.eql({ names: ["module-a"], pathChanged })
+        await createFile(path)
+        expect(await waitForEvent("moduleSourcesChanged")).to.eql({ names: ["module-a"], pathsChanged: [path] })
       } finally {
-        await pathExists(pathChanged) && await remove(pathChanged)
+        await pathExists(path) && await remove(path)
       }
     })
 
     it("containing both modules' names when a source file is changed for two co-located modules", async () => {
-      const pathChanged = resolve(doubleModulePath, "foo.txt")
-      emitEvent(garden, "change", pathChanged)
+      const pathsChanged = [resolve(doubleModulePath, "foo.txt")]
+      emitEvent(garden, "change", pathsChanged[0])
       expect(garden.events.eventLog).to.eql([
-        { name: "moduleSourcesChanged", payload: { names: ["module-b", "module-c"], pathChanged } },
+        { name: "moduleSourcesChanged", payload: { names: ["module-b", "module-c"], pathsChanged } },
       ])
     })
   })
@@ -185,11 +200,11 @@ describe("Watcher", () => {
   })
 
   it("should emit a moduleSourcesChanged event when a directory is added under a module directory", async () => {
-    const pathChanged = resolve(modulePath, "subdir")
-    emitEvent(garden, "addDir", pathChanged)
+    const pathsChanged = [resolve(modulePath, "subdir")]
+    emitEvent(garden, "addDir", pathsChanged[0])
     expect(await waitForEvent("moduleSourcesChanged")).to.eql({
       names: ["module-a"],
-      pathChanged,
+      pathsChanged,
     })
   })
 
@@ -202,16 +217,45 @@ describe("Watcher", () => {
 
   it("should emit a moduleRemoved event if a directory containing a module is removed", async () => {
     emitEvent(garden, "unlinkDir", modulePath)
+    await waitForEvent("moduleRemoved")
     expect(garden.events.eventLog).to.eql([
       { name: "moduleRemoved", payload: {} },
     ])
   })
 
   it("should emit a moduleSourcesChanged event if a directory within a module is removed", async () => {
-    const pathChanged = resolve(modulePath, "subdir")
-    emitEvent(garden, "unlinkDir", pathChanged)
+    const pathsChanged = [resolve(modulePath, "subdir")]
+    emitEvent(garden, "unlinkDir", pathsChanged[0])
+    await waitForEvent("moduleSourcesChanged")
     expect(garden.events.eventLog).to.eql([
-      { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathChanged } },
+      { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathsChanged } },
+    ])
+  })
+
+  it("should emit a moduleSourcesChanged event if a module's file is removed", async () => {
+    const pathsChanged = [resolve(modulePath, "foo.txt")]
+    emitEvent(garden, "unlink", pathsChanged[0])
+    await waitForEvent("moduleSourcesChanged")
+    expect(garden.events.eventLog).to.eql([
+      { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathsChanged } },
+    ])
+  })
+
+  // Note: This is to ensure correct handling of version file lists and cache invalidation
+  it("should correctly handle removing a file and then re-adding it", async () => {
+    const pathsChanged = [resolve(modulePath, "foo.txt")]
+    emitEvent(garden, "unlink", pathsChanged[0])
+    await waitForEvent("moduleSourcesChanged")
+    expect(garden.events.eventLog).to.eql([
+      { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathsChanged } },
+    ])
+
+    garden.events.eventLog = []
+
+    emitEvent(garden, "add", pathsChanged[0])
+    await waitForEvent("moduleSourcesChanged")
+    expect(garden.events.eventLog).to.eql([
+      { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathsChanged } },
     ])
   })
 
@@ -276,10 +320,10 @@ describe("Watcher", () => {
     })
 
     it("should emit a moduleSourcesChanged event when a linked module source is changed", async () => {
-      const pathChanged = resolve(localModuleSourceDir, "module-a", "foo.txt")
-      emitEvent(garden, "change", pathChanged)
+      const pathsChanged = [resolve(localModuleSourceDir, "module-a", "foo.txt")]
+      emitEvent(garden, "change", pathsChanged[0])
       expect(garden.events.eventLog).to.eql([
-        { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathChanged } },
+        { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathsChanged } },
       ])
     })
   })
@@ -345,10 +389,10 @@ describe("Watcher", () => {
     })
 
     it("should emit a moduleSourcesChanged event when a linked project source is changed", async () => {
-      const pathChanged = resolve(localProjectSourceDir, "source-a", "module-a", "foo.txt")
-      emitEvent(garden, "change", pathChanged)
+      const pathsChanged = [resolve(localProjectSourceDir, "source-a", "module-a", "foo.txt")]
+      emitEvent(garden, "change", pathsChanged[0])
       expect(garden.events.eventLog).to.eql([
-        { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathChanged } },
+        { name: "moduleSourcesChanged", payload: { names: ["module-a"], pathsChanged } },
       ])
     })
   })
