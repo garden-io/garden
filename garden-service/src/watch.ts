@@ -53,6 +53,7 @@ export class Watcher {
   private watcher: FSWatcher
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
+  public processing: boolean
 
   constructor(
     private garden: Garden,
@@ -63,6 +64,7 @@ export class Watcher {
   ) {
     this.buffer = {}
     this.running = false
+    this.processing = false
     this.start()
   }
 
@@ -107,6 +109,7 @@ export class Watcher {
     this.processBuffer()
       .catch((err: Error) => {
         // Log error and restart loop
+        this.processing = false
         this.watcher.emit("error", err)
         this.start()
       })
@@ -114,7 +117,9 @@ export class Watcher {
 
   private async processBuffer() {
     while (this.running) {
+      this.processing = false
       await sleep(this.bufferInterval)
+      this.processing = true
 
       const allChanged = Object.values(this.buffer)
       this.buffer = {}
@@ -128,67 +133,23 @@ export class Watcher {
 
       this.log.silly(`Watcher: Processing ${added.length} added and ${removed.length} removed path(s)`)
 
-      // Check if a config file was added
-      for (const p of added) {
-        if (isConfigFilename(basename(p.path))) {
-          this.invalidateCached(this.modules)
-          this.garden.events.emit("configAdded", { path: p.path })
+      // These three checks all emit the appropriate events and then return true if configuration is affected.
+      // If configuration is affected, there is no need to proceed because that will trigger a full reload of the
+      // Garden instance.
 
-          // Return because the config change will trigger a reload
-          continue
-        }
+      // Check if any added file is a config file
+      if (this.checkForAddedConfig(added)) {
+        continue
       }
 
-      let modulesRemoved = false
-
-      for (const p of removed) {
-        // Check if project config was removed
-        const { dir, base } = parse(p.path)
-        if (dir === this.garden.projectRoot && isConfigFilename(base)) {
-          this.garden.events.emit("projectConfigChanged", {})
-          continue
-        }
-
-        // Check if any module directory was removed
-        for (const module of this.modules) {
-          if (p.type === "dir" && module.path.startsWith(p.path)) {
-            // at least one module's root dir was removed
-            this.invalidateCached(this.modules)
-            this.garden.events.emit("moduleRemoved", {})
-            modulesRemoved = true
-          }
-        }
-      }
-
-      if (modulesRemoved) {
-        // No need to continue if modules removed (this will trigger a reload)
+      // Check if any config file or module dir was removed
+      if (this.checkForRemovedConfig(removed)) {
         continue
       }
 
       // Check if any directories containing config files were added
-      const directoryPaths = added.filter(a => a.type === "dir").map(a => a.path)
-
-      if (directoryPaths.length > 0) {
-        // Check added directories for new config files
-        let dirWithConfigAdded = false
-
-        await Bluebird.map(directoryPaths, async (path) => {
-          const configPaths = await this.garden.scanForConfigs(path)
-
-          if (configPaths.length > 0) {
-            // The added dir contains one or more garden.yml files
-            this.invalidateCached(this.modules)
-            for (const configPath of configPaths) {
-              this.garden.events.emit("configAdded", { path: configPath })
-            }
-            dirWithConfigAdded = true
-          }
-        })
-
-        if (dirWithConfigAdded) {
-          // Return because the config change will trigger a reload
-          continue
-        }
+      if (await this.checkForAddedDirWithConfig(added)) {
+        continue
       }
 
       // First filter modules by path prefix, and include/exclude filters if applicable
@@ -199,6 +160,7 @@ export class Watcher {
         })
       })
 
+      // No need to proceed if no modules are affected
       if (applicableModules.length === 0) {
         this.log.silly(`Watcher: No applicable modules for ${allChanged.length} changed path(s)`)
         continue
@@ -215,6 +177,67 @@ export class Watcher {
 
       added.length > 0 && this.sourcesChanged(added)
     }
+
+    this.processing = false
+  }
+
+  private checkForAddedConfig(added: ChangedPath[]) {
+    for (const p of added) {
+      if (isConfigFilename(basename(p.path))) {
+        this.invalidateCached(this.modules)
+        this.garden.events.emit("configAdded", { path: p.path })
+        return true
+      }
+    }
+
+    return false
+  }
+
+  private checkForRemovedConfig(removed: ChangedPath[]) {
+    for (const p of removed) {
+      // Check if project config was removed
+      const { dir, base } = parse(p.path)
+      if (dir === this.garden.projectRoot && isConfigFilename(base)) {
+        this.garden.events.emit("projectConfigChanged", {})
+        return true
+      }
+
+      // Check if any module directory was removed
+      for (const module of this.modules) {
+        if (p.type === "dir" && module.path.startsWith(p.path)) {
+          // at least one module's root dir was removed
+          this.invalidateCached(this.modules)
+          this.garden.events.emit("moduleRemoved", {})
+          return true
+        }
+      }
+    }
+
+    return false
+  }
+
+  private async checkForAddedDirWithConfig(added: ChangedPath[]) {
+    let dirWithConfigAdded = false
+
+    const directoryPaths = added.filter(a => a.type === "dir").map(a => a.path)
+
+    if (directoryPaths.length > 0) {
+      // Check added directories for new config files
+      await Bluebird.map(directoryPaths, async (path) => {
+        const configPaths = await this.garden.scanForConfigs(path)
+
+        if (configPaths.length > 0) {
+          // The added dir contains one or more garden.yml files
+          this.invalidateCached(this.modules)
+          for (const configPath of configPaths) {
+            this.garden.events.emit("configAdded", { path: configPath })
+          }
+          dirWithConfigAdded = true
+        }
+      })
+    }
+
+    return dirWithConfigAdded
   }
 
   private async updateModules() {

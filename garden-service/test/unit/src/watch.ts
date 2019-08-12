@@ -46,8 +46,14 @@ describe("Watcher", () => {
   })
 
   afterEach(async () => {
-    garden.events.clearLog()
     garden["watcher"].stop()
+
+    // Wait for processing to complete
+    while (garden["watcher"].processing) {
+      await sleep(100)
+    }
+
+    garden.events.clearLog()
   })
 
   after(async () => {
