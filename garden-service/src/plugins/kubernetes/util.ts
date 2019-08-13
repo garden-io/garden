@@ -53,10 +53,42 @@ export async function getAllPodNames(api: KubeApi, namespace: string, resources:
 }
 
 /**
+ * Given a resources, try to retrieve a valid selector or return undefined otherwise.
+ */
+export function getSelectorFromResource(resource: KubernetesWorkload) {
+  // We check if the resource has its own selector
+  if (resource.spec && resource.spec.selector
+    && resource.spec.selector.matchLabels) {
+    return resource.spec.selector.matchLabels
+  }
+  // We check if the pod template has labels
+  if (resource.spec.template
+    && resource.spec.template.metadata
+    && resource.spec.template.metadata.labels) {
+    return resource.spec.template.metadata.labels
+  }
+  // We check if the resource is from an Helm Chart
+  // (as in returned from kubernetes.helm.common.getChartResources(...))
+  if (resource.metadata
+    && resource.metadata.labels
+    && resource.metadata.labels.chart
+    && resource.metadata.labels.app) {
+    return {
+      app: resource.metadata.labels.app,
+    }
+  }
+
+  // No selector found.
+  throw new ConfigurationError(`No selector found for ${resource.metadata.name} while retrieving pods.`, {
+    resource,
+  })
+}
+
+/**
  * Retrieve a list of pods based on the provided label selector.
  */
 export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
-  const selector = resource.spec.selector.matchLabels
+  const selector = getSelectorFromResource(resource)
   const pods = await getPods(api, resource.metadata.namespace || namespace, selector)
 
   if (resource.kind === "Deployment") {
