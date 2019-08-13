@@ -218,7 +218,7 @@ export async function waitForResources({ ctx, provider, serviceName, resources, 
     }
   }
 
-  statusLine.setState({ symbol: "info", section: serviceName, msg: `Service deployed` })
+  statusLine.setState({ symbol: "info", section: serviceName, msg: `Resources ready` })
 }
 
 interface ComparisonResult {

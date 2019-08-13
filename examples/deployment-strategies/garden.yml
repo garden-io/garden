@@ -1,0 +1,28 @@
+kind: Project
+name: deployment-strategies
+environments:
+  # Default deployment strategy
+  - name: local
+    providers:
+      - name: local-kubernetes
+  # Default deployment strategy.
+  # Same as above but explicit
+  - name: local-default
+    providers:
+      - name: local-kubernetes
+        deploymentStrategy: rolling
+  # Blue-green deployment strategy.
+  - name: local-blue-green
+    providers:
+      - name: local-kubernetes
+        deploymentStrategy: blue-green
+  # Testing environment
+  - name: testing
+    providers:
+      - name: kubernetes
+        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        namespace: deployment-strategies-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+        defaultHostname: deployment-strategies-testing.dev-1.sys.garden
+        buildMode: cluster-docker
+        deploymentStrategy: blue-green
+

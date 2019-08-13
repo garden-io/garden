@@ -57,11 +57,15 @@ interface KubernetesStorage {
 
 export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 
+export type DefaultDeploymentStrategy = "rolling"
+export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
+
 export interface KubernetesBaseConfig extends ProviderConfig {
   buildMode: ContainerBuildMode
   context: string
   defaultHostname?: string
   defaultUsername?: string
+  deploymentStrategy?: DeploymentStrategy
   forceSsl: boolean
   imagePullSecrets: ProviderSecretRef[]
   ingressHttpPort: number
@@ -249,6 +253,17 @@ export const kubernetesConfigBase = providerConfigBaseSchema
       .example("api.mydomain.com"),
     defaultUsername: joiIdentifier()
       .description("Set a default username (used for namespacing within a cluster)."),
+    deploymentStrategy: joi.string()
+      .default("rolling")
+      .allow("rolling", "blue-green")
+      .description(dedent`
+        Defines the strategy for deploying the project services.
+        Default is "rolling update" and there is experimental support for "blue/green" deployment.
+        The feature only supports modules of type \`container\`: other types will just deploy using the default strategy.
+      `)
+      .meta({
+        experimental: true,
+      }),
     forceSsl: joi.boolean()
       .default(false)
       .description(

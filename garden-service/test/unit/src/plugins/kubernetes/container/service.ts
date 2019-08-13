@@ -5,6 +5,7 @@ import { resolve } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { expect } from "chai"
 import { ContainerService } from "../../../../../../src/plugins/container/config"
+import { gardenAnnotationKey } from "../../../../../../src/util/string"
 
 describe("createServiceResources", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -40,6 +41,7 @@ describe("createServiceResources", () => {
           ],
           selector: {
             service: "service-a",
+            [gardenAnnotationKey("version")]: service.module.version.versionString,
           },
           type: "ClusterIP",
         },
@@ -77,6 +79,7 @@ describe("createServiceResources", () => {
           ],
           selector: {
             service: "service-a",
+            [gardenAnnotationKey("version")]: service.module.version.versionString,
           },
           type: "ClusterIP",
         },
@@ -113,6 +116,7 @@ describe("createServiceResources", () => {
           ],
           selector: {
             service: "service-a",
+            [gardenAnnotationKey("version")]: service.module.version.versionString,
           },
           type: "NodePort",
         },
@@ -148,6 +152,7 @@ describe("createServiceResources", () => {
           ],
           selector: {
             service: "service-a",
+            [gardenAnnotationKey("version")]: service.module.version.versionString,
           },
           type: "NodePort",
         },

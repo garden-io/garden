@@ -47,6 +47,7 @@ interface MetadataKeys {
   internal?: boolean
   deprecated?: boolean
   extendable?: boolean
+  experimental?: boolean
 }
 
 // Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).
