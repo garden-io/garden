@@ -7,9 +7,8 @@
  */
 
 import { HelmModule } from "./config"
-import { containsSource, getChartPath, getValuesPath, getBaseModule } from "./common"
+import { containsSource, getChartPath, getGardenValuesPath, getBaseModule } from "./common"
 import { helm } from "./helm-cli"
-import { safeLoad } from "js-yaml"
 import { dumpYaml } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
@@ -45,16 +44,12 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
 
   // create the values.yml file (merge the configured parameters into the default values)
   log.debug("Preparing chart...")
-  const chartValues = safeLoad(await helm(namespace, context, log, "inspect", "values", chartPath)) || {}
-
   // Merge with the base module's values, if applicable
   const specValues = baseModule ? jsonMerge(baseModule.spec.values, module.spec.values) : module.spec.values
 
-  const mergedValues = jsonMerge(chartValues, specValues)
-
-  const valuesPath = getValuesPath(chartPath)
+  const valuesPath = getGardenValuesPath(chartPath)
   log.silly(`Writing chart values to ${valuesPath}`)
-  await dumpYaml(valuesPath, mergedValues)
+  await dumpYaml(valuesPath, specValues)
 
   return { fresh: true }
 }

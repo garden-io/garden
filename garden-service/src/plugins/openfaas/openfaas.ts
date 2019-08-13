@@ -175,6 +175,7 @@ async function configureProvider(
         },
         securityContext: false,
       },
+      valueFiles: [],
     },
   }
 

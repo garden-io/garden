@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find, isEmpty, isPlainObject } from "lodash"
-import { join } from "path"
+import { find, isEmpty, isPlainObject, flatten } from "lodash"
+import { join, resolve } from "path"
 import { pathExists, writeFile, remove } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
 import { apply as jsonMerge } from "json-merge-patch"
@@ -29,6 +29,8 @@ import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../types/plugin/base"
 import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "../constants"
 
+const gardenValuesFilename = "garden-values.yml"
+
 /**
  * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
  */
@@ -42,7 +44,6 @@ export async function containsSource(config: HelmModuleConfig) {
  */
 export async function getChartResources(ctx: PluginContext, module: Module, log: LogEntry) {
   const chartPath = await getChartPath(module)
-  const valuesPath = getValuesPath(chartPath)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
     log,
@@ -57,7 +58,7 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
     "template",
     "--name", releaseName,
     "--namespace", namespace,
-    "--values", valuesPath,
+    ...await getValueFileArgs(module),
     chartPath,
   ))
 
@@ -125,8 +126,22 @@ export async function getChartPath(module: HelmModule) {
 /**
  * Get the path to the values file that we generate (garden-values.yml) within the chart directory.
  */
-export function getValuesPath(chartPath: string) {
-  return join(chartPath, "garden-values.yml")
+export function getGardenValuesPath(chartPath: string) {
+  return join(chartPath, gardenValuesFilename)
+}
+
+/**
+ * Get the value files arguments that should be applied to any helm install/render command.
+ */
+export async function getValueFileArgs(module: HelmModule) {
+  const chartPath = await getChartPath(module)
+  const gardenValuesPath = getGardenValuesPath(chartPath)
+
+  const valueFiles = module.spec.valueFiles
+    .map(f => resolve(module.buildPath, f))
+    .concat([gardenValuesPath])
+
+  return flatten(valueFiles.map(f => ["--values", f]))
 }
 
 /**
@@ -276,7 +291,6 @@ async function renderHelmTemplateString(
   ctx: PluginContext, log: LogEntry, module: Module, chartPath: string, value: string,
 ): Promise<string> {
   const tempFilePath = join(chartPath, "templates", cryptoRandomString({ length: 16 }))
-  const valuesPath = getValuesPath(chartPath)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
     log,
@@ -294,7 +308,7 @@ async function renderHelmTemplateString(
       "template",
       "--name", releaseName,
       "--namespace", namespace,
-      "--values", valuesPath,
+      ...await getValueFileArgs(module),
       "-x", tempFilePath,
       chartPath,
     ))

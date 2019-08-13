@@ -13,11 +13,11 @@ import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
 import {
   getChartPath,
-  getValuesPath,
   getReleaseName,
   getChartResources,
   findServiceResource,
   getServiceResourceSpec,
+  getValueFileArgs,
 } from "./common"
 import { getReleaseStatus, getServiceStatus } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
@@ -46,7 +46,6 @@ export async function deployService(
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const chartPath = await getChartPath(module)
-  const valuesPath = getValuesPath(chartPath)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const context = provider.config.context
   const releaseName = getReleaseName(module)
@@ -59,7 +58,7 @@ export async function deployService(
       "install", chartPath,
       "--name", releaseName,
       "--namespace", namespace,
-      "--values", valuesPath,
+      ...await getValueFileArgs(module),
       // Make sure chart gets purged if it fails to install
       "--atomic",
       "--timeout", "600",
@@ -74,7 +73,7 @@ export async function deployService(
       "upgrade", releaseName, chartPath,
       "--install",
       "--namespace", namespace,
-      "--values", valuesPath,
+      ...await getValueFileArgs(module),
     ]
     if (force) {
       upgradeArgs.push("--force")
