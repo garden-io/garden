@@ -1,4 +1,24 @@
 
+<a name="v0.10.5-alpha.0"></a>
+## [v0.10.5-alpha.0](https://github.com/garden-io/garden/compare/v0.10.4...v0.10.5-alpha.0) (2019-08-13)
+
+### Bug Fixes
+
+* exception when retrieving logs from helm resource ([5aa4e959](https://github.com/garden-io/garden/commit/5aa4e959))
+* pr bugs (TBS) ([461e5f64](https://github.com/garden-io/garden/commit/461e5f64))
+* plugin command issues (TBS) ([da326b93](https://github.com/garden-io/garden/commit/da326b93))
+* **remote-sources:** ensure Garden also watches linked repos ([060075f5](https://github.com/garden-io/garden/commit/060075f5))
+* **server:** re-use Garden instance when running commands for API calls ([5d873a0c](https://github.com/garden-io/garden/commit/5d873a0c))
+
+### Features
+
+* **core:** providers can now reference each others' outputs ([2ca2774c](https://github.com/garden-io/garden/commit/2ca2774c))
+
+### Improvement
+
+* **watcher:** adding/removing many files/dirs more performant ([#1087](https://github.com/garden-io/garden/issues/1087)) ([b1d0f9a9](https://github.com/garden-io/garden/commit/b1d0f9a9))
+
+
 <a name="v0.10.4"></a>
 ## [v0.10.4](https://github.com/garden-io/garden/compare/v0.10.3...v0.10.4) (2019-08-06)
 
