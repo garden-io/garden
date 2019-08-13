@@ -17,7 +17,7 @@ export interface DeployServiceParams<M extends Module = Module, S extends Module
   extends PluginServiceActionParamsBase<M, S> {
   force: boolean,
   hotReload: boolean,
-  runtimeContext: RuntimeContext
+  runtimeContext: RuntimeContext,
 }
 
 export const deployService = {

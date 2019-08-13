@@ -52,6 +52,8 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
   const namespace = config.namespace || projectName
   const _systemServices: string[] = []
 
+  const deploymentStrategy = config.deploymentStrategy || "rolling"
+
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
     // create dummy provider with just enough info needed for the getKubeConfig function
@@ -148,6 +150,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     context,
     defaultHostname,
     deploymentRegistry,
+    deploymentStrategy,
     forceSsl: false,
     imagePullSecrets: config.imagePullSecrets,
     ingressHttpPort: 80,

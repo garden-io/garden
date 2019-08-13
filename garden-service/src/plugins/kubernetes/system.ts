@@ -49,6 +49,7 @@ export async function getSystemGarden(
     environments: ["default"],
     name: ctx.provider.name,
     namespace: systemNamespace,
+    deploymentStrategy: "rolling",
     _systemServices: [],
   }
 

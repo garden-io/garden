@@ -49,3 +49,5 @@ tests:
   - name: remote-sources
     command: [npm, run, e2e-full, --, --project=remote-sources, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
+  - name: deployment-strategies
+    command: [npm, run, e2e-full, --, --project=deployment-strategies, --showlog=true, --env=testing]

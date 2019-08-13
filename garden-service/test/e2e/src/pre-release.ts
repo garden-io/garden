@@ -235,4 +235,25 @@ describe("PreReleaseTests", () => {
       })
     })
   }
+
+  if (project === "deployment-strategies") {
+    describe("deployment-strategies: top-level sanity checks", () => {
+      it("runs the dev command", async () => {
+        const gardenWatch = watchWithEnv(["dev"])
+
+        const testSteps = [
+          taskCompletedStep("deploy.backend", 1),
+          waitingForChangesStep(),
+          changeFileStep(resolve(projectPath, "backend/webserver/main.go"),
+            "change app code in backend service"),
+          taskCompletedStep("deploy.backend", 2),
+          changeFileStep(resolve(projectPath, "backend/garden.yml"),
+            "change garden.yml in backend service"),
+          commandReloadedStep(),
+        ]
+
+        await gardenWatch.run({ testSteps })
+      })
+    })
+  }
 })

@@ -86,6 +86,19 @@ Set a default username (used for namespacing within a cluster).
 | -------- | -------- |
 | `string` | No       |
 
+### `providers[].deploymentStrategy`
+
+[providers](#providers) > deploymentStrategy
+> ⚠️ **Experimental**: this is an experimental feature and the API might change in the future.  
+
+Defines the strategy for deploying the project services.
+Default is "rolling update" and there is experimental support for "blue/green" deployment.
+The feature only supports modules of type `container`: other types will just deploy using the default strategy.
+
+| Type     | Required | Default     |
+| -------- | -------- | ----------- |
+| `string` | No       | `"rolling"` |
+
 ### `providers[].forceSsl`
 
 [providers](#providers) > forceSsl
@@ -892,6 +905,7 @@ providers:
     buildMode: local-docker
     defaultHostname:
     defaultUsername:
+    deploymentStrategy: rolling
     forceSsl: false
     imagePullSecrets:
       - name:

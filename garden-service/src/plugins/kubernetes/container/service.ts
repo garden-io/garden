@@ -8,6 +8,7 @@
 
 import { V1ServicePort } from "@kubernetes/client-node"
 import { ContainerService } from "../../container/config"
+import { gardenAnnotationKey } from "../../../util/string"
 
 export async function createServiceResources(service: ContainerService, namespace: string) {
   const services: any = []
@@ -25,6 +26,7 @@ export async function createServiceResources(service: ContainerService, namespac
         ports: servicePorts,
         selector: {
           service: service.name,
+          [gardenAnnotationKey("version")]: service.module.version.versionString,
         },
         type,
       },
