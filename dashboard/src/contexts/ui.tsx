@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useState } from "react"
+import React, { useState, useContext } from "react"
 import { ServiceIngress } from "garden-service/build/src/types/service"
 import { RenderedNodeType } from "garden-service/build/src/config-graph"
+import { PickFromUnion } from "garden-service/build/src/util/util"
 
 interface UiState {
   isSidebarOpen: boolean
@@ -32,7 +33,12 @@ export type SelectEntity = (selectedEntity: SelectedEntity | null) => void
 export type SelectIngress = (ingress: ServiceIngress | null) => void
 export type OverviewSupportedFilterKeys = "modules" | "modulesInfo" | "services" | "servicesInfo" |
   "tasks" | "tasksInfo" | "tests" | "testsInfo"
-export type StackGraphSupportedFilterKeys = Exclude<RenderedNodeType, "publish">
+export type StackGraphSupportedFilterKeys = PickFromUnion<RenderedNodeType,
+  "test" |
+  "deploy" |
+  "build" |
+  "run"
+>
 export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "task"
 export type SelectedEntity = {
   type: EntityResultSupportedTypes,
@@ -82,9 +88,8 @@ interface UiStateAndActions {
   actions: UiActions,
 }
 
-export const UiStateContext = React.createContext<UiStateAndActions>({} as UiStateAndActions)
-
-const useUiState = () => {
+// FIXME: Use useReducer instead of useState to simplify updating
+const useUiStateProvider = () => {
   const [uiState, setState] = useState<UiState>(INITIAL_UI_STATE)
 
   const toggleSidebar = () => {
@@ -167,12 +172,21 @@ const useUiState = () => {
   }
 }
 
+// Type cast the initial value to avoid having to check whether the context exists in every context consumer.
+// Context is only undefined if the provider is missing which we assume is not the case.
+const Context = React.createContext<UiStateAndActions>({} as UiStateAndActions)
+
+/**
+ * Returns the state and UI actions via the Context
+ */
+export const useUiState = () => useContext(Context)
+
 export const UiStateProvider: React.FC = ({ children }) => {
-  const storeAndActions = useUiState()
+  const storeAndActions = useUiStateProvider()
 
   return (
-    <UiStateContext.Provider value={storeAndActions}>
+    <Context.Provider value={storeAndActions}>
       {children}
-    </UiStateContext.Provider>
+    </Context.Provider>
   )
 }

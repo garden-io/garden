@@ -94,14 +94,12 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 ### Structure
 
-The app is structured into presentational components (`src/components`), container components (`src/container`), and provider/consumer components (`src/context`).
+The app is structured into presentational components (`src/components`), container components (`src/container`), and context components (`src/contexts`).
 
 **Presentational components:** These are re-usable UI components. They receive outside data as props and have minimal state.
 
 **Container components:** These load data and pass to the presentational components. A container might call the API directly or obtain the data from a consumer component (or both).
 
-**Provider/consumer components:** These are re-usable components that contain "global" data that needs to be accessible by many (presentational) components in the tree. The provider/consumer pattern is a part of the new [React context API](https://reactjs.org/docs/context.html).
+**Context components:** [A Context](https://reactjs.org/docs/context.html) contains "global" state that needs to be accessible by other components down the tree. The context components use the [React Hooks API](https://reactjs.org/docs/hooks-intro.html) to create actions and manage the state that gets passed down.
 
 Maintaining this separation will make it easier to migrate to different state management patterns/tools as the app evolves.
-
-We also use the new [React Hooks API](https://reactjs.org/docs/hooks-intro.html) to manage data and state.

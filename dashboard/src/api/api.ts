@@ -14,15 +14,12 @@ import { TestResultOutput } from "garden-service/build/src/commands/get/get-test
 import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
 import { CommandResult } from "garden-service/build/src/commands/base"
 import { ConfigDump } from "garden-service/build/src/garden"
-import { AllEnvironmentStatus } from "garden-service/build/src/actions"
+import { StatusCommandResult } from "garden-service/build/src/commands/get/get-status"
 
 export interface ApiRequest {
   command: string
   parameters: {}
 }
-export type FetchLogsParam = string[]
-export type FetchTaskResultParam = { name: string }
-export type FetchTestResultParam = { name: string, module: string }
 
 const MAX_LOG_LINES = 5000
 
@@ -35,20 +32,33 @@ export async function fetchGraph() {
 }
 
 export async function fetchStatus() {
-  return apiPost<AllEnvironmentStatus>("get.status", { output: "json" })
+  return apiPost<StatusCommandResult>("get.status", { output: "json" })
 }
 
-export async function fetchLogs(services: FetchLogsParam) {
-  const tail = Math.floor(MAX_LOG_LINES / services.length)
-  return apiPost<ServiceLogEntry[]>("logs", { services, tail })
+export interface FetchLogsParams {
+  serviceNames: string[]
 }
 
-export async function fetchTaskResult(params: FetchTaskResultParam) {
+export async function fetchLogs({ serviceNames }: FetchLogsParams) {
+  const tail = Math.floor(MAX_LOG_LINES / serviceNames.length)
+  return apiPost<ServiceLogEntry[]>("logs", { services: serviceNames, tail })
+}
+
+export interface FetchTaskResultParams {
+  name: string
+}
+
+export async function fetchTaskResult(params: FetchTaskResultParams) {
   return apiPost<TaskResultOutput>("get.task-result", params)
 }
 
-export async function fetchTestResult(params: FetchTestResultParam) {
-  return apiPost<TestResultOutput>("get.test-result", params)
+export interface FetchTestResultParams {
+  name: string
+  moduleName: string
+}
+
+export async function fetchTestResult({ name, moduleName }: FetchTestResultParams) {
+  return apiPost<TestResultOutput>("get.test-result", { name, module: moduleName })
 }
 
 async function apiPost<T>(command: string, parameters: {} = {}): Promise<T> {
@@ -64,7 +74,7 @@ async function apiPost<T>(command: string, parameters: {} = {}): Promise<T> {
   }
 
   if (!res.data.result) {
-    throw new Error("result is empty")
+    throw new Error("Empty response from server")
   }
 
   return res.data.result

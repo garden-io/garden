@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useContext } from "react"
+import React from "react"
 import styled from "@emotion/styled"
 import { ExternalLink } from "./links"
 import { ServiceIngress } from "garden-service/build/src/types/service"
 import { truncateMiddle } from "../util/helpers"
 import normalizeUrl from "normalize-url"
 import { format } from "url"
-import { UiStateContext } from "../context/ui"
-import { ActionIcon } from "./ActionIcon"
+import { useUiState } from "../contexts/ui"
+import { ActionIcon } from "./action-icon"
 
 const ViewIngress = styled.div`
    `
@@ -74,7 +74,7 @@ interface ViewIngressProp {
 }
 
 export default ({ ingress, height, width }: ViewIngressProp) => {
-  const { actions: { selectIngress } } = useContext(UiStateContext)
+  const { actions: { selectIngress } } = useUiState()
 
   const removeSelectedIngress = () => {
     selectIngress(null)

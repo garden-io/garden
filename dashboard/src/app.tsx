@@ -7,7 +7,7 @@
  */
 
 import { css } from "emotion"
-import React, { useContext } from "react"
+import React from "react"
 import styled from "@emotion/styled"
 import { Route } from "react-router-dom"
 
@@ -23,15 +23,14 @@ import "./styles/padding-margin-mixin.scss"
 import "./styles/custom-flexboxgrid.scss"
 import "./styles/icons.scss"
 
-import { EventProvider } from "./context/events"
-import { DataProvider } from "./context/data"
 import { NavLink } from "./components/links"
 
 import logo from "./assets/logo.png"
 import { ReactComponent as OpenSidebarIcon } from "./assets/open-pane.svg"
 import { ReactComponent as CloseSidebarIcon } from "./assets/close-pane.svg"
 
-import { UiStateProvider, UiStateContext } from "./context/ui"
+import { UiStateProvider, useUiState } from "./contexts/ui"
+import { ApiProvider } from "./contexts/api"
 
 // Style and align properly
 const Logo = styled.img`
@@ -67,13 +66,11 @@ const SidebarToggleButton = styled.div`
 const AppContainer = () => {
   return (
     <div>
-      <DataProvider>
-        <EventProvider>
-          <UiStateProvider>
-            <App />
-          </UiStateProvider>
-        </EventProvider>
-      </DataProvider>
+      <ApiProvider>
+        <UiStateProvider>
+          <App />
+        </UiStateProvider>
+      </ApiProvider>
     </div>
   )
 }
@@ -82,7 +79,7 @@ const App = () => {
   const {
     state: { isSidebarOpen },
     actions: { toggleSidebar },
-  } = useContext(UiStateContext)
+  } = useUiState()
 
   return (
     <div

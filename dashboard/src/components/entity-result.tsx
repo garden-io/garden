@@ -15,8 +15,8 @@ import styled from "@emotion/styled"
 import Card from "./card"
 import { colors } from "../styles/variables"
 import { WarningNotification } from "./notifications"
-import { ActionIcon } from "./ActionIcon"
-import { EntityResultSupportedTypes } from "../context/ui"
+import { ActionIcon } from "./action-icon"
+import { EntityResultSupportedTypes } from "../contexts/ui"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};

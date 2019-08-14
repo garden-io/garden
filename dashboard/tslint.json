@@ -7,6 +7,8 @@
     "node_modules/tslint-microsoft-contrib"
   ],
   "rules": {
+    // We need to use floating promises within React hooks
+    "no-floating-promises": false,
     // Override tslint-react rules here
     "jsx-no-multiline-js": false,
     "jsx-boolean-value": [
