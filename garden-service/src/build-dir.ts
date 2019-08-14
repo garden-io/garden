@@ -133,7 +133,8 @@ export class BuildDir {
     destinationPath = stripWildcard(destinationPath)
 
     // --exclude is required for modules where the module and project are in the same directory
-    const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`]
+    const excludePath = normalizeLocalRsyncPath(this.buildDirPath)
+    const syncOpts = ["-rptgo", `--exclude=${excludePath}`]
 
     if (withDelete) {
       syncOpts.push("--delete")
@@ -155,6 +156,14 @@ export class BuildDir {
       files = files.sort()
       input = files.join("\n")
       log.silly(`File list: ${JSON.stringify(files)}`)
+    }
+
+    if (sourcePath.startsWith("/cygdrive/c/")) {
+      sourcePath = sourcePath.replace("/cygdrive/c/", "/c/")
+    }
+
+    if (destinationPath.startsWith("/cygdrive/c/")) {
+      destinationPath = destinationPath.replace("/cygdrive/c/", "/c/")
     }
 
     await execa("rsync", [...syncOpts, sourcePath, destinationPath], { input })
