@@ -44,7 +44,7 @@
     "uuid": "^3.3.2"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "CI=true react-scripts start",
     "build": "react-scripts build && ./bin/copy-to-static",
     "dev": "npm run start",
     "test-watch": "react-scripts test",
