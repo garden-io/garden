@@ -16,6 +16,7 @@ import { registerCleanupFunction, sleep } from "./util/util"
 import { some } from "lodash"
 import { isConfigFilename, matchPath } from "./util/fs"
 import * as Bluebird from "bluebird"
+import { InternalError } from "./exceptions"
 
 // How long we wait between processing added files and directories
 const DEFAULT_BUFFER_INTERVAL = 500
@@ -82,6 +83,18 @@ export class Watcher {
     this.log.debug(`Watcher: Watching paths ${this.paths.join(", ")}`)
 
     if (watcher === undefined) {
+      // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
+      // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
+      if (process.platform === "darwin") {
+        try {
+          require("fsevents")
+        } catch (error) {
+          throw new InternalError(`Unable to load fsevents module: ${error}`, {
+            error,
+          })
+        }
+      }
+
       watcher = watch(this.paths, {
         ignoreInitial: true,
         ignorePermissionErrors: true,
