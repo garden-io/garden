@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import * as Bluebird from "bluebird"
 import * as execa from "execa"
 import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
@@ -49,7 +50,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
   let deploymentRegistry: ContainerRegistryConfig | undefined = undefined
 
   const namespace = config.namespace || projectName
-  const _systemServices: string[] = ["kubernetes-dashboard"]
+  const _systemServices: string[] = []
 
   if (!context) {
     // automatically detect supported kubectl context if not explicitly configured
@@ -84,7 +85,11 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
   }
 
   if (context === "minikube") {
-    await execa("minikube", ["config", "set", "WantUpdateNotification", "false"])
+    const initCmds = [
+      ["config", "set", "WantUpdateNotification", "false"],
+      ["addons", "enable", "dashboard"],
+    ]
+    await Bluebird.map(initCmds, async (cmd) => execa("minikube", cmd))
 
     if (!defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
@@ -114,9 +119,12 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
       hostname: "localhost:32000",
       namespace,
     }
-  } else if (config.setupIngressController === "nginx") {
+  } else {
+    _systemServices.push("kubernetes-dashboard")
     // Install nginx on init
-    _systemServices.push("ingress-controller", "default-backend")
+    if (config.setupIngressController === "nginx") {
+      _systemServices.push("ingress-controller", "default-backend")
+    }
   }
 
   if (!defaultHostname) {
