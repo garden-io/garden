@@ -18,7 +18,7 @@ export async function setMinikubeDockerEnv() {
   try {
     minikubeEnv = await execa.stdout("minikube", ["docker-env", "--shell=bash"])
   } catch (err) {
-    if (err.contains("driver does not support")) {
+    if ((<execa.ExecaError>err).stderr.includes("driver does not support")) {
       return
     }
     throw err
