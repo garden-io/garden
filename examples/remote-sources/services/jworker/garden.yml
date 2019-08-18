@@ -1,5 +1,5 @@
 kind: Module
-description: worker
+description: Java Worker
 type: container
 name: jworker
 repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.1.0
