@@ -33,9 +33,16 @@ type GetArgs = typeof getSecretArgs
 export class GetSecretCommand extends Command<GetArgs> {
   name = "secret"
   help = "Get a secret from the environment."
+  hidden = true
 
   description = dedent`
     Returns with an error if the provided key could not be found.
+
+    >**Note**: The \`get|set secret\` commands are currently quite limited.
+    For Kubernetes secrets, we recommend using kubectl for
+    most non-trivial use-cases. Please refer our
+    [kubernetes-secrets example](https://github.com/garden-io/garden/tree/master/examples/kubernetes-secrets)
+    for more details.
 
     Examples:
 

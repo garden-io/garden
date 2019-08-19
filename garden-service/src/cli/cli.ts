@@ -362,6 +362,7 @@ export class GardenCli {
       setup,
       aliases: command.alias,
       desc: command.help,
+      hidden: command.hidden,
       run: action,
     }
 

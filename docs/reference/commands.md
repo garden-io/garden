@@ -271,6 +271,12 @@ Get a secret from the environment.
 
 Returns with an error if the provided key could not be found.
 
+>**Note**: The `get|set secret` commands are currently quite limited.
+For Kubernetes secrets, we recommend using kubectl for
+most non-trivial use-cases. Please refer our
+[kubernetes-secrets example](https://github.com/garden-io/garden/tree/master/examples/kubernetes-secrets)
+for more details.
+
 Examples:
 
     garden get secret kubernetes somekey
@@ -679,7 +685,13 @@ These secrets are handled by each provider, and may for example be exposed as en
 variables for services or mounted as files, depending on how the provider is implemented
 and configured.
 
-_Note: The value is currently always stored as a string._
+The value is currently always stored as a string.
+
+>**Note**: The `get|set secret` commands are currently quite limited.
+For Kubernetes secrets, we recommend using kubectl for
+most non-trivial use-cases. Please refer our
+[kubernetes-secrets example](https://github.com/garden-io/garden/tree/master/examples/kubernetes-secrets)
+for more details.
 
 Examples:
 
