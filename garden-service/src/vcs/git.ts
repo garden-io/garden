@@ -152,7 +152,8 @@ export class GitHandler extends VcsHandler {
     log: LogEntry, remoteSourcesPath: string, repositoryUrl: string, hash: string, absPath: string,
   ) {
     const git = this.gitCli(log, remoteSourcesPath)
-    return git("clone", "--depth=1", `--branch=${hash}`, repositoryUrl, absPath)
+    // Use `--recursive` to include submodules
+    return git("clone", "--recursive", "--depth=1", `--branch=${hash}`, repositoryUrl, absPath)
   }
 
   // TODO Better auth handling
@@ -202,6 +203,8 @@ export class GitHandler extends VcsHandler {
       try {
         await git("fetch", "--depth=1", "origin", hash)
         await git("reset", "--hard", `origin/${hash}`)
+        // Update submodules if applicable (no-op if no submodules in repo)
+        await git("submodule", "update", "--recursive")
       } catch (err) {
         entry.setError()
         throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {

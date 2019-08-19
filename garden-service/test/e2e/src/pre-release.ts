@@ -223,6 +223,11 @@ describe("PreReleaseTests", () => {
 
   if (project === "remote-sources") {
     describe("remote sources", () => {
+      it("runs the update-remote command", async () => {
+        const logEntries = await runWithEnv(["update-remote", "all"])
+        const res = searchLog(logEntries, /Source already up to date/)
+        expect(res, "expected to find 'Source already up to date' in log output").to.eql("passed")
+      })
       it("calls the result service to get a 200 OK response including the HTML for the result page", async () => {
         const logEntries = await runWithEnv(["call", "result"])
         expect(searchLog(logEntries, /200 OK/), "expected to find '200 OK' in log output").to.eql("passed")
