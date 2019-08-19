@@ -122,7 +122,7 @@ values:
     key: some-value
 ```
 
-This will effectively create a new YAML with the supplies values and pass it to Helm when rendering/deploying the chart. This is particularly handy when you want to template in the values (see the next section for a good example).
+This will effectively create a new YAML with the supplied values and pass it to Helm when rendering/deploying the chart. This is particularly handy when you want to template in the values (see the next section for a good example).
 
 You can also provide you own value files, which will work much the same way. You just need to list the paths to them (relative to the module root, i.e. the directory containing the `garden.yml` file) and they will be supplied to Helm when rendering/deploying. For example:
 
@@ -151,9 +151,9 @@ some:
   key: prod-value
 ```
 
-In this example, `some.key` is set to `"prod-value"` for the `prod` environment, and `other.key` keep the default value set in `values.default.yaml`.
+In this example, `some.key` is set to `"prod-value"` for the `prod` environment, and `other.key` maintains the default value set in `values.default.yaml`.
 
-If you were to also set the `values` field in the Module configuration, the values there would take precedence over both of the value files.
+If you also set the `values` field in the Module configuration, the values there take precedence over both of the value files.
 
 ## Linking container modules and Helm modules
 

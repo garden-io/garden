@@ -137,6 +137,8 @@ export async function getValueFileArgs(module: HelmModule) {
   const chartPath = await getChartPath(module)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
+  // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
+  // so it's added to the end of the list.
   const valueFiles = module.spec.valueFiles
     .map(f => resolve(module.buildPath, f))
     .concat([gardenValuesPath])
