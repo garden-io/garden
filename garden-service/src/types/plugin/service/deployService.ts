@@ -9,7 +9,8 @@
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { RuntimeContext, runtimeContextSchema, serviceStatusSchema } from "../../service"
+import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
+import { serviceStatusSchema } from "../../service"
 import { joi } from "../../../config/common"
 
 export interface DeployServiceParams<M extends Module = Module, S extends Module = Module>

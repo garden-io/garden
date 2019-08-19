@@ -9,29 +9,32 @@
 import chalk from "chalk"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
-import { Service, getServiceRuntimeContext } from "../types/service"
+import { Service } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
 
 interface Params {
+  force: boolean
   garden: Garden
   graph: ConfigGraph
-  force: boolean
-  service: Service
+  hotReloadServiceNames?: string[]
   log: LogEntry
+  service: Service
 }
 
 export class HotReloadTask extends BaseTask {
   type: TaskType = "hot-reload"
 
-  private graph: ConfigGraph
+  // private graph: ConfigGraph
+  // private hotReloadServiceNames: string[]
   private service: Service
 
   constructor(
-    { garden, graph, log, service, force }: Params,
+    { garden, log, service, force }: Params,
   ) {
     super({ garden, log, force, version: service.module.version })
-    this.graph = graph
+    // this.graph = graph
+    // this.hotReloadServiceNames = hotReloadServiceNames || []
     this.service = service
   }
 
@@ -43,6 +46,25 @@ export class HotReloadTask extends BaseTask {
     return `hot-reloading service ${this.service.name}`
   }
 
+  // TODO: we will need to uncomment this once the TaskGraph is processing concurrently, but this is safe to
+  //       omit in the meantime because dev/deploy commands are guaranteed to complete deployments before running
+  //       hot reload tasks.
+
+  // async getDependencies() {
+  //   // Ensure service has been deployed before attempting to hot-reload.
+  //   // This task should be cached and return immediately in most cases.
+  //   return [new DeployTask({
+  //     fromWatch: true,
+  //     force: false,
+  //     forceBuild: false,
+  //     garden: this.garden,
+  //     graph: this.graph,
+  //     hotReloadServiceNames: this.hotReloadServiceNames,
+  //     log: this.log,
+  //     service: this.service,
+  //   })]
+  // }
+
   async process(): Promise<{}> {
     const log = this.log.info({
       section: this.service.name,
@@ -50,11 +72,10 @@ export class HotReloadTask extends BaseTask {
       status: "active",
     })
 
-    const runtimeContext = await getServiceRuntimeContext(this.garden, this.graph, this.service)
     const actions = await this.garden.getActionHelper()
 
     try {
-      await actions.hotReloadService({ log, service: this.service, runtimeContext })
+      await actions.hotReloadService({ log, service: this.service })
     } catch (err) {
       log.setError()
       throw err

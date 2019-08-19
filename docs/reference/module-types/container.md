@@ -13,8 +13,7 @@ guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-`container` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
-See the [Outputs](#outputs) section below for details.
+`container` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ## Configuration keys
 
@@ -1044,6 +1043,8 @@ tasks:
 
 ## Outputs
 
+### Module outputs
+
 The following keys are available via the `${modules.<module-name>}` template string key for `container`
 modules.
 
@@ -1132,3 +1133,18 @@ outputs:
   ...
   deployment-image-name: "my-deployment-registry.io/my-org/my-module"
 ```
+
+
+### Task outputs
+
+The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `container` module tasks.
+Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
+
+### `runtime.tasks.<task-name>.outputs.log`
+
+The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `""`    |
+

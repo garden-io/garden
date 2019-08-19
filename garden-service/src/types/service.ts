@@ -6,26 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getEnvVarName, uniqByName } from "../util/util"
-import {
-  PrimitiveMap,
-  joiEnvVars,
-  joiIdentifierMap,
-  joiPrimitive,
-  joiUserIdentifier,
-  joi,
-  joiIdentifier,
-  joiArray,
-} from "../config/common"
-import { Module, getModuleKey } from "./module"
+import normalizeUrl from "normalize-url"
+import { format } from "url"
+import { joiUserIdentifier, joi, joiIdentifier, joiArray, PrimitiveMap, joiPrimitive } from "../config/common"
+import { Module } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
-import { format } from "url"
-import { moduleVersionSchema } from "../vcs/vcs"
-import { Garden } from "../garden"
 import { uniq } from "lodash"
 import { ConfigGraph } from "../config-graph"
-import normalizeUrl = require("normalize-url")
 
 export interface Service<M extends Module = Module, S extends Module = Module> {
   name: string
@@ -178,6 +166,7 @@ export interface ServiceStatus {
   ingresses?: ServiceIngress[],
   lastMessage?: string
   lastError?: string
+  outputs?: PrimitiveMap
   runningReplicas?: number
   state?: ServiceState
   updatedAt?: string
@@ -209,6 +198,9 @@ export const serviceStatusSchema = joi.object()
       .description("Latest status message of the service (if any)."),
     lastError: joi.string()
       .description("Latest error status message of the service (if any)."),
+    outputs: joi.object()
+      .pattern(/.+/, joiPrimitive())
+      .description("A map of primitive values, output from the service."),
     runningReplicas: joi.number()
       .description("How many replicas of the service are currently running."),
     state: joi.string()
@@ -220,84 +212,6 @@ export const serviceStatusSchema = joi.object()
     version: joi.string()
       .description("The Garden module version of the deployed service."),
   })
-
-export type RuntimeContext = {
-  envVars: PrimitiveMap
-  dependencies: {
-    [name: string]: {
-      version: string,
-      outputs: PrimitiveMap,
-    },
-  },
-}
-
-const runtimeDependencySchema = joi.object()
-  .keys({
-    version: moduleVersionSchema,
-    outputs: joiEnvVars()
-      .description("The outputs provided by the service (e.g. ingress URLs etc.)."),
-  })
-
-export const runtimeContextSchema = joi.object()
-  .options({ presence: "required" })
-  .keys({
-    envVars: joi.object().pattern(/.+/, joiPrimitive())
-      .default(() => ({}), "{}")
-      .unknown(false)
-      .description(
-        "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
-        "(must be uppercase) and values must be primitives.",
-      ),
-    dependencies: joiIdentifierMap(runtimeDependencySchema)
-      .description("Map of all the services that this service or test depends on, and their metadata."),
-  })
-
-export async function prepareRuntimeContext(
-  garden: Garden, graph: ConfigGraph, module: Module, serviceDependencies: Service[],
-): Promise<RuntimeContext> {
-  const buildDepKeys = module.build.dependencies.map(dep => getModuleKey(dep.name, dep.plugin))
-  const buildDependencies: Module[] = await graph.getModules(buildDepKeys)
-  const { versionString } = module.version
-  const envVars = {
-    GARDEN_VERSION: versionString,
-  }
-
-  for (const [key, value] of Object.entries(garden.variables)) {
-    const envVarName = `GARDEN_VARIABLES_${key.replace(/-/g, "_").toUpperCase()}`
-    envVars[envVarName] = value
-  }
-
-  const output: RuntimeContext = {
-    envVars,
-    dependencies: {},
-  }
-
-  const deps = output.dependencies
-  const depModules = uniqByName([...buildDependencies, ...serviceDependencies.map(s => s.module)])
-
-  for (const m of depModules) {
-    deps[m.name] = {
-      version: m.version.versionString,
-      outputs: m.outputs,
-    }
-  }
-
-  for (const [name, dep] of Object.entries(deps)) {
-    const moduleEnvName = getEnvVarName(name)
-
-    for (const [key, value] of Object.entries(dep.outputs)) {
-      const envVarName = `GARDEN_MODULE_${moduleEnvName}__${key}`.toUpperCase()
-      envVars[envVarName] = value
-    }
-  }
-
-  return output
-}
-
-export async function getServiceRuntimeContext(garden: Garden, graph: ConfigGraph, service: Service) {
-  const deps = await graph.getDependencies("service", service.name, false)
-  return prepareRuntimeContext(garden, graph, service.module, deps.service)
-}
 
 export function getIngressUrl(ingress: ServiceIngress) {
   return normalizeUrl(format({

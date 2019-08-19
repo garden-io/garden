@@ -228,7 +228,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
 }
 
 async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-  const { ctx, log, service, runtimeContext } = params
+  const { ctx, log, service } = params
   let status
   let found = true
 
@@ -237,7 +237,10 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
       ctx,
       log,
       service,
-      runtimeContext,
+      runtimeContext: {
+        envVars: {},
+        dependencies: [],
+      },
       module: service.module,
       hotReload: false,
     })

@@ -69,7 +69,7 @@ export class GetTaskResultCommand extends Command<Args> {
         name: taskResult.taskName,
         module: taskResult.moduleName,
         version: taskResult.version,
-        output: taskResult.output,
+        output: taskResult.output || null,
         startedAt: taskResult.startedAt,
         completedAt: taskResult.completedAt,
       }

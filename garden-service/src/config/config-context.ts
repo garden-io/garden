@@ -17,6 +17,8 @@ import { resolveTemplateString } from "../template-string"
 import { Garden } from "../garden"
 import { ModuleVersion } from "../vcs/vcs"
 import { joi } from "../config/common"
+import { KeyedSet } from "../util/keyed-set"
+import { RuntimeContext } from "../runtime-context"
 
 export type ContextKey = string[]
 
@@ -132,7 +134,7 @@ export abstract class ConfigContext {
       if (opts.allowUndefined) {
         return
       } else {
-        throw new ConfigurationError(`Could not find key: ${path}`, {
+        throw new ConfigurationError(`Could not find key: ${fullPath}`, {
           nodePath,
           fullPath,
           opts,
@@ -154,6 +156,21 @@ export abstract class ConfigContext {
     this._resolvedValues[path] = value
 
     return value
+  }
+}
+
+export class ScanContext extends ConfigContext {
+  foundKeys: KeyedSet<string[]>
+
+  constructor() {
+    super()
+    this.foundKeys = new KeyedSet<string[]>(v => v.join("."))
+  }
+
+  async resolve({ key, nodePath }: ContextResolveParams) {
+    const fullKey = nodePath.concat(key)
+    this.foundKeys.add(fullKey)
+    return "${" + fullKey.join(".") + "}"
   }
 }
 
@@ -351,6 +368,94 @@ const exampleModule = {
   version: exampleVersion,
 }
 
+class ServiceRuntimeContext extends ConfigContext {
+  @schema(
+    joiIdentifierMap(joiPrimitive())
+      .required()
+      .description(
+        "The runtime outputs defined by the service (see individual module type " +
+        "[references](https://docs.garden.io/reference/module-types) for details).",
+      )
+      .example({ "some-key": "some value" }),
+  )
+  public outputs: PrimitiveMap
+
+  constructor(root: ConfigContext, outputs: PrimitiveMap) {
+    super(root)
+    this.outputs = outputs
+  }
+
+  async resolve(params: ContextResolveParams) {
+    // We're customizing the resolver so that we can ignore missing service/task outputs, but fail when an output
+    // on a resolved service/task doesn't exist.
+    const opts = { ...params.opts || {}, allowUndefined: false }
+    return super.resolve({ ...params, opts })
+  }
+}
+
+class TaskRuntimeContext extends ServiceRuntimeContext {
+  @schema(
+    joiIdentifierMap(joiPrimitive())
+      .required()
+      .description(
+        "The runtime outputs defined by the task (see individual module type " +
+        "[references](https://docs.garden.io/reference/module-types) for details).",
+      )
+      .example({ "some-key": "some value" }),
+  )
+  public outputs: PrimitiveMap
+}
+
+class RuntimeConfigContext extends ConfigContext {
+  @schema(
+    joiIdentifierMap(ServiceRuntimeContext.getSchema())
+      .required()
+      .description("Runtime information from the services that the service/task being run depends on.")
+      .example({ "my-service": { outputs: { "some-key": "some value" } } }),
+  )
+  public services: Map<string, ServiceRuntimeContext>
+
+  @schema(
+    joiIdentifierMap(TaskRuntimeContext.getSchema())
+      .required()
+      .description("Runtime information from the tasks that the service/task being run depends on.")
+      .example({ "my-task": { outputs: { "some-key": "some value" } } }),
+  )
+  public tasks: Map<string, TaskRuntimeContext>
+
+  constructor(root: ConfigContext, runtimeContext?: RuntimeContext) {
+    super(root)
+
+    this.services = new Map()
+    this.tasks = new Map()
+
+    const dependencies = runtimeContext ? runtimeContext.dependencies : []
+
+    for (const dep of dependencies) {
+      if (dep.type === "service") {
+        this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs))
+      } else if (dep.type === "task") {
+        this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs))
+      }
+    }
+  }
+
+  async resolve(params: ContextResolveParams) {
+    // We're customizing the resolver so that we can ignore missing services/tasks and return the template string back
+    // for later resolution, but fail when an output on a resolved service/task doesn't exist.
+    const opts = { ...params.opts || {}, allowUndefined: true }
+    const res = await super.resolve({ ...params, opts })
+
+    if (res === undefined) {
+      const { key, nodePath } = params
+      const fullKey = nodePath.concat(key)
+      return "${" + fullKey.join(".") + "}"
+    } else {
+      return res
+    }
+  }
+}
+
 /**
  * This context is available for template strings under the `module` key in configuration files.
  * It is a superset of the context available under the `project` key.
@@ -362,6 +467,15 @@ export class ModuleConfigContext extends ProviderConfigContext {
       .example({ "my-module": exampleModule }),
   )
   public modules: Map<string, () => Promise<ModuleContext>>
+
+  @schema(
+    RuntimeConfigContext.getSchema()
+      .description(
+        "Runtime outputs and information from services and tasks " +
+        "(only resolved at runtime when deploying services and running tasks).",
+      ),
+  )
+  public runtime: RuntimeConfigContext
 
   @schema(
     joiIdentifierMap(joiPrimitive())
@@ -382,6 +496,9 @@ export class ModuleConfigContext extends ProviderConfigContext {
     resolvedProviders: Provider[],
     variables: PrimitiveMap,
     moduleConfigs: ModuleConfig[],
+    // We only supply this when resolving configuration in dependency order.
+    // Otherwise we pass `${runtime.*} template strings through for later resolution.
+    runtimeContext?: RuntimeContext,
   ) {
     super(environmentName, garden.projectName, resolvedProviders)
 
@@ -402,6 +519,8 @@ export class ModuleConfigContext extends ProviderConfigContext {
         return new ModuleContext(_this, resolvedConfig, buildPath, version)
       }],
     ))
+
+    this.runtime = new RuntimeConfigContext(this, runtimeContext)
 
     this.var = this.variables = variables
   }

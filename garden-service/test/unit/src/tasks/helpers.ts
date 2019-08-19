@@ -53,6 +53,7 @@ describe("TaskHelpers", () => {
       expect(await dependencyBaseKeys(tasks)).to.eql([
         "build.build-dependency",
         "build.good-morning",
+        "get-service-status.good-morning",
         "task.good-morning-task",
       ].sort())
     })

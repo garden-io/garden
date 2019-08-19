@@ -9,13 +9,13 @@
 import Bluebird = require("bluebird")
 
 import chalk from "chalk"
-import { fromPairs, keyBy, mapValues, omit, pickBy } from "lodash"
+import { fromPairs, mapValues, omit, pickBy } from "lodash"
 
 import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
 import { validate, joi } from "./config/common"
 import { defaultProvider } from "./config/provider"
-import { ParameterError, PluginError } from "./exceptions"
+import { ParameterError, PluginError, ConfigurationError } from "./exceptions"
 import { ActionHandlerMap, Garden, ModuleActionHandlerMap, ModuleActionMap, PluginActionMap } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { ProcessResults, processServices } from "./process"
@@ -71,12 +71,16 @@ import { HotReloadServiceParams, HotReloadServiceResult } from "./types/plugin/s
 import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
-import { Service, ServiceStatus, ServiceStatusMap, getServiceRuntimeContext } from "./types/service"
+import { ServiceStatus, ServiceStatusMap } from "./types/service"
 import { Omit } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
 import { GetPortForwardParams } from "./types/plugin/service/getPortForward"
 import { StopPortForwardParams } from "./types/plugin/service/stopPortForward"
+import { emptyRuntimeContext, RuntimeContext } from "./runtime-context"
+import { GetServiceStatusTask } from "./tasks/get-service-status"
+import { getServiceStatuses } from "./tasks/base"
+import { getRuntimeTemplateReferences } from "./template-string"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -208,7 +212,7 @@ export class ActionHelper implements TypeGuard {
       moduleType,
       defaultHandler: async ({ }) => ({
         docs: "",
-        outputsSchema: joi.object().options({ allowUnknown: true }),
+        moduleOutputsSchema: joi.object().options({ allowUnknown: true }),
         schema: joi.object().options({ allowUnknown: true }),
       }),
     })
@@ -280,7 +284,8 @@ export class ActionHelper implements TypeGuard {
       status: "active",
     })
 
-    const status = await this.getServiceStatus({ ...params, hotReload: false })
+    const runtimeContext = emptyRuntimeContext
+    const status = await this.getServiceStatus({ ...params, runtimeContext, hotReload: false })
 
     if (status.state === "missing") {
       log.setSuccess({
@@ -350,6 +355,7 @@ export class ActionHelper implements TypeGuard {
 
     const envStatus = await this.garden.getEnvironmentStatus()
     const serviceStatuses = await this.getServiceStatuses({ log, serviceNames })
+
     return {
       providers: envStatus,
       services: serviceStatuses,
@@ -360,20 +366,18 @@ export class ActionHelper implements TypeGuard {
     { log, serviceNames }: { log: LogEntry, serviceNames?: string[] },
   ): Promise<ServiceStatusMap> {
     const graph = await this.garden.getConfigGraph()
-    const services = keyBy(await graph.getServices(serviceNames), "name")
+    const services = await graph.getServices(serviceNames)
 
-    return Bluebird.props(mapValues(services, async (service: Service) => {
-      const runtimeContext = await getServiceRuntimeContext(this.garden, graph, service)
-
-      // TODO: Some handlers expect builds to have been staged when resolving services statuses. We should
-      //       tackle that better by getting statuses in the task graph.
-      await this.garden.buildDir.syncFromSrc(service.module, log)
-      await this.garden.buildDir.syncDependencyProducts(service.module, log)
-
-      // TODO: The status will be reported as "outdated" if the service was deployed with hot-reloading enabled.
-      //       Once hot-reloading is a toggle, as opposed to an API/CLI flag, we can resolve that issue.
-      return this.getServiceStatus({ log, service, runtimeContext, hotReload: false })
+    const tasks = services.map(service => new GetServiceStatusTask({
+      force: false,
+      garden: this.garden,
+      graph,
+      log,
+      service,
     }))
+    const results = await this.garden.processTasks(tasks)
+
+    return getServiceStatuses(results)
   }
 
   async deployServices(
@@ -412,8 +416,7 @@ export class ActionHelper implements TypeGuard {
     const serviceStatuses: { [key: string]: ServiceStatus } = {}
 
     await Bluebird.map(services, async (service) => {
-      const runtimeContext = await getServiceRuntimeContext(this.garden, graph, service)
-      serviceStatuses[service.name] = await this.deleteService({ log: servicesLog, service, runtimeContext })
+      serviceStatuses[service.name] = await this.deleteService({ log: servicesLog, service })
     })
 
     servicesLog.setSuccess()
@@ -506,8 +509,8 @@ export class ActionHelper implements TypeGuard {
     { params, actionType, defaultHandler }:
       { params: ServiceActionHelperParams<ServiceActionParams[T]>, actionType: T, defaultHandler?: ServiceActions[T] },
   ): Promise<ServiceActionOutputs[T]> {
-    const { log, service, runtimeContext } = params
-    const module = service.module
+    let { log, service, runtimeContext } = params
+    let module = omit(service.module, ["_ConfigType"])
 
     log.verbose(`Getting ${actionType} handler for service ${service.name}`)
 
@@ -518,9 +521,28 @@ export class ActionHelper implements TypeGuard {
       defaultHandler,
     })
 
+    // Resolve ${runtime.*} template strings if needed.
+    if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
+      log.verbose(`Resolving runtime template strings for service '${service.name}'`)
+      const configContext = await this.garden.getModuleConfigContext(runtimeContext)
+      const graph = await this.garden.getConfigGraph({ configContext })
+      service = await graph.getService(service.name)
+      module = service.module
+
+      // Make sure everything has been resolved in the task config
+      const remainingRefs = await getRuntimeTemplateReferences(service.config)
+      if (remainingRefs.length > 0) {
+        const unresolvedStrings = remainingRefs.map(ref => `\${${ref.join(".")}}`).join(", ")
+        throw new ConfigurationError(
+          `Unable to resolve one or more runtime template values for service '${service.name}': ${unresolvedStrings}`,
+          { service, unresolvedStrings },
+        )
+      }
+    }
+
     const handlerParams = {
       ...await this.commonParams(handler, log),
-      ...<object>params,
+      ...params,
       module,
       runtimeContext,
     }
@@ -537,9 +559,9 @@ export class ActionHelper implements TypeGuard {
         defaultHandler?: TaskActions[T],
       },
   ): Promise<TaskActionOutputs[T]> {
-
-    const { task, log } = <any>params
-    const module = task.module
+    let { task, log } = params
+    const runtimeContext = params["runtimeContext"] as (RuntimeContext | undefined)
+    let module = omit(task.module, ["_ConfigType"])
 
     log.verbose(`Getting ${actionType} handler for task ${module.name}.${task.name}`)
 
@@ -550,9 +572,28 @@ export class ActionHelper implements TypeGuard {
       defaultHandler,
     })
 
+    // Resolve ${runtime.*} template strings if needed.
+    if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
+      log.verbose(`Resolving runtime template strings for task '${task.name}'`)
+      const configContext = await this.garden.getModuleConfigContext(runtimeContext)
+      const graph = await this.garden.getConfigGraph({ configContext })
+      task = await graph.getTask(task.name)
+      module = task.module
+
+      // Make sure everything has been resolved in the task config
+      const remainingRefs = await getRuntimeTemplateReferences(task.config)
+      if (remainingRefs.length > 0) {
+        const unresolvedStrings = remainingRefs.map(ref => `\${${ref.join(".")}}`).join(", ")
+        throw new ConfigurationError(
+          `Unable to resolve one or more runtime template values for task '${task.name}': ${unresolvedStrings}`,
+          { task, unresolvedStrings },
+        )
+      }
+    }
+
     const handlerParams: any = {
       ...await this.commonParams(handler, (<any>params).log),
-      ...<object>params,
+      ...params,
       module,
       task,
     }

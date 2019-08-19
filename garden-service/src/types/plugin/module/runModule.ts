@@ -9,7 +9,7 @@
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, runBaseParams, runResultSchema } from "../base"
-import { RuntimeContext } from "../../service"
+import { RuntimeContext } from "../../../runtime-context"
 import { joiArray, joi } from "../../../config/common"
 
 export interface RunModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {

@@ -10,12 +10,11 @@ import { Stream } from "ts-stream"
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { RuntimeContext, runtimeContextSchema } from "../../service"
+import { runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 
 export interface GetServiceLogsParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
-  runtimeContext: RuntimeContext
   stream: Stream<ServiceLogEntry>
   follow: boolean
   tail: number

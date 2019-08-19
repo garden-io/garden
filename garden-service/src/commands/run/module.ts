@@ -16,10 +16,11 @@ import {
   CommandResult,
   StringsParameter,
 } from "../base"
-import { printRuntimeContext, runtimeContextForServiceDeps } from "./run"
+import { printRuntimeContext } from "./run"
 import { printHeader } from "../../logger/util"
 import { BuildTask } from "../../tasks/build"
 import { dedent, deline } from "../../util/string"
+import { prepareRuntimeContext } from "../../runtime-context"
 
 const runArgs = {
   module: new StringParameter({
@@ -92,7 +93,16 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
     await garden.processTasks([buildTask])
 
-    const runtimeContext = await runtimeContextForServiceDeps(garden, graph, module)
+    const dependencies = await graph.getDependencies("build", module.name, false)
+
+    const runtimeContext = await prepareRuntimeContext({
+      garden,
+      graph,
+      dependencies,
+      module,
+      serviceStatuses: {},
+      taskResults: {},
+    })
 
     printRuntimeContext(log, runtimeContext)
 

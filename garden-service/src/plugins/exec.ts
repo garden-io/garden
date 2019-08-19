@@ -182,7 +182,7 @@ export async function testExecModule({ module, testConfig }: TestModuleParams<Ex
     success: result.code === 0,
     startedAt,
     completedAt: new Date(),
-    output: result.stdout + result.stderr,
+    log: result.stdout + result.stderr,
   }
 }
 
@@ -192,8 +192,8 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
   const command = task.spec.command
   const startedAt = new Date()
 
-  let completedAt
-  let output
+  let completedAt: Date
+  let log: string
 
   if (command && command.length) {
     const commandResult = await execa.shell(
@@ -205,10 +205,10 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
     )
 
     completedAt = new Date()
-    output = commandResult.stdout + commandResult.stderr
+    log = (commandResult.stdout + commandResult.stderr).trim()
   } else {
     completedAt = startedAt
-    output = ""
+    log = ""
   }
 
   return <RunTaskResult>{
@@ -217,7 +217,10 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
     command,
     version: module.version.versionString,
     success: true,
-    output,
+    log,
+    outputs: {
+      log,
+    },
     startedAt,
     completedAt,
   }
@@ -229,8 +232,18 @@ async function describeType() {
       A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
       type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
     `,
-    outputsSchema: joi.object().keys({}),
+    moduleOutputsSchema: joi.object().keys({}),
     schema: execModuleSpecSchema,
+    taskOutputsSchema: joi.object()
+      .keys({
+        log: joi.string()
+          .allow("")
+          .default("")
+          .description(
+            "The full log from the executed task. " +
+            "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)",
+          ),
+      }),
   }
 }
 

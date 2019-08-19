@@ -9,7 +9,7 @@
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginModuleActionParamsBase } from "../base"
-import { RuntimeContext } from "../../service"
+import { RuntimeContext } from "../../../runtime-context"
 import { ModuleVersion } from "../../../vcs/vcs"
 import { testConfigSchema } from "../../../config/test"
 import { runModuleBaseSchema } from "./runModule"

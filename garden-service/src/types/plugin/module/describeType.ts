@@ -17,8 +17,10 @@ export const describeModuleTypeParamsSchema = joi.object()
 export interface ModuleTypeDescription {
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
-  outputsSchema: Joi.ObjectSchema
+  moduleOutputsSchema?: Joi.ObjectSchema
   schema: Joi.ObjectSchema
+  serviceOutputsSchema?: Joi.ObjectSchema,
+  taskOutputsSchema?: Joi.ObjectSchema,
   title?: string
 }
 
@@ -46,18 +48,38 @@ export const describeType = {
         .required()
         .description("Documentation for the module type, in markdown format."),
       // TODO: specify the schemas using primitives and not Joi objects
-      outputsSchema: joi.object()
-        .default(joi.object().keys({}), "{}")
-        .description(
-          "A valid Joi schema describing the keys that each module outputs, for use in template strings " +
-          "(e.g. \`\${modules.my-module.outputs.some-key}\`).",
-        ),
+      moduleOutputsSchema: joi.object()
+        .default(() => joi.object().keys({}), "{}")
+        .description(dedent`
+          A valid Joi schema describing the keys that each module outputs at config time, for use in template strings
+          (e.g. \`\${modules.my-module.outputs.some-key}\`).
+
+          If no schema is provided, an error may be thrown if a module attempts to return an output.
+        `),
       schema: joi.object()
         .required()
         .description(
           "A valid Joi schema describing the configuration keys for the `module` " +
           "field in the module's `garden.yml`.",
         ),
+      serviceOutputsSchema: joi.object()
+        .default(() => joi.object().keys({}), "{}")
+        .description(dedent`
+          A valid Joi schema describing the keys that each service outputs at runtime, for use in template strings
+          and environment variables (e.g. \`\${runtime.services.my-service.outputs.some-key}\` and
+          \`GARDEN_SERVICES_MY_SERVICE__OUTPUT_SOME_KEY\`).
+
+          If no schema is provided, an error may be thrown if a service attempts to return an output.
+        `),
+      taskOutputsSchema: joi.object()
+        .default(() => joi.object().keys({}), "{}")
+        .description(dedent`
+          A valid Joi schema describing the keys that each task outputs at runtime, for use in template strings
+          and environment variables (e.g. \`\${runtime.tasks.my-task.outputs.some-key}\` and
+          \`GARDEN_TASKS_MY_TASK__OUTPUT_SOME_KEY\`).
+
+          If no schema is provided, an error may be thrown if a task attempts to return an output.
+        `),
       title: joi.string()
         .description(
           "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces.",

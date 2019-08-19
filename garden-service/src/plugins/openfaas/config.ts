@@ -93,7 +93,7 @@ export async function describeType() {
       Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`openfaas\` or
       \`local-openfaas\` provider to be configured.
     `,
-    outputsSchema: openfaasModuleOutputsSchema,
+    moduleOutputsSchema: openfaasModuleOutputsSchema,
     schema: openfaasModuleSpecSchema,
   }
 }

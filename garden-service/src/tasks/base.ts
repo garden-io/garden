@@ -11,8 +11,21 @@ import { ModuleVersion } from "../vcs/vcs"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
+import { pickBy, mapValues, mapKeys } from "lodash"
+import { ServiceStatus } from "../types/service"
+import { RunTaskResult } from "../types/plugin/task/runTask"
+import { splitLast } from "../util/util"
 
-export type TaskType = "build" | "deploy" | "publish" | "hot-reload" | "resolve-provider" | "task" | "test"
+export type TaskType =
+  "build" |
+  "deploy" |
+  "get-service-status" |
+  "get-task-result" |
+  "hot-reload" |
+  "publish" |
+  "resolve-provider" |
+  "task" |
+  "test"
 
 export class TaskDefinitionError extends Error { }
 
@@ -63,4 +76,22 @@ export abstract class BaseTask {
   abstract getDescription(): string
 
   abstract async process(dependencyResults: TaskResults): Promise<any>
+}
+
+export function getServiceStatuses(dependencyResults: TaskResults): { [name: string]: ServiceStatus } {
+  const getServiceStatusResults = pickBy(dependencyResults, r => r.type === "get-service-status")
+  const deployResults = pickBy(dependencyResults, r => r.type === "deploy")
+  // DeployTask results take precedence over GetServiceStatusTask results, because status changes after deployment
+  const combined = { ...getServiceStatusResults, ...deployResults }
+  const statuses = mapValues(combined, r => r.output as ServiceStatus)
+  return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
+}
+
+export function getRunTaskResults(dependencyResults: TaskResults): { [name: string]: RunTaskResult } {
+  const storedResults = pickBy(dependencyResults, r => r.type === "get-task-result")
+  const runResults = pickBy(dependencyResults, r => r.type === "task")
+  // TaskTask results take precedence over GetTaskResultTask results
+  const combined = { ...storedResults, ...runResults }
+  const results = mapValues(combined, r => r.output as RunTaskResult)
+  return mapKeys(results, (_, key) => splitLast(key, ".")[1])
 }

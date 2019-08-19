@@ -8,7 +8,7 @@
 
 import { V1Container } from "@kubernetes/client-node"
 import { extend, keyBy, set } from "lodash"
-import { RuntimeContext, Service, ServiceStatus } from "../../../types/service"
+import { Service, ServiceStatus } from "../../../types/service"
 import { ContainerModule, ContainerService } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
@@ -29,6 +29,7 @@ import { DeleteServiceParams } from "../../../types/plugin/service/deleteService
 import { millicpuToString, kilobytesToString, prepareEnvVars } from "../util"
 import { gardenAnnotationKey } from "../../../util/string"
 import chalk from "chalk"
+import { RuntimeContext } from "../../../runtime-context"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
@@ -423,7 +424,7 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
     includeUninitialized: false,
   })
 
-  return getContainerServiceStatus({ ...params, hotReload: false })
+  return { state: "missing" }
 }
 
 export async function deleteContainerDeployment(

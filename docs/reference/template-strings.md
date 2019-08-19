@@ -200,6 +200,34 @@ providers: {}
 #
 modules: {}
 
+# Runtime outputs and information from services and tasks (only resolved at runtime when deploying
+# services and running tasks).
+#
+# Type: object
+#
+runtime:
+  # Runtime information from the services that the service/task being run depends on.
+  #
+  # Type: object
+  #
+  # Example:
+  #   my-service:
+  #     outputs:
+  #       some-key: some value
+  #
+  services: {}
+
+  # Runtime information from the tasks that the service/task being run depends on.
+  #
+  # Type: object
+  #
+  # Example:
+  #   my-task:
+  #     outputs:
+  #       some-key: some value
+  #
+  tasks: {}
+
 # A map of all variables defined in the project configuration.
 #
 # Type: object

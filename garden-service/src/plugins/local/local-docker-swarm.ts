@@ -174,18 +174,22 @@ export const gardenPlugin = (): GardenPlugin => ({
       },
 
       async execInService(
-        { ctx, service, command, runtimeContext, log }: ExecInServiceParams<ContainerModule>,
+        { ctx, service, command, log }: ExecInServiceParams<ContainerModule>,
       ) {
         const status = await getServiceStatus({
           ctx,
           service,
           module: service.module,
-          runtimeContext,
+          // The runtime context doesn't matter here, we're just checking if the service is running.
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
           log,
           hotReload: false,
         })
 
-        if (!status.state || status.state !== "ready") {
+        if (!status.state || (status.state !== "ready" && status.state !== "outdated")) {
           throw new DeploymentError(`Service ${service.name} is not running`, {
             name: service.name,
             state: status.state,

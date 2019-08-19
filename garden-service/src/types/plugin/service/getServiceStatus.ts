@@ -9,7 +9,8 @@
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { RuntimeContext, runtimeContextSchema, serviceStatusSchema } from "../../service"
+import { serviceStatusSchema } from "../../service"
+import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 
 export type hotReloadStatus = "enabled" | "disabled"

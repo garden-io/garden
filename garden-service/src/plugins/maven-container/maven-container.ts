@@ -113,7 +113,7 @@ async function describeType() {
       To use it, make sure to add the \`maven-container\` provider to your project configuration.
       The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
     `,
-    outputsSchema: containerModuleOutputsSchema,
+    moduleOutputsSchema: containerModuleOutputsSchema,
     schema: mavenContainerModuleSpecSchema,
   }
 }

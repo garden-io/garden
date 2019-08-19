@@ -11,6 +11,8 @@ import { expectError, makeTestGardenA } from "../../../helpers"
 import { Garden } from "../../../../src/garden"
 import { join } from "path"
 import { joi } from "../../../../src/config/common"
+import { prepareRuntimeContext } from "../../../../src/runtime-context"
+import { Service } from "../../../../src/types/service"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -118,6 +120,23 @@ describe("ConfigContext", () => {
         nested: new NestedContext(),
       })
       await expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
+    })
+
+    it("should show full template string in error when unable to resolve in nested context", async () => {
+      class Nested extends ConfigContext { }
+      class Context extends ConfigContext {
+        nested: ConfigContext
+
+        constructor(parent?: ConfigContext) {
+          super(parent)
+          this.nested = new Nested(this)
+        }
+      }
+      const c = new Context()
+      await expectError(
+        () => resolveKey(c, ["nested", "bla"]),
+        (err) => expect(err.message).to.equal("Could not find key: nested.bla"),
+      )
     })
 
     it("should resolve template strings", async () => {
@@ -279,5 +298,101 @@ describe("ModuleConfigContext", () => {
 
   it("should should resolve a project variable under the var alias", async () => {
     expect(await c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.equal("variable")
+  })
+
+  context("runtimeContext is not set", () => {
+    it("should return runtime template strings unchanged", async () => {
+      expect(await c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: {} }))
+        .to.equal("\${runtime.some.key}")
+    })
+  })
+
+  context("runtimeContext is set", () => {
+    let withRuntime: ModuleConfigContext
+    let serviceA: Service
+
+    before(async () => {
+      const graph = await garden.getConfigGraph()
+      serviceA = await graph.getService("service-a")
+      const serviceB = await graph.getService("service-b")
+      const taskB = await graph.getTask("task-b")
+
+      const runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          service: [serviceB],
+          task: [taskB],
+          test: [],
+        },
+        module: serviceA.module,
+        serviceStatuses: {
+          "service-b": {
+            outputs: { foo: "bar" },
+          },
+        },
+        taskResults: {
+          "task-b": {
+            moduleName: "module-b",
+            taskName: "task-b",
+            command: [],
+            outputs: { moo: "boo" },
+            success: true,
+            version: taskB.module.version.versionString,
+            startedAt: new Date(),
+            completedAt: new Date(),
+            log: "boo",
+          },
+        },
+      })
+
+      withRuntime = new ModuleConfigContext(
+        garden,
+        garden.environmentName,
+        await garden.resolveProviders(),
+        garden.variables,
+        Object.values((<any>garden).moduleConfigs),
+        runtimeContext,
+      )
+    })
+
+    it("should resolve service outputs", async () => {
+      const result = await withRuntime.resolve({
+        key: ["runtime", "services", "service-b", "outputs", "foo"],
+        nodePath: [],
+        opts: {},
+      })
+      expect(result).to.equal("bar")
+    })
+
+    it("should resolve task outputs", async () => {
+      const result = await withRuntime.resolve({
+        key: ["runtime", "tasks", "task-b", "outputs", "moo"],
+        nodePath: [],
+        opts: {},
+      })
+      expect(result).to.equal("boo")
+    })
+
+    it("should return the template string back if a service's outputs haven't been resolved", async () => {
+      const result = await withRuntime.resolve({
+        key: ["runtime", "services", "not-ready", "outputs", "foo"],
+        nodePath: [],
+        opts: {},
+      })
+      expect(result).to.equal("\${runtime.services.not-ready.outputs.foo}")
+    })
+
+    it("should throw when a service's outputs have been resolved but an output key is not found", async () => {
+      await expectError(
+        () => withRuntime.resolve({
+          key: ["runtime", "services", "service-b", "outputs", "boo"],
+          nodePath: [],
+          opts: {},
+        }),
+        (err) => expect(err.message).to.equal("Could not find key: runtime.services.service-b.outputs.boo"),
+      )
+    })
   })
 })

@@ -9,7 +9,8 @@
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
 import { Module, moduleSchema } from "../module"
-import { RuntimeContext, Service, serviceSchema, runtimeContextSchema } from "../service"
+import { RuntimeContext, runtimeContextSchema } from "../../runtime-context"
+import { Service, serviceSchema } from "../service"
 import { Task } from "../task"
 import { taskSchema } from "../../config/task"
 import { joi } from "../../config/common"
@@ -80,7 +81,8 @@ export interface RunResult {
   success: boolean
   startedAt: Date
   completedAt: Date
-  output: string
+  log: string
+  output?: string
 }
 
 export const runResultSchema = joi.object()
@@ -101,8 +103,11 @@ export const runResultSchema = joi.object()
     completedAt: joi.date()
       .required()
       .description("When the module run was completed."),
-    output: joi.string()
+    log: joi.string()
       .required()
       .allow("")
       .description("The output log from the run."),
+    output: joi.string()
+      .allow("")
+      .description("[DEPRECATED - use `log` instead] The output log from the run."),
   })

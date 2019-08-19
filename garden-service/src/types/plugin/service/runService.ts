@@ -9,7 +9,7 @@
 import { PluginServiceActionParamsBase, serviceActionParamsSchema, runBaseParams, runResultSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { RuntimeContext } from "../../service"
+import { RuntimeContext } from "../../../runtime-context"
 
 export interface RunServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {

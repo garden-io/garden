@@ -10,7 +10,7 @@ import { dedent, deline } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, RunResult, runResultSchema } from "../base"
 import { ModuleVersion, moduleVersionSchema } from "../../../vcs/vcs"
-import { joi } from "../../../config/common"
+import { joi, joiPrimitive } from "../../../config/common"
 
 export interface GetTestResultParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   testName: string
@@ -23,6 +23,9 @@ export interface TestResult extends RunResult {
 
 export const testResultSchema = runResultSchema
   .keys({
+    outputs: joi.object()
+      .pattern(/.+/, joiPrimitive())
+      .description("A map of primitive values, output from the test."),
     testName: joi.string()
       .required()
       .description("The name of the test that was run."),

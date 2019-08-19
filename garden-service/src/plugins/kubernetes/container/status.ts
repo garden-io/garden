@@ -8,7 +8,7 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { RuntimeContext, Service, ServiceStatus, ForwardablePort } from "../../../types/service"
+import { Service, ServiceStatus, ForwardablePort } from "../../../types/service"
 import { createContainerObjects } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
@@ -20,6 +20,7 @@ import { compareDeployedObjects } from "../status/status"
 import { getIngresses } from "./ingress"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
+import { RuntimeContext } from "../../../runtime-context"
 
 export async function getContainerServiceStatus(
   { ctx, module, service, runtimeContext, log, hotReload }: GetServiceStatusParams<ContainerModule>,

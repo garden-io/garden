@@ -19,7 +19,6 @@ import {
   StringsParameter,
 } from "./base"
 import dedent = require("dedent")
-import { getServiceRuntimeContext } from "../types/service"
 
 const runArgs = {
   service: new StringParameter({
@@ -78,14 +77,12 @@ export class ExecCommand extends Command<Args> {
 
     const graph = await garden.getConfigGraph()
     const service = await graph.getService(serviceName)
-    const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
     const actions = await garden.getActionHelper()
     const result = await actions.execInService({
       log,
       service,
       command,
       interactive: opts.interactive,
-      runtimeContext,
     })
 
     return { result }

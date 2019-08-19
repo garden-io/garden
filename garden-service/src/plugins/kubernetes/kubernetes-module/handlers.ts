@@ -120,7 +120,7 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
     includeUninitialized: false,
   })
 
-  return getServiceStatus({ ...params, hotReload: false })
+  return { state: "missing" }
 }
 
 async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {

@@ -6,7 +6,8 @@ import {
   moduleActionDescriptions,
   pluginActionDescriptions,
 } from "../../../src/types/plugin/plugin"
-import { RuntimeContext, Service, getServiceRuntimeContext } from "../../../src/types/service"
+import { Service, ServiceState } from "../../../src/types/service"
+import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
 import { expectError, makeTestGardenA } from "../../helpers"
 import { ActionHelper } from "../../../src/actions"
 import { Garden } from "../../../src/garden"
@@ -38,7 +39,19 @@ describe("ActionHelper", () => {
     const graph = await garden.getConfigGraph()
     module = await graph.getModule("module-a")
     service = await graph.getService("service-a")
-    runtimeContext = await getServiceRuntimeContext(garden, graph, service)
+    runtimeContext = await prepareRuntimeContext({
+      garden,
+      graph,
+      dependencies: {
+        build: [],
+        service: [],
+        task: [],
+        test: [],
+      },
+      module,
+      serviceStatuses: {},
+      taskResults: {},
+    })
     task = await graph.getTask("task-a")
   })
 
@@ -126,7 +139,7 @@ describe("ActionHelper", () => {
           service,
           runtimeContext: {
             envVars: { FOO: "bar" },
-            dependencies: {},
+            dependencies: [],
           },
         })
         expect(result).to.eql({})
@@ -143,14 +156,14 @@ describe("ActionHelper", () => {
           interactive: true,
           runtimeContext: {
             envVars: { FOO: "bar" },
-            dependencies: {},
+            dependencies: [],
           },
         })
         expect(result).to.eql({
           moduleName: module.name,
           command,
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
           success: true,
           startedAt: now,
           version: module.version.versionString,
@@ -166,7 +179,7 @@ describe("ActionHelper", () => {
           interactive: true,
           runtimeContext: {
             envVars: { FOO: "bar" },
-            dependencies: {},
+            dependencies: [],
           },
           silent: false,
           testConfig: {
@@ -181,7 +194,10 @@ describe("ActionHelper", () => {
           moduleName: module.name,
           command: [],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
           success: true,
           startedAt: now,
           testName: "test",
@@ -202,7 +218,10 @@ describe("ActionHelper", () => {
           moduleName: module.name,
           command: [],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
           success: true,
           startedAt: now,
           testName: "test",
@@ -215,6 +234,11 @@ describe("ActionHelper", () => {
   describe("service actions", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
+        const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
+      })
+
+      it("should resolve runtime template strings", async () => {
         const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
         expect(result).to.eql({ forwardablePorts: [], state: "ready" })
       })
@@ -263,14 +287,14 @@ describe("ActionHelper", () => {
           interactive: true,
           runtimeContext: {
             envVars: { FOO: "bar" },
-            dependencies: {},
+            dependencies: [],
           },
         })
         expect(result).to.eql({
           moduleName: service.module.name,
           command: ["foo"],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
           success: true,
           startedAt: now,
           version: service.module.version.versionString,
@@ -279,27 +303,55 @@ describe("ActionHelper", () => {
     })
   })
 
-  describe("runTask", () => {
-    it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actions.runTask({
-        log,
-        task,
-        interactive: true,
-        runtimeContext: {
-          envVars: { FOO: "bar" },
-          dependencies: {},
-        },
-        taskVersion: task.module.version,
+  describe("task actions", () => {
+    describe("getTaskResult", () => {
+      it("should correctly call the corresponding plugin handler", async () => {
+        const result = await actions.getTaskResult({
+          log,
+          task,
+          taskVersion: task.module.version,
+        })
+        expect(result).to.eql({
+          moduleName: task.module.name,
+          taskName: task.name,
+          command: ["foo"],
+          completedAt: now,
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
+          success: true,
+          startedAt: now,
+          version: task.module.version.versionString,
+        })
       })
-      expect(result).to.eql({
-        moduleName: task.module.name,
-        taskName: task.name,
-        command: ["foo"],
-        completedAt: now,
-        output: "bla bla",
-        success: true,
-        startedAt: now,
-        version: task.module.version.versionString,
+    })
+
+    describe("runTask", () => {
+      it("should correctly call the corresponding plugin handler", async () => {
+        const result = await actions.runTask({
+          log,
+          task,
+          interactive: true,
+          runtimeContext: {
+            envVars: { FOO: "bar" },
+            dependencies: [],
+          },
+          taskVersion: task.module.version,
+        })
+        expect(result).to.eql({
+          moduleName: task.module.name,
+          taskName: task.name,
+          command: ["foo"],
+          completedAt: now,
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
+          success: true,
+          startedAt: now,
+          version: task.module.version.versionString,
+        })
       })
     })
   })
@@ -363,6 +415,195 @@ describe("ActionHelper", () => {
       )
     })
   })
+
+  describe("callServiceHandler", () => {
+    it("should interpolate runtime template strings", async () => {
+      const emptyActions = new ActionHelper(garden, {})
+
+      garden["moduleConfigs"]["module-a"].spec.foo = "\${runtime.services.service-b.outputs.foo}"
+
+      const graph = await garden.getConfigGraph()
+      const serviceA = await graph.getService("service-a")
+      const serviceB = await graph.getService("service-b")
+
+      const _runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          service: [serviceB],
+          task: [],
+          test: [],
+        },
+        module: serviceA.module,
+        serviceStatuses: {
+          "service-b": {
+            outputs: { foo: "bar" },
+          },
+        },
+        taskResults: {},
+      })
+
+      await emptyActions["callServiceHandler"]({
+        actionType: "deployService",  // Doesn't matter which one it is
+        params: {
+          service: serviceA,
+          runtimeContext: _runtimeContext,
+          log,
+          hotReload: false,
+          force: false,
+        },
+        defaultHandler: async (params) => {
+          expect(params.module.spec.foo).to.equal("bar")
+
+          return { forwardablePorts: [], state: <ServiceState>"ready" }
+        },
+      })
+    })
+
+    it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
+      const emptyActions = new ActionHelper(garden, {})
+
+      garden["moduleConfigs"]["module-a"].spec.services[0].foo = "\${runtime.services.service-b.outputs.foo}"
+
+      const graph = await garden.getConfigGraph()
+      const serviceA = await graph.getService("service-a")
+
+      const _runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          service: [],
+          task: [],
+          test: [],
+        },
+        module: serviceA.module,
+        serviceStatuses: {},
+        taskResults: {},
+      })
+
+      await expectError(
+        () => emptyActions["callServiceHandler"]({
+          actionType: "deployService",  // Doesn't matter which one it is
+          params: {
+            service: serviceA,
+            runtimeContext: _runtimeContext,
+            log,
+            hotReload: false,
+            force: false,
+          },
+          defaultHandler: async () => {
+            return {} as any
+          },
+        }),
+        (err) => expect(err.message).to.equal(
+          "Unable to resolve one or more runtime template values for service 'service-a': " +
+          "\${runtime.services.service-b.outputs.foo}",
+        ),
+      )
+    })
+  })
+
+  describe("callTaskHandler", () => {
+    it("should interpolate runtime template strings", async () => {
+      const emptyActions = new ActionHelper(garden, {})
+
+      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
+
+      const graph = await garden.getConfigGraph()
+      const taskA = await graph.getTask("task-a")
+      const serviceB = await graph.getService("service-b")
+
+      const _runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          service: [serviceB],
+          task: [],
+          test: [],
+        },
+        module: taskA.module,
+        serviceStatuses: {
+          "service-b": {
+            outputs: { foo: "bar" },
+          },
+        },
+        taskResults: {},
+      })
+
+      await emptyActions["callTaskHandler"]({
+        actionType: "runTask",
+        params: {
+          task: taskA,
+          runtimeContext: _runtimeContext,
+          log,
+          taskVersion: task.module.version,
+          interactive: false,
+        },
+        defaultHandler: async (params) => {
+          expect(params.task.spec.foo).to.equal("bar")
+
+          return {
+            moduleName: "module-b",
+            taskName: "task-b",
+            command: [],
+            outputs: { moo: "boo" },
+            success: true,
+            version: task.module.version.versionString,
+            startedAt: new Date(),
+            completedAt: new Date(),
+            log: "boo",
+          }
+        },
+      })
+    })
+
+    it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
+      const emptyActions = new ActionHelper(garden, {})
+
+      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
+
+      const graph = await garden.getConfigGraph()
+      const taskA = await graph.getTask("task-a")
+
+      const _runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          service: [],
+          task: [],
+          test: [],
+        },
+        module: taskA.module,
+        // Omitting the service-b outputs here
+        serviceStatuses: {},
+        taskResults: {},
+      })
+
+      await expectError(
+        () => emptyActions["callTaskHandler"]({
+          actionType: "runTask",
+          params: {
+            task: taskA,
+            runtimeContext: _runtimeContext,
+            log,
+            taskVersion: task.module.version,
+            interactive: false,
+          },
+          defaultHandler: async () => {
+            return {} as any
+          },
+        }),
+        (err) => expect(err.message).to.equal(
+          "Unable to resolve one or more runtime template values for task 'task-a': " +
+          "\${runtime.services.service-b.outputs.foo}",
+        ),
+      )
+    })
+  })
 })
 
 const testPlugin: PluginFactory = async () => ({
@@ -406,7 +647,9 @@ const testPlugin: PluginFactory = async () => ({
         validate(params, moduleActionDescriptions.describeType.paramsSchema)
         return {
           docs: "bla bla bla",
-          outputsSchema: joi.object(),
+          moduleOutputsSchema: joi.object(),
+          serviceOutputsSchema: joi.object(),
+          taskOutputsSchema: joi.object(),
           schema: joi.object(),
           title: "Bla",
         }
@@ -461,7 +704,7 @@ const testPlugin: PluginFactory = async () => ({
           moduleName: params.module.name,
           command: params.args,
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
           success: true,
           startedAt: now,
           version: params.module.version.versionString,
@@ -474,7 +717,10 @@ const testPlugin: PluginFactory = async () => ({
           moduleName: params.module.name,
           command: [],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
           success: true,
           startedAt: now,
           testName: params.testConfig.name,
@@ -488,7 +734,10 @@ const testPlugin: PluginFactory = async () => ({
           moduleName: params.module.name,
           command: [],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
           success: true,
           startedAt: now,
           testName: params.testName,
@@ -530,7 +779,7 @@ const testPlugin: PluginFactory = async () => ({
           moduleName: params.module.name,
           command: ["foo"],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
           success: true,
           startedAt: now,
           version: params.module.version.versionString,
@@ -558,7 +807,10 @@ const testPlugin: PluginFactory = async () => ({
           taskName: params.task.name,
           command: ["foo"],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
           success: true,
           startedAt: now,
           version: params.module.version.versionString,
@@ -573,7 +825,10 @@ const testPlugin: PluginFactory = async () => ({
           taskName: params.task.name,
           command: ["foo"],
           completedAt: now,
-          output: "bla bla",
+          log: "bla bla",
+          outputs: {
+            log: "bla bla",
+          },
           success: true,
           startedAt: now,
           version: params.module.version.versionString,
