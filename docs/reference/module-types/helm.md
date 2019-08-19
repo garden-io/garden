@@ -703,11 +703,27 @@ The chart version to deploy.
 
 ### `values`
 
-Map of values to pass to Helm when rendering the templates. May include arrays and nested objects.
+Map of values to pass to Helm when rendering the templates. May include arrays and nested objects. When specified, these take precedence over the values in the `values.yaml` file (or the files specified in `valueFiles`).
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+### `valueFiles`
+
+Specify value files to use when rendering the Helm chart. These will take precedence over the `values.yaml` file
+bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
+this list will have the highest precedence.
+
+If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
+of this list, so they will take precedence over other files listed here.
+
+Note that the paths here should be relative to the _module_ root, and the files should be contained in
+your module directory.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[string]` | No       | `[]`    |
 
 
 ## Complete YAML schema
@@ -768,6 +784,7 @@ tests:
     env: {}
 version:
 values: {}
+valueFiles: []
 ```
 
 ## Outputs

@@ -8,10 +8,11 @@ import {
   getChartResources,
   getChartPath,
   getReleaseName,
-  getValuesPath,
+  getGardenValuesPath,
   findServiceResource,
   getResourceContainer,
   getBaseModule,
+  getValueFileArgs,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
@@ -22,6 +23,7 @@ import { HotReloadableResource } from "../../../../../../src/plugins/kubernetes/
 import { getServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { Provider } from "../../../../../../src/config/provider"
+import { buildHelmModule } from "../../../../../../src/plugins/kubernetes/helm/build"
 
 const helmProvider: Provider = {
   name: "local-kubernetes",
@@ -559,9 +561,30 @@ describe("Helm common functions", () => {
     })
   })
 
-  describe("getValuesPath", () => {
+  describe("getGardenValuesPath", () => {
     it("should add garden-values.yml to the specified path", () => {
-      expect(getValuesPath(ctx.projectRoot)).to.equal(resolve(ctx.projectRoot, "garden-values.yml"))
+      expect(getGardenValuesPath(ctx.projectRoot)).to.equal(resolve(ctx.projectRoot, "garden-values.yml"))
+    })
+  })
+
+  describe("getValueFileArgs", () => {
+    it("should return just garden-values.yml if no valueFiles are configured", async () => {
+      const module = await graph.getModule("api")
+      module.spec.valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      expect(await getValueFileArgs(module)).to.eql(["--values", gardenValuesPath])
+    })
+
+    it("should return a --values arg for each valueFile configured", async () => {
+      const module = await graph.getModule("api")
+      module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+
+      expect(await getValueFileArgs(module)).to.eql([
+        "--values", resolve(module.buildPath, "foo.yaml"),
+        "--values", resolve(module.buildPath, "bar.yaml"),
+        "--values", gardenValuesPath,
+      ])
     })
   })
 
@@ -702,6 +725,7 @@ describe("Helm common functions", () => {
 
     it("should resolve template string for resource name", async () => {
       const module = await graph.getModule("postgres")
+      await buildHelmModule({ ctx, module, log })
       const chartResources = await getChartResources(ctx, module, log)
       module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
       const result = await findServiceResource({ ctx, log, module, chartResources })
