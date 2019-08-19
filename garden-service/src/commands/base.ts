@@ -256,6 +256,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
   cliOnly: boolean = false
   noProject: boolean = false
+  hidden: boolean = false
 
   subCommands: CommandConstructor[] = []
 

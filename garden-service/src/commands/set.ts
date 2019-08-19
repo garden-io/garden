@@ -18,6 +18,7 @@ import { SetSecretResult } from "../types/plugin/provider/setSecret"
 export class SetCommand extends Command {
   name = "set"
   help = "Set or modify data, e.g. secrets."
+  hidden = true
 
   subCommands = [
     SetSecretCommand,
@@ -48,13 +49,20 @@ type SetArgs = typeof setSecretArgs
 export class SetSecretCommand extends Command<typeof setSecretArgs> {
   name = "secret"
   help = "Set a secret value for a provider in an environment."
+  hidden = true
 
   description = dedent`
     These secrets are handled by each provider, and may for example be exposed as environment
     variables for services or mounted as files, depending on how the provider is implemented
     and configured.
 
-    _Note: The value is currently always stored as a string._
+    The value is currently always stored as a string.
+
+    >**Note**: The \`get|set secret\` commands are currently quite limited.
+    For Kubernetes secrets, we recommend using kubectl for
+    most non-trivial use-cases. Please refer our
+    [kubernetes-secrets example](https://github.com/garden-io/garden/tree/master/examples/kubernetes-secrets)
+    for more details.
 
     Examples:
 
