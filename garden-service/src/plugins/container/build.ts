@@ -63,7 +63,8 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
 
   // TODO: log error if it occurs
   // TODO: stream output to log if at debug log level
-  const buildLog = await containerHelpers.dockerCli(module, [...cmdOpts, buildPath])
+  const timeout = module.spec.build.timeout
+  const buildLog = await containerHelpers.dockerCli(module, [...cmdOpts, buildPath], { timeout })
 
   return { fresh: true, buildLog, details: { identifier } }
 }

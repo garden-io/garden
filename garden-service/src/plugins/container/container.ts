@@ -143,7 +143,6 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
   return moduleConfig
 }
 
-// TODO: rename this plugin to docker
 export const gardenPlugin = (): GardenPlugin => ({
   moduleActions: {
     container: {

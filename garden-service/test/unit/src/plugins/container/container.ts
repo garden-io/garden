@@ -19,7 +19,11 @@ import {
   ContainerModuleConfig,
   defaultContainerLimits,
 } from "../../../../../src/plugins/container/config"
-import { containerHelpers as helpers, minDockerVersion } from "../../../../../src/plugins/container/helpers"
+import {
+  containerHelpers as helpers,
+  minDockerVersion,
+  DEFAULT_BUILD_TIMEOUT,
+} from "../../../../../src/plugins/container/helpers"
 
 describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -44,7 +48,10 @@ describe("plugins.container", () => {
     type: "container",
 
     spec: {
-      build: { dependencies: [] },
+      build: {
+        dependencies: [],
+        timeout: DEFAULT_BUILD_TIMEOUT,
+      },
       buildArgs: {},
       extraFlags: [],
       services: [],
@@ -96,7 +103,10 @@ describe("plugins.container", () => {
         type: "container",
 
         spec: {
-          build: { dependencies: [] },
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
           buildArgs: {},
           extraFlags: [],
           services: [{
@@ -174,7 +184,10 @@ describe("plugins.container", () => {
         type: "container",
         spec:
         {
-          build: { dependencies: [] },
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
           buildArgs: {},
           extraFlags: [],
           services:
@@ -304,7 +317,10 @@ describe("plugins.container", () => {
         type: "test",
 
         spec: {
-          build: { dependencies: [] },
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
           buildArgs: {},
           extraFlags: [],
           services: [{
@@ -366,7 +382,10 @@ describe("plugins.container", () => {
         type: "test",
 
         spec: {
-          build: { dependencies: [] },
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
           buildArgs: {},
           extraFlags: [],
           services: [{
@@ -422,7 +441,10 @@ describe("plugins.container", () => {
         type: "test",
 
         spec: {
-          build: { dependencies: [] },
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
           buildArgs: {},
           extraFlags: [],
           services: [{
@@ -517,7 +539,8 @@ describe("plugins.container", () => {
         details: { identifier: "some/image" },
       })
 
-      td.verify(dockerCli(module, ["build", "-t", "some/image", module.buildPath]))
+      const cmdArgs = ["build", "-t", "some/image", module.buildPath]
+      td.verify(dockerCli(module, cmdArgs, { timeout: DEFAULT_BUILD_TIMEOUT }))
     })
 
     it("should set build target image parameter if configured", async () => {
@@ -540,7 +563,8 @@ describe("plugins.container", () => {
         details: { identifier: "some/image" },
       })
 
-      td.verify(dockerCli(module, ["build", "-t", "some/image", "--target", "foo", module.buildPath]))
+      const cmdArgs = ["build", "-t", "some/image", "--target", "foo", module.buildPath]
+      td.verify(dockerCli(module, cmdArgs, { timeout: DEFAULT_BUILD_TIMEOUT }))
     })
 
     it("should build image using the user specified Dockerfile path", async () => {
@@ -572,7 +596,7 @@ describe("plugins.container", () => {
         join(module.buildPath, relDockerfilePath),
         module.buildPath,
       ]
-      td.verify(dockerCli(module, cmdArgs))
+      td.verify(dockerCli(module, cmdArgs, { timeout: DEFAULT_BUILD_TIMEOUT }))
     })
   })
 

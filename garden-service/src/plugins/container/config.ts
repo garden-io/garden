@@ -387,6 +387,7 @@ export const containerTaskSchema = baseTaskSpecSchema
 
 export interface ContainerBuildSpec extends BaseBuildSpec {
   targetImage?: string
+  timeout: number
 }
 
 export interface ContainerModuleSpec extends ModuleSpec {
@@ -416,6 +417,10 @@ export const containerModuleSpecSchema = joi.object()
             https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
             details).
           `),
+        timeout: joi.number()
+          .integer()
+          .default(1200)
+          .description("Maximum time in seconds to wait for build to finish."),
       }),
     buildArgs: joi.object()
       .pattern(/.+/, joiPrimitive())

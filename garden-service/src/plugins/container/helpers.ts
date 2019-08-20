@@ -13,6 +13,7 @@ import { splitFirst, spawn, splitLast } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
 
+export const DEFAULT_BUILD_TIMEOUT = 600
 export const minDockerVersion = "17.07.0"
 
 interface ParsedImageId {
@@ -248,13 +249,16 @@ const helpers = {
     helpers.dockerVersionChecked = true
   },
 
-  async dockerCli(module: ContainerModule, args: string[]) {
+  async dockerCli(
+    module: ContainerModule, args: string[],
+    { timeout = DEFAULT_BUILD_TIMEOUT }: { timeout?: number } = {},
+  ) {
     await helpers.checkDockerVersion()
 
     const cwd = module.buildPath
 
     try {
-      const res = await spawn("docker", args, { cwd })
+      const res = await spawn("docker", args, { cwd, timeout })
       return res.output || ""
     } catch (err) {
       throw new RuntimeError(
