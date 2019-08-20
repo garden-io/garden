@@ -1,4 +1,4 @@
-# Javascript Node CircleCI 2.1 configuration file
+# CircleCI 2.1 configuration file
 version: 2.1
 
 # Shared config to use between jobs
@@ -321,6 +321,38 @@ jobs:
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
           when: always
 
+  test-minikube:
+    machine:
+      image: 'ubuntu-1604:201903-01'
+      docker_layer_caching: true
+    environment:
+      K8S_VERSION: v1.15.0
+      MINIKUBE_VERSION: v1.3.1
+    steps:
+      - checkout
+      - run:
+          name: Install Node.js
+          # First we remove system node and npm to ensure they're not used in later 'run' steps
+          command: |
+            rm -rf $(which node)
+            rm -rf $(which npm)
+            curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+            sudo apt-get -y install nodejs
+      - npm_install
+      - run: npm run build
+      - run:
+          name: Install Minikube Executable
+          command: |
+            curl -Lo minikube https://github.com/kubernetes/minikube/releases/download/${MINIKUBE_VERSION}/minikube-linux-amd64
+            chmod +x minikube
+            sudo mv minikube /usr/local/bin
+      - run:
+          name: Start Minikube Cluster
+          command: sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
+      - run:
+          name: Deploy demo-project
+          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
+
 workflows:
   version: 2
   commit:
@@ -351,6 +383,7 @@ workflows:
       - test-dashboard:
           requires:
             - build
+      - test-minikube
 
   master:
     jobs:
