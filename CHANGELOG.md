@@ -1,4 +1,21 @@
 
+<a name="v0.10.6"></a>
+## [v0.10.6](https://github.com/garden-io/garden/compare/v0.10.5...v0.10.6) (2019-08-20)
+
+### Bug Fixes
+
+* **minikube:** use dashboard addon instead of static helm chart ([f7488d89](https://github.com/garden-io/garden/commit/f7488d89))
+* **minikube:** fix incorrect error handling ([1f8e96b2](https://github.com/garden-io/garden/commit/1f8e96b2))
+* **proxy:** handle undefined _remote Socket ([0caae294](https://github.com/garden-io/garden/commit/0caae294))
+* **vcs:** include submodules with remote sources ([d1ae6882](https://github.com/garden-io/garden/commit/d1ae6882))
+* **watcher:** native fsevents were not used in dist build on macOS ([4eb00a6d](https://github.com/garden-io/garden/commit/4eb00a6d))
+
+### Features
+
+* **container:** add build.timeout option ([fd580379](https://github.com/garden-io/garden/commit/fd580379))
+* **helm:** add valueFiles field to specify custom value files ([#1099](https://github.com/garden-io/garden/issues/1099)) ([ca47483c](https://github.com/garden-io/garden/commit/ca47483c))
+
+
 <a name="v0.10.5"></a>
 ## [v0.10.5](https://github.com/garden-io/garden/compare/v0.10.4...v0.10.5) (2019-08-13)
 
