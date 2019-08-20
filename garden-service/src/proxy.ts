@@ -83,6 +83,7 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
 
   const server = createServer((local) => {
     let _remote: Socket
+    let localDidClose = false
 
     const getRemote = async () => {
       if (!_remote) {
@@ -115,7 +116,13 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
         _remote.on("error", (err) => {
           log.debug(`Remote socket error: ${err.message}`)
         })
+
+        // Local connection was closed while remote connection was being created
+        if (localDidClose) {
+          _remote.end()
+        }
       }
+
       return _remote
     }
 
@@ -153,7 +160,8 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
     })
 
     local.on("close", () => {
-      _remote.end()
+      _remote && _remote.end()
+      localDidClose = true
     })
 
     local.on("error", (err) => {
