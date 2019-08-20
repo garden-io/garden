@@ -30,8 +30,6 @@ import { getPortForward } from "../port-forward"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
-// TODO: make build timeout configurable
-const buildTimeout = 600
 // Note: v0.9.0 appears to be completely broken: https://github.com/GoogleContainerTools/kaniko/issues/268
 const kanikoImage = "gcr.io/kaniko-project/executor:v0.8.0"
 const registryPort = 5000
@@ -176,6 +174,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
     // Execute the build
     const podName = await getBuilderPodName(provider, log)
+    const buildTimeout = module.spec.build.timeout
     const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName })
     buildLog = buildRes.stdout + buildRes.stderr
 
@@ -325,6 +324,6 @@ async function runKaniko(provider: KubernetesProvider, log: LogEntry, module: Co
       }],
     },
     podName,
-    timeout: buildTimeout,
+    timeout: module.spec.build.timeout,
   })
 }

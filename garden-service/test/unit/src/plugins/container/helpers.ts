@@ -18,7 +18,7 @@ import {
   ContainerModuleSpec,
   ContainerModuleConfig,
 } from "../../../../../src/plugins/container/config"
-import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
+import { containerHelpers as helpers, DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 
 describe("containerHelpers", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -40,7 +40,10 @@ describe("containerHelpers", () => {
     type: "container",
 
     spec: {
-      build: { dependencies: [] },
+      build: {
+        dependencies: [],
+        timeout: DEFAULT_BUILD_TIMEOUT,
+      },
       buildArgs: {},
       extraFlags: [],
       services: [],
@@ -233,7 +236,10 @@ describe("containerHelpers", () => {
         type: "container",
 
         spec: {
-          build: { dependencies: [] },
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
           buildArgs: {},
           extraFlags: [],
           image: "some/image",

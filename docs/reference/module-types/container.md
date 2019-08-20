@@ -214,6 +214,16 @@ For multi-stage Dockerfiles, specify which image to build (see https://docs.dock
 | -------- | -------- |
 | `string` | No       |
 
+### `build.timeout`
+
+[build](#build) > timeout
+
+Maximum time in seconds to wait for build to finish.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `1200`  |
+
 ### `buildArgs`
 
 Specify build arguments to use when building the container image.
@@ -969,6 +979,7 @@ build:
         - source:
           target: <same as source path>
   targetImage:
+  timeout: 1200
 buildArgs: {}
 extraFlags:
 image:

@@ -15,6 +15,7 @@ import { ContainerModuleConfig } from "../container/config"
 import { ContainerServiceSpec, ServicePortProtocol } from "../container/config"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
+import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
 
 const pluginName = "local-google-cloud-functions"
 const emulatorModuleName = "local-gcf-container"
@@ -39,6 +40,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         spec: {
           build: {
             dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
           },
           buildArgs: {},
           extraFlags: [],

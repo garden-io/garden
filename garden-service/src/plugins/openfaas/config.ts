@@ -24,6 +24,7 @@ import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin
 import { getNamespace } from "../kubernetes/namespace"
 import { LogEntry } from "../../logger/log-entry"
 import { baseBuildSpecSchema } from "../../config/module"
+import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
 
 export interface OpenFaasModuleSpec extends ExecModuleSpec {
   handler: string
@@ -115,6 +116,10 @@ export function getContainerModule(module: OpenFaasModule): ContainerModule {
     ...module,
     spec: {
       ...module.spec,
+      build: {
+        ...module.spec.build,
+        timeout: DEFAULT_BUILD_TIMEOUT,
+      },
       buildArgs: {},
       dockerfile: "Dockerfile",
       extraFlags: [],
