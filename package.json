@@ -47,7 +47,7 @@
   },
   "scripts": {
     "build": "npm run clean && lerna bootstrap && lerna run build",
-    "dist": "lerna run dist",
+    "dist": "npm run bootstrap && lerna run dist",
     "bootstrap": "lerna bootstrap",
     "check-docs": "./bin/check-docs",
     "check-licenses": "gulp check-licenses",
