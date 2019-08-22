@@ -1,12 +1,6 @@
 # Remote sources example project
 
-This example demonstrates how you can import remote sources and remote modules into a Garden project.
-
-Important concepts:
-
-> Remote _source_: A collection of one or more Garden modules that live in a repository different from the main project repo. The `garden.yml` config files are co-located with the modules in the remote repository.
-
-> Remote _module_: The remote source code for a single Garden module. In this case, the `garden.yml` config file is stored in the main project repository while the module code itself is in the remote repository.
+This example demonstrates how you can import remote sources and remote modules into a Garden project. Take a look at the [Using Remote Sources](https://docs.garden.io/using-garden) section of our docs for more details.
 
 ## About
 
@@ -40,65 +34,3 @@ Use the `unlink source|module` command to unlink it again, and revert to the mod
 ```sh
 garden unlink source web-services
 ```
-
-## Further reading
-
-### Project structure
-
-Looking at the project structure, you'll notice that the project doesn't contain any code outside the `garden.yml` config files. Rather, the config files themselves contain the URLs to the remote repositories.
-
-```sh
-tree
-.
-├── README.md
-├── garden.yml
-└── services
-    └── jworker
-        └── garden.yml
-
-2 directories, 3 files
-```
-
-### Configuring remote sources
-
-For this project, we want to import the database and web services as remote _sources_. This means that the entire source code gets embedded into the project and treated just like our other project files. As usual, Garden will scan the project for `garden.yml` files, and include all modules it finds.
-
-To import remote sources, we add them under the `sources` key in the top-level project configuration file:
-
-```yaml
-kind: Project
-name: remote-sources
-sources:
-  - name: web-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.0
-  - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
-```
-
-> Remote repository URLs must contain a hash part that references a specific branch or tag, e.g. `https://github.com/org/repo.git/#my-tag-or-branch`. The remote repositories used in this example all contain the tag `v0.1.0`. Read more about Git tagging [here](https://git-scm.com/book/en/v2/Git-Basics-Tagging).
-
-### Configuring remote modules
-
-Additionally, we want to import the Java worker as a remote _module_. In that case, Garden assumes that the remote repository contains the source code for a single Garden module. Furthermore, the `garden.yml` config file for that module is kept in the main project repo:
-```sh
-tree services
-services
-└── jworker
-    └── garden.yml
-
-1 directory, 1 file
-```
-and the path to the repository URL is added under the `repositoryUrl` key like so:
-```yaml
-kind: Module
-description: worker
-type: container
-name: jworker
-repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.1.0
-services:
-  - name: javaworker
-    dependencies:
-      - redis
-```
-
-Note that a project can contain its own modules and also import remote sources and modules.
