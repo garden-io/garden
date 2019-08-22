@@ -28,13 +28,17 @@ One of Garden's most powerful features is the ability to build images in your Ku
 avoiding the need for local Kubernetes clusters. This guide covers the requirements for in-cluster building and how
 to set it up.
 
-## [Cloud Provider Set-up](./using-helm-charts.md)
+## [Cloud Provider Set-up](./cloud-provider-setup.md)
 
 Instructions for creating and configuring Kubernetes clusters with GKE (Google), AKS (Azure), EKS and kops (AWS), and how to connect to them with Garden.
 
 ## [Using Helm charts](./using-helm-charts.md)
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container modules. This guide shows you how to use 3rd-party (or otherwise external) Helm charts, as well as your own charts, in your Garden project. We also go through how to configure tests, tasks and hot-reloading for your charts.
+
+## [Using Remote Sources](./using-remote-sources.md)
+
+Instructions for how to import code from remote repositories into a Garden project.
 
 ## [Hot Reload](./hot-reload.md)
 

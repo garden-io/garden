@@ -12,10 +12,6 @@ In this example we demonstrate how to use Garden in a CI pipeline to run tests a
 
 This is an example project of how to set up TLS using the `mkcert` tool.
 
-## [Remote sources project](./remote-sources.md)
-
-This project demonstrates how to use multiple sources and repositories together into the same project.
-
 ## Other example projects
 
 You can also go straight to the [examples](https://github.com/garden-io/garden/tree/v0.10.6/examples) directory in the
