@@ -1,4 +1,4 @@
-# Configuration
+# Configuration Files
 
 Garden is configured via `garden.yml` configuration files, which Garden collects and compiles into a
 [Stack Graph](../basics/stack-graph.md) of your project.

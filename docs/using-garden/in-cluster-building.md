@@ -1,3 +1,6 @@
+---
+title: In-Cluster Building
+---
 # Building images in remote Kubernetes clusters
 
 One of Garden's most powerful features is the ability to build images in your Kubernetes development cluster, thus

@@ -10,6 +10,7 @@ import { resolve } from "path"
 import { writeCommandReferenceDocs } from "./commands"
 import { writeConfigReferenceDocs } from "./config"
 import { writeTemplateStringReferenceDocs } from "./template-strings"
+import { writeTableOfContents } from "./table-of-contents"
 
 export async function generateDocs(targetDir: string) {
   const docsRoot = resolve(process.cwd(), targetDir)
@@ -20,4 +21,6 @@ export async function generateDocs(targetDir: string) {
   await writeConfigReferenceDocs(docsRoot)
   console.log("Updating template string reference...")
   writeTemplateStringReferenceDocs(docsRoot)
+  console.log("Generating table of contents...")
+  await writeTableOfContents(docsRoot, "README.md")
 }

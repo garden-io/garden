@@ -1,4 +1,4 @@
-# Quick start
+# Quick Start
 
 This guide will walk you through setting up the Garden framework. It assumes you already have Garden installed. If you don't, please check out our [installation guide](./installation.md).
 

@@ -1,3 +1,6 @@
+---
+title: Local Kubernetes
+---
 # Local Kubernetes clusters
 
 Garden works great with local Kubernetes "clusters". Below you'll find installation and usage instructions for some

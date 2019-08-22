@@ -1,3 +1,6 @@
+---
+order: 1
+---
 # Basics
 
 The following articles cover the basics of installing and using Garden:

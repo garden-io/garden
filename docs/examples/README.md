@@ -1,4 +1,7 @@
-# Example projects
+---
+order: 3
+---
+# Example Projects
 
 ## [Demo project](./demo-project.md)
 

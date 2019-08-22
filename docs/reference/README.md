@@ -1,3 +1,6 @@
+---
+order: 4
+---
 # Reference
 
 * [Module Types](./module-types/README.md)

@@ -1,3 +1,6 @@
+---
+order: 2
+---
 # Using Garden
 
 ## [Development Workflows](./development-workflows.md)

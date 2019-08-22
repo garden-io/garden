@@ -1,3 +1,6 @@
+---
+title: Remote Kubernetes
+---
 # Using Garden with a remote Kubernetes cluster
 
 Below are some notes on the steps you need to take before deploying Garden projects to a remote Kubernetes cluster,
