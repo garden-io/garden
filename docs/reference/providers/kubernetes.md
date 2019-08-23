@@ -539,7 +539,7 @@ Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
 [providers](#providers) > [storage](#providers[].storage) > [builder](#providers[].storage.builder) > size
 
-Volume size for the registry in megabytes.
+Volume size in megabytes.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
@@ -572,7 +572,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 
 [providers](#providers) > [storage](#providers[].storage) > [registry](#providers[].storage.registry) > size
 
-Volume size for the registry in megabytes.
+Volume size in megabytes.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
@@ -595,6 +595,10 @@ Storage class to use for the volume.
 Storage parameters for the code sync volume, which build contexts are synced to ahead of running
 in-cluster builds.
 
+Important: The storage class configured here has to support _ReadWriteMany_ access.
+If you don't specify a storage class, Garden creates an NFS provisioner and provisions an ephemeral
+NFS volume for the sync data volume.
+
 Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
 
 | Type     | Required | Default                              |
@@ -605,7 +609,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 
 [providers](#providers) > [storage](#providers[].storage) > [sync](#providers[].storage.sync) > size
 
-Volume size for the registry in megabytes.
+Volume size in megabytes.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |

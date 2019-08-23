@@ -15,4 +15,4 @@ values:
       memory: ${var.sync-requests-memory}
   storage:
     request: ${var.sync-storage-size}
-    storageClass: garden-system-nfs
+    storageClass: ${var.sync-storage-class}
