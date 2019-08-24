@@ -9,9 +9,8 @@
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { joi } from "../../config/common"
-import { deline, dedent } from "../../util/string"
+import { deline } from "../../util/string"
 import { supportedVersions, defaultTerraformVersion } from "./cli"
-import { DescribeModuleTypeParams } from "../../types/plugin/module/describeType"
 import { Module } from "../../types/module"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { ConfigurationError, PluginError } from "../../exceptions"
@@ -29,7 +28,7 @@ export interface TerraformModuleSpec extends TerraformBaseSpec {
 
 export interface TerraformModule extends Module<TerraformModuleSpec> { }
 
-const schema = joi.object()
+export const schema = joi.object()
   .keys({
     build: baseBuildSpecSchema,
     autoApply: joi.boolean()
@@ -64,33 +63,6 @@ const schema = joi.object()
         The version of Terraform to use. Defaults to the version set in the provider config.
       `),
   })
-
-export async function describeTerraformModuleType({ }: DescribeModuleTypeParams) {
-  return {
-    docs: dedent`
-      Resolves a Terraform stack and either applies it automatically (if \`autoApply: true\`) or errors when the stack
-      resources are not up-to-date.
-
-      Stack outputs are made available as service outputs, that can be referenced by other modules under
-      \`\${runtime.services.<module-name>.outputs.<key>}\`. You can template in those values as e.g. command arguments
-      or environment variables for other services.
-
-      Note that you can also declare a Terraform root in the \`terraform\` provider configuration by setting the
-      \`initRoot\` parameter.
-      This may be preferable if you need the outputs of the Terraform stack to be available to other provider
-      configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from
-      that to configure another provider or other modules via \`\${providers.terraform.outputs.<key>}\` template
-      strings.
-
-      See the [Terraform guide](../../using-garden/terraform.md) for a high-level introduction to the \`terraform\`
-      provider.
-    `,
-    serviceOutputsSchema: joi.object()
-      .pattern(/.+/, joi.any())
-      .description("A map of all the outputs defined in the Terraform stack."),
-    schema,
-  }
-}
 
 export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureModuleParams<TerraformModule>) {
   // Make sure the configured root path exists

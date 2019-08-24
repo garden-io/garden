@@ -1,10 +1,10 @@
 
 import {
-  ModuleAndRuntimeActions,
-  PluginActions,
-  PluginFactory,
+  ModuleAndRuntimeActionHandlers,
+  PluginActionHandlers,
   moduleActionDescriptions,
   pluginActionDescriptions,
+  createGardenPlugin,
 } from "../../../src/types/plugin/plugin"
 import { Service, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
@@ -32,7 +32,7 @@ describe("ActionHelper", () => {
   let task: Task
 
   before(async () => {
-    const plugins = { "test-plugin": testPlugin, "test-plugin-b": testPluginB }
+    const plugins = [testPlugin, testPluginB]
     garden = await makeTestGardenA(plugins)
     log = garden.log
     actions = await garden.getActionHelper()
@@ -418,7 +418,7 @@ describe("ActionHelper", () => {
 
   describe("callServiceHandler", () => {
     it("should interpolate runtime template strings", async () => {
-      const emptyActions = new ActionHelper(garden, {})
+      const emptyActions = new ActionHelper(garden, [])
 
       garden["moduleConfigs"]["module-a"].spec.foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -464,7 +464,7 @@ describe("ActionHelper", () => {
     })
 
     it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
-      const emptyActions = new ActionHelper(garden, {})
+      const emptyActions = new ActionHelper(garden, [])
 
       garden["moduleConfigs"]["module-a"].spec.services[0].foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -509,7 +509,7 @@ describe("ActionHelper", () => {
 
   describe("callTaskHandler", () => {
     it("should interpolate runtime template strings", async () => {
-      const emptyActions = new ActionHelper(garden, {})
+      const emptyActions = new ActionHelper(garden, [])
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -565,7 +565,7 @@ describe("ActionHelper", () => {
     })
 
     it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
-      const emptyActions = new ActionHelper(garden, {})
+      const emptyActions = new ActionHelper(garden, [])
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -610,8 +610,9 @@ describe("ActionHelper", () => {
   })
 })
 
-const testPlugin: PluginFactory = async () => ({
-  actions: <PluginActions>{
+const testPlugin = createGardenPlugin({
+  name: "test-plugin",
+  handlers: <PluginActionHandlers>{
     getEnvironmentStatus: async (params) => {
       validate(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
       return {
@@ -645,20 +646,17 @@ const testPlugin: PluginFactory = async () => ({
       return { found: true }
     },
   },
-  moduleActions: {
-    test: <ModuleAndRuntimeActions>{
-      describeType: async (params) => {
-        validate(params, moduleActionDescriptions.describeType.paramsSchema)
-        return {
-          docs: "bla bla bla",
-          moduleOutputsSchema: joi.object(),
-          serviceOutputsSchema: joi.object(),
-          taskOutputsSchema: joi.object(),
-          schema: joi.object(),
-          title: "Bla",
-        }
-      },
+  createModuleTypes: [{
+    name: "test",
 
+    docs: "bla bla bla",
+    moduleOutputsSchema: joi.object(),
+    serviceOutputsSchema: joi.object(),
+    taskOutputsSchema: joi.object(),
+    schema: joi.object(),
+    title: "Bla",
+
+    handlers: <ModuleAndRuntimeActionHandlers>{
       configure: async (params) => {
         validate(params, moduleActionDescriptions.configure.paramsSchema)
 
@@ -839,7 +837,10 @@ const testPlugin: PluginFactory = async () => ({
         }
       },
     },
-  },
+  }],
 })
 
-const testPluginB: PluginFactory = async (params) => omit(await testPlugin(params), ["moduleActions"])
+const testPluginB = createGardenPlugin({
+  ...omit(testPlugin, ["createModuleTypes"]),
+  name: "test-plugin-b",
+})

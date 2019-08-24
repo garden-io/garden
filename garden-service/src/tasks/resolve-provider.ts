@@ -104,7 +104,7 @@ export class ResolveProviderTask extends BaseTask {
 
     resolvedConfig.path = this.garden.projectRoot
 
-    const configureHandler = (this.plugin.actions || {}).configureProvider
+    const configureHandler = (this.plugin.handlers || {}).configureProvider
 
     let moduleConfigs: ModuleConfig[] = []
 

@@ -9,7 +9,7 @@
 import { mapValues } from "lodash"
 import { join } from "path"
 import { joiArray, joiEnvVars, validateWithPath, joi } from "../config/common"
-import { GardenPlugin } from "../types/plugin/plugin"
+import { createGardenPlugin } from "../types/plugin/plugin"
 import { Module } from "../types/module"
 import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
@@ -25,8 +25,6 @@ import { BuildModuleParams, BuildResult } from "../types/plugin/module/build"
 import { TestModuleParams } from "../types/plugin/module/testModule"
 import { TestResult } from "../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../types/plugin/task/runTask"
-
-export const name = "exec"
 
 export interface ExecTestSpec extends BaseTestSpec {
   command: string[],
@@ -229,8 +227,10 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
   }
 }
 
-async function describeType() {
-  return {
+export const execPlugin = createGardenPlugin({
+  name: "exec",
+  createModuleTypes: [{
+    name: "exec",
     docs: dedent`
       A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
       type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
@@ -247,20 +247,14 @@ async function describeType() {
             "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)",
           ),
       }),
-  }
-}
-
-export const execPlugin: GardenPlugin = {
-  moduleActions: {
-    exec: {
-      describeType,
+    handlers: {
       configure: configureExecModule,
       getBuildStatus: getExecModuleBuildStatus,
       build: buildExecModule,
       runTask: runExecTask,
       testModule: testExecModule,
     },
-  },
-}
+  }],
+})
 
-export const gardenPlugin = () => execPlugin
+export const gardenPlugin = execPlugin

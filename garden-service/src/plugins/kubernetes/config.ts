@@ -14,8 +14,6 @@ import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../conta
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
 
-export const name = "kubernetes"
-
 export interface ProviderSecretRef {
   name: string
   namespace: string

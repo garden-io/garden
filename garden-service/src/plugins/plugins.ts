@@ -6,39 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
-
-const exec = require("./exec")
-const container = require("./container/container")
-const gcf = require("./google/google-cloud-functions")
-const localGcf = require("./local/local-google-cloud-functions")
-const kubernetes = require("./kubernetes/kubernetes")
-const localKubernetes = require("./kubernetes/local/local")
-const npmPackage = require("./npm-package")
-const gae = require("./google/google-app-engine")
-const localOpenfaas = require("./openfaas/local")
-const openfaas = require("./openfaas/openfaas")
-const mavenContainer = require("./maven-container/maven-container")
-const terraform = require("./terraform/terraform")
-
 // These plugins are always registered
-export const builtinPlugins = mapValues({
-  exec,
-  container,
-  "google-cloud-functions": gcf,
-  "local-google-cloud-functions": localGcf,
-  kubernetes,
-  "local-kubernetes": localKubernetes,
-  "npm-package": npmPackage,
-  "google-app-engine": gae,
-  "local-openfaas": localOpenfaas,
-  openfaas,
-  "maven-container": mavenContainer,
-  terraform,
-}, (m => m.gardenPlugin))
-
-// These plugins are always loaded
-export const fixedPlugins = [
-  "exec",
-  "container",
-]
+export const builtinPlugins = [
+  require("./exec"),
+  require("./container/container"),
+  require("./google/google-cloud-functions"),
+  require("./local/local-google-cloud-functions"),
+  require("./kubernetes/kubernetes"),
+  require("./kubernetes/local/local"),
+  require("./npm-package"),
+  require("./google/google-app-engine"),
+  require("./openfaas/local"),
+  require("./openfaas/openfaas"),
+  require("./maven-container/maven-container"),
+  require("./terraform/terraform"),
+].map(m => m.gardenPlugin)

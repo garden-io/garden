@@ -25,8 +25,8 @@ describe("containerHelpers", () => {
   const modulePath = resolve(dataDir, "test-project-container", "module-a")
   const relDockerfilePath = "docker-dir/Dockerfile"
 
-  const handler = gardenPlugin()
-  const configure = handler.moduleActions!.container!.configure!
+  const plugin = gardenPlugin
+  const configure = plugin.createModuleTypes![0].handlers.configure!
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
@@ -61,7 +61,7 @@ describe("containerHelpers", () => {
   let log: LogEntry
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { extraPlugins: { container: gardenPlugin } })
+    garden = await makeTestGarden(projectRoot, { extraPlugins: [gardenPlugin] })
     log = garden.log
     const provider = await garden.resolveProvider("container")
     ctx = await garden.getPluginContext(provider)

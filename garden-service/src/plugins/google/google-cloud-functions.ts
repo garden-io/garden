@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiArray, validateWithPath, joi } from "../../config/common"
+import { joiArray, joi } from "../../config/common"
 import { Module } from "../../types/module"
 import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
 import { resolve } from "path"
@@ -17,7 +17,7 @@ import {
   getEnvironmentStatus,
   GOOGLE_CLOUD_DEFAULT_REGION,
 } from "./common"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema } from "../../config/provider"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
@@ -69,15 +69,6 @@ export async function configureGcfModule(
     endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${name}`,
   }
 
-  // TODO: check that each function exists at the specified path
-  moduleConfig.spec = validateWithPath({
-    config: moduleConfig.spec,
-    schema: gcfModuleSpecSchema,
-    name: moduleConfig.name,
-    path: moduleConfig.path,
-    projectRoot: ctx.projectRoot,
-  })
-
   moduleConfig.serviceConfigs = [{
     name,
     dependencies: spec.dependencies,
@@ -100,14 +91,18 @@ const configSchema = providerConfigBaseSchema.keys({
     .description("The default GCP project to deploy functions to (can be overridden on individual functions)."),
 })
 
-export const gardenPlugin = (): GardenPlugin => ({
+export const gardenPlugin = createGardenPlugin({
+  name: "google-cloud-function",
   configSchema,
-  actions: {
+  handlers: {
     getEnvironmentStatus,
     prepareEnvironment,
   },
-  moduleActions: {
-    "google-cloud-function": {
+  createModuleTypes: [{
+    name: "google-cloud-function",
+    docs: "(TODO)",
+    schema: gcfModuleSpecSchema,
+    handlers: {
       configure: configureGcfModule,
 
       async deployService(params: DeployServiceParams<GcfModule>) {
@@ -130,7 +125,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return getServiceStatus(params)
       },
     },
-  },
+  }],
 })
 
 export async function getServiceStatus(

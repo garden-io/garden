@@ -6,14 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { gardenPlugin as o6sPlugin } from "./openfaas"
 
-export const name = "local-openfaas"
-
 // TODO: avoid having to configure separate plugins, by allowing for this scenario in the plugin mechanism
-export function gardenPlugin(): GardenPlugin {
-  const plugin = o6sPlugin()
-  plugin.dependencies = ["local-kubernetes"]
-  return plugin
-}
+export const gardenPlugin = createGardenPlugin({
+  ...o6sPlugin,
+  name: "local-openfaas",
+  dependencies: ["local-kubernetes"],
+})

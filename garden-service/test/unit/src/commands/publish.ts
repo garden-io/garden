@@ -3,10 +3,16 @@ import { it } from "mocha"
 import { join } from "path"
 import { expect } from "chai"
 import { Garden } from "../../../../src/garden"
-import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { makeTestGardenA, configureTestModule, withDefaultGlobalOpts, dataDir } from "../../../helpers"
+import {
+  makeTestGardenA,
+  configureTestModule,
+  withDefaultGlobalOpts,
+  dataDir,
+  testModuleSpecSchema,
+} from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
+import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 
 const projectRootB = join(dataDir, "test-project-b")
 
@@ -22,22 +28,23 @@ const publishModule = async () => {
   return { published: true }
 }
 
-const testProvider: PluginFactory = () => {
-  return {
-    moduleActions: {
-      test: {
-        configure: configureTestModule,
-        getBuildStatus,
-        build,
-        publish: publishModule,
-      },
+const testProvider = createGardenPlugin({
+  name: "test-plugin",
+  createModuleTypes: [{
+    name: "test",
+    docs: "Test plugin",
+    schema: testModuleSpecSchema,
+    handlers: {
+      configure: configureTestModule,
+      getBuildStatus,
+      build,
+      publish: publishModule,
     },
-  }
-}
+  }],
+})
 
 async function getTestGarden() {
-  const plugins = { "test-plugin": testProvider }
-  const garden = await Garden.factory(projectRootB, { plugins })
+  const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
   await garden.clearBuilds()
   return garden
 }

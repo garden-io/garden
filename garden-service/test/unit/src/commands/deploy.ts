@@ -3,12 +3,18 @@ import { Garden } from "../../../../src/garden"
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
 import { buildExecModule } from "../../../../src/plugins/exec"
-import { PluginFactory } from "../../../../src/types/plugin/plugin"
 import { ServiceState, ServiceStatus } from "../../../../src/types/service"
-import { taskResultOutputs, configureTestModule, withDefaultGlobalOpts, dataDir } from "../../../helpers"
+import {
+  taskResultOutputs,
+  configureTestModule,
+  withDefaultGlobalOpts,
+  dataDir,
+  testModuleSpecSchema,
+} from "../../../helpers"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
 import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
+import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 
 const placeholderTimestamp = new Date()
 
@@ -29,7 +35,7 @@ const placeholderTaskResult = (moduleName: string, taskName: string, command: st
 const taskResultA = placeholderTaskResult("module-a", "task-a", ["echo", "A"])
 const taskResultC = placeholderTaskResult("module-c", "task-c", ["echo", "C"])
 
-const testProvider: PluginFactory = () => {
+const testProvider = () => createGardenPlugin(() => {
   const testStatuses: { [key: string]: ServiceStatus } = {
     "service-a": {
       state: "ready",
@@ -68,26 +74,30 @@ const testProvider: PluginFactory = () => {
   }
 
   return {
-    moduleActions: {
-      test: {
+    name: "test-plugin",
+    createModuleTypes: [{
+      name: "test",
+      docs: "Test plugin",
+      schema: testModuleSpecSchema,
+      handlers: {
         configure: configureTestModule,
         build: buildExecModule,
         deployService,
         getServiceStatus,
         runTask,
       },
-    },
+    }],
   }
-}
+})
 
 describe("DeployCommand", () => {
   const projectRootB = join(dataDir, "test-project-b")
-  const plugins = { "test-plugin": testProvider }
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
   // TODO: Test with --watch flag
 
   it("should build and deploy all modules in a project", async () => {
+    const plugins = [testProvider()]
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()
@@ -156,6 +166,7 @@ describe("DeployCommand", () => {
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
+    const plugins = [testProvider()]
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()

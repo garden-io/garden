@@ -12,7 +12,7 @@ describe("createServiceResources", () => {
   let garden: Garden
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { extraPlugins: { container: gardenPlugin } })
+    garden = await makeTestGarden(projectRoot, { extraPlugins: [gardenPlugin] })
   })
 
   it("should return service resources", async () => {

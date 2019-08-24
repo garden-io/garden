@@ -6,13 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenPlugin } from "../types/plugin/plugin"
-import {
-  execPlugin,
-} from "./exec"
+import { createGardenPlugin } from "../types/plugin/plugin"
+import { execPlugin, execModuleSpecSchema } from "./exec"
 
-export const gardenPlugin = (): GardenPlugin => ({
-  moduleActions: {
-    "npm-package": execPlugin.moduleActions!.exec,
-  },
+export const gardenPlugin = createGardenPlugin({
+  name: "npm-package",
+  createModuleTypes: [
+    {
+      name: "npm-package",
+      docs: "[DEPRECATED]",
+      schema: execModuleSpecSchema,
+      handlers: {
+        ...execPlugin.createModuleTypes![0].handlers,
+      },
+    },
+  ],
 })

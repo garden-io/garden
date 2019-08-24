@@ -4,12 +4,19 @@ import {
   DeleteServiceCommand,
 } from "../../../../src/commands/delete"
 import { Garden } from "../../../../src/garden"
-import { PluginFactory } from "../../../../src/types/plugin/plugin"
-import { expectError, makeTestGardenA, getDataDir, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
+import {
+  expectError,
+  makeTestGardenA,
+  getDataDir,
+  configureTestModule,
+  withDefaultGlobalOpts,
+} from "../../../helpers"
 import { expect } from "chai"
 import { ServiceStatus } from "../../../../src/types/service"
 import { EnvironmentStatus } from "../../../../src/types/plugin/provider/getEnvironmentStatus"
 import { DeleteServiceParams } from "../../../../src/types/plugin/service/deleteService"
+import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { testModuleSpecSchema } from "../../../helpers"
 
 describe("DeleteSecretCommand", () => {
   const pluginName = "test-plugin"
@@ -64,7 +71,7 @@ const getServiceStatus = async (): Promise<ServiceStatus> => {
 describe("DeleteEnvironmentCommand", () => {
   let deletedServices: string[] = []
 
-  const testProvider: PluginFactory = () => {
+  const testProvider = createGardenPlugin(() => {
     const name = "test-plugin"
 
     const testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
@@ -84,19 +91,23 @@ describe("DeleteEnvironmentCommand", () => {
     }
 
     return {
-      actions: {
+      name: "test-plugin",
+      handlers: {
         cleanupEnvironment,
         getEnvironmentStatus,
       },
-      moduleActions: {
-        test: {
+      createModuleTypes: [{
+        name: "test",
+        docs: "Test plugin",
+        schema: testModuleSpecSchema,
+        handlers: {
           configure: configureTestModule,
           getServiceStatus,
           deleteService,
         },
-      },
+      }],
     }
-  }
+  })
 
   beforeEach(() => {
     deletedServices = []
@@ -104,7 +115,7 @@ describe("DeleteEnvironmentCommand", () => {
 
   const projectRootB = getDataDir("test-project-b")
   const command = new DeleteEnvironmentCommand()
-  const plugins = { "test-plugin": testProvider }
+  const plugins = [testProvider]
 
   it("should delete environment with services", async () => {
     const garden = await Garden.factory(projectRootB, { plugins })
@@ -131,7 +142,7 @@ describe("DeleteEnvironmentCommand", () => {
 })
 
 describe("DeleteServiceCommand", () => {
-  const testProvider: PluginFactory = () => {
+  const testProvider = createGardenPlugin(() => {
     const testStatuses: { [key: string]: ServiceStatus } = {
       "service-a": {
         state: "unknown",
@@ -150,17 +161,21 @@ describe("DeleteServiceCommand", () => {
     }
 
     return {
-      moduleActions: {
-        test: {
+      name: "test-plugin",
+      createModuleTypes: [{
+        name: "test",
+        docs: "Test plugin",
+        schema: testModuleSpecSchema,
+        handlers: {
           configure: configureTestModule,
           getServiceStatus,
           deleteService,
         },
-      },
+      }],
     }
-  }
+  })
 
-  const plugins = { "test-plugin": testProvider }
+  const plugins = [testProvider]
 
   const command = new DeleteServiceCommand()
   const projectRootB = getDataDir("test-project-b")

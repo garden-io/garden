@@ -87,17 +87,6 @@ export const configSchema = providerConfigBaseSchema
 export type OpenFaasProvider = Provider<OpenFaasConfig>
 export type OpenFaasPluginContext = PluginContext<OpenFaasConfig>
 
-export async function describeType() {
-  return {
-    docs: dedent`
-      Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`openfaas\` or
-      \`local-openfaas\` provider to be configured.
-    `,
-    moduleOutputsSchema: openfaasModuleOutputsSchema,
-    schema: openfaasModuleSpecSchema,
-  }
-}
-
 export function getK8sProvider(providers: Provider[]): KubernetesProvider {
   const providerMap = keyBy(providers, "name")
   const provider = <KubernetesProvider>(providerMap["local-kubernetes"] || providerMap.kubernetes)

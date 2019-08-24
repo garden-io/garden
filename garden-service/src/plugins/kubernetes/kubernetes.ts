@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { helmHandlers } from "./helm/handlers"
 import { getAppNamespace, getMetadataNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
@@ -28,8 +28,9 @@ import { uninstallGardenServices } from "./commands/uninstall-garden-services"
 import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common"
 import { resolve } from "path"
-
-export const name = "kubernetes"
+import { dedent } from "../../util/string"
+import { kubernetesModuleSpecSchema } from "./kubernetes-module/config"
+import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/config"
 
 export async function configureProvider(
   { projectName, projectRoot, config }: ConfigureProviderParams<KubernetesConfig>,
@@ -119,31 +120,64 @@ const outputsSchema = joi.object()
       .description("The namespace used for Garden metadata."),
   })
 
-export function gardenPlugin(): GardenPlugin {
-  return {
-    configSchema,
-    outputsSchema,
-    commands: [
-      cleanupClusterRegistry,
-      clusterInit,
-      uninstallGardenServices,
-    ],
-    actions: {
-      configureProvider,
-      getEnvironmentStatus,
-      prepareEnvironment,
-      cleanupEnvironment,
-      getSecret,
-      setSecret,
-      deleteSecret,
-      getDebugInfo: debugInfo,
+export const gardenPlugin = createGardenPlugin({
+  name: "kubernetes",
+  dependencies: ["container", "maven-container"],
+  configSchema,
+  outputsSchema,
+  commands: [
+    cleanupClusterRegistry,
+    clusterInit,
+    uninstallGardenServices,
+  ],
+  handlers: {
+    configureProvider,
+    getEnvironmentStatus,
+    prepareEnvironment,
+    cleanupEnvironment,
+    getSecret,
+    setSecret,
+    deleteSecret,
+    getDebugInfo: debugInfo,
+  },
+  createModuleTypes: [
+    {
+      name: "helm",
+      docs: dedent`
+        Specify a Helm chart (either in your repository or remote from a registry) to deploy.
+        Refer to the [Helm guide](https://docs.garden.io/using-garden/using-helm-charts) for usage instructions.
+      `,
+      moduleOutputsSchema: helmModuleOutputsSchema,
+      schema: helmModuleSpecSchema,
+      handlers: helmHandlers,
     },
-    moduleActions: {
-      "container": containerHandlers,
-      // TODO: we should find a way to avoid having to explicitly specify the key here
-      "maven-container": mavenContainerHandlers,
-      "helm": helmHandlers,
-      "kubernetes": kubernetesHandlers,
+    {
+      name: "kubernetes",
+      docs: dedent`
+        Specify one or more Kubernetes manifests to deploy.
+
+        You can either (or both) specify the manifests as part of the \`garden.yml\` configuration, or you can refer to
+        one or more files with existing manifests.
+
+        Note that if you include the manifests in the \`garden.yml\` file, you can use
+        [template strings](https://docs.garden.io/reference/template-strings) to interpolate values into the manifests.
+
+        If you need more advanced templating features you can use the
+        [helm](https://docs.garden.io/reference/module-types/helm) module type.
+      `,
+      moduleOutputsSchema: joi.object().keys({}),
+      schema: kubernetesModuleSpecSchema,
+      handlers: kubernetesHandlers,
     },
-  }
-}
+  ],
+  extendModuleTypes: [
+    {
+      name: "container",
+      handlers: containerHandlers,
+    },
+    {
+      name: "maven-container",
+      handlers: mavenContainerHandlers,
+    },
+  ],
+})

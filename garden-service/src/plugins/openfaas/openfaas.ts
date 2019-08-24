@@ -15,7 +15,7 @@ import { findByName } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
 import { waitForResources } from "../kubernetes/status/status"
 import { checkWorkloadStatus } from "../kubernetes/status/workload"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { faasCli } from "./faas-cli"
 import { getAllLogs } from "../kubernetes/logs"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
@@ -29,7 +29,6 @@ import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/pl
 import { KubernetesDeployment } from "../kubernetes/types"
 import {
   configSchema,
-  describeType,
   getK8sProvider,
   OpenFaasConfig,
   OpenFaasModule,
@@ -38,34 +37,42 @@ import {
   OpenFaasService,
   getServicePath,
   configureModule,
+  openfaasModuleOutputsSchema,
+  openfaasModuleSpecSchema,
 } from "./config"
 import { getOpenfaasModuleBuildStatus, buildOpenfaasModule, writeStackFile, stackFilename } from "./build"
+import { dedent } from "../../util/string"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
 
-export function gardenPlugin(): GardenPlugin {
-  return {
-    configSchema,
-    dependencies: ["kubernetes"],
-    actions: {
-      configureProvider,
+export const gardenPlugin = createGardenPlugin({
+  name: "openfaas",
+  configSchema,
+  dependencies: ["kubernetes"],
+  handlers: {
+    configureProvider,
+  },
+  createModuleTypes: [{
+    name: "openfaas",
+    docs: dedent`
+      Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`openfaas\` or
+      \`local-openfaas\` provider to be configured.
+    `,
+    moduleOutputsSchema: openfaasModuleOutputsSchema,
+    schema: openfaasModuleSpecSchema,
+    handlers: {
+      configure: configureModule,
+      getBuildStatus: getOpenfaasModuleBuildStatus,
+      build: buildOpenfaasModule,
+      // TODO: design and implement a proper test flow for openfaas functions
+      testModule: testExecModule,
+      getServiceStatus,
+      getServiceLogs,
+      deployService,
+      deleteService,
     },
-    moduleActions: {
-      openfaas: {
-        describeType,
-        configure: configureModule,
-        getBuildStatus: getOpenfaasModuleBuildStatus,
-        build: buildOpenfaasModule,
-        // TODO: design and implement a proper test flow for openfaas functions
-        testModule: testExecModule,
-        getServiceStatus,
-        getServiceLogs,
-        deployService,
-        deleteService,
-      },
-    },
-  }
-}
+  }],
+})
 
 const templateModuleConfig: ExecModuleConfig = {
   allowPublish: false,

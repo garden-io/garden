@@ -4,10 +4,11 @@ import {
   expectError,
   withDefaultGlobalOpts,
   configureTestModule,
+  testModuleSpecSchema,
 } from "../../../../helpers"
 import { GetTaskResultCommand } from "../../../../../src/commands/get/get-task-result"
 import { expect } from "chai"
-import { PluginFactory } from "../../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { Garden } from "../../../../../src/garden"
 import { GetTaskResultParams } from "../../../../../src/types/plugin/task/getTaskResult"
@@ -31,13 +32,17 @@ const taskResults = {
   "task-c": null,
 }
 
-const testPlugin: PluginFactory = async () => ({
-  moduleActions: {
-    test: {
+const testPlugin = createGardenPlugin({
+  name: "test-plugin",
+  createModuleTypes: [{
+    name: "test",
+    docs: "test",
+    schema: testModuleSpecSchema,
+    handlers: {
       configure: configureTestModule,
       getTaskResult: async (params: GetTaskResultParams) => taskResults[params.task.name],
     },
-  },
+  }],
 })
 
 describe("GetTaskResultCommand", () => {
@@ -46,9 +51,8 @@ describe("GetTaskResultCommand", () => {
   const command = new GetTaskResultCommand()
 
   before(async () => {
-    const plugins = { "test-plugin": testPlugin }
     const projectRootB = join(dataDir, "test-project-b")
-    garden = await Garden.factory(projectRootB, { plugins })
+    garden = await Garden.factory(projectRootB, { plugins: [testPlugin] })
     log = garden.log
   })
 

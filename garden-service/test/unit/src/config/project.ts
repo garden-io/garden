@@ -480,6 +480,7 @@ describe("pickEnvironment", () => {
       providers: [
         { name: "exec" },
         { name: "container" },
+        { name: "maven-container" },
       ],
       variables: {},
     })
@@ -509,6 +510,7 @@ describe("pickEnvironment", () => {
       providers: [
         { name: "exec" },
         { name: "container", newKey: "foo" },
+        { name: "maven-container" },
         { name: "my-provider", a: "c", b: "b" },
       ],
       variables: {},
@@ -539,6 +541,7 @@ describe("pickEnvironment", () => {
       providers: [
         { name: "exec" },
         { name: "container", newKey: "foo" },
+        { name: "maven-container" },
         { name: "my-provider", b: "b" },
       ],
       variables: {},
