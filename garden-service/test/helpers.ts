@@ -16,14 +16,8 @@ import execa = require("execa")
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
-import { validate, joiArray, joi } from "../src/config/common"
-import {
-  GardenPlugin,
-  PluginActions,
-  PluginFactory,
-  ModuleActions,
-  Plugins,
-} from "../src/types/plugin/plugin"
+import { joiArray, joi } from "../src/config/common"
+import { PluginActionHandlers, ModuleActionHandlers, createGardenPlugin, RegisterPluginParam } from "../src/types/plugin/plugin"
 import { Garden, GardenParams } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
@@ -43,6 +37,7 @@ import { RunServiceParams } from "../src/types/plugin/service/runService"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
+import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -101,12 +96,6 @@ export const testModuleSpecSchema = containerModuleSpecSchema
   })
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
-  moduleConfig.spec = validate(
-    moduleConfig.spec,
-    testModuleSpecSchema,
-    { context: `test module ${moduleConfig.name}` },
-  )
-
   moduleConfig.outputs = { foo: "bar" }
 
   // validate services
@@ -134,17 +123,25 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   return moduleConfig
 }
 
-export const testPlugin: PluginFactory = (): GardenPlugin => {
-  const secrets = {}
+export const testPlugin = createGardenPlugin(() => {
+  const secrets: { [key: string]: string } = {}
 
   return {
-    actions: {
+    name: "test-plugin",
+    handlers: {
+      async configureProvider({ config }: ConfigureProviderParams) {
+        for (let member in secrets) {
+          delete secrets[member]
+        }
+        return { config }
+      },
+
       async prepareEnvironment() {
         return { status: { ready: true, outputs: {} } }
       },
 
       async setSecret({ key, value }: SetSecretParams) {
-        secrets[key] = value
+        secrets[key] = "" + value
         return {}
       },
 
@@ -169,8 +166,11 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
         }
       },
     },
-    moduleActions: {
-      test: {
+    createModuleTypes: [{
+      name: "test",
+      docs: "Test module type",
+      schema: testModuleSpecSchema,
+      handlers: {
         testModule: testExecModule,
         configure: configureTestModule,
         build: buildExecModule,
@@ -215,27 +215,37 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
             },
           }
         },
-
       },
+    }],
+  }
+})
+
+export const testPluginB = createGardenPlugin({
+  ...testPlugin,
+  name: "test-plugin-b",
+  dependencies: ["test-plugin"],
+  createModuleTypes: [],
+  // This doesn't actually change any behavior, except to use this provider instead of test-plugin
+  extendModuleTypes: [
+    {
+      name: "test",
+      handlers: testPlugin.createModuleTypes![0].handlers,
     },
-  }
-}
+  ],
+})
 
-export const testPluginB: PluginFactory = async (params) => {
-  const plugin = await testPlugin(params)
-  plugin.moduleActions = {
-    test: plugin.moduleActions!.test,
-  }
-  return plugin
-}
-
-export const testPluginC: PluginFactory = async (params) => {
-  const plugin = await testPlugin(params)
-  plugin.moduleActions = {
-    "test-c": plugin.moduleActions!.test,
-  }
-  return plugin
-}
+export const testPluginC = createGardenPlugin({
+  ...testPlugin,
+  name: "test-plugin-c",
+  createModuleTypes: [
+    {
+      name: "test-c",
+      docs: "Test module type C",
+      schema: testModuleSpecSchema,
+      handlers: testPlugin.createModuleTypes![0].handlers,
+    },
+  ],
+})
 
 const defaultModuleConfig: ModuleConfig = {
   apiVersion: "garden.io/v0",
@@ -295,11 +305,7 @@ class TestEventBus extends EventBus {
   }
 }
 
-export const testPlugins = {
-  "test-plugin": testPlugin,
-  "test-plugin-b": testPluginB,
-  "test-plugin-c": testPluginC,
-}
+export const testPlugins = [testPlugin, testPluginB, testPluginC]
 
 export class TestGarden extends Garden {
   events: TestEventBus
@@ -311,18 +317,19 @@ export class TestGarden extends Garden {
 }
 
 export const makeTestGarden = async (
-  projectRoot: string, { extraPlugins, gardenDirPath }: { extraPlugins?: Plugins, gardenDirPath?: string } = {},
+  projectRoot: string,
+  { extraPlugins, gardenDirPath }: { extraPlugins?: RegisterPluginParam[], gardenDirPath?: string } = {},
 ): Promise<TestGarden> => {
-  const plugins = { ...testPlugins, ...extraPlugins }
+  const plugins = [...testPlugins, ...extraPlugins || []]
   return TestGarden.factory(projectRoot, { plugins, gardenDirPath })
 }
 
-export const makeTestGardenA = async (extraPlugins: Plugins = {}) => {
+export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) => {
   return makeTestGarden(projectRootA, { extraPlugins })
 }
 
-export function stubAction<T extends keyof PluginActions>(
-  garden: Garden, pluginName: string, type: T, handler?: PluginActions[T],
+export function stubAction<T extends keyof PluginActionHandlers>(
+  garden: Garden, pluginName: string, type: T, handler?: PluginActionHandlers[T],
 ) {
   if (handler) {
     handler["pluginName"] = pluginName
@@ -330,8 +337,8 @@ export function stubAction<T extends keyof PluginActions>(
   return td.replace(garden["actionHandlers"][type], pluginName, handler)
 }
 
-export function stubModuleAction<T extends keyof ModuleActions<any>>(
-  garden: Garden, moduleType: string, pluginName: string, actionType: T, handler: ModuleActions<any>[T],
+export function stubModuleAction<T extends keyof ModuleActionHandlers<any>>(
+  garden: Garden, moduleType: string, pluginName: string, actionType: T, handler: ModuleActionHandlers<any>[T],
 ) {
   handler["actionType"] = actionType
   handler["pluginName"] = pluginName

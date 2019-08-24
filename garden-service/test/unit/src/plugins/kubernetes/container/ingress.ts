@@ -308,8 +308,8 @@ const wildcardDomainCertSecret = {
 
 describe("createIngressResources", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
-  const handler = gardenPlugin()
-  const configure = handler.moduleActions!.container!.configure!
+  const plugin = gardenPlugin
+  const configure = plugin.createModuleTypes![0].handlers.configure!
 
   let garden: Garden
 
@@ -326,7 +326,7 @@ describe("createIngressResources", () => {
   })
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { extraPlugins: { container: gardenPlugin } })
+    garden = await makeTestGarden(projectRoot, { extraPlugins: [gardenPlugin] })
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 

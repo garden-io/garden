@@ -15,7 +15,7 @@ import {
   prepareEnvironment,
 } from "./common"
 import { dumpYaml } from "../../util/util"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { configureContainerModule } from "../container/container"
 import { ContainerModule } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -29,14 +29,16 @@ const configSchema = providerConfigBaseSchema.keys({
     .description("The GCP project to deploy containers to."),
 })
 
-export const gardenPlugin = (): GardenPlugin => ({
+export const gardenPlugin = createGardenPlugin({
+  name: "google-app-engine",
   configSchema,
-  actions: {
+  handlers: {
     getEnvironmentStatus,
     prepareEnvironment,
   },
-  moduleActions: {
-    container: {
+  extendModuleTypes: [{
+    name: "container",
+    handlers: {
       async configure(params: ConfigureModuleParams<ContainerModule>) {
         const config = await configureContainerModule(params)
 
@@ -107,5 +109,5 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { state: "ready", detail: {} }
       },
     },
-  },
+  }],
 })

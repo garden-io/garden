@@ -8,7 +8,7 @@
 
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { getEnvironmentStatus, prepareEnvironment } from "./init"
 import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
@@ -17,7 +17,7 @@ import { supportedVersions, defaultTerraformVersion } from "./cli"
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { ConfigurationError } from "../../exceptions"
 import { variablesSchema, TerraformBaseSpec } from "./common"
-import { describeTerraformModuleType, configureTerraformModule, getTerraformStatus, deployTerraform } from "./module"
+import { schema, configureTerraformModule, getTerraformStatus, deployTerraform } from "./module"
 
 type TerraformProviderConfig = ProviderConfig & TerraformBaseSpec & {
   initRoot?: string,
@@ -59,23 +59,46 @@ const configSchema = providerConfigBaseSchema
   })
   .unknown(false)
 
-export const gardenPlugin = (): GardenPlugin => ({
+export const gardenPlugin = createGardenPlugin({
+  name: "terraform",
   configSchema,
-  actions: {
+  handlers: {
     configureProvider,
     getEnvironmentStatus,
     prepareEnvironment,
   },
-  moduleActions: {
-    terraform: {
-      describeType: describeTerraformModuleType,
+  createModuleTypes: [{
+    name: "terraform",
+    docs: dedent`
+      Resolves a Terraform stack and either applies it automatically (if \`autoApply: true\`) or errors when the stack
+      resources are not up-to-date.
+
+      Stack outputs are made available as service outputs, that can be referenced by other modules under
+      \`\${runtime.services.<module-name>.outputs.<key>}\`. You can template in those values as e.g. command arguments
+      or environment variables for other services.
+
+      Note that you can also declare a Terraform root in the \`terraform\` provider configuration by setting the
+      \`initRoot\` parameter.
+      This may be preferable if you need the outputs of the Terraform stack to be available to other provider
+      configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from
+      that to configure another provider or other modules via \`\${providers.terraform.outputs.<key>}\` template
+      strings.
+
+      See the [Terraform guide](../../using-garden/terraform.md) for a high-level introduction to the \`terraform\`
+      provider.
+    `,
+    serviceOutputsSchema: joi.object()
+      .pattern(/.+/, joi.any())
+      .description("A map of all the outputs defined in the Terraform stack."),
+    schema,
+    handlers: {
       configure: configureTerraformModule,
       // FIXME: it should not be strictly necessary to provide this handler
       build: async () => ({}),
       getServiceStatus: getTerraformStatus,
       deployService: deployTerraform,
     },
-  },
+  }],
 })
 
 async function configureProvider(

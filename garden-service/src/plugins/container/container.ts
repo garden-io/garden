@@ -10,7 +10,7 @@ import dedent = require("dedent")
 import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
@@ -154,36 +154,33 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
   return moduleConfig
 }
 
-export const gardenPlugin = (): GardenPlugin => ({
-  moduleActions: {
-    container: {
-      describeType,
-      configure: configureContainerModule,
-      getBuildStatus: getContainerBuildStatus,
-      build: buildContainerModule,
-      publish: publishContainerModule,
+export const gardenPlugin = createGardenPlugin({
+  name: "container",
+  createModuleTypes: [
+    {
+      name: "container",
+      docs: dedent`
+        Specify a container image to build or pull from a remote registry.
+        You may also optionally specify services to deploy, tasks or tests to run inside the container.
 
-      async hotReloadService(_: HotReloadServiceParams) {
-        return {}
+        Note that the runtime services have somewhat limited features in this module type. For example, you cannot
+        specify replicas for redundancy, and various platform-specific options are not included. For those, look at
+        other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
+        [kubernetes](https://github.com/garden-io/garden/blob/master/docs/reference/module-types/kubernetes.md).
+      `,
+      moduleOutputsSchema: containerModuleOutputsSchema,
+      schema: containerModuleSpecSchema,
+      taskOutputsSchema,
+      handlers: {
+        configure: configureContainerModule,
+        getBuildStatus: getContainerBuildStatus,
+        build: buildContainerModule,
+        publish: publishContainerModule,
+
+        async hotReloadService(_: HotReloadServiceParams) {
+          return {}
+        },
       },
-
     },
-  },
+  ],
 })
-
-async function describeType() {
-  return {
-    docs: dedent`
-      Specify a container image to build or pull from a remote registry.
-      You may also optionally specify services to deploy, tasks or tests to run inside the container.
-
-      Note that the runtime services have somewhat limited features in this module type. For example, you cannot
-      specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-      other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
-      [kubernetes](https://github.com/garden-io/garden/blob/master/docs/reference/module-types/kubernetes.md).
-    `,
-    moduleOutputsSchema: containerModuleOutputsSchema,
-    schema: containerModuleSpecSchema,
-    taskOutputsSchema,
-  }
-}

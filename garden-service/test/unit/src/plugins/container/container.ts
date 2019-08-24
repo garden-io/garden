@@ -30,11 +30,12 @@ describe("plugins.container", () => {
   const modulePath = resolve(dataDir, "test-project-container", "module-a")
   const relDockerfilePath = "docker-dir/Dockerfile"
 
-  const handler = gardenPlugin()
-  const configure = handler.moduleActions!.container!.configure!
-  const build = handler.moduleActions!.container!.build!
-  const publishModule = handler.moduleActions!.container!.publish!
-  const getBuildStatus = handler.moduleActions!.container!.getBuildStatus!
+  const plugin = gardenPlugin
+  const handlers = plugin.createModuleTypes![0].handlers
+  const configure = handlers.configure!
+  const build = handlers.build!
+  const publishModule = handlers.publish!
+  const getBuildStatus = handlers.getBuildStatus!
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
@@ -69,7 +70,7 @@ describe("plugins.container", () => {
   let log: LogEntry
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { extraPlugins: { container: gardenPlugin } })
+    garden = await makeTestGarden(projectRoot, { extraPlugins: [gardenPlugin] })
     log = garden.log
     const provider = await garden.resolveProvider("container")
     ctx = await garden.getPluginContext(provider)

@@ -10,7 +10,7 @@ import Docker from "dockerode"
 import { exec } from "child-process-promise"
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { ContainerModule } from "../container/config"
 import { map, sortBy } from "lodash"
 import { sleep } from "../../util/util"
@@ -26,13 +26,15 @@ const DEPLOY_TIMEOUT = 30
 
 const pluginName = "local-docker-swarm"
 
-export const gardenPlugin = (): GardenPlugin => ({
-  actions: {
+export const gardenPlugin = createGardenPlugin({
+  name: pluginName,
+  handlers: {
     getEnvironmentStatus,
     prepareEnvironment,
   },
-  moduleActions: {
-    container: {
+  extendModuleTypes: [{
+    name: "container",
+    handlers: {
       getServiceStatus,
 
       async deployService(
@@ -214,7 +216,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         return { code: 0, output: "", stdout: res.stdout, stderr: res.stderr }
       },
     },
-  },
+  }],
 })
 
 async function getEnvironmentStatus(): Promise<EnvironmentStatus> {

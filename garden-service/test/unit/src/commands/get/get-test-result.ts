@@ -6,10 +6,11 @@ import {
 } from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
-import { PluginFactory } from "../../../../../src/types/plugin/plugin"
 import { GetTestResultParams } from "../../../../../src/types/plugin/module/getTestResult"
 import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
+import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { joi } from "../../../../../src/config/common"
 
 const now = new Date()
 
@@ -30,13 +31,17 @@ const testResults = {
   integration: null,
 }
 
-const testPlugin: PluginFactory = async () => ({
-  moduleActions: {
-    test: {
+const testPlugin = createGardenPlugin({
+  name: "test-plugin",
+  createModuleTypes: [{
+    name: "test",
+    docs: "test",
+    schema: joi.object(),
+    handlers: {
       configure: configureTestModule,
       getTestResult: async (params: GetTestResultParams) => testResults[params.testName],
     },
-  },
+  }],
 })
 
 describe("GetTestResultCommand", () => {
@@ -46,8 +51,7 @@ describe("GetTestResultCommand", () => {
   const module = "module-a"
 
   before(async () => {
-    const plugins = { "test-plugin": testPlugin }
-    garden = await makeTestGardenA(plugins)
+    garden = await makeTestGardenA([testPlugin])
     log = garden.log
   })
 

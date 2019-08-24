@@ -26,7 +26,6 @@ import { ProjectConfigContext } from "./config-context"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError } from "../exceptions"
 import { PrimitiveMap } from "./common"
-import { fixedPlugins } from "../plugins/plugins"
 import { cloneDeep, omit } from "lodash"
 import { providerConfigBaseSchema, Provider, ProviderConfig } from "./provider"
 import { DEFAULT_API_VERSION } from "../constants"
@@ -36,6 +35,14 @@ import { resolve } from "path"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
+
+// These plugins are always loaded
+const fixedPlugins = [
+  "exec",
+  "container",
+  // TODO: remove this after we've implemented module type inheritance
+  "maven-container",
+]
 
 export interface CommonEnvironmentConfig {
   providers?: ProviderConfig[]  // further validated by each plugin

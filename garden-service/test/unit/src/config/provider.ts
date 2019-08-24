@@ -4,7 +4,9 @@ import { expectError } from "../../../helpers"
 import { GardenPlugin } from "../../../../src/types/plugin/plugin"
 
 describe("getProviderDependencies", () => {
-  const plugin: GardenPlugin = {}
+  const plugin: GardenPlugin = {
+    name: "test",
+  }
 
   it("should extract implicit provider dependencies from template strings", async () => {
     const config: ProviderConfig = {

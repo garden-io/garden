@@ -396,3 +396,14 @@ export function hashString(s: string, length: number) {
   urlHash.update(s)
   return urlHash.digest("hex").slice(0, length)
 }
+
+/**
+ * Ensures that `obj` has an array at `key`, creating it if necessary, and then pushes `value` on that array.
+ */
+export function pushToKey(obj: object, key: string, value: any) {
+  if (obj[key]) {
+    obj[key].push(value)
+  } else {
+    obj[key] = [value]
+  }
+}

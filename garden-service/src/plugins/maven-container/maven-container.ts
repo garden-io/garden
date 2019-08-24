@@ -8,7 +8,7 @@
 
 import { omit, get } from "lodash"
 import { copy, pathExists, readFile } from "fs-extra"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import {
   ContainerModuleSpec,
   ContainerServiceSpec,
@@ -80,25 +80,12 @@ export const mavenContainerConfigSchema = providerConfigBaseSchema
     name: joiProviderName("maven-container"),
   })
 
-export const gardenPlugin = (): GardenPlugin => {
-  const basePlugin = containerPlugin()
+export const gardenPlugin = createGardenPlugin({
+  ...containerPlugin,
+  name: "maven-container",
 
-  return {
-    ...basePlugin,
-    moduleActions: {
-      "maven-container": {
-        ...basePlugin.moduleActions!.container,
-        describeType,
-        configure: configureMavenContainerModule,
-        getBuildStatus,
-        build,
-      },
-    },
-  }
-}
-
-async function describeType() {
-  return {
+  createModuleTypes: [{
+    name: "maven-container",
     docs: dedent`
       A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
       that has special semantics for JAR files built with Maven.
@@ -115,8 +102,14 @@ async function describeType() {
     `,
     moduleOutputsSchema: containerModuleOutputsSchema,
     schema: mavenContainerModuleSpecSchema,
-  }
-}
+    handlers: {
+      ...containerPlugin.createModuleTypes![0].handlers,
+      configure: configureMavenContainerModule,
+      getBuildStatus,
+      build,
+    },
+  }],
+})
 
 export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
   const { moduleConfig } = params

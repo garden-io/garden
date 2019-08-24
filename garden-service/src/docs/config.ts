@@ -14,7 +14,7 @@ import titleize from "titleize"
 import humanize from "humanize-string"
 import { resolve } from "path"
 import { projectSchema, environmentSchema } from "../config/project"
-import { get, flatten, startCase, uniq, find } from "lodash"
+import { get, flatten, startCase, uniq, keyBy, find } from "lodash"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joiArray, joi } from "../config/common"
@@ -24,8 +24,7 @@ import { indent, renderMarkdownTable } from "./util"
 import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/config-context"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { providerConfigBaseSchema } from "../config/provider"
-import { GardenPlugin } from "../types/plugin/plugin"
-import { ModuleTypeDescription } from "../types/plugin/module/describeType"
+import { GardenPlugin, ModuleTypeDefinition } from "../types/plugin/plugin"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -452,7 +451,7 @@ function renderProviderReference(name: string, plugin: GardenPlugin) {
  * Generates the module types reference from the module-type.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderModuleTypeReference(name: string, desc: ModuleTypeDescription) {
+function renderModuleTypeReference(name: string, desc: ModuleTypeDefinition) {
   let { schema, docs } = desc
 
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
@@ -570,10 +569,11 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   // Render module type docs
   const moduleTypeDir = resolve(referenceDir, "module-types")
   const readme = ["# Module Types", ""]
+  const moduleTypeDefinitions = keyBy(await garden.getModuleTypeDefinitions(), "name")
+
   for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
-    const actions = await garden.getActionHelper()
-    const desc = await actions.describeType(name)
+    const desc = moduleTypeDefinitions[name]
 
     console.log("->", path)
     writeFileSync(path, renderModuleTypeReference(name, desc))

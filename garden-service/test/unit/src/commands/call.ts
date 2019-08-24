@@ -2,11 +2,11 @@ import { join } from "path"
 import { Garden } from "../../../../src/garden"
 import { CallCommand } from "../../../../src/commands/call"
 import { expect } from "chai"
-import { PluginFactory } from "../../../../src/types/plugin/plugin"
+import { GardenPlugin } from "../../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { ServiceStatus } from "../../../../src/types/service"
 import nock = require("nock")
-import { configureTestModule, withDefaultGlobalOpts, dataDir } from "../../../helpers"
+import { configureTestModule, withDefaultGlobalOpts, dataDir, testModuleSpecSchema } from "../../../helpers"
 
 const testStatusesA: { [key: string]: ServiceStatus } = {
   "service-a": {
@@ -60,24 +60,29 @@ const testStatusesB: { [key: string]: ServiceStatus } = {
   },
 }
 
-function makeTestProvider(serviceStatuses: { [key: string]: ServiceStatus }): PluginFactory {
-  return () => {
-    const getServiceStatus = async (params: GetServiceStatusParams): Promise<ServiceStatus> => {
-      return serviceStatuses[params.service.name] || {}
-    }
+function makeTestProvider(serviceStatuses: { [key: string]: ServiceStatus }): GardenPlugin {
+  const getServiceStatus = async (params: GetServiceStatusParams): Promise<ServiceStatus> => {
+    return serviceStatuses[params.service.name] || {}
+  }
 
-    return {
-      moduleActions: {
-        test: { configure: configureTestModule, getServiceStatus },
+  return {
+    name: "test-plugin",
+    createModuleTypes: [{
+      name: "test",
+      docs: "Test plugin",
+      schema: testModuleSpecSchema,
+      handlers: {
+        configure: configureTestModule,
+        getServiceStatus,
       },
-    }
+    }],
   }
 }
 
 describe("commands.call", () => {
   const projectRootB = join(dataDir, "test-project-b")
-  const pluginsA = { "test-plugin": makeTestProvider(testStatusesA) }
-  const pluginsB = { "test-plugin": makeTestProvider(testStatusesB) }
+  const pluginsA = [makeTestProvider(testStatusesA)]
+  const pluginsB = [makeTestProvider(testStatusesB)]
 
   beforeEach(() => {
     nock.disableNetConnect()

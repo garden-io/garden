@@ -12,14 +12,14 @@ import Bluebird from "bluebird"
 import { flatten, set, uniq } from "lodash"
 import { safeLoadAll } from "js-yaml"
 
-import { KubernetesModule, configureKubernetesModule, KubernetesService, describeType } from "./config"
+import { KubernetesModule, configureKubernetesModule, KubernetesService } from "./config"
 import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { KubernetesResource, KubernetesServerResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
 import { compareDeployedObjects, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
-import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
+import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
 import { getAllLogs } from "../logs"
 import { deleteObjectsBySelector, apply } from "../kubectl"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
@@ -31,12 +31,11 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { getForwardablePorts, getPortForwardHandler } from "../port-forward"
 import { LogEntry } from "../../../logger/log-entry"
 
-export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModule>> = {
+export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   build,
   configure: configureKubernetesModule,
   deleteService,
   deployService,
-  describeType,
   getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus,

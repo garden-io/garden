@@ -8,7 +8,7 @@
 
 import { join } from "path"
 import { GcfModule, configureGcfModule } from "../google/google-cloud-functions"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { ServiceConfig } from "../../config/service"
 import { ContainerModuleConfig } from "../container/config"
@@ -23,8 +23,9 @@ const baseContainerName = `${pluginName}--${emulatorModuleName}`
 const emulatorBaseModulePath = join(STATIC_DIR, emulatorModuleName)
 const emulatorPort = 8010
 
-export const gardenPlugin = (): GardenPlugin => ({
-  actions: {
+export const gardenPlugin = createGardenPlugin({
+  name: pluginName,
+  handlers: {
     async configureProvider({ config }: ConfigureProviderParams) {
       const emulatorConfig: ContainerModuleConfig = {
         allowPublish: false,
@@ -60,8 +61,9 @@ export const gardenPlugin = (): GardenPlugin => ({
     },
   },
 
-  moduleActions: {
-    "google-cloud-function": {
+  extendModuleTypes: [{
+    name: "google-cloud-function",
+    handlers: {
       async configure(params: ConfigureModuleParams<GcfModule>) {
         const parsed = await configureGcfModule(params)
 
@@ -143,5 +145,5 @@ export const gardenPlugin = (): GardenPlugin => ({
         }
       },
     },
-  },
+  }],
 })
