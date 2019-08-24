@@ -9,7 +9,6 @@ values:
   nameOverride: garden-nfs-provisioner
   fullnameOverride: garden-nfs-provisioner
   persistence:
-    enable: true
-    size: 50Gi
+    enabled: false
   storageClass:
     name: garden-system-nfs

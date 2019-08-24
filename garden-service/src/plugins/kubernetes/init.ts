@@ -25,6 +25,8 @@ import chalk from "chalk"
 import { deline } from "../../util/string"
 import { combineStates, ServiceStatusMap } from "../../types/service"
 
+const nfsStorageClass = "garden-system-nfs"
+
 /**
  * Performs the following actions to check environment status:
  *   1. Checks Tiller status in the project namespace
@@ -254,7 +256,7 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
     "sync-requests-cpu": millicpuToString(config.resources.sync.requests.cpu),
     "sync-requests-memory": megabytesToString(config.resources.sync.requests.memory),
     "sync-storage-size": megabytesToString(config.storage.sync.size),
-    "sync-storage-class": config.storage.sync.storageClass,
+    "sync-storage-class": config.storage.sync.storageClass || nfsStorageClass,
   }
 }
 

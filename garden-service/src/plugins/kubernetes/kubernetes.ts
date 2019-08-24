@@ -51,10 +51,15 @@ export async function configureProvider({ projectName, config }: ConfigureProvid
     }
 
     // Deploy build services on init
-    config._systemServices.push("build-sync", "docker-registry", "registry-proxy", "nfs-provisioner")
+    config._systemServices.push("build-sync", "docker-registry", "registry-proxy")
 
     if (config.buildMode === "cluster-docker") {
       config._systemServices.push("docker-daemon")
+    }
+
+    // Set up an NFS provisioner if the user doesn't explicitly set a storage class for the shared sync volume
+    if (!config.storage.sync.storageClass) {
+      config._systemServices.push("nfs-provisioner")
     }
 
   } else if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {

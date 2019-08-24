@@ -168,7 +168,7 @@ const storageSchema = (defaults: KubernetesStorageSpec) => joi.object()
     size: joi.number()
       .integer()
       .default(defaults.size)
-      .description("Volume size for the registry in megabytes."),
+      .description("Volume size in megabytes."),
     storageClass: joi.string()
       .allow(null)
       .default(null)
@@ -307,6 +307,10 @@ export const kubernetesConfigBase = providerConfigBaseSchema
           .description(dedent`
             Storage parameters for the code sync volume, which build contexts are synced to ahead of running
             in-cluster builds.
+
+            Important: The storage class configured here has to support _ReadWriteMany_ access.
+            If you don't specify a storage class, Garden creates an NFS provisioner and provisions an ephemeral
+            NFS volume for the sync data volume.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
           `),
