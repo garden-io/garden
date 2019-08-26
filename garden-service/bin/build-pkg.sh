@@ -95,3 +95,8 @@ cp ../lib/fsevents/node-v64-darwin-x64/fsevents.node macos-amd64/fsevents.node
 
 echo "    -> tar"
 tar -czf garden-${version}-macos-amd64.tar.gz macos-amd64
+
+echo "-> removing node_modules and package files..."
+rm -rf node_modules
+rm package.json
+rm package-lock.json
