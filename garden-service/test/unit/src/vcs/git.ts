@@ -20,7 +20,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 
 // Overriding this to make sure any ignorefile name is respected
-const ignoreFileName = ".testignore"
+const defaultIgnoreFilename = ".testignore"
 
 async function getCommitMsg(repoPath: string) {
   const res = (await execa("git", ["log", "-1", "--pretty=%B"], { cwd: repoPath })).stdout
@@ -46,8 +46,8 @@ async function makeTempGitRepo(initCommitMsg: string = "test commit") {
   return tmpDir
 }
 
-async function addToIgnore(tmpPath: string, pathToExclude: string) {
-  const gardenignorePath = resolve(tmpPath, ignoreFileName)
+async function addToIgnore(tmpPath: string, pathToExclude: string, ignoreFilename = defaultIgnoreFilename) {
+  const gardenignorePath = resolve(tmpPath, ignoreFilename)
 
   await createFile(gardenignorePath)
   await writeFile(gardenignorePath, pathToExclude)
@@ -65,7 +65,7 @@ describe("GitHandler", () => {
     log = garden.log
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath, [ignoreFileName])
+    handler = new GitHandler(tmpPath, [defaultIgnoreFilename])
     git = (<any>handler).gitCli(log, tmpPath)
     await git("init")
   })
@@ -252,7 +252,7 @@ describe("GitHandler", () => {
       await addToIgnore(tmpPath, name)
 
       const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
-        .filter(f => !f.path.includes(ignoreFileName))
+        .filter(f => !f.path.includes(defaultIgnoreFilename))
 
       expect(files).to.eql([])
     })
@@ -267,7 +267,30 @@ describe("GitHandler", () => {
       await git("commit", "-m", "foo")
 
       const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
-        .filter(f => !f.path.includes(ignoreFileName))
+        .filter(f => !f.path.includes(defaultIgnoreFilename))
+
+      expect(files).to.eql([])
+    })
+
+    it("should correctly handle multiple ignore files", async () => {
+      const nameA = "foo.txt"
+      const nameB = "boo.txt"
+      const pathA = resolve(tmpPath, nameA)
+      const pathB = resolve(tmpPath, nameB)
+      await createFile(pathA)
+      await createFile(pathB)
+
+      await addToIgnore(tmpPath, nameA)
+      await addToIgnore(tmpPath, nameB, ".testignore2")
+
+      // We only add path A, to check if untracked files work okay
+      await git("add", pathA)
+      await git("commit", "-m", "foo")
+
+      const _handler = new GitHandler(tmpPath, [defaultIgnoreFilename, ".testignore2"])
+
+      const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log }))
+        .filter(f => !f.path.includes(defaultIgnoreFilename))
 
       expect(files).to.eql([])
     })
@@ -281,7 +304,7 @@ describe("GitHandler", () => {
       }
 
       const files = (await handler.getFiles({ path: tmpPath, exclude: [...fixedExcludes], log }))
-        .filter(f => !f.path.includes(ignoreFileName))
+        .filter(f => !f.path.includes(defaultIgnoreFilename))
 
       expect(files).to.eql([])
     })
@@ -296,7 +319,7 @@ describe("GitHandler", () => {
       await symlink(tmpPathB, path)
 
       const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
-        .filter(f => !f.path.includes(ignoreFileName))
+        .filter(f => !f.path.includes(defaultIgnoreFilename))
 
       expect(files).to.eql([])
     })

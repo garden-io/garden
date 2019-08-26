@@ -8,7 +8,7 @@
 
 import * as execa from "execa"
 import { join, resolve } from "path"
-import { flatten } from "lodash"
+import { flatten, uniq } from "lodash"
 import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
 import { PassThrough } from "stream"
 import * as hasha from "hasha"
@@ -93,11 +93,15 @@ export class GitHandler extends VcsHandler {
       // property is configurable.
       lines = await git("ls-files", "-s", "--others", "--exclude=.garden", path)
 
-      // List ignored files from .gardenignore. We need to run ls-files twice to get both tracked and untracked files.
-      const lsIgnoredFiles = ["ls-files", "--ignored", ...this.ignoreFiles.map(f => `--exclude-per-directory=${f}`)]
-      const lsUntrackedIgnoredFiles = [...lsIgnoredFiles, "--others"]
+      // List ignored files for each ignore file. We need to run ls-files twice to get both tracked and untracked files.
+      const commands = flatten(this.ignoreFiles.map(f => {
+        const lsIgnoredFiles = ["ls-files", "--ignored", `--exclude-per-directory=${f}`]
+        const lsUntrackedIgnoredFiles = [...lsIgnoredFiles, "--others"]
 
-      ignored = flatten(await Bluebird.map([lsIgnoredFiles, lsUntrackedIgnoredFiles], async (cmd) => git(...cmd, path)))
+        return [lsIgnoredFiles, lsUntrackedIgnoredFiles]
+      }))
+
+      ignored = uniq(flatten(await Bluebird.map(commands, async (cmd) => git(...cmd, path))))
     } catch (err) {
       // if we get 128 we're not in a repo root, so we get no files
       if (err.code !== 128) {
