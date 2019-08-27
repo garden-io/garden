@@ -79,11 +79,7 @@ export class GetServiceStatusTask extends BaseTask {
   }
 
   async process(dependencyResults: TaskResults): Promise<ServiceStatus> {
-    const log = this.log.info({
-      section: this.service.name,
-      msg: "Checking status...",
-      status: "active",
-    })
+    const log = this.log.placeholder()
 
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 

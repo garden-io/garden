@@ -75,10 +75,17 @@ interface PrepareRuntimeContextParams {
   taskResults: { [name: string]: RunTaskResult }
 }
 
+/**
+ * This function prepares the "runtime context" that's used to inform services and tasks about any dependency outputs
+ * and other runtime values. It includes environment variables, that can be directly passed by provider handlers to
+ * the underlying platform (e.g. container environments), as well as a more detailed list of all runtime
+ * and module dependencies and the outputs for each of them.
+ *
+ * This should be called just ahead of calling relevant service, task and test action handlers.
+ */
 export async function prepareRuntimeContext(
   { garden, module, dependencies, serviceStatuses, taskResults }: PrepareRuntimeContextParams,
 ): Promise<RuntimeContext> {
-  // const buildDepKeys = module.build.dependencies.map(dep => getModuleKey(dep.name, dep.plugin))
   const { versionString } = module.version
   const envVars = {
     GARDEN_VERSION: versionString,
