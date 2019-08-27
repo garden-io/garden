@@ -25,13 +25,15 @@ import { k8sPublishContainerModule } from "./publish"
 import { getPortForwardHandler } from "../port-forward"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
-  params.moduleConfig = await configureContainerModule(params)
+  let { moduleConfig } = await configureContainerModule(params)
+  params.moduleConfig = moduleConfig
   return validateConfig(params)
 }
 
 // TODO: avoid having to special-case this (needs framework improvements)
 export async function configureMaven(params: ConfigureModuleParams<MavenContainerModule>) {
-  params.moduleConfig = await configureMavenContainerModule(params)
+  let { moduleConfig } = await configureMavenContainerModule(params)
+  params.moduleConfig = moduleConfig
   return validateConfig(params)
 }
 
@@ -62,10 +64,10 @@ export const mavenContainerHandlers = {
 
 async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
   // validate ingress specs
-  const config = params.moduleConfig
+  const moduleConfig = params.moduleConfig
   const provider = <KubernetesProvider>params.ctx.provider
 
-  for (const serviceConfig of config.serviceConfigs) {
+  for (const serviceConfig of moduleConfig.serviceConfigs) {
     for (const ingressSpec of serviceConfig.spec.ingresses) {
       const hostname = ingressSpec.hostname || provider.config.defaultHostname
 
@@ -85,5 +87,5 @@ async function validateConfig<T extends ContainerModule>(params: ConfigureModule
     }
   }
 
-  return config
+  return { moduleConfig }
 }

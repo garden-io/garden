@@ -151,7 +151,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
     "deployment-image-name": deploymentImageName,
   }
 
-  return moduleConfig
+  return { moduleConfig }
 }
 
 export const gardenPlugin = createGardenPlugin({

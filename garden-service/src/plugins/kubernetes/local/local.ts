@@ -6,16 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { gardenPlugin as k8sPlugin } from "../kubernetes"
 import { configureProvider, configSchema } from "./config"
 import { createGardenPlugin } from "../../../types/plugin/plugin"
 
 export const gardenPlugin = createGardenPlugin({
-  ...k8sPlugin,
   name: "local-kubernetes",
+  base: "kubernetes",
   configSchema,
   handlers: {
-    ...k8sPlugin.handlers!,
     configureProvider,
   },
 })

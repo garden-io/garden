@@ -77,7 +77,7 @@ export async function configureProvider(
     config.kubeconfig = resolve(projectRoot, config.kubeconfig)
   }
 
-  return { name: config.name, config }
+  return { config }
 }
 
 export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams): Promise<DebugInfo> {

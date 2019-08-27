@@ -73,7 +73,7 @@ describe("plugins.container", () => {
     garden = await makeTestGarden(projectRoot, { extraPlugins: [gardenPlugin] })
     log = garden.log
     const provider = await garden.resolveProvider("container")
-    ctx = await garden.getPluginContext(provider)
+    ctx = garden.getPluginContext(provider)
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 
@@ -87,7 +87,7 @@ describe("plugins.container", () => {
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
     const graph = await garden.getConfigGraph()
-    return moduleFromConfig(garden, graph, parsed)
+    return moduleFromConfig(garden, graph, parsed.moduleConfig)
   }
 
   describe("validate", () => {
@@ -173,135 +173,137 @@ describe("plugins.container", () => {
       const result = await configure({ ctx, moduleConfig, log })
 
       expect(result).to.eql({
-        allowPublish: false,
-        build: { dependencies: [] },
-        apiVersion: "garden.io/v0",
-        name: "module-a",
-        outputs: {
-          "local-image-name": "module-a",
-          "deployment-image-name": "module-a",
-        },
-        path: modulePath,
-        type: "container",
-        spec:
-        {
-          build: {
-            dependencies: [],
-            timeout: DEFAULT_BUILD_TIMEOUT,
+        moduleConfig: {
+          allowPublish: false,
+          build: { dependencies: [] },
+          apiVersion: "garden.io/v0",
+          name: "module-a",
+          outputs: {
+            "local-image-name": "module-a",
+            "deployment-image-name": "module-a",
           },
-          buildArgs: {},
-          extraFlags: [],
-          services:
+          path: modulePath,
+          type: "container",
+          spec:
+          {
+            build: {
+              dependencies: [],
+              timeout: DEFAULT_BUILD_TIMEOUT,
+            },
+            buildArgs: {},
+            extraFlags: [],
+            services:
+              [{
+                name: "service-a",
+                annotations: {},
+                args: ["echo"],
+                dependencies: [],
+                daemon: false,
+                ingresses: [{
+                  annotations: {},
+                  path: "/",
+                  port: "http",
+                }],
+                env: {
+                  SOME_ENV_VAR: "value",
+                },
+                healthCheck:
+                  { httpGet: { path: "/health", port: "http" } },
+                limits: {
+                  cpu: 123,
+                  memory: 456,
+                },
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
+                replicas: 1,
+                volumes: [],
+              }],
+            tasks:
+              [{
+                name: "task-a",
+                args: ["echo", "OK"],
+                dependencies: [],
+                env: {
+                  TASK_ENV_VAR: "value",
+                },
+                timeout: null,
+              }],
+            tests:
+              [{
+                name: "unit",
+                args: ["echo", "OK"],
+                dependencies: [],
+                env: {
+                  TEST_ENV_VAR: "value",
+                },
+                timeout: null,
+              }],
+          },
+          serviceConfigs:
             [{
               name: "service-a",
-              annotations: {},
-              args: ["echo"],
               dependencies: [],
-              daemon: false,
-              ingresses: [{
+              hotReloadable: false,
+              spec:
+              {
+                name: "service-a",
                 annotations: {},
-                path: "/",
-                port: "http",
-              }],
-              env: {
-                SOME_ENV_VAR: "value",
+                args: ["echo"],
+                dependencies: [],
+                daemon: false,
+                ingresses: [{
+                  annotations: {},
+                  path: "/",
+                  port: "http",
+                }],
+                env: {
+                  SOME_ENV_VAR: "value",
+                },
+                healthCheck:
+                  { httpGet: { path: "/health", port: "http" } },
+                limits: {
+                  cpu: 123,
+                  memory: 456,
+                },
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
+                replicas: 1,
+                volumes: [],
               },
-              healthCheck:
-                { httpGet: { path: "/health", port: "http" } },
-              limits: {
-                cpu: 123,
-                memory: 456,
-              },
-              ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
-              replicas: 1,
-              volumes: [],
             }],
-          tasks:
+          taskConfigs:
             [{
-              name: "task-a",
-              args: ["echo", "OK"],
               dependencies: [],
-              env: {
-                TASK_ENV_VAR: "value",
+              name: "task-a",
+              spec: {
+                args: [
+                  "echo",
+                  "OK",
+                ],
+                dependencies: [],
+                env: {
+                  TASK_ENV_VAR: "value",
+                },
+                name: "task-a",
+                timeout: null,
               },
               timeout: null,
             }],
-          tests:
+          testConfigs:
             [{
               name: "unit",
-              args: ["echo", "OK"],
               dependencies: [],
-              env: {
-                TEST_ENV_VAR: "value",
+              spec:
+              {
+                name: "unit",
+                args: ["echo", "OK"],
+                dependencies: [],
+                env: {
+                  TEST_ENV_VAR: "value",
+                },
+                timeout: null,
               },
               timeout: null,
             }],
         },
-        serviceConfigs:
-          [{
-            name: "service-a",
-            dependencies: [],
-            hotReloadable: false,
-            spec:
-            {
-              name: "service-a",
-              annotations: {},
-              args: ["echo"],
-              dependencies: [],
-              daemon: false,
-              ingresses: [{
-                annotations: {},
-                path: "/",
-                port: "http",
-              }],
-              env: {
-                SOME_ENV_VAR: "value",
-              },
-              healthCheck:
-                { httpGet: { path: "/health", port: "http" } },
-              limits: {
-                cpu: 123,
-                memory: 456,
-              },
-              ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
-              replicas: 1,
-              volumes: [],
-            },
-          }],
-        taskConfigs:
-          [{
-            dependencies: [],
-            name: "task-a",
-            spec: {
-              args: [
-                "echo",
-                "OK",
-              ],
-              dependencies: [],
-              env: {
-                TASK_ENV_VAR: "value",
-              },
-              name: "task-a",
-              timeout: null,
-            },
-            timeout: null,
-          }],
-        testConfigs:
-          [{
-            name: "unit",
-            dependencies: [],
-            spec:
-            {
-              name: "unit",
-              args: ["echo", "OK"],
-              dependencies: [],
-              env: {
-                TEST_ENV_VAR: "value",
-              },
-              timeout: null,
-            },
-            timeout: null,
-          }],
       })
     })
 

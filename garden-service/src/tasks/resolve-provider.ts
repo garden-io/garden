@@ -8,15 +8,15 @@
 
 import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType } from "./base"
-import { ProviderConfig, Provider, getProviderDependencies, providerFromConfig } from "../config/provider"
+import { ProviderConfig, Provider, getAllProviderDependencyNames, providerFromConfig } from "../config/provider"
 import { resolveTemplateStrings } from "../template-string"
-import { ConfigurationError, PluginError } from "../exceptions"
-import { keyBy, omit } from "lodash"
+import { ConfigurationError, PluginError, RuntimeError } from "../exceptions"
+import { keyBy, omit, flatten, uniq } from "lodash"
 import { TaskResults } from "../task-graph"
 import { ProviderConfigContext } from "../config/config-context"
 import { ModuleConfig } from "../config/module"
-import { GardenPlugin } from "../types/plugin/plugin"
-import { validateWithPath } from "../config/common"
+import { GardenPlugin, PluginMap } from "../types/plugin/plugin"
+import { validateWithPath, joi } from "../config/common"
 import Bluebird from "bluebird"
 import { defaultEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 
@@ -52,32 +52,38 @@ export class ResolveProviderTask extends BaseTask {
   }
 
   async getDependencies() {
-    const deps = await getProviderDependencies(this.plugin, this.config)
+    const depNames = await getAllProviderDependencyNames(this.plugin, this.config)
 
-    const rawProviderConfigs = keyBy(this.garden.getRawProviderConfigs(), "name")
+    const rawProviderConfigs = this.garden.getRawProviderConfigs()
+    const plugins = keyBy(await this.garden.getPlugins(), "name")
 
-    return Bluebird.map(deps, async (providerName) => {
-      const config = rawProviderConfigs[providerName]
+    return flatten(await Bluebird.map(depNames, async (depName) => {
+      // Match against a provider if its name matches directly, or it inherits from a base named `depName`
+      const matched = rawProviderConfigs.filter(c =>
+        c.name === depName || getPluginBaseNames(c.name, plugins).includes(depName),
+      )
 
-      if (!config) {
+      if (matched.length === 0) {
         throw new ConfigurationError(
-          `Missing provider dependency '${providerName}' in configuration for provider '${this.config.name}'. ` +
+          `Missing provider dependency '${depName}' in configuration for provider '${this.config.name}'. ` +
           `Are you missing a provider configuration?`,
-          { config: this.config, missingProviderName: providerName },
+          { config: this.config, missingProviderName: depName },
         )
       }
 
-      const plugin = await this.garden.getPlugin(providerName)
+      return matched.map(config => {
+        const plugin = plugins[depName]
 
-      return new ResolveProviderTask({
-        garden: this.garden,
-        plugin,
-        config,
-        log: this.log,
-        version: this.version,
-        forceInit: this.forceInit,
+        return new ResolveProviderTask({
+          garden: this.garden,
+          plugin,
+          config,
+          log: this.log,
+          version: this.version,
+          forceInit: this.forceInit,
+        })
       })
-    })
+    }))
   }
 
   async process(dependencyResults: TaskResults) {
@@ -91,43 +97,70 @@ export class ResolveProviderTask extends BaseTask {
     const providerName = resolvedConfig.name
 
     this.log.silly(`Validating ${providerName} config`)
-    if (this.plugin.configSchema) {
-      resolvedConfig = <ProviderConfig>validateWithPath({
-        config: omit(resolvedConfig, "path"),
-        schema: this.plugin.configSchema,
+
+    const validateConfig = (config: ProviderConfig) => {
+      return <ProviderConfig>validateWithPath({
+        config: omit(config, "path"),
+        schema: this.plugin.configSchema || joi.object(),
         path: this.garden.projectRoot,
         projectRoot: this.garden.projectRoot,
-        configType: "provider",
+        configType: "provider configuration",
         ErrorClass: ConfigurationError,
       })
     }
 
+    resolvedConfig = validateConfig(resolvedConfig)
     resolvedConfig.path = this.garden.projectRoot
-
-    const configureHandler = (this.plugin.handlers || {}).configureProvider
 
     let moduleConfigs: ModuleConfig[] = []
 
-    if (configureHandler) {
-      this.log.silly(`Calling configureProvider on ${providerName}`)
+    this.log.silly(`Calling configureProvider on ${providerName}`)
 
-      const configureOutput = await configureHandler({
-        log: this.log,
-        config: resolvedConfig,
-        configStore: this.garden.configStore,
-        projectName: this.garden.projectName,
-        projectRoot: this.garden.projectRoot,
-        dependencies: resolvedProviders,
-      })
+    const actions = await this.garden.getActionHelper()
 
-      resolvedConfig = configureOutput.config
+    const configureOutput = await actions.configureProvider({
+      pluginName: providerName,
+      log: this.log,
+      config: resolvedConfig,
+      configStore: this.garden.configStore,
+      projectName: this.garden.projectName,
+      projectRoot: this.garden.projectRoot,
+      dependencies: resolvedProviders,
+    })
 
-      if (configureOutput.moduleConfigs) {
-        moduleConfigs = configureOutput.moduleConfigs
+    this.log.silly(`Validating ${providerName} config returned from configureProvider handler`)
+    resolvedConfig = validateConfig(configureOutput.config)
+    resolvedConfig.path = this.garden.projectRoot
+
+    if (configureOutput.moduleConfigs) {
+      moduleConfigs = configureOutput.moduleConfigs
+    }
+
+    // Validating the output config against the base plugins. This is important to make sure base handlers are
+    // compatible with the config.
+    const plugins = await this.garden.getPlugins()
+    const pluginsByName = keyBy(plugins, "name")
+    const bases = getPluginBases(this.plugin, pluginsByName)
+
+    for (const base of bases) {
+      if (!base.configSchema) {
+        continue
       }
+
+      this.log.silly(`Validating '${providerName}' config against '${base.name}' schema`)
+
+      resolvedConfig = <ProviderConfig>validateWithPath({
+        config: omit(resolvedConfig, "path"),
+        schema: base.configSchema,
+        path: this.garden.projectRoot,
+        projectRoot: this.garden.projectRoot,
+        configType: `provider configuration (base schema from '${base.name}' plugin)`,
+        ErrorClass: ConfigurationError,
+      })
     }
 
     this.log.silly(`Ensuring ${providerName} provider is ready`)
+
     const tmpProvider = providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, defaultEnvironmentStatus)
     const status = await this.ensurePrepared(tmpProvider)
 
@@ -182,4 +215,42 @@ export class ResolveProviderTask extends BaseTask {
 
     return status
   }
+}
+
+/**
+ * Recursively resolves all the bases for the given plugin.
+ */
+export function getPluginBases(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
+  if (!plugin.base) {
+    return []
+  }
+
+  const base = loadedPlugins[plugin.base]
+
+  if (!base) {
+    throw new RuntimeError(`Unable to find base plugin '${plugin.base}' for plugin '${plugin.name}'`, { plugin })
+  }
+
+  return [base, ...getPluginBases(base, loadedPlugins)]
+}
+
+/**
+ * Recursively resolves all the base names for the given plugin.
+ */
+export function getPluginBaseNames(name: string, loadedPlugins: PluginMap) {
+  return getPluginBases(loadedPlugins[name], loadedPlugins).map(p => p.name)
+}
+
+/**
+ * Recursively get all declared dependencies for the given plugin,
+ * i.e. direct dependencies, and dependencies of those dependencies etc.
+ */
+export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
+  return uniq(flatten((plugin.dependencies || []).map(depName => {
+    const depPlugin = loadedPlugins[depName]
+    if (!depPlugin) {
+      throw new RuntimeError(`Unable to find dependency '${depName} for plugin '${plugin.name}'`, { plugin })
+    }
+    return [depPlugin, ...getPluginDependencies(depPlugin, loadedPlugins)]
+  })))
 }

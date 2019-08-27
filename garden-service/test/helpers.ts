@@ -120,7 +120,7 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
     timeout: t.timeout,
   }))
 
-  return moduleConfig
+  return { moduleConfig }
 }
 
 export const testPlugin = createGardenPlugin(() => {

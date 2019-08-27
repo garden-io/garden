@@ -127,12 +127,14 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
   const configured = await configureContainerModule({ ...params, moduleConfig: containerConfig })
 
   return {
-    ...configured,
-    spec: {
-      ...configured.spec,
-      jarPath: moduleConfig.spec.jarPath,
-      jdkVersion,
-      mvnOpts: moduleConfig.spec.mvnOpts,
+    moduleConfig: {
+      ...configured.moduleConfig,
+      spec: {
+        ...configured.moduleConfig.spec,
+        jarPath: moduleConfig.spec.jarPath,
+        jdkVersion,
+        mvnOpts: moduleConfig.spec.mvnOpts,
+      },
     },
   }
 }

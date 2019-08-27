@@ -74,6 +74,7 @@ export const configSchema = providerConfigBaseSchema
     name: joiProviderName("openfaas"),
     hostname: joi.string()
       .hostname()
+      .allow(null)
       .description(dedent`
         The hostname to configure for the function gateway.
         Defaults to the default hostname of the configured Kubernetes provider.
@@ -168,7 +169,7 @@ export async function configureModule(
     endpoint: await getInternalServiceUrl(<OpenFaasPluginContext>ctx, log, moduleConfig),
   }
 
-  return moduleConfig
+  return ({ moduleConfig })
 }
 
 async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>, log: LogEntry) {

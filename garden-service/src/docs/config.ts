@@ -24,7 +24,8 @@ import { indent, renderMarkdownTable } from "./util"
 import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/config-context"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { providerConfigBaseSchema } from "../config/provider"
-import { GardenPlugin, ModuleTypeDefinition } from "../types/plugin/plugin"
+import { GardenPlugin, ModuleTypeDefinition, PluginMap } from "../types/plugin/plugin"
+import { getPluginBases } from "../tasks/resolve-provider"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -423,8 +424,21 @@ function renderTemplateStringReference(
  * Generates the provider reference from the provider.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderProviderReference(name: string, plugin: GardenPlugin) {
-  const schema = populateProviderSchema(plugin.configSchema || providerConfigBaseSchema)
+function renderProviderReference(name: string, plugin: GardenPlugin, allPlugins: PluginMap) {
+  let configSchema = plugin.configSchema
+
+  // If the plugin doesn't specify its own config schema, we need to walk through its bases to get a schema to document
+  if (!configSchema) {
+    for (const base of getPluginBases(plugin, allPlugins)) {
+      if (base.configSchema) {
+        configSchema = base.configSchema
+        break
+      }
+    }
+  }
+
+  const schema = populateProviderSchema(configSchema || providerConfigBaseSchema)
+
   const moduleOutputsSchema = plugin.outputsSchema
 
   const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
@@ -555,7 +569,12 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   })
 
   const providerDir = resolve(referenceDir, "providers")
-  for (const [name, plugin] of Object.entries(await garden.getPlugins())) {
+  const plugins = await garden.getPlugins()
+  const pluginsByName = keyBy(plugins, "name")
+
+  for (const plugin of plugins) {
+    const name = plugin.name
+
     // Currently nothing to document for these
     if (name === "container" || name === "exec") {
       continue
@@ -563,7 +582,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
 
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
-    writeFileSync(path, renderProviderReference(name, plugin))
+    writeFileSync(path, renderProviderReference(name, plugin, pluginsByName))
   }
 
   // Render module type docs

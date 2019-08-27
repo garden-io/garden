@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { ProviderConfig, getProviderDependencies } from "../../../../src/config/provider"
+import { ProviderConfig, getAllProviderDependencyNames } from "../../../../src/config/provider"
 import { expectError } from "../../../helpers"
 import { GardenPlugin } from "../../../../src/types/plugin/plugin"
 
@@ -14,7 +14,7 @@ describe("getProviderDependencies", () => {
       someKey: "\${providers.other-provider.foo}",
       anotherKey: "foo-\${providers.another-provider.bar}",
     }
-    expect(await getProviderDependencies(plugin, config)).to.eql([
+    expect(await getAllProviderDependencyNames(plugin, config)).to.eql([
       "another-provider",
       "other-provider",
     ])
@@ -26,7 +26,7 @@ describe("getProviderDependencies", () => {
       someKey: "\${providers.other-provider.foo}",
       anotherKey: "foo-\${some.other.ref}",
     }
-    expect(await getProviderDependencies(plugin, config)).to.eql([
+    expect(await getAllProviderDependencyNames(plugin, config)).to.eql([
       "other-provider",
     ])
   })
@@ -38,7 +38,7 @@ describe("getProviderDependencies", () => {
     }
 
     await expectError(
-      () => getProviderDependencies(plugin, config),
+      () => getAllProviderDependencyNames(plugin, config),
       (err) => {
         expect(err.message).to.equal(
           "Invalid template key 'providers' in configuration for provider 'my-provider'. " +

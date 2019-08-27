@@ -14,8 +14,9 @@ import { Service, serviceSchema } from "../service"
 import { Task } from "../task"
 import { taskSchema } from "../../config/task"
 import { joi } from "../../config/common"
+import { ActionHandlerParamsBase } from "./plugin"
 
-export interface PluginActionContextParams {
+export interface PluginActionContextParams extends ActionHandlerParamsBase {
   ctx: PluginContext
 }
 

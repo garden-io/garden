@@ -64,7 +64,7 @@ describe("containerHelpers", () => {
     garden = await makeTestGarden(projectRoot, { extraPlugins: [gardenPlugin] })
     log = garden.log
     const provider = await garden.resolveProvider("container")
-    ctx = await garden.getPluginContext(provider)
+    ctx = garden.getPluginContext(provider)
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 
@@ -78,7 +78,7 @@ describe("containerHelpers", () => {
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
     const graph = await garden.getConfigGraph()
-    return moduleFromConfig(garden, graph, parsed)
+    return moduleFromConfig(garden, graph, parsed.moduleConfig)
   }
 
   describe("getLocalImageId", () => {

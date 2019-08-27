@@ -9,23 +9,25 @@
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
-import { LogEntry } from "../../../logger/log-entry"
-import { logEntrySchema } from "../base"
+import { logEntrySchema, PluginActionContextParams } from "../base"
 import { baseModuleSpecSchema, ModuleConfig, moduleConfigSchema } from "../../../config/module"
 import { joi } from "../../../config/common"
+import { LogEntry } from "../../../logger/log-entry"
 
-export interface ConfigureModuleParams<T extends Module = Module> {
+export interface ConfigureModuleParams<T extends Module = Module> extends PluginActionContextParams {
   ctx: PluginContext
   log: LogEntry
   moduleConfig: T["_ConfigType"]
 }
 
-export type ConfigureModuleResult<T extends Module = Module> = ModuleConfig<
-  T["spec"],
-  T["serviceConfigs"][0]["spec"],
-  T["testConfigs"][0]["spec"],
-  T["taskConfigs"][0]["spec"]
->
+export interface ConfigureModuleResult<T extends Module = Module> {
+  moduleConfig: ModuleConfig<
+    T["spec"],
+    T["serviceConfigs"][0]["spec"],
+    T["testConfigs"][0]["spec"],
+    T["taskConfigs"][0]["spec"]
+  >
+}
 
 export const configure = {
   description: dedent`
@@ -52,5 +54,8 @@ export const configure = {
         .required(),
     }),
 
-  resultSchema: moduleConfigSchema,
+  resultSchema: joi.object()
+    .keys({
+      moduleConfig: moduleConfigSchema,
+    }),
 }

@@ -83,7 +83,7 @@ export async function configureGcfModule(
     spec: t,
   }))
 
-  return moduleConfig
+  return { moduleConfig }
 }
 
 const configSchema = providerConfigBaseSchema.keys({

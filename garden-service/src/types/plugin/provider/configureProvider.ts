@@ -9,20 +9,23 @@
 import dedent = require("dedent")
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
 import { ProviderConfig, Provider, providerConfigBaseSchema, providersSchema } from "../../../config/provider"
-import { LogEntry } from "../../../logger/log-entry"
 import { logEntrySchema } from "../base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
 import { joiArray, joi } from "../../../config/common"
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
 import { deline } from "../../../util/string"
+import { ActionHandler, ActionHandlerParamsBase } from "../plugin"
+import { LogEntry } from "../../../logger/log-entry"
 
-export interface ConfigureProviderParams<T extends ProviderConfig = any> {
-  config: T
+// Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase
+export interface ConfigureProviderParams<T extends ProviderConfig = any> extends ActionHandlerParamsBase {
   log: LogEntry
+  config: T
   projectName: string
   projectRoot: string
   dependencies: Provider[]
   configStore: ConfigStore
+  base?: ActionHandler<ConfigureProviderParams<T>, Promise<ConfigureProviderResult<T>>>
 }
 
 export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConfig> {

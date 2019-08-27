@@ -71,5 +71,5 @@ export async function configureKubernetesModule({ moduleConfig }: ConfigureModul
     spec: moduleConfig.spec,
   }]
 
-  return moduleConfig
+  return { moduleConfig }
 }

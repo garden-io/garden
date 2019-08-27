@@ -90,7 +90,12 @@ export function providerFromConfig(
   }
 }
 
-export async function getProviderDependencies(plugin: GardenPlugin, config: ProviderConfig) {
+/**
+ * Given a plugin and its provider config, return a list of dependency names based on declared dependencies,
+ * as well as implicit dependencies based on template strings.
+ */
+export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: ProviderConfig) {
+  // Declared dependencies from config
   const deps: string[] = [...plugin.dependencies || []]
 
   // Implicit dependencies from template strings

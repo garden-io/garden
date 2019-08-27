@@ -36,25 +36,56 @@ import { RunResult } from "./base"
 import { ServiceStatus } from "../service"
 import { mapValues } from "lodash"
 import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./provider/getDebugInfo"
-import { deline, dedent } from "../../util/string"
+import { dedent } from "../../util/string"
 import { pluginCommandSchema, PluginCommand } from "./command"
 import { getPortForward, GetPortForwardParams, GetPortForwardResult } from "./service/getPortForward"
 import { StopPortForwardParams, stopPortForward } from "./service/stopPortForward"
 
-export type ServiceActionHandlers<T extends Module = Module> = {
-  [P in keyof ServiceActionParams<T>]: (params: ServiceActionParams<T>[P]) => ServiceActionOutputs[P]
+export interface ActionHandlerParamsBase {
+  base?: ActionHandler<any, any>
 }
 
-export type TaskActionHandlers<T extends Module = Module> = {
-  [P in keyof TaskActionParams<T>]: (params: TaskActionParams<T>[P]) => TaskActionOutputs[P]
+export interface ActionHandler<P extends ActionHandlerParamsBase, O extends {}> {
+  (params: P): O
+  base?: WrappedActionHandler<P, O>
+}
+
+export interface ModuleActionHandler<P extends ActionHandlerParamsBase, O extends {}> {
+  (params: P): O
+  base?: WrappedModuleActionHandler<P, O>
+}
+
+export interface WrappedActionHandler<P extends ActionHandlerParamsBase, O extends object> extends ActionHandler<P, O> {
+  actionType: string
+  pluginName: string
+}
+
+export interface WrappedModuleActionHandler<P extends ActionHandlerParamsBase, O extends object>
+  extends WrappedActionHandler<P, O> {
+  moduleType: string
+  base?: WrappedModuleActionHandler<P, O>
+}
+
+export type PluginActionHandlers = {
+  [P in keyof PluginActionParams]: ActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
 }
 
 export type ModuleActionHandlers<T extends Module = Module> = {
-  [P in keyof ModuleActionParams<T>]: (params: ModuleActionParams<T>[P]) => ModuleActionOutputs[P]
+  [P in keyof ModuleActionParams<T>]: ModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
+}
+
+export type ServiceActionHandlers<T extends Module = Module> = {
+  [P in keyof ServiceActionParams<T>]: ModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
+}
+
+export type TaskActionHandlers<T extends Module = Module> = {
+  [P in keyof TaskActionParams<T>]: ModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
 }
 
 export type ModuleAndRuntimeActionHandlers<T extends Module = Module> =
   ModuleActionHandlers<T> & ServiceActionHandlers<T> & TaskActionHandlers<T>
+
+export type AllActionHandlers<T extends Module = Module> = PluginActionHandlers & ModuleAndRuntimeActionHandlers<T>
 
 export type PluginActionName = keyof PluginActionHandlers
 export type ServiceActionName = keyof ServiceActionHandlers
@@ -64,8 +95,8 @@ export type ModuleActionName = keyof ModuleActionHandlers
 export interface PluginActionDescription {
   description: string
   // TODO: specify the schemas using primitives and not Joi objects
-  paramsSchema: Joi.Schema
-  resultSchema: Joi.Schema
+  paramsSchema: Joi.ObjectSchema
+  resultSchema: Joi.ObjectSchema
 }
 
 export interface PluginActionParams {
@@ -96,11 +127,7 @@ export interface PluginActionOutputs {
   getDebugInfo: Promise<DebugInfo>
 }
 
-export type PluginActionHandlers = {
-  [P in keyof PluginActionParams]: (params: PluginActionParams[P]) => PluginActionOutputs[P]
-}
-
-export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDescription } = {
+const _pluginActionDescriptions: { [P in PluginActionName]: PluginActionDescription } = {
   configureProvider,
   getEnvironmentStatus,
   prepareEnvironment,
@@ -113,7 +140,21 @@ export const pluginActionDescriptions: { [P in PluginActionName]: PluginActionDe
   getDebugInfo,
 }
 
-export interface ServiceActionParams<T extends Module = Module> {
+// No way currently to further validate the shape of the super function
+const baseHandlerSchema = joi.func().arity(1)
+  .description(
+    "When a handler is overriding a handler from a base plugin, this is provided to call the base handler. " +
+    "This accepts the same parameters as the handler calling it.",
+  )
+
+export const pluginActionDescriptions = mapValues(_pluginActionDescriptions, desc => ({
+  ...desc,
+  paramsSchema: desc.paramsSchema.keys({
+    base: baseHandlerSchema,
+  }),
+}))
+
+interface _ServiceActionParams<T extends Module = Module> {
   deployService: DeployServiceParams<T>
   deleteService: DeleteServiceParams<T>
   execInService: ExecInServiceParams<T>
@@ -123,6 +164,13 @@ export interface ServiceActionParams<T extends Module = Module> {
   hotReloadService: HotReloadServiceParams<T>
   runService: RunServiceParams<T>
   stopPortForward: StopPortForwardParams<T>
+}
+
+// Specify base parameter more precisely than the base schema
+export type ServiceActionParams<T extends Module = Module> = {
+  [P in keyof _ServiceActionParams<T>]:
+  _ServiceActionParams<T>[P]
+  & { base?: WrappedModuleActionHandler<_ServiceActionParams<T>[P], ServiceActionOutputs[P]> }
 }
 
 export interface ServiceActionOutputs {
@@ -149,9 +197,16 @@ export const serviceActionDescriptions: { [P in ServiceActionName]: PluginAction
   stopPortForward,
 }
 
-export interface TaskActionParams<T extends Module = Module> {
+interface _TaskActionParams<T extends Module = Module> {
   getTaskResult: GetTaskResultParams<T>
   runTask: RunTaskParams<T>
+}
+
+// Specify base parameter more precisely than the base schema
+export type TaskActionParams<T extends Module = Module> = {
+  [P in keyof _TaskActionParams<T>]:
+  _TaskActionParams<T>[P]
+  & { base?: WrappedModuleActionHandler<_TaskActionParams<T>[P], TaskActionOutputs[P]> }
 }
 
 export interface TaskActionOutputs {
@@ -164,7 +219,7 @@ export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescri
   runTask,
 }
 
-export interface ModuleActionParams<T extends Module = Module> {
+interface _ModuleActionParams<T extends Module = Module> {
   configure: ConfigureModuleParams<T>
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
@@ -172,6 +227,13 @@ export interface ModuleActionParams<T extends Module = Module> {
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>
+}
+
+// Specify base parameter more precisely than the base schema
+export type ModuleActionParams<T extends Module = Module> = {
+  [P in keyof _ModuleActionParams<T>]:
+  _ModuleActionParams<T>[P]
+  & { base?: WrappedModuleActionHandler<_ModuleActionParams<T>[P], ModuleActionOutputs[P]> }
 }
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {
@@ -184,7 +246,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   getTestResult: Promise<TestResult | null>
 }
 
-export const moduleActionDescriptions:
+const _moduleActionDescriptions:
   { [P in ModuleActionName | ServiceActionName | TaskActionName]: PluginActionDescription } = {
   configure,
   getBuildStatus,
@@ -197,6 +259,13 @@ export const moduleActionDescriptions:
   ...serviceActionDescriptions,
   ...taskActionDescriptions,
 }
+
+export const moduleActionDescriptions = mapValues(_moduleActionDescriptions, desc => ({
+  ...desc,
+  paramsSchema: desc.paramsSchema.keys({
+    base: baseHandlerSchema,
+  }),
+}))
 
 export const pluginActionNames: PluginActionName[] = <PluginActionName[]>Object.keys(pluginActionDescriptions)
 export const moduleActionNames: ModuleActionName[] = <ModuleActionName[]>Object.keys(moduleActionDescriptions)
@@ -235,6 +304,10 @@ export interface GardenPluginSpec {
 
 export interface GardenPlugin extends GardenPluginSpec { }
 
+export interface PluginMap {
+  [name: string]: GardenPlugin
+}
+
 export type RegisterPluginParam = string | GardenPlugin
 
 const extendModuleTypeSchema = joi.object()
@@ -259,8 +332,8 @@ const createModuleTypeSchema = extendModuleTypeSchema
     moduleOutputsSchema: joi.object()
       .default(() => joi.object().keys({}), "{}")
       .description(dedent`
-        A valid Joi schema describing the keys that each module outputs at config time, for use in template strings
-        (e.g. \`\${modules.my-module.outputs.some-key}\`).
+        A valid Joi schema describing the keys that each module outputs at config resolution time,
+        for use in template strings (e.g. \`\${modules.my-module.outputs.some-key}\`).
 
         If no schema is provided, an error may be thrown if a module attempts to return an output.
       `),
@@ -301,38 +374,84 @@ export const pluginSchema = joi.object()
       .description("The name of the plugin."),
     base: joiIdentifier()
       .description(dedent`
-        Name of a plugin to use as a base for this plugin. If
+        Name of a plugin to use as a base for this plugin. If you specify this, your provider will inherit all of the
+        schema and functionality from the base plugin. Please review other fields for information on how individual
+        fields can be overridden or extended.
       `),
     dependencies: joiArray(joi.string())
-      .description(deline`
+      .description(dedent`
         Names of plugins that need to be configured prior to this plugin. This plugin will be able to reference the
         configuration from the listed plugins. Note that the dependencies will not be implicitly configured—the user
         will need to explicitly configure them in their project configuration.
+
+        If you specify a \`base\`, these dependencies are added in addition to the dependencies of the base plugin.
+
+        When you specify a dependency which matches another plugin's \`base\`, that plugin will be matched. This
+        allows you to depend on at least one instance of a plugin of a certain base type being configured, without
+        having to explicitly depend on any specific sub-type of that base. Note that this means that a single declared
+        dependency may result in a match with multiple other plugins, if they share a matching base plugin.
       `),
 
     // TODO: make this a JSON/OpenAPI schema for portability
-    configSchema: joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true),
-    outputsSchema: joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true),
+    configSchema: joi.object({ isJoi: joi.boolean().only(true).required() })
+      .unknown(true)
+      .description(dedent`
+        The schema for the provider configuration (which the user specifies in the Garden Project configuration).
+
+        If the provider has a \`base\` configured, this schema must either describe a superset of the base plugin
+        \`configSchema\` _or_ you must specify a \`configureProvider\` handler which returns a configuration that
+        matches the base plugin's schema. This is to guarantee that the handlers from the base plugin get the
+        configuration schema they expect.
+      `),
+
+    outputsSchema: joi.object({ isJoi: joi.boolean().only(true).required() })
+      .unknown(true)
+      .description(dedent`
+        The schema for the provider configuration (which the user specifies in the Garden Project configuration).
+
+        If the provider has a \`base\` configured, this schema must describe a superset of the base plugin
+        \`outputsSchema\`.
+      `),
 
     handlers: joi.object().keys(mapValues(pluginActionDescriptions, () => joi.func()))
-      .description("A map of plugin action handlers provided by the plugin."),
+      .description(dedent`
+        A map of plugin action handlers provided by the plugin.
+
+        If you specify a \`base\`, you can use this field to add new handlers or override the handlers from the base
+        plugin. Any handlers you override will receive a \`base\` parameter with the overridden handler, so that you
+        can optionally call the original handler from the base plugin.
+      `),
+
     commands: joi.array().items(pluginCommandSchema)
       .unique("name")
-      .description("List of commands that this plugin exposes (via \`garden plugins <plugin name>\`"),
+      .description(dedent`
+        List of commands that this plugin exposes (via \`garden plugins <plugin name>\`.
+
+        If you specify a \`base\`, new commands are added in addition to the commands of the base plugin, and if you
+        specify a command with the same name as one in the base plugin, you can override the original.
+        Any command you override will receive a \`base\` parameter with the overridden handler, so that you can
+        optionally call the original command from the base plugin.
+      `),
+
     createModuleTypes: joi.array().items(createModuleTypeSchema)
       .unique("name")
-      .description("List of module types to create."),
+      .description(dedent`
+        List of module types to create.
+
+        If you specify a \`base\`, these module types are added in addition to the module types created by the base
+        plugin. To augment the base plugin's module types, use the \`extendModuleTypes\` field.
+      `),
     extendModuleTypes: joi.array().items(extendModuleTypeSchema)
       .unique("name")
-      .description("List of module types to extend/override with additional handlers."),
+      .description(dedent`
+        List of module types to extend/override with additional handlers.
+      `),
   })
   .description("The schema for Garden plugins.")
 
 export const pluginModuleSchema = joi.object()
   .keys({
-    name: joiIdentifier(),
-    gardenPlugin: joi.func().required()
-      .description("The initialization function for the plugin. Should return a valid Garden plugin object."),
+    gardenPlugin: pluginSchema.required(),
   })
   .unknown(true)
   .description("A module containing a Garden plugin.")
