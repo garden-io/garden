@@ -67,7 +67,7 @@ export async function resolveRequest(
   const command = commandSpec.command
 
   // We generally don't want actions to log anything in the server.
-  const cmdLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
+  const cmdLog = log.placeholder(LogLevel.silly, true)
 
   const cmdArgs = mapParams(ctx, request.parameters, command.arguments)
   const optParams = extend({ ...GLOBAL_OPTIONS, ...command.options })

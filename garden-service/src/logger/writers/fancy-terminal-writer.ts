@@ -140,7 +140,7 @@ export class FancyTerminalWriter extends Writer {
     this.updatePending = false
 
     // Suspend processing and write immediately if a lot of data is being intercepted, e.g. when user is typing in input
-    if (log.fromStdStream() && !didWrite) {
+    if (log.fromStdStream && !didWrite) {
       const now = Date.now()
       const throttleProcessing = this.lastInterceptAt && (now - this.lastInterceptAt) < THROTTLE_MS
       this.lastInterceptAt = now
@@ -195,7 +195,7 @@ export class FancyTerminalWriter extends Writer {
         let spinnerX
         let spinnerCoords: Coords | undefined
 
-        if (entry.opts.status === "active") {
+        if (entry.getMessageState().status === "active") {
           spinnerX = leftPad(entry).length
           spinnerFrame = this.tickSpinner(entry.key)
           spinnerCoords = [spinnerX, currentLineNumber]
@@ -204,11 +204,7 @@ export class FancyTerminalWriter extends Writer {
         }
 
         const text = [entry]
-          .map(e => (
-            e.fromStdStream()
-              ? renderMsg(e)
-              : formatForTerminal(e)
-          ))
+          .map(e => e.fromStdStream ? renderMsg(e) : formatForTerminal(e))
           .map(str => (
             spinnerFrame
               ? `${str.slice(0, spinnerX)}${spinnerStyle(spinnerFrame)} ${str.slice(spinnerX)}`

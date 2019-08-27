@@ -10,13 +10,13 @@ import * as nodeEmoji from "node-emoji"
 import chalk from "chalk"
 import * as CircularJSON from "circular-json"
 import { LogNode } from "./log-node"
-import { LogEntry, CreateOpts, EmojiName } from "./log-entry"
+import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
 
 export interface Node {
   children: any[]
 }
 
-export type LogOptsResolvers = { [K in keyof CreateOpts]?: Function }
+export type LogOptsResolvers = { [K in keyof LogEntryParams]?: Function }
 
 export type ProcessNode<T extends Node = Node> = (node: T) => boolean
 

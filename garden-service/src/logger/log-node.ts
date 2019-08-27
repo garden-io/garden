@@ -9,7 +9,7 @@
 import * as uniqid from "uniqid"
 import { round } from "lodash"
 
-import { LogEntry, CreateParam } from "./log-entry"
+import { LogEntry, LogEntryParams } from "./log-entry"
 
 export enum LogLevel {
   error = 0,
@@ -18,6 +18,18 @@ export enum LogLevel {
   verbose = 3,
   debug = 4,
   silly = 5,
+}
+
+export interface CreateNodeParams extends LogEntryParams {
+  level: LogLevel
+  isPlaceholder?: boolean
+}
+
+export function resolveParams(level: LogLevel, params: string | LogEntryParams): CreateNodeParams {
+  if (typeof params === "string") {
+    return { msg: params, level }
+  }
+  return { ...params, level }
 }
 
 export abstract class LogNode {
@@ -35,44 +47,44 @@ export abstract class LogNode {
     this.children = []
   }
 
-  protected abstract createNode(level: LogLevel, param: CreateParam): LogEntry
+  protected abstract createNode(params: CreateNodeParams): LogEntry
   protected abstract onGraphChange(node: LogEntry): void
 
   /**
    * A placeholder entry is an empty entry whose children should be aligned with the parent context.
    * Useful for setting a placeholder in the middle of the log that can later be populated.
    */
-  abstract placeholder(level: LogLevel, param?: CreateParam): LogEntry
+  abstract placeholder(level: LogLevel, childEntriesInheritLevel?: boolean): LogEntry
 
-  protected appendNode(level: LogLevel, param: CreateParam): LogEntry {
-    const node = this.createNode(level, param)
+  protected addNode(params: CreateNodeParams): LogEntry {
+    const node = this.createNode(params)
     this.children.push(node)
     this.onGraphChange(node)
     return node
   }
 
-  silly(param: CreateParam): LogEntry {
-    return this.appendNode(LogLevel.silly, param)
+  silly(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.silly, params))
   }
 
-  debug(param: CreateParam): LogEntry {
-    return this.appendNode(LogLevel.debug, param)
+  debug(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.debug, params))
   }
 
-  verbose(param: CreateParam): LogEntry {
-    return this.appendNode(LogLevel.verbose, param)
+  verbose(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.verbose, params))
   }
 
-  info(param: CreateParam): LogEntry {
-    return this.appendNode(LogLevel.info, param)
+  info(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.info, params))
   }
 
-  warn(param: CreateParam): LogEntry {
-    return this.appendNode(LogLevel.warn, param)
+  warn(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.warn, params))
   }
 
-  error(param: CreateParam): LogEntry {
-    return this.appendNode(LogLevel.error, param)
+  error(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.error, params))
   }
 
   /**

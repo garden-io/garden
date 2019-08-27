@@ -19,8 +19,11 @@ export class BasicTerminalWriter extends Writer {
     const level = this.level || logger.level
     if (level >= entry.level) {
       // Use info symbol for active entries because basic logger doesn't have a spinner
-      if (entry.opts.status === "active" && !entry.opts.symbol) {
-        entry.opts.symbol = "info"
+      const msgState = entry.getMessageState()
+      if (msgState.status === "active" && !msgState.symbol) {
+        msgState.symbol = "info"
+        // We know that entry.messages isn't empty if the status is defined
+        entry.getMessageStates()![entry.getMessageStates()!.length - 1] = msgState
       }
       return formatForTerminal(entry)
     }
