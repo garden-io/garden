@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird = require("bluebird")
+import Bluebird from "bluebird"
 import { parse, relative, resolve, dirname } from "path"
-import { flatten, isString, cloneDeep, sortBy, set, fromPairs, keyBy } from "lodash"
+import { flatten, isString, cloneDeep, sortBy, fromPairs, keyBy, uniq } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
 import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
-import { pluginModuleSchema, pluginSchema } from "./types/plugin/plugin"
+import { pluginModuleSchema, pluginSchema, ModuleTypeDefinition, ModuleTypeExtension } from "./types/plugin/plugin"
 import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment } from "./config/project"
-import { findByName, pickKeys, getPackageVersion, pushToKey } from "./util/util"
+import { findByName, pickKeys, getPackageVersion, pushToKey, getNames } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
@@ -41,10 +41,10 @@ import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
 import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId, fixedExcludes } from "./util/fs"
-import { Provider, ProviderConfig, getProviderDependencies, defaultProvider } from "./config/provider"
-import { ResolveProviderTask } from "./tasks/resolve-provider"
+import { Provider, ProviderConfig, getAllProviderDependencyNames, defaultProvider } from "./config/provider"
+import { ResolveProviderTask, getPluginBaseNames } from "./tasks/resolve-provider"
 import { ActionHelper } from "./actions"
-import { DependencyGraph, detectCycles, cyclesToString } from "./util/validate-dependencies"
+import { detectCycles, cyclesToString, Dependency } from "./util/validate-dependencies"
 import chalk from "chalk"
 import { RuntimeContext } from "./runtime-context"
 import { deline } from "./util/string"
@@ -189,7 +189,9 @@ export class Garden {
   }
 
   static async factory<T extends typeof Garden>(
-    this: T, currentDirectory: string, opts: GardenOpts = {},
+    this: T,
+    currentDirectory: string,
+    opts: GardenOpts = {},
   ): Promise<InstanceType<T>> {
     let { environmentName, config, gardenDirPath, plugins = [] } = opts
 
@@ -217,15 +219,24 @@ export class Garden {
       environmentName = defaultEnvironment
     }
 
-    const { providers, variables } = await pickEnvironment(config, environmentName)
+    const { providers, variables } = await pickEnvironment(
+      config,
+      environmentName,
+    )
 
-    gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
+    gardenDirPath = resolve(
+      projectRoot,
+      gardenDirPath || DEFAULT_GARDEN_DIR_NAME,
+    )
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
     const log = opts.log || getLogger().placeholder()
 
     // We always exclude the garden dir
-    const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
+    const gardenDirExcludePattern = `${relative(
+      projectRoot,
+      gardenDirPath,
+    )}/**/*`
     const moduleExcludePatterns = [
       ...((config.modules || {}).exclude || []),
       gardenDirExcludePattern,
@@ -273,7 +284,10 @@ export class Garden {
     return this.buildDir.clear()
   }
 
-  async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
+  async processTasks(
+    tasks: BaseTask[],
+    opts?: ProcessTasksOpts,
+  ): Promise<TaskResults> {
     return this.taskGraph.process(tasks, opts)
   }
 
@@ -305,18 +319,18 @@ export class Garden {
         pluginModule = require(moduleNameOrLocation)
       } catch (error) {
         throw new ConfigurationError(
-          `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`, {
-          message: error.message,
-          moduleNameOrLocation,
-        })
+          `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`,
+          {
+            message: error.message,
+            moduleNameOrLocation,
+          },
+        )
       }
 
       try {
-        pluginModule = validate(
-          pluginModule,
-          pluginModuleSchema,
-          { context: `plugin module "${moduleNameOrLocation}"` },
-        )
+        pluginModule = validate(pluginModule, pluginModuleSchema, {
+          context: `plugin module "${moduleNameOrLocation}"`,
+        })
       } catch (err) {
         throw new PluginError(`Unable to load plugin: ${err}`, {
           moduleNameOrLocation,
@@ -325,7 +339,6 @@ export class Garden {
       }
 
       plugin = pluginModule.gardenPlugin
-
     } else {
       plugin = nameOrPlugin
     }
@@ -333,81 +346,257 @@ export class Garden {
     this.registeredPlugins[plugin.name] = plugin
   }
 
-  private async loadPlugin(pluginName: string) {
-    this.log.silly(`Loading plugin ${pluginName}`)
-    let plugin = this.registeredPlugins[pluginName]
-
-    if (!plugin) {
-      throw new ConfigurationError(`Configured plugin '${pluginName}' has not been registered`, {
-        name: pluginName,
-        availablePlugins: Object.keys(this.registeredPlugins),
-      })
-    }
-
-    plugin = validate(plugin, pluginSchema, { context: `plugin "${pluginName}"` })
-
-    this.log.silly(`Done loading plugin ${pluginName}`)
-
-    return plugin
-  }
-
   async getPlugin(pluginName: string): Promise<GardenPlugin> {
     const plugins = await this.getPlugins()
     const plugin = findByName(plugins, pluginName)
 
     if (!plugin) {
-      throw new PluginError(`Could not find plugin '${pluginName}'. Are you missing a provider configuration?`, {
-        pluginName,
-        availablePlugins: Object.keys(this.loadedPlugins),
-      })
+      const availablePlugins = getNames(plugins)
+      throw new PluginError(
+        `Could not find plugin '${pluginName}'. Are you missing a provider configuration? ` +
+        `Currently configured plugins: ${availablePlugins.join(", ")}`,
+        {
+          pluginName,
+          availablePlugins,
+        },
+      )
     }
 
     return plugin
   }
 
   async getPlugins() {
+    // The duplicated check is a small optimization to avoid the async lock when possible,
+    // since this is called quite frequently.
+    if (this.loadedPlugins) {
+      return this.loadedPlugins
+    }
+
     await this.asyncLock.acquire("load-plugins", async () => {
+      // This check is necessary since we could in theory have two calls waiting for the lock at the same time.
       if (this.loadedPlugins) {
         return
       }
 
       this.log.silly(`Loading plugins`)
       const rawConfigs = this.getRawProviderConfigs()
-      const loadedPlugins: GardenPlugin[] = []
 
-      const moduleDeclarations: { [moduleType: string]: GardenPlugin[] } = {}
-      const moduleExtensions: { [moduleType: string]: GardenPlugin[] } = {}
+      // Plugins that are explicitly configured for the project+environment
+      const configuredPlugins: { [name: string]: GardenPlugin } = {}
 
-      await Bluebird.map(rawConfigs, async (config) => {
-        const plugin = await this.loadPlugin(config.name)
-        loadedPlugins.push(plugin)
+      // All loaded plugins, including base plugins
+      const loadedPlugins: { [name: string]: GardenPlugin } = {}
 
-        for (const spec of plugin.createModuleTypes || []) {
-          pushToKey(moduleDeclarations, spec.name, plugin)
+      const deps: Dependency[] = []
+
+      // TODO: split this out of this method
+      const loadPlugin = (name: string) => {
+        this.log.silly(`Loading plugin ${name}`)
+        let plugin = this.registeredPlugins[name]
+
+        if (!plugin) {
+          return null
         }
 
-        for (const spec of plugin.extendModuleTypes || []) {
-          pushToKey(moduleExtensions, spec.name, plugin)
-        }
-      })
+        plugin = validate(plugin, pluginSchema, {
+          context: `plugin "${name}"`,
+        })
 
-      // Make sure only one plugin declares each module type
-      for (const [moduleType, plugins] of Object.entries(moduleDeclarations)) {
-        if (plugins.length > 1) {
+        loadedPlugins[name] = plugin
+
+        if (plugin.base) {
+          if (plugin.base === plugin.name) {
+            throw new PluginError(
+              `Plugin '${plugin.name}' references itself as a base plugin.`,
+              { pluginName: plugin.name },
+            )
+          }
+
+          deps.push({ from: name, to: plugin.base })
+
+          if (!loadedPlugins[plugin.base]) {
+            loadPlugin(plugin.base)
+          }
+        }
+
+        this.log.silly(`Done loading plugin ${name}`)
+        return plugin
+      }
+
+      for (const config of rawConfigs) {
+        const plugin = loadPlugin(config.name)
+
+        if (!plugin) {
           throw new ConfigurationError(
-            `Module type '${moduleType}' is declared in multiple providers: ${plugins.map(p => p.name).join(", ")}.`,
-            { moduleType, plugins: plugins.map(p => p.name) },
+            `Configured plugin '${config.name}' has not been registered.`,
+            {
+              name: config.name,
+              availablePlugins: Object.keys(this.registeredPlugins),
+            },
+          )
+        }
+
+        configuredPlugins[config.name] = plugin
+      }
+
+      // Check for circular base declarations
+      const cycles = detectCycles(deps)
+
+      if (cycles.length) {
+        const cyclesStr = cyclesToString(cycles)
+
+        throw new PluginError(
+          `One or more circular dependencies found between plugins and their bases: ${cyclesStr}`,
+          { cycles },
+        )
+      }
+
+      // Takes a plugin and resolves it against its base plugin, if applicable
+      // TODO: split this out of this method
+      const resolvePlugin = (plugin: GardenPlugin): GardenPlugin => {
+        if (!plugin.base) {
+          return plugin
+        }
+
+        // Resolve the plugin base
+        let base = loadedPlugins[plugin.base] || loadPlugin(plugin.base)
+
+        if (!base) {
+          throw new ConfigurationError(
+            `Plugin '${plugin.name}' is based on plugin '${plugin.base}' which has not been registered.`,
+            { pluginName: plugin.name, base: plugin.base },
+          )
+        }
+
+        base = resolvePlugin(base)
+
+        const baseIsConfigured = plugin.base in configuredPlugins
+
+        const resolved = {
+          configKeys: base.configKeys,
+          outputsSchema: base.outputsSchema,
+          ...plugin,
+        }
+
+        // Merge dependencies with base
+        resolved.dependencies = uniq([
+          ...(plugin.dependencies || []),
+          ...(base.dependencies || []),
+        ]).sort()
+
+        // TODO: Make sure the plugin doesn't redeclare module types from the base
+
+        // Merge plugin handlers
+        resolved.handlers = { ...(plugin.handlers || {}) }
+
+        for (const [name, handler] of Object.entries(base.handlers || {})) {
+          if (!handler) {
+            continue
+          } else if (resolved.handlers[name]) {
+            // Attach the overridden handler as a base, and attach metadata
+            resolved.handlers[name].base = Object.assign(handler, { actionType: name, pluginName: base.name })
+          } else {
+            resolved.handlers[name] = handler
+          }
+        }
+
+        // Merge commands
+        resolved.commands = [...(plugin.commands || [])]
+
+        for (const baseCommand of base.commands || []) {
+          const command = findByName(resolved.commands, baseCommand.name)
+          if (command) {
+            command.base = baseCommand
+          } else {
+            resolved.commands.push(baseCommand)
+          }
+        }
+
+        // If the base is not expressly configured for the environment, we pull and coalesce its module declarations.
+        // We also make sure the plugin doesn't redeclare a module type from the base.
+        resolved.createModuleTypes = [...plugin.createModuleTypes || []]
+        resolved.extendModuleTypes = [...plugin.extendModuleTypes || []]
+
+        for (const spec of base.createModuleTypes || []) {
+          if (findByName(plugin.createModuleTypes || [], spec.name)) {
+            throw new PluginError(
+              `Plugin '${plugin.name}' redeclares the '${spec.name}' module type, already declared by its base.`,
+              { plugin, base },
+            )
+          } else if (!baseIsConfigured) {
+            resolved.createModuleTypes.push(spec)
+          }
+        }
+
+        if (!baseIsConfigured) {
+          // Base is not explicitly configured, so we coalesce the module type extensions
+          for (const baseSpec of base.extendModuleTypes || []) {
+            const spec = findByName(plugin.extendModuleTypes || [], baseSpec.name)
+            if (spec) {
+              // Both plugin and base extend the module type, coalesce them
+              for (const [name, baseHandler] of Object.entries(baseSpec.handlers)) {
+                // Pull in handler from base, if it's not specified in the plugin
+                if (!spec.handlers[name]) {
+                  spec.handlers[name] = cloneDeep(baseHandler)
+                }
+              }
+            } else {
+              // Only base has the extension for this type, pull it directly
+              resolved.extendModuleTypes.push(baseSpec)
+            }
+          }
+        }
+
+        return resolved
+      }
+
+      const moduleDeclarations: { [moduleType: string]: { plugin: GardenPlugin, spec: ModuleTypeDefinition }[] } = {}
+      const moduleExtensions: { [moduleType: string]: { plugin: GardenPlugin, spec: ModuleTypeExtension }[] } = {}
+
+      for (const plugin of Object.values(configuredPlugins)) {
+        const resolved = resolvePlugin(plugin)
+
+        // Note: We clone the specs to avoid possible circular references
+        // (plugin authors may re-use handlers for various reasons).
+        for (const spec of resolved.createModuleTypes || []) {
+          pushToKey(moduleDeclarations, spec.name, {
+            plugin: resolved,
+            spec: cloneDeep(spec),
+          })
+        }
+
+        for (const spec of resolved.extendModuleTypes || []) {
+          pushToKey(moduleExtensions, spec.name, {
+            plugin: resolved,
+            spec: cloneDeep(spec),
+          })
+        }
+
+        loadedPlugins[plugin.name] = configuredPlugins[plugin.name] = resolved
+      }
+
+      for (const [moduleType, declarations] of Object.entries(moduleDeclarations)) {
+        // Make sure only one plugin declares each module type
+        if (declarations.length > 1) {
+          const plugins = declarations.map(d => d.plugin.name)
+
+          throw new ConfigurationError(
+            `Module type '${moduleType}' is declared in multiple providers: ${plugins.join(", ")}.`,
+            { moduleType, plugins },
           )
         }
       }
 
-      // Make sure plugins that extend module types correctly declare their dependencies
-      for (const [moduleType, plugins] of Object.entries(moduleExtensions)) {
-        const declaredBy = moduleDeclarations[moduleType] && moduleDeclarations[moduleType][0]
+      for (const [moduleType, extensions] of Object.entries(moduleExtensions)) {
+        // We validate above that there is only one declaration per module type
+        const declaration = moduleDeclarations[moduleType] && moduleDeclarations[moduleType][0]
+        const declaredBy = declaration && declaration.plugin.name
 
-        for (const plugin of plugins) {
-          if (!declaredBy) {
-            throw new PluginError(deline`
+        for (const { plugin, spec } of extensions) {
+          // Make sure plugins that extend module types correctly declare their dependencies
+          if (!declaration) {
+            throw new PluginError(
+              deline`
               Plugin '${plugin.name}' extends module type '${moduleType}' but the module type has not been declared.
               The '${plugin.name}' plugin is likely missing a dependency declaration.
               Please report an issue with the author.
@@ -416,20 +605,48 @@ export class Garden {
             )
           }
 
-          if (!plugin.dependencies || !plugin.dependencies.includes(declaredBy.name)) {
-            throw new PluginError(deline`
-              Plugin '${plugin.name}' extends module type '${moduleType}', declared by the '${declaredBy.name}' plugin,
+          const bases = getPluginBaseNames(plugin.name, loadedPlugins)
+
+          if (
+            declaredBy !== plugin.name &&
+            !bases.includes(declaredBy) &&
+            !(plugin.dependencies && plugin.dependencies.includes(declaredBy))
+          ) {
+            throw new PluginError(
+              deline`
+              Plugin '${plugin.name}' extends module type '${moduleType}', declared by the '${declaredBy}' plugin,
               but does not specify a dependency on that plugin. Plugins must explicitly declare dependencies on plugins
               that define module types they reference. Please report an issue with the author.
               `,
-              { moduleType, pluginName: plugin.name, declaredBy: declaredBy.name },
+              {
+                moduleType,
+                pluginName: plugin.name,
+                declaredByName: declaredBy,
+                bases,
+              },
             )
+          }
+
+          // Attach base handlers (which are the corresponding declaration handlers, if any)
+          for (const [name, handler] of Object.entries(spec.handlers)) {
+            const baseHandler = declaration.spec.handlers[name]
+
+            if (handler && baseHandler) {
+              // Note: We clone the handler to avoid possible circular references
+              // (plugin authors may re-use handlers for various reasons).
+              handler.base = cloneDeep(baseHandler)
+              handler.base!.actionType = name
+              handler.base!.moduleType = moduleType
+              handler.base!.pluginName = declaration.plugin.name
+            }
           }
         }
       }
 
-      this.loadedPlugins = loadedPlugins
-      this.log.silly(`Loaded plugins: ${Object.keys(loadedPlugins).join(", ")}`)
+      this.loadedPlugins = Object.values(loadedPlugins)
+      this.log.silly(
+        `Loaded plugins: ${Object.keys(configuredPlugins).join(", ")}`,
+      )
     })
 
     return this.loadedPlugins
@@ -445,6 +662,7 @@ export class Garden {
   }
 
   async resolveProvider(name: string) {
+    this.log.silly(`Resolving provider ${name}`)
     if (name === "_default") {
       return defaultProvider
     }
@@ -453,7 +671,10 @@ export class Garden {
     const provider = findByName(providers, name)
 
     if (!provider) {
-      throw new PluginError(`Could not find provider '${name}'`, { name, providers })
+      throw new PluginError(`Could not find provider '${name}'`, {
+        name,
+        providers,
+      })
     }
 
     return provider
@@ -467,34 +688,38 @@ export class Garden {
 
       this.log.silly(`Resolving providers`)
 
-      const log = this.log.info({ section: "providers", msg: "Getting status...", status: "active" })
+      const log = this.log.info({
+        section: "providers",
+        msg: "Getting status...",
+        status: "active",
+      })
 
       const rawConfigs = this.getRawProviderConfigs()
-      const configsByName = keyBy(rawConfigs, "name")
-      const plugins = await this.getPlugins()
+      const plugins = keyBy(await this.getPlugins(), "name")
 
       // Detect circular deps here
-      const pluginGraph: DependencyGraph = {}
+      const pluginDeps: Dependency[] = []
 
-      await Bluebird.map(plugins, async (plugin) => {
-        const config = configsByName[plugin.name]
-        for (const dep of await getProviderDependencies(plugin!, config!)) {
-          set(pluginGraph, [config!.name, dep], { distance: 1, next: dep })
+      await Bluebird.map(rawConfigs, async config => {
+        const plugin = plugins[config.name]
+        for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
+          pluginDeps.push({ from: config!.name, to: dep })
         }
       })
 
-      const cycles = detectCycles(pluginGraph)
+      const cycles = detectCycles(pluginDeps)
 
       if (cycles.length > 0) {
         const cyclesStr = cyclesToString(cycles)
 
         throw new PluginError(
-          "One or more circular dependencies found between providers or their configurations: " + cyclesStr,
+          "One or more circular dependencies found between providers or their configurations: " +
+          cyclesStr,
           { cycles },
         )
       }
 
-      const tasks = plugins.map((plugin) => {
+      const tasks = rawConfigs.map(config => {
         // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
         const version = {
           versionString: getPackageVersion(),
@@ -504,7 +729,7 @@ export class Garden {
           files: [],
         }
 
-        const config = configsByName[plugin.name]
+        const plugin = plugins[config.name]
 
         return new ResolveProviderTask({
           garden: this,
@@ -517,22 +742,26 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks(tasks, { concurrencyLimit: plugins.length })
+      const taskResults = await this.processTasks(tasks, {
+        concurrencyLimit: tasks.length,
+      })
 
       const failed = Object.values(taskResults).filter(r => r && r.error)
 
       if (failed.length) {
         const messages = failed.map(r => `- ${r!.name}: ${r!.error!.message}`)
         throw new PluginError(
-          `Failed resolving one or more provider configurations:\n${messages.join("\n")}`,
+          `Failed resolving one or more providers:\n${messages.join(
+            "\n",
+          )}`,
           { rawConfigs, taskResults, messages },
         )
       }
 
       const providers: Provider[] = Object.values(taskResults).map(result => result!.output)
 
-      await Bluebird.map(providers, async (provider) =>
-        Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
+      await Bluebird.map(providers, async provider =>
+        Bluebird.map(provider.moduleConfigs, async moduleConfig => {
           // Make sure module and all nested entities are scoped to the plugin
           moduleConfig.plugin = provider.name
           return this.addModule(moduleConfig)
@@ -542,7 +771,9 @@ export class Garden {
       this.resolvedProviders = providers
 
       log.setSuccess({ msg: chalk.green("Done"), append: true })
-      this.log.silly(`Resolved providers: ${providers.map(p => p.name).join(", ")}`)
+      this.log.silly(
+        `Resolved providers: ${providers.map(p => p.name).join(", ")}`,
+      )
     })
 
     return this.resolvedProviders
@@ -558,8 +789,13 @@ export class Garden {
 
   async getActionHelper() {
     if (!this.actionHelper) {
-      const plugins = await this.getPlugins()
-      this.actionHelper = new ActionHelper(this, plugins)
+      const loadedPlugins = await this.getPlugins()
+      const plugins = keyBy(loadedPlugins, "name")
+
+      // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
+      const configuredPlugins = this.getRawProviderConfigs().map(c => plugins[c.name])
+
+      this.actionHelper = new ActionHelper(this, configuredPlugins, loadedPlugins)
     }
 
     return this.actionHelper
@@ -597,27 +833,43 @@ export class Garden {
    * plugin handlers).
    * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
    */
-  async resolveModuleConfigs(keys?: string[], opts: ModuleConfigResolveOpts = {}): Promise<ModuleConfig[]> {
+  async resolveModuleConfigs(
+    keys?: string[],
+    opts: ModuleConfigResolveOpts = {},
+  ): Promise<ModuleConfig[]> {
     const actions = await this.getActionHelper()
     await this.resolveProviders()
     const configs = await this.getRawModuleConfigs(keys)
 
-    keys ? this.log.silly(`Resolving module configs ${keys.join(", ")}`) : this.log.silly(`Resolving module configs`)
+    keys
+      ? this.log.silly(`Resolving module configs ${keys.join(", ")}`)
+      : this.log.silly(`Resolving module configs`)
 
     if (!opts.configContext) {
       opts.configContext = await this.getModuleConfigContext()
     }
 
-    const moduleTypeDefinitions = keyBy(await this.getModuleTypeDefinitions(), "name")
+    const moduleTypeDefinitions = keyBy(
+      await this.getModuleTypeDefinitions(),
+      "name",
+    )
 
-    return Bluebird.map(configs, async (config) => {
-      config = await resolveTemplateStrings(cloneDeep(config), opts.configContext!, opts)
+    return Bluebird.map(configs, async config => {
+      config = await resolveTemplateStrings(
+        cloneDeep(config),
+        opts.configContext!,
+        opts,
+      )
       const description = moduleTypeDefinitions[config.type]
 
       if (!description) {
-        throw new ConfigurationError(deline`
+        throw new ConfigurationError(
+          deline`
           Unrecognized module type '${config.type}'
-          (defined at ${relative(this.projectRoot, config.configPath || config.path)}).
+          (defined at ${relative(
+            this.projectRoot,
+            config.configPath || config.path,
+          )}).
           Are you missing a provider configuration?
           `,
           { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) },
@@ -641,8 +893,9 @@ export class Garden {
           - name: foo-module // same as the above
       */
       if (config.build && config.build.dependencies) {
-        config.build.dependencies = config.build.dependencies
-          .map(dep => typeof dep === "string" ? { name: dep, copy: [] } : dep)
+        config.build.dependencies = config.build.dependencies.map(dep =>
+          typeof dep === "string" ? { name: dep, copy: [] } : dep,
+        )
       }
 
       // Validate the base config schema
@@ -668,9 +921,17 @@ export class Garden {
         moduleType: config.type,
       })
 
-      const provider = await this.resolveProvider(configureHandler["pluginName"])
-      const ctx = await this.getPluginContext(provider)
-      config = await configureHandler({ ctx, moduleConfig: config, log: this.log })
+      const provider = await this.resolveProvider(
+        configureHandler.pluginName,
+      )
+      const ctx = this.getPluginContext(provider)
+      const configureResult = await configureHandler({
+        ctx,
+        moduleConfig: config,
+        log: this.log,
+      })
+
+      config = configureResult.moduleConfig
 
       // FIXME: We should be able to avoid this
       config.name = getModuleKey(config.name, config.plugin)
@@ -694,7 +955,10 @@ export class Garden {
   /**
    * Returns the module with the specified name. Throws error if it doesn't exist.
    */
-  async resolveModuleConfig(name: string, opts: ModuleConfigResolveOpts = {}): Promise<ModuleConfig> {
+  async resolveModuleConfig(
+    name: string,
+    opts: ModuleConfigResolveOpts = {},
+  ): Promise<ModuleConfig> {
     return (await this.resolveModuleConfigs([name], opts))[0]
   }
 
@@ -713,7 +977,11 @@ export class Garden {
    * The combined version is a either the latest dirty module version (if any), or the hash of the module version
    * and the versions of its dependencies (in sorted order).
    */
-  async resolveVersion(moduleName: string, moduleDependencies: (Module | BuildDependencyConfig)[], force = false) {
+  async resolveVersion(
+    moduleName: string,
+    moduleDependencies: (Module | BuildDependencyConfig)[],
+    force = false,
+  ) {
     this.log.silly(`Resolving version for module ${moduleName}`)
 
     const depModuleNames = moduleDependencies.map(m => m.name)
@@ -729,11 +997,19 @@ export class Garden {
     }
 
     const config = await this.resolveModuleConfig(moduleName)
-    const dependencyKeys = moduleDependencies.map(dep => getModuleKey(dep.name, dep.plugin))
+    const dependencyKeys = moduleDependencies.map(dep =>
+      getModuleKey(dep.name, dep.plugin),
+    )
     const dependencies = await this.getRawModuleConfigs(dependencyKeys)
-    const cacheContexts = dependencies.concat([config]).map(c => getModuleCacheContext(c))
+    const cacheContexts = dependencies
+      .concat([config])
+      .map(c => getModuleCacheContext(c))
 
-    const version = await this.vcs.resolveVersion(this.log, config, dependencies)
+    const version = await this.vcs.resolveVersion(
+      this.log,
+      config,
+      dependencies,
+    )
 
     this.cache.set(cacheKey, version, ...cacheContexts)
     return version
@@ -766,12 +1042,18 @@ export class Garden {
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
       for (const { name, repositoryUrl } of this.projectSources) {
-        const path = await this.loadExtSourcePath({ name, repositoryUrl, sourceType: "project" })
+        const path = await this.loadExtSourcePath({
+          name,
+          repositoryUrl,
+          sourceType: "project",
+        })
         extSourcePaths.push(path)
       }
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
-      const modulePaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
+      const modulePaths = flatten(
+        await Bluebird.map(dirsToScan, path => this.scanForConfigs(path)),
+      )
 
       const rawConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]
 
@@ -782,7 +1064,7 @@ export class Garden {
         }
       })
 
-      await Bluebird.map(rawConfigs, async (config) => this.addModule(config))
+      await Bluebird.map(rawConfigs, async config => this.addModule(config))
 
       this.log.silly(`Scanned and found ${rawConfigs.length} modules`)
 
@@ -807,9 +1089,9 @@ export class Garden {
 
     if (this.moduleConfigs[key]) {
       const paths = [this.moduleConfigs[key].path, config.path]
-      const [pathA, pathB] = (await Bluebird
-        .map(paths, async (path) => relative(this.projectRoot, await getConfigFilePath(path))))
-        .sort()
+      const [pathA, pathB] = (await Bluebird.map(paths, async path =>
+        relative(this.projectRoot, await getConfigFilePath(path)),
+      )).sort()
 
       throw new ConfigurationError(
         `Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
@@ -840,12 +1122,15 @@ export class Garden {
   /**
    * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)
    */
-  public async loadExtSourcePath({ name, repositoryUrl, sourceType }: {
-    name: string,
-    repositoryUrl: string,
-    sourceType: ExternalSourceType,
+  public async loadExtSourcePath({
+    name,
+    repositoryUrl,
+    sourceType,
+  }: {
+    name: string;
+    repositoryUrl: string;
+    sourceType: ExternalSourceType;
   }): Promise<string> {
-
     const linkedSources = await getLinkedSources(this, sourceType)
 
     const linked = findByName(linkedSources, name)
@@ -854,7 +1139,12 @@ export class Garden {
       return linked.path
     }
 
-    const path = await this.vcs.ensureRemoteSource({ name, sourceType, url: repositoryUrl, log: this.log })
+    const path = await this.vcs.ensureRemoteSource({
+      name,
+      sourceType,
+      url: repositoryUrl,
+      log: this.log,
+    })
 
     return path
   }

@@ -7,11 +7,10 @@
  */
 
 import { createGardenPlugin } from "../../types/plugin/plugin"
-import { gardenPlugin as o6sPlugin } from "./openfaas"
 
-// TODO: avoid having to configure separate plugins, by allowing for this scenario in the plugin mechanism
+// TODO: This is deprecated, we should remove it in 0.11.
 export const gardenPlugin = createGardenPlugin({
-  ...o6sPlugin,
   name: "local-openfaas",
+  base: "openfaas",
   dependencies: ["local-kubernetes"],
 })

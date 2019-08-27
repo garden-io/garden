@@ -110,7 +110,7 @@ export async function configureExecModule(
     timeout: t.timeout,
   }))
 
-  return moduleConfig
+  return { moduleConfig }
 }
 
 export async function getExecModuleBuildStatus({ module }: GetBuildStatusParams): Promise<BuildStatus> {

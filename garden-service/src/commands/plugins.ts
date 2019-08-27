@@ -54,7 +54,7 @@ export class PluginsCommand extends Command<Args> {
   arguments = pluginArgs
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const providerConfigs = await garden.getRawProviderConfigs()
+    const providerConfigs = garden.getRawProviderConfigs()
     const configuredPlugins = providerConfigs.map(p => p.name)
 
     if (!args.command) {
@@ -85,7 +85,7 @@ export class PluginsCommand extends Command<Args> {
     }
 
     const provider = await garden.resolveProvider(args.plugin)
-    const ctx = await garden.getPluginContext(provider)
+    const ctx = garden.getPluginContext(provider)
 
     try {
       const { result, errors = [] } = await command.handler({ ctx, log })

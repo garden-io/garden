@@ -92,7 +92,7 @@ export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureM
     spec: moduleConfig.spec,
   }]
 
-  return moduleConfig
+  return ({ moduleConfig })
 }
 
 export async function getTerraformStatus(

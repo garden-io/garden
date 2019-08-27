@@ -40,18 +40,18 @@ export const gardenPlugin = createGardenPlugin({
     name: "container",
     handlers: {
       async configure(params: ConfigureModuleParams<ContainerModule>) {
-        const config = await configureContainerModule(params)
+        const { moduleConfig } = await configureContainerModule(params)
 
         // TODO: we may want to pull this from the service status instead, along with other outputs
         const project = params.ctx.provider.config.project
-        const endpoint = `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${config.name}`
+        const endpoint = `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${moduleConfig.name}`
 
-        config.outputs = {
-          ...config.outputs || {},
+        moduleConfig.outputs = {
+          ...moduleConfig.outputs || {},
           endpoint,
         }
 
-        return config
+        return { moduleConfig }
       },
 
       async getServiceStatus(): Promise<ServiceStatus> {

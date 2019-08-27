@@ -9,14 +9,14 @@
 import Bluebird = require("bluebird")
 
 import chalk from "chalk"
-import { fromPairs, mapValues, omit, pickBy } from "lodash"
+import { fromPairs, mapValues, omit, pickBy, keyBy } from "lodash"
 
 import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
 import { validate } from "./config/common"
 import { defaultProvider } from "./config/provider"
-import { ParameterError, PluginError, ConfigurationError } from "./exceptions"
-import { ActionHandlerMap, Garden, ModuleActionHandlerMap, ModuleActionMap, PluginActionMap } from "./garden"
+import { ParameterError, PluginError, ConfigurationError, InternalError } from "./exceptions"
+import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { ProcessResults, processServices } from "./process"
 import { getDependantTasksForModule } from "./tasks/helpers"
@@ -53,6 +53,9 @@ import {
   pluginActionDescriptions,
   pluginActionNames,
   GardenPlugin,
+  PluginMap,
+  WrappedModuleActionHandler,
+  WrappedActionHandler,
 } from "./types/plugin/plugin"
 import { CleanupEnvironmentParams } from "./types/plugin/provider/cleanupEnvironment"
 import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
@@ -72,7 +75,7 @@ import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
 import { ServiceStatus, ServiceStatusMap, ServiceState } from "./types/service"
-import { Omit } from "./util/util"
+import { Omit, getNames } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
 import { GetPortForwardParams } from "./types/plugin/service/getPortForward"
@@ -81,6 +84,8 @@ import { emptyRuntimeContext, RuntimeContext } from "./runtime-context"
 import { GetServiceStatusTask } from "./tasks/get-service-status"
 import { getServiceStatuses } from "./tasks/base"
 import { getRuntimeTemplateReferences } from "./template-string"
+import { getPluginBases, getPluginDependencies } from "./tasks/resolve-provider"
+import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin/provider/configureProvider"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -98,33 +103,30 @@ export interface DeployServicesParams {
   forceBuild?: boolean
 }
 
-// avoid having to specify common params on each action helper call
-type ActionHelperParams<T extends PluginActionParamsBase> =
-  Omit<T, keyof PluginActionContextParams> & { pluginName?: string }
-
-type ModuleActionHelperParams<T extends PluginModuleActionParamsBase> =
-  Omit<T, keyof PluginActionContextParams> & { pluginName?: string }
-// additionally make runtimeContext param optional
-
-type ServiceActionHelperParams<T extends PluginServiceActionParamsBase> =
-  Omit<T, "module" | keyof PluginActionContextParams>
-  & { pluginName?: string }
-
-type TaskActionHelperParams<T extends PluginTaskActionParamsBase> =
-  Omit<T, "module" | keyof PluginActionContextParams>
-  & { pluginName?: string }
-
-type RequirePluginName<T> = T & { pluginName: string }
-
+/**
+ * The ActionHelper takes care of choosing which plugin should be responsible for handling an action,
+ * and preparing common parameters (so as to reduce boilerplate on the usage side).
+ *
+ * Each plugin and module action has a corresponding method on this class (aside from configureProvider, which
+ * is handled especially elsewhere).
+ */
 export class ActionHelper implements TypeGuard {
-  private readonly actionHandlers: PluginActionMap
-  private readonly moduleActionHandlers: ModuleActionMap
+  private readonly actionHandlers: WrappedPluginActionMap
+  private readonly moduleActionHandlers: WrappedModuleActionMap
+  private readonly loadedPlugins: PluginMap
 
-  constructor(private garden: Garden, plugins: GardenPlugin[]) {
-    this.actionHandlers = <PluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
-    this.moduleActionHandlers = <ModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
+  constructor(
+    private readonly garden: Garden,
+    configuredPlugins: GardenPlugin[],
+    loadedPlugins: GardenPlugin[],
+  ) {
+    this.actionHandlers = <WrappedPluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
+    this.moduleActionHandlers = <WrappedModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
+    this.loadedPlugins = keyBy(loadedPlugins, "name")
 
-    for (const plugin of plugins) {
+    garden.log.silly(`Creating ActionHelper with ${configuredPlugins.length} configured plugins`)
+
+    for (const plugin of configuredPlugins) {
       const handlers = plugin.handlers || {}
 
       for (const actionType of pluginActionNames) {
@@ -151,6 +153,31 @@ export class ActionHelper implements TypeGuard {
   //===========================================================================
   //region Environment Actions
   //===========================================================================
+
+  async configureProvider(
+    params: ConfigureProviderParams & { pluginName: string },
+  ): Promise<ConfigureProviderResult> {
+    const pluginName = params.pluginName
+
+    this.garden.log.silly(`Calling 'configureProvider' handler on '${pluginName}'`)
+
+    const handler = await this.getActionHandler({
+      actionType: "configureProvider",
+      pluginName,
+      defaultHandler: async ({ config }) => ({ config }),
+    })
+
+    const handlerParams: PluginActionParams["configureProvider"] = {
+      ...omit(params, ["pluginName"]),
+      base: this.wrapBase(handler.base),
+    }
+
+    const result = (<Function>handler)(handlerParams)
+
+    this.garden.log.silly(`Called 'configureProvider' handler on '${pluginName}'`)
+
+    return result
+  }
 
   async getEnvironmentStatus(
     params: RequirePluginName<ActionHelperParams<GetEnvironmentStatusParams>>,
@@ -436,16 +463,20 @@ export class ActionHelper implements TypeGuard {
   //endregion
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
-  private async commonParams(handler, log: LogEntry): Promise<PluginActionParamsBase> {
-    const provider = await this.garden.resolveProvider(handler["pluginName"])
+  private async commonParams(
+    handler: WrappedActionHandler<any, any>, log: LogEntry,
+  ): Promise<PluginActionParamsBase> {
+    const provider = await this.garden.resolveProvider(handler.pluginName)
+
     return {
-      ctx: await this.garden.getPluginContext(provider),
-      // TODO: find a better way for handlers to log during execution
+      ctx: this.garden.getPluginContext(provider),
       log,
+      base: handler.base,
     }
   }
 
-  private async callActionHandler<T extends keyof Omit<PluginActionHandlers, "configureProvider">>(
+  // We special-case the configureProvider handlers and don't call them through this
+  private async callActionHandler<T extends keyof Omit<WrappedPluginActionHandlers, "configureProvider">>(
     { params, actionType, pluginName, defaultHandler }:
       {
         params: ActionHelperParams<PluginActionParams[T]>,
@@ -454,18 +485,23 @@ export class ActionHelper implements TypeGuard {
         defaultHandler?: PluginActionHandlers[T],
       },
   ): Promise<PluginActionOutputs[T]> {
-    this.garden.log.silly(`Calling '${actionType}' handler on '${pluginName}'`)
+    this.garden.log.silly(`Calling ${actionType} handler on plugin '${pluginName}'`)
+
     const handler = await this.getActionHandler({
       actionType,
       pluginName,
       defaultHandler,
     })
+
     const handlerParams: PluginActionParams[T] = {
-      ...await this.commonParams(handler, (<any>params).log),
+      ...await this.commonParams(handler, params.log),
       ...<any>params,
     }
-    const result = (<Function>handler)(handlerParams)
-    this.garden.log.silly(`Called '${actionType}' handler on ${pluginName}'`)
+
+    const result = await (<Function>handler)(handlerParams)
+
+    this.garden.log.silly(`Called ${actionType} handler on plugin '${pluginName}'`)
+
     return result
   }
 
@@ -485,12 +521,12 @@ export class ActionHelper implements TypeGuard {
       moduleType: module.type,
       actionType,
       pluginName,
-      defaultHandler: defaultHandler as ModuleAndRuntimeActionHandlers[T],
+      defaultHandler: defaultHandler as WrappedModuleAndRuntimeActionHandlers[T],
     })
 
     const handlerParams = {
       ...await this.commonParams(handler, (<any>params).log),
-      ...<object>params,
+      ...params,
       module: omit(module, ["_ConfigType"]),
     }
 
@@ -602,25 +638,29 @@ export class ActionHelper implements TypeGuard {
     return (<Function>handler)(handlerParams)
   }
 
-  private addActionHandler<T extends keyof PluginActionHandlers>(
+  private addActionHandler<T extends keyof WrappedPluginActionHandlers>(
     plugin: GardenPlugin, actionType: T, handler: PluginActionHandlers[T],
   ) {
     const pluginName = plugin.name
     const schema = pluginActionDescriptions[actionType].resultSchema
 
-    const wrapped = async (...args) => {
-      const result = await handler.apply(plugin, args)
-      if (result === undefined) {
-        throw new PluginError(`Got empty response from ${actionType} handler on ${pluginName}`, {
-          args,
-          actionType,
-          pluginName,
-        })
-      }
-      return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
-    }
-    wrapped["actionType"] = actionType
-    wrapped["pluginName"] = pluginName
+    // Wrap the handler with identifying attributes
+    const wrapped: WrappedPluginActionHandlers[T] = Object.assign(
+      async (...args: any[]) => {
+        const result = await handler.apply(plugin, args)
+        if (result === undefined) {
+          throw new PluginError(`Got empty response from ${actionType} handler on ${pluginName}`, {
+            args,
+            actionType,
+            pluginName,
+          })
+        }
+        return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
+      },
+      { actionType, pluginName },
+    )
+
+    wrapped.base = this.wrapBase(handler.base)
 
     // I'm not sure why we need the cast here - JE
     const typeHandlers: any = this.actionHandlers[actionType]
@@ -633,20 +673,23 @@ export class ActionHelper implements TypeGuard {
     const pluginName = plugin.name
     const schema = moduleActionDescriptions[actionType].resultSchema
 
-    const wrapped = async (...args: any[]) => {
-      const result = await handler.apply(plugin, args)
-      if (result === undefined) {
-        throw new PluginError(`Got empty response from ${moduleType}.${actionType} handler on ${pluginName}`, {
-          args,
-          actionType,
-          pluginName,
-        })
-      }
-      return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
-    }
-    wrapped["actionType"] = actionType
-    wrapped["pluginName"] = pluginName
-    wrapped["moduleType"] = moduleType
+    // Wrap the handler with identifying attributes
+    const wrapped = Object.assign(
+      <WrappedModuleActionHandlers[T]>(async (...args: any[]) => {
+        const result = await handler.apply(plugin, args)
+        if (result === undefined) {
+          throw new PluginError(`Got empty response from ${moduleType}.${actionType} handler on ${pluginName}`, {
+            args,
+            actionType,
+            pluginName,
+          })
+        }
+        return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
+      }),
+      { actionType, pluginName, moduleType },
+    )
+
+    wrapped.base = this.wrapBase(handler.base)
 
     if (!this.moduleActionHandlers[actionType]) {
       this.moduleActionHandlers[actionType] = {}
@@ -661,11 +704,37 @@ export class ActionHelper implements TypeGuard {
   }
 
   /**
+   * Recursively wraps the base handler (if any) on an action handler, such that the base handler receives the _next_
+   * base handler as the `base` parameter when called from within the handler.
+   */
+  private wrapBase<T extends WrappedActionHandler<any, any> | WrappedModuleActionHandler<any, any>>(
+    handler?: T,
+  ): T | undefined {
+    if (!handler) {
+      return undefined
+    }
+
+    const base = this.wrapBase(handler.base)
+
+    const wrapped = <T>Object.assign(
+      async (params) => {
+        // Override the base parameter, to recursively allow each base to call its base.
+        params.log.silly(`Calling base handler for ${handler.actionType} handler on plugin '${handler.pluginName}'`)
+
+        return handler({ ...params, base })
+      },
+      { ...handler, base },
+    )
+
+    return wrapped
+  }
+
+  /**
    * Get a handler for the specified action.
    */
-  public async getActionHandlers<T extends keyof PluginActionHandlers>(
+  public async getActionHandlers<T extends keyof WrappedPluginActionHandlers>(
     actionType: T, pluginName?: string,
-  ): Promise<ActionHandlerMap<T>> {
+  ): Promise<WrappedActionHandlerMap<T>> {
     return this.filterActionHandlers(this.actionHandlers[actionType], pluginName)
   }
 
@@ -675,7 +744,7 @@ export class ActionHelper implements TypeGuard {
   public async getModuleActionHandlers<T extends keyof ModuleAndRuntimeActionHandlers>(
     { actionType, moduleType, pluginName }:
       { actionType: T, moduleType: string, pluginName?: string },
-  ): Promise<ModuleActionHandlerMap<T>> {
+  ): Promise<WrappedModuleActionHandlerMap<T>> {
     return this.filterActionHandlers((this.moduleActionHandlers[actionType] || {})[moduleType], pluginName)
   }
 
@@ -689,26 +758,30 @@ export class ActionHelper implements TypeGuard {
       handlers = {}
     }
 
-    return !pluginName ? handlers : pickBy(handlers, (handler) => handler["pluginName"] === pluginName)
+    return !pluginName ? handlers : pickBy(handlers, (handler) => handler.pluginName === pluginName)
   }
 
   /**
    * Get the last configured handler for the specified action (and optionally module type).
    */
-  public async getActionHandler<T extends keyof PluginActionHandlers>(
+  public async getActionHandler<T extends keyof WrappedPluginActionHandlers>(
     { actionType, pluginName, defaultHandler }:
       { actionType: T, pluginName: string, defaultHandler?: PluginActionHandlers[T] },
-  ): Promise<PluginActionHandlers[T]> {
+  ): Promise<WrappedPluginActionHandlers[T]> {
 
     const handlers = Object.values(await this.getActionHandlers(actionType, pluginName))
 
+    // Since we only allow retrieving by plugin name, the length is always either 0 or 1
     if (handlers.length) {
       this.garden.log.silly(`Found '${actionType}' handler on '${pluginName}'`)
       return handlers[handlers.length - 1]
     } else if (defaultHandler) {
-      defaultHandler["pluginName"] = defaultProvider.name
       this.garden.log.silly(`Returned default '${actionType}' handler for '${pluginName}'`)
-      return defaultHandler
+      return Object.assign(
+        // TODO: figure out why we need the cast here
+        <WrappedPluginActionHandlers[T]>defaultHandler,
+        { actionType, pluginName: defaultProvider.name },
+      )
     }
 
     const errorDetails = {
@@ -734,38 +807,149 @@ export class ActionHelper implements TypeGuard {
   public async getModuleActionHandler<T extends keyof ModuleAndRuntimeActionHandlers>(
     { actionType, moduleType, pluginName, defaultHandler }:
       { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleAndRuntimeActionHandlers[T] },
-  ): Promise<ModuleAndRuntimeActionHandlers[T]> {
-
+  ): Promise<WrappedModuleAndRuntimeActionHandlers[T]> {
     const handlers = Object.values(await this.getModuleActionHandlers({ actionType, moduleType, pluginName }))
 
-    if (handlers.length) {
-      return handlers[handlers.length - 1]
+    if (handlers.length === 1) {
+      // Nice and simple, just return the only applicable handler
+      return handlers[0]
+    } else if (handlers.length > 0) {
+      // Multiple matches. We start by filtering down to "leaf nodes", i.e. handlers which are not being overridden
+      // by other matched handlers.
+      const filtered = handlers.filter(handler => {
+        for (const other of handlers) {
+          if (other === handler) {
+            continue
+          }
+
+          const plugin = this.loadedPlugins[other.pluginName]
+          const bases = getPluginBases(plugin, this.loadedPlugins)
+          const deps = getPluginDependencies(plugin, this.loadedPlugins)
+          const allDepNames = [...getNames(bases), ...getNames(deps)]
+
+          if (allDepNames.includes(handler.pluginName)) {
+            // This handler is in `other`'s dependency chain, so `other` is overriding it
+            return false
+          }
+        }
+        return true
+      })
+
+      if (filtered.length > 1) {
+        // If we still end up with multiple handlers with no obvious best candidate, we use the order of configuration
+        // as a tie-breaker.
+        const configs = this.garden.getRawProviderConfigs()
+
+        for (const config of configs.reverse()) {
+          for (const handler of handlers) {
+            if (handler.pluginName === config.name) {
+              return handler
+            }
+          }
+        }
+
+        // This should never happen
+        throw new InternalError(
+          `Unable to find any matching configuration when selecting ${moduleType}/${actionType} handler ` +
+          `(please report this as a bug).`,
+          { handlers, configs },
+        )
+      } else {
+        return filtered[0]
+      }
+
     } else if (defaultHandler) {
-      defaultHandler["pluginName"] = defaultProvider.name
-      return defaultHandler
-    }
-
-    const errorDetails = {
-      requestedHandlerType: actionType,
-      requestedModuleType: moduleType,
-      environment: this.garden.environmentName,
-      pluginName,
-    }
-
-    if (pluginName) {
-      throw new PluginError(
-        `Plugin '${pluginName}' does not have a '${actionType}' handler for module type '${moduleType}'.`,
-        errorDetails,
+      // Return the default handler, but wrap it to match the expected interface.
+      return Object.assign(
+        <WrappedModuleAndRuntimeActionHandlers[T]>defaultHandler,
+        { actionType, moduleType, pluginName: defaultProvider.name },
       )
     } else {
-      throw new ParameterError(
-        `No '${actionType}' handler configured for module type '${moduleType}' in environment ` +
-        `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-        errorDetails,
-      )
+      // Nothing matched, throw error.
+      const errorDetails = {
+        requestedHandlerType: actionType,
+        requestedModuleType: moduleType,
+        environment: this.garden.environmentName,
+        pluginName,
+      }
+
+      if (pluginName) {
+        throw new PluginError(
+          `Plugin '${pluginName}' does not have a '${actionType}' handler for module type '${moduleType}'.`,
+          errorDetails,
+        )
+      } else {
+        throw new ParameterError(
+          `No '${actionType}' handler configured for module type '${moduleType}' in environment ` +
+          `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
+          errorDetails,
+        )
+      }
     }
   }
 }
+
+type CommonParams = keyof PluginActionContextParams
+
+type WrappedServiceActionHandlers<T extends Module = Module> = {
+  [P in keyof ServiceActionParams<T>]: WrappedModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
+}
+
+type WrappedTaskActionHandlers<T extends Module = Module> = {
+  [P in keyof TaskActionParams<T>]: WrappedModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
+}
+
+type WrappedModuleActionHandlers<T extends Module = Module> = {
+  [P in keyof ModuleActionParams<T>]: WrappedModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
+}
+
+type WrappedModuleAndRuntimeActionHandlers<T extends Module = Module> =
+  WrappedModuleActionHandlers<T> & WrappedServiceActionHandlers<T> & WrappedTaskActionHandlers<T>
+
+type WrappedPluginActionHandlers = {
+  [P in keyof PluginActionParams]:
+  WrappedActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
+}
+
+interface WrappedActionHandlerMap<T extends keyof WrappedPluginActionHandlers> {
+  [actionName: string]: WrappedPluginActionHandlers[T]
+}
+
+interface WrappedModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHandlers> {
+  [actionName: string]: WrappedModuleAndRuntimeActionHandlers[T]
+}
+
+type WrappedPluginActionMap = {
+  [A in keyof WrappedPluginActionHandlers]: {
+    [pluginName: string]: WrappedPluginActionHandlers[A],
+  }
+}
+
+type WrappedModuleActionMap = {
+  [A in keyof ModuleAndRuntimeActionHandlers]: {
+    [moduleType: string]: {
+      [pluginName: string]: WrappedModuleAndRuntimeActionHandlers[A],
+    },
+  }
+}
+
+// avoid having to specify common params on each action helper call
+type ActionHelperParams<T extends PluginActionParamsBase> =
+  Omit<T, CommonParams> & { pluginName?: string }
+
+type ModuleActionHelperParams<T extends PluginModuleActionParamsBase> =
+  Omit<T, CommonParams> & { pluginName?: string }
+// additionally make runtimeContext param optional
+
+type ServiceActionHelperParams<T extends PluginServiceActionParamsBase> =
+  Omit<T, "module" | CommonParams>
+  & { pluginName?: string }
+
+type TaskActionHelperParams<T extends PluginTaskActionParamsBase> =
+  Omit<T, "module" | CommonParams>
+  & { pluginName?: string }
+
+type RequirePluginName<T> = T & { pluginName: string }
 
 const dummyLogStreamer = async ({ service, log }: GetServiceLogsParams) => {
   log.warn({

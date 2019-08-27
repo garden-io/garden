@@ -25,6 +25,19 @@ import { ConfigGraph } from "../../../../../../src/config-graph"
 import { Provider } from "../../../../../../src/config/provider"
 import { buildHelmModule } from "../../../../../../src/plugins/kubernetes/helm/build"
 
+const containerProvider: Provider = {
+  name: "container",
+  config: {
+    name: "container",
+  },
+  dependencies: [],
+  moduleConfigs: [],
+  status: {
+    ready: true,
+    outputs: {},
+  },
+}
+
 const helmProvider: Provider = {
   name: "local-kubernetes",
   config: {
@@ -39,11 +52,13 @@ const helmProvider: Provider = {
   },
 }
 
+const resolvedProviders = [containerProvider, helmProvider]
+
 export async function getHelmTestGarden() {
   const projectRoot = resolve(dataDir, "test-projects", "helm")
   const garden = await makeTestGarden(projectRoot)
   // Avoid having to resolve the provider
-  set(garden, "resolvedProviders", [helmProvider])
+  set(garden, "resolvedProviders", resolvedProviders)
   return garden
 }
 
@@ -55,10 +70,8 @@ describe("Helm common functions", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
-    // Avoid having to resolve the provider
-    set(garden, "resolvedProviders", [helmProvider])
     graph = await garden.getConfigGraph()
-    ctx = await garden.getPluginContext(helmProvider)
+    ctx = garden.getPluginContext(helmProvider)
     log = garden.log
     await buildModules()
   })

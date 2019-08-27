@@ -77,19 +77,19 @@ describe("validate-dependencies", () => {
 
   describe("detectCycles", () => {
     it("should detect self-to-self cycles", () => {
-      const cycles = detectCycles({
-        a: { a: { distance: 1, next: "a" } },
-      })
+      const cycles = detectCycles([
+        { from: "a", to: "a" },
+      ])
 
       expect(cycles).to.deep.eq([["a"]])
     })
 
     it("should preserve dependency order when returning cycles", () => {
-      const cycles = detectCycles({
-        foo: { bar: { distance: 1, next: "bar" } },
-        bar: { baz: { distance: 1, next: "baz" } },
-        baz: { foo: { distance: 1, next: "foo" } },
-      })
+      const cycles = detectCycles([
+        { from: "foo", to: "bar" },
+        { from: "bar", to: "baz" },
+        { from: "baz", to: "foo" },
+      ])
 
       expect(cycles).to.deep.eq([["foo", "bar", "baz"]])
     })

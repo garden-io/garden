@@ -402,6 +402,12 @@ export function hashString(s: string, length: number) {
  */
 export function pushToKey(obj: object, key: string, value: any) {
   if (obj[key]) {
+    if (!isArray(obj[key])) {
+      throw new RuntimeError(`Value at '${key}' is not an array`, {
+        obj,
+        key,
+      })
+    }
     obj[key].push(value)
   } else {
     obj[key] = [value]

@@ -212,12 +212,29 @@ export async function prepareSystemServices(
       forceBuild: force,
     })
 
-    const failed = values(results.taskResults).filter(r => r && r.error).length
+    const failed = values(results.taskResults).filter(r => r && r.error).map(r => r!)
+    const errors = failed.map(r => r.error)
 
-    if (failed) {
-      throw new PluginError(`${provider.name}: ${failed} errors occurred when configuring environment`, {
-        results,
-      })
+    if (failed.length === 1) {
+      const error = errors[0]
+
+      throw new PluginError(
+        `${provider.name}—an error occurred when configuring environment:\n${error}`,
+        {
+          error,
+          results,
+        },
+      )
+    } else if (failed.length > 0) {
+      const errorsStr = errors.map(e => `- ${e}`).join("\n")
+
+      throw new PluginError(
+        `${provider.name} — ${failed.length} errors occurred when configuring environment:\n${errorsStr}`,
+        {
+          errors,
+          results,
+        },
+      )
     }
   }
 }

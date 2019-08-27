@@ -18,7 +18,7 @@ describe("validateHelmModule", () => {
   before(async () => {
     garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider("local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = garden.getPluginContext(provider)
     await garden.resolveModuleConfigs()
     moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
   })

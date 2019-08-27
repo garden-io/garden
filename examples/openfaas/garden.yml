@@ -2,17 +2,14 @@ kind: Project
 name: openfaas
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
-      - name: local-openfaas
-        hostname: openfaas-gateway.local.app.garden
   - name: testing
-    providers:
-      - name: kubernetes
-        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-        namespace: openfaas-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
-        defaultHostname: openfaas-testing-${local.env.CIRCLE_BUILD_NUM || local.username}.dev-1.sys.garden
-        buildMode: cluster-docker
-      - name: openfaas
-variables:
-  my-variable: hello-variable
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [testing]
+    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    namespace: openfaas-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultHostname: openfaas-testing-${local.env.CIRCLE_BUILD_NUM || local.username}.dev-1.sys.garden
+    buildMode: cluster-docker
+  - name: openfaas

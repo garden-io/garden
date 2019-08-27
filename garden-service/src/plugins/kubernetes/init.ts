@@ -82,7 +82,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const variables = getKubernetesSystemVariables(provider.config)
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = await sysGarden.resolveProvider(provider.name)
-  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(sysProvider)
+  const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
 
   // Check Tiller status in system namespace
   const tillerStatus = await checkTillerStatus(sysCtx, log)
@@ -195,7 +195,7 @@ export async function prepareSystem(
   // Install Tiller to system namespace
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = await sysGarden.resolveProvider(k8sCtx.provider.name)
-  const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(sysProvider)
+  const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
 
   await sysGarden.clearBuilds()
 

@@ -65,7 +65,7 @@ export const gardenPlugin = createGardenPlugin({
     name: "google-cloud-function",
     handlers: {
       async configure(params: ConfigureModuleParams<GcfModule>) {
-        const parsed = await configureGcfModule(params)
+        const { moduleConfig: parsed } = await configureGcfModule(params)
 
         // convert the module and services to containers to run locally
         const serviceConfigs: ServiceConfig<ContainerServiceSpec>[] = parsed.serviceConfigs.map((s) => {
@@ -111,7 +111,7 @@ export const gardenPlugin = createGardenPlugin({
           }
         })
 
-        return {
+        const moduleConfig = {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: true,
           build: {
@@ -143,6 +143,8 @@ export const gardenPlugin = createGardenPlugin({
           taskConfigs: [],
           testConfigs: parsed.testConfigs,
         }
+
+        return { moduleConfig }
       },
     },
   }],

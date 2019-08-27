@@ -106,8 +106,8 @@ export type Cycle = string[]
  */
 export function detectCircularModuleDependencies(moduleConfigs: ModuleConfig[]): ConfigurationError | null {
   // Sparse matrices
-  const buildGraph: DependencyGraph = {}
-  const runtimeGraph: DependencyGraph = {}
+  const buildDeps: Dependency[] = []
+  const runtimeDeps: Dependency[] = []
   const services: ServiceConfig[] = []
   const tasks: TaskConfig[] = []
 
@@ -119,28 +119,36 @@ export function detectCircularModuleDependencies(moduleConfigs: ModuleConfig[]):
   for (const module of moduleConfigs) {
     // Build dependencies
     for (const buildDep of module.build.dependencies) {
-      const depName = getModuleKey(buildDep.name, buildDep.plugin)
-      set(buildGraph, [module.name, depName], { distance: 1, next: depName })
+      buildDeps.push({
+        from: module.name,
+        to: getModuleKey(buildDep.name, buildDep.plugin),
+      })
     }
 
     // Runtime (service & task) dependencies
     for (const service of module.serviceConfigs || []) {
       services.push(service)
       for (const depName of service.dependencies) {
-        set(runtimeGraph, [service.name, depName], { distance: 1, next: depName })
+        runtimeDeps.push({
+          from: service.name,
+          to: depName,
+        })
       }
     }
 
     for (const task of module.taskConfigs || []) {
       tasks.push(task)
       for (const depName of task.dependencies) {
-        set(runtimeGraph, [task.name, depName], { distance: 1, next: depName })
+        runtimeDeps.push({
+          from: task.name,
+          to: depName,
+        })
       }
     }
   }
 
-  const buildCycles = detectCycles(buildGraph)
-  const runtimeCycles = detectCycles(runtimeGraph)
+  const buildCycles = detectCycles(buildDeps)
+  const runtimeCycles = detectCycles(runtimeDeps)
 
   if (buildCycles.length > 0 || runtimeCycles.length > 0) {
     const detail = {}
@@ -169,7 +177,12 @@ export function detectCircularModuleDependencies(moduleConfigs: ModuleConfig[]):
   return null
 }
 
-export interface DependencyGraph {
+export interface Dependency {
+  from: string
+  to: string
+}
+
+interface DependencyGraph {
   [key: string]: {
     [target: string]: {
       distance: number,
@@ -185,15 +198,15 @@ export interface DependencyGraph {
  *
  * Returns a list of cycles found.
  */
-export function detectCycles(graph: DependencyGraph): Cycle[] {
-  // Collect all the vertices
-  const vertices = uniq(
-    Object.keys(graph).concat(
-      flatten(
-        Object.values(graph).map(v => Object.keys(v)),
-      ),
-    ),
-  )
+export function detectCycles(dependencies: Dependency[]): Cycle[] {
+  // Collect all the vertices and build a graph object
+  const vertices = uniq(flatten(dependencies.map(d => [d.from, d.to])))
+
+  const graph: DependencyGraph = {}
+
+  for (const { from, to } of dependencies) {
+    set(graph, [from, to], { distance: 1, next: to })
+  }
 
   // Compute shortest paths
   for (const k of vertices) {
