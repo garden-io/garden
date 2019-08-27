@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogNode } from "./log-node"
-import { LogEntry, CreateOpts, resolveParam } from "./log-entry"
+import { LogNode, CreateNodeParams } from "./log-node"
+import { LogEntry } from "./log-entry"
 import { getChildEntries, findLogNode } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
@@ -119,13 +119,13 @@ export class Logger extends LogNode {
     this.useEmoji = config.useEmoji === false ? false : true
   }
 
-  protected createNode(level: LogLevel, opts: CreateOpts): LogEntry {
-    return new LogEntry({ level, root: this, opts: resolveParam(opts) })
+  protected createNode(params: CreateNodeParams): LogEntry {
+    return new LogEntry({ ...params, root: this })
   }
 
   placeholder(level: LogLevel = LogLevel.info): LogEntry {
     // Ensure placeholder child entries align with parent context
-    return this.appendNode(level, { indent: - 1 })
+    return this.addNode({ level, indent: - 1, isPlaceholder: true })
   }
 
   onGraphChange(entry: LogEntry) {
@@ -133,11 +133,11 @@ export class Logger extends LogNode {
   }
 
   getLogEntries(): LogEntry[] {
-    return getChildEntries(this).filter(entry => !entry.fromStdStream())
+    return getChildEntries(this).filter(entry => !entry.fromStdStream)
   }
 
   filterBySection(section: string): LogEntry[] {
-    return getChildEntries(this).filter(entry => entry.opts.section === section)
+    return getChildEntries(this).filter(entry => entry.getMessageState().section === section)
   }
 
   findById(id: string): LogEntry | void {

@@ -85,10 +85,7 @@ export class LogsCommand extends Command<Args, Opts> {
         } catch { }
       }
 
-      log.info({
-        section: entry.serviceName,
-        msg: [timestamp, chalk.white(entry.msg)],
-      })
+      log.info({ section: entry.serviceName, msg: `${timestamp} → ${chalk.white(entry.msg)}` })
 
       if (!follow) {
         result.push(entry)
@@ -98,7 +95,7 @@ export class LogsCommand extends Command<Args, Opts> {
     const actions = await garden.getActionHelper()
 
     await Bluebird.map(services, async (service: Service<any>) => {
-      const voidLog = log.placeholder(LogLevel.silly, { childEntriesInheritLevel: true })
+      const voidLog = log.placeholder(LogLevel.silly, true)
       const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
       const status = await actions.getServiceStatus({ log: voidLog, service, hotReload: false, runtimeContext })
 

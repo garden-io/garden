@@ -15,7 +15,7 @@ describe("Logger", () => {
       logger.info({ msg: "0" })
       logger.info({ msg: "a1", id: "a" })
       logger.info({ msg: "a2", id: "a" })
-      expect(logger.findById("a")["opts"]["msg"]).to.eql("a1")
+      expect(logger.findById("a")["messageStates"][0]["msg"]).to.eql("a1")
       expect(logger.findById("z")).to.be.undefined
     })
   })

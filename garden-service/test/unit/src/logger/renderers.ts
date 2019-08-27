@@ -6,7 +6,11 @@ import {
   msgStyle,
   errorStyle,
   formatForTerminal,
+  chainMessages,
+  renderError,
 } from "../../../../src/logger/renderers"
+import { GardenError } from "../../../../src/exceptions"
+import dedent = require("dedent")
 
 const logger = getLogger()
 
@@ -25,7 +29,8 @@ describe("renderers", () => {
       expect(renderMsg(entry)).to.equal(msgStyle("hello message"))
     })
     it("should join an array of messages with an arrow symbol and render with the message style", () => {
-      const entry = logger.info({ msg: ["message a", "message b"] })
+      const entry = logger.info("message a")
+      entry.setState({ msg: "message b", append: true })
       expect(renderMsg(entry)).to.equal(msgStyle("message a") + msgStyle(" → ") + msgStyle("message b"))
     })
     it("should render the message without styles if the entry is from an intercepted stream", () => {
@@ -33,7 +38,8 @@ describe("renderers", () => {
       expect(renderMsg(entry)).to.equal("hello stream")
     })
     it("should join an array of messages and render without styles if the entry is from an intercepted stream", () => {
-      const entry = logger.info({ fromStdStream: true, msg: ["stream a", "stream b"] })
+      const entry = logger.info({ fromStdStream: true, msg: "stream a" })
+      entry.setState({ msg: "stream b", append: true })
       expect(renderMsg(entry)).to.equal("stream a stream b")
     })
     it("should render the message with the error style if the entry has error status", () => {
@@ -42,9 +48,55 @@ describe("renderers", () => {
     })
     it("should join an array of messages with an arrow symbol and render with the error style" +
       " if the entry has error status", () => {
-        const entry = logger.info({ msg: ["error a", "error b"], status: "error" })
+        const entry = logger.info({ msg: "error a", status: "error" })
+        entry.setState({ msg: "error b", append: true })
         expect(renderMsg(entry)).to.equal(errorStyle("error a") + errorStyle(" → ") + errorStyle("error b"))
       })
+    describe("renderError", () => {
+      it("should render error object if present", () => {
+        const error: GardenError = {
+          message: "hello error",
+          type: "a",
+          detail: {
+            foo: "bar",
+            _internal: "no show",
+          },
+        }
+        const entry = logger.info({ msg: "foo", error })
+        expect(renderError(entry)).to.equal(dedent`
+          hello error
+          Error Details:
+          foo: bar\n
+        `)
+      })
+      it("should join an array of messages if no error object", () => {
+        const entry = logger.info({ msg: "error a" })
+        entry.setState({ msg: "moar", append: true })
+        expect(renderError(entry)).to.eql("error a moar")
+      })
+    })
+  })
+  describe("chainMessages", () => {
+    it("should correctly chain log messages", () => {
+      const timestamp = Date.now()
+      const messageStateTable = [
+        [{ msg: "1", append: true }, { msg: "2", append: true }, { msg: "3", append: true }],
+        [{ msg: "1", append: false }, { msg: "2", append: true }, { msg: "3", append: true }],
+        [{ msg: "1", append: true }, { msg: "2", append: false }, { msg: "3", append: true }],
+        [{ msg: "1", append: false }, { msg: "2", append: false }, { msg: "3", append: true }],
+        [{ msg: "1", append: false }, { msg: "2", append: false }, { msg: "3", append: false }],
+      ].map(msgStates => msgStates.map(msgState => ({ ...msgState, timestamp })))
+      const expects = [
+        ["1", "2", "3"],
+        ["1", "2", "3"],
+        ["2", "3"],
+        ["2", "3"],
+        ["3"],
+      ]
+      messageStateTable.forEach((msgState, index) => {
+        expect(chainMessages(msgState)).to.eql(expects[index])
+      })
+    })
   })
   describe("formatForTerminal", () => {
     it("should return the entry as a formatted string with a new line character", () => {

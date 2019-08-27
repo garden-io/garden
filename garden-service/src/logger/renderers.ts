@@ -21,7 +21,7 @@ import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
-import { LogEntry } from "./log-entry"
+import { LogEntry, MessageState } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, deepFilter } from "../util/util"
 import { isNumber } from "util"
@@ -59,6 +59,24 @@ function applyRenderers(renderers: Renderers): Function {
   return flow(curried)
 }
 
+/**
+ * Returns the most recent message's `msg` field if it has `append` set to `false`.
+ * Otherwise returns longest chain of messages with `append: true` (starting from the most recent message).
+ */
+export function chainMessages(messageStates: MessageState[], chain: string[] = []): string | string[] {
+  const latestState = messageStates[messageStates.length - 1]
+  if (!latestState) {
+    return chain.length === 1 ? chain[0] : chain.reverse()
+  }
+
+  chain = latestState.msg !== undefined ? [...chain, latestState.msg] : chain
+
+  if (latestState.append) {
+    return chainMessages(messageStates.slice(0, -1), chain)
+  }
+  return chain.reverse()
+}
+
 export function combine(renderers: Renderers): string {
   const initOutput = []
   return applyRenderers(renderers)(initOutput).join("")
@@ -66,11 +84,11 @@ export function combine(renderers: Renderers): string {
 
 /*** RENDERERS ***/
 export function leftPad(entry: LogEntry): string {
-  return "".padStart((entry.opts.indent || 0) * 3)
+  return "".padStart((entry.indent || 0) * 3)
 }
 
 export function renderEmoji(entry: LogEntry): string {
-  const { emoji } = entry.opts
+  const { emoji } = entry.getMessageState()
   if (emoji) {
     return printEmoji(emoji, entry) + " "
   }
@@ -78,7 +96,7 @@ export function renderEmoji(entry: LogEntry): string {
 }
 
 export function renderError(entry: LogEntry) {
-  const { msg, error } = entry.opts
+  const { errorData: error } = entry
   if (error) {
     const { detail, message, stack } = error
     let out = stack || message
@@ -99,11 +117,13 @@ export function renderError(entry: LogEntry) {
     }
     return out
   }
+
+  const msg = chainMessages(entry.getMessageStates() || [])
   return isArray(msg) ? msg.join(" ") : msg || ""
 }
 
 export function renderSymbol(entry: LogEntry): string {
-  const { symbol } = entry.opts
+  const { symbol } = entry.getMessageState()
   if (symbol === "empty") {
     return " "
   }
@@ -111,7 +131,9 @@ export function renderSymbol(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { fromStdStream, msg, status } = entry.opts
+  const { fromStdStream } = entry
+  const { status } = entry.getMessageState()
+  const msg = chainMessages(entry.getMessageStates() || [])
 
   if (fromStdStream) {
     return isArray(msg) ? msg.join(" ") : msg || ""
@@ -127,7 +149,7 @@ export function renderMsg(entry: LogEntry): string {
 }
 
 export function renderData(entry: LogEntry): string {
-  const { data } = entry.opts
+  const { data } = entry
   if (!data) {
     return ""
   }
@@ -136,7 +158,7 @@ export function renderData(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
-  const { msg, section } = entry.opts
+  const { msg, section } = entry.getMessageState()
   if (section && msg) {
     return `${sectionStyle(section)} → `
   } else if (section) {
@@ -145,16 +167,9 @@ export function renderSection(entry: LogEntry): string {
   return ""
 }
 
-export function renderDuration(entry: LogEntry): string {
-  const { showDuration = false } = entry.opts
-  return showDuration
-    ? msgStyle(` (finished in ${entry.getDuration()}s)`)
-    : ""
-}
-
 export function formatForTerminal(entry: LogEntry): string {
-  const { msg, data, section, emoji, showDuration, symbol } = entry.opts
-  const empty = [msg, data, section, emoji, showDuration, symbol].every(val => val === undefined)
+  const { msg, emoji, section, symbol } = entry.getMessageState()
+  const empty = [msg, section, emoji, symbol].every(val => val === undefined)
   if (empty) {
     return ""
   }
@@ -165,7 +180,6 @@ export function formatForTerminal(entry: LogEntry): string {
     [renderEmoji, [entry]],
     [renderMsg, [entry]],
     [renderData, [entry]],
-    [renderDuration, [entry]],
     ["\n"],
   ])
 }
@@ -184,12 +198,13 @@ export function cleanWhitespace(str) {
 }
 
 export function formatForJSON(entry: LogEntry): JsonLogEntry {
-  const { msg, data, section, showDuration, metadata } = entry.opts
+  const { data } = entry
+  const metadata = entry.getMetadata()
+  const { msg, section } = entry.getMessageState()
   return {
     msg: cleanForJSON(msg),
     data,
     metadata,
     section: cleanForJSON(section),
-    durationMs: showDuration ? entry.getDuration(3) * 1000 : undefined,
   }
 }
