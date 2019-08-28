@@ -3,7 +3,6 @@ import { expect } from "chai"
 import { LogLevel } from "../../../../../src/logger/log-node"
 import { JsonTerminalWriter } from "../../../../../src/logger/writers/json-terminal-writer"
 import { getLogger } from "../../../../../src/logger/logger"
-import { formatForJSON } from "../../../../../src/logger/renderers"
 
 const logger = getLogger()
 
@@ -17,7 +16,14 @@ describe("JsonTerminalWriter", () => {
       const writer = new JsonTerminalWriter()
       const entry = logger.info("hello logger")
       const out = writer.render(entry, logger)
-      expect(out).to.eql(JSON.stringify(formatForJSON(entry)))
+      expect(out).to.eql('{"msg":"hello logger","section":""}')
+    })
+    it("should chain messages with 'append' set to true", () => {
+      const writer = new JsonTerminalWriter()
+      const entry = logger.info("hello logger")
+      entry.setState({ msg: "hello again", append: true })
+      const out = writer.render(entry, logger)
+      expect(out).to.eql('{"msg":"hello logger - hello again","section":""}')
     })
     it("should return null if message is an empty string", () => {
       const writer = new JsonTerminalWriter()
@@ -41,7 +47,7 @@ describe("JsonTerminalWriter", () => {
       const writer = new JsonTerminalWriter({ level: LogLevel.verbose })
       const entry = logger.verbose("cormorant")
       const out = writer.render(entry, logger)
-      expect(out).to.eql(JSON.stringify(formatForJSON(entry)))
+      expect(out).to.eql('{"msg":"cormorant","section":""}')
     })
   })
 })

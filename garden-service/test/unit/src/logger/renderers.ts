@@ -8,9 +8,11 @@ import {
   formatForTerminal,
   chainMessages,
   renderError,
+  formatForJson,
 } from "../../../../src/logger/renderers"
 import { GardenError } from "../../../../src/exceptions"
 import dedent = require("dedent")
+import { TaskMetadata } from "../../../../src/logger/log-entry"
 
 const logger = getLogger()
 
@@ -106,6 +108,53 @@ describe("renderers", () => {
     it("should return an empty string without a new line if the entry is empty", () => {
       const entry = logger.placeholder()
       expect(formatForTerminal(entry)).to.equal("")
+    })
+  })
+  describe("formatForJson", () => {
+    it("should return a JSON representation of a log entry", () => {
+      const taskMetadata: TaskMetadata = {
+        type: "a",
+        key: "a",
+        status: "active",
+        uid: "1",
+        versionString: "123",
+      }
+      const entry = logger.info({
+        msg: "hello",
+        emoji: "haircut",
+        symbol: "info",
+        status: "done",
+        section: "c",
+        data: { foo: "bar" },
+        metadata: { task: taskMetadata },
+      })
+      expect(formatForJson(entry)).to.eql({
+        msg: "hello",
+        section: "c",
+        data: { foo: "bar" },
+        metadata: { task: taskMetadata },
+      })
+    })
+    it("should append messages if applicable", () => {
+      const entry = logger.info({
+        msg: "hello",
+      })
+      entry.setState({ msg: "world", append: true })
+      expect(formatForJson(entry)).to.eql({
+        msg: "hello - world",
+        section: "",
+        data: undefined,
+        metadata: undefined,
+      })
+    })
+    it("should handle undefined messages", () => {
+      const entry = logger.placeholder()
+      expect(formatForJson(entry)).to.eql({
+        msg: "",
+        section: "",
+        data: undefined,
+        metadata: undefined,
+      })
     })
   })
 })
