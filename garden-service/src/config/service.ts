@@ -7,7 +7,7 @@
  */
 
 import deline = require("deline")
-import { joiIdentifier, joiIdentifierMap, joiPrimitive, joiArray, joiUserIdentifier, joi } from "./common"
+import { joiIdentifier, joiArray, joiUserIdentifier, joi, joiVariables } from "./common"
 
 export interface ServiceSpec { }
 
@@ -20,7 +20,7 @@ export interface CommonServiceSpec extends ServiceSpec {
   dependencies: string[]
 }
 
-export const serviceOutputsSchema = joiIdentifierMap(joiPrimitive())
+export const serviceOutputsSchema = joiVariables()
 
 export const dependenciesSchema = joiArray(joiIdentifier())
   .description(deline`
