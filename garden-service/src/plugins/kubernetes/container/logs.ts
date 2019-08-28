@@ -12,9 +12,10 @@ import { getAppNamespace } from "../namespace"
 import { getAllLogs } from "../logs"
 import { KubernetesPluginContext } from "../config"
 import { createDeployment } from "./deployment"
+import { emptyRuntimeContext } from "../../../runtime-context"
 
 export async function getServiceLogs(params: GetServiceLogsParams<ContainerModule>) {
-  const { ctx, log, service, runtimeContext } = params
+  const { ctx, log, service } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const context = k8sCtx.provider.config.context
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
@@ -22,7 +23,8 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
   const resources = [await createDeployment({
     provider: k8sCtx.provider,
     service,
-    runtimeContext,
+    // No need for the proper context here
+    runtimeContext: emptyRuntimeContext,
     namespace,
     enableHotReload: false,
     log,

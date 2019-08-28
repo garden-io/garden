@@ -15,10 +15,12 @@ import {
   CommandResult,
   StringParameter,
 } from "../base"
-import { printRuntimeContext, runtimeContextForServiceDeps } from "./run"
+import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { printHeader } from "../../logger/util"
-import { BuildTask } from "../../tasks/build"
+import { DeployTask } from "../../tasks/deploy"
+import { getServiceStatuses, getRunTaskResults } from "../../tasks/base"
+import { prepareRuntimeContext } from "../../runtime-context"
 
 const runArgs = {
   service: new StringParameter({
@@ -66,10 +68,30 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     const actions = await garden.getActionHelper()
 
-    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
-    await garden.processTasks([buildTask])
+    // Make sure all dependencies are ready and collect their outputs for the runtime context
+    const deployTask = new DeployTask({
+      force: true,
+      forceBuild: opts["force-build"],
+      garden,
+      graph,
+      log,
+      service,
+    })
+    const dependencyResults = await garden.processTasks(await deployTask.getDependencies())
 
-    const runtimeContext = await runtimeContextForServiceDeps(garden, graph, module)
+    const dependencies = await graph.getDependencies("service", serviceName, false)
+    const serviceStatuses = getServiceStatuses(dependencyResults)
+    const taskResults = getRunTaskResults(dependencyResults)
+
+    const runtimeContext = await prepareRuntimeContext({
+      garden,
+      graph,
+      dependencies,
+      module,
+      serviceStatuses,
+      taskResults,
+    })
+
     printRuntimeContext(log, runtimeContext)
 
     const result = await actions.runService({

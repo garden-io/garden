@@ -19,7 +19,7 @@ import {
   getServiceResourceSpec,
   getValueFileArgs,
 } from "./common"
-import { getReleaseStatus, getServiceStatus } from "./status"
+import { getReleaseStatus } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
 import { apply } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
@@ -120,5 +120,5 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
   await helm(namespace, context, log, "delete", "--purge", releaseName)
   log.setSuccess("Service deleted")
 
-  return await getServiceStatus({ ...params, hotReload: false })
+  return { state: "missing" }
 }

@@ -12,7 +12,7 @@ import chalk from "chalk"
 import * as yaml from "js-yaml"
 import hasAnsi = require("has-ansi")
 import { flatten, merge, padEnd, pick } from "lodash"
-import { BaseTask, TaskDefinitionError } from "./tasks/base"
+import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError } from "./exceptions"
@@ -22,7 +22,7 @@ import { AnalyticsHandler } from "./analytics/analytics"
 class TaskGraphError extends Error { }
 
 export interface TaskResult {
-  type: string
+  type: TaskType
   description: string
   key: string
   name: string

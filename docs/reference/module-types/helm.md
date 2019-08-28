@@ -8,8 +8,7 @@ guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-`helm` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
-See the [Outputs](#outputs) section below for details.
+`helm` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ## Configuration keys
 
@@ -789,6 +788,8 @@ valueFiles: []
 
 ## Outputs
 
+### Module outputs
+
 The following keys are available via the `${modules.<module-name>}` template string key for `helm`
 modules.
 
@@ -851,3 +852,4 @@ The Helm release name of the service.
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
+

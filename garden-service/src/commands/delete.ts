@@ -16,7 +16,7 @@ import {
 } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent = require("dedent")
-import { ServiceStatus, getServiceRuntimeContext, ServiceStatusMap } from "../types/service"
+import { ServiceStatus, ServiceStatusMap } from "../types/service"
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
@@ -148,8 +148,7 @@ export class DeleteServiceCommand extends Command {
     const actions = await garden.getActionHelper()
 
     await Bluebird.map(services, async service => {
-      const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
-      result[service.name] = await actions.deleteService({ log, service, runtimeContext })
+      result[service.name] = await actions.deleteService({ log, service })
     })
 
     return { result }

@@ -1,0 +1,7 @@
+kind: Module
+name: module-b
+type: exec
+tasks:
+  - name: task-b
+    dependencies: [task-a]
+    command: [echo, "${runtime.tasks.task-a.outputs.log}"]

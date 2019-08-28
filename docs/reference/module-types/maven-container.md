@@ -18,8 +18,7 @@ guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-`maven-container` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
-See the [Outputs](#outputs) section below for details.
+`maven-container` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ## Configuration keys
 
@@ -1082,6 +1081,8 @@ mvnOpts: []
 
 ## Outputs
 
+### Module outputs
+
 The following keys are available via the `${modules.<module-name>}` template string key for `maven-container`
 modules.
 
@@ -1170,3 +1171,4 @@ outputs:
   ...
   deployment-image-name: "my-deployment-registry.io/my-org/my-module"
 ```
+

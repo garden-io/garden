@@ -19,9 +19,10 @@ import {
 import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { find, includes, pick } from "lodash"
-import { ServiceIngress, getIngressUrl, getServiceRuntimeContext } from "../types/service"
+import { ServiceIngress, getIngressUrl } from "../types/service"
 import dedent = require("dedent")
 import { printHeader } from "../logger/util"
+import { emptyRuntimeContext } from "../runtime-context"
 
 const callArgs = {
   serviceAndPath: new StringParameter({
@@ -58,7 +59,8 @@ export class CallCommand extends Command<Args> {
     // TODO: better error when service doesn't exist
     const graph = await garden.getConfigGraph()
     const service = await graph.getService(serviceName)
-    const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
+    // No need for full context, since we're just checking if the service is running.
+    const runtimeContext = emptyRuntimeContext
     const actions = await garden.getActionHelper()
     const status = await actions.getServiceStatus({ service, log, hotReload: false, runtimeContext })
 

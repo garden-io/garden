@@ -6,14 +6,10 @@ import { GARDEN_BUILD_VERSION_FILENAME } from "../../../../src/constants"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { ConfigGraph } from "../../../../src/config-graph"
-import {
-  writeModuleVersionFile,
-  readModuleVersionFile,
-} from "../../../../src/vcs/vcs"
-import {
-  dataDir,
-  makeTestGarden,
-} from "../../../helpers"
+import { getDataDir } from "../../../helpers"
+import { TaskTask } from "../../../../src/tasks/task"
+import { writeModuleVersionFile, readModuleVersionFile } from "../../../../src/vcs/vcs"
+import { dataDir, makeTestGarden } from "../../../helpers"
 
 describe("exec plugin", () => {
   const projectRoot = resolve(dataDir, "test-project-exec")
@@ -134,6 +130,26 @@ describe("exec plugin", () => {
         },
       },
     ])
+  })
+
+  it("should propagate task logs to runtime outputs", async () => {
+    const _garden = await makeTestGarden(await getDataDir("test-projects", "exec-task-outputs"))
+    const _graph = await _garden.getConfigGraph()
+    const taskB = await _graph.getTask("task-b")
+
+    const taskTask = new TaskTask({
+      garden: _garden,
+      graph: _graph,
+      task: taskB,
+      log: _garden.log,
+      force: false,
+      forceBuild: false,
+      version: taskB.module.version,
+    })
+    const results = await _garden.processTasks([taskTask])
+
+    // Task A echoes "task-a-output" and Task B echoes the output from Task A
+    expect(results["task.task-b"].output.outputs.log).to.equal("task-a-output")
   })
 
   describe("getBuildStatus", () => {

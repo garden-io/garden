@@ -7,9 +7,8 @@ guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-{{#if outputsReference}}
-`{{{name}}}` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
-See the [Outputs](#outputs) section below for details.
+{{#if hasOutputs}}
+`{{{name}}}` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 {{/if}}
 ## Configuration keys
@@ -19,10 +18,26 @@ See the [Outputs](#outputs) section below for details.
 ```yaml
 {{{yaml}}}
 ```
-{{#if outputsReference}}
+{{#if hasOutputs}}
 
 ## Outputs
+{{/if}}
+{{#if moduleOutputsReference}}
+
+### Module outputs
 
 The following keys are available via the `${modules.<module-name>}` template string key for `{{{name}}}`
 modules.
-{{{outputsReference}}}{{/if}}
+{{{moduleOutputsReference}}}{{/if}}{{#if serviceOutputsReference}}
+
+### Service outputs
+
+The following keys are available via the `${runtime.services.<service-name>}` template string key for `{{{name}}}` module services.
+Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
+{{{serviceOutputsReference}}}{{/if}}{{#if taskOutputsReference}}
+
+### Task outputs
+
+The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `{{{name}}}` module tasks.
+Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
+{{{taskOutputsReference}}}{{/if}}

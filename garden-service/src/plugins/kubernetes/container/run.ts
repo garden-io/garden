@@ -31,7 +31,15 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   const { ctx, log, service, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const status = await getContainerServiceStatus({ ...params, hotReload: false })
+  const status = await getContainerServiceStatus({
+    ...params,
+    // The runtime context doesn't matter here. We're just checking if the service is running.
+    runtimeContext: {
+      envVars: {},
+      dependencies: [],
+    },
+    hotReload: false,
+  })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // TODO: this check should probably live outside of the plugin
@@ -178,7 +186,13 @@ export async function runContainerTask(
     timeout: task.spec.timeout || 9999,
   })
 
-  const result = { ...res, taskName: task.name }
+  const result = {
+    ...res,
+    taskName: task.name,
+    outputs: {
+      log: res.output || "",
+    },
+  }
 
   await storeTaskResult({
     ctx,

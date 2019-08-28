@@ -17,11 +17,12 @@ import {
 import chalk from "chalk"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
-import { Service, getServiceRuntimeContext } from "../types/service"
+import { Service } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType } from "../logger/logger"
 import dedent = require("dedent")
 import { LogLevel } from "../logger/log-node"
+import { emptyRuntimeContext } from "../runtime-context"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -93,14 +94,19 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     const actions = await garden.getActionHelper()
+    const voidLog = log.placeholder(LogLevel.silly, true)
 
     await Bluebird.map(services, async (service: Service<any>) => {
-      const voidLog = log.placeholder(LogLevel.silly, true)
-      const runtimeContext = await getServiceRuntimeContext(garden, graph, service)
-      const status = await actions.getServiceStatus({ log: voidLog, service, hotReload: false, runtimeContext })
+      const status = await actions.getServiceStatus({
+        hotReload: false,
+        log: voidLog,
+        // This shouldn't matter for this context, we're just checking if the service is up or not
+        runtimeContext: emptyRuntimeContext,
+        service,
+      })
 
       if (status.state === "ready" || status.state === "outdated") {
-        await actions.getServiceLogs({ log, service, stream, follow, tail, runtimeContext })
+        await actions.getServiceLogs({ log, service, stream, follow, tail })
       } else {
         await stream.write({
           serviceName: service.name,

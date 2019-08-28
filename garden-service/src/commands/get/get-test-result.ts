@@ -93,7 +93,7 @@ export class GetTestResultCommand extends Command<Args> {
         startedAt: testResult.startedAt,
         completedAt: testResult.completedAt,
         version: testResult.version,
-        output: testResult.output,
+        output: testResult.output || null,
       }
 
       log.info({ data: testResult })

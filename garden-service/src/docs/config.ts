@@ -22,6 +22,8 @@ import { indent, renderMarkdownTable } from "./util"
 import { ModuleContext } from "../config/config-context"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { providerConfigBaseSchema } from "../config/provider"
+import { GardenPlugin } from "../types/plugin/plugin"
+import { ModuleTypeDescription } from "../types/plugin/module/describeType"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 
@@ -385,29 +387,60 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefi
  * Generates the provider reference from the provider.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderProviderReference(schema: Joi.ObjectSchema, name: string, outputsSchema?: Joi.ObjectSchema) {
+function renderProviderReference(name: string, plugin: GardenPlugin) {
+  const schema = populateProviderSchema(plugin.configSchema || providerConfigBaseSchema)
+  const moduleOutputsSchema = plugin.outputsSchema
+
   const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
 
-  const outputsReference = outputsSchema
-    && renderConfigReference(outputsSchema, "providers.<provider-name>.").markdownReference
+  const moduleOutputsReference = moduleOutputsSchema
+    && renderConfigReference(moduleOutputsSchema, "providers.<provider-name>.").markdownReference
 
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
-  return template({ name, markdownReference, yaml, outputsReference })
+  return template({ name, markdownReference, yaml, moduleOutputsReference })
 }
 
 /**
  * Generates the module types reference from the module-type.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderModuleTypeReference(
-  schema: Joi.ObjectSchema, outputsSchema: Joi.ObjectSchema, name: string, docs: string,
-) {
+function renderModuleTypeReference(name: string, desc: ModuleTypeDescription) {
+  let { schema, docs } = desc
+
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
-  const { markdownReference, yaml } = renderConfigReference(schema)
-  const outputsReference = renderConfigReference(outputsSchema, "modules.<module-name>.").markdownReference
+  const { markdownReference, yaml } = renderConfigReference(populateModuleSchema(schema))
+
+  const moduleOutputsReference = renderConfigReference(
+    ModuleContext.getSchema().keys({
+      outputs: desc.moduleOutputsSchema!
+        .required()
+        .description("The outputs defined by the module."),
+    }),
+    "modules.<module-name>.",
+  ).markdownReference
+
+  const serviceOutputsReference = renderConfigReference(
+    desc.serviceOutputsSchema!,
+    "runtime.services.<service-name>.outputs.",
+  ).markdownReference
+
+  const taskOutputsReference = renderConfigReference(
+    desc.taskOutputsSchema!,
+    "runtime.tasks.<task-name>.outputs.",
+  ).markdownReference
+
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
-  return template({ name, docs, markdownReference, yaml, outputsReference })
+  return template({
+    name,
+    docs,
+    markdownReference,
+    yaml,
+    hasOutputs: moduleOutputsReference || serviceOutputsReference || taskOutputsReference,
+    moduleOutputsReference,
+    serviceOutputsReference,
+    taskOutputsReference,
+  })
 }
 
 /**
@@ -462,9 +495,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
 
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
-    const schema = populateProviderSchema(plugin.configSchema || providerConfigBaseSchema)
-    const outputsSchema = plugin.outputsSchema
-    writeFileSync(path, renderProviderReference(schema, name, outputsSchema))
+    writeFileSync(path, renderProviderReference(name, plugin))
   }
 
   // Render module type docs
@@ -473,23 +504,12 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
     const actions = await garden.getActionHelper()
-    const { docs, outputsSchema, schema, title } = await actions.describeType(name)
-
-    const moduleOutputsSchema = ModuleContext.getSchema().keys({
-      outputs: outputsSchema
-        .required()
-        .description("The outputs defined by the module."),
-    })
+    const desc = await actions.describeType(name)
 
     console.log("->", path)
-    writeFileSync(path, renderModuleTypeReference(
-      populateModuleSchema(schema),
-      moduleOutputsSchema,
-      name,
-      docs,
-    ))
+    writeFileSync(path, renderModuleTypeReference(name, desc))
 
-    readme.push(`* [${title || startCase(name.replace("-", " "))}](./${name}.md)`)
+    readme.push(`* [${desc.title || startCase(name.replace("-", " "))}](./${name}.md)`)
   }
 
   writeFileSync(resolve(moduleTypeDir, `README.md`), readme.join("\n"))

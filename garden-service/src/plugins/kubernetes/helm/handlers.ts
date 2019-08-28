@@ -33,7 +33,7 @@ async function describeType() {
       Specify a Helm chart (either in your repository or remote from a registry) to deploy.
       Refer to the [Helm guide](https://docs.garden.io/using-garden/using-helm-charts) for usage instructions.
     `,
-    outputsSchema: helmModuleOutputsSchema,
+    moduleOutputsSchema: helmModuleOutputsSchema,
     schema: helmModuleSpecSchema,
   }
 }

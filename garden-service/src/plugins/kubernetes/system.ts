@@ -69,7 +69,13 @@ export async function getSystemGarden(
       variables,
     },
     commandInfo: ctx.command,
-    log: log.info({ section: "garden-system", msg: "Initializing...", status: "active", indent: 1 }),
+    log: log.debug({
+      section: "garden-system",
+      msg: "Initializing...",
+      status: "active",
+      indent: 1,
+      childEntriesInheritLevel: true,
+    }),
   })
 }
 

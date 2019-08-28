@@ -34,6 +34,17 @@ export const containerModuleOutputsSchema = joi.object()
       .example("my-deployment-registry.io/my-org/my-module"),
   })
 
+const taskOutputsSchema = joi.object()
+  .keys({
+    log: joi.string()
+      .allow("")
+      .default("")
+      .description(
+        "The full log from the executed task. " +
+        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)",
+      ),
+  })
+
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration
   // TODO: validate this when validating this action's output
@@ -171,7 +182,8 @@ async function describeType() {
       other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
       [kubernetes](https://github.com/garden-io/garden/blob/master/docs/reference/module-types/kubernetes.md).
     `,
-    outputsSchema: containerModuleOutputsSchema,
+    moduleOutputsSchema: containerModuleOutputsSchema,
     schema: containerModuleSpecSchema,
+    taskOutputsSchema,
   }
 }

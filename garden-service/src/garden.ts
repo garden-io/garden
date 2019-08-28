@@ -46,6 +46,7 @@ import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionHelper } from "./actions"
 import { DependencyGraph, detectCycles, cyclesToString } from "./util/validate-dependencies"
 import chalk from "chalk"
+import { RuntimeContext } from "./runtime-context"
 
 export interface ActionHandlerMap<T extends keyof PluginActions> {
   [actionName: string]: PluginActions[T]
@@ -542,6 +543,19 @@ export class Garden {
     )
   }
 
+  async getModuleConfigContext(runtimeContext?: RuntimeContext) {
+    const providers = await this.resolveProviders()
+
+    return new ModuleConfigContext(
+      this,
+      this.environmentName,
+      providers,
+      this.variables,
+      Object.values(this.moduleConfigs),
+      runtimeContext,
+    )
+  }
+
   /**
    * Returns module configs that are registered in this context, fully resolved and configured (via their respective
    * plugin handlers).
@@ -549,19 +563,13 @@ export class Garden {
    */
   async resolveModuleConfigs(keys?: string[], opts: ModuleConfigResolveOpts = {}): Promise<ModuleConfig[]> {
     const actions = await this.getActionHelper()
-    const providers = await this.resolveProviders()
+    await this.resolveProviders()
     const configs = await this.getRawModuleConfigs(keys)
 
     keys ? this.log.silly(`Resolving module configs ${keys.join(", ")}`) : this.log.silly(`Resolving module configs`)
 
     if (!opts.configContext) {
-      opts.configContext = new ModuleConfigContext(
-        this,
-        this.environmentName,
-        providers,
-        this.variables,
-        Object.values(this.moduleConfigs),
-      )
+      opts.configContext = await this.getModuleConfigContext()
     }
 
     return Bluebird.map(configs, async (config) => {
@@ -662,8 +670,8 @@ export class Garden {
    * The graph instance is immutable and represents the configuration at the point of calling this method.
    * For long-running processes, you need to call this again when any module or configuration has been updated.
    */
-  async getConfigGraph() {
-    const modules = await this.resolveModuleConfigs()
+  async getConfigGraph(opts: ModuleConfigResolveOpts = {}) {
+    const modules = await this.resolveModuleConfigs(undefined, opts)
     return new ConfigGraph(this, modules)
   }
 

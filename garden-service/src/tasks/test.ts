@@ -16,14 +16,15 @@ import { TestConfig } from "../config/test"
 import { ModuleVersion } from "../vcs/vcs"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/module/getTestResult"
-import { BaseTask, TaskParams, TaskType } from "../tasks/base"
-import { prepareRuntimeContext } from "../types/service"
+import { BaseTask, TaskParams, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
+import { prepareRuntimeContext } from "../runtime-context"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
 import { TaskTask } from "./task"
+import { TaskResults } from "../task-graph"
 
 class TestError extends Error {
   toString() {
@@ -114,7 +115,7 @@ export class TestTask extends BaseTask {
     return `running ${this.testConfig.name} tests in module ${this.module.name}`
   }
 
-  async process(): Promise<TestResult> {
+  async process(dependencyResults: TaskResults): Promise<TestResult> {
     // find out if module has already been tested
     const testResult = await this.getTestResult()
 
@@ -133,8 +134,19 @@ export class TestTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await getTestDependencies(this.graph, this.testConfig)
-    const runtimeContext = await prepareRuntimeContext(this.garden, this.graph, this.module, dependencies)
+    const dependencies = await this.graph.getDependencies("test", this.testConfig.name, false)
+    const serviceStatuses = getServiceStatuses(dependencyResults)
+    const taskResults = getRunTaskResults(dependencyResults)
+
+    const runtimeContext = await prepareRuntimeContext({
+      garden: this.garden,
+      graph: this.graph,
+      dependencies,
+      module: this.module,
+      serviceStatuses,
+      taskResults,
+    })
+
     const actions = await this.garden.getActionHelper()
 
     let result: TestResult
@@ -206,11 +218,6 @@ export async function getTestTasks(
     testConfig: test,
     module,
   }))
-}
-
-async function getTestDependencies(graph: ConfigGraph, testConfig: TestConfig) {
-  const deps = await graph.getDependencies("test", testConfig.name, false)
-  return deps.service
 }
 
 /**

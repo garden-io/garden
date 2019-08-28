@@ -10,8 +10,7 @@ import lodash = require("lodash")
 import Bluebird = require("bluebird")
 import { asyncDeepMap } from "./util/util"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
-import { ConfigContext, ContextResolveOpts, ContextResolveParams } from "./config/config-context"
-import { KeyedSet } from "./util/keyed-set"
+import { ConfigContext, ContextResolveOpts, ScanContext } from "./config/config-context"
 import { uniq } from "lodash"
 import { Primitive } from "./config/common"
 
@@ -92,16 +91,7 @@ export async function collectTemplateReferences<T extends object>(obj: T): Promi
   return uniq(context.foundKeys.entries()).sort()
 }
 
-class ScanContext extends ConfigContext {
-  foundKeys: KeyedSet<string[]>
-
-  constructor() {
-    super()
-    this.foundKeys = new KeyedSet<string[]>(v => v.join("."))
-  }
-
-  async resolve({ key }: ContextResolveParams) {
-    this.foundKeys.add(key)
-    return key.join(".")
-  }
+export async function getRuntimeTemplateReferences<T extends object>(obj: T) {
+  const refs = await collectTemplateReferences(obj)
+  return refs.filter(ref => ref[0] === "runtime")
 }

@@ -8,8 +8,7 @@ guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-`exec` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
-See the [Outputs](#outputs) section below for details.
+`exec` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ## Configuration keys
 
@@ -380,6 +379,8 @@ tests:
 
 ## Outputs
 
+### Module outputs
+
 The following keys are available via the `${modules.<module-name>}` template string key for `exec`
 modules.
 
@@ -432,3 +433,18 @@ The outputs defined by the module.
 | Type     | Required |
 | -------- | -------- |
 | `object` | Yes      |
+
+
+### Task outputs
+
+The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `exec` module tasks.
+Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
+
+### `runtime.tasks.<task-name>.outputs.log`
+
+The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `""`    |
+

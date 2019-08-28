@@ -12,7 +12,7 @@ import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/
 
 const placeholderTimestamp = new Date()
 
-const placeholderTaskResult = (moduleName, taskName, command) => ({
+const placeholderTaskResult = (moduleName: string, taskName: string, command: string[]) => ({
   moduleName,
   taskName,
   command,
@@ -20,7 +20,10 @@ const placeholderTaskResult = (moduleName, taskName, command) => ({
   success: true,
   startedAt: placeholderTimestamp,
   completedAt: placeholderTimestamp,
-  output: "out",
+  log: "out",
+  outputs: {
+    log: "out",
+  },
 })
 
 const taskResultA = placeholderTaskResult("module-a", "task-a", ["echo", "A"])
@@ -110,8 +113,34 @@ describe("DeployCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
+      "get-task-result.task-a": null,
+      "get-task-result.task-c": null,
       "task.task-a": taskResultA,
       "task.task-c": taskResultC,
+      "get-service-status.service-a": {
+        forwardablePorts: [],
+        ingresses: [
+          {
+            hostname: "service-a.test-project-b.local.app.garden",
+            path: "/path-a",
+            port: 80,
+            protocol: "http",
+          },
+        ],
+        state: "ready",
+      },
+      "get-service-status.service-b": {
+        forwardablePorts: [],
+        state: "unknown",
+      },
+      "get-service-status.service-c": {
+        forwardablePorts: [],
+        state: "ready",
+      },
+      "get-service-status.service-d": {
+        forwardablePorts: [],
+        state: "unknown",
+      },
       "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready" },
       "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready" },
       "deploy.service-c": { forwardablePorts: [], version: "1", state: "ready" },
@@ -148,8 +177,26 @@ describe("DeployCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
+      "get-task-result.task-a": null,
+      "get-task-result.task-c": null,
       "task.task-a": taskResultA,
       "task.task-c": taskResultC,
+      "get-service-status.service-a": {
+        forwardablePorts: [],
+        ingresses: [
+          {
+            hostname: "service-a.test-project-b.local.app.garden",
+            path: "/path-a",
+            port: 80,
+            protocol: "http",
+          },
+        ],
+        state: "ready",
+      },
+      "get-service-status.service-b": {
+        forwardablePorts: [],
+        state: "unknown",
+      },
       "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready" },
       "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready" },
     })

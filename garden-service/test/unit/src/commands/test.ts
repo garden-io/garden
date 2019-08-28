@@ -25,7 +25,7 @@ describe("commands.test", () => {
       },
       "test.module-a.unit": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
       "build.module-b": {
         fresh: true,
@@ -34,11 +34,11 @@ describe("commands.test", () => {
       "build.module-c": {},
       "test.module-b.unit": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
       "test.module-c.unit": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
     })).to.be.true
   })
@@ -64,7 +64,7 @@ describe("commands.test", () => {
       },
       "test.module-a.unit": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
     })).to.be.true
   })
@@ -90,22 +90,22 @@ describe("commands.test", () => {
       },
       "test.module-a.integration": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
       "test.module-c.integ": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
     })).to.be.true
 
     expect(isSubset(taskResultOutputs(result!), {
       "test.module-a.unit": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
       "test.module-c.unit": {
         success: true,
-        output: "OK",
+        log: "OK",
       },
     })).to.be.false
   })

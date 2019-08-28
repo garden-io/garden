@@ -8,16 +8,18 @@
 
 import * as Bluebird from "bluebird"
 import chalk from "chalk"
-import { BaseTask, TaskParams, TaskType } from "../tasks/base"
+import { BaseTask, TaskParams, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
 import { Garden } from "../garden"
 import { Task } from "../types/task"
 import { DeployTask } from "./deploy"
 import { LogEntry } from "../logger/log-entry"
-import { prepareRuntimeContext } from "../types/service"
+import { prepareRuntimeContext } from "../runtime-context"
 import { ConfigGraph } from "../config-graph"
 import { ModuleVersion } from "../vcs/vcs"
 import { BuildTask } from "./build"
 import { RunTaskResult } from "../types/plugin/task/runTask"
+import { TaskResults } from "../task-graph"
+import { GetTaskResultTask } from "./get-task-result"
 
 export interface TaskTaskParams {
   garden: Garden
@@ -82,7 +84,15 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
       })
     })
 
-    return [buildTask, ...deployTasks, ...taskTasks]
+    const resultTask = new GetTaskResultTask({
+      force: this.force,
+      garden: this.garden,
+      log: this.log,
+      task: this.task,
+      version: this.version,
+    })
+
+    return [buildTask, ...deployTasks, ...taskTasks, resultTask]
 
   }
 
@@ -94,31 +104,41 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     return `running task ${this.task.name} in module ${this.task.module.name}`
   }
 
-  async process() {
+  async process(dependencyResults: TaskResults) {
     const task = this.task
-    const module = task.module
 
     // TODO: Re-enable this logic when we've started providing task graph results to process methods.
 
-    // const cachedResult = await this.getTaskReosult()
+    const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
 
-    // if (cachedResult && cachedResult.success) {
-    //   this.log.info({
-    //     section: task.name,
-    //   }).setSuccess({ msg: chalk.green("Already run") })
+    if (cachedResult && cachedResult.success) {
+      this.log.info({
+        section: task.name,
+      }).setSuccess({ msg: chalk.green("Already run") })
 
-    //   return cachedResult
-    // }
+      return cachedResult
+    }
 
     const log = this.log.info({
       section: task.name,
-      msg: "Running",
+      msg: "Running...",
       status: "active",
     })
 
-    // combine all dependencies for all services in the module, to be sure we have all the context we need
-    const serviceDeps = (await this.graph.getDependencies("task", this.getName(), false)).service
-    const runtimeContext = await prepareRuntimeContext(this.garden, this.graph, module, serviceDeps)
+    const dependencies = await this.graph.getDependencies("task", this.getName(), false)
+
+    const serviceStatuses = getServiceStatuses(dependencyResults)
+    const taskResults = getRunTaskResults(dependencyResults)
+
+    const runtimeContext = await prepareRuntimeContext({
+      garden: this.garden,
+      graph: this.graph,
+      dependencies,
+      module: this.task.module,
+      serviceStatuses,
+      taskResults,
+    })
+
     const actions = await this.garden.getActionHelper()
 
     let result: RunTaskResult
@@ -138,21 +158,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
     return result
-
   }
-
-  //   private async getTaskResult(): Promise<RunTaskResult | null> {
-  //     if (this.force) {
-  //       return null
-  //     }
-
-  //     return this.garden.actions.getTaskResult({
-  //       log: this.log,
-  //       task: this.task,
-  //       taskVersion: this.version,
-  //     })
-  //   }
-
 }
 
 /**

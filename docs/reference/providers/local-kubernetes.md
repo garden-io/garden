@@ -839,8 +839,7 @@ providers:
 
 ## Outputs
 
-The following keys are available via the `${providers.<provider-name>}` template string key for `local-kubernetes`
-providers.
+The following keys are available via the `${providers.<provider-name>}` template string key for `local-kubernetes` providers.
 
 ### `providers.<provider-name>.app-namespace`
 

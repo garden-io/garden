@@ -8,8 +8,7 @@ guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
-`openfaas` modules also export values that are available in template strings under `${modules.<module-name>.outputs}`.
-See the [Outputs](#outputs) section below for details.
+`openfaas` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ## Configuration keys
 
@@ -330,6 +329,8 @@ tests:
 
 ## Outputs
 
+### Module outputs
+
 The following keys are available via the `${modules.<module-name>}` template string key for `openfaas`
 modules.
 
@@ -392,3 +393,4 @@ The full URL to query this service _from within_ the cluster.
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
+

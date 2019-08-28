@@ -77,7 +77,7 @@ export async function describeType() {
       If you need more advanced templating features you can use the
       [helm](https://docs.garden.io/reference/module-types/helm) module type.
     `,
-    outputsSchema: joi.object().keys({}),
+    moduleOutputsSchema: joi.object().keys({}),
     schema: kubernetesModuleSpecSchema,
   }
 }

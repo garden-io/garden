@@ -36,6 +36,18 @@ export async function getTaskResult(
     const result: any = deserializeValues(res.data!)
 
     // Backwards compatibility for modified result schema
+    if (result.output) {
+      result.log = result.output
+    }
+
+    if (!result.outputs) {
+      result.outputs = {}
+    }
+
+    if (!result.outputs.stdout) {
+      result.outputs.log = result.log
+    }
+
     if (result.version.versionString) {
       result.version = result.version.versionString
     }
@@ -77,6 +89,15 @@ export async function storeTaskResult(
   const api = await KubeApi.factory(log, provider.config.context)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
+  result = trimRunOutput(result)
+
+  const data: RunTaskResult = {
+    ...result,
+    outputs: {
+      log: result.log,
+    },
+  }
+
   await upsertConfigMap({
     api,
     namespace,
@@ -87,6 +108,6 @@ export async function storeTaskResult(
       [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
       [gardenAnnotationKey("version")]: taskVersion.versionString,
     },
-    data: trimRunOutput(result),
+    data,
   })
 }

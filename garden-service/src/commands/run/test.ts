@@ -22,10 +22,10 @@ import {
 } from "../base"
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
-import { prepareRuntimeContext } from "../../types/service"
+import { prepareRuntimeContext } from "../../runtime-context"
 import { printHeader } from "../../logger/util"
-import { BuildTask } from "../../tasks/build"
-import { getTestVersion } from "../../tasks/test"
+import { getTestVersion, TestTask } from "../../tasks/test"
+import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 
 const runArgs = {
   module: new StringParameter({
@@ -91,17 +91,37 @@ export class RunTestCommand extends Command<Args, Opts> {
     )
 
     const actions = await garden.getActionHelper()
+    const version = await getTestVersion(garden, graph, module, testConfig)
 
-    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
-    await garden.processTasks([buildTask])
+    // Make sure all dependencies are ready and collect their outputs for the runtime context
+    const testTask = new TestTask({
+      force: true,
+      forceBuild: opts["force-build"],
+      garden,
+      graph,
+      log,
+      module,
+      testConfig,
+      version,
+    })
+    const dependencyResults = await garden.processTasks(await testTask.getDependencies())
 
     const interactive = opts.interactive
-    const deps = await graph.getDependencies("test", testConfig.name, false)
-    const runtimeContext = await prepareRuntimeContext(garden, graph, module, deps.service)
+    const dependencies = await graph.getDependencies("test", testConfig.name, false)
+
+    const serviceStatuses = getServiceStatuses(dependencyResults)
+    const taskResults = getRunTaskResults(dependencyResults)
+
+    const runtimeContext = await prepareRuntimeContext({
+      garden,
+      graph,
+      dependencies,
+      module,
+      serviceStatuses,
+      taskResults,
+    })
 
     printRuntimeContext(log, runtimeContext)
-
-    const testVersion = await getTestVersion(garden, graph, module, testConfig)
 
     const result = await actions.testModule({
       log,
@@ -110,7 +130,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       runtimeContext,
       silent: false,
       testConfig,
-      testVersion,
+      testVersion: version,
     })
 
     return { result }

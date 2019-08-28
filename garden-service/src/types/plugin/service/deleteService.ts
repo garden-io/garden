@@ -9,11 +9,10 @@
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { RuntimeContext, runtimeContextSchema, serviceStatusSchema } from "../../service"
+import { serviceStatusSchema } from "../../service"
 
 export interface DeleteServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
-  runtimeContext: RuntimeContext
 }
 
 export const deleteService = {
@@ -22,9 +21,6 @@ export const deleteService = {
 
     Called by the \`garden delete service\` command.
   `,
-  paramsSchema: serviceActionParamsSchema
-    .keys({
-      runtimeContext: runtimeContextSchema,
-    }),
+  paramsSchema: serviceActionParamsSchema,
   resultSchema: serviceStatusSchema,
 }

@@ -9,9 +9,10 @@
 import { taskActionParamsSchema, PluginTaskActionParamsBase, runBaseParams, RunResult } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { RuntimeContext } from "../../service"
+import { RuntimeContext } from "../../../runtime-context"
 import { ModuleVersion } from "../../../vcs/vcs"
 import { taskVersionSchema, taskResultSchema } from "./getTaskResult"
+import { PrimitiveMap } from "../../../config/common"
 
 export interface RunTaskParams<T extends Module = Module> extends PluginTaskActionParamsBase<T> {
   interactive: boolean
@@ -28,7 +29,8 @@ export interface RunTaskResult extends RunResult {
   success: boolean
   startedAt: Date
   completedAt: Date
-  output: string
+  log: string
+  outputs: PrimitiveMap
 }
 
 export const runTask = {

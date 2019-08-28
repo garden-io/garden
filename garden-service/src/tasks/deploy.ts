@@ -10,13 +10,17 @@ import * as Bluebird from "bluebird"
 import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
-import { BaseTask, TaskType } from "./base"
-import { Service, ServiceStatus, getServiceRuntimeContext, getIngressUrl } from "../types/service"
+import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
+import { Service, ServiceStatus, getIngressUrl } from "../types/service"
 import { Garden } from "../garden"
-import { TaskTask } from "./task"
+import { TaskTask, getTaskVersion } from "./task"
 import { BuildTask } from "./build"
 import { ConfigGraph } from "../config-graph"
 import { startPortProxies } from "../proxy"
+import { TaskResults } from "../task-graph"
+import { prepareRuntimeContext } from "../runtime-context"
+import { GetServiceStatusTask } from "./get-service-status"
+import { GetTaskResultTask } from "./get-task-result"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -56,7 +60,7 @@ export class DeployTask extends BaseTask {
     const deps = await dg.getDependencies("service", this.getName(), false,
       (depNode) => !(depNode.type === "service" && includes(this.hotReloadServiceNames, depNode.name)))
 
-    const deployTasks = await Bluebird.map(deps.service, async (service) => {
+    const tasks: BaseTask[] = deps.service.map(service => {
       return new DeployTask({
         garden: this.garden,
         graph: this.graph,
@@ -69,8 +73,29 @@ export class DeployTask extends BaseTask {
       })
     })
 
+    tasks.push(new GetServiceStatusTask({
+      garden: this.garden,
+      graph: this.graph,
+      log: this.log,
+      service: this.service,
+      force: false,
+      hotReloadServiceNames: this.hotReloadServiceNames,
+    }))
+
     if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
-      return deployTasks
+      // Only need to get existing statuses and results when hot-reloading
+      const taskResultTasks = await Bluebird.map(deps.task, async (task) => {
+        return new GetTaskResultTask({
+          garden: this.garden,
+          log: this.log,
+          task,
+          force: false,
+          version: await getTaskVersion(this.garden, this.graph, task),
+        })
+      })
+
+      return [...tasks, ...taskResultTasks]
+
     } else {
       const taskTasks = await Bluebird.map(deps.task, (task) => {
         return TaskTask.factory({
@@ -92,7 +117,7 @@ export class DeployTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
-      return [...deployTasks, ...taskTasks, buildTask]
+      return [...tasks, ...taskTasks, buildTask]
     }
   }
 
@@ -101,31 +126,39 @@ export class DeployTask extends BaseTask {
   }
 
   getDescription() {
-    return `deploying service ${this.service.name} (from module ${this.service.module.name})`
+    return `deploying service '${this.service.name}' (from module '${this.service.module.name}')`
   }
 
-  async process(): Promise<ServiceStatus> {
-    const log = this.log.info({
-      section: this.service.name,
-      msg: "Checking status...",
-      status: "active",
-    })
-
-    // TODO: get version from build task results
+  async process(dependencyResults: TaskResults): Promise<ServiceStatus> {
     let version = this.version
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
-    const runtimeContext = await getServiceRuntimeContext(this.garden, this.graph, this.service)
-    const actions = await this.garden.getActionHelper()
+    const dependencies = await this.graph.getDependencies("service", this.getName(), false)
 
-    let status = await actions.getServiceStatus({
-      service: this.service,
-      log,
-      hotReload,
-      runtimeContext,
+    const serviceStatuses = getServiceStatuses(dependencyResults)
+    const taskResults = getRunTaskResults(dependencyResults)
+
+    // TODO: attach runtimeContext to GetServiceTask output
+    const runtimeContext = await prepareRuntimeContext({
+      garden: this.garden,
+      graph: this.graph,
+      dependencies,
+      module: this.service.module,
+      serviceStatuses,
+      taskResults,
     })
 
+    const actions = await this.garden.getActionHelper()
+
+    let status = serviceStatuses[this.service.name]
+
     const { versionString } = version
+
+    const log = this.log.info({
+      status: "active",
+      section: this.service.name,
+      msg: `Deploying version ${versionString}...`,
+    })
 
     if (
       !this.force &&
@@ -138,8 +171,6 @@ export class DeployTask extends BaseTask {
         append: true,
       })
     } else {
-      log.setState(`Deploying version ${versionString}...`)
-
       try {
         status = await actions.deployService({
           service: this.service,

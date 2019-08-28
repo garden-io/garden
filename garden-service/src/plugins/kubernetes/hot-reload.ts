@@ -18,7 +18,6 @@ import { set } from "lodash"
 import { Service } from "../../types/service"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
-import { waitForContainerService } from "./container/status"
 import { getPortForward, killPortForward } from "./port-forward"
 import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
@@ -159,7 +158,7 @@ export function configureHotReload({
  * The hot reload action handler for containers.
  */
 export async function hotReloadContainer(
-  { ctx, log, runtimeContext, service, module }: HotReloadServiceParams<ContainerModule>,
+  { ctx, log, service, module }: HotReloadServiceParams<ContainerModule>,
 ): Promise<HotReloadServiceResult> {
   const hotReloadConfig = module.spec.hotReload
 
@@ -170,7 +169,6 @@ export async function hotReloadContainer(
     )
   }
 
-  await waitForContainerService(ctx, log, runtimeContext, service, true)
   await syncToService(<KubernetesPluginContext>ctx, service, hotReloadConfig, "Deployment", service.name, log)
 
   return {}

@@ -202,7 +202,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
     // Execute the build
     const buildRes = await runKaniko(provider, log, module, args)
-    buildLog = buildRes.output
+    buildLog = buildRes.log
   }
 
   log.silly(buildLog)

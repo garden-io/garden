@@ -347,9 +347,11 @@ function loadTemplate(template: string) {
     })
 }
 
-export function trimRunOutput(result: RunResult): RunResult {
+export function trimRunOutput<T extends RunResult>(result: T): T {
+  const log = tailString(result.log, MAX_RUN_RESULT_OUTPUT_LENGTH, true)
+
   return {
     ...result,
-    output: tailString(result.output, MAX_RUN_RESULT_OUTPUT_LENGTH, true),
+    log,
   }
 }

@@ -75,7 +75,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
     moduleName: params.module.name,
     command: [...(params.command || []), ...params.args],
     completedAt: testNow,
-    output: "OK",
+    log: "OK",
     version: params.module.version.versionString,
     startedAt: testNow,
     success: true,
@@ -207,6 +207,9 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
           return {
             ...result,
             taskName: task.name,
+            outputs: {
+              log: result.log,
+            },
           }
         },
 

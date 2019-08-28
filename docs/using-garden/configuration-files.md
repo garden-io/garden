@@ -457,6 +457,36 @@ services:
 For a full reference of the keys available in template strings, please look at the
 [Template Strings Reference](../reference/template-strings.md).
 
+#### Runtime outputs
+
+Template keys prefixed with `runtime.` have some special semantics. They are used to expose runtime outputs from services and tasks, and therefore are resolved later than other template strings. _This means that you cannot use them for some fields, such as most identifiers, because those need to be resolved before validating the configuration._
+
+That caveat aside, they can be very handy when passing information between services and tasks. For example, you can pass log outputs from one task to another:
+
+```yaml
+kind: Module
+type: exec
+name: module-a
+tasks:
+  - name: prep-task
+    command: [echo, "output from my preparation task"]
+---
+kind: Module
+type: container
+name: my-container
+services:
+  - name: my-service
+    dependencies: [task-a]
+    env:
+      PREP_TASK_OUTPUT: ${runtime.tasks.prep-task.outputs.log}
+```
+
+Here the output from `prep-task` is copied to an environment variable for `my-service`. _Note that you currently need to explicitly declare `task-a` as a dependency for this to work._
+
+For a practical use case, you might for example make a task that provisions some infrastructure or prepares some data, and then passes information about it to services.
+
+Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](https://docs.garden.io/reference/module-types) for details.
+
 #### Conditionals
 
 You can use conditional expressions in template strings, using the `||` operator. For example:

@@ -37,7 +37,7 @@ describe("RunServiceCommand", () => {
       moduleName: "module-a",
       command: ["service-a"],
       completedAt: testNow,
-      output: "OK",
+      log: "OK",
       version: testModuleVersion.versionString,
       startedAt: testNow,
       success: true,

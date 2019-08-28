@@ -110,6 +110,9 @@ export async function runHelmTask(
   const result = {
     ...res,
     taskName: task.name,
+    outputs: {
+      log: res.output || "",
+    },
   }
 
   await storeTaskResult({

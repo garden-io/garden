@@ -107,7 +107,7 @@ export async function runPod(
     version: module.version.versionString,
     startedAt,
     completedAt: new Date(),
-    output: res.output,
+    log: res.output,
     success: res.code === 0,
   }
 }

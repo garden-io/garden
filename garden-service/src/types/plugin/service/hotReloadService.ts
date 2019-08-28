@@ -9,12 +9,10 @@
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { RuntimeContext, runtimeContextSchema } from "../../service"
 import { joi } from "../../../config/common"
 
 export interface HotReloadServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
-  runtimeContext: RuntimeContext
 }
 
 export interface HotReloadServiceResult { }
@@ -23,7 +21,6 @@ export const hotReloadService = {
   description: dedent`
     Synchronize changes directly into a running service, instead of doing a full redeploy.
   `,
-  paramsSchema: serviceActionParamsSchema
-    .keys({ runtimeContext: runtimeContextSchema }),
+  paramsSchema: serviceActionParamsSchema,
   resultSchema: joi.object().keys({}),
 }

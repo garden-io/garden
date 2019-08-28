@@ -10,7 +10,7 @@ import { taskActionParamsSchema, PluginTaskActionParamsBase } from "../base"
 import { dedent, deline } from "../../../util/string"
 import { Module } from "../../module"
 import { moduleVersionSchema, ModuleVersion } from "../../../vcs/vcs"
-import { joi } from "../../../config/common"
+import { joi, joiPrimitive } from "../../../config/common"
 
 export const taskVersionSchema = moduleVersionSchema
   .description(deline`
@@ -41,10 +41,16 @@ export const taskResultSchema = joi.object()
     completedAt: joi.date()
       .required()
       .description("When the task run was completed."),
-    output: joi.string()
+    log: joi.string()
       .required()
       .allow("")
       .description("The output log from the run."),
+    output: joi.string()
+      .allow("")
+      .description("[DEPRECATED - use `log` instead] The output log from the run."),
+    outputs: joi.object()
+      .pattern(/.+/, joiPrimitive())
+      .description("A map of primitive values, output from the task."),
   })
 
 export const getTaskResult = {

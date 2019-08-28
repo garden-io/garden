@@ -354,7 +354,7 @@ export function uniqByName<T extends ObjectWithName>(array: T[]): T[] {
  * (e.g. "my-service" -> "MY_SERVICE")
  */
 export function getEnvVarName(identifier: string) {
-  return identifier.replace("-", "_").toUpperCase()
+  return identifier.replace(/-/g, "_").toUpperCase()
 }
 
 /**
