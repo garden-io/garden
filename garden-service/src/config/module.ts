@@ -23,6 +23,7 @@ import {
 import { TestConfig, TestSpec, testConfigSchema } from "./test"
 import { TaskConfig, TaskSpec, taskConfigSchema } from "./task"
 import { DEFAULT_API_VERSION } from "../constants"
+import { joiVariables } from "./common"
 
 export interface BuildCopySpec {
   source: string
@@ -173,7 +174,7 @@ export interface ModuleConfig
 
 export const moduleConfigSchema = baseModuleSpecSchema
   .keys({
-    outputs: joiIdentifierMap(joiPrimitive())
+    outputs: joiVariables()
       .description("The outputs defined by the module (referenceable in other module configs)."),
     path: joi.string()
       .description("The filesystem path of the module."),

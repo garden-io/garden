@@ -200,7 +200,7 @@ export const joiIdentifierMap = (valueSchema: JoiObject) => joi
   .description("Key/value map. Keys must be valid identifiers.")
 
 export const joiVariables = () => joi
-  .object().pattern(/[\w\d]+/i, joiPrimitive())
+  .object().pattern(/[a-zA-Z][a-zA-Z0-9_\-]+/i, joiPrimitive())
   .default(() => ({}), "{}")
   .unknown(false)
   .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
