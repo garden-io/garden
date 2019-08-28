@@ -154,7 +154,11 @@ export class DeployTask extends BaseTask {
 
     const { versionString } = version
 
-    const log = this.log.info(`Deploying version ${versionString}...`)
+    const log = this.log.info({
+      status: "active",
+      section: this.service.name,
+      msg: `Deploying version ${versionString}...`,
+    })
 
     if (
       !this.force &&
