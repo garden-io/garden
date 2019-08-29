@@ -197,10 +197,12 @@ export function cleanWhitespace(str) {
   return str.replace(/\s+/g, " ")
 }
 
-export function formatForJSON(entry: LogEntry): JsonLogEntry {
+// TODO: Include individual message states with timestamp
+export function formatForJson(entry: LogEntry): JsonLogEntry {
   const { data } = entry
+  const { section } = entry.getMessageState()
   const metadata = entry.getMetadata()
-  const { msg, section } = entry.getMessageState()
+  const msg = chainMessages(entry.getMessageStates() || [])
   return {
     msg: cleanForJSON(msg),
     data,

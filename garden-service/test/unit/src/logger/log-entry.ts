@@ -74,7 +74,7 @@ describe("LogEntry", () => {
     }
     it("should update entry state", () => {
       const timestamp = freezeTime().valueOf()
-      const taskMetaData: TaskMetadata = {
+      const taskMetadata: TaskMetadata = {
         type: "a",
         key: "a",
         status: "active",
@@ -88,7 +88,7 @@ describe("LogEntry", () => {
         section: "caesar",
         symbol: "info",
         status: "done",
-        metadata: { task: taskMetaData },
+        metadata: { task: taskMetadata },
       })
 
       expect(entry.getMessageStates()).to.eql([{
@@ -100,7 +100,7 @@ describe("LogEntry", () => {
         append: undefined,
         timestamp,
       }])
-      expect(entry.getMetadata()).to.eql({ task: taskMetaData })
+      expect(entry.getMetadata()).to.eql({ task: taskMetadata })
     })
     it("should overwrite previous values", () => {
       const timestamp = freezeTime().valueOf()
@@ -176,27 +176,27 @@ describe("LogEntry", () => {
     })
     it("should update the metadata property", () => {
       const timestamp = freezeTime().valueOf()
-      const taskMetaDataA: TaskMetadata = {
+      const taskMetadataA: TaskMetadata = {
         type: "a",
         key: "a",
         status: "active",
         uid: "1",
         versionString: "123",
       }
-      const taskMetaDataB: TaskMetadata = {
-        ...taskMetaDataA,
+      const taskMetadataB: TaskMetadata = {
+        ...taskMetadataA,
         status: "error",
       }
       const entry = logger.placeholder()
-      entry.setState({ metadata: { task: taskMetaDataA } })
-      expect(entry.getMetadata()).to.eql({ task: taskMetaDataA })
+      entry.setState({ metadata: { task: taskMetadataA } })
+      expect(entry.getMetadata()).to.eql({ task: taskMetadataA })
       // Message states should not change
       expect(entry.getMessageStates()).to.eql([
         { ...emptyState, timestamp },
       ])
 
-      entry.setState({ metadata: { task: taskMetaDataB } })
-      expect(entry.getMetadata()).to.eql({ task: taskMetaDataB })
+      entry.setState({ metadata: { task: taskMetadataB } })
+      expect(entry.getMetadata()).to.eql({ task: taskMetadataB })
       expect(entry.getMessageStates()).to.eql([
         { ...emptyState, timestamp },
         { ...emptyState, timestamp },

@@ -10,7 +10,7 @@ import { LogLevel } from "../log-node"
 import { LogEntry, LogEntryMetadata } from "../log-entry"
 import { Logger } from "../logger"
 import { Writer } from "./base"
-import { formatForJSON } from "../renderers"
+import { formatForJson } from "../renderers"
 
 export interface JsonLogEntry {
   msg: string,
@@ -26,7 +26,7 @@ export class JsonTerminalWriter extends Writer {
   render(entry: LogEntry, logger: Logger): string | null {
     const level = this.level || logger.level
     if (level >= entry.level) {
-      const jsonEntry = formatForJSON(entry)
+      const jsonEntry = formatForJson(entry)
       const empty = !(jsonEntry.msg || jsonEntry.data)
       return empty ? null : JSON.stringify(jsonEntry)
     }
