@@ -180,7 +180,6 @@ const ingressSchema = joi.object()
       .description("Annotations to attach to the ingress (Note: May not be applicable to all providers)"),
     hostname: ingressHostnameSchema,
     path: joi.string()
-      .uri(<any>{ relativeOnly: true })
       .default("/")
       .description("The path which should be routed to the service."),
     port: joi.string()
