@@ -114,7 +114,7 @@ export function configureHotReload({
 
   const rsyncContainer = {
     name: "garden-rsync",
-    image: "eugenmayer/rsync",
+    image: "gardendev/rsync:0.1",
     imagePullPolicy: "IfNotPresent",
     env: [
       // This makes sure the server is accessible on any IP address, because CIDRs can be different across clusters.
