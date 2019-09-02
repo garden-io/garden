@@ -72,7 +72,7 @@ describe("configureHotReload", () => {
               },
               {
                 name: "garden-rsync",
-                image: "eugenmayer/rsync",
+                image: "gardendev/rsync:0.1",
                 imagePullPolicy: "IfNotPresent",
                 env: [
                   {
