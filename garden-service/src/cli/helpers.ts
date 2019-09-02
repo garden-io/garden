@@ -22,10 +22,11 @@ import axios from "axios"
 import qs = require("qs")
 import { platform, release } from "os"
 import { LogEntry } from "../logger/log-entry"
-import { VERSION_CHECK_URL } from "../constants"
+import { STATIC_DIR, VERSION_CHECK_URL } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import moment = require("moment")
+import { pathExists } from "fs-extra"
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
@@ -213,6 +214,17 @@ export function failOnInvalidOptions(argv, ctx) {
   const invalid = difference(receivedOptions, validOptions)
   if (invalid.length > 0) {
     ctx.cliMessage(`Received invalid flag(s): ${invalid.join(", ")}`)
+  }
+}
+
+export async function checkForStaticDir() {
+  if (!(await pathExists(STATIC_DIR))) {
+    throw new InternalError(
+      `Could not find the static data directory. Garden is packaged with a data directory ` +
+      `called 'static', which should be located next to your garden binary. Please try reinstalling, ` +
+      `and make sure the release archive is fully extracted to the target directory.`,
+      {},
+    )
   }
 }
 
