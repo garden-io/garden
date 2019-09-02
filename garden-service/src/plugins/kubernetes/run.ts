@@ -13,6 +13,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { V1PodSpec } from "@kubernetes/client-node"
 import { PluginError } from "../../exceptions"
 import { KubernetesProvider } from "./config"
+import { Writable } from "stream"
 
 interface RunPodParams {
   provider: KubernetesProvider,
@@ -24,6 +25,7 @@ interface RunPodParams {
   namespace: string,
   annotations?: { [key: string]: string }
   spec: V1PodSpec,
+  outputStream?: Writable,
   podName?: string,
   timeout?: number,
 }
@@ -39,6 +41,7 @@ export async function runPod(
     namespace,
     annotations,
     spec,
+    outputStream,
     podName,
     timeout,
   }: RunPodParams,
@@ -98,6 +101,7 @@ export async function runPod(
     namespace,
     ignoreError,
     args: kubecmd,
+    outputStream,
     timeout,
     tty: interactive,
   })

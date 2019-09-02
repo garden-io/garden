@@ -7,6 +7,7 @@
  */
 
 import pRetry from "p-retry"
+import split2 = require("split2")
 import { ContainerModule } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
@@ -27,6 +28,9 @@ import { getRegistryHostname } from "../init"
 import { getManifestFromRegistry } from "./util"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
 import { getPortForward } from "../port-forward"
+import chalk from "chalk"
+import { Writable } from "stream"
+import { LogLevel } from "../../../logger/log-node"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -160,6 +164,15 @@ const remoteBuild: BuildHandler = async (params) => {
 
   let buildLog = ""
 
+  // Stream debug log to a status line
+  const outputStream = split2()
+  const statusLine = log.placeholder(LogLevel.debug)
+
+  outputStream.on("error", () => { })
+  outputStream.on("data", (line: Buffer) => {
+    statusLine.setState(chalk.gray("  → " + line.toString().slice(0, 80)))
+  })
+
   if (provider.config.buildMode === "cluster-docker") {
     // Prepare the build command
     const dockerfilePath = posix.join(contextPath, dockerfile)
@@ -175,7 +188,8 @@ const remoteBuild: BuildHandler = async (params) => {
     // Execute the build
     const podName = await getBuilderPodName(provider, log)
     const buildTimeout = module.spec.build.timeout
-    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName })
+
+    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, outputStream })
     buildLog = buildRes.stdout + buildRes.stderr
 
     // Push the image to the registry
@@ -184,7 +198,7 @@ const remoteBuild: BuildHandler = async (params) => {
     const dockerCmd = ["docker", "push", deploymentImageId]
     const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
 
-    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName })
+    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, outputStream })
     buildLog += pushRes.stdout + pushRes.stderr
 
   } else {
@@ -201,7 +215,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ]
 
     // Execute the build
-    const buildRes = await runKaniko(provider, log, module, args)
+    const buildRes = await runKaniko({ provider, log, module, args, outputStream })
     buildLog = buildRes.log
   }
 
@@ -221,6 +235,7 @@ export interface BuilderExecParams {
   args: string[],
   timeout: number,
   podName: string,
+  outputStream?: Writable
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
@@ -230,7 +245,7 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
 }
 
 // TODO: we should make a simple service around this instead of execing into containers
-export async function execInBuilder({ provider, log, args, timeout, podName }: BuilderExecParams) {
+export async function execInBuilder({ provider, log, args, timeout, podName, outputStream }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "-c", dockerDaemonContainerName, "--", ...args]
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
@@ -241,6 +256,7 @@ export async function execInBuilder({ provider, log, args, timeout, podName }: B
     log,
     namespace: systemNamespace,
     timeout,
+    outputStream,
   })
 }
 
@@ -261,7 +277,15 @@ export async function getBuilderPodName(provider: KubernetesProvider, log: LogEn
   return builderPods[0].metadata.name
 }
 
-async function runKaniko(provider: KubernetesProvider, log: LogEntry, module: ContainerModule, args: string[]) {
+interface RunKanikoParams {
+  provider: KubernetesProvider
+  log: LogEntry
+  module: ContainerModule
+  args: string[]
+  outputStream: Writable
+}
+
+async function runKaniko({ provider, log, module, args, outputStream }: RunKanikoParams) {
   const podName = `kaniko-${module.name}-${Math.round(new Date().getTime())}`
   const registryHostname = getRegistryHostname()
 
@@ -325,5 +349,6 @@ async function runKaniko(provider: KubernetesProvider, log: LogEntry, module: Co
     },
     podName,
     timeout: module.spec.build.timeout,
+    outputStream,
   })
 }

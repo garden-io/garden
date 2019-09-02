@@ -540,7 +540,7 @@ describe("plugins.container", () => {
       })
 
       const cmdArgs = ["build", "-t", "some/image", module.buildPath]
-      td.verify(dockerCli(module, cmdArgs, { timeout: DEFAULT_BUILD_TIMEOUT }))
+      td.verify(dockerCli(module, cmdArgs), { ignoreExtraArgs: true })
     })
 
     it("should set build target image parameter if configured", async () => {
@@ -564,7 +564,7 @@ describe("plugins.container", () => {
       })
 
       const cmdArgs = ["build", "-t", "some/image", "--target", "foo", module.buildPath]
-      td.verify(dockerCli(module, cmdArgs, { timeout: DEFAULT_BUILD_TIMEOUT }))
+      td.verify(dockerCli(module, cmdArgs), { ignoreExtraArgs: true })
     })
 
     it("should build image using the user specified Dockerfile path", async () => {
@@ -596,7 +596,7 @@ describe("plugins.container", () => {
         join(module.buildPath, relDockerfilePath),
         module.buildPath,
       ]
-      td.verify(dockerCli(module, cmdArgs, { timeout: DEFAULT_BUILD_TIMEOUT }))
+      td.verify(dockerCli(module, cmdArgs), { ignoreExtraArgs: true })
     })
   })
 
