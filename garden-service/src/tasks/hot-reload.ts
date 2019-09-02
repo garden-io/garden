@@ -81,11 +81,7 @@ export class HotReloadTask extends BaseTask {
       throw err
     }
 
-    const msec = log.getDuration(5) * 1000
-    log.setSuccess({
-      msg: chalk.green(`Done (took ${msec} ms)`),
-      append: true,
-    })
+    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
     return {}
   }
