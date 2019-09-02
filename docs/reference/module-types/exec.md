@@ -384,7 +384,7 @@ tests:
 The following keys are available via the `${modules.<module-name>}` template string key for `exec`
 modules.
 
-### `modules.<module-name>.buildPath`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -395,10 +395,10 @@ The build path of the module.
 Example:
 
 ```yaml
-buildPath: "/home/me/code/my-project/.garden/build/my-module"
+my-variable: ${modules.my-module.buildPath}
 ```
 
-### `modules.<module-name>.path`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -409,10 +409,10 @@ The local path of the module.
 Example:
 
 ```yaml
-path: "/home/me/code/my-project/my-module"
+my-variable: ${modules.my-module.path}
 ```
 
-### `modules.<module-name>.version`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
@@ -423,16 +423,8 @@ The current version of the module.
 Example:
 
 ```yaml
-version: "v-17ad4cb3fd"
+my-variable: ${modules.my-module.version}
 ```
-
-### `modules.<module-name>.outputs`
-
-The outputs defined by the module.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
 
 
 ### Task outputs
@@ -440,7 +432,15 @@ The outputs defined by the module.
 The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `exec` module tasks.
 Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
 
-### `runtime.tasks.<task-name>.outputs.log`
+### `${runtime.tasks.<task-name>.outputs}`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+### `${runtime.tasks.<task-name>.outputs.log}`
+
+[outputs](#outputs) > log
 
 The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
 

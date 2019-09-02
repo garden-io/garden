@@ -286,7 +286,7 @@ version: 0.12.7
 The following keys are available via the `${modules.<module-name>}` template string key for `terraform`
 modules.
 
-### `modules.<module-name>.buildPath`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -297,10 +297,10 @@ The build path of the module.
 Example:
 
 ```yaml
-buildPath: "/home/me/code/my-project/.garden/build/my-module"
+my-variable: ${modules.my-module.buildPath}
 ```
 
-### `modules.<module-name>.path`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -311,10 +311,10 @@ The local path of the module.
 Example:
 
 ```yaml
-path: "/home/me/code/my-project/my-module"
+my-variable: ${modules.my-module.path}
 ```
 
-### `modules.<module-name>.version`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
@@ -325,12 +325,18 @@ The current version of the module.
 Example:
 
 ```yaml
-version: "v-17ad4cb3fd"
+my-variable: ${modules.my-module.version}
 ```
 
-### `modules.<module-name>.outputs`
 
-The outputs defined by the module.
+### Service outputs
+
+The following keys are available via the `${runtime.services.<service-name>}` template string key for `terraform` module services.
+Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
+
+### `${runtime.services.<service-name>.outputs}`
+
+A map of all the outputs defined in the Terraform stack.
 
 | Type     | Required |
 | -------- | -------- |

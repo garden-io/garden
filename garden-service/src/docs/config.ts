@@ -19,13 +19,14 @@ import { joiArray, joi } from "../config/common"
 import { Garden } from "../garden"
 import { GARDEN_SERVICE_ROOT } from "../constants"
 import { indent, renderMarkdownTable } from "./util"
-import { ModuleContext } from "../config/config-context"
+import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/config-context"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { providerConfigBaseSchema } from "../config/provider"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { ModuleTypeDescription } from "../types/plugin/module/describeType"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
+const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
 
 const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema
   .concat(schema)
@@ -80,7 +81,7 @@ export function normalizeDescriptions(joiDescription: Joi.Description): Normaliz
       name,
       parent,
     }: { level?: number, name?: string, parent?: NormalizedDescription } = {},
-  ) => {
+  ): NormalizedDescription[] => {
     let description: NormalizedDescription | undefined
     let childDescriptions: NormalizedDescription[] = []
 
@@ -95,7 +96,7 @@ export function normalizeDescriptions(joiDescription: Joi.Description): Normaliz
       const nextLevel = name ? level + 1 : level
       const nextParent = name ? description : parent
       childDescriptions = flatten(children.map(([childName, childDescription]) => (
-        normalize(childDescription, { level: nextLevel, parent: nextParent, name: childName })
+        normalize(childDescription as Joi.Description, { level: nextLevel, parent: nextParent, name: childName })
       )))
     } else if (joiDesc.type === "array") {
       // We only use the first array item
@@ -374,7 +375,6 @@ export function renderSchemaDescriptionYaml(
  * and a YAML schema.
  */
 export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefix = "") {
-  const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
   const normalizedDescriptions = normalizeDescriptions(configSchema.describe())
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { showComment: false })
@@ -382,6 +382,32 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefi
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return { markdownReference: template({ keys }), yaml }
+}
+
+/**
+ * Generates a markdown reference for template string output schemas.
+ */
+function renderTemplateStringReference(
+  { schema, prefix, placeholder, exampleName }:
+    { schema: Joi.ObjectSchema, prefix: string, placeholder: string, exampleName: string },
+): string {
+  const normalizedDescriptions = normalizeDescriptions(schema.describe())
+
+  const keys = normalizedDescriptions
+    .map(d => makeMarkdownDescription(d))
+    .map(d => {
+      const title = d.title
+      d.title = `\${${prefix}.${placeholder}.${title}}`
+      if (d.formattedExample) {
+        d.formattedExample = `my-variable: \${${prefix}.${exampleName}.${title}}`
+      }
+      return d
+    })
+    // Omit empty objects without descriptions
+    .filter(d => !(d.name === "outputs" && d.hasChildren === false && !d.description))
+
+  const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
+  return template({ keys })
 }
 
 /**
@@ -395,8 +421,17 @@ function renderProviderReference(name: string, plugin: GardenPlugin) {
   const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
 
-  const moduleOutputsReference = moduleOutputsSchema
-    && renderConfigReference(moduleOutputsSchema, "providers.<provider-name>.").markdownReference
+  const moduleOutputsReference = moduleOutputsSchema && renderTemplateStringReference(
+    {
+      schema: joi.object()
+        .keys({
+          outputs: moduleOutputsSchema.required(),
+        }),
+      prefix: "providers",
+      placeholder: "<provider-name>",
+      exampleName: "my-provider",
+    },
+  )
 
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
   return template({ name, markdownReference, yaml, moduleOutputsReference })
@@ -412,24 +447,38 @@ function renderModuleTypeReference(name: string, desc: ModuleTypeDescription) {
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
   const { markdownReference, yaml } = renderConfigReference(populateModuleSchema(schema))
 
-  const moduleOutputsReference = renderConfigReference(
-    ModuleContext.getSchema().keys({
-      outputs: desc.moduleOutputsSchema!
-        .required()
-        .description("The outputs defined by the module."),
-    }),
-    "modules.<module-name>.",
-  ).markdownReference
+  const moduleOutputsReference = renderTemplateStringReference(
+    {
+      schema: ModuleContext.getSchema().keys({
+        outputs: desc.moduleOutputsSchema!.required(),
+      }),
+      prefix: "modules",
+      placeholder: "<module-name>",
+      exampleName: "my-module",
+    },
+  )
 
-  const serviceOutputsReference = renderConfigReference(
-    desc.serviceOutputsSchema!,
-    "runtime.services.<service-name>.outputs.",
-  ).markdownReference
+  const serviceOutputsReference = renderTemplateStringReference(
+    {
+      schema: ServiceRuntimeContext.getSchema().keys({
+        outputs: desc.serviceOutputsSchema!.required(),
+      }),
+      prefix: "runtime.services",
+      placeholder: "<service-name>",
+      exampleName: "my-service",
+    },
+  )
 
-  const taskOutputsReference = renderConfigReference(
-    desc.taskOutputsSchema!,
-    "runtime.tasks.<task-name>.outputs.",
-  ).markdownReference
+  const taskOutputsReference = renderTemplateStringReference(
+    {
+      schema: TaskRuntimeContext.getSchema().keys({
+        outputs: desc.taskOutputsSchema!.required(),
+      }),
+      prefix: "runtime.tasks",
+      placeholder: "<task-name>",
+      exampleName: "my-tasks",
+    },
+  )
 
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
   return template({

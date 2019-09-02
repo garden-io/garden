@@ -368,7 +368,7 @@ const exampleModule = {
   version: exampleVersion,
 }
 
-class ServiceRuntimeContext extends ConfigContext {
+export class ServiceRuntimeContext extends ConfigContext {
   @schema(
     joiIdentifierMap(joiPrimitive())
       .required()
@@ -393,7 +393,7 @@ class ServiceRuntimeContext extends ConfigContext {
   }
 }
 
-class TaskRuntimeContext extends ServiceRuntimeContext {
+export class TaskRuntimeContext extends ServiceRuntimeContext {
   @schema(
     joiIdentifierMap(joiPrimitive())
       .required()

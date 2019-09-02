@@ -302,7 +302,7 @@ files: []
 The following keys are available via the `${modules.<module-name>}` template string key for `kubernetes`
 modules.
 
-### `modules.<module-name>.buildPath`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -313,10 +313,10 @@ The build path of the module.
 Example:
 
 ```yaml
-buildPath: "/home/me/code/my-project/.garden/build/my-module"
+my-variable: ${modules.my-module.buildPath}
 ```
 
-### `modules.<module-name>.path`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -327,10 +327,10 @@ The local path of the module.
 Example:
 
 ```yaml
-path: "/home/me/code/my-project/my-module"
+my-variable: ${modules.my-module.path}
 ```
 
-### `modules.<module-name>.version`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
@@ -341,14 +341,6 @@ The current version of the module.
 Example:
 
 ```yaml
-version: "v-17ad4cb3fd"
+my-variable: ${modules.my-module.version}
 ```
-
-### `modules.<module-name>.outputs`
-
-The outputs defined by the module.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
 
