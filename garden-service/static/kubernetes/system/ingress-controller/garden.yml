@@ -1,19 +1,19 @@
-module:
-  description: Ingress controller for garden development
+kind: Module
+description: Ingress controller for garden development
+name: ingress-controller
+type: helm
+chart: stable/nginx-ingress
+releaseName: garden-nginx
+dependencies:
+  - default-backend
+version: 0.25.1
+values:
   name: ingress-controller
-  type: helm
-  chart: stable/nginx-ingress
-  releaseName: garden-nginx
-  dependencies:
-    - default-backend
-  version: 0.25.1
-  values:
-    name: ingress-controller
-    controller:
-      defaultBackendService: garden-system/default-backend
-      kind: DaemonSet
-      daemonset:
-        useHostPort: true
-      minReadySeconds: 1
-    defaultBackend:
-      enabled: false
+  controller:
+    defaultBackendService: garden-system/default-backend
+    kind: DaemonSet
+    daemonset:
+      useHostPort: true
+    minReadySeconds: 1
+  defaultBackend:
+    enabled: false

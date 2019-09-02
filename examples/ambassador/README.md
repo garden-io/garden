@@ -49,13 +49,13 @@ Hello from Node service!
 If you've looked at our other examples, the project configuration should look familiar with the exception of the `setupIngressController` key:
 
 ```yaml
-project:
-  name: custom-ingress-controller
-  environments:
-    - name: local
-      providers:
-        - name: local-kubernetes
-          setupIngressController: false
+kind: Project
+name: custom-ingress-controller
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+        setupIngressController: false
 ```
 
 The `setupIngressController` key is specific to the `local-kubernetes` plugin. Setting it to `false` disables the default Nginx ingress controller.
@@ -65,23 +65,23 @@ The `setupIngressController` key is specific to the `local-kubernetes` plugin. S
 We've configured the Ambassador service to listen on port `8080` since the default Nginx ingress controller might occupy the default port (`80`) if we're running other Garden projects. Here's the relevant configuration from `ambassador/garden.yml`:
 
 ```yaml
-module:
-  description: Ambassador API Gateway
-  type: helm
-  name: ambassador
-  chart: stable/ambassador
-  values:
-    service:
-      annotations:
-        getambassador.io/config: |
-          ---
-          apiVersion: ambassador/v1
-          kind: Module
-          name: ambassador
-          config:
-            service_port: 8080 # Set port since the default ingress already occupies the default port
-      http:
-        port: 8080 # Set port since the default ingress already occupies the default port
+kind: Module
+description: Ambassador API Gateway
+type: helm
+name: ambassador
+chart: stable/ambassador
+values:
+  service:
+    annotations:
+      getambassador.io/config: |
+        ---
+        apiVersion: ambassador/v1
+        kind: Module
+        name: ambassador
+        config:
+          service_port: 8080 # Set port since the default ingress already occupies the default port
+    http:
+      port: 8080 # Set port since the default ingress already occupies the default port
 ```
 
 ### Module configuration
@@ -89,25 +89,25 @@ module:
 The module configuration is the same as for the `simple-project` example with the exception of annotations. Below is the configuration for our `go-service`:
 
 ```yaml
-module:
-  name: go-service
-  description: Go service container
-  type: container
-  services:
-    - name: go-service
-      ports:
-        - name: http
-          containerPort: 8080
-          # Maps service:80 -> container:8080
-          servicePort: 80
-      annotations:
-        getambassador.io/config: |
-          ---
-          apiVersion: ambassador/v1
-          kind:  Mapping
-          name:  go-service_mapping
-          prefix: /go-service/
-          service: go-service:80
+kind: Module
+name: go-service
+description: Go service container
+type: container
+services:
+  - name: go-service
+    ports:
+      - name: http
+        containerPort: 8080
+        # Maps service:80 -> container:8080
+        servicePort: 80
+    annotations:
+      getambassador.io/config: |
+        ---
+        apiVersion: ambassador/v1
+        kind:  Mapping
+        name:  go-service_mapping
+        prefix: /go-service/
+        service: go-service:80
 ```
 
 Please refer to the [official Ambassador docs](https://www.getambassador.io/reference/mappings/) for more information on how to configure route mappings.

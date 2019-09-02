@@ -1,11 +1,11 @@
-module:
-  name: module-c
-  type: test
-  allowPublish: false
-  services:
-    - name: service-c
-      dependencies:
-        - service-b
-  build:
+kind: Module
+name: module-c
+type: test
+allowPublish: false
+services:
+  - name: service-c
     dependencies:
-      - module-b
+      - service-b
+build:
+  dependencies:
+    - module-b

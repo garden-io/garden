@@ -1,22 +1,22 @@
-module:
-  name: module-d
-  type: test
-  build:
-    command: [
-      echo, D,
-      "&&",
-      mkdir, -p, build,
-      "&&",
-      touch, build/d.txt
-    ]
-    dependencies:
-      - name: module-a
-        copy:
-          - source: a.txt
-            target: a/
-      - name: module-b
-        copy:
-          - source: build/b1.txt
-            target: b/build/
-          - source: build/build_subdir/
-            target: b/build_subdir
+kind: Module
+name: module-d
+type: test
+build:
+  command: [
+    echo, D,
+    "&&",
+    mkdir, -p, build,
+    "&&",
+    touch, build/d.txt
+  ]
+  dependencies:
+    - name: module-a
+      copy:
+        - source: a.txt
+          target: a/
+    - name: module-b
+      copy:
+        - source: build/b1.txt
+          target: b/build/
+        - source: build/build_subdir/
+          target: b/build_subdir

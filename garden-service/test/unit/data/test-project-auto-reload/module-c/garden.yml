@@ -1,14 +1,14 @@
-module:
-  name: module-c
-  type: container
-  image: scratch
-  services:
-    - name: service-c
-      ingresses:
-        - path: /path-c
-          port: http
-      ports:
-        - name: http
-          containerPort: 8080
-  build:
-    command: [echo, C]
+kind: Module
+name: module-c
+type: container
+image: scratch
+services:
+  - name: service-c
+    ingresses:
+      - path: /path-c
+        port: http
+    ports:
+      - name: http
+        containerPort: 8080
+build:
+  command: [echo, C]

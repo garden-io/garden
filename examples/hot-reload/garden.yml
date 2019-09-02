@@ -1,8 +1,5 @@
 kind: Project
 name: hot-reload
-environmentDefaults:
-  providers:
-    - name: container
 environments:
   - name: local
     providers:

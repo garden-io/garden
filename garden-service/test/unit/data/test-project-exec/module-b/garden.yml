@@ -1,10 +1,10 @@
-module:
-  name: module-b
-  type: exec
-  build:
-    command: [echo, B]
-    dependencies:
-      - module-a
-  tests:
-    - name: unit
-      command: [echo, OK]
+kind: Module
+name: module-b
+type: exec
+build:
+  command: [echo, B]
+  dependencies:
+    - module-a
+tests:
+  - name: unit
+    command: [echo, OK]

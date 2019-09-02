@@ -1,8 +1,8 @@
-module:
-  name: module-b
-  type: test
-  build:
-    command: [echo, beans]
-  tests:
-    - name: unit
-      command: [echo, OK]
+kind: Module
+name: module-b
+type: test
+build:
+  command: [echo, beans]
+tests:
+  - name: unit
+    command: [echo, OK]

@@ -1,14 +1,13 @@
 kind: Project
 name: test-project-flat-config
-environmentDefaults:
-  variables:
-    some: variable
 environments:
   - name: local
     providers:
       - name: test-plugin
       - name: test-plugin-b
   - name: other
+variables:
+  some: variable
 
 ---
 

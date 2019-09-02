@@ -1,6 +1,6 @@
-project:
-  name: build-products
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
+kind: Project
+name: build-products
+environments:
+  - name: local
+    providers:
+      - name: test-plugin

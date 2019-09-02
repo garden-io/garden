@@ -1,21 +1,21 @@
-module:
-  name: module-a
-  type: test
-  services:
-    - name: service-a
-      ingresses:
-        - path: /path-a
-          port: http
-      ports:
-        - name: http
-          containerPort: 8080
-      dependencies:
-        - task-a
-  build:
+kind: Module
+name: module-a
+type: test
+services:
+  - name: service-a
+    ingresses:
+      - path: /path-a
+        port: http
+    ports:
+      - name: http
+        containerPort: 8080
+    dependencies:
+      - task-a
+build:
+  command: [echo, A]
+tasks:
+  - name: task-a
+    description: task-a-description
     command: [echo, A]
-  tasks:
-    - name: task-a
-      description: task-a-description
-      command: [echo, A]
-      dependencies:
-        - task-c
+    dependencies:
+      - task-c

@@ -1,37 +1,37 @@
-module:
-  name: module-b1
-  type: test
-  services:
-    - name: service-b1
-      dependencies:
-        - service-a1
-  build:
-    command: [echo, B]
+kind: Module
+name: module-b1
+type: test
+services:
+  - name: service-b1
     dependencies:
-      - module-a1
-  tests:
-    - name: unit
-      command: [echo, OK]
-  tasks:
-    - name: task-b1
-      command: [echo, OK]
+      - service-a1
+build:
+  command: [echo, B]
+  dependencies:
+    - module-a1
+tests:
+  - name: unit
+    command: [echo, OK]
+tasks:
+  - name: task-b1
+    command: [echo, OK]
 
 ---
 
-module:
-  name: module-b2
-  type: test
-  services:
-    - name: service-b2
-      dependencies:
-        - service-a1
-  build:
-    command: [echo, B]
+kind: Module
+name: module-b2
+type: test
+services:
+  - name: service-b2
     dependencies:
-      - module-a2
-  tests:
-    - name: unit
-      command: [echo, OK]
-  tasks:
-    - name: task-b2
-      command: [echo, OK]
+      - service-a1
+build:
+  command: [echo, B]
+  dependencies:
+    - module-a2
+tests:
+  - name: unit
+    command: [echo, OK]
+tasks:
+  - name: task-b2
+    command: [echo, OK]

@@ -1,5 +1,5 @@
-module:
-  name: module-b
-  type: test
-  services:
-    - name: dupe
+kind: Module
+name: module-b
+type: test
+services:
+  - name: dupe
