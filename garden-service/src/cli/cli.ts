@@ -46,6 +46,7 @@ import {
   parseLogLevel,
   helpTextMaxWidth,
   checkForUpdates,
+  checkForStaticDir,
 } from "./helpers"
 import { defaultEnvironments, ProjectConfig } from "../config/project"
 import {
@@ -314,6 +315,8 @@ export class GardenCli {
 
           // tslint:disable-next-line: no-floating-promises
           checkForUpdates(garden.globalConfigStore, headerLog)
+
+          await checkForStaticDir()
 
           // TODO: enforce that commands always output DeepPrimitiveMap
           result = await command.action({
