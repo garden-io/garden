@@ -1,8 +1,8 @@
-project:
-  name: non-string-template-values
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
-  variables:
-    allow-publish: false
+kind: Project
+name: non-string-template-values
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+variables:
+  allow-publish: false

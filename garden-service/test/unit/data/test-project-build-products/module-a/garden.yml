@@ -1,5 +1,5 @@
-module:
-  name: module-a
-  type: test
-  build:
-    command: [echo, A, "&&", touch, a.txt]
+kind: Module
+name: module-a
+type: test
+build:
+  command: [echo, A, "&&", touch, a.txt]

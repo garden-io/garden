@@ -1,17 +1,17 @@
-module:
-  description: Ambassador API Gateway
-  type: helm
-  name: ambassador
-  chart: stable/ambassador
-  values:
-    service:
-      annotations:
-        getambassador.io/config: |
-          ---
-          apiVersion: ambassador/v1
-          kind: Module
-          name: ambassador
-          config:
-            service_port: 8080 # Set port since the default ingress already occupies the default port
-      http:
-        port: 8080 # Set port since the default ingress already occupies the default port
+kind: Module
+description: Ambassador API Gateway
+type: helm
+name: ambassador
+chart: stable/ambassador
+values:
+  service:
+    annotations:
+      getambassador.io/config: |
+        ---
+        apiVersion: ambassador/v1
+        kind: Module
+        name: ambassador
+        config:
+          service_port: 8080 # Set port since the default ingress already occupies the default port
+    http:
+      port: 8080 # Set port since the default ingress already occupies the default port

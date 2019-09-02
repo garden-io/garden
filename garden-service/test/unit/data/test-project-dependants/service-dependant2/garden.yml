@@ -1,19 +1,19 @@
-module:
-  description: Service dependant 2
-  name: service-dependant2
-  type: test
-  services:
-    - name: service-dependant2
-      ports:
-        - name: http
-          containerPort: 8080
-      ingresses:
-        - path: /dependant
-          port: http
-      dependencies:
-        - good-morning
-  tasks:
-    - name: dependant-task2
-      command: [echo, dependant-task2]
-      dependencies:
-        - service-dependant2
+kind: Module
+description: Service dependant 2
+name: service-dependant2
+type: test
+services:
+  - name: service-dependant2
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /dependant
+        port: http
+    dependencies:
+      - good-morning
+tasks:
+  - name: dependant-task2
+    command: [echo, dependant-task2]
+    dependencies:
+      - service-dependant2

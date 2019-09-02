@@ -1,10 +1,9 @@
-project:
-  name: test-project-templated
-  environmentDefaults:
-    variables:
-      some: ${local.env.TEST_VARIABLE}
-      service-a-build-command: OK
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
+kind: Project
+name: test-project-templated
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+variables:
+  some: ${local.env.TEST_VARIABLE}
+  service-a-build-command: OK

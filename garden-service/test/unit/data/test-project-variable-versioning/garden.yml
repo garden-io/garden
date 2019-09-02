@@ -1,9 +1,8 @@
-project:
-  name: test-project-variable-versioning
-  environmentDefaults:
-    variables:
-      echo-string: OK
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
+kind: Project
+name: test-project-variable-versioning
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+variables:
+  echo-string: OK

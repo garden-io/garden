@@ -1,10 +1,10 @@
-module:
-  name: default-backend
-  description: Default backend ingress controller
-  type: container
-  image: gardendev/default-backend:v0.1
-  services:
-    - name: default-backend
-      ports:
-        - name: http
-          containerPort: 80
+kind: Module
+name: default-backend
+description: Default backend ingress controller
+type: container
+image: gardendev/default-backend:v0.1
+services:
+  - name: default-backend
+    ports:
+      - name: http
+        containerPort: 80
