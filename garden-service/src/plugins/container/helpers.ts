@@ -12,6 +12,7 @@ import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { splitFirst, spawn, splitLast } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
+import { Writable } from "stream"
 
 export const DEFAULT_BUILD_TIMEOUT = 600
 export const minDockerVersion = "17.07.0"
@@ -251,14 +252,14 @@ const helpers = {
 
   async dockerCli(
     module: ContainerModule, args: string[],
-    { timeout = DEFAULT_BUILD_TIMEOUT }: { timeout?: number } = {},
+    { outputStream, timeout = DEFAULT_BUILD_TIMEOUT }: { outputStream?: Writable, timeout?: number } = {},
   ) {
     await helpers.checkDockerVersion()
 
     const cwd = module.buildPath
 
     try {
-      const res = await spawn("docker", args, { cwd, timeout })
+      const res = await spawn("docker", args, { cwd, outputStream, timeout })
       return res.output || ""
     } catch (err) {
       throw new RuntimeError(
