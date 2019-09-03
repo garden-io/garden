@@ -200,7 +200,8 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
 
   // write the stack file again with environment variables
-  await writeStackFile(<OpenFaasProvider>ctx.provider, k8sProvider, module, runtimeContext.envVars)
+  const envVars = { ...runtimeContext.envVars, ...module.spec.env }
+  await writeStackFile(<OpenFaasProvider>ctx.provider, k8sProvider, module, envVars)
 
   // use faas-cli to do the deployment
   await faasCli.stdout({
