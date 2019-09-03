@@ -284,7 +284,7 @@ export class Watcher {
 
   private makeFileChangedHandler() {
     return (path: string) => {
-      this.log.debug(`Watcher: File ${path} modified`)
+      this.log.silly(`Watcher: File ${path} modified`)
       this.sourcesChanged([{ type: "file", path, change: "changed" }])
     }
   }
@@ -292,14 +292,14 @@ export class Watcher {
   private makeDirAddedHandler() {
     return (path: string) => {
       this.buffer[path] = { type: "dir", path, change: "added" }
-      this.log.debug(`Watcher: Directory ${path} added to buffer`)
+      this.log.silly(`Watcher: Directory ${path} added to buffer`)
     }
   }
 
   private makeDirRemovedHandler() {
     return (path: string) => {
       this.buffer[path] = { type: "dir", path, change: "removed" }
-      this.log.debug(`Watcher: Directory ${path} removed`)
+      this.log.silly(`Watcher: Directory ${path} removed`)
     }
   }
 
