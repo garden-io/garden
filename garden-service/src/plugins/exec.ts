@@ -163,7 +163,7 @@ export async function testExecModule({ module, testConfig }: TestModuleParams<Ex
   const result = await execa.shell(
     command.join(" "),
     {
-      cwd: module.path,
+      cwd: module.buildPath,
       env: {
         ...process.env,
         // need to cast the values to strings
