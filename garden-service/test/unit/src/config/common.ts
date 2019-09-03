@@ -36,6 +36,7 @@ describe("envVarRegex", () => {
       "_2134",
       "a_b_c",
       "A_B_C_",
+      "some.var", // This is not strictly valid POSIX, but a bunch of Java services use this style
     ]
     for (const tc of testCases) {
       const result = envVarRegex.test(tc)
