@@ -71,6 +71,9 @@ export async function testHelmModule(
     module,
     testName,
     testVersion,
-    result,
+    result: {
+      testName,
+      ...result,
+    },
   })
 }

@@ -17,7 +17,6 @@ import { KubernetesPluginContext } from "./config"
 import { systemMetadataNamespace } from "./system"
 import { LogEntry } from "../../logger/log-entry"
 import { GetTestResultParams, TestResult } from "../../types/plugin/module/getTestResult"
-import { RunResult } from "../../types/plugin/base"
 import * as hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
@@ -37,6 +36,14 @@ export async function getTestResult(
     const result: any = deserializeValues(res.data!)
 
     // Backwards compatibility for modified result schema
+    if (!result.outputs) {
+      result.outputs = {}
+    }
+
+    if (!result.outputs.log) {
+      result.outputs.log = result.log || ""
+    }
+
     if (result.version.versionString) {
       result.version = result.version.versionString
     }
@@ -63,7 +70,7 @@ interface StoreTestResultParams {
   module: Module,
   testName: string,
   testVersion: ModuleVersion,
-  result: RunResult,
+  result: TestResult,
 }
 
 /**
@@ -77,10 +84,7 @@ export async function storeTestResult(
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
 
-  const testResult: TestResult = {
-    ...trimRunOutput(result),
-    testName,
-  }
+  const data: TestResult = trimRunOutput(result)
 
   await upsertConfigMap({
     api,
@@ -92,8 +96,8 @@ export async function storeTestResult(
       [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
       [gardenAnnotationKey("version")]: testVersion.versionString,
     },
-    data: testResult,
+    data,
   })
 
-  return testResult
+  return data
 }

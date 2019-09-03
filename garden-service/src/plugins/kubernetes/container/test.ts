@@ -56,5 +56,15 @@ export async function testContainerModule(
     timeout,
   })
 
-  return storeTestResult({ ctx, log, module, testName, testVersion, result })
+  return storeTestResult({
+    ctx,
+    log,
+    module,
+    testName,
+    testVersion,
+    result: {
+      testName,
+      ...result,
+    },
+  })
 }
