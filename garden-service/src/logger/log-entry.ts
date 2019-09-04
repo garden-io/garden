@@ -38,6 +38,7 @@ interface MessageBase {
   section?: string
   symbol?: LogSymbol
   append?: boolean
+  data?: any
 }
 
 export interface MessageState extends MessageBase {
@@ -78,7 +79,6 @@ export class LogEntry extends LogNode {
   private messageStates?: MessageState[]
   private metadata?: LogEntryMetadata
   public readonly root: Logger
-  public readonly data?: any
   public readonly fromStdStream?: boolean
   public readonly indent?: number
   public readonly errorData?: GardenError
@@ -89,7 +89,6 @@ export class LogEntry extends LogNode {
     super(params.level, params.parent, params.id)
 
     this.root = params.root
-    this.data = params.data
     this.fromStdStream = params.fromStdStream
     this.indent = params.indent
     this.errorData = params.error
@@ -104,6 +103,7 @@ export class LogEntry extends LogNode {
         section: params.section,
         symbol: params.symbol,
         status: params.level === LogLevel.error ? "error" : params.status,
+        data: params.data,
       })
     }
   }
@@ -125,6 +125,7 @@ export class LogEntry extends LogNode {
       section: updateParams.section || messageState.section,
       status: updateParams.status || messageState.status,
       symbol: updateParams.symbol || messageState.symbol,
+      data: updateParams.data || messageState.data,
       // Next state does not inherit the append field
       append: updateParams.append,
       timestamp: Date.now(),

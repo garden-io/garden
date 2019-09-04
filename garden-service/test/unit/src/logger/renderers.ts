@@ -109,6 +109,26 @@ describe("renderers", () => {
       const entry = logger.placeholder()
       expect(formatForTerminal(entry)).to.equal("")
     })
+    it("should return an empty string without a new line if the parameter LogEntryParams is empty", () => {
+      const entry = logger.info({})
+      expect(formatForTerminal(entry)).to.equal("")
+    })
+    it("should return a string with a new line if any of the members of entry.messageState is not empty", () => {
+      const entryMsg = logger.info({ msg: "msg" })
+      expect(formatForTerminal(entryMsg)).contains("\n")
+
+      const entryEmoji = logger.info({ emoji: "warning" })
+      expect(formatForTerminal(entryEmoji)).contains("\n")
+
+      const entrySection = logger.info({ section: "section" })
+      expect(formatForTerminal(entrySection)).contains("\n")
+
+      const entrySymbol = logger.info({ symbol: "success" })
+      expect(formatForTerminal(entrySymbol)).contains("\n")
+
+      const entryData = logger.info({ data: { some: "data" } })
+      expect(formatForTerminal(entryData)).contains("\n")
+    })
   })
   describe("formatForJson", () => {
     it("should return a JSON representation of a log entry", () => {

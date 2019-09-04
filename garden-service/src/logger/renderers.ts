@@ -149,7 +149,7 @@ export function renderMsg(entry: LogEntry): string {
 }
 
 export function renderData(entry: LogEntry): string {
-  const { data } = entry
+  const { data } = entry.getMessageState()
   if (!data) {
     return ""
   }
@@ -168,8 +168,8 @@ export function renderSection(entry: LogEntry): string {
 }
 
 export function formatForTerminal(entry: LogEntry): string {
-  const { msg, emoji, section, symbol } = entry.getMessageState()
-  const empty = [msg, section, emoji, symbol].every(val => val === undefined)
+  const { msg, emoji, section, symbol, data } = entry.getMessageState()
+  const empty = [msg, section, emoji, symbol, data].every(val => val === undefined)
   if (empty) {
     return ""
   }
@@ -199,8 +199,7 @@ export function cleanWhitespace(str) {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { data } = entry
-  const { section } = entry.getMessageState()
+  const { section, data } = entry.getMessageState()
   const metadata = entry.getMetadata()
   const msg = chainMessages(entry.getMessageStates() || [])
   return {
