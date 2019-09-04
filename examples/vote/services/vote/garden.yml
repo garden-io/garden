@@ -24,5 +24,6 @@ tests:
     args: [npm, run, test:unit]
   - name: integ
     args: [npm, run, test:integ]
+    timeout: 60
     dependencies:
       - api
