@@ -115,7 +115,7 @@ export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEnt
   const dockerLog = log.info({ section: "Docker", msg: "collecting info", status: "active" })
   let dockerVersion = ""
   try {
-    dockerVersion = await execa.stdout("docker", ["--version"])
+    dockerVersion = (await execa("docker", ["--version"])).stdout
     dockerLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
   } catch (error) {
     log.error("Error encountered while executing docker")

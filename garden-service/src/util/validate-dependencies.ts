@@ -226,7 +226,7 @@ export function detectCycles(graph: DependencyGraph): Cycle[] {
 }
 
 function distance(graph: DependencyGraph, source: string, destination: string): number {
-  return get(graph, [source, destination, "distance"], Infinity)
+  return get(graph, [source, destination, "distance"], Infinity) as number
 }
 
 function next(graph: DependencyGraph, source: string, destination: string): string | undefined {

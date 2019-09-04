@@ -96,7 +96,7 @@ export function normalizeDescriptions(joiDescription: Joi.Description): Normaliz
       const nextLevel = name ? level + 1 : level
       const nextParent = name ? description : parent
       childDescriptions = flatten(children.map(([childName, childDescription]) => (
-        normalize(childDescription as Joi.Description, { level: nextLevel, parent: nextParent, name: childName })
+        normalize(childDescription as Description, { level: nextLevel, parent: nextParent, name: childName })
       )))
     } else if (joiDesc.type === "array") {
       // We only use the first array item

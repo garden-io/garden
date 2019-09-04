@@ -54,8 +54,8 @@ export class GitHandler extends VcsHandler {
   private gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: string[]) => {
       log.silly(`Calling git with args '${args.join(" ")}`)
-      const output = await execa.stdout("git", args, { cwd })
-      return output.split("\n").filter(line => line.length > 0)
+      const { stdout } = await execa("git", args, { cwd })
+      return stdout.split("\n").filter(line => line.length > 0)
     }
   }
 
@@ -63,7 +63,7 @@ export class GitHandler extends VcsHandler {
     try {
       return await git("diff-index", "--name-only", "HEAD", path)
     } catch (err) {
-      if (err.code === 128) {
+      if (err.exitCode === 128) {
         // no commit in repo
         return []
       } else {
@@ -104,7 +104,7 @@ export class GitHandler extends VcsHandler {
       ignored = uniq(flatten(await Bluebird.map(commands, async (cmd) => git(...cmd, path))))
     } catch (err) {
       // if we get 128 we're not in a repo root, so we get no files
-      if (err.code !== 128) {
+      if (err.exitCode !== 128) {
         throw err
       }
     }
@@ -141,7 +141,7 @@ export class GitHandler extends VcsHandler {
           }
         } catch (err) {
           // 128 = File no longer exists
-          if (err.code !== 128 && err.code !== "ENOENT") {
+          if (err.exitCode !== 128 && err.code !== "ENOENT") {
             throw err
           }
         }

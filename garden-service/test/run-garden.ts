@@ -64,7 +64,7 @@ export function changeFileStep(path: string, description: string): WatchTestStep
   return {
     description, // Mandatory, because we don't want to print the absolute path
     action: async () => {
-      await execa.shell(`echo "\n" >> ${path}`)
+      await execa(`echo "\n" >> ${path}`, { shell: true })
     },
   }
 }

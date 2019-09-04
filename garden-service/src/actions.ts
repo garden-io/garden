@@ -471,7 +471,7 @@ export class ActionHelper implements TypeGuard {
     })
     const handlerParams: PluginActionParams[T] = {
       ...await this.commonParams(handler, (<any>params).log),
-      ...<object>params,
+      ...<any>params,
     }
     const result = (<Function>handler)(handlerParams)
     this.garden.log.silly(`Called '${actionType}' handler on ${pluginName}'`)
@@ -490,7 +490,7 @@ export class ActionHelper implements TypeGuard {
       moduleType: module.type,
       actionType,
       pluginName,
-      defaultHandler,
+      defaultHandler: defaultHandler as ModuleAndRuntimeActions[T],
     })
 
     const handlerParams = {
@@ -518,7 +518,7 @@ export class ActionHelper implements TypeGuard {
       moduleType: module.type,
       actionType,
       pluginName: params.pluginName,
-      defaultHandler,
+      defaultHandler: defaultHandler as ModuleAndRuntimeActions[T],
     })
 
     // Resolve ${runtime.*} template strings if needed.
@@ -569,7 +569,7 @@ export class ActionHelper implements TypeGuard {
       moduleType: module.type,
       actionType,
       pluginName: params.pluginName,
-      defaultHandler,
+      defaultHandler: defaultHandler as ModuleAndRuntimeActions[T],
     })
 
     // Resolve ${runtime.*} template strings if needed.
@@ -622,7 +622,9 @@ export class ActionHelper implements TypeGuard {
     wrapped["actionType"] = actionType
     wrapped["pluginName"] = pluginName
 
-    this.actionHandlers[actionType][pluginName] = wrapped
+    // I'm not sure why we need the cast here - JE
+    const typeHandlers: any = this.actionHandlers[actionType]
+    typeHandlers[pluginName] = wrapped
   }
 
   private addModuleActionHandler<T extends keyof ModuleActions>(
@@ -650,7 +652,8 @@ export class ActionHelper implements TypeGuard {
     }
 
     if (!this.moduleActionHandlers[actionType][moduleType]) {
-      this.moduleActionHandlers[actionType][moduleType] = {}
+      // I'm not sure why we need the cast here - JE
+      (<any>this.moduleActionHandlers[actionType])[moduleType] = {}
     }
 
     this.moduleActionHandlers[actionType][moduleType][pluginName] = wrapped
