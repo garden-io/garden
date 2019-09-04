@@ -1,14 +1,20 @@
 import { platform } from "os"
 import { expect } from "chai"
+import * as tmp from "tmp-promise"
 import {
   ProjectConfig,
   resolveProjectConfig,
   defaultEnvironments,
   pickEnvironment,
+  defaultVarFilePath,
+  defaultEnvVarFilePath,
 } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError } from "../../../helpers"
 import { defaultDotIgnoreFiles } from "../../../../src/util/fs"
+import { realpath, writeFile } from "fs-extra"
+import { dedent } from "../../../../src/util/string"
+import { resolve } from "path"
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
@@ -35,9 +41,15 @@ describe("resolveProjectConfig", () => {
         variables: {},
       },
       environments: [
-        { name: "default", providers: [], variables: {} },
+        {
+          name: "default",
+          providers: [],
+          varFile: defaultEnvVarFilePath("default"),
+          variables: {},
+        },
       ],
       sources: [],
+      varFile: defaultVarFilePath,
     })
   })
 
@@ -64,6 +76,7 @@ describe("resolveProjectConfig", () => {
       },
       environments: defaultEnvironments,
       sources: [],
+      varFile: defaultVarFilePath,
     })
   })
 
@@ -116,6 +129,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          varFile: defaultEnvVarFilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -127,6 +141,7 @@ describe("resolveProjectConfig", () => {
           repositoryUrl,
         },
       ],
+      varFile: defaultVarFilePath,
       variables: {
         defaultEnvVar: "foo",
         platform: platform(),
@@ -190,6 +205,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          varFile: defaultEnvVarFilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -211,6 +227,7 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
+      varFile: defaultVarFilePath,
     })
 
     delete process.env.TEST_ENV_VAR_A
@@ -242,6 +259,7 @@ describe("resolveProjectConfig", () => {
       },
       environments: defaultEnvironments,
       sources: [],
+      varFile: defaultVarFilePath,
     })
   })
 
@@ -269,6 +287,7 @@ describe("resolveProjectConfig", () => {
       },
       environments: defaultEnvironments,
       sources: [],
+      varFile: defaultVarFilePath,
     })
   })
 
@@ -319,6 +338,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          varFile: defaultEnvVarFilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -337,6 +357,7 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
+      varFile: defaultVarFilePath,
     })
   })
 
@@ -385,6 +406,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          varFile: defaultEnvVarFilePath("default"),
           variables: {
             envVar: "bar",
           },
@@ -400,6 +422,7 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
+      varFile: defaultVarFilePath,
       variables: {
         defaultVar: "foo",
       },
@@ -408,6 +431,18 @@ describe("resolveProjectConfig", () => {
 })
 
 describe("pickEnvironment", () => {
+  let tmpDir: tmp.DirectoryResult
+  let tmpPath: string
+
+  beforeEach(async () => {
+    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    tmpPath = await realpath(tmpDir.path)
+  })
+
+  afterEach(async () => {
+    await tmpDir.cleanup()
+  })
+
   it("should throw if selected environment isn't configured", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
@@ -508,5 +543,283 @@ describe("pickEnvironment", () => {
       ],
       variables: {},
     })
+  })
+
+  it("should correctly merge project and environment variables", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          variables: {
+            b: "B",
+            c: "c",
+          },
+        },
+      ],
+      providers: [],
+      variables: {
+        a: "a",
+        b: "b",
+      },
+    }
+
+    const result = await pickEnvironment(config, "default")
+
+    expect(result.variables).to.eql({
+      a: "a",
+      b: "B",
+      c: "c",
+    })
+  })
+
+  it("should load variables from default project varFile if it exists", async () => {
+    const varFilePath = resolve(tmpPath, defaultVarFilePath)
+    await writeFile(varFilePath, dedent`
+      a=a
+      b=b
+    `)
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          variables: {
+            b: "B",
+            c: "c",
+          },
+        },
+      ],
+      providers: [],
+      variables: {},
+    }
+
+    const result = await pickEnvironment(config, "default")
+
+    expect(result.variables).to.eql({
+      a: "a",
+      b: "B",
+      c: "c",
+    })
+  })
+
+  it("should load variables from default environment varFile if it exists", async () => {
+    const varFilePath = resolve(tmpPath, defaultEnvVarFilePath("default"))
+    await writeFile(varFilePath, dedent`
+      b=B
+      c=c
+    `)
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          variables: {},
+        },
+      ],
+      providers: [],
+      variables: {
+        a: "a",
+        b: "b",
+      },
+    }
+
+    const result = await pickEnvironment(config, "default")
+
+    expect(result.variables).to.eql({
+      a: "a",
+      b: "B",
+      c: "c",
+    })
+  })
+
+  it("should load variables from custom project varFile if specified", async () => {
+    const varFilePath = resolve(tmpPath, "foo.env")
+    await writeFile(varFilePath, dedent`
+      a=a
+      b=b
+    `)
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          variables: {
+            b: "B",
+            c: "c",
+          },
+        },
+      ],
+      providers: [],
+      varFile: "foo.env",
+      variables: {},
+    }
+
+    const result = await pickEnvironment(config, "default")
+
+    expect(result.variables).to.eql({
+      a: "a",
+      b: "B",
+      c: "c",
+    })
+  })
+
+  it("should load variables from custom environment varFile if specified", async () => {
+    const varFilePath = resolve(tmpPath, "foo.env")
+    await writeFile(varFilePath, dedent`
+      b=B
+      c=c
+    `)
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          varFile: "foo.env",
+          variables: {},
+        },
+      ],
+      providers: [],
+      variables: {
+        a: "a",
+        b: "b",
+      },
+    }
+
+    const result = await pickEnvironment(config, "default")
+
+    expect(result.variables).to.eql({
+      a: "a",
+      b: "B",
+      c: "c",
+    })
+  })
+
+  it("should correctly merge all variable sources in precedence order (variables fields and varFiles)", async () => {
+    // Precedence 1/4 (highest)
+    await writeFile(resolve(tmpPath, defaultEnvVarFilePath("default")), dedent`
+      d=D
+      e=e
+    `)
+
+    // Precedence 3/4
+    await writeFile(resolve(tmpPath, defaultVarFilePath), dedent`
+      b=B
+      c=c
+    `)
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          // Precedence 2/4
+          variables: {
+            c: "C",
+            d: "d",
+          },
+        },
+      ],
+      providers: [],
+      // Precedence 4/4 (lowest)
+      variables: {
+        a: "a",
+        b: "b",
+      },
+    }
+
+    const result = await pickEnvironment(config, "default")
+
+    expect(result.variables).to.eql({
+      a: "a",
+      b: "B",
+      c: "C",
+      d: "D",
+      e: "e",
+    })
+  })
+
+  it("should throw if project varFile is set to non-default and it doesn't exist", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          variables: {},
+        },
+      ],
+      providers: [],
+      varFile: "foo.env",
+      variables: {},
+    }
+
+    await expectError(
+      () => pickEnvironment(config, "default"),
+      (err) => expect(err.message).to.equal("Could not find varFile at path 'foo.env'"),
+    )
+  })
+
+  it("should throw if environment varFile is set to non-default and it doesn't exist", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          varFile: "foo.env",
+          variables: {},
+        },
+      ],
+      providers: [],
+      variables: {},
+    }
+
+    await expectError(
+      () => pickEnvironment(config, "default"),
+      (err) => expect(err.message).to.equal("Could not find varFile at path 'foo.env'"),
+    )
   })
 })

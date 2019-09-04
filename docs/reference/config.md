@@ -132,6 +132,21 @@ environmentDefaults:
       - stage
 ```
 
+### `environmentDefaults.varFile`
+
+[environmentDefaults](#environmentdefaults) > varFile
+
+Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
+_environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
+[here](https://github.com/motdotla/dotenv#rules).
+
+If you don't set the field and the `garden.<env-name>.env` file does not exist,
+we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
+
+| Type     | Required | Default                   |
+| -------- | -------- | ------------------------- |
+| `string` | No       | `"garden.<env-name>.env"` |
+
 ### `environmentDefaults.variables`
 
 [environmentDefaults](#environmentdefaults) > variables
@@ -141,20 +156,6 @@ A key/value map of variables that modules can reference when using this environm
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
-
-### `environments`
-
-A list of environments to configure for the project.
-
-| Type                            | Required |
-| ------------------------------- | -------- |
-| `array[object] | array[string]` | No       |
-
-Example:
-
-```yaml
-environments: [{"name":"local","providers":[{"name":"local-kubernetes","environments":[]}],"variables":{}}]
-```
 
 ### `modules`
 
@@ -287,6 +288,22 @@ sources:
   - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
+### `varFile`
+
+Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
+project-wide `variables` field. The file should be in a standard "dotenv" format, specified
+[here](https://github.com/motdotla/dotenv#rules).
+
+If you don't set the field and the `garden.env` file does not exist, we simply ignore it.
+If you do override the default value and the file doesn't exist, an error will be thrown.
+
+_Note that in many cases it is advisable to only use environment-specific var files, instead of combining
+multiple ones. See the `environments[].varFile` field for this option._
+
+| Type     | Required | Default        |
+| -------- | -------- | -------------- |
+| `string` | No       | `"garden.env"` |
+
 ### `variables`
 
 Variables to configure for all environments.
@@ -294,6 +311,95 @@ Variables to configure for all environments.
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+### `environments`
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `environments[].providers[]`
+
+[environments](#environments) > providers
+
+DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
+
+### `environments[].providers[].name`
+
+[environments](#environments) > [providers](#environments[].providers[]) > name
+
+The name of the provider plugin to use.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+environments:
+  - providers:
+      - name: "local-kubernetes"
+```
+
+### `environments[].providers[].environments[]`
+
+[environments](#environments) > [providers](#environments[].providers[]) > environments
+
+If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+environments:
+  - providers:
+      - environments:
+        - dev
+        - stage
+```
+
+### `environments[].varFile`
+
+[environments](#environments) > varFile
+
+Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
+_environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
+[here](https://github.com/motdotla/dotenv#rules).
+
+If you don't set the field and the `garden.<env-name>.env` file does not exist,
+we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
+
+| Type     | Required | Default                   |
+| -------- | -------- | ------------------------- |
+| `string` | No       | `"garden.<env-name>.env"` |
+
+### `environments[].variables`
+
+[environments](#environments) > variables
+
+A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
+
+### `environments[].name`
+
+[environments](#environments) > name
+
+The name of the environment.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 
 ## Project YAML schema
@@ -309,8 +415,8 @@ environmentDefaults:
   providers:
     - name:
       environments:
+  varFile: garden.<env-name>.env
   variables: {}
-environments:
 modules:
   include:
   exclude:
@@ -320,7 +426,15 @@ providers:
 sources:
   - name:
     repositoryUrl:
+varFile: garden.env
 variables: {}
+environments:
+  - providers:
+      - name:
+        environments:
+  - varFile: garden.<env-name>.env
+    variables: {}
+    name:
 ```
 
 ## Module configuration keys
