@@ -1,0 +1,6 @@
+kind: Project
+name: varfiles-custom
+environments:
+  - name: default
+    varFile: foo.default.env
+varFile: foo.env

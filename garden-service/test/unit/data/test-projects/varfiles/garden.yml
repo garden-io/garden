@@ -1,0 +1,4 @@
+kind: Project
+name: varfiles
+environments:
+  - name: default

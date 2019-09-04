@@ -215,7 +215,7 @@ export class Garden {
       environmentName = defaultEnvironment
     }
 
-    const { providers, variables } = pickEnvironment(config, environmentName)
+    const { providers, variables } = await pickEnvironment(config, environmentName)
 
     gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)

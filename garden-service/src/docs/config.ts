@@ -12,7 +12,7 @@ import { safeDump } from "js-yaml"
 import * as linewrap from "linewrap"
 import { resolve } from "path"
 import { get, flatten, startCase, uniq } from "lodash"
-import { projectSchema } from "../config/project"
+import { projectSchema, environmentSchema } from "../config/project"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joiArray, joi } from "../config/common"
@@ -500,7 +500,12 @@ function renderModuleTypeReference(name: string, desc: ModuleTypeDescription) {
  */
 function renderBaseConfigReference() {
   const baseTemplatePath = resolve(TEMPLATES_DIR, "base-config.hbs")
-  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(projectSchema)
+  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(
+    projectSchema.keys({
+      // Need to override this because we currently don't handle joi.alternatives() right
+      environments: joi.array().items(environmentSchema).unique("name"),
+    }),
+  )
   const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema)
 
   const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
