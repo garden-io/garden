@@ -49,8 +49,8 @@ export async function deleteSystemMetadataNamespace() {
  * context (not inside the framework proper, and outside of a Garden project).
  */
 export async function getAllNamespacesKubectl() {
-  const out = await execa.stdout("kubectl", ["get", "ns", "-o", "name"])
-  const namespaces = out.split("\n").map(n => n.replace("namespace/", ""))
+  const { stdout } = await execa("kubectl", ["get", "ns", "-o", "name"])
+  const namespaces = stdout.split("\n").map(n => n.replace("namespace/", ""))
   return namespaces
 }
 

@@ -308,7 +308,7 @@ export function validate<T>(
             d = d.children[part]
           } else if (d.patterns) {
             for (const p of d.patterns) {
-              if (part.match(new RegExp(p.regex.slice(1, -1)))) {
+              if (part.toString().match(new RegExp(p.regex.slice(1, -1)))) {
                 renderedPath += `[${part}]`
                 d = p.rule
                 break

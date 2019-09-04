@@ -226,8 +226,8 @@ export class GardenServer {
       })
     })
 
-    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext>>ws.routes())
-    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext>>ws.allowedMethods())
+    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>ws.routes())
+    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>ws.allowedMethods())
   }
 }
 

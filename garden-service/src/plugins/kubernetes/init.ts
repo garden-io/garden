@@ -189,8 +189,8 @@ export async function prepareSystem(
       \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
       to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
     `, {
-        status,
-      })
+      status,
+    })
   }
 
   // Install Tiller to system namespace

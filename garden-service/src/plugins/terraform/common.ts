@@ -101,16 +101,16 @@ export async function getStackStatus({ log, provider, autoApply, root, variables
     cwd: root,
   })
 
-  if (plan.code === 0) {
+  if (plan.exitCode === 0) {
     // Stack is up-to-date
     const outputs = await getTfOutputs(log, tfVersion, root)
     return { ready: true, outputs }
-  } else if (plan.code === 1) {
+  } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.
     throw new ConfigurationError(`terraform plan returned an error:\n${plan.stderr}`, {
       output: plan.stderr,
     })
-  } else if (plan.code === 2) {
+  } else if (plan.exitCode === 2) {
     // No error but stack is not up-to-date
     if (autoApply) {
       // Trigger the prepareEnvironment handler
@@ -121,8 +121,8 @@ export async function getStackStatus({ log, provider, autoApply, root, variables
       return { ready: true, outputs }
     }
   } else {
-    throw new PluginError(`Unexpected exit code from \`terraform plan\`: ${plan.code}`, {
-      code: plan.code,
+    throw new PluginError(`Unexpected exit code from \`terraform plan\`: ${plan.exitCode}`, {
+      exitCode: plan.exitCode,
       stderr: plan.stderr,
       stdout: plan.stdout,
     })

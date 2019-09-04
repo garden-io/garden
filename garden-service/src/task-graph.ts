@@ -7,7 +7,7 @@
  */
 
 import * as Bluebird from "bluebird"
-import * as PQueue from "p-queue"
+import PQueue from "p-queue"
 import chalk from "chalk"
 import * as yaml from "js-yaml"
 import hasAnsi = require("has-ansi")

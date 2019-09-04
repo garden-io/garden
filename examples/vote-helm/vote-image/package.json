@@ -10,7 +10,7 @@
     "test:integ": "node_modules/mocha/bin/mocha tests/integ/test.js"
   },
   "dependencies": {
-    "axios": "^0.18.0",
+    "axios": "^0.18.1",
     "chai": "^4.1.2",
     "vue": "^2.5.17",
     "vue-router": "^3.0.1",

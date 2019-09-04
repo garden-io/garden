@@ -413,7 +413,7 @@ async function getContextConfig(log: LogEntry, provider: KubernetesProvider): Pr
 
   // FIXME: need to patch a bug in the library here (https://github.com/kubernetes-client/javascript/pull/54)
   for (const [a, b] of zip(rawConfig["clusters"] || [], kc.clusters)) {
-    if (a && a["cluster"]["insecure-skip-tls-verify"] === true) {
+    if (a && (<any>a)["cluster"]["insecure-skip-tls-verify"] === true) {
       (<any>b).skipTLSVerify = true
     }
   }

@@ -137,11 +137,12 @@ export async function buildExecModule({ module }: BuildModuleParams<ExecModule>)
   const buildPath = module.buildPath
 
   if (module.spec.build.command.length) {
-    const res = await execa.shell(
+    const res = await execa(
       module.spec.build.command.join(" "),
       {
         cwd: buildPath,
         env: { ...process.env, ...mapValues(module.spec.env, v => v.toString()) },
+        shell: true,
       },
     )
 
@@ -160,7 +161,7 @@ export async function testExecModule({ module, testConfig }: TestModuleParams<Ex
   const startedAt = new Date()
   const command = testConfig.spec.command
 
-  const result = await execa.shell(
+  const result = await execa(
     command.join(" "),
     {
       cwd: module.buildPath,
@@ -171,6 +172,7 @@ export async function testExecModule({ module, testConfig }: TestModuleParams<Ex
         ...mapValues(testConfig.spec.env, v => v + ""),
       },
       reject: false,
+      shell: true,
     },
   )
 
@@ -179,7 +181,7 @@ export async function testExecModule({ module, testConfig }: TestModuleParams<Ex
     command,
     testName: testConfig.name,
     version: module.version.versionString,
-    success: result.code === 0,
+    success: result.exitCode === 0,
     startedAt,
     completedAt: new Date(),
     log: result.stdout + result.stderr,
@@ -196,11 +198,12 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
   let log: string
 
   if (command && command.length) {
-    const commandResult = await execa.shell(
+    const commandResult = await execa(
       command.join(" "),
       {
         cwd: module.buildPath,
         env: { ...process.env, ...mapValues(module.spec.env, v => v.toString()) },
+        shell: true,
       },
     )
 

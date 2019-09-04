@@ -101,8 +101,8 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
 
     if (!defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
-      const minikubeIp = await execa.stdout("minikube", ["ip"])
-      defaultHostname = `${projectName}.${minikubeIp}.nip.io`
+      const { stdout } = await execa("minikube", ["ip"])
+      defaultHostname = `${projectName}.${stdout}.nip.io`
     }
 
     if (config.setupIngressController === "nginx") {
