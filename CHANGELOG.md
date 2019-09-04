@@ -1,4 +1,36 @@
 
+<a name="v0.10.7-alpha.0"></a>
+## [v0.10.7-alpha.0](https://github.com/garden-io/garden/compare/v0.10.6...v0.10.7-alpha.0) (2019-09-04)
+
+### Bug Fixes
+
+* task/test results outputs are not shown ([4a8516e6](https://github.com/garden-io/garden/commit/4a8516e6))
+* allow dots in env variable names ([a8f7dd12](https://github.com/garden-io/garden/commit/a8f7dd12))
+* running task would print undefined ([729e8cdf](https://github.com/garden-io/garden/commit/729e8cdf))
+* **config:** relax constraints on variable and output names ([442f8f80](https://github.com/garden-io/garden/commit/442f8f80))
+* **container:** allow any string as ingress path ([79202280](https://github.com/garden-io/garden/commit/79202280))
+* **exec:** wrong cwd when running `exec` module tests ([12987aeb](https://github.com/garden-io/garden/commit/12987aeb))
+* **k8s:** allow user to configure own storageClass for build-sync volume ([fc0037f9](https://github.com/garden-io/garden/commit/fc0037f9))
+* **k8s:** error when retrieving older test results from cache ([e3db60af](https://github.com/garden-io/garden/commit/e3db60af))
+* **logger:** display duration in seconds ([53ea69af](https://github.com/garden-io/garden/commit/53ea69af))
+* **logger:** concat messages when formatting for json ([92dcb93f](https://github.com/garden-io/garden/commit/92dcb93f))
+* **openfaas:** user env variables weren't passed to the function ([dd1ed8a8](https://github.com/garden-io/garden/commit/dd1ed8a8))
+* **openfaas:** build function before getting container build status ([4693f13b](https://github.com/garden-io/garden/commit/4693f13b))
+* **vcs:** .gitignore files were not respected ([5c08d614](https://github.com/garden-io/garden/commit/5c08d614))
+* **watcher:** raise log level for watch events ([14eb4ea5](https://github.com/garden-io/garden/commit/14eb4ea5))
+
+### Features
+
+* add terraform provider and example with basic GKE setup ([32651d84](https://github.com/garden-io/garden/commit/32651d84))
+* **container:** output build log while building with debug log level ([4487380b](https://github.com/garden-io/garden/commit/4487380b))
+* **core:** expose service and task dependency outputs at runtime ([#1123](https://github.com/garden-io/garden/issues/1123)) ([fca6a72a](https://github.com/garden-io/garden/commit/fca6a72a))
+* **k8s:** allow setting custom kubeconfig path ([8b4a6d5e](https://github.com/garden-io/garden/commit/8b4a6d5e))
+
+### Improvement
+
+* **logger:** store all message states ([b68f3435](https://github.com/garden-io/garden/commit/b68f3435))
+
+
 <a name="v0.10.6"></a>
 ## [v0.10.6](https://github.com/garden-io/garden/compare/v0.10.5...v0.10.6) (2019-08-20)
 
